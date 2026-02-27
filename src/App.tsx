@@ -17,6 +17,8 @@ import AttendancePage from './pages/Attendance';
 import MyAttendancePage from './pages/MyAttendance';
 import AttendanceReportsPage from './pages/AttendanceReports';
 import QuizManagementPage from './pages/QuizManagement';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import QuestionManagementPage from './pages/QuestionManagement';
 import QuizzesPage from './pages/Quizzes';
 import QuizTakingPage from './pages/QuizTaking';
 import QuizResultsPage from './pages/QuizResults';
@@ -147,6 +149,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <QuizManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/question-bank"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <QuestionManagementPage />
             </Layout>
           </ProtectedRoute>
         }

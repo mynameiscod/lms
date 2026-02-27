@@ -648,5 +648,90 @@ export const quizApi = {
       method: 'POST',
       body: JSON.stringify({ questions: mappedQuestions })
     });
+  },
+
+  // ========== QUESTION BANK METHODS ==========
+
+  // Create a question in the Question Bank
+  createQuestionBankQuestion: async (questionData: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/create`, {
+      method: 'POST',
+      body: JSON.stringify(questionData)
+    });
+  },
+
+  // Get all questions in the Question Bank
+  getQuestionBank: async (filters?: { tags?: string[]; difficulty?: string; type?: string; source?: string; search?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.tags?.length) params.append('tags', filters.tags.join(','));
+    if (filters?.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.source) params.append('source', filters.source);
+    if (filters?.search) params.append('search', filters.search);
+
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/questions/bank/list${queryString ? `?${queryString}` : ''}`;
+
+    return authenticatedFetch(url, { method: 'GET' });
+  },
+
+  // Search questions in the Question Bank
+  searchQuestions: async (searchTerm: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/search?q=${encodeURIComponent(searchTerm)}`, {
+      method: 'GET'
+    });
+  },
+
+  // Get questions by specific tags
+  getQuestionsByTags: async (tags: string[]) => {
+    return authenticatedFetch(
+      `${API_BASE_URL}/questions/bank/tags?tags=${tags.join(',')}`,
+      { method: 'GET' }
+    );
+  },
+
+  // Get all available tags
+  getAllTags: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/all-tags`, {
+      method: 'GET'
+    });
+  },
+
+  // Check for duplicate questions
+  checkDuplicate: async (questionText: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/check-duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({ questionText })
+    });
+  },
+
+  // Get Question Bank statistics
+  getQuestionBankStats: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/stats`, {
+      method: 'GET'
+    });
+  },
+
+  // Update a question in the Question Bank
+  updateQuestionBankQuestion: async (questionId: string, updateData: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+  },
+
+  // Delete a question from the Question Bank
+  deleteQuestionBankQuestion: async (questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/${questionId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Mark a question as duplicate
+  markAsDuplicate: async (questionId: string, duplicateOfId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/${questionId}/mark-duplicate`, {
+      method: 'POST',
+      body: JSON.stringify({ duplicateOfId })
+    });
   }
 };

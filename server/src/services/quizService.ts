@@ -65,7 +65,7 @@ export class QuizService {
     } else if (quiz.accessibleTo === 'batch_wise') {
       const student = await User.findById(studentId);
       if (!student) return false;
-      return quiz.selectedBatches?.includes(student.batchId || '') || false;
+      return quiz.selectedBatches?.includes(student.batchId?.toString() || '') || false;
     } else if (quiz.accessibleTo === 'individual') {
       return quiz.selectedStudents?.includes(studentId) || false;
     }
@@ -170,8 +170,9 @@ export class QuizService {
       if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
         qObj.options = qObj.options.map((opt: any) => ({
           _id: opt._id,
-          text: opt.text
-          // Don't include isCorrect
+          text: opt.text,
+          isCorrect: false
+          // Don't include actual correct answer
         }));
       }
       delete qObj.correctAnswers;

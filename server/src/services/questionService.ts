@@ -47,7 +47,8 @@ export class QuestionService {
         if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
           qObj.options = qObj.options?.map(opt => ({
             _id: opt._id,
-            text: opt.text
+            text: opt.text,
+            isCorrect: false
           }));
         }
         delete qObj.correctAnswers;
@@ -68,7 +69,8 @@ export class QuestionService {
       const qObj = question.toObject();
       qObj.options = qObj.options?.map(opt => ({
         _id: opt._id,
-        text: opt.text
+        text: opt.text,
+        isCorrect: false
       }));
       delete qObj.correctAnswers;
       delete qObj.correctAnswerText;

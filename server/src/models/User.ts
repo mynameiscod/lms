@@ -8,6 +8,7 @@ export interface IUser extends Document {
   password: string;
   role: string;
   tenantId: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -46,6 +47,11 @@ const UserSchema: Schema = new Schema(
       type: mongoose.Types.ObjectId, 
       ref: 'Tenant', 
       required: true 
+    },
+    batchId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Batch',
+      default: null
     },
     isActive: { 
       type: Boolean, 

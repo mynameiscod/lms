@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { quizApi, batchApi } from '../../api';
 import { Button, Alert, Spinner } from '../../components/common';
 import QuizWizard from '../../components/QuizWizard/QuizWizard';
+import QuizQuestionLinking from '../../components/QuizQuestionLinking/QuizQuestionLinking';
 import { Quiz, Batch } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import './QuizManagementPage.css';
@@ -15,6 +16,8 @@ const QuizManagementPage: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
+  const [linkingQuizId, setLinkingQuizId] = useState<string>('');
+  const [linkingQuizTitle, setLinkingQuizTitle] = useState('');
 
   useEffect(() => {
     fetchQuizzes();
@@ -84,6 +87,11 @@ const QuizManagementPage: React.FC = () => {
     }
   };
 
+  const handleLinkQuestions = (quiz: Quiz) => {
+    setLinkingQuizId(quiz._id);
+    setLinkingQuizTitle(quiz.title);
+  };
+
   if (loading) return <Spinner fullScreen />;
 
   // Show wizard full-page
@@ -97,6 +105,25 @@ const QuizManagementPage: React.FC = () => {
         onClose={() => {
           setShowCreateModal(false);
           resetForm();
+        }}
+      />
+    );
+  }
+
+  // Show question linking interface
+  if (linkingQuizId) {
+    return (
+      <QuizQuestionLinking
+        quizId={linkingQuizId}
+        quizTitle={linkingQuizTitle}
+        onClose={() => {
+          setLinkingQuizId('');
+          setLinkingQuizTitle('');
+          fetchQuizzes();
+        }}
+        onSuccess={() => {
+          setSuccess('Questions linked successfully');
+          fetchQuizzes();
         }}
       />
     );
@@ -171,10 +198,11 @@ const QuizManagementPage: React.FC = () => {
                     ✏️ Edit
                   </Button>
                   <Button
-                    onClick={() => window.location.href = `/quiz/${quiz._id}/questions`}
-                    className="btn-secondary btn-sm"
+                    onClick={() => handleLinkQuestions(quiz)}
+                    className="btn-primary btn-sm"
+                    title="Link questions from Question Bank"
                   >
-                    ❓ Questions
+                    🔗 Link Questions
                   </Button>
                   <Button
                     onClick={() => handleDeleteQuiz(quiz._id)}

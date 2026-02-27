@@ -733,5 +733,49 @@ export const quizApi = {
       method: 'POST',
       body: JSON.stringify({ duplicateOfId })
     });
-  }
+  },
+
+  // ========== QUESTION LINKING TO QUIZ ==========
+
+  // Link multiple questions from Question Bank to a quiz
+  linkQuestionsToQuiz: async (quizId: string, questionIds: string[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/link-questions`, {
+      method: 'POST',
+      body: JSON.stringify({ questionIds })
+    });
+  },
+
+  // Add a single question to a quiz
+  addQuestionToQuiz: async (quizId: string, questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/add-question/${questionId}`, {
+      method: 'POST',
+      body: JSON.stringify({})
+    });
+  },
+
+  // Remove a single question from a quiz
+  removeQuestionFromQuiz: async (quizId: string, questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/remove-question/${questionId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Remove all questions from a quiz
+  removeAllQuestionsFromQuiz: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/remove-all-questions`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Get available questions from Question Bank for linking to a quiz
+  getAvailableQuestions: async (quizId: string, filters?: { difficulty?: string; type?: string; tags?: string[] }) => {
+    const params = new URLSearchParams();
+    if (filters?.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters?.type) params.append('type', filters.type);
+    if (filters?.tags?.length) params.append('tags', filters.tags.join(','));
+
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/quizzes/${quizId}/available-questions${queryString ? `?${queryString}` : ''}`;
+
+    return authenticatedFetch(url, { method: 'GET' });  },
 };

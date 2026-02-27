@@ -185,11 +185,7 @@ const QuizTakingPage: React.FC = () => {
         };
       });
 
-      await quizApi.submitAttempt(attempt._id, {
-        submissions,
-        timeTaken: quiz.totalTime * 60 - timeLeft,
-        tabSwitchCount
-      });
+      await quizApi.submitAttempt(quizId, attempt._id, submissions);
 
       // Redirect to results
       window.location.href = `/quiz/${quizId}/results/${attempt._id}`;

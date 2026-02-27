@@ -58,12 +58,12 @@ const QuestionBuilder: React.FC = () => {
     const { name, value } = e.target;
     setForm(prev => ({
       ...prev,
-      [name]: name === 'marks' || name === 'difficulty' === 'marks' ? Number(value) : value
+      [name]: name === 'marks' || name === 'difficulty' ? Number(value) : value
     }));
   };
 
   const handleOptionChange = (index: number, field: 'text' | 'isCorrect', value: any) => {
-    const newOptions = [...form.options];
+    let newOptions = [...form.options];
     if (field === 'text') {
       newOptions[index].text = value;
     } else {
@@ -146,7 +146,7 @@ const QuestionBuilder: React.FC = () => {
       }
 
       if (editingId) {
-        await quizApi.updateQuestion(editingId, form);
+        await quizApi.updateQuestion(quizId!, editingId, form);
         setSuccess('Question updated successfully');
       } else {
         await quizApi.createQuestion(quizId!, form);
@@ -184,7 +184,10 @@ const QuestionBuilder: React.FC = () => {
       marks: question.marks,
       difficulty: question.difficulty as any,
       explanation: question.explanation || '',
-      options: question.options || [],
+      options: (question.options || []).map(opt => ({
+        text: opt.text,
+        isCorrect: opt.isCorrect !== undefined ? opt.isCorrect : false
+      })),
       testCases: question.testCases as any
     });
     setEditingId(question._id);
@@ -195,7 +198,7 @@ const QuestionBuilder: React.FC = () => {
     if (!window.confirm('Are you sure you want to delete this question?')) return;
 
     try {
-      await quizApi.deleteQuestion(id);
+      await quizApi.deleteQuestion(quizId!, id);
       setSuccess('Question deleted successfully');
       loadQuestions();
     } catch (err: any) {

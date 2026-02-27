@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { quizApi, batchApi } from '../../api';
-import { Button, Alert, Spinner, Modal } from '../../components/common';
+import { Button, Alert, Spinner } from '../../components/common';
 import QuizWizard from '../../components/QuizWizard/QuizWizard';
 import { Quiz, Batch } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
@@ -86,6 +86,23 @@ const QuizManagementPage: React.FC = () => {
 
   if (loading) return <Spinner fullScreen />;
 
+  // Show wizard full-page
+  if (showCreateModal) {
+    return (
+      <QuizWizard
+        initialData={editingQuiz || undefined}
+        batches={batches}
+        isEditing={!!editingQuiz}
+        onSubmit={handleCreateQuiz}
+        onClose={() => {
+          setShowCreateModal(false);
+          resetForm();
+        }}
+      />
+    );
+  }
+
+  // Show quiz list
   return (
     <div className="quiz-management-page">
       <div className="page-header">
@@ -103,25 +120,6 @@ const QuizManagementPage: React.FC = () => {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
-
-      {/* Quiz Wizard Modal */}
-      {showCreateModal && (
-        <Modal isOpen={showCreateModal} onClose={() => {
-          setShowCreateModal(false);
-          resetForm();
-        }}>
-          <QuizWizard
-            initialData={editingQuiz || undefined}
-            batches={batches}
-            isEditing={!!editingQuiz}
-            onSubmit={handleCreateQuiz}
-            onClose={() => {
-              setShowCreateModal(false);
-              resetForm();
-            }}
-          />
-        </Modal>
-      )}
 
       {/* Quizzes List */}
       <div className="quizzes-container">

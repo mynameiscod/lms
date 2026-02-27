@@ -1,53 +1,67 @@
 .quiz-wizard {
-  background: white;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-  max-width: 700px;
-  margin: 0 auto;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+  padding: 40px 20px;
 }
 
 .wizard-header {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
-  padding: 30px;
+  padding: 40px;
+  margin: -40px -20px 40px -20px;
+  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+}
+
+.wizard-title-section {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 25px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.back-btn {
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.back-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  transform: translateX(-5px);
 }
 
 .wizard-header h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.8rem;
+  font-weight: 700;
+}
+
+.header-subtitle {
   margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.close-btn {
-  background: rgba(255, 255, 255, 0.2);
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-  background: rgba(255, 255, 255, 0.3);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1rem;
 }
 
 /* Progress Indicator */
 .wizard-progress {
   display: flex;
   justify-content: space-between;
-  padding: 30px;
-  background: #f8f9fa;
-  border-bottom: 2px solid #e0e0e0;
+  padding: 40px;
+  background: white;
+  border-radius: 16px;
+  margin-bottom: 40px;
+  max-width: 1000px;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
 .progress-step {
@@ -128,8 +142,14 @@
 
 /* Step Content */
 .wizard-step {
-  padding: 40px;
+  padding: 50px 40px;
   min-height: 400px;
+  max-width: 1000px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  margin-bottom: 40px;
 }
 
 .wizard-step h3 {
@@ -273,9 +293,13 @@
   justify-content: space-between;
   align-items: center;
   gap: 15px;
-  padding: 20px 40px;
-  background: #f8f9fa;
+  padding: 30px 40px;
+  background: white;
   border-top: 2px solid #e0e0e0;
+  border-radius: 16px;
+  max-width: 1000px;
+  margin: 0 auto 40px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
 }
 
 .step-indicator {

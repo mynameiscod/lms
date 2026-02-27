@@ -160,8 +160,15 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
   return (
     <div className="quiz-wizard">
       <div className="wizard-header">
-        <h2>{isEditing ? 'Edit Quiz' : 'Create New Quiz'}</h2>
-        <button className="close-btn" onClick={onClose}>✕</button>
+        <div className="wizard-title-section">
+          <button className="back-btn" onClick={onClose}>
+            ← Back
+          </button>
+          <div>
+            <h2>{isEditing ? 'Edit Quiz' : 'Create New Quiz'}</h2>
+            <p className="header-subtitle">Step-by-step quiz configuration</p>
+          </div>
+        </div>
       </div>
 
       {/* Progress Indicator */}

@@ -154,11 +154,19 @@ const QuizTakingPage: React.FC = () => {
       // Prepare submissions
       const submissions = Array.from(answers.entries()).map(([questionId, answer]) => {
         const question = questions.find(q => q._id === questionId);
-        return {
+        const submission: any = {
           questionId,
-          answer,
           questionType: question?.type,
         };
+
+        // Format answer based on question type
+        if (question?.type === 'mcq_single' || question?.type === 'mcq_multiple') {
+          submission.selectedOptions = Array.isArray(answer) ? answer : [answer];
+        } else {
+          submission.answer = answer || '';
+        }
+
+        return submission;
       });
 
       await quizApi.submitAttempt(quizId, attempt._id, submissions);

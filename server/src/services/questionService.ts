@@ -168,6 +168,211 @@ export class QuestionService {
       marks: isCorrect ? question.marks : 0
     };
   }
+
+  // ========== QUESTION BANK OPERATIONS ==========
+
+  // Create a question in the Question Bank (without quizId)
+  async createQuestionBankQuestion(
+    questionData: Partial<IQuestion>,
+    tenantId: string,
+    createdBy: string
+  ): Promise<IQuestion> {
+    const question = new Question({
+      ...questionData,
+      tenantId,
+      createdBy,
+      source: questionData.source || 'manual',
+      usageCount: 0,
+      usedInQuizzes: [],
+      quizId: undefined, // No quiz association for Question Bank
+      questionNo: undefined
+    });
+
+    return await question.save();
+  }
+
+  // Get all questions in the Question Bank for a tenant
+  async getQuestionBank(
+    tenantId: string,
+    filters?: {
+      tags?: string[];
+      difficulty?: string;
+      questionType?: string;
+      source?: string;
+      search?: string;
+    }
+  ): Promise<IQuestion[]> {
+    const query: any = {
+      tenantId,
+      quizId: { $exists: false } // Only bank questions, not embedded quiz questions
+    };
+
+    if (filters?.tags && filters.tags.length > 0) {
+      query.tags = { $in: filters.tags };
+    }
+
+    if (filters?.difficulty) {
+      query.difficultyLevel = filters.difficulty;
+    }
+
+    if (filters?.questionType) {
+      query.type = filters.questionType;
+    }
+
+    if (filters?.source) {
+      query.source = filters.source;
+    }
+
+    if (filters?.search) {
+      query.$text = { $search: filters.search };
+    }
+
+    return await Question.find(query).sort({ createdAt: -1 });
+  }
+
+  // Search questions in Question Bank
+  async searchQuestions(tenantId: string, searchTerm: string): Promise<IQuestion[]> {
+    return await Question.find(
+      {
+        tenantId,
+        quizId: { $exists: false },
+        $text: { $search: searchTerm }
+      },
+      { score: { $meta: 'textScore' } }
+    )
+      .sort({ score: { $meta: 'textScore' } })
+      .limit(50);
+  }
+
+  // Check for duplicate questions using semantic similarity
+  async checkDuplicateQuestion(
+    questionText: string,
+    tenantId: string
+  ): Promise<IQuestion | null> {
+    // Simple approach: find questions with very similar text
+    const normalizedText = questionText.toLowerCase().trim();
+
+    const potentialDuplicate = await Question.findOne({
+      tenantId,
+      quizId: { $exists: false },
+      question: { $regex: normalizedText, $options: 'i' }
+    });
+
+    return potentialDuplicate || null;
+  }
+
+  // Get questions by tags
+  async getQuestionsByTags(tenantId: string, tags: string[]): Promise<IQuestion[]> {
+    return await Question.find({
+      tenantId,
+      quizId: { $exists: false },
+      tags: { $in: tags }
+    });
+  }
+
+  // Get all unique tags for a tenant
+  async getAllTags(tenantId: string): Promise<string[]> {
+    const result = await Question.distinct('tags', {
+      tenantId,
+      quizId: { $exists: false }
+    });
+    return result.filter(tag => tag); // Remove empty/null values
+  }
+
+  // Update question usage when used in a quiz
+  async updateQuestionUsage(
+    questionId: string,
+    quizId: string,
+    isAdding: boolean = true
+  ): Promise<void> {
+    if (isAdding) {
+      await Question.findByIdAndUpdate(
+        questionId,
+        {
+          $inc: { usageCount: 1 },
+          $addToSet: { usedInQuizzes: quizId }
+        }
+      );
+    } else {
+      await Question.findByIdAndUpdate(
+        questionId,
+        {
+          $inc: { usageCount: -1 },
+          $pull: { usedInQuizzes: quizId }
+        }
+      );
+    }
+  }
+
+  // Mark question as duplicate
+  async markAsDuplicate(questionId: string, duplicateOfId: string): Promise<IQuestion | null> {
+    return await Question.findByIdAndUpdate(
+      questionId,
+      { duplicateOf: duplicateOfId },
+      { new: true }
+    );
+  }
+
+  // Delete from Question Bank (not from quiz)
+  async deleteQuestionBankQuestion(questionId: string): Promise<boolean> {
+    const result = await Question.findByIdAndDelete(questionId);
+    return result !== null;
+  }
+
+  // Get statistics for Question Bank
+  async getQuestionBankStats(tenantId: string): Promise<{
+    totalQuestions: number;
+    byDifficulty: { easy: number; medium: number; hard: number };
+    byType: Record<string, number>;
+    bySource: { manual: number; csv: number; ai: number };
+    totalTags: number;
+  }> {
+    const [
+      totalQuestions,
+      byDifficulty,
+      byType,
+      bySource,
+      allTags
+    ] = await Promise.all([
+      Question.countDocuments({ tenantId, quizId: { $exists: false } }),
+      Question.aggregate([
+        { $match: { tenantId, quizId: { $exists: false } } },
+        { $group: { _id: '$difficultyLevel', count: { $sum: 1 } } }
+      ]),
+      Question.aggregate([
+        { $match: { tenantId, quizId: { $exists: false } } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+      ]),
+      Question.aggregate([
+        { $match: { tenantId, quizId: { $exists: false } } },
+        { $group: { _id: '$source', count: { $sum: 1 } } }
+      ]),
+      this.getAllTags(tenantId)
+    ]);
+
+    const difficultyMap: any = { easy: 0, medium: 0, hard: 0 };
+    byDifficulty.forEach((item: any) => {
+      if (item._id) difficultyMap[item._id] = item.count;
+    });
+
+    const typeMap: any = {};
+    byType.forEach((item: any) => {
+      if (item._id) typeMap[item._id] = item.count;
+    });
+
+    const sourceMap: any = { manual: 0, csv: 0, ai: 0 };
+    bySource.forEach((item: any) => {
+      if (item._id) sourceMap[item._id] = item.count;
+    });
+
+    return {
+      totalQuestions,
+      byDifficulty: difficultyMap,
+      byType: typeMap,
+      bySource: sourceMap,
+      totalTags: allTags.length
+    };
+  }
 }
 
 export default new QuestionService();

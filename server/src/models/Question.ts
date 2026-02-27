@@ -8,9 +8,10 @@ export interface IQuestionOption {
 
 export interface IQuestion extends Document {
   _id: string;
-  quizId: string;
   tenantId: string;
-  questionNo: number;
+  createdBy: string;
+  quizId?: string; // Optional - for backward compatibility with embedded questions
+  questionNo?: number; // Optional - for embedded questions
   type: 'short_answer' | 'mcq_single' | 'mcq_multiple' | 'coding';
   question: string;
   description?: string;
@@ -27,6 +28,10 @@ export interface IQuestion extends Document {
   difficultyLevel: 'easy' | 'medium' | 'hard';
   explanation?: string;
   tags?: string[];
+  source: 'manual' | 'csv' | 'ai'; // Where the question came from
+  usageCount: number; // How many quizzes use this question
+  usedInQuizzes?: string[]; // References to quizzes using this question
+  duplicateOf?: string; // If this is marked as duplicate, reference to original
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,9 +43,10 @@ const questionOptionSchema = new Schema<IQuestionOption>({
 
 const questionSchema = new Schema<IQuestion>(
   {
-    quizId: { type: String, required: true },
     tenantId: { type: String, required: true },
-    questionNo: { type: Number, required: true },
+    createdBy: { type: String, required: true },
+    quizId: { type: String }, // Optional - for backward compatibility
+    questionNo: { type: Number }, // Optional - for embedded questions
     type: {
       type: String,
       enum: ['short_answer', 'mcq_single', 'mcq_multiple', 'coding'],
@@ -66,9 +72,25 @@ const questionSchema = new Schema<IQuestion>(
       default: 'medium'
     },
     explanation: { type: String },
-    tags: [{ type: String }]
+    tags: [{ type: String }],
+    source: {
+      type: String,
+      enum: ['manual', 'csv', 'ai'],
+      default: 'manual'
+    },
+    usageCount: {
+      type: Number,
+      default: 0
+    },
+    usedInQuizzes: [{ type: String }],
+    duplicateOf: { type: String }
   },
   { timestamps: true }
 );
+
+// Indexes for performance
+questionSchema.index({ tenantId: 1, createdBy: 1 });
+questionSchema.index({ tenantId: 1, tags: 1 });
+questionSchema.index({ question: 'text' }); // Full-text search
 
 export default mongoose.model<IQuestion>('Question', questionSchema);

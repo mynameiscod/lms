@@ -8,6 +8,7 @@ import roleRoutes from './roleRoutes';
 import batchRoutes from './batchRoutes';
 import attendanceRoutes from './attendanceRoutes';
 import quizRoutes from './quizRoutes';
+import questionRoutes from './questionRoutes';
 
 const router = express.Router();
 
@@ -20,5 +21,6 @@ router.use('/roles', roleRoutes);
 router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
+router.use('/questions', questionRoutes);
 
 export default router;

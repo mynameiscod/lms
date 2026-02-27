@@ -3,9 +3,10 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
 
 import apiRoutes from './routes';
-import { ApiResponse } from './types';
+import { ApiResponse, AuthenticatedRequest } from './types';
 
 dotenv.config();
 
@@ -28,6 +29,39 @@ app.get('/api/health', (req: Request, res: Response<ApiResponse<any>>) => {
     message: 'LMS API is running',
     data: { status: 'OK', timestamp: new Date().toISOString() }
   });
+});
+
+// Debug auth endpoint
+app.post('/api/debug/auth', (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'No token provided',
+        data: { authHeader, hasToken: false }
+      });
+    }
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret-key') as any;
+    res.json({
+      success: true,
+      message: 'Token verified successfully',
+      data: { 
+        token: token.substring(0, 20) + '...', 
+        decoded,
+        jwt_secret_set: !!process.env.JWT_SECRET 
+      }
+    });
+  } catch (error: any) {
+    res.status(401).json({
+      success: false,
+      message: error.message,
+      data: { error: error.message }
+    });
+  }
 });
 
 // API Routes

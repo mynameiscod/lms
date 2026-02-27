@@ -201,8 +201,10 @@ export class QuizService {
       let marksAwarded = 0;
 
       if (question.type === 'mcq_single' || question.type === 'mcq_multiple') {
-        isCorrect = JSON.stringify(answer.selectedOptions.sort()) === 
-                   JSON.stringify(question.correctAnswers?.sort());
+        const selectedOptions = answer.selectedOptions || [];
+        const correctAnswers = question.correctAnswers || [];
+        isCorrect = JSON.stringify(selectedOptions.sort()) === 
+                   JSON.stringify(correctAnswers.sort());
         marksAwarded = isCorrect ? question.marks : 0;
       } else if (question.type === 'short_answer') {
         // For short answers, mark as pending for manual review
@@ -224,8 +226,8 @@ export class QuizService {
         tenantId: attempt.tenantId,
         questionNo: question.questionNo,
         questionType: question.type,
-        studentAnswer: answer.answer,
-        selectedOptions: answer.selectedOptions,
+        studentAnswer: answer.answer || '',
+        selectedOptions: answer.selectedOptions || [],
         isCorrect,
         marksAwarded
       });

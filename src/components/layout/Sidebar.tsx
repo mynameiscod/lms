@@ -14,7 +14,8 @@ interface MenuItem {
 const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
-    attendance: false
+    attendance: false,
+    quiz: false
   });
   const location = useLocation();
   const { user } = useAuth();
@@ -42,6 +43,16 @@ const Sidebar: React.FC = () => {
         { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'] },
         { label: 'My Attendance', path: '/my-attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'] },
         { label: 'Reports', path: '/attendance-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'] },
+      ]
+    },
+    {
+      label: 'Quizzes',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      icon: '📝',
+      submenu: [
+        { label: 'My Quizzes', path: '/quizzes', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'] },
+        { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
+        { label: 'Quiz Reports', path: '/quiz-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
       ]
     },
   ];

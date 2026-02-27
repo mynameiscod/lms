@@ -16,6 +16,11 @@ import BatchesPage from './pages/Batches';
 import AttendancePage from './pages/Attendance';
 import MyAttendancePage from './pages/MyAttendance';
 import AttendanceReportsPage from './pages/AttendanceReports';
+import QuizManagementPage from './pages/QuizManagement';
+import QuizzesPage from './pages/Quizzes';
+import QuizTakingPage from './pages/QuizTaking';
+import QuizResultsPage from './pages/QuizResults';
+import QuestionBuilder from './pages/QuestionBuilder';
 import NotFoundPage from './pages/NotFound';  
 
 interface ProtectedRouteProps {
@@ -131,6 +136,59 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN']}>
             <Layout>
               <AttendanceReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quiz-management"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <QuizManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quiz/:quizId/questions"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <QuestionBuilder />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quizzes"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QuizzesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quiz/:quizId/take"
+        element={
+          <ProtectedRoute>
+            <QuizTakingPage />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quiz/:quizId/results/:attemptId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <QuizResultsPage />
             </Layout>
           </ProtectedRoute>
         }

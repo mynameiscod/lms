@@ -439,3 +439,181 @@ export const attendanceApi = {
     return response.json();
   }
 };
+
+// Quiz API
+export const quizApi = {
+  // Quiz CRUD
+  createQuiz: async (quizData: any) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(quizData)
+    });
+    if (!response.ok) throw new Error('Failed to create quiz');
+    return response.json();
+  },
+
+  getQuizzes: async () => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/instructor`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch quizzes');
+    return response.json();
+  },
+
+  getQuizById: async (quizId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch quiz');
+    return response.json();
+  },
+
+  updateQuiz: async (quizId: string, updateData: any) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updateData)
+    });
+    if (!response.ok) throw new Error('Failed to update quiz');
+    return response.json();
+  },
+
+  deleteQuiz: async (quizId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete quiz');
+    return response.json();
+  },
+
+  getAvailableQuizzes: async () => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/student/available`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch available quizzes');
+    return response.json();
+  },
+
+  checkQuizAccess: async (quizId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/access`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to check quiz access');
+    return response.json();
+  },
+
+  checkQuizAvailability: async (quizId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/availability`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to check quiz availability');
+    return response.json();
+  },
+
+  // Quiz Attempt
+  startAttempt: async (quizId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/start`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({})
+    });
+    if (!response.ok) throw new Error('Failed to start quiz attempt');
+    return response.json();
+  },
+
+  getQuestions: async (quizId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch quiz questions');
+    return response.json();
+  },
+
+  submitAttempt: async (quizId: string, attemptId: string, answers: any[]) => {
+    const response = await fetch(
+      `${API_BASE_URL}/quizzes/${quizId}/attempt/${attemptId}/submit`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ answers })
+      }
+    );
+    if (!response.ok) throw new Error('Failed to submit quiz attempt');
+    return response.json();
+  },
+
+  getResults: async (attemptId: string) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/attempt/${attemptId}/results`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch quiz results');
+    return response.json();
+  },
+
+  // Questions
+  createQuestion: async (quizId: string, questionData: any) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(questionData)
+    });
+    if (!response.ok) throw new Error('Failed to create question');
+    return response.json();
+  },
+
+  getQuestionsWithAnswers: async (quizId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}/quizzes/${quizId}/questions/list?includeAnswers=true`,
+      {
+        method: 'GET',
+        headers: getAuthHeaders()
+      }
+    );
+    if (!response.ok) throw new Error('Failed to fetch questions');
+    return response.json();
+  },
+
+  updateQuestion: async (quizId: string, questionId: string, updateData: any) => {
+    const response = await fetch(
+      `${API_BASE_URL}/quizzes/${quizId}/questions/${questionId}`,
+      {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(updateData)
+      }
+    );
+    if (!response.ok) throw new Error('Failed to update question');
+    return response.json();
+  },
+
+  deleteQuestion: async (quizId: string, questionId: string) => {
+    const response = await fetch(
+      `${API_BASE_URL}/quizzes/${quizId}/questions/${questionId}`,
+      {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      }
+    );
+    if (!response.ok) throw new Error('Failed to delete question');
+    return response.json();
+  },
+
+  bulkCreateQuestions: async (quizId: string, questions: any[]) => {
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions/bulk`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ questions })
+    });
+    if (!response.ok) throw new Error('Failed to bulk create questions');
+    return response.json();
+  }
+};

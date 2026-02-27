@@ -1,12 +1,14 @@
 import { Router } from 'express';
 import * as quizController from '../controllers/quizController';
 import * as questionController from '../controllers/questionController';
+import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 
 const router = Router();
 
 // Middleware
+router.use(authMiddleware);
 router.use(tenantMiddleware);
 
 // Quiz Routes

@@ -777,5 +777,6 @@ export const quizApi = {
     const queryString = params.toString();
     const url = `${API_BASE_URL}/quizzes/${quizId}/available-questions${queryString ? `?${queryString}` : ''}`;
 
-    return authenticatedFetch(url, { method: 'GET' });  },
+    return authenticatedFetch(url, { method: 'GET' });
+  },
 };

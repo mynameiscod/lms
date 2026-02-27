@@ -62,8 +62,17 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
         quizApi.getAllTags()
       ]);
 
-      setAvailableQuestions(questionsResponse || []);
-      setTags(tagsResponse?.tags || []);
+      // Handle response data format (might be wrapped in .data or .questions)
+      const questions = Array.isArray(questionsResponse) 
+        ? questionsResponse 
+        : questionsResponse?.data || questionsResponse?.questions || [];
+      
+      const tags = Array.isArray(tagsResponse)
+        ? tagsResponse
+        : tagsResponse?.tags || [];
+
+      setAvailableQuestions(questions);
+      setTags(tags);
     } catch (err: any) {
       setError(err.message || 'Failed to load questions');
     } finally {
@@ -156,8 +165,8 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
         <p>Choose which questions to include in this quiz</p>
       </div>
 
-      {error && <Alert type="error" message={error} />}
-      {successMessage && <Alert type="success" message={successMessage} />}
+      {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+      {successMessage && <Alert type="success" message={successMessage} onClose={() => setSuccessMessage('')} />}
 
       {/* Stats */}
       <div className="qs-stats">

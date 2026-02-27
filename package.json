@@ -1,0 +1,28 @@
+{
+  "name": "lms-saas",
+  "version": "1.0.0",
+  "description": "Multi-tenant Learning Management System",
+  "private": true,
+  "workspaces": [
+    "shared",
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=client & npm run dev --workspace=server",
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "build": "npm run build --workspace=shared && npm run build --workspace=server && npm run build --workspace=client",
+    "start": "npm start --workspace=server",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  },
+  "keywords": [
+    "lms",
+    "saas",
+    "learning",
+    "management"
+  ],
+  "author": "",
+  "license": "MIT"
+}

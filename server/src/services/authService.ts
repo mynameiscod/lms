@@ -1,0 +1,121 @@
+import jwt from 'jsonwebtoken';
+import mongoose from 'mongoose';
+import User, { IUser } from '../models/User';
+import Tenant from '../models/Tenant';
+
+export class AuthService {
+  async register(
+    email: string,
+    firstName: string,
+    lastName: string,
+    password: string,
+    tenantIdentifier: string
+  ): Promise<IUser> {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      throw new Error('User already exists');
+    }
+
+    let tenantId: mongoose.Types.ObjectId;
+    let isNewTenant = false;
+
+    // Check if tenantIdentifier is a valid ObjectId
+    if (mongoose.Types.ObjectId.isValid(tenantIdentifier)) {
+      const tenant = await Tenant.findById(tenantIdentifier);
+      if (tenant) {
+        tenantId = tenant._id as mongoose.Types.ObjectId;
+      } else {
+        throw new Error('Tenant not found');
+      }
+    } else {
+      // Treat it as a tenant name/slug - look up or create
+      const slug = tenantIdentifier.toLowerCase().replace(/\s+/g, '-');
+      let tenant = await Tenant.findOne({ 
+        $or: [{ slug }, { name: tenantIdentifier }] 
+      });
+
+      if (!tenant) {
+        // Create a placeholder user ID for adminId (will be updated after user creation)
+        const placeholderAdminId = new mongoose.Types.ObjectId();
+        
+        tenant = new Tenant({
+          name: tenantIdentifier,
+          slug,
+          adminId: placeholderAdminId,
+          isActive: true,
+          subscriptionPlan: 'free'
+        });
+        await tenant.save();
+        isNewTenant = true;
+      }
+      tenantId = tenant._id as mongoose.Types.ObjectId;
+    }
+
+    // If user is creating a new tenant, make them TENANT_ADMIN
+    // Otherwise, they're joining an existing tenant as STUDENT
+    const userRole = isNewTenant ? 'TENANT_ADMIN' : 'STUDENT';
+
+    const user = new User({
+      email,
+      firstName,
+      lastName,
+      password,
+      tenantId,
+      role: userRole
+    });
+
+    await user.save();
+
+    // Update tenant's adminId to the new user if they created the tenant
+    if (isNewTenant) {
+      await Tenant.findByIdAndUpdate(tenantId, { adminId: user._id });
+    }
+
+    return user;
+  }
+
+  async login(email: string, password: string): Promise<any> {
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      throw new Error('Invalid credentials');
+    }
+
+    const isValidPassword = await user.comparePassword(password);
+
+    if (!isValidPassword) {
+      throw new Error('Invalid credentials');
+    }
+
+    const tenant = await Tenant.findById(user.tenantId);
+
+    const secret = process.env.JWT_SECRET || 'secret-key';
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+
+    // Type assertion to bypass TypeScript strict checks
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        email: user.email, 
+        role: user.role, 
+        tenantId: user.tenantId 
+      },
+      secret as string,
+      { expiresIn } as any
+    );
+
+    return { 
+      token, 
+      user: {
+        _id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role,
+        tenantId: user.tenantId,
+        isActive: user.isActive
+      },
+      tenant 
+    };
+  }
+}

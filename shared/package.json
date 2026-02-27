@@ -1,0 +1,14 @@
+{
+  "name": "@lms-saas/shared",
+  "version": "1.0.0",
+  "description": "Shared types and constants for LMS SaaS",
+  "main": "index.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "typescript": "^5.2.0"
+  }
+}

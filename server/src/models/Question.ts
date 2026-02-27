@@ -54,7 +54,7 @@ const questionSchema = new Schema<IQuestion>(
     },
     question: { type: String, required: true },
     description: { type: String },
-    options: [questionOptionSchema],
+    options: [{ type: Schema.Types.Mixed }], // Support both strings (Question Bank) and embedded docs (Quiz questions)
     correctAnswers: [{ type: String }],
     correctAnswerText: { type: String },
     codingLanguages: [{ type: String }],

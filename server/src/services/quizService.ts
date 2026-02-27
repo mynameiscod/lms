@@ -264,6 +264,186 @@ export class QuizService {
       submissions
     };
   }
+
+  // ========== QUESTION BANK LINKING ==========
+
+  // Link questions from Question Bank to a quiz
+  async linkQuestionsToQuiz(quizId: string, questionIds: string[]): Promise<IQuiz | null> {
+    // Get all questions to calculate total marks
+    const questions = await Question.find({ _id: { $in: questionIds } });
+    const totalMarks = questions.reduce((sum, q) => sum + (q.marks || 0), 0);
+
+    // Update quiz with question references
+    const quiz = await Quiz.findByIdAndUpdate(
+      quizId,
+      {
+        questionIds,
+        totalQuestions: questionIds.length,
+        totalMarks,
+        questionCount: questionIds.length
+      },
+      { new: true }
+    );
+
+    // Update usage count for each question
+    for (const questionId of questionIds) {
+      await Question.findByIdAndUpdate(
+        questionId,
+        {
+          $inc: { usageCount: 1 },
+          $addToSet: { usedInQuizzes: quizId }
+        }
+      );
+    }
+
+    return quiz;
+  }
+
+  // Get questions for a quiz (handles both embedded and referenced questions)
+  async getQuestionsForQuiz(quizId: string, includeAnswers: boolean = false): Promise<any[]> {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return [];
+
+    let questions: any[] = [];
+
+    // If quiz has referenced questions (from Question Bank)
+    if (quiz.questionIds && quiz.questionIds.length > 0) {
+      questions = await Question.find({ _id: { $in: quiz.questionIds } });
+    } else {
+      // Fallback to embedded questions (backward compatibility)
+      questions = await Question.find({ quizId }).sort({ questionNo: 1 });
+    }
+
+    // Remove answers if not needed
+    if (!includeAnswers) {
+      return questions.map(q => {
+        const qObj = q.toObject();
+        if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
+          qObj.options = qObj.options?.map((opt: any) => {
+            // Handle both string options (from Question Bank) and embedded objects (from quizzes)
+            if (typeof opt === 'string') return opt;
+            return { ...opt, isCorrect: false };
+          });
+        }
+        delete qObj.correctAnswers;
+        delete qObj.correctAnswerText;
+        return qObj;
+      });
+    }
+
+    return questions;
+  }
+
+  // Remove questions from quiz
+  async removeQuestionsFromQuiz(quizId: string, questionIds?: string[]): Promise<void> {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return;
+
+    const idsToRemove = questionIds || quiz.questionIds || [];
+
+    for (const questionId of idsToRemove) {
+      await Question.findByIdAndUpdate(
+        questionId,
+        {
+          $inc: { usageCount: -1 },
+          $pull: { usedInQuizzes: quizId }
+        }
+      );
+    }
+
+    if (!questionIds) {
+      // Remove all questions
+      await Quiz.findByIdAndUpdate(quizId, {
+        questionIds: [],
+        totalQuestions: 0,
+        totalMarks: 0
+      });
+    }
+  }
+
+  // Add single question to quiz
+  async addQuestionToQuiz(quizId: string, questionId: string): Promise<IQuiz | null> {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return null;
+
+    const question = await Question.findById(questionId);
+    if (!question) return null;
+
+    const questionIds = quiz.questionIds || [];
+    if (questionIds.includes(questionId)) {
+      return quiz; // Already added
+    }
+
+    questionIds.push(questionId);
+    const totalMarks = (quiz.totalMarks || 0) + (question.marks || 0);
+
+    const updated = await Quiz.findByIdAndUpdate(
+      quizId,
+      {
+        questionIds,
+        totalQuestions: questionIds.length,
+        totalMarks,
+        questionCount: questionIds.length
+      },
+      { new: true }
+    );
+
+    // Update question usage
+    await Question.findByIdAndUpdate(
+      questionId,
+      {
+        $inc: { usageCount: 1 },
+        $addToSet: { usedInQuizzes: quizId }
+      }
+    );
+
+    return updated;
+  }
+
+  // Remove single question from quiz
+  async removeQuestionFromQuiz(quizId: string, questionId: string): Promise<IQuiz | null> {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return null;
+
+    const question = await Question.findById(questionId);
+    if (!question) return null;
+
+    const questionIds = (quiz.questionIds || []).filter(id => id !== questionId);
+    const totalMarks = Math.max((quiz.totalMarks || 0) - (question.marks || 0), 0);
+
+    const updated = await Quiz.findByIdAndUpdate(
+      quizId,
+      {
+        questionIds,
+        totalQuestions: questionIds.length,
+        totalMarks,
+        questionCount: questionIds.length
+      },
+      { new: true }
+    );
+
+    // Update question usage
+    await Question.findByIdAndUpdate(
+      questionId,
+      {
+        $inc: { usageCount: -1 },
+        $pull: { usedInQuizzes: quizId }
+      }
+    );
+
+    return updated;
+  }
+
+  // Get all available questions for linking to a quiz
+  async getAvailableQuestingsForQuiz(tenantId: string, filters?: any): Promise<any[]> {
+    const query: any = { tenantId, quizId: { $exists: false } };
+
+    if (filters?.difficulty) query.difficultyLevel = filters.difficulty;
+    if (filters?.type) query.type = filters.type;
+    if (filters?.tags && filters.tags.length > 0) query.tags = { $in: filters.tags };
+
+    return Question.find(query).select('_id question type marks difficultyLevel tags usageCount');
+  }
 }
 
 export default new QuizService();

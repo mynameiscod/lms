@@ -83,4 +83,40 @@ router.post(
   questionController.validateAnswer
 );
 
+// ========== QUESTION BANK LINKING ==========
+
+// Link multiple questions from Question Bank to a quiz
+router.post(
+  '/:quizId/link-questions',
+  roleGuard(['edit_quiz']),
+  quizController.linkQuestionsToQuiz
+);
+
+// Add a single question to a quiz
+router.post(
+  '/:quizId/add-question/:questionId',
+  roleGuard(['edit_quiz']),
+  quizController.addQuestionToQuiz
+);
+
+// Remove a single question from a quiz
+router.delete(
+  '/:quizId/remove-question/:questionId',
+  roleGuard(['edit_quiz']),
+  quizController.removeQuestionFromQuiz
+);
+
+// Remove all questions from a quiz
+router.delete(
+  '/:quizId/remove-all-questions',
+  roleGuard(['edit_quiz']),
+  quizController.removeQuestionsFromQuiz
+);
+
+// Get available questions from Question Bank for a quiz
+router.get(
+  '/:quizId/available-questions',
+  quizController.getAvailableQuestions
+);
+
 export default router;

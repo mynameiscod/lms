@@ -14,6 +14,7 @@ export interface IQuiz extends Document {
   accessibleTo: 'everyone' | 'batch_wise' | 'individual';
   selectedBatches?: string[]; // Batch IDs if batch_wise
   selectedStudents?: string[]; // Student IDs if individual
+  questionIds?: string[]; // NEW: References to Question Bank questions
   totalQuestions: number;
   totalMarks: number;
   totalTime: number; // in minutes
@@ -56,6 +57,7 @@ const quizSchema = new Schema<IQuiz>(
     },
     selectedBatches: [{ type: String }],
     selectedStudents: [{ type: String }],
+    questionIds: [{ type: String }], // References to Question Bank questions
     totalQuestions: { type: Number, default: 0 },
     totalMarks: { type: Number, required: true },
     totalTime: { type: Number, required: true }, // minutes

@@ -171,3 +171,90 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+// ========== QUESTION BANK LINKING ==========
+
+// Link questions from Question Bank to a quiz
+export const linkQuestionsToQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const { questionIds } = req.body;
+
+    if (!Array.isArray(questionIds) || questionIds.length === 0) {
+      return res.status(400).json({ message: 'questionIds must be a non-empty array' });
+    }
+
+    const quiz = await quizService.linkQuestionsToQuiz(quizId, questionIds);
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found' });
+    }
+
+    res.json({ message: 'Questions linked successfully', quiz });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Add a single question to a quiz
+export const addQuestionToQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId, questionId } = req.params;
+
+    const quiz = await quizService.addQuestionToQuiz(quizId, questionId);
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz or Question not found' });
+    }
+
+    res.json({ message: 'Question added to quiz', quiz });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Remove a single question from a quiz
+export const removeQuestionFromQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId, questionId } = req.params;
+
+    const quiz = await quizService.removeQuestionFromQuiz(quizId, questionId);
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz or Question not found' });
+    }
+
+    res.json({ message: 'Question removed from quiz', quiz });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Remove all questions from a quiz
+export const removeQuestionsFromQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+
+    await quizService.removeQuestionsFromQuiz(quizId);
+    res.json({ message: 'All questions removed from quiz' });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Get available questions for linking to a quiz (from Question Bank)
+export const getAvailableQuestions = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const { difficulty, type, tags } = req.query;
+
+    const filters: any = {};
+    if (difficulty) filters.difficulty = difficulty;
+    if (type) filters.type = type;
+    if (tags) filters.tags = (tags as string).split(',');
+
+    const questions = await quizService.getAvailableQuestingsForQuiz(tenantId, filters);
+    res.json(questions);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};

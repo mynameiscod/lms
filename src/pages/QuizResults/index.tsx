@@ -13,11 +13,7 @@ const QuizResultsPage: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
 
-  useEffect(() => {
-    loadResults();
-  }, [quizId, attemptId]);
-
-  const loadResults = async () => {
+  const loadResults = useCallback(async () => {
     try {
       setLoading(true);
       if (!quizId || !attemptId) {
@@ -31,13 +27,17 @@ const QuizResultsPage: React.FC = () => {
       ]);
 
       setResult(resultRes.data || resultRes);
-      setQuestions(questionsRes.data || questionsRes);
+      setQuestions(questionsRes.data || questionsRes || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load results');
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId, attemptId]);
+
+  useEffect(() => {
+    loadResults();
+  }, [loadResults]);
 
   if (loading) return <Spinner fullScreen />;
   if (!result) return <Alert type="error" message={error || 'Failed to load results'} />;
@@ -100,7 +100,7 @@ const QuizResultsPage: React.FC = () => {
               </div>
               <div className="stat-item">
                 <span className="label">Attempts Left</span>
-                <span className="value">{(result.quiz.maxAttempts || 1) - (result.attempt.attemptNumber || 1)}</span>
+                <span className="value">{(result.quiz.maxAttempts || 1) - (result.attempt.attemptNo || 1)}</span>
               </div>
             </div>
 
@@ -108,7 +108,7 @@ const QuizResultsPage: React.FC = () => {
               <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
                 📚 Back to Quizzes
               </Button>
-              {(result.quiz.maxAttempts || 1) - (result.attempt.attemptNumber || 1) > 0 && (
+              {(result.quiz.maxAttempts || 1) - (result.attempt.attemptNo || 1) > 0 && (
                 <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
                   🔄 Retry Quiz
                 </Button>
@@ -126,8 +126,8 @@ const QuizResultsPage: React.FC = () => {
             <div className="questions-review-list">
               {questions.map((question, index) => {
                 const submission = result.submissions?.find(s => s.questionId === question._id);
-                const isCorrect = submission?.marksObtained === question.marks;
-                const isAttempted = submission && submission.answer;
+                const isCorrect = submission?.marksAwarded === question.marks;
+                const isAttempted = submission && submission.studentAnswer;
 
                 return (
                   <div
@@ -148,7 +148,7 @@ const QuizResultsPage: React.FC = () => {
                     </div>
                     {submission && (
                       <div className="review-item-marks">
-                        {submission.marksObtained}/{question.marks} marks
+                        {submission.marksAwarded}/{question.marks} marks
                       </div>
                     )}
                   </div>
@@ -169,11 +169,11 @@ const QuizResultsPage: React.FC = () => {
 
                   {selectedSubmission ? (
                     <div className="submission-detail">
-                      <div className={`marks-info ${selectedSubmission.marksObtained === selectedQuestion.marks ? 'correct' : 'incorrect'}`}>
+                      <div className={`marks-info ${selectedSubmission.marksAwarded === selectedQuestion.marks ? 'correct' : 'incorrect'}`}>
                         <strong>
-                          {selectedSubmission.marksObtained}/{selectedQuestion.marks} marks
+                          {selectedSubmission.marksAwarded}/{selectedQuestion.marks} marks
                         </strong>
-                        {selectedSubmission.marksObtained === selectedQuestion.marks ? '✓' : '✗'}
+                        {selectedSubmission.marksAwarded === selectedQuestion.marks ? '✓' : '✗'}
                       </div>
 
                       <div className="answer-section">
@@ -181,20 +181,20 @@ const QuizResultsPage: React.FC = () => {
                         <div className="answer-box">
                           {selectedQuestion.type === 'mcq_single' || selectedQuestion.type === 'mcq_multiple' ? (
                             <div className="mcq-review">
-                              {Array.isArray(selectedSubmission.answer) ? (
-                                selectedSubmission.answer.map((ans, i) => (
+                              {Array.isArray(selectedSubmission.studentAnswer) ? (
+                                selectedSubmission.studentAnswer.map((ans, i) => (
                                   <div key={i} className="answer-item">
                                     ✓ {ans}
                                   </div>
                                 ))
                               ) : (
-                                <div className="answer-item">✓ {selectedSubmission.answer}</div>
+                                <div className="answer-item">✓ {selectedSubmission.studentAnswer}</div>
                               )}
                             </div>
                           ) : selectedQuestion.type === 'short_answer' ? (
-                            <p className="short-answer-review">{selectedSubmission.answer}</p>
+                            <p className="short-answer-review">{selectedSubmission.studentAnswer}</p>
                           ) : selectedQuestion.type === 'coding' ? (
-                            <pre className="code-review">{selectedSubmission.answer}</pre>
+                            <pre className="code-review">{selectedSubmission.studentAnswer}</pre>
                           ) : null}
                         </div>
                       </div>

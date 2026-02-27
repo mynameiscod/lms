@@ -1,14 +1,9 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Alert, Spinner, Button, Modal } from '../../components/common';
 import { Quiz, Question, QuizAttempt } from '../../types';
 import './QuizTakingPage.css';
-
-interface TabSwitchWarningData {
-  count: number;
-  timestamp: Date;
-}
 
 const QuizTakingPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -22,59 +17,28 @@ const QuizTakingPage: React.FC = () => {
   const [error, setError] = useState('');
   const [showTabWarnModal, setShowTabWarnModal] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
-  const [isFullScreen, setIsFullScreen] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    loadQuiz();
-    setupEventListeners();
-
-    return () => {
-      cleanupEventListeners();
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [quizId]);
-
-  const setupEventListeners = () => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setupEventListeners = useCallback(() => {
     // Tab switch detection
     document.addEventListener('visibilitychange', handleTabSwitch);
     window.addEventListener('blur', handleTabSwitch);
     window.addEventListener('focus', handleWindowFocus);
     // Fullscreen detection
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-  };
+  }, []);
 
-  const cleanupEventListeners = () => {
+  const cleanupEventListeners = useCallback(() => {
     document.removeEventListener('visibilitychange', handleTabSwitch);
     window.removeEventListener('blur', handleTabSwitch);
     window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  };
+  }, []);
 
-  const handleTabSwitch = () => {
-    if (document.hidden || document.visibilityState === 'hidden') {
-      setTabSwitchCount(prev => prev + 1);
-      if (quiz?.tabSwitchWarnings) {
-        setShowTabWarnModal(true);
-      }
-    }
-  };
-
-  const handleWindowFocus = () => {
-    // Detect when window loses focus
-    if (document.visibilityState === 'hidden' && quiz?.tabSwitchWarnings) {
-      setTabSwitchCount(prev => prev + 1);
-      setShowTabWarnModal(true);
-    }
-  };
-
-  const handleFullscreenChange = () => {
-    setIsFullScreen(!!document.fullscreenElement);
-  };
-
-  const loadQuiz = async () => {
+  const loadQuiz = useCallback(async () => {
     try {
       setLoading(true);
       if (!quizId) {
@@ -106,6 +70,39 @@ const QuizTakingPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  }, [quizId]);
+
+  useEffect(() => {
+    loadQuiz();
+    setupEventListeners();
+
+    return () => {
+      cleanupEventListeners();
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [quizId, loadQuiz, setupEventListeners, cleanupEventListeners]);
+
+
+
+  const handleFullscreenChange = () => {
+    // Handle fullscreen changes if needed
+  };
+
+  const handleTabSwitch = () => {
+    if (document.hidden || document.visibilityState === 'hidden') {
+      setTabSwitchCount(prev => prev + 1);
+      if (quiz?.tabSwitchWarnings) {
+        setShowTabWarnModal(true);
+      }
+    }
+  };
+
+  const handleWindowFocus = () => {
+    // Detect when window loses focus
+    if (document.visibilityState === 'hidden' && quiz?.tabSwitchWarnings) {
+      setTabSwitchCount(prev => prev + 1);
+      setShowTabWarnModal(true);
+    }
   };
 
   const requestFullscreen = async () => {
@@ -134,7 +131,7 @@ const QuizTakingPage: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timeLeft, quiz]);
+  }, [timeLeft, quiz, handleSubmitQuiz]);
 
   const formatTime = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -146,8 +143,6 @@ const QuizTakingPage: React.FC = () => {
     }
     return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
-
-  const currentQuestion = questions[currentQuestionIndex];
 
   const handleAnswerChange = (questionId: string, value: any) => {
     const newAnswers = new Map(answers);
@@ -171,7 +166,7 @@ const QuizTakingPage: React.FC = () => {
     setCurrentQuestionIndex(index);
   };
 
-  const handleSubmitQuiz = async () => {
+  const handleSubmitQuiz = useCallback(async () => {
     try {
       if (!attempt || !quiz) return;
 
@@ -192,7 +187,7 @@ const QuizTakingPage: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to submit quiz');
     }
-  };
+  }, [quizId, attempt, answers, questions]);
 
   if (loading) return <Spinner fullScreen />;
   if (!quiz || !attempt) return <Alert type="error" message={error || 'Failed to load quiz'} />;

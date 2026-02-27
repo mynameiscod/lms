@@ -271,7 +271,7 @@ const QuestionBuilder: React.FC = () => {
                 <Input
                   type="number"
                   name="marks"
-                  value={form.marks}
+                  value={String(form.marks)}
                   onChange={handleInputChange}
                   min="1"
                 />

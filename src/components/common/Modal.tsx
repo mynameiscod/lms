@@ -8,6 +8,7 @@ interface ModalProps {
   title?: string;
   children: React.ReactNode;
   size?: 'small' | 'medium' | 'large';
+  maxWidth?: string;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -15,13 +16,14 @@ const Modal: React.FC<ModalProps> = ({
   onClose,
   title,
   children,
-  size = 'medium'
+  size = 'medium',
+  maxWidth
 }) => {
   if (!isOpen) return null;
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className={`modal modal-${size}`} onClick={(e) => e.stopPropagation()}>
+      <div className={`modal modal-${size}`} style={maxWidth ? { maxWidth } : {}} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2 className="modal-title">{title}</h2>
           <button className="modal-close" onClick={onClose}>

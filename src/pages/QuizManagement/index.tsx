@@ -283,7 +283,7 @@ const QuizManagementPage: React.FC = () => {
                 <Input
                   type="number"
                   name="totalMarks"
-                  value={formData.totalMarks}
+                  value={String(formData.totalMarks)}
                   onChange={handleInputChange}
                   min="1"
                 />
@@ -294,7 +294,7 @@ const QuizManagementPage: React.FC = () => {
                 <Input
                   type="number"
                   name="totalTime"
-                  value={formData.totalTime}
+                  value={String(formData.totalTime)}
                   onChange={handleInputChange}
                   min="1"
                 />
@@ -305,7 +305,7 @@ const QuizManagementPage: React.FC = () => {
                 <Input
                   type="number"
                   name="passingMarks"
-                  value={formData.passingMarks}
+                  value={String(formData.passingMarks)}
                   onChange={handleInputChange}
                   min="0"
                 />
@@ -316,7 +316,7 @@ const QuizManagementPage: React.FC = () => {
                 <Input
                   type="number"
                   name="negativeMarkingValue"
-                  value={formData.negativeMarkingValue}
+                  value={String(formData.negativeMarkingValue)}
                   onChange={handleInputChange}
                   min="0"
                   step="0.5"
@@ -427,7 +427,7 @@ const QuizManagementPage: React.FC = () => {
                   <Input
                     type="number"
                     name="maxAttempts"
-                    value={formData.maxAttempts}
+                    value={String(formData.maxAttempts)}
                     onChange={handleInputChange}
                     min="1"
                   />

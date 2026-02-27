@@ -11,6 +11,61 @@ const getAuthHeaders = () => {
   };
 };
 
+// Wrapper for authenticated API calls with proper error handling
+const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
+  const token = localStorage.getItem('token');
+  const tenantId = localStorage.getItem('tenantId');
+  
+  console.log('[API] authenticatedFetch called:', {
+    url,
+    method: options.method || 'GET',
+    hasToken: !!token,
+    hasTenantId: !!tenantId,
+    tokenPreview: token ? `${token.substring(0, 20)}...` : null
+  });
+  
+  if (!token && !url.includes('/auth/')) {
+    const errorMsg = 'Authentication required. Please log in first.';
+    console.error('[API]', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  const headers = {
+    ...getAuthHeaders(),
+    ...options.headers
+  };
+
+  console.log('[API] Request headers:', {
+    'Content-Type': headers['Content-Type'],
+    'Authorization': headers['Authorization'] ? `${headers['Authorization'].substring(0, 20)}...` : 'Missing',
+    'X-Tenant-Id': headers['X-Tenant-Id']
+  });
+
+  const response = await fetch(url, {
+    ...options,
+    headers
+  });
+
+  console.log('[API] Response:', { url, status: response.status });
+
+  // Handle 401 Unauthorized
+  if (response.status === 401) {
+    console.log('[API] Token invalid, clearing localStorage');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('tenantId');
+    throw new Error('Your session has expired. Please log in again.');
+  }
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: response.statusText }));
+    console.error('[API] Request failed:', { status: response.status, error });
+    throw new Error(error.message || `API Error: ${response.status}`);
+  }
+
+  return response.json();
+};
+
 // Auth API
 export const authApi = {
   login: async (email: string, password: string) => {
@@ -444,176 +499,154 @@ export const attendanceApi = {
 export const quizApi = {
   // Quiz CRUD
   createQuiz: async (quizData: any) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes`, {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes`, {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify(quizData)
     });
-    if (!response.ok) throw new Error('Failed to create quiz');
-    return response.json();
   },
 
   getQuizzes: async () => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/instructor`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/instructor`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to fetch quizzes');
-    return response.json();
   },
 
   getQuizById: async (quizId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to fetch quiz');
-    return response.json();
   },
 
   updateQuiz: async (quizId: string, updateData: any) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}`, {
       method: 'PUT',
-      headers: getAuthHeaders(),
       body: JSON.stringify(updateData)
     });
-    if (!response.ok) throw new Error('Failed to update quiz');
-    return response.json();
   },
 
   deleteQuiz: async (quizId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}`, {
-      method: 'DELETE',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}`, {
+      method: 'DELETE'
     });
-    if (!response.ok) throw new Error('Failed to delete quiz');
-    return response.json();
   },
 
   getAvailableQuizzes: async () => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/student/available`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/student/available`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to fetch available quizzes');
-    return response.json();
   },
 
   checkQuizAccess: async (quizId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/access`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/access`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to check quiz access');
-    return response.json();
   },
 
   checkQuizAvailability: async (quizId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/availability`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/availability`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to check quiz availability');
-    return response.json();
   },
 
   // Quiz Attempt
   startAttempt: async (quizId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/start`, {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/start`, {
       method: 'POST',
-      headers: getAuthHeaders(),
       body: JSON.stringify({})
     });
-    if (!response.ok) throw new Error('Failed to start quiz attempt');
-    return response.json();
   },
 
   getQuestions: async (quizId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to fetch quiz questions');
-    return response.json();
   },
 
   submitAttempt: async (quizId: string, attemptId: string, answers: any[]) => {
-    const response = await fetch(
+    return authenticatedFetch(
       `${API_BASE_URL}/quizzes/${quizId}/attempt/${attemptId}/submit`,
       {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ answers })
       }
     );
-    if (!response.ok) throw new Error('Failed to submit quiz attempt');
-    return response.json();
   },
 
   getResults: async (attemptId: string) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/attempt/${attemptId}/results`, {
-      method: 'GET',
-      headers: getAuthHeaders()
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/attempt/${attemptId}/results`, {
+      method: 'GET'
     });
-    if (!response.ok) throw new Error('Failed to fetch quiz results');
-    return response.json();
   },
 
   // Questions
   createQuestion: async (quizId: string, questionData: any) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
+    // Map frontend field names to backend field names
+    const mappedData = {
+      ...questionData,
+      question: questionData.questionText,
+      difficultyLevel: questionData.difficulty
+    };
+    delete mappedData.questionText;
+    delete mappedData.difficulty;
+    
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/questions`, {
       method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(questionData)
+      body: JSON.stringify(mappedData)
     });
-    if (!response.ok) throw new Error('Failed to create question');
-    return response.json();
   },
 
   getQuestionsWithAnswers: async (quizId: string) => {
-    const response = await fetch(
+    return authenticatedFetch(
       `${API_BASE_URL}/quizzes/${quizId}/questions/list?includeAnswers=true`,
       {
-        method: 'GET',
-        headers: getAuthHeaders()
+        method: 'GET'
       }
     );
-    if (!response.ok) throw new Error('Failed to fetch questions');
-    return response.json();
   },
 
   updateQuestion: async (quizId: string, questionId: string, updateData: any) => {
-    const response = await fetch(
+    // Map frontend field names to backend field names
+    const mappedData = {
+      ...updateData,
+      question: updateData.questionText,
+      difficultyLevel: updateData.difficulty
+    };
+    delete mappedData.questionText;
+    delete mappedData.difficulty;
+    
+    return authenticatedFetch(
       `${API_BASE_URL}/quizzes/${quizId}/questions/${questionId}`,
       {
         method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(updateData)
+        body: JSON.stringify(mappedData)
       }
     );
-    if (!response.ok) throw new Error('Failed to update question');
-    return response.json();
   },
 
   deleteQuestion: async (quizId: string, questionId: string) => {
-    const response = await fetch(
+    return authenticatedFetch(
       `${API_BASE_URL}/quizzes/${quizId}/questions/${questionId}`,
       {
-        method: 'DELETE',
-        headers: getAuthHeaders()
+        method: 'DELETE'
       }
     );
-    if (!response.ok) throw new Error('Failed to delete question');
-    return response.json();
   },
 
   bulkCreateQuestions: async (quizId: string, questions: any[]) => {
-    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/questions/bulk`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify({ questions })
+    // Map frontend field names to backend field names for each question
+    const mappedQuestions = questions.map(q => ({
+      ...q,
+      question: q.questionText,
+      difficultyLevel: q.difficulty
+    })).map(q => {
+      delete q.questionText;
+      delete q.difficulty;
+      return q;
     });
-    if (!response.ok) throw new Error('Failed to bulk create questions');
-    return response.json();
+    
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/questions/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ questions: mappedQuestions })
+    });
   }
 };

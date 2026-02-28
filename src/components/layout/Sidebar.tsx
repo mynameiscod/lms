@@ -33,7 +33,7 @@ const Sidebar: React.FC = () => {
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '📊' },
     { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'], icon: '📚' },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '👥' },
-    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '🔐' },
+    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🔐' },
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '📅' },
     {
       label: 'Attendance',
@@ -81,7 +81,9 @@ const Sidebar: React.FC = () => {
           </button>
           {isExpanded && (
             <ul className="submenu">
-              {item.submenu.map((subitem) => (
+              {item.submenu
+                .filter(subitem => hasAccessToMenu(subitem))
+                .map((subitem) => (
                 <li key={subitem.path}>
                   <Link
                     to={subitem.path!}

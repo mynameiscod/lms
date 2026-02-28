@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import questionService from '../services/questionService';
+import quizService from '../services/quizService';
 
 export const createQuestion = async (req: Request, res: Response) => {
   try {
@@ -28,7 +29,8 @@ export const getQuestionsForQuiz = async (req: Request, res: Response) => {
     const { quizId } = req.params;
     const includeAnswers = req.query.includeAnswers === 'true';
 
-    const questions = await questionService.getQuestionsForQuiz(quizId, includeAnswers);
+    // Use quizService to properly handle linked questions from Question Bank
+    const questions = await quizService.getQuestionsForQuiz(quizId, includeAnswers);
     res.json(questions);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

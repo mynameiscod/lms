@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import quizService from '../services/quizService';
 import questionService from '../services/questionService';
+import Quiz from '../models/Quiz';
+import User from '../models/User';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -163,10 +165,54 @@ export const getQuizResults = async (req: Request, res: Response) => {
 export const getStudentQuizzes = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
-    // Get all available quizzes for this student
-    // Implementation would check access and availability
-    const quizzes = await quizService.getQuizzes(tenantId);
-    res.json(quizzes);
+    const userId = (req as any).userId;
+
+    // Get user to find their batch/enrollment
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get all quizzes for the tenant
+    const allQuizzes = await Quiz.find({ tenantId, isActive: true });
+
+    // Filter quizzes based on access level and enrollment
+    const availableQuizzes = await Promise.all(
+      allQuizzes.map(async (quiz) => {
+        // Public quizzes - everyone can see
+        if (quiz.access === 'public') {
+          return quiz;
+        }
+
+        // Private quizzes - check access based on accessibleTo
+        if (quiz.access === 'private') {
+          if (quiz.accessibleTo === 'everyone') {
+            return quiz;
+          }
+
+          if (quiz.accessibleTo === 'batch_wise' && quiz.selectedBatches) {
+            // Check if user's batch is in the selected batches
+            if (user.batchId && quiz.selectedBatches.includes(user.batchId.toString())) {
+              return quiz;
+            }
+          }
+
+          if (quiz.accessibleTo === 'individual' && quiz.selectedStudents) {
+            // Check if user is in the selected students
+            if (quiz.selectedStudents.includes(userId)) {
+              return quiz;
+            }
+          }
+        }
+
+        return null;
+      })
+    );
+
+    // Filter out null values (quizzes student doesn't have access to)
+    const filteredQuizzes = availableQuizzes.filter((q) => q !== null);
+
+    res.json(filteredQuizzes);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

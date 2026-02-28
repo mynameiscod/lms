@@ -1,4 +1,6 @@
 import app from './app';
+import http from 'http';
+import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 
 const PORT = process.env.PORT || 5000;
@@ -8,9 +10,53 @@ const startServer = async () => {
     // Connect to database
     await connectDB();
 
+    // Create HTTP server with Socket.io
+    const httpServer = http.createServer(app);
+    const io = new SocketIOServer(httpServer, {
+      cors: {
+        origin: [
+          'http://localhost:3000',
+          'http://localhost:3001',
+          'http://localhost:3002',
+          'http://127.0.0.1:3000',
+          'http://127.0.0.1:3001',
+          'http://127.0.0.1:3002',
+          process.env.CLIENT_URL
+        ],
+        methods: ['GET', 'POST'],
+        credentials: true
+      }
+    });
+
+    // Store io instance in app for access in controllers
+    app.set('io', io);
+
+    // WebSocket connection handlers
+    io.on('connection', (socket) => {
+      console.log(`✅ Client connected: ${socket.id}`);
+
+      // Join tenant-specific room for real-time updates
+      socket.on('join_tenant', (tenantId: string) => {
+        socket.join(`tenant_${tenantId}`);
+        console.log(`📢 Socket ${socket.id} joined tenant_${tenantId}`);
+      });
+
+      // Join course-specific room
+      socket.on('join_course', (courseId: string) => {
+        socket.join(`course_${courseId}`);
+        console.log(`📚 Socket ${socket.id} joined course_${courseId}`);
+      });
+
+      // Handle disconnection
+      socket.on('disconnect', () => {
+        console.log(`❌ Client disconnected: ${socket.id}`);
+      });
+    });
+
     // Start server
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`✅ Server is running on http://localhost:${PORT}`);
+      console.log(`✅ WebSocket is ready`);
       console.log(`📚 Health check: http://localhost:${PORT}/api/health`);
     });
   } catch (error) {

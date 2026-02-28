@@ -9,6 +9,7 @@ import batchRoutes from './batchRoutes';
 import attendanceRoutes from './attendanceRoutes';
 import quizRoutes from './quizRoutes';
 import questionRoutes from './questionRoutes';
+import contentRoutes from './contentRoutes';
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/questions', questionRoutes);
+router.use('/content', contentRoutes);
 
 export default router;

@@ -197,7 +197,29 @@ const QuizTakingPage: React.FC = () => {
   }, [timeLeft, quiz, handleSubmitQuiz]);
 
   if (loading) return <Spinner fullScreen />;
-  if (!quiz || !attempt) return <Alert type="error" message={error || 'Failed to load quiz'} />;
+  
+  // If there's an error (like already attempted), show error with back button
+  if (error) {
+    return (
+      <div className="quiz-error-page">
+        <div className="error-container">
+          <div className="error-icon">⚠️</div>
+          <h2>Cannot Start Quiz</h2>
+          <p className="error-message">{error}</p>
+          <div className="error-actions">
+            <Button onClick={() => window.history.back()} className="btn-secondary">
+              ← Go Back
+            </Button>
+            <Button onClick={() => window.location.href = '/quizzes'} className="btn-primary">
+              View My Quizzes
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!quiz || !attempt) return <Alert type="error" message="Failed to load quiz" />;
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;

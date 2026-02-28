@@ -45,9 +45,17 @@ const QuizzesPage: React.FC = () => {
 
       let statusMatch = true;
       if (filterTab === 'available') {
-        statusMatch = now >= startTime && now <= endTime && !quiz.isAttempted;
+        // Show in available if:
+        // 1. Quiz time is live AND
+        // 2. Either: not attempted yet OR can take multiple attempts
+        const canRetake = quiz.multipleAttempts && (quiz.attemptCount || 0) < (quiz.maxAttempts || 1);
+        statusMatch = now >= startTime && now <= endTime && (!quiz.isAttempted || canRetake);
       } else if (filterTab === 'completed') {
-        statusMatch = quiz.isAttempted || now > endTime;
+        // Show in completed if:
+        // 1. Already attempted AND can't retake (no multiple attempts) OR
+        // 2. Quiz time has ended
+        const cantRetake = !quiz.multipleAttempts && quiz.isAttempted;
+        statusMatch = (cantRetake || now > endTime);
       } else if (filterTab === 'pending') {
         statusMatch = now < startTime;
       }

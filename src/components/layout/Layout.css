@@ -2,6 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
 }
 
 .layout-body {
@@ -11,14 +12,23 @@
 
 .main-content {
   flex: 1;
-  margin-left: 250px;
+  margin-left: 260px;
   margin-top: 64px;
-  padding: 24px;
-  background: #f9fafb;
+  padding: 32px;
+  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #fce7f3 100%);
+  transition: margin-left 0.4s ease;
+}
+
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 280px;
+    padding: 24px;
+  }
 }
 
 @media (max-width: 768px) {
   .main-content {
-    margin-left: 60px;
+    margin-left: 80px;
+    padding: 16px;
   }
 }

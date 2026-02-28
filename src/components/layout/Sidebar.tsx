@@ -114,10 +114,20 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-      <button className="sidebar-toggle" onClick={() => setIsOpen(!isOpen)}>
-        {isOpen ? '◀' : '▶'}
+      {/* Logo Section */}
+      <div className="sidebar-logo-section">
+        <div className="logo-container">
+          <div className="logo-placeholder">📚</div>
+          {isOpen && <span className="logo-text">EduHub</span>}
+        </div>
+      </div>
+
+      {/* Toggle Button */}
+      <button className="sidebar-toggle" onClick={() => setIsOpen(!isOpen)} title={isOpen ? "Collapse" : "Expand"}>
+        {isOpen ? '‹' : '›'}
       </button>
 
+      {/* Navigation */}
       <nav className="sidebar-nav">
         <ul>
           {filteredItems.map((item) => 

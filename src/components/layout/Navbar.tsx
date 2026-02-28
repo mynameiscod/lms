@@ -16,25 +16,20 @@ const Navbar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <Link to="/" className="navbar-logo">
-          📚 LMS Portal
-        </Link>
-
-        <div className="navbar-menu">
-          <Link to="/dashboard" className="navbar-link">
-            Dashboard
-          </Link>
-          <Link to="/courses" className="navbar-link">
-            Courses
-          </Link>
+        <div className="navbar-title">
+          Welcome Back
         </div>
 
         <div className="navbar-user">
           {user ? (
             <>
-              <span className="user-name">
-                👤 {user.firstName} {user.lastName}
-              </span>
+              <div className="user-info">
+                <span className="user-avatar">👤</span>
+                <span className="user-name">
+                  {user.firstName} {user.lastName}
+                </span>
+                <span className="user-role">{user.role}</span>
+              </div>
               <Button variant="danger" onClick={handleLogout}>
                 Logout
               </Button>

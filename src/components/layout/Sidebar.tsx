@@ -117,7 +117,13 @@ const Sidebar: React.FC = () => {
       {/* Logo Section */}
       <div className="sidebar-logo-section">
         <div className="logo-container">
-          <div className="logo-placeholder">📚</div>
+          <div className="logo-placeholder">
+            <img 
+              src="/assets/logo.png" 
+              alt="EduHub Logo" 
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            />
+          </div>
           {isOpen && <span className="logo-text">EduHub</span>}
         </div>
       </div>

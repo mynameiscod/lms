@@ -19,14 +19,14 @@ const LoginPage: React.FC = () => {
     setLoading(true);
 
     try {
-      if (!email || !password || !tenantId) {
-        throw new Error('Please fill in all fields');
+      if (!email || !password) {
+        throw new Error('Please enter email and password');
       }
 
-      await login(email, password);
+      await login(email, password, tenantId || undefined);
       navigate('/dashboard');
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please check your credentials and try again.');
     } finally {
       setLoading(false);
     }

@@ -17,14 +17,16 @@ export interface ContentData {
   description: string;
   content: string;
   courseId?: string;
+  courseName?: string;
   tags?: string[];
   isPublished: boolean;
-  visibility: 'public' | 'private' | 'restricted';
+  visibility: 'all_students' | 'specific_batch' | 'enrolled_only';
   dueDate?: string; // For assignments
   code?: string; // For snippets
   language?: string; // For snippets
   attachments?: ContentAttachment[];
   expiresAt?: string;
+  priority?: string;
 }
 
 export interface ContentResponse extends ContentData {
@@ -45,8 +47,25 @@ export const contentAPI = {
   createContent: async (data: ContentData, files?: File[]) => {
     const formData = new FormData();
     
-    // Add JSON data as a field
-    formData.append('data', JSON.stringify(data));
+    // Add individual fields directly (not nested in 'data')
+    formData.append('type', data.type);
+    formData.append('title', data.title);
+    formData.append('description', data.description || '');
+    formData.append('content', data.content);
+    formData.append('courseId', data.courseId || '');
+    formData.append('courseName', data.courseName || '');
+    formData.append('isPublished', String(data.isPublished));
+    formData.append('visibility', data.visibility);
+    
+    // Optional fields
+    if (data.dueDate) formData.append('dueDate', data.dueDate);
+    if (data.code) formData.append('code', data.code);
+    if (data.language) formData.append('language', data.language);
+    if (data.expiresAt) formData.append('expiresAt', data.expiresAt);
+    if (data.tags && data.tags.length > 0) {
+      formData.append('tags', JSON.stringify(data.tags));
+    }
+    if (data.priority) formData.append('priority', data.priority);
     
     // Add files if provided
     if (files && files.length > 0) {
@@ -85,7 +104,26 @@ export const contentAPI = {
   // Update content
   updateContent: async (id: string, data: ContentData, files?: File[]) => {
     const formData = new FormData();
-    formData.append('data', JSON.stringify(data));
+    
+    // Add individual fields directly (not nested in 'data')
+    formData.append('type', data.type);
+    formData.append('title', data.title);
+    formData.append('description', data.description || '');
+    formData.append('content', data.content);
+    formData.append('courseId', data.courseId || '');
+    formData.append('courseName', data.courseName || '');
+    formData.append('isPublished', String(data.isPublished));
+    formData.append('visibility', data.visibility);
+    
+    // Optional fields
+    if (data.dueDate) formData.append('dueDate', data.dueDate);
+    if (data.code) formData.append('code', data.code);
+    if (data.language) formData.append('language', data.language);
+    if (data.expiresAt) formData.append('expiresAt', data.expiresAt);
+    if (data.tags && data.tags.length > 0) {
+      formData.append('tags', JSON.stringify(data.tags));
+    }
+    if (data.priority) formData.append('priority', data.priority);
 
     if (files && files.length > 0) {
       files.forEach((file) => {

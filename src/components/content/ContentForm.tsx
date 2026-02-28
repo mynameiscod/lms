@@ -28,8 +28,10 @@ const ContentForm: React.FC<ContentFormProps> = ({
       title: '',
       description: '',
       content: '',
+      courseId: '',
+      courseName: '',
       isPublished: false,
-      visibility: 'public',
+      visibility: 'enrolled_only',
       tags: [],
       files: [],
     }
@@ -149,8 +151,10 @@ const ContentForm: React.FC<ContentFormProps> = ({
         title: '',
         description: '',
         content: '',
+        courseId: '',
+        courseName: '',
         isPublished: false,
-        visibility: 'public',
+        visibility: 'enrolled_only',
         tags: [],
         files: [],
       });
@@ -215,6 +219,21 @@ const ContentForm: React.FC<ContentFormProps> = ({
             onChange={handleInputChange}
             placeholder="Brief description of the content"
             disabled={loading}
+          />
+        </div>
+
+        {/* Course ID */}
+        <div className="form-group">
+          <label htmlFor="courseId">Course ID *</label>
+          <Input
+            id="courseId"
+            type="text"
+            name="courseId"
+            value={formData.courseId || ''}
+            onChange={handleInputChange}
+            placeholder="Enter the course ID or name"
+            disabled={loading}
+            required
           />
         </div>
 
@@ -357,9 +376,9 @@ const ContentForm: React.FC<ContentFormProps> = ({
               onChange={handleInputChange}
               disabled={loading}
             >
-              <option value="public">🌍 Public</option>
-              <option value="private">🔒 Private</option>
-              <option value="restricted">🔐 Restricted</option>
+              <option value="enrolled_only">👥 Enrolled Only</option>
+              <option value="all_students">🌍 All Students</option>
+              <option value="specific_batch">🎓 Specific Batch</option>
             </select>
           </div>
 

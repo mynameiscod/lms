@@ -36,7 +36,7 @@ interface AttendanceData {
 }
 
 const DashboardPage: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState<ActivityItem[]>([]);
@@ -216,18 +216,89 @@ const DashboardPage: React.FC = () => {
 
   if (loading) return <Spinner fullScreen />;
 
-  // Only show student dashboard if user is a student
-  if (user?.role !== 'STUDENT') {
+  // Redirect unauthenticated users
+  if (!isAuthenticated || !user) {
     return (
       <div className="dashboard-container">
         <div className="access-denied">
           <h1>Access Denied</h1>
-          <p>This dashboard is only available for students.</p>
+          <p>Please log in to access the dashboard.</p>
         </div>
       </div>
     );
   }
 
+  // Route to appropriate dashboard based on role
+  const isAdmin = user.role === 'TENANT_ADMIN' || user.role === 'SUPER_ADMIN';
+
+  if (isAdmin) {
+    // Admin Dashboard
+    return (
+      <div className="dashboard-container">
+        <div className="admin-dashboard">
+          <div className="dashboard-header">
+            <h1>Admin Dashboard</h1>
+            <p>Welcome back, {user.firstName}!</p>
+          </div>
+
+          <div className="dashboard-grid">
+            <div className="dashboard-card">
+              <h2>📊 Overview</h2>
+              <div className="card-content">
+                <div className="stat-item">
+                  <span className="stat-label">Total Students</span>
+                  <span className="stat-value">0</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Active Courses</span>
+                  <span className="stat-value">0</span>
+                </div>
+                <div className="stat-item">
+                  <span className="stat-label">Total Content</span>
+                  <span className="stat-value">0</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <h2>📝 Recent Activity</h2>
+              <div className="card-content">
+                <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+                  No recent activity yet
+                </p>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <h2>⚙️ Quick Actions</h2>
+              <div className="card-content">
+                <a href="/admin/content" className="action-link">
+                  📄 Manage Content
+                </a>
+                <a href="/admin/users" className="action-link">
+                  👥 Manage Users
+                </a>
+                <a href="/admin/courses" className="action-link">
+                  📚 Manage Courses
+                </a>
+              </div>
+            </div>
+
+            <div className="dashboard-card">
+              <h2>📈 Statistics</h2>
+              <div className="card-content">
+                <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
+                  Analytics coming soon
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Student Dashboard - Original Full Layout
   return (
     <div className="student-dashboard">
       <div className="dashboard-title">

@@ -6,7 +6,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthenticated: boolean;
   token: string | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, tenantId?: string) => Promise<void>;
   register: (firstName: string, lastName: string, email: string, password: string, tenantId: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User | null) => void;
@@ -38,13 +38,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, tenantId?: string) => {
     try {
       const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+      const body: any = { email, password };
+      if (tenantId) {
+        body.tenantId = tenantId;
+      }
+
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify(body)
       });
 
       if (!response.ok) {

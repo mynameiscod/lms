@@ -1,8 +1,10 @@
 import React from 'react';
 import './Alert.css';
 
+export type AlertType = 'success' | 'error' | 'warning' | 'info';
+
 interface AlertProps {
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: AlertType;
   message: string;
   onClose?: () => void;
 }

@@ -3,4 +3,4 @@ export { default as Input } from './Input';
 export { default as Card } from './Card';
 export { default as Spinner } from './Spinner';
 export { default as Modal } from './Modal';
-export { default as Alert } from './Alert';
+export { default as Alert, type AlertType } from './Alert';

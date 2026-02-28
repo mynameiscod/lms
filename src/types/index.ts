@@ -6,6 +6,7 @@ export interface User {
   role: string;
   tenantId: string;
   isActive: boolean;
+  profilePicture?: string;
 }
 
 export interface Tenant {

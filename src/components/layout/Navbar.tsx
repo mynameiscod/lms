@@ -27,13 +27,22 @@ const Navbar: React.FC = () => {
         <div className="navbar-user">
           {user ? (
             <>
-              <div className="user-info">
-                <span className="user-avatar">👤</span>
-                <span className="user-name">
-                  {user.firstName} {user.lastName}
-                </span>
-                <span className="user-role">{user.role}</span>
-              </div>
+              <Link to="/profile" className="profile-link" title="View your profile">
+                <div className="user-info">
+                  {user.profilePicture ? (
+                    <img 
+                      src={user.profilePicture} 
+                      alt={user.firstName}
+                      className="user-avatar-img"
+                    />
+                  ) : (
+                    <span className="user-avatar">👤</span>
+                  )}
+                  <span className="user-name">
+                    {user.firstName} {user.lastName}
+                  </span>
+                </div>
+              </Link>
               <Button variant="danger" onClick={handleLogout}>
                 Logout
               </Button>

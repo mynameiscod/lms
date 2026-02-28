@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
+import { SocketProvider } from './contexts/SocketContext';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
@@ -23,6 +24,8 @@ import QuizzesPage from './pages/Quizzes';
 import QuizTakingPage from './pages/QuizTaking';
 import QuizResultsPage from './pages/QuizResults';
 import QuestionBuilder from './pages/QuestionBuilder';
+import StudentProfilePage from './pages/StudentProfile';
+import AdminContentPage from './pages/AdminContent';
 import NotFoundPage from './pages/NotFound';  
 
 interface ProtectedRouteProps {
@@ -207,6 +210,28 @@ const AppRoutes: React.FC = () => {
         }
       />
 
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <StudentProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/content"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <AdminContentPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
@@ -217,9 +242,11 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <TenantProvider>
-        <BrowserRouter>
-          <AppRoutes />
-        </BrowserRouter>
+        <SocketProvider>
+          <BrowserRouter>
+            <AppRoutes />
+          </BrowserRouter>
+        </SocketProvider>
       </TenantProvider>
     </AuthProvider>
   );

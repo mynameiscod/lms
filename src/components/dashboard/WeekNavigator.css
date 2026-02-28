@@ -1,0 +1,156 @@
+.week-navigator {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.nav-arrow {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  color: white;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  flex-shrink: 0;
+}
+
+.nav-arrow:hover {
+  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  transform: scale(1.05);
+}
+
+.nav-arrow:active {
+  transform: scale(0.95);
+}
+
+.week-header {
+  flex: 0 0 auto;
+  min-width: 200px;
+  text-align: center;
+  padding: 0 12px;
+}
+
+.week-range {
+  font-size: 13px;
+  font-weight: 700;
+  background: #f0f4ff;
+  color: #2563eb;
+  padding: 8px 14px;
+  border-radius: 6px;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.days-container {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  flex: 1;
+  min-width: 0;
+  padding: 0;
+}
+
+.days-container::-webkit-scrollbar {
+  height: 4px;
+}
+
+.days-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 2px;
+}
+
+.days-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 2px;
+}
+
+.days-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.day-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  min-width: 60px;
+  flex-shrink: 0;
+}
+
+.day-button:hover {
+  background: #f0f4ff;
+  border-color: #2563eb;
+}
+
+.day-button.active {
+  background: linear-gradient(135deg, #2563eb 0%, #1e40af 100%);
+  border-color: #1d4ed8;
+  color: white;
+}
+
+.day-name {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.day-button.active .day-name {
+  color: white;
+}
+
+.day-date {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.day-button.active .day-date {
+  color: #dbeafe;
+}
+
+@media (max-width: 768px) {
+  .week-navigator {
+    gap: 8px;
+    padding: 12px;
+  }
+
+  .week-header {
+    min-width: 150px;
+    order: -1;
+    flex-basis: 100%;
+  }
+
+  .days-container {
+    gap: 4px;
+  }
+
+  .day-button {
+    min-width: 55px;
+    padding: 8px 10px;
+  }
+
+  .day-name {
+    font-size: 11px;
+  }
+
+  .day-date {
+    font-size: 12px;
+  }
+}

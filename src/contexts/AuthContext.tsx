@@ -10,6 +10,7 @@ interface AuthContextType {
   register: (firstName: string, lastName: string, email: string, password: string, tenantId: string) => Promise<void>;
   logout: () => void;
   setUser: (user: User | null) => void;
+  updateProfile: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -107,6 +108,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   };
 
+  const updateProfile = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('user', JSON.stringify(updatedUser));
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -115,7 +124,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     login,
     register,
     logout,
-    setUser
+    setUser,
+    updateProfile
   };
 
   return (

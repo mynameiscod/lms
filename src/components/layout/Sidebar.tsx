@@ -114,23 +114,23 @@ const Sidebar: React.FC = () => {
 
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
-      {/* Logo Section */}
-      <div className="sidebar-logo-section">
-        <div className="logo-container">
-          <div className="logo-placeholder">
-            <img 
-              src="/assets/logo.png" 
-              alt="Logo" 
-              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-            />
-          </div>
-        </div>
+      {/* Sidebar Header - Clickable to Toggle */}
+      <div 
+        className="sidebar-header" 
+        onClick={() => setIsOpen(!isOpen)}
+        title={isOpen ? "Collapse" : "Expand"}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            setIsOpen(!isOpen);
+          }
+        }}
+      >
+        <div className="header-icon">📚</div>
+        <div className="header-text">Menu</div>
+        <div className="header-toggle">{isOpen ? '‹' : '›'}</div>
       </div>
-
-      {/* Toggle Button */}
-      <button className="sidebar-toggle" onClick={() => setIsOpen(!isOpen)} title={isOpen ? "Collapse" : "Expand"}>
-        {isOpen ? '‹' : '›'}
-      </button>
 
       {/* Navigation */}
       <nav className="sidebar-nav">

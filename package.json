@@ -1,48 +1,32 @@
 {
-  "name": "@lms-saas/client",
-  "version": "0.1.0",
+  "name": "@lms-saas/root",
+  "version": "1.0.0",
   "private": true,
-  "proxy": "http://localhost:5000",
-  "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-router-dom": "^6.16.0",
-    "axios": "^1.5.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4",
-    "socket.io-client": "^4.7.2"
-  },
+  "description": "LMS SaaS - Monorepo with Client, Server, and Shared packages",
+  "workspaces": [
+    "client",
+    "server",
+    "shared"
+  ],
   "scripts": {
-    "dev": "react-scripts start",
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "install-all": "npm install",
+    "dev": "npm run dev --workspaces",
+    "build": "npm run build --workspaces",
+    "test": "npm run test --workspaces",
+    "lint": "npm run lint --workspaces",
+    "dev:client": "npm run dev --workspace=client",
+    "dev:server": "npm run dev --workspace=server",
+    "build:client": "npm run build --workspace=client",
+    "build:server": "npm run build --workspace=server"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
-  },
-  "devDependencies": {
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/user-event": "^13.5.0",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@types/node": "^20.8.0",
-    "typescript": "^4.9.5"
-  }
+  "keywords": [
+    "lms",
+    "saas",
+    "learning-management-system",
+    "education"
+  ]
 }

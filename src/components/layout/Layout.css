@@ -2,7 +2,7 @@
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+  background: white;
 }
 
 .layout-body {
@@ -15,7 +15,7 @@
   margin-left: 260px;
   margin-top: 64px;
   padding: 32px;
-  background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 50%, #fce7f3 100%);
+  background: #fafafa;
   transition: margin-left 0.4s ease;
 }
 

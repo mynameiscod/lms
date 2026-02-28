@@ -120,11 +120,10 @@ const Sidebar: React.FC = () => {
           <div className="logo-placeholder">
             <img 
               src="/assets/logo.png" 
-              alt="EduHub Logo" 
+              alt="Logo" 
               style={{ width: '100%', height: '100%', objectFit: 'contain' }}
             />
           </div>
-          {isOpen && <span className="logo-text">EduHub</span>}
         </div>
       </div>
 

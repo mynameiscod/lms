@@ -16,8 +16,12 @@ const Navbar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <div className="navbar-title">
-          Welcome Back
+        <div className="navbar-logo">
+          <img 
+            src="/assets/logo.png" 
+            alt="Logo" 
+            style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+          />
         </div>
 
         <div className="navbar-user">

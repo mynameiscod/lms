@@ -1,0 +1,395 @@
+.batches-page {
+  padding: 30px;
+}
+
+.batches-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 30px;
+  gap: 20px;
+}
+
+.batches-header-text h1 {
+  margin: 0 0 8px 0;
+  font-size: 28px;
+  color: #1a1a1a;
+}
+
+.batches-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.batches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 20px;
+}
+
+.no-batches {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 30px;
+  color: #999;
+}
+
+.batch-card {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.batch-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.batch-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: start;
+  margin-bottom: 15px;
+  gap: 10px;
+}
+
+.batch-header h3 {
+  margin: 0 0 5px 0;
+  font-size: 18px;
+  color: #1a1a1a;
+}
+
+.batch-dates {
+  margin: 0;
+  color: #666;
+  font-size: 13px;
+}
+
+.status-badge {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-badge.active {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-badge.inactive {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.batch-info {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.info-item {
+  flex: 1;
+}
+
+.info-item .label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.info-item .value {
+  display: block;
+  font-size: 16px;
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+.batch-schedule {
+  margin-bottom: 15px;
+}
+
+.schedule-label,
+.instructors-label {
+  display: block;
+  font-size: 12px;
+  color: #999;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.timings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timing-item {
+  display: flex;
+  gap: 10px;
+  font-size: 13px;
+  color: #555;
+}
+
+.timing-item .day {
+  font-weight: 600;
+  min-width: 80px;
+}
+
+.timing-item .time {
+  color: #666;
+}
+
+.batch-instructors {
+  margin-bottom: 20px;
+}
+
+.instructors-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.instructor-tag {
+  display: inline-block;
+  background: #f0f0f0;
+  color: #555;
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.no-instructors {
+  display: inline-block;
+  color: #999;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.batch-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.action-btn {
+  flex: 1;
+  min-width: 100px;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: white;
+}
+
+.edit-btn {
+  color: #1976d2;
+  border-color: #1976d2;
+}
+
+.edit-btn:hover {
+  background: #1976d2;
+  color: white;
+}
+
+.deactivate-btn,
+.activate-btn {
+  color: #f57c00;
+  border-color: #f57c00;
+}
+
+.deactivate-btn:hover,
+.activate-btn:hover {
+  background: #f57c00;
+  color: white;
+}
+
+.delete-btn {
+  color: #d32f2f;
+  border-color: #d32f2f;
+}
+
+.delete-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+/* Modal Form Styles */
+.batch-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+}
+
+.timings-section,
+.instructors-section {
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  padding: 15px;
+  background: #fafafa;
+}
+
+.section-label {
+  display: block;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.timing-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.day-select,
+.time-input {
+  padding: 8px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.day-select {
+  min-width: 120px;
+  flex: 1;
+}
+
+.time-input {
+  flex: 0.8;
+}
+
+.time-separator {
+  color: #999;
+  font-size: 13px;
+  padding: 0 5px;
+}
+
+.remove-timing-btn {
+  background: #ffebee;
+  color: #d32f2f;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.remove-timing-btn:hover {
+  background: #d32f2f;
+  color: white;
+}
+
+.add-timing-btn {
+  background: #e3f2fd;
+  color: #1976d2;
+  border: 1px solid #1976d2;
+  border-radius: 4px;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  transition: all 0.2s;
+  margin-top: 5px;
+}
+
+.add-timing-btn:hover {
+  background: #1976d2;
+  color: white;
+}
+
+.instructors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.instructor-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.instructor-checkbox input[type="checkbox"] {
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+.instructor-checkbox span {
+  font-size: 13px;
+  color: #555;
+}
+
+.no-options {
+  grid-column: 1 / -1;
+  color: #999;
+  font-size: 13px;
+  text-align: center;
+  padding: 10px;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 15px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn-secondary {
+  background: #f5f5f5 !important;
+  border: 1px solid #ddd !important;
+  color: #666 !important;
+}
+
+.btn-secondary:hover {
+  background: #eeeeee !important;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .batches-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .batches-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .timing-row {
+    flex-wrap: wrap;
+  }
+
+  .instructors-grid {
+    grid-template-columns: 1fr;
+  }
+}

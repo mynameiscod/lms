@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1/content';
+const API_BASE_URL = (typeof window !== 'undefined' 
+  ? window.location.origin 
+  : 'http://localhost:5000') + '/api/v1/content';
 
 export interface ContentAttachment {
   name: string;

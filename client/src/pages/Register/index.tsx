@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button, Input, Card, Alert } from '../../components/common';
 import './RegisterPage.css';
@@ -13,8 +13,19 @@ const RegisterPage: React.FC = () => {
   const [tenantId, setTenantId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isJoiningOrg, setIsJoiningOrg] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Check if user is joining an existing org via invite link
+  useEffect(() => {
+    const urlTenantId = searchParams.get('tenantId');
+    if (urlTenantId) {
+      setTenantId(urlTenantId);
+      setIsJoiningOrg(true);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -44,7 +55,7 @@ const RegisterPage: React.FC = () => {
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <Card title="Create Account" subtitle="Sign up to get started">
+        <Card title={isJoiningOrg ? "Join Organization" : "Create Account"} subtitle={isJoiningOrg ? "Complete your profile to join" : "Sign up to get started"}>
           {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
           <form onSubmit={handleSubmit}>
@@ -99,15 +110,17 @@ const RegisterPage: React.FC = () => {
               required
             />
 
-            <Input
-              type="text"
-              name="tenantId"
-              label="Organization Name"
-              placeholder="Enter your organization name"
-              value={tenantId}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTenantId(e.target.value)}
-              required
-            />
+            {!isJoiningOrg && (
+              <Input
+                type="text"
+                name="tenantId"
+                label="Organization Name"
+                placeholder="Enter your organization name"
+                value={tenantId}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTenantId(e.target.value)}
+                required
+              />
+            )}
 
             <Button type="submit" loading={loading} className="auth-button">
               Create Account

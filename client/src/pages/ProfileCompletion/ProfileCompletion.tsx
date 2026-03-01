@@ -44,7 +44,7 @@ export const ProfileCompletion: React.FC = () => {
     setLoading(true);
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+      const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
       const token = localStorage.getItem('token');
 
       const response = await fetch(`${API_URL}/users/${user._id}/profile`, {

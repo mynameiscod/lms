@@ -63,7 +63,7 @@ export const SetupPassword: React.FC = () => {
     setLoading(true);
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+      const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
       
       // Setup password
       const setupResponse = await fetch(`${API_URL}/users/setup-password`, {

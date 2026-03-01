@@ -1,0 +1,10 @@
+#!/bin/bash
+
+# Add GitHub Actions SSH key to VPS authorized_keys
+mkdir -p ~/.ssh
+cat >> ~/.ssh/authorized_keys << 'EOF'
+ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDgtGwKpRPdf704MWdUhFV+XQbpQ5IS1A/rg/RvmpvU+eRh3XyLYqb8JJvGj1dFfOVFSsczNmiQllUlntFJ8R6wKgZEUzuTgIAi/zxbBiO5YW31cNIsajx8Dw1WTdeJCowEoACxeywn/Hvi6h/CH/cANyH4BhDNVDIARLnrd+YGcg2PL3mhJQiW7t1NzdXiffR1VsdEOCP2tVdD2mge7pyOpKOMcrw9ubeRkAD83EPYAoFlnhgMVDKFnFdnmu6uP2vgM21Vvst9HhpvMK1Q6s51rj1feVTKVhkCzQMsrortpj8BlQkYigjnNJT5qukxa2H4oOtPxYmSb/QHjNpTjYz3xHOmP0/14l6GoPO38KcNslh0a/vWcm/r8ziCd56g2Br3qZ/8epS/wlsqD2c0tBsw61FUkJOG9I+ISBlAyntPC/Mrmczexe8OKcD70S1ppOY3i2f3NlKvB4m29Dn9RbXFU7lniSms8QcgcjITZCCdioOts3ujvarjCtIbJk6lH/Sgf+ODaOt6QWJF0bjIqatYGFtiN/TYmmK/mLJvx9/ygnTID3cXDxUYpJGcOYP6ISgIILV6CW34a6mp3TM8Cjav2de9PJpjDzVWYzjjZSENKpSIEWTwyhmWzWHqn5AcuZTSYBHflEdajhsEI6gxVPexVIBS3bPLCP142jojIQQpvQ== github-deploy
+EOF
+
+chmod 600 ~/.ssh/authorized_keys
+echo "SSH key added successfully!"

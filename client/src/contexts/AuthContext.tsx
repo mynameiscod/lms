@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string, tenantId?: string) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+      const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
       const body: any = { email, password };
       if (tenantId) {
         body.tenantId = tenantId;
@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     tenantId: string
   ) => {
     try {
-      const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+      const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
       const response = await fetch(`${API_URL}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

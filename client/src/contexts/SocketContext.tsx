@@ -24,7 +24,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     if (!auth?.user) return;
 
     // Initialize socket connection
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(window.location.origin, {
       auth: {
         token: auth.token,
       },

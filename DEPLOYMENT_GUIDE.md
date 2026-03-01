@@ -1,5 +1,7 @@
 # LMS SaaS - Hetzner VPS Deployment Guide
 
+> **Note**: GitHub Actions CI/CD automation is now enabled. Code pushed to `master` branch automatically builds, tests, and deploys to production VPS (187.124.97.56:5000).
+
 ## Prerequisites
 - Hetzner VPS (€2.99/month minimum)
 - Domain name (optional, for SSL)

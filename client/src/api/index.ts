@@ -1,4 +1,5 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api/v1';
+// Use relative URL (no hardcoded domain) - works with any deployment
+const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');

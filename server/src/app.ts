@@ -42,8 +42,13 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve static files from React build
-app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
+// Serve static files from React build - use absolute path for production
+const staticPath = process.env.NODE_ENV === 'production' 
+  ? '/app/client/build'
+  : path.join(__dirname, '..', 'client', 'build');
+
+app.use(express.static(staticPath));
+console.log(`📁 Serving static files from: ${staticPath}`);
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response<ApiResponse<any>>) => {
@@ -91,8 +96,12 @@ app.post('/api/debug/auth', (req: AuthenticatedRequest, res: Response<ApiRespons
 app.use('/api/v1', apiRoutes);
 
 // Serve React index.html for all non-API routes (client-side routing)
+const indexPath = process.env.NODE_ENV === 'production'
+  ? '/app/client/build/index.html'
+  : path.join(__dirname, '..', 'client', 'build', 'index.html');
+
 app.get('*', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
+  res.sendFile(indexPath);
 });
 
 // 404 handler

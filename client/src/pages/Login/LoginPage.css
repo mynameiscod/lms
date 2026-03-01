@@ -46,3 +46,24 @@
 .auth-link:hover {
   text-decoration: underline;
 }
+
+.tenant-hint {
+  margin-top: 12px !important;
+  font-size: 12px !important;
+  color: #9ca3af;
+}
+
+.tenant-toggle-link {
+  background: none;
+  border: none;
+  color: #005897;
+  cursor: pointer;
+  font-size: 12px;
+  text-decoration: none;
+  padding: 0;
+  font-weight: 600;
+}
+
+.tenant-toggle-link:hover {
+  text-decoration: underline;
+}

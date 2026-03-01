@@ -258,6 +258,15 @@ export const tenantApi = {
     });
     if (!response.ok) throw new Error('Failed to create tenant');
     return response.json();
+  },
+
+  generateInviteLink: async (tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/tenants/${tenantId}/invite-link`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to generate invite link');
+    return response.json();
   }
 };
 

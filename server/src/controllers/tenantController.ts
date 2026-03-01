@@ -97,3 +97,58 @@ export const updateTenant = async (
     });
   }
 };
+
+/**
+ * Generate an invite link for students/employees to join the tenant
+ * Admin/Tenant Admin can use this to create shareable links
+ */
+export const generateInviteLink = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { tenantId } = req.params;
+
+    // Verify the requesting user is an admin of this tenant
+    const user = (req as any).user;
+    if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized',
+        error: 'Only administrators can generate invite links'
+      });
+    }
+
+    // Verify the tenant exists
+    const tenant = await tenantService.getTenantById(tenantId);
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found',
+        error: 'Tenant does not exist'
+      });
+    }
+
+    // Generate based on frontend URL - can be customized
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const loginLink = `${frontendUrl}/login?tenantId=${tenantId}`;
+    const registerLink = `${frontendUrl}/register?tenantId=${tenantId}`;
+
+    res.status(200).json({
+      success: true,
+      message: 'Invite links generated successfully',
+      data: {
+        loginLink,
+        registerLink,
+        tenantId,
+        instructions: 'Share the appropriate link with students or new employees. Login link for existing users, Register link for new users.'
+      }
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+      error: error.message
+    });
+  }
+};

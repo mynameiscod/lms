@@ -115,16 +115,16 @@
 }
 
 .sidebar-link:hover {
-  color: #2563eb;
-  background: #f0f4ff;
+  color: #005897;
+  background: #f3f4f6;
   transform: translateX(2px);
 }
 
 .sidebar-link.active {
   color: white;
-  background: #2563eb;
+  background: #005897;
   font-weight: 600;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 88, 151, 0.3);
 }
 
 .sidebar-link.active::before {
@@ -183,14 +183,14 @@
 }
 
 .sidebar-group-button:hover {
-  color: #2563eb;
-  background: #f0f4ff;
+  color: #005897;
+  background: #f3f4f6;
   transform: translateX(2px);
 }
 
 .sidebar-group-button.expanded {
-  background: #f0f4ff;
-  color: #2563eb;
+  background: #f3f4f6;
+  color: #005897;
 }
 
 .group-icon {
@@ -265,13 +265,13 @@
 }
 
 .submenu-link:hover {
-  color: #2563eb !important;
-  background: #eef2ff !important;
+  color: #005897 !important;
+  background: #f3f4f6 !important;
 }
 
 .submenu-link.active {
   color: white !important;
-  background: #2563eb !important;
+  background: #005897 !important;
 }
 
 .submenu-link.active::before {

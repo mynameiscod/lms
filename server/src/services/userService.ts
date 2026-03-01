@@ -7,7 +7,8 @@ export class UserService {
     lastName: string,
     password: string,
     role: string,
-    tenantId: string
+    tenantId: string,
+    batchId?: string
   ): Promise<IUser> {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -23,7 +24,9 @@ export class UserService {
       password,
       role: role || 'STUDENT',
       tenantId,
-      isActive: true
+      isActive: true,
+      profileComplete: false,
+      batchId: batchId || undefined
     });
 
     await user.save();
@@ -78,6 +81,47 @@ export class UserService {
     return await User.findByIdAndUpdate(
       userId,
       { isActive: true },
+      { new: true }
+    );
+  }
+
+  async setResetToken(userId: string, token: string, expires: Date): Promise<IUser | null> {
+    return await User.findByIdAndUpdate(
+      userId,
+      { 
+        resetToken: token,
+        resetTokenExpires: expires
+      },
+      { new: true }
+    );
+  }
+
+  async clearResetToken(userId: string): Promise<IUser | null> {
+    return await User.findByIdAndUpdate(
+      userId,
+      { 
+        resetToken: null,
+        resetTokenExpires: null
+      },
+      { new: true }
+    );
+  }
+
+  async updatePassword(userId: string, newPassword: string): Promise<IUser | null> {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    user.password = newPassword;
+    await user.save();
+    return user;
+  }
+
+  async updateUser(userId: string, updateData: any): Promise<IUser | null> {
+    return await User.findByIdAndUpdate(
+      userId,
+      updateData,
       { new: true }
     );
   }

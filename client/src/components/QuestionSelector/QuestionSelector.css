@@ -53,7 +53,7 @@
 
 .qs-stat strong {
   font-size: 1.5rem;
-  color: #667eea;
+  color: #005897;
 }
 
 /* Filters */
@@ -81,8 +81,8 @@
 
 .qs-select:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 /* Empty State */
@@ -130,9 +130,9 @@
 }
 
 .qs-question-item:hover {
-  border-color: #667eea;
+  border-color: #005897;
   background: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 88, 151, 0.1);
 }
 
 .qs-question-checkbox {
@@ -147,7 +147,7 @@
   cursor: pointer;
   width: 18px;
   height: 18px;
-  accent-color: #667eea;
+  accent-color: #005897;
 }
 
 .qs-question-content {
@@ -171,7 +171,7 @@
 
 .qs-badge {
   display: inline-block;
-  background: #667eea;
+  background: #005897;
   color: white;
   padding: 0.3rem 0.75rem;
   border-radius: 12px;

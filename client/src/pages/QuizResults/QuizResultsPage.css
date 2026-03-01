@@ -1,5 +1,5 @@
 .quiz-results-page {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   min-height: 100vh;
   padding-bottom: 40px;
 }
@@ -197,12 +197,12 @@
 
 .review-item:hover {
   background: #f0f0f0;
-  border-color: #667eea;
+  border-color: #005897;
 }
 
 .review-item.active {
-  background: #667eea;
-  border-color: #667eea;
+  background: #005897;
+  border-color: #005897;
   color: white;
 }
 
@@ -294,7 +294,7 @@
 
 .detail-type {
   padding: 6px 12px;
-  background: #667eea;
+  background: #005897;
   color: white;
   border-radius: 20px;
   font-size: 0.75rem;

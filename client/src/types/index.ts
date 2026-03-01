@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   role: string;
   tenantId: string;
+  batchId?: string;
   isActive: boolean;
   profilePicture?: string;
 }

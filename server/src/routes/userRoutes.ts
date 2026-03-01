@@ -6,7 +6,10 @@ import {
   updateUserRole,
   deleteUser,
   deactivateUser,
-  activateUser
+  activateUser,
+  inviteStudent,
+  setupPassword,
+  updateProfile
 } from '../controllers/userController';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { authMiddleware } from '../middleware/auth';
@@ -14,7 +17,11 @@ import { roleGuard } from '../middleware/roleGuard';
 
 const router = Router();
 
-// Apply auth and tenant middleware to all routes
+// PUBLIC ROUTES (no auth required)
+// Setup password from email link (public route - no auth required for new students)
+router.post('/setup-password', setupPassword);
+
+// Apply auth and tenant middleware to all other routes
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
@@ -38,5 +45,12 @@ router.patch('/:userId/activate', roleGuard(['manage_tenant_users']), activateUs
 
 // Delete user
 router.delete('/:userId', roleGuard(['manage_tenant_users']), deleteUser);
+
+// Onboarding Routes
+// Invite a student (requires manage_tenant_users permission)
+router.post('/invite/student', roleGuard(['manage_tenant_users']), inviteStudent);
+
+// Update user profile
+router.patch('/:userId/profile', updateProfile);
 
 export default router;

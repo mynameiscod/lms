@@ -1,6 +1,6 @@
 .quiz-management-page {
   padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   min-height: 100vh;
 }
 
@@ -85,8 +85,8 @@
 .form-group select:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .date-input,
@@ -103,8 +103,8 @@
 .time-input:focus,
 .select-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .textarea-input {
@@ -144,7 +144,7 @@
   width: 18px;
   height: 18px;
   cursor: pointer;
-  accent-color: #667eea;
+  accent-color: #005897;
 }
 
 .form-actions {
@@ -199,7 +199,7 @@
 
 .quiz-card:hover {
   transform: translateY(-8px);
-  box-shadow: 0 12px 30px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 12px 30px rgba(0, 88, 151, 0.3);
 }
 
 .quiz-card-header {
@@ -207,7 +207,7 @@
   justify-content: space-between;
   align-items: flex-start;
   padding: 20px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   gap: 15px;
   flex-wrap: wrap;
 }

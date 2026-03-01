@@ -35,8 +35,8 @@
 
 .input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
   background: white;
 }
 

@@ -83,7 +83,7 @@
 .stat-value {
   font-size: 20px;
   font-weight: 700;
-  color: #2563eb;
+  color: #005897;
 }
 
 .action-link {
@@ -91,7 +91,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #2563eb;
+  background: #005897;
   color: white;
   text-decoration: none;
   border-radius: 6px;
@@ -101,7 +101,7 @@
 }
 
 .action-link:hover {
-  background: #1d4ed8;
+  background: #003d6b;
   transform: translateX(2px);
 }
 
@@ -124,7 +124,7 @@
 .dashboard-title p {
   margin: 0;
   font-size: 15px;
-  color: #2563eb;
+  color: #005897;
   font-weight: 600;
   font-style: italic;
   line-height: 1.5;
@@ -184,7 +184,7 @@
 
 .stat-item:hover {
   background: #f0f4ff;
-  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.1);
+  box-shadow: 0 2px 8px rgba(0, 88, 151, 0.1);
 }
 
 .stat-icon {
@@ -210,7 +210,7 @@
 .stat-value {
   font-size: 16px;
   font-weight: 700;
-  color: #2563eb;
+  color: #005897;
 }
 
 .access-denied {

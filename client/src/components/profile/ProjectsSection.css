@@ -171,7 +171,7 @@
 .form-group input:focus,
 .form-group textarea:focus {
   outline: none;
-  border-color: #2563eb;
+  border-color: #005897;
   background: #f0f4ff;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
@@ -201,7 +201,7 @@
   display: inline-block;
   padding: 6px 12px;
   background: #f0f4ff;
-  color: #2563eb;
+  color: #005897;
   border-radius: 4px;
   font-size: 13px;
   font-weight: 600;
@@ -222,7 +222,7 @@
 
 .add-project-btn {
   padding: 12px 20px;
-  background: #2563eb;
+  background: #005897;
   color: white;
   border: none;
   border-radius: 6px;
@@ -233,7 +233,7 @@
 }
 
 .add-project-btn:hover:not(:disabled) {
-  background: #1e40af;
+  background: #003d6b;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   transform: translateY(-2px);
 }

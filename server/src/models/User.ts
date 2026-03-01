@@ -10,6 +10,14 @@ export interface IUser extends Document {
   tenantId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
   isActive: boolean;
+  profileComplete: boolean;
+  phone?: string;
+  avatar?: string;
+  bio?: string;
+  linkedin?: string;
+  github?: string;
+  resetToken?: string;
+  resetTokenExpires?: Date;
   createdAt: Date;
   updatedAt: Date;
   comparePassword(password: string): Promise<boolean>;
@@ -56,6 +64,38 @@ const UserSchema: Schema = new Schema(
     isActive: { 
       type: Boolean, 
       default: true 
+    },
+    profileComplete: {
+      type: Boolean,
+      default: false
+    },
+    phone: {
+      type: String,
+      default: null
+    },
+    avatar: {
+      type: String,
+      default: null
+    },
+    bio: {
+      type: String,
+      default: null
+    },
+    linkedin: {
+      type: String,
+      default: null
+    },
+    github: {
+      type: String,
+      default: null
+    },
+    resetToken: {
+      type: String,
+      default: null
+    },
+    resetTokenExpires: {
+      type: Date,
+      default: null
     }
   },
   { timestamps: true }

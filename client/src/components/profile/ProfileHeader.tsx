@@ -1,25 +1,11 @@
 import React, { useRef, useState } from 'react';
 import './ProfileHeader.css';
 
-interface StudentProfileData {
-  _id: string;
-  userId: string;
-  profilePicture?: string;
-  personal: {
-    firstName: string;
-    lastName: string;
-    surname: string;
-    mobileNumber: string;
-    email: string;
-  };
-  [key: string]: any;
-}
-
 interface ProfileHeaderProps {
-  profileData: StudentProfileData;
+  profileData: any;
   isEditing: boolean;
   onEditToggle: () => void;
-  onSave: (data: StudentProfileData) => void;
+  onSave: (data: any) => void;
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({

@@ -58,7 +58,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+  background: linear-gradient(90deg, #005897 0%, #003d6b 100%);
 }
 
 .course-card:hover {

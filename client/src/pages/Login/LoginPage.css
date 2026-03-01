@@ -3,7 +3,7 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   padding: 20px;
 }
 
@@ -38,7 +38,7 @@
 }
 
 .auth-link {
-  color: #3b82f6;
+  color: #005897;
   text-decoration: none;
   font-weight: 600;
 }

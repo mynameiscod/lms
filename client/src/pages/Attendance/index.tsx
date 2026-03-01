@@ -42,6 +42,49 @@ const AttendancePage: React.FC = () => {
     }
   }, [success.show]);
 
+  // Fetch attendance data when date changes
+  useEffect(() => {
+    if (selectedBatch && batchStudents.length > 0) {
+      const fetchAttendanceData = async () => {
+        try {
+          const attendanceRes = await attendanceApi.getBatchAttendance(
+            selectedBatch._id,
+            selectedDate
+          );
+          
+          const updatedAttendance: { [key: string]: StudentAttendanceForm } = {};
+          batchStudents.forEach((student: User) => {
+            updatedAttendance[student._id] = {
+              studentId: student._id,
+              inTime: '',
+              outTime: '',
+              status: 'absent'
+            };
+          });
+
+          if (attendanceRes.data && Array.isArray(attendanceRes.data)) {
+            attendanceRes.data.forEach((record: Attendance) => {
+              const studentId = typeof record.studentId === 'string' ? record.studentId : record.studentId._id;
+              if (updatedAttendance[studentId]) {
+                updatedAttendance[studentId] = {
+                  studentId: studentId,
+                  inTime: record.inTime || '',
+                  outTime: record.outTime || '',
+                  status: record.status || 'absent'
+                };
+              }
+            });
+          }
+
+          setStudentAttendance(updatedAttendance);
+        } catch (err) {
+          console.log('No attendance data for this date');
+        }
+      };
+      fetchAttendanceData();
+    }
+  }, [selectedDate, selectedBatch]);
+
   const fetchBatches = async () => {
     try {
       setLoading(true);
@@ -67,7 +110,7 @@ const AttendancePage: React.FC = () => {
       const students = allUsers.filter((u: User) => u.role === 'STUDENT');
       setBatchStudents(students);
 
-      // Initialize attendance form for all students
+      // Initialize attendance form for all students with default values
       const initialAttendance: { [key: string]: StudentAttendanceForm } = {};
       students.forEach((student: User) => {
         initialAttendance[student._id] = {
@@ -77,6 +120,33 @@ const AttendancePage: React.FC = () => {
           status: 'absent'
         };
       });
+
+      // Fetch existing attendance data for this batch and date
+      try {
+        const attendanceRes = await attendanceApi.getBatchAttendance(
+          batch._id,
+          selectedDate
+        );
+        
+        if (attendanceRes.data && Array.isArray(attendanceRes.data)) {
+          // Merge existing attendance data
+          attendanceRes.data.forEach((record: Attendance) => {
+            const studentId = typeof record.studentId === 'string' ? record.studentId : record.studentId._id;
+            if (initialAttendance[studentId]) {
+              initialAttendance[studentId] = {
+                studentId: studentId,
+                inTime: record.inTime || '',
+                outTime: record.outTime || '',
+                status: record.status || 'absent'
+              };
+            }
+          });
+        }
+      } catch (attendanceError) {
+        // If fetch fails, continue with default values
+        console.log('No previous attendance data found');
+      }
+
       setStudentAttendance(initialAttendance);
     } catch (err: any) {
       setError(err.message || 'Failed to load batch details');
@@ -151,14 +221,6 @@ const AttendancePage: React.FC = () => {
 
       await Promise.all(promises);
       setSuccess({ show: true, count: batchStudents.length });
-
-      // Reset form after delay
-      setTimeout(() => {
-        setSelectedBatch(null);
-        setBatchStudents([]);
-        setStudentAttendance({});
-        setSuccess({ show: false, count: 0 });
-      }, 3000);
     } catch (err: any) {
       setError(err.message || 'Failed to mark attendance');
     } finally {
@@ -170,12 +232,7 @@ const AttendancePage: React.FC = () => {
 
   return (
     <div className="attendance-page">
-      <div className="attendance-header">
-        <div className="header-text">
-          <h1>✅ Mark Attendance</h1>
-          <p className="subtitle">Record student attendance for your batches</p>
-        </div>
-      </div>
+      <h3 className="attendance-title">Mark Attendance</h3>
 
       {/* Success Notification */}
       {success.show && (
@@ -195,11 +252,11 @@ const AttendancePage: React.FC = () => {
       <div className="attendance-container">
         {/* Batch Selection Section */}
         <div className="batch-selection">
-          <h2>Step 1: Select Batch and Date</h2>
+          <h2>Batch Details</h2>
 
           <div className="selection-controls">
             <div className="date-picker-group">
-              <label>📅 Date</label>
+              <label>Date</label>
               <input
                 type="date"
                 value={selectedDate}
@@ -209,7 +266,7 @@ const AttendancePage: React.FC = () => {
             </div>
 
             <div className="batch-picker-group">
-              <label>🏛️ Batch</label>
+              <label>Batch</label>
               <select
                 value={selectedBatch?._id || ''}
                 onChange={(e) => {
@@ -232,15 +289,15 @@ const AttendancePage: React.FC = () => {
         {/* Attendance Marking Section */}
         {selectedBatch && batchStudents.length > 0 && (
           <div className="attendance-marking">
-            <h2>Step 2: Mark Attendance - {selectedBatch.name}</h2>
-            <p className="date-info">📍 Date: {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <h2>Mark Attendance - {selectedBatch.name}</h2>
+            <p className="date-info">Date: {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
 
             <div className="attendance-table-wrapper">
               <table className="attendance-table">
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Student Name</th>
+                    <th>Name</th>
                     <th>Email</th>
                     <th>In Time</th>
                     <th>Out Time</th>
@@ -318,31 +375,6 @@ const AttendancePage: React.FC = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
-
-            <div className="attendance-summary">
-              <div className="summary-item">
-                <span className="label">✓ Present:</span>
-                <span className="value present-count">
-                  {Object.values(studentAttendance).filter(a => a.status === 'present').length}
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="label">✗ Absent:</span>
-                <span className="value absent-count">
-                  {Object.values(studentAttendance).filter(a => a.status === 'absent').length}
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="label">📝 Leave:</span>
-                <span className="value leave-count">
-                  {Object.values(studentAttendance).filter(a => a.status === 'leave').length}
-                </span>
-              </div>
-              <div className="summary-item">
-                <span className="label">👥 Total:</span>
-                <span className="value">{batchStudents.length}</span>
-              </div>
             </div>
 
             <div className="attendance-actions">

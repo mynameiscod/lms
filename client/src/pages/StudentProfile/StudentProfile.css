@@ -45,13 +45,13 @@
 }
 
 .btn-primary {
-  background: #2563eb;
+  background: #005897;
   color: white;
 }
 
 .btn-primary:hover {
-  background: #1e40af;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  background: #003d6b;
+  box-shadow: 0 4px 12px rgba(0, 88, 151, 0.3);
   transform: translateY(-2px);
 }
 
@@ -115,7 +115,7 @@
   justify-content: center;
   align-items: center;
   min-height: 300px;
-  color: #2563eb;
+  color: #005897;
   font-size: 14px;
   font-weight: 600;
 }
@@ -125,7 +125,7 @@
   width: 30px;
   height: 30px;
   border: 4px solid #e2e8f0;
-  border-top: 4px solid #2563eb;
+  border-top: 4px solid #005897;
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
   margin-right: 10px;

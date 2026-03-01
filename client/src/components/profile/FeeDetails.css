@@ -64,7 +64,7 @@
 }
 
 .fee-card.total::before {
-  background: #2563eb;
+  background: #005897;
 }
 
 .fee-card.paid {
@@ -143,7 +143,7 @@
 .progress-percentage {
   font-size: 16px;
   font-weight: 700;
-  color: #2563eb;
+  color: #005897;
 }
 
 .progress-bar {
@@ -157,7 +157,7 @@
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+  background: linear-gradient(90deg, #005897 0%, #003d6b 100%);
   transition: width 0.5s ease;
 }
 

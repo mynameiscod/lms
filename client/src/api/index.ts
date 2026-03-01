@@ -216,6 +216,26 @@ export const userApi = {
     });
     if (!response.ok) throw new Error('Failed to delete user');
     return response.json();
+  },
+
+  inviteStudent: async (email: string, firstName: string, lastName: string, batchId?: string) => {
+    const response = await fetch(`${API_BASE_URL}/users/invite/student`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ email, firstName, lastName, batchId })
+    });
+    if (!response.ok) throw new Error('Failed to invite student');
+    return response.json();
+  },
+
+  updateProfile: async (userId: string, profileData: any) => {
+    const response = await fetch(`${API_BASE_URL}/users/${userId}/profile`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(profileData)
+    });
+    if (!response.ok) throw new Error('Failed to update profile');
+    return response.json();
   }
 };
 

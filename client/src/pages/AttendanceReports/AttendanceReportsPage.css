@@ -3,7 +3,7 @@
 }
 
 .reports-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   padding: 30px;
   border-radius: 10px;
@@ -67,14 +67,14 @@
 }
 
 .batch-select:hover {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .batch-select:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.2);
 }
 
 .view-tabs {
@@ -95,13 +95,13 @@
 }
 
 .tab-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
+  border-color: #005897;
+  color: #005897;
   background: #f0f4ff;
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   border-color: transparent;
   box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
@@ -146,7 +146,7 @@
   margin: 0 0 15px 0;
   font-size: 1.3em;
   color: #333;
-  border-bottom: 3px solid #667eea;
+  border-bottom: 3px solid #005897;
   padding-bottom: 12px;
   font-weight: 600;
 }
@@ -158,7 +158,7 @@
 }
 
 .stat-item {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   padding: 20px;
   border-radius: 8px;
   color: white;
@@ -169,7 +169,7 @@
 
 .stat-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 20px rgba(0, 88, 151, 0.3);
 }
 
 .stat-label {
@@ -197,7 +197,7 @@
   margin: 0 0 15px 0;
   font-size: 1.3em;
   color: #333;
-  border-bottom: 3px solid #667eea;
+  border-bottom: 3px solid #005897;
   padding-bottom: 12px;
   font-weight: 600;
 }
@@ -215,7 +215,7 @@
 }
 
 .reports-table th {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   padding: 14px 12px;
   text-align: left;
@@ -245,7 +245,7 @@
   display: inline-block;
   width: 28px;
   height: 28px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   border-radius: 50%;
   text-align: center;
   line-height: 28px;
@@ -346,7 +346,7 @@
   margin: 0 0 15px 0;
   font-size: 1.3em;
   color: #333;
-  border-bottom: 3px solid #667eea;
+  border-bottom: 3px solid #005897;
   padding-bottom: 12px;
   font-weight: 600;
 }

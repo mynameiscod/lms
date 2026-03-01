@@ -1,26 +1,44 @@
 import React, { useEffect, useState } from 'react';
-import { userApi, roleApi } from '../../api';
+import { userApi, roleApi, batchApi } from '../../api';
 import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
 import { User, Role } from '../../types';
 import './UsersPage.css';
 
+interface Batch {
+  _id: string;
+  name: string;
+  isActive?: boolean;
+}
+
 const UsersPage: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [batchFilter, setBatchFilter] = useState('all');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
-  // Modal state for create user
+  // Modal state for invite student
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteFormData, setInviteFormData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    batchId: ''
+  });
+  const [invitingStudent, setInvitingStudent] = useState(false);
+
+  // Modal state for create user (non-student)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [createFormData, setCreateFormData] = useState({
     email: '',
     firstName: '',
     lastName: '',
-    password: '',
-    role: 'STUDENT'
+    role: 'INSTRUCTOR'
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -37,12 +55,16 @@ const UsersPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [usersRes, rolesRes] = await Promise.all([
+      const [usersRes, rolesRes, batchesRes] = await Promise.all([
         userApi.getUsers(),
-        roleApi.getRoles()
+        roleApi.getRoles(),
+        batchApi.getBatches()
       ]);
       setUsers(usersRes.data || []);
       setRoles(rolesRes.data || []);
+      // Get all batches for filtering
+      const allBatches = (batchesRes.data || []);
+      setBatches(allBatches);
     } catch (err: any) {
       setError(err.message || 'Failed to fetch data');
     } finally {
@@ -55,12 +77,20 @@ const UsersPage: React.FC = () => {
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
 
-    const matchesStatus =
-      statusFilter === 'all' ||
-      (statusFilter === 'active' && user.isActive) ||
-      (statusFilter === 'inactive' && !user.isActive);
+    const matchesBatch = 
+      batchFilter === 'all' || 
+      user.batchId === batchFilter;
 
-    return matchesSearch && matchesStatus;
+    const matchesRole = 
+      roleFilter === 'all' || 
+      user.role === roleFilter;
+
+    const matchesActive =
+      activeFilter === 'all' ||
+      (activeFilter === 'active' && user.isActive) ||
+      (activeFilter === 'inactive' && !user.isActive);
+
+    return matchesSearch && matchesBatch && matchesRole && matchesActive;
   });
 
   const openEditModal = (user: User) => {
@@ -75,6 +105,20 @@ const UsersPage: React.FC = () => {
     setSelectedRole('');
   };
 
+  const openInviteModal = () => {
+    setIsInviteModalOpen(true);
+  };
+
+  const closeInviteModal = () => {
+    setIsInviteModalOpen(false);
+    setInviteFormData({
+      email: '',
+      firstName: '',
+      lastName: '',
+      batchId: ''
+    });
+  };
+
   const openCreateModal = () => {
     setIsCreateModalOpen(true);
   };
@@ -85,9 +129,16 @@ const UsersPage: React.FC = () => {
       email: '',
       firstName: '',
       lastName: '',
-      password: '',
-      role: 'STUDENT'
+      role: 'INSTRUCTOR'
     });
+  };
+
+  const handleInviteFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setInviteFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleCreateFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -98,11 +149,41 @@ const UsersPage: React.FC = () => {
     }));
   };
 
+  const handleInviteStudent = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!inviteFormData.email || !inviteFormData.firstName || !inviteFormData.lastName) {
+      setError('Email, First Name, and Last Name are required');
+      return;
+    }
+
+    try {
+      setInvitingStudent(true);
+      setError('');
+
+      // Use inviteStudent endpoint which sends welcome email
+      await userApi.inviteStudent(
+        inviteFormData.email,
+        inviteFormData.firstName,
+        inviteFormData.lastName,
+        inviteFormData.batchId || undefined
+      );
+
+      setSuccess(`✅ Student invited successfully! Welcome email sent to ${inviteFormData.email}`);
+      closeInviteModal();
+      fetchData();
+    } catch (err: any) {
+      setError(err.message || 'Failed to invite student');
+    } finally {
+      setInvitingStudent(false);
+    }
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!createFormData.email || !createFormData.firstName || !createFormData.lastName || !createFormData.password) {
-      setError('All fields are required');
+    if (!createFormData.email || !createFormData.firstName || !createFormData.lastName) {
+      setError('Email, First Name, and Last Name are required');
       return;
     }
 
@@ -110,15 +191,19 @@ const UsersPage: React.FC = () => {
       setCreatingUser(true);
       setError('');
 
+      // Generate a temporary password for non-student users
+      const tempPassword = Math.random().toString(36).slice(-12);
+
+      // Use createUser endpoint for non-student users
       await userApi.createUser(
         createFormData.email,
         createFormData.firstName,
         createFormData.lastName,
-        createFormData.password,
+        tempPassword,
         createFormData.role
       );
 
-      setSuccess('User created successfully');
+      setSuccess(`✅ User created successfully! Role: ${createFormData.role}`);
       closeCreateModal();
       fetchData();
     } catch (err: any) {
@@ -208,7 +293,20 @@ const UsersPage: React.FC = () => {
           <h1>User Management</h1>
           <p className="users-subtitle">Manage tenant users, roles, and permissions</p>
         </div>
-        <Button onClick={openCreateModal}>+ Create User</Button>
+        <div className="users-header-actions">
+          <Button 
+            onClick={openInviteModal}
+            className="btn-header-sm"
+          >
+            📧 Invite Student
+          </Button>
+          <Button 
+            onClick={openCreateModal}
+            className="btn-header-sm btn-secondary-header"
+          >
+            👥 Create User
+          </Button>
+        </div>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
@@ -226,24 +324,37 @@ const UsersPage: React.FC = () => {
         </div>
 
         <div className="filter-buttons">
-          <button
-            className={`filter-btn ${statusFilter === 'all' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('all')}
+          <select
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="filter-select"
           >
-            All Users ({users.length})
-          </button>
-          <button
-            className={`filter-btn ${statusFilter === 'active' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('active')}
+            <option value="all">All Batches</option>
+            {batches.map(batch => (
+              <option key={batch._id} value={batch._id}>{batch.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            className="filter-select"
           >
-            Active ({users.filter(u => u.isActive).length})
-          </button>
-          <button
-            className={`filter-btn ${statusFilter === 'inactive' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('inactive')}
+            <option value="all">All Roles</option>
+            {roles.map(role => (
+              <option key={role._id} value={role._id}>{role.name}</option>
+            ))}
+          </select>
+
+          <select
+            value={activeFilter}
+            onChange={(e) => setActiveFilter(e.target.value as 'all' | 'active' | 'inactive')}
+            className="filter-select"
           >
-            Inactive ({users.filter(u => !u.isActive).length})
-          </button>
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
         </div>
       </div>
 
@@ -287,37 +398,37 @@ const UsersPage: React.FC = () => {
                   </td>
                   <td>
                     <div className="action-buttons">
-                      <button
-                        className="action-btn edit-btn"
+                      <span
+                        className="action-icon edit-icon"
                         onClick={() => openEditModal(user)}
-                        title="Change Role"
+                        title="Edit Role"
                       >
-                        Edit Role
-                      </button>
+                        ✏️
+                      </span>
                       {user.isActive ? (
-                        <button
-                          className="action-btn deactivate-btn"
+                        <span
+                          className="action-icon deactivate-icon"
                           onClick={() => handleDeactivateUser(user)}
                           title="Deactivate User"
                         >
-                          Deactivate
-                        </button>
+                          ⊘
+                        </span>
                       ) : (
-                        <button
-                          className="action-btn activate-btn"
+                        <span
+                          className="action-icon activate-icon"
                           onClick={() => handleActivateUser(user)}
                           title="Activate User"
                         >
-                          Activate
-                        </button>
+                          ✓
+                        </span>
                       )}
-                      <button
-                        className="action-btn delete-btn"
+                      <span
+                        className="action-icon delete-icon"
                         onClick={() => handleDeleteUser(user)}
                         title="Delete User"
                       >
-                        Delete
-                      </button>
+                        🗑️
+                      </span>
                     </div>
                   </td>
                 </tr>
@@ -327,19 +438,106 @@ const UsersPage: React.FC = () => {
         )}
       </div>
 
+      {/* Invite Student Modal */}
+      <Modal
+        isOpen={isInviteModalOpen}
+        onClose={closeInviteModal}
+        title="📧 Invite New Student"
+        size="medium"
+      >
+        <form onSubmit={handleInviteStudent} className="invite-form">
+          <div className="invite-info">
+            <p className="info-text">
+              ℹ️ A welcome email with setup instructions will be sent to the student.
+            </p>
+          </div>
+
+          <Input
+            type="text"
+            name="firstName"
+            label="First Name *"
+            placeholder="John"
+            value={inviteFormData.firstName}
+            onChange={handleInviteFormChange}
+            required
+          />
+
+          <Input
+            type="text"
+            name="lastName"
+            label="Last Name *"
+            placeholder="Doe"
+            value={inviteFormData.lastName}
+            onChange={handleInviteFormChange}
+            required
+          />
+
+          <Input
+            type="email"
+            name="email"
+            label="Email Address *"
+            placeholder="john.doe@example.com"
+            value={inviteFormData.email}
+            onChange={handleInviteFormChange}
+            required
+          />
+
+          <div className="form-group">
+            <label htmlFor="batch">Batch (Optional)</label>
+            <select
+              id="batch"
+              name="batchId"
+              value={inviteFormData.batchId}
+              onChange={handleInviteFormChange}
+              className="form-select"
+            >
+              <option value="">-- Select a batch --</option>
+              {batches.map(batch => (
+                <option key={batch._id} value={batch._id}>
+                  {batch.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="modal-actions">
+            <Button
+              type="button"
+              onClick={closeInviteModal}
+              className="btn-secondary"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              loading={invitingStudent}
+              className="btn-primary"
+            >
+              Send Invitation Email
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
       {/* Create User Modal */}
       <Modal
         isOpen={isCreateModalOpen}
         onClose={closeCreateModal}
-        title="Create New User"
+        title="👥 Create New User"
         size="medium"
       >
         <form onSubmit={handleCreateUser} className="create-user-form">
+          <div className="create-info">
+            <p className="info-text">
+              ℹ️ Create staff, instructors, or administrators. No email will be sent.
+            </p>
+          </div>
+
           <Input
             type="text"
             name="firstName"
-            label="First Name"
-            placeholder="John"
+            label="First Name *"
+            placeholder="Jane"
             value={createFormData.firstName}
             onChange={handleCreateFormChange}
             required
@@ -348,8 +546,8 @@ const UsersPage: React.FC = () => {
           <Input
             type="text"
             name="lastName"
-            label="Last Name"
-            placeholder="Doe"
+            label="Last Name *"
+            placeholder="Smith"
             value={createFormData.lastName}
             onChange={handleCreateFormChange}
             required
@@ -358,33 +556,25 @@ const UsersPage: React.FC = () => {
           <Input
             type="email"
             name="email"
-            label="Email"
-            placeholder="john@example.com"
+            label="Email Address *"
+            placeholder="jane.smith@example.com"
             value={createFormData.email}
             onChange={handleCreateFormChange}
             required
           />
 
-          <Input
-            type="password"
-            name="password"
-            label="Password"
-            placeholder="••••••••"
-            value={createFormData.password}
-            onChange={handleCreateFormChange}
-            required
-          />
-
-          <div className="role-selection">
-            <label>Role</label>
+          <div className="form-group">
+            <label htmlFor="role">Role *</label>
             <select
+              id="role"
               name="role"
               value={createFormData.role}
               onChange={handleCreateFormChange}
-              className="role-select"
+              className="form-select"
+              required
             >
-              <option value="STUDENT">Student</option>
               <option value="INSTRUCTOR">Instructor</option>
+              <option value="STAFF">Staff</option>
               <option value="TENANT_ADMIN">Tenant Admin</option>
             </select>
           </div>
@@ -400,6 +590,7 @@ const UsersPage: React.FC = () => {
             <Button
               type="submit"
               loading={creatingUser}
+              className="btn-primary"
             >
               Create User
             </Button>
@@ -411,7 +602,7 @@ const UsersPage: React.FC = () => {
       <Modal
         isOpen={isRoleModalOpen}
         onClose={closeRoleModal}
-        title="Change User Role"
+        title="🔄 Change User Role"
         size="small"
       >
         {editingUser && (
@@ -427,11 +618,12 @@ const UsersPage: React.FC = () => {
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
-                className="role-select"
+                className="form-select"
               >
                 <option value="">-- Select a role --</option>
                 <option value="STUDENT">Student</option>
                 <option value="INSTRUCTOR">Instructor</option>
+                <option value="STAFF">Staff</option>
                 <option value="TENANT_ADMIN">Tenant Admin</option>
               </select>
             </div>
@@ -449,6 +641,7 @@ const UsersPage: React.FC = () => {
                 onClick={handleRoleChange}
                 loading={submitting}
                 disabled={!selectedRole || selectedRole === editingUser.role}
+                className="btn-primary"
               >
                 Update Role
               </Button>

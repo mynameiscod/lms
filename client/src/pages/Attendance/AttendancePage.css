@@ -1,31 +1,13 @@
 .attendance-page {
-  padding: 20px;
+  padding: 10px 20px 20px 20px;
 }
 
-.attendance-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  padding: 30px;
-  border-radius: 10px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-}
-
-.attendance-header .header-text {
-  flex: 1;
-}
-
-.header-text h1 {
-  margin: 0 0 5px 0;
-  font-size: 2em;
-  font-weight: 700;
-}
-
-.subtitle {
-  margin: 0;
-  opacity: 0.95;
-  font-size: 0.95em;
-  font-weight: 300;
+.attendance-title {
+  margin: 0 0 20px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 0.3px;
 }
 
 /* Success Notification */
@@ -33,7 +15,7 @@
   position: fixed;
   top: 20px;
   right: 20px;
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: #10b981;
   color: white;
   padding: 16px 24px;
   border-radius: 8px;
@@ -110,19 +92,14 @@
 }
 
 .batch-selection {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e0e0e0;
+  padding-bottom: 0px;
+  margin-bottom: 0px;
 }
 
 .batch-selection h2 {
-  margin-top: 0;
-  color: #333;
-  font-size: 1.3em;
-  border-bottom: 3px solid #667eea;
-  padding-bottom: 12px;
+  margin: 0 0 20px 0;
+  color: #1f2937;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -143,7 +120,7 @@
 
 .date-picker-group label,
 .batch-picker-group label {
-  font-weight: 700;
+  font-weight: 400;
   color: #444;
   margin-bottom: 8px;
   font-size: 0.95em;
@@ -162,31 +139,26 @@
 
 .date-input:hover,
 .batch-select:hover {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .date-input:focus,
 .batch-select:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.2);
 }
 
 .attendance-marking {
-  background: white;
-  padding: 24px;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 1px solid #e0e0e0;
+  padding-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .attendance-marking h2 {
-  margin-top: 0;
-  color: #333;
-  font-size: 1.3em;
-  border-bottom: 3px solid #667eea;
-  padding-bottom: 12px;
+  margin: 0 0 20px 0;
+  color: #1f2937;
+  font-size: 16px;
   font-weight: 600;
 }
 
@@ -196,7 +168,7 @@
   margin: 15px 0 20px 0;
   padding: 12px 14px;
   background: #f0f4ff;
-  border-left: 4px solid #667eea;
+  border-left: 4px solid #005897;
   border-radius: 4px;
 }
 
@@ -214,20 +186,23 @@
 }
 
 .attendance-table thead {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
+  background: white;
 }
 
 .attendance-table th {
+  background: white;
+  color: #005897;
   padding: 14px 12px;
   text-align: left;
   font-weight: 600;
   font-size: 0.9em;
+  letter-spacing: 0.5px;
 }
 
 .attendance-table td {
   padding: 12px;
   border-bottom: 1px solid #e0e0e0;
+  vertical-align: middle;
 }
 
 .attendance-table tbody tr:hover {
@@ -262,13 +237,13 @@
 }
 
 .time-input:hover {
-  border-color: #667eea;
+  border-color: #005897;
 }
 
 .time-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 2px rgba(0, 88, 151, 0.1);
 }
 
 .time-input:disabled {
@@ -288,37 +263,36 @@
 }
 
 .status-badge.present {
-  background: linear-gradient(135deg, #d4f4dd 0%, #a8ecc8 100%);
+  background: #d4f4dd;
   color: #0b5d2c;
-  box-shadow: 0 2px 4px rgba(43, 204, 113, 0.2);
 }
 
 .status-badge.absent {
-  background: linear-gradient(135deg, #ffddd9 0%, #ffccc2 100%);
+  background: #ffddd9;
   color: #8b2e2a;
-  box-shadow: 0 2px 4px rgba(231, 76, 60, 0.2);
 }
 
 .status-badge.leave {
-  background: linear-gradient(135deg, #fff4d9 0%, #ffe5b4 100%);
+  background: #fff4d9;
   color: #8b6914;
-  box-shadow: 0 2px 4px rgba(243, 156, 18, 0.2);
 }
 
 .quick-actions {
   display: flex;
   gap: 6px;
+  align-items: center;
+  justify-content: center;
 }
 
 .quick-btn {
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   border: 2px solid #ddd;
   border-radius: 6px;
   background: white;
   cursor: pointer;
   font-weight: 700;
-  font-size: 0.85em;
+  font-size: 0.75em;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
@@ -326,27 +300,25 @@
 }
 
 .quick-btn:hover {
-  border-color: #667eea;
+  border-color: #005897;
   transform: translateY(-2px);
   box-shadow: 0 2px 4px rgba(102, 126, 234, 0.2);
 }
 
 .quick-btn.present-btn.active {
-  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  background: #2ecc71;
   color: white;
   border-color: #27ae60;
-  box-shadow: 0 4px 10px rgba(46, 204, 113, 0.3);
 }
 
 .quick-btn.absent-btn.active {
-  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+  background: #e74c3c;
   color: white;
   border-color: #c0392b;
-  box-shadow: 0 4px 10px rgba(231, 76, 60, 0.3);
 }
 
 .quick-btn.leave-btn.active {
-  background: linear-gradient(135deg, #f39c12 0%, #d68910 100%);
+  background: #f39c12;
   color: white;
   border-color: #d68910;
   box-shadow: 0 4px 10px rgba(243, 156, 18, 0.3);
@@ -358,7 +330,7 @@
   gap: 15px;
   margin-bottom: 20px;
   padding: 20px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #f0f4ff 100%);
+  background: #f5f7fa;
   border-radius: 8px;
   border: 1px solid #e0e6ff;
 }
@@ -428,18 +400,18 @@
 }
 
 .attendance-actions .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #005897;
   color: white;
   min-width: 180px;
 }
 
 .attendance-actions .btn-primary:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 8px 16px rgba(0, 88, 151, 0.3);
 }
 
 .no-students {
-  background: linear-gradient(135deg, #fff3cd 0%, #ffebaf 100%);
+  background: #fff3cd;
   border: 2px solid #ffc107;
   border-radius: 6px;
   padding: 30px;

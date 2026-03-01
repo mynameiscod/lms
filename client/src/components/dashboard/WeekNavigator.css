@@ -24,7 +24,7 @@
 }
 
 .nav-arrow:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #1e3a8a 100%);
+  background: linear-gradient(135deg, #003d6b 0%, #001d35 100%);
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
   transform: scale(1.05);
 }
@@ -44,7 +44,7 @@
   font-size: 13px;
   font-weight: 700;
   background: #f0f4ff;
-  color: #2563eb;
+  color: #005897;
   padding: 8px 14px;
   border-radius: 6px;
   white-space: nowrap;

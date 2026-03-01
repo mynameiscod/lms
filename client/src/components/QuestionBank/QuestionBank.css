@@ -1,6 +1,6 @@
 .question-bank {
   min-height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   padding: 2rem;
   padding-bottom: 3rem;
 }
@@ -64,7 +64,7 @@
 .stat-value {
   font-size: 2rem;
   font-weight: bold;
-  color: #667eea;
+  color: #005897;
 }
 
 /* Tabs */
@@ -87,7 +87,7 @@
   font-weight: 600;
   font-size: 0.95rem;
   transition: all 0.3s ease;
-  color: #667eea;
+  color: #005897;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -98,9 +98,9 @@
 }
 
 .qb-tab.active {
-  background: #667eea;
+  background: #005897;
   color: white;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 4px 12px rgba(0, 88, 151, 0.3);
 }
 
 /* Tab Content */
@@ -139,7 +139,7 @@
 
 .qb-filter-select:hover,
 .qb-filter-select:focus {
-  border-color: #667eea;
+  border-color: #005897;
   outline: none;
 }
 
@@ -186,9 +186,9 @@
 }
 
 .qb-question-card:hover {
-  border-color: #667eea;
+  border-color: #005897;
   background: white;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 2px 12px rgba(0, 88, 151, 0.15);
 }
 
 .qb-question-header {
@@ -215,7 +215,7 @@
 
 .qb-badge {
   display: inline-block;
-  background: #667eea;
+  background: #005897;
   color: white;
   padding: 0.35rem 0.75rem;
   border-radius: 20px;
@@ -286,8 +286,8 @@
 .qb-form-group select:focus,
 .qb-textarea:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .qb-textarea {
@@ -314,7 +314,7 @@
 .qb-option-input::before {
   content: attr(data-option);
   font-weight: 600;
-  color: #667eea;
+  color: #005897;
   min-width: 30px;
 }
 
@@ -353,7 +353,7 @@
 }
 
 .qb-csv-upload {
-  border: 2px dashed #667eea;
+  border: 2px dashed #005897;
   border-radius: 8px;
   padding: 2rem;
   margin-bottom: 1.5rem;
@@ -362,12 +362,12 @@
 
 .qb-csv-upload:hover {
   background: #f0f4ff;
-  border-color: #764ba2;
+  border-color: #003d6b;
 }
 
 .qb-csv-label {
   display: block;
-  color: #667eea;
+  color: #005897;
   font-weight: 600;
   cursor: pointer;
 }

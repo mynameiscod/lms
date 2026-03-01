@@ -5,11 +5,11 @@
 }
 
 .wizard-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   padding: 40px;
   margin: -40px -20px 40px -20px;
-  box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 10px 30px rgba(0, 88, 151, 0.3);
 }
 
 .wizard-title-section {
@@ -104,9 +104,9 @@
 }
 
 .progress-step.active .step-number {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
-  box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+  box-shadow: 0 0 0 4px rgba(0, 88, 151, 0.1);
   transform: scale(1.1);
 }
 
@@ -132,7 +132,7 @@
 }
 
 .progress-step.active .step-label {
-  color: #667eea;
+  color: #005897;
   font-weight: 600;
 }
 
@@ -196,8 +196,8 @@
 .form-group textarea:focus,
 .form-group select:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .textarea-input {
@@ -400,13 +400,13 @@
 }
 
 .wizard-footer .btn-primary {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
 }
 
 .wizard-footer .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 5px 15px rgba(0, 88, 151, 0.4);
 }
 
 .wizard-footer .btn-primary:disabled {

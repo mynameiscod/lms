@@ -9,6 +9,8 @@ import { Spinner } from './components/common';
 // Pages
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import { SetupPassword } from './pages/SetupPassword/SetupPassword';
+import { ProfileCompletion } from './pages/ProfileCompletion/ProfileCompletion';
 import DashboardPage from './pages/Dashboard';
 import CoursesPage from './pages/Courses';
 import UsersPage from './pages/Users';
@@ -228,6 +230,18 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <AdminContentPage />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Onboarding Routes */}
+      <Route path="/setup-password" element={<SetupPassword />} />
+      
+      <Route
+        path="/complete-profile"
+        element={
+          <ProtectedRoute>
+            <ProfileCompletion />
           </ProtectedRoute>
         }
       />

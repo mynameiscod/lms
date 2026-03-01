@@ -1,6 +1,6 @@
 .quizzes-page {
   padding: 30px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   min-height: 100vh;
 }
 
@@ -48,8 +48,8 @@
 
 .search-input:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
 .filter-tabs {
@@ -72,12 +72,12 @@
 
 .filter-tab:hover {
   background: #e8e8e8;
-  border-color: #667eea;
+  border-color: #005897;
 }
 
 .filter-tab.active {
-  background: #667eea;
-  border-color: #667eea;
+  background: #005897;
+  border-color: #005897;
   color: white;
 }
 
@@ -139,7 +139,7 @@
 
 /* Card Header */
 .card-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   padding: 20px;
   color: white;
 }

@@ -6,29 +6,28 @@ RUN npm cache clean --force && rm -rf node_modules package-lock.json && npm inst
 COPY client ./
 RUN npm run build
 
-# Backend and final image
+# Backend build stage - compile TypeScript
+FROM node:18-alpine AS backend-build
+WORKDIR /app
+COPY server/package*.json ./
+COPY server/tsconfig.json ./
+COPY server/src ./src
+RUN npm install && npm run build
+
+# Final production image
 FROM node:18-alpine
 WORKDIR /app
 
-# Install MongoDB (optional - use MongoDB Atlas instead for production)
-# RUN apk add --no-cache mongodb
-
-# Copy backend
+# Copy backend compiled JS from build stage
+COPY --from=backend-build /app/dist ./dist
 COPY server/package*.json ./
 RUN npm install --production
 
 # Copy built frontend
 COPY --from=client-build /app/client/build ./client/build
 
-# Copy server source
-COPY server/src ./src
-COPY server/tsconfig.json ./
-
-# Copy environment file (will be overridden at runtime)
-COPY server/.env* ./
-
 # Expose ports
 EXPOSE 5000 3000
 
-# Start backend (which also serves frontend)
-CMD ["node", "-r", "ts-node/register", "src/server.ts"]
+# Start backend with compiled JS
+CMD ["node", "dist/server.js"]

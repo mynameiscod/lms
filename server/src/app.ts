@@ -13,8 +13,18 @@ dotenv.config();
 
 const app: Express = express();
 
-// Middleware
-app.use(helmet());
+// Serve static files FIRST - before security headers interfere
+const staticPath = process.env.NODE_ENV === 'production' 
+  ? '/app/client/build'
+  : path.join(__dirname, '..', 'client', 'build');
+
+app.use(express.static(staticPath));
+console.log(`📁 Serving static files from: ${staticPath}`);
+
+// Middleware - Helmet with relaxed settings for static files
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
+}));
 app.use(morgan('combined'));
 
 // CORS configuration - allow multiple localhost ports for development
@@ -41,14 +51,6 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Serve static files from React build - use absolute path for production
-const staticPath = process.env.NODE_ENV === 'production' 
-  ? '/app/client/build'
-  : path.join(__dirname, '..', 'client', 'build');
-
-app.use(express.static(staticPath));
-console.log(`📁 Serving static files from: ${staticPath}`);
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response<ApiResponse<any>>) => {

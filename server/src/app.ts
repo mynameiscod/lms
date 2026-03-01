@@ -27,7 +27,7 @@ app.use(helmet({
 }));
 app.use(morgan('combined'));
 
-// CORS configuration - allow multiple localhost ports for development
+// CORS configuration - allow localhost for development and production origins
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:3001',
@@ -35,20 +35,27 @@ const allowedOrigins = [
   'http://127.0.0.1:3000',
   'http://127.0.0.1:3001',
   'http://127.0.0.1:3002',
-  process.env.CLIENT_URL
+  'http://localhost:5000',
+  'http://127.0.0.1:5000',
+  process.env.CLIENT_URL, // Production URL from env (e.g., http://187.124.97.56:5000)
 ].filter(Boolean);
 
-app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  credentials: true
-}));
+// In production, frontend and backend are on the same origin, so allow any origin
+const corsOptions = process.env.NODE_ENV === 'production' 
+  ? { origin: true, credentials: true }
+  : {
+      origin: (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) => {
+        // Allow requests with no origin (like mobile apps or curl requests)
+        if (!origin || allowedOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
+      credentials: true
+    };
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

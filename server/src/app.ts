@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
+import path from 'path';
 
 import apiRoutes from './routes';
 import { ApiResponse, AuthenticatedRequest } from './types';
@@ -40,6 +41,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '..', 'client', 'build')));
 
 // Health check endpoint
 app.get('/api/health', (req: Request, res: Response<ApiResponse<any>>) => {
@@ -85,6 +89,11 @@ app.post('/api/debug/auth', (req: AuthenticatedRequest, res: Response<ApiRespons
 
 // API Routes
 app.use('/api/v1', apiRoutes);
+
+// Serve React index.html for all non-API routes (client-side routing)
+app.get('*', (req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '..', 'client', 'build', 'index.html'));
+});
 
 // 404 handler
 app.use((req: Request, res: Response<ApiResponse<any>>) => {

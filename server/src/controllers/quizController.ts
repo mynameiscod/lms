@@ -2,7 +2,9 @@ import { Request, Response } from 'express';
 import quizService from '../services/quizService';
 import questionService from '../services/questionService';
 import Quiz from '../models/Quiz';
+import QuizAttempt from '../models/QuizAttempt';
 import User from '../models/User';
+import Content from '../models/Content';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -29,6 +31,32 @@ export const createQuiz = async (req: Request, res: Response) => {
       },
       tenantId
     );
+
+    // Create announcement for the new quiz
+    try {
+      const user = await User.findById(userId);
+      const userName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : 'Instructor';
+      const announcement = new Content({
+        type: 'announcement',
+        title: `New Quiz: ${title}`,
+        description: description || '',
+        content: `A new quiz "${title}" has been created and is available for students.\n\nStart Date: ${new Date(startDate).toLocaleDateString()}\nEnd Date: ${new Date(endDate).toLocaleDateString()}`,
+        author: {
+          userId,
+          name: userName,
+          role: 'instructor'
+        },
+        tenant: tenantId,
+        tags: ['quiz', title.toLowerCase()],
+        visibility: 'all_students',
+        isPublished: true,
+        viewCount: 0
+      });
+      await announcement.save();
+    } catch (annError) {
+      // Log error but don't fail the quiz creation
+      console.error('Failed to create announcement:', annError);
+    }
 
     res.status(201).json(quiz);
   } catch (error: any) {
@@ -162,6 +190,27 @@ export const getQuizResults = async (req: Request, res: Response) => {
   }
 };
 
+export const getLatestStudentAttempt = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const studentId = (req as any).userId;
+
+    const attempt = await QuizAttempt.findOne({
+      quizId,
+      studentId,
+      status: { $in: ['submitted', 'abandoned'] }
+    }).sort({ createdAt: -1 });
+
+    if (!attempt) {
+      return res.status(404).json({ message: 'No attempts found for this quiz' });
+    }
+
+    res.json(attempt);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getStudentQuizzes = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
@@ -180,32 +229,48 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
     const availableQuizzes = await Promise.all(
       allQuizzes.map(async (quiz) => {
         // Public quizzes - everyone can see
+        let hasAccess = false;
+        
         if (quiz.access === 'public') {
-          return quiz;
-        }
-
-        // Private quizzes - check access based on accessibleTo
-        if (quiz.access === 'private') {
+          hasAccess = true;
+        } else if (quiz.access === 'private') {
+          // Private quizzes - check access based on accessibleTo
           if (quiz.accessibleTo === 'everyone') {
-            return quiz;
-          }
-
-          if (quiz.accessibleTo === 'batch_wise' && quiz.selectedBatches) {
+            hasAccess = true;
+          } else if (quiz.accessibleTo === 'batch_wise' && quiz.selectedBatches) {
             // Check if user's batch is in the selected batches
             if (user.batchId && quiz.selectedBatches.includes(user.batchId.toString())) {
-              return quiz;
+              hasAccess = true;
             }
-          }
-
-          if (quiz.accessibleTo === 'individual' && quiz.selectedStudents) {
+          } else if (quiz.accessibleTo === 'individual' && quiz.selectedStudents) {
             // Check if user is in the selected students
             if (quiz.selectedStudents.includes(userId)) {
-              return quiz;
+              hasAccess = true;
             }
           }
         }
 
-        return null;
+        if (!hasAccess) {
+          return null;
+        }
+
+        // Get attempt information for this student
+        const attempts = await QuizAttempt.find({
+          quizId: quiz._id,
+          studentId: userId,
+          status: { $in: ['submitted', 'abandoned'] }
+        }).sort({ createdAt: -1 });
+
+        const latestAttempt = attempts[0];
+        
+        // Convert to plain object and add student-specific info
+        const quizData = quiz.toObject() as any;
+        quizData.isAttempted = attempts.length > 0;
+        quizData.attemptCount = attempts.length;
+        quizData.lastAttemptMarks = latestAttempt?.obtainedMarks || 0;
+        quizData.lastAttemptPassed = latestAttempt ? (latestAttempt.obtainedMarks || 0) >= quiz.passingMarks : false;
+
+        return quizData;
       })
     );
 

@@ -13,6 +13,22 @@ const QuizResultsPage: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedQuestionIndex, setSelectedQuestionIndex] = useState<number | null>(null);
 
+  // Format time taken as MM:SS or with seconds
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs}s`;
+    if (secs === 0) return `${mins}m`;
+    return `${mins}m ${secs}s`;
+  };
+
+  // Get color based on percentage
+  const getPercentageColor = (percentage: number): string => {
+    if (percentage >= 70) return 'green';
+    if (percentage >= 50) return 'orange';
+    return 'red';
+  };
+
   const loadResults = useCallback(async () => {
     try {
       setLoading(true);
@@ -38,6 +54,14 @@ const QuizResultsPage: React.FC = () => {
   useEffect(() => {
     loadResults();
   }, [loadResults]);
+
+  const getOptionText = (option: any): string => {
+    // Handle both string and object option formats
+    if (typeof option === 'string') {
+      return option;
+    }
+    return option?.text || '';
+  };
 
   if (loading) return <Spinner fullScreen />;
   if (!result) return <Alert type="error" message={error || 'Failed to load results'} />;
@@ -65,18 +89,23 @@ const QuizResultsPage: React.FC = () => {
         <div className={`score-card ${isPassed ? 'passed' : 'failed'}`}>
           <div className="score-circle">
             <svg viewBox="0 0 120 120" className="progress-ring">
+              <defs>
+                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" style={{ stopColor: getPercentageColor(percentage) === 'green' ? '#4caf50' : getPercentageColor(percentage) === 'orange' ? '#ff9800' : '#f44336', stopOpacity: 1 }} />
+                </linearGradient>
+              </defs>
               <circle cx="60" cy="60" r="55" className="progress-ring-bg" />
               <circle
                 cx="60"
                 cy="60"
                 r="55"
-                className="progress-ring-circle"
+                className={`progress-ring-circle ${getPercentageColor(percentage)}`}
                 style={{
                   strokeDasharray: `${(percentage / 100) * 345.575} 345.575`
                 }}
               />
             </svg>
-            <div className="score-value">
+            <div className={`score-value ${getPercentageColor(percentage)}`}>
               {Math.round(percentage)}%
             </div>
           </div>
@@ -96,19 +125,21 @@ const QuizResultsPage: React.FC = () => {
               </div>
               <div className="stat-item">
                 <span className="label">Time Taken</span>
-                <span className="value">{Math.floor((result.attempt.timeSpent || 0) / 60)} min</span>
+                <span className="value">{formatTime(result.attempt.timeSpent || 0)}</span>
               </div>
-              <div className="stat-item">
-                <span className="label">Attempts Left</span>
-                <span className="value">{(result.quiz.maxAttempts || 1) - (result.attempt.attemptNo || 1)}</span>
-              </div>
+              {result.quiz.multipleAttempts && result.quiz.maxAttempts && (
+                <div className="stat-item">
+                  <span className="label">Attempts Left</span>
+                  <span className="value">{result.quiz.maxAttempts - (result.attempt.attemptNo || 1)}</span>
+                </div>
+              )}
             </div>
 
             <div className="action-buttons">
               <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
                 📚 Back to Quizzes
               </Button>
-              {(result.quiz.maxAttempts || 1) - (result.attempt.attemptNo || 1) > 0 && (
+              {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
                 <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
                   🔄 Retry Quiz
                 </Button>
@@ -187,14 +218,21 @@ const QuizResultsPage: React.FC = () => {
                                     ✓ {ans}
                                   </div>
                                 ))
+                              ) : selectedSubmission.studentAnswer ? (
+                                // For string answers, split by comma if contains multiple answers
+                                selectedSubmission.studentAnswer.split(',').map((ans, i) => (
+                                  <div key={i} className="answer-item">
+                                    ✓ {ans.trim()}
+                                  </div>
+                                ))
                               ) : (
-                                <div className="answer-item">✓ {selectedSubmission.studentAnswer}</div>
+                                <div className="answer-item">No answer provided</div>
                               )}
                             </div>
                           ) : selectedQuestion.type === 'short_answer' ? (
-                            <p className="short-answer-review">{selectedSubmission.studentAnswer}</p>
+                            <p className="short-answer-review">{selectedSubmission.studentAnswer || 'No answer provided'}</p>
                           ) : selectedQuestion.type === 'coding' ? (
-                            <pre className="code-review">{selectedSubmission.studentAnswer}</pre>
+                            <pre className="code-review">{selectedSubmission.studentAnswer || 'No code submitted'}</pre>
                           ) : null}
                         </div>
                       </div>
@@ -206,13 +244,27 @@ const QuizResultsPage: React.FC = () => {
                             <div className="correct-box">
                               {selectedQuestion.type === 'mcq_single' || selectedQuestion.type === 'mcq_multiple' ? (
                                 <div className="mcq-review">
-                                  {selectedQuestion.options
-                                    ?.filter(opt => opt.isCorrect)
-                                    .map((opt, i) => (
-                                      <div key={i} className="answer-item correct">
-                                        ✓ {opt.text}
-                                      </div>
-                                    ))}
+                                  {selectedQuestion.options && selectedQuestion.options.length > 0 ? (
+                                    selectedQuestion.options
+                                      .map((opt: any, optIndex: number) => {
+                                        const optText = getOptionText(opt);
+                                        // Check if this option is marked as correct
+                                        const isCorrect = opt?.isCorrect === true ||
+                                          (selectedQuestion.correctAnswers && (
+                                            selectedQuestion.correctAnswers.includes(optText) ||
+                                            selectedQuestion.correctAnswers.includes(String(optIndex))
+                                          ));
+                                        return { option: opt, text: optText, isCorrect, index: optIndex };
+                                      })
+                                      .filter((item: any) => item.isCorrect)
+                                      .map((item: any, idx: number) => (
+                                        <div key={idx} className="answer-item correct">
+                                          ✓ {item.text}
+                                        </div>
+                                      ))
+                                  ) : (
+                                    <div className="answer-item">No correct answer available</div>
+                                  )}
                                 </div>
                               ) : null}
                             </div>

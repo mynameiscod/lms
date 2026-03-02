@@ -153,7 +153,7 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
     } else {
       const allIds = new Set(filteredQuestions.map(q => q._id));
       setSelectedQuestions(allIds);
-      const totalMarks = filteredQuestions.reduce((sum, q) => sum + q.marks, 0);
+      const totalMarks = filteredQuestions.reduce((sum, q) => sum + (q.marks || 0), 0);
       setStats({ totalMarks, questionCount: filteredQuestions.length });
     }
   };
@@ -224,7 +224,7 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
                 <input
                   type="checkbox"
                   checked={selectedQuestions.has(question._id)}
-                  onChange={() => toggleQuestion(question._id, question.marks)}
+                  onChange={() => toggleQuestion(question._id, question.marks || 0)}
                 />
                 <div className="qs-question-content">
                   <h4>{question.question}</h4>

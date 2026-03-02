@@ -49,13 +49,49 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Get current date and time for defaults
+  const now = new Date();
+  // Use local timezone, not UTC
+  const year = String(now.getFullYear());
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const todayDate = `${year}-${month}-${day}`; // YYYY-MM-DD in local timezone
+  const currentHour = String(now.getHours()).padStart(2, '0');
+  const currentMinute = String(now.getMinutes()).padStart(2, '0');
+  const currentTime = `${currentHour}:${currentMinute}`;
+  const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
+  const endHour = String(endTime.getHours()).padStart(2, '0');
+  const endMinute = String(endTime.getMinutes()).padStart(2, '0');
+  const endTimeFormatted = `${endHour}:${endMinute}`;
+
+  // Helper function to format date from ISO format
+  const formatDateForInput = (dateStr?: string): string => {
+    if (!dateStr) return todayDate;
+    // If it's already in YYYY-MM-DD format, return as is
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr;
+    // If it's ISO format or other, parse and format
+    try {
+      return new Date(dateStr).toISOString().split('T')[0];
+    } catch {
+      return todayDate;
+    }
+  };
+
+  // Helper function to format time for input
+  const formatTimeForInput = (timeStr?: string): string => {
+    if (!timeStr) return currentTime;
+    // If it's already in HH:MM format, return as is
+    if (/^\d{2}:\d{2}/.test(timeStr)) return timeStr.substring(0, 5);
+    return currentTime;
+  };
+
   const [formData, setFormData] = useState<QuizFormData>({
     title: initialData?.title || '',
     description: initialData?.description || '',
-    startDate: initialData?.startDate || '',
-    endDate: initialData?.endDate || '',
-    startTime: initialData?.startTime || '09:00',
-    endTime: initialData?.endTime || '10:00',
+    startDate: formatDateForInput(initialData?.startDate),
+    endDate: formatDateForInput(initialData?.endDate),
+    startTime: formatTimeForInput(initialData?.startTime),
+    endTime: formatTimeForInput(initialData?.endTime),
     totalMarks: initialData?.totalMarks || 100,
     totalTime: initialData?.totalTime || 60,
     access: initialData?.access || 'public',
@@ -93,6 +129,15 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     }));
   };
 
+  const handleStudentToggle = (studentId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedStudents: prev.selectedStudents.includes(studentId)
+        ? prev.selectedStudents.filter(id => id !== studentId)
+        : [...prev.selectedStudents, studentId]
+    }));
+  };
+
   const validateStep = (currentStep: number): boolean => {
     setError('');
     
@@ -105,6 +150,29 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
         if (!formData.startDate || !formData.endDate) {
           setError('Start and end dates are required');
           return false;
+        }
+        // Validate date format
+        const startDateObj = new Date(formData.startDate);
+        const endDateObj = new Date(formData.endDate);
+        if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
+          setError('Invalid date format');
+          return false;
+        }
+        // Validate end date is not before start date
+        if (endDateObj < startDateObj) {
+          setError('End date must be after start date');
+          return false;
+        }
+        // Validate time if same day
+        if (formData.startDate === formData.endDate) {
+          const startTime = formData.startTime.split(':');
+          const endTime = formData.endTime.split(':');
+          const startMinutes = parseInt(startTime[0]) * 60 + parseInt(startTime[1]);
+          const endMinutes = parseInt(endTime[0]) * 60 + parseInt(endTime[1]);
+          if (endMinutes <= startMinutes) {
+            setError('End time must be after start time on the same day');
+            return false;
+          }
         }
         return true;
       case 2:
@@ -149,7 +217,12 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     
     try {
       setLoading(true);
-      await onSubmit(formData);
+      // Only include maxAttempts if multipleAttempts is enabled
+      const submitData = {
+        ...formData,
+        maxAttempts: formData.multipleAttempts ? formData.maxAttempts : null
+      };
+      await onSubmit(submitData);
     } catch (err: any) {
       setError(err.message || 'Failed to save quiz');
     } finally {
@@ -267,7 +340,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       {/* Step 2: Quiz Parameters */}
       {step === 2 && (
         <div className="wizard-step">
-          <h3>📊 Quiz Parameters</h3>
+          <h3>Quiz Parameters</h3>
           <div className="step-content">
             <div className="form-group">
               <label>Total Marks *</label>
@@ -338,7 +411,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       {/* Step 3: Quiz Settings */}
       {step === 3 && (
         <div className="wizard-step">
-          <h3>⚙️ Quiz Settings</h3>
+          <h3>Quiz Settings</h3>
           <div className="step-content">
             <div className="settings-grid">
               <label className="checkbox-label">
@@ -463,6 +536,11 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                 <option value="public">Public (Everyone can see)</option>
                 <option value="private">Private (Restricted)</option>
               </select>
+              <small style={{ display: 'block', marginTop: '0.5rem', color: '#666', fontSize: '0.85rem' }}>
+                {formData.access === 'private' 
+                  ? '🔒 Private: Only students you specifically grant access to can view this quiz'
+                  : '🌍 Public: All students in the selected batches can see and access this quiz'}
+              </small>
             </div>
 
             <div className="form-group">
@@ -473,7 +551,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                 onChange={handleInputChange}
                 className="select-input"
               >
-                <option value="everyone">Everyone in Tenant</option>
+                <option value="everyone">Everyone</option>
                 <option value="batch_wise">Specific Batches</option>
                 <option value="individual">Individual Students</option>
               </select>
@@ -498,6 +576,72 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                     <p className="no-batches">No batches available</p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {formData.accessibleTo === 'individual' && (
+              <div className="form-group full">
+                <label>Select Students *</label>
+                <div className="form-group">
+                  <input
+                    type="text"
+                    placeholder="Search students by name or email..."
+                    className="text-input"
+                    id="studentSearch"
+                    style={{ marginBottom: '0.5rem' }}
+                  />
+                </div>
+                <div style={{ 
+                  maxHeight: '300px', 
+                  overflowY: 'auto', 
+                  border: '1px solid #ddd', 
+                  borderRadius: '4px',
+                  padding: '0.5rem'
+                }}>
+                  {formData.selectedStudents && formData.selectedStudents.length > 0 ? (
+                    <div>
+                      <p style={{ margin: '0.5rem 0', fontWeight: 'bold', fontSize: '0.9rem' }}>
+                        {formData.selectedStudents.length} student(s) selected
+                      </p>
+                      {formData.selectedStudents.map((studentId, index) => (
+                        <div 
+                          key={studentId} 
+                          style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            padding: '0.5rem',
+                            backgroundColor: '#f8f9fa',
+                            marginBottom: '0.3rem',
+                            borderRadius: '3px'
+                          }}
+                        >
+                          <span style={{ fontSize: '0.95rem' }}>Student ID: {studentId}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleStudentToggle(studentId)}
+                            style={{ 
+                              background: 'none', 
+                              border: 'none', 
+                              color: '#dc3545', 
+                              cursor: 'pointer', 
+                              fontSize: '1.5rem',
+                              padding: '0'
+                            }}
+                            title="Remove student"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p style={{ color: '#6c757d', margin: '1rem 0' }}>No students selected yet</p>
+                  )}
+                </div>
+                <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '0.5rem' }}>
+                  Note: You can enter student IDs or select from enrolled students. Contact admin to add students to specific quizzes.
+                </p>
               </div>
             )}
           </div>

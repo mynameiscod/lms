@@ -1,0 +1,52 @@
+Question,Option A,Option B,Option C,Option D,Correct Answer,Difficulty,Marks,Tags
+What is the default value of an int variable in Java?,0,null,undefined,Random,1,easy,1,java;data-types;primitive
+Which of the following is NOT a primitive data type in Java?,int,String,boolean,double,2,easy,1,java;data-types
+What is the size of a byte data type in Java?,8 bits,16 bits,32 bits,64 bits,1,easy,1,java;data-types;primitive
+What is the range of values for a byte in Java?,-128 to 127,-256 to 255,-32768 to 32767,-2147483648 to 2147483647,1,easy,1,java;data-types;primitive
+Which keyword is used to declare a constant variable in Java?,const,constant,final,immutable,3,easy,1,java;variables;final
+What is the default value of a boolean variable in Java?,true,false,null,0,2,easy,1,java;data-types;primitive
+Which of the following is a reference data type?,int,float,char,String,4,easy,1,java;data-types;reference
+How many bits are used to store a long data type in Java?,32 bits,64 bits,128 bits,16 bits,2,easy,1,java;data-types;primitive
+What is the default value of a double variable in Java?,0.0,0,null,1.0,1,easy,1,java;data-types;primitive
+Which data type should be used to store a single character in Java?,String,char,Character,byte,2,easy,1,java;data-types;primitive
+What is the maximum value a short can hold?,32767,65535,2147483647,128,1,medium,2,java;data-types;primitive
+Can we assign a double value to an int variable without casting?,Yes,No,Only in some cases,Depends on JVM,2,medium,2,java;data-types;type-conversion
+What is a wrapper class in Java?,A class that wraps primitive data types,A class used for web services,A design pattern,A base class,1,medium,2,java;data-types;wrapper-classes
+Which of the following is a wrapper class for the int primitive type?,Integer,Int,IntClass,IntWrapper,1,medium,2,java;data-types;wrapper-classes
+What does the equals() method compare when used on wrapper classes?,Reference equality,Value equality,Both reference and value,Object type,2,medium,2,java;data-types;wrapper-classes
+Auto-boxing in Java refers to...?,Automatic conversion of wrapper class to primitive,Automatic conversion of primitive to wrapper class,Automatic memory allocation,Automatic null handling,2,medium,2,java;data-types;autoboxing
+What is the difference between '==' and .equals() for Strings?,No difference,== compares value while .equals() compares reference,== compares reference while .equals() compares value,== is faster,3,medium,2,java;variables;strings
+Which of the following correctly declares and initializes a variable?,int x;,int x = 10;,int x: 10;,int: x = 10,2,easy,1,java;variables;declaration
+What is the scope of a variable declared inside a method in Java?,Global,Local,Static,Public,2,easy,1,java;variables;scope
+Can a local variable and instance variable have the same name?,Yes,No,Only in static context,Only in constructors,1,medium,2,java;variables;scope
+What is type casting in Java?,Converting one data type to another,Creating a new object,Copying variable values,None of the above,1,medium,2,java;data-types;type-conversion
+What happens when we cast a double to an int?,Rounds the value,Truncates the decimal part,Throws an error,Returns null,2,medium,2,java;data-types;type-conversion
+Which cast is implicit (automatic) in Java?,double to int,int to double,char to String,Object to String,2,medium,2,java;data-types;type-conversion
+What is the output of System.out.println(5 / 2); in Java?,2.5,2,2.0,Compilation error,2,easy,1,java;operations;type-conversion
+What is the default value of a reference variable in Java?,0,empty string,null,undefined,3,easy,1,java;variables;reference
+Which data type is used for very large decimal numbers in Java?,double,float,BigDecimal,Decimal,3,medium,2,java;data-types;special
+What is the difference between float and double in Java?,No difference,double has more precision,float has more precision,double is for web,2,medium,2,java;data-types;primitive
+Can we use a boolean value in arithmetic operations?,Yes,No,Only with integers,Only in special cases,2,easy,1,java;data-types;boolean
+What does the instanceof operator check?,Data type of a variable,Memory address of an object,Instance relationship with a class,Size of an object,3,medium,2,java;data-types;operators
+Which statement about static variables is true?,Shared among all instances,Each instance has its own copy,Cannot be accessed without object,Must be final,1,medium,2,java;variables;static
+What is variable shadowing in Java?,Using same variable name in nested scope,Hiding a variable,Renaming a variable,Deleting a variable,1,medium,2,java;variables;scope
+Which of the following is a valid variable name in Java?,2firstname,_name,class,this,2,easy,1,java;variables;naming
+Can we declare multiple variables of different types in one statement?,Yes,No,Only primitive types,Only in try-catch blocks,2,easy,1,java;variables;declaration
+What is the final keyword used for?,Preventing modification,Marking end of code,Memory optimization,Inheritance prevention,1,medium,2,java;variables;final
+What is the difference between int and Integer?,int is primitive while Integer is wrapper class,No difference,int is larger,Integer is faster,1,medium,2,java;data-types;wrapper-classes
+Can we reassign a final variable?,Yes,No,Only once in constructor,Only in static blocks,2,easy,1,java;variables;final
+What is the default value of an instance variable of type String?,null,empty string,undefined,garbage value,1,easy,1,java;variables;instance
+How are local variables initialized in Java?,Automatically by JVM,Must be explicitly initialized,Randomly by JVM,To their type default value,2,medium,2,java;variables;initialization
+What is the output of int x = 5; x += 3;,3,5,8,Compilation error,3,easy,1,java;variables;operators
+Which of the following data types has the largest range?,long,int,short,byte,1,medium,2,java;data-types;primitive
+What is variable hoisting in Java?,Variables are moved to top of scope,Variables are duplicated,Variables change type,No such concept,4,medium,2,java;variables;concepts
+Can we convert a String to int directly?,Yes,No,Only with try-catch,Only with Integer.parseInt(),3,medium,2,java;data-types;type-conversion
+What is the result of Integer.parseInt("123") + 1;,124,1231,Compilation error,Type error,1,easy,1,java;wrapper-classes;conversion
+Which operator is used for type casting in Java?,as,cast,(),@,3,easy,1,java;data-types;operators
+What is the difference between == and .equals() for objects?,No difference,== checks reference while .equals() checks value,== checks value while .equals() checks reference,Both are the same,2,medium,2,java;variables;equality
+Can an array be considered a primitive data type?,Yes,No,Only for int arrays,Only in inheritance,2,easy,1,java;data-types;arrays
+What is the maximum value an int can hold in Java?,2147483647,9223372036854775807,2^32-1,100000,1,medium,2,java;data-types;primitive
+Which wrapper class is used for the boolean primitive type?,Boolean,Bool,BooleanClass,BoolWrapper,1,medium,2,java;data-types;wrapper-classes
+What happens when we use + on two Strings in Java?,Concatenation,Addition,Error,Undefined behavior,1,easy,1,java;strings;operators
+How do we print the type of a variable in Java?,System.out.println(typeof variable);,System.out.println(variable.getClass());,System.out.println(Type.of(variable));,System.out.println(var.type);,2,medium,2,java;variables;introspection
+Can we change the type of a variable once declared?,No,Yes,Only through casting,Only in inheritance,1,easy,1,java;variables;types

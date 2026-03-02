@@ -1,5 +1,17 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface IAnswerData {
+  questionId: string;
+  selectedOption?: string | number; // For MCQ
+  answer?: string; // For short answer/coding
+  markedForReview?: boolean;
+  answered: boolean;
+  timeSpent?: number; // seconds spent on this question
+  isCorrect?: boolean;
+  marksAwarded?: number;
+  [key: string]: any;
+}
+
 export interface IQuizAttempt extends Document {
   _id: string;
   quizId: string;
@@ -19,7 +31,7 @@ export interface IQuizAttempt extends Document {
   tabSwitchCount: number;
   tabSwitchWarnings: number;
   isFullScreenMaintained: boolean;
-  answers: [];
+  answers: IAnswerData[];
   createdAt: Date;
   updatedAt: Date;
 }

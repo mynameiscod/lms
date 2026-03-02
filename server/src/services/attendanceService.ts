@@ -1,5 +1,7 @@
 import Attendance from '../models/Attendance';
 import Batch from '../models/Batch';
+import User from '../models/User';
+import { EmailService } from './emailService';
 
 class AttendanceService {
   async markAttendance(
@@ -19,6 +21,12 @@ class AttendanceService {
       throw new Error('Batch not found');
     }
 
+    // Get student details for email
+    const student = await User.findOne({ _id: studentId, tenantId });
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
     // Check if attendance record already exists for this date
     const existingAttendance = await Attendance.findOne({
       studentId,
@@ -30,6 +38,7 @@ class AttendanceService {
       tenantId
     });
 
+    let attendance;
     if (existingAttendance) {
       // Update existing record
       existingAttendance.inTime = inTime;
@@ -37,23 +46,44 @@ class AttendanceService {
       existingAttendance.status = status;
       existingAttendance.remarks = remarks;
       existingAttendance.markedBy = markedBy as any;
-      return await existingAttendance.save();
+      attendance = await existingAttendance.save();
+    } else {
+      // Create new attendance record
+      attendance = new Attendance({
+        studentId,
+        batchId,
+        date: new Date(date.setHours(0, 0, 0, 0)),
+        inTime,
+        outTime,
+        status,
+        markedBy,
+        tenantId,
+        remarks
+      });
+      attendance = await attendance.save();
     }
 
-    // Create new attendance record
-    const attendance = new Attendance({
-      studentId,
-      batchId,
-      date: new Date(date.setHours(0, 0, 0, 0)),
-      inTime,
-      outTime,
-      status,
-      markedBy,
-      tenantId,
-      remarks
-    });
+    // Send email notification for absent or leave status
+    if ((status === 'absent' || status === 'leave') && student.email) {
+      const emailService = new EmailService();
+      const studentName = `${student.firstName} ${student.lastName || ''}`.trim();
+      
+      try {
+        await emailService.sendAttendanceNotificationEmail(
+          student.email,
+          studentName,
+          status,
+          new Date(date.setHours(0, 0, 0, 0)),
+          batch.name,
+          remarks
+        );
+      } catch (err) {
+        console.error('Failed to send attendance notification email, but attendance record was saved:', err);
+        // Don't throw - attendance should be saved even if email fails
+      }
+    }
 
-    return await attendance.save();
+    return attendance;
   }
 
   async getStudentAttendance(

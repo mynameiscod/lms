@@ -35,6 +35,11 @@ export interface IQuiz extends Document {
   warningCount: number;
   warnings: number[];
   isActive: boolean;
+  // Student-specific computed properties (optional)
+  isAttempted?: boolean;
+  attemptCount?: number;
+  lastAttemptMarks?: number;
+  lastAttemptPassed?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

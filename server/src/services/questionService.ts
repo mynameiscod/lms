@@ -43,13 +43,37 @@ export class QuestionService {
 
     if (!includeAnswers) {
       return questions.map(q => {
-        const qObj = q.toObject();
+        const qObj = q.toObject() as any;
+        
+        // Map backend fields to frontend field names
+        qObj.questionText = qObj.question || qObj.questionText;
+        qObj.difficulty = qObj.difficultyLevel || qObj.difficulty;
+        
         if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
-          qObj.options = qObj.options?.map(opt => ({
-            _id: opt._id,
-            text: opt.text,
-            isCorrect: false
-          }));
+          qObj.options = (qObj.options || []).map((opt: any) => {
+            // Null/undefined safety
+            if (!opt) {
+              return { text: '', isCorrect: false, _id: '' };
+            }
+            
+            // Handle string options
+            if (typeof opt === 'string') {
+              return { _id: opt, text: String(opt), isCorrect: false };
+            }
+            
+            // Handle object options
+            if (typeof opt === 'object') {
+              const optText = opt.text || opt.option || opt.label || '';
+              return {
+                _id: opt._id || opt.text || opt.id || '',
+                text: String(optText),
+                isCorrect: false
+              };
+            }
+            
+            // Fallback
+            return { text: String(opt), isCorrect: false, _id: String(opt) };
+          });
         }
         delete qObj.correctAnswers;
         delete qObj.correctAnswerText;
@@ -65,24 +89,47 @@ export class QuestionService {
     const question = await Question.findById(questionId);
     if (!question) return null;
 
+    const qObj = question.toObject() as any;
+    
+    // Map backend fields to frontend field names
+    qObj.questionText = qObj.question || qObj.questionText;
+    qObj.difficulty = qObj.difficultyLevel || qObj.difficulty;
+    
     if (!includeAnswers && (question.type === 'mcq_single' || question.type === 'mcq_multiple')) {
-      const qObj = question.toObject();
-      qObj.options = qObj.options?.map(opt => ({
-        _id: opt._id,
-        text: opt.text,
-        isCorrect: false
-      }));
+      qObj.options = (qObj.options || []).map((opt: any) => {
+        // Null/undefined safety
+        if (!opt) {
+          return { text: '', isCorrect: false, _id: '' };
+        }
+        
+        // Handle string options
+        if (typeof opt === 'string') {
+          return { _id: opt, text: String(opt), isCorrect: false };
+        }
+        
+        // Handle object options
+        if (typeof opt === 'object') {
+          const optText = opt.text || opt.option || opt.label || '';
+          return {
+            _id: opt._id || opt.text || opt.id || '',
+            text: String(optText),
+            isCorrect: false
+          };
+        }
+        
+        // Fallback
+        return { text: String(opt), isCorrect: false, _id: String(opt) };
+      });
       delete qObj.correctAnswers;
       delete qObj.correctAnswerText;
-      return qObj as IQuestion;
     }
 
     if (!includeAnswers) {
-      delete (question as any).correctAnswers;
-      delete (question as any).correctAnswerText;
+      delete qObj.correctAnswers;
+      delete qObj.correctAnswerText;
     }
 
-    return question;
+    return qObj as IQuestion;
   }
 
   // Update question

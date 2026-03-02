@@ -132,4 +132,96 @@ export class EmailService {
       throw new Error('Failed to send password reset email');
     }
   }
+
+  async sendAttendanceNotificationEmail(
+    email: string,
+    studentName: string,
+    status: 'absent' | 'leave',
+    date: Date,
+    batchName?: string,
+    remarks?: string
+  ): Promise<void> {
+    console.log('\n📧 [EMAIL SERVICE] Attendance Notification Email Request');
+    console.log('   Recipient:', email);
+    console.log('   Student Name:', studentName);
+    console.log('   Status:', status);
+    console.log('   Date:', date);
+
+    const statusText = status === 'absent' ? 'ABSENT' : 'ON LEAVE';
+    const formattedDate = date.toLocaleDateString('en-IN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 2rem; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0; font-size: 24px;">Attendance Notification</h2>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 2rem; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
+          <p style="margin-top: 0;">Hello <strong>${studentName}</strong>,</p>
+          
+          <p style="color: #666; line-height: 1.6;">
+            Your attendance for <strong>${formattedDate}</strong> has been marked as <strong style="color: #d32f2f;">${statusText}</strong>.
+          </p>
+
+          <div style="background: white; border-left: 4px solid #667eea; padding: 1rem; margin: 1.5rem 0; border-radius: 4px;">
+            <p style="margin: 0.5rem 0;"><strong>Date:</strong> ${formattedDate}</p>
+            ${batchName ? `<p style="margin: 0.5rem 0;"><strong>Batch:</strong> ${batchName}</p>` : ''}
+            <p style="margin: 0.5rem 0;"><strong>Status:</strong> <span style="color: #d32f2f; font-weight: bold;">${statusText}</span></p>
+            ${remarks ? `<p style="margin: 0.5rem 0;"><strong>Remarks:</strong> ${remarks}</p>` : ''}
+          </div>
+
+          <p style="color: #666; line-height: 1.6;">
+            If you believe this is an error, please contact your instructor or admin immediately.
+          </p>
+
+          <p style="margin-bottom: 0; color: #999; font-size: 12px; border-top: 1px solid #e0e0e0; padding-top: 1rem;">
+            This is an automated message from CodeBegun Learning Management System. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const plainTextContent = `
+Attendance Notification
+
+Hello ${studentName},
+
+Your attendance for ${formattedDate} has been marked as ${statusText}.
+
+Details:
+Date: ${formattedDate}
+${batchName ? `Batch: ${batchName}` : ''}
+Status: ${statusText}
+${remarks ? `Remarks: ${remarks}` : ''}
+
+If you believe this is an error, please contact your instructor or admin immediately.
+
+This is an automated message from CodeBegun Learning Management System.
+    `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `📋 Attendance Marked: ${statusText} - ${formattedDate}`,
+      html: htmlContent,
+      text: plainTextContent
+    };
+
+    try {
+      console.log('   Status: Sending...');
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      console.log('   Message ID:', info.messageId);
+      console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
+    } catch (error: any) {
+      console.log('   ❌ STATUS: EMAIL SENT FAILED');
+      console.error('   Error:', error.message);
+      // Don't throw - attendance should be saved even if email fails
+      console.log('📧 [EMAIL SERVICE] Email delivery failed (attendance still saved)\n');
+    }
+  }
 }

@@ -34,6 +34,11 @@ const QuizzesPage: React.FC = () => {
 
   const filterQuizzes = () => {
     let filtered = quizzes.filter(quiz => {
+      // IMPORTANT: Filter out quizzes with no questions
+      if (!quiz.totalQuestions || quiz.totalQuestions === 0) {
+        return false;
+      }
+
       const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
                           quiz.description.toLowerCase().includes(searchQuery.toLowerCase());
       
@@ -42,13 +47,12 @@ const QuizzesPage: React.FC = () => {
       const endDate = new Date(quiz.endDate);
       const startTime = new Date(`${quiz.startDate.split('T')[0]}T${quiz.startTime}`);
       const endTime = new Date(`${quiz.endDate.split('T')[0]}T${quiz.endTime}`);
-
       let statusMatch = true;
       if (filterTab === 'available') {
         // Show in available if:
         // 1. Quiz time is live AND
         // 2. Either: not attempted yet OR can take multiple attempts
-        const canRetake = quiz.multipleAttempts && (quiz.attemptCount || 0) < (quiz.maxAttempts || 1);
+        const canRetake = quiz.multipleAttempts && quiz.maxAttempts && (quiz.attemptCount || 0) < quiz.maxAttempts;
         statusMatch = now >= startTime && now <= endTime && (!quiz.isAttempted || canRetake);
       } else if (filterTab === 'completed') {
         // Show in completed if:
@@ -73,8 +77,26 @@ const QuizzesPage: React.FC = () => {
     return now >= startTime && now <= endTime;
   };
 
+  const getQuizStatus = (quiz: Quiz): 'pending' | 'live' | 'closed' => {
+    const now = new Date();
+    const startTime = new Date(`${quiz.startDate.split('T')[0]}T${quiz.startTime}`);
+    const endTime = new Date(`${quiz.endDate.split('T')[0]}T${quiz.endTime}`);
+    
+    if (now < startTime) return 'pending';
+    if (now > endTime) return 'closed';
+    return 'live';
+  };
+
   const canAttempt = (quiz: Quiz): boolean => {
-    return isQuizAlive(quiz) && (!quiz.multipleAttempts ? !quiz.isAttempted : quiz.attemptCount < quiz.maxAttempts);
+    if (!isQuizAlive(quiz)) return false;
+    
+    if (!quiz.multipleAttempts) {
+      // Single attempt quiz: can attempt only if not already attempted
+      return !quiz.isAttempted;
+    } else {
+      // Multiple attempts quiz: can attempt only if maxAttempts is configured and not exceeded
+      return quiz.maxAttempts ? (quiz.attemptCount || 0) < quiz.maxAttempts : false;
+    }
   };
 
   const handleStartQuiz = (quizId: string) => {
@@ -82,7 +104,14 @@ const QuizzesPage: React.FC = () => {
   };
 
   const handleViewResults = (quizId: string) => {
-    window.location.href = `/quiz/${quizId}/results`;
+    quizApi.getLatestAttempt(quizId)
+      .then((res: any) => {
+        const attemptId = res?.data?._id || res?._id;
+        if (attemptId) {
+          window.location.href = `/quiz/${quizId}/results/${attemptId}`;
+        }
+      })
+      .catch(() => alert('Failed to load attempt details'));
   };
 
   if (loading) return <Spinner fullScreen />;
@@ -116,13 +145,13 @@ const QuizzesPage: React.FC = () => {
             className={`filter-tab ${filterTab === 'available' ? 'active' : ''}`}
             onClick={() => setFilterTab('available')}
           >
-            ⏱️ Available ({quizzes.filter(q => isQuizAlive(q) && !q.isAttempted).length})
+            ⏱️ Available ({quizzes.filter(q => (q.totalQuestions || 0) > 0 && isQuizAlive(q) && !q.isAttempted).length})
           </button>
           <button
             className={`filter-tab ${filterTab === 'pending' ? 'active' : ''}`}
             onClick={() => setFilterTab('pending')}
           >
-            ⏳ Pending ({quizzes.filter(q => new Date() < new Date(`${q.startDate.split('T')[0]}T${q.startTime}`)).length})
+            ⏳ Pending ({quizzes.filter(q => (q.totalQuestions || 0) > 0 && new Date() < new Date(`${q.startDate.split('T')[0]}T${q.startTime}`)).length})
           </button>
           <button
             className={`filter-tab ${filterTab === 'completed' ? 'active' : ''}`}
@@ -133,8 +162,8 @@ const QuizzesPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Quizzes Grid */}
-      <div className="quizzes-container">
+      {/* Quizzes Table */}
+      <div className="quizzes-table-container">
         {filteredQuizzes.length === 0 ? (
           <div className="empty-state">
             <div className="empty-icon">📭</div>
@@ -146,111 +175,83 @@ const QuizzesPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="quizzes-grid">
-            {filteredQuizzes.map(quiz => {
-              const alive = isQuizAlive(quiz);
-              const canAttemptQuiz = canAttempt(quiz);
-              const now = new Date();
-              const endTime = new Date(`${quiz.endDate.split('T')[0]}T${quiz.endTime}`);
-              const timeLeft = Math.max(0, Math.floor((endTime.getTime() - now.getTime()) / (1000 * 60)));
+          <table className="quizzes-table">
+            <thead>
+              <tr>
+                <th>Quiz Title</th>
+                <th>Status</th>
+                <th>Questions</th>
+                <th>Total Marks</th>
+                <th>Duration</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Your Score</th>
+                <th>Attempts</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredQuizzes.map(quiz => {
+                const status = getQuizStatus(quiz);
+                const canAttemptQuiz = canAttempt(quiz);
+                const attempted = quiz.isAttempted;
 
-              return (
-                <div key={quiz._id} className={`quiz-card ${!alive ? 'inactive' : ''}`}>
-                  {/* Card Header */}
-                  <div className="card-header">
-                    <div className="header-content">
-                      <h3>{quiz.title}</h3>
-                      <span className={`status-badge ${alive ? 'live' : 'closed'}`}>
-                        {alive ? '🔴 Live' : '⚫ Closed'}
+                return (
+                  <tr key={quiz._id} className={`quiz-row ${status === 'closed' ? 'inactive' : ''}`}>
+                    <td className="quiz-title-cell">
+                      <strong>{quiz.title}</strong>
+                      {quiz.description && <small>{quiz.description.substring(0, 50)}...</small>}
+                    </td>
+                    <td>
+                      <span className={`status-badge ${status}`}>
+                        {status === 'live' ? '🔴 Live' : status === 'pending' ? '⏳ Pending' : '⚫ Closed'}
                       </span>
-                    </div>
-                  </div>
-
-                  {/* Card Body */}
-                  <div className="card-body">
-                    <p className="description">{quiz.description}</p>
-
-                    {/* Quiz Info */}
-                    <div className="quiz-info-grid">
-                      <div className="info-item">
-                        <span className="info-label">Questions</span>
-                        <span className="info-value">{quiz.totalQuestions}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Marks</span>
-                        <span className="info-value">{quiz.totalMarks}</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Duration</span>
-                        <span className="info-value">{quiz.totalTime}m</span>
-                      </div>
-                      <div className="info-item">
-                        <span className="info-label">Pass %</span>
-                        <span className="info-value">{Math.round((quiz.passingMarks / quiz.totalMarks) * 100)}%</span>
-                      </div>
-                    </div>
-
-                    {/* Dates */}
-                    <div className="quiz-dates">
-                      <small>
-                        📅 {new Date(quiz.startDate).toLocaleDateString()} - {new Date(quiz.endDate).toLocaleDateString()}
-                      </small>
-                      {alive && timeLeft > 0 && (
-                        <small className="time-left">
-                          ⏰ {timeLeft} minutes left
-                        </small>
+                    </td>
+                    <td className="center">{quiz.totalQuestions || 0}</td>
+                    <td className="center">{quiz.totalMarks}</td>
+                    <td className="center">{quiz.totalTime}m</td>
+                    <td className="date-cell">{new Date(quiz.startDate).toLocaleDateString()}</td>
+                    <td className="date-cell">{new Date(quiz.endDate).toLocaleDateString()}</td>
+                    <td className="score-cell">
+                      {attempted ? (
+                        <span className={quiz.lastAttemptPassed ? 'passed' : 'failed'}>
+                          {quiz.lastAttemptMarks}/{quiz.totalMarks}
+                        </span>
+                      ) : (
+                        <span className="not-attempted">—</span>
                       )}
-                    </div>
-
-                    {/* Attempt Info */}
-                    {quiz.isAttempted && (
-                      <div className="attempt-info">
-                        <div className="attempt-header">Latest Attempt</div>
-                        <div className="score-display">
-                          <span className="score">{quiz.lastAttemptMarks}/{quiz.totalMarks}</span>
-                          <span className={`status ${quiz.lastAttemptPassed ? 'passed' : 'failed'}`}>
-                            {quiz.lastAttemptPassed ? '✓ Passed' : '✗ Failed'}
-                          </span>
-                        </div>
-                        {quiz.multipleAttempts && (
-                          <small className="attempt-count">
-                            Attempts: {quiz.attemptCount}/{quiz.maxAttempts}
-                          </small>
+                    </td>
+                    <td className="center">
+                      {quiz.multipleAttempts && quiz.maxAttempts ? (
+                        `${quiz.attemptCount || 0}/${quiz.maxAttempts}`
+                      ) : (
+                        <span>Single</span>
+                      )}
+                    </td>
+                    <td className="actions-cell">
+                      <div className="quiz-actions">
+                        {canAttemptQuiz ? (
+                          <Button onClick={() => handleStartQuiz(quiz._id)} className="btn-sm btn-primary">
+                            Start
+                          </Button>
+                        ) : attempted && !canAttemptQuiz ? (
+                          <>
+                            <Button onClick={() => handleViewResults(quiz._id)} className="btn-sm btn-secondary">
+                              Results
+                            </Button>
+                          </>
+                        ) : status === 'closed' ? (
+                          <span className="text-muted">Expired</span>
+                        ) : (
+                          <span className="text-muted">N/A</span>
                         )}
                       </div>
-                    )}
-                  </div>
-
-                  {/* Card Footer */}
-                  <div className="card-footer">
-                    {canAttemptQuiz ? (
-                      <Button
-                        onClick={() => handleStartQuiz(quiz._id)}
-                        className="btn-primary btn-full"
-                      >
-                        ▶️ Start Quiz
-                      </Button>
-                    ) : alive && quiz.multipleAttempts && quiz.attemptCount >= quiz.maxAttempts ? (
-                      <Button disabled className="btn-disabled btn-full">
-                        ❌ Max Attempts Reached
-                      </Button>
-                    ) : !alive ? (
-                      <Button disabled className="btn-disabled btn-full">
-                        🔒 Quiz Closed
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => handleViewResults(quiz._id)}
-                        className="btn-secondary btn-full"
-                      >
-                        📊 View Results
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
       </div>
     </div>

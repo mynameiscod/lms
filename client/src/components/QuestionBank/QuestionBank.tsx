@@ -37,6 +37,10 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12; // Show 12 cards per page for better density
 
   // Manual entry form state
   const [manualForm, setManualForm] = useState({
@@ -100,6 +104,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     }
 
     setFilteredQuestions(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [searchTerm, selectedTags, difficultyFilter, questions]);
 
   // Handle manual question creation
@@ -365,46 +370,73 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
             ) : filteredQuestions.length === 0 ? (
               <p className="qb-empty">No questions found</p>
             ) : (
-              <div className="qb-questions-list">
-                {filteredQuestions.map(question => (
-                  <div key={question._id} className="qb-question-card">
-                    <div className="qb-question-header">
-                      <h3>{question.question}</h3>
-                      <div className="qb-question-meta">
-                        <span className="qb-badge" title={question.difficultyLevel || question.difficulty}>
-                          {question.difficultyLevel || question.difficulty}
-                        </span>
-                        <span className="qb-badge">{question.type}</span>
-                        <span className="qb-badge">{question.marks}pt</span>
-                        <span className="qb-badge">Used: {question.usageCount}</span>
+              <>
+                <div className="qb-questions-list">
+                  {filteredQuestions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map(question => (
+                    <div key={question._id} className="qb-question-card">
+                      <div className="qb-question-header">
+                        <h3>{question.question}</h3>
+                        <div className="qb-question-meta">
+                          <span className="qb-badge" title={question.difficultyLevel || question.difficulty}>
+                            {question.difficultyLevel || question.difficulty}
+                          </span>
+                          <span className="qb-badge">{question.type}</span>
+                          <span className="qb-badge">{question.marks}pt</span>
+                          <span className="qb-badge">Used: {question.usageCount}</span>
+                        </div>
+                      </div>
+                      {question.tags && question.tags.length > 0 && (
+                        <div className="qb-tags">
+                          {question.tags.map(tag => (
+                            <span key={tag} className="qb-tag">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                      <div className="qb-question-actions">
+                        <Button
+                          variant="secondary"
+                          onClick={() => {
+                            // TODO: Edit functionality
+                          }}
+                        >
+                          Edit
+                        </Button>
+                        <Button
+                          variant="danger"
+                          onClick={() => handleDeleteQuestion(question._id)}
+                        >
+                          Delete
+                        </Button>
                       </div>
                     </div>
-                    {question.tags && question.tags.length > 0 && (
-                      <div className="qb-tags">
-                        {question.tags.map(tag => (
-                          <span key={tag} className="qb-tag">{tag}</span>
-                        ))}
-                      </div>
-                    )}
-                    <div className="qb-question-actions">
-                      <Button
-                        variant="secondary"
-                        onClick={() => {
-                          // TODO: Edit functionality
-                        }}
-                      >
-                        Edit
-                      </Button>
-                      <Button
-                        variant="danger"
-                        onClick={() => handleDeleteQuestion(question._id)}
-                      >
-                        Delete
-                      </Button>
+                  ))}
+                </div>
+
+                {filteredQuestions.length > itemsPerPage && (
+                  <div className="qb-pagination">
+                    <Button
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="qb-pagination-btn"
+                    >
+                      ← Previous
+                    </Button>
+                    <div className="qb-pagination-info">
+                      Page {currentPage} of {Math.ceil(filteredQuestions.length / itemsPerPage)}
+                            ({filteredQuestions.length} total questions)
                     </div>
+                    <Button
+                      onClick={() => setCurrentPage(prev => 
+                        Math.min(Math.ceil(filteredQuestions.length / itemsPerPage), prev + 1)
+                      )}
+                      disabled={currentPage === Math.ceil(filteredQuestions.length / itemsPerPage)}
+                      className="qb-pagination-btn"
+                    >
+                      Next →
+                    </Button>
                   </div>
-                ))}
-              </div>
+                )}
+              </>
             )}
           </div>
         )}

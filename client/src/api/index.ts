@@ -608,6 +608,18 @@ export const quizApi = {
     });
   },
 
+  getLatestAttempt: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/attempts/latest`, {
+      method: 'GET'
+    });
+  },
+
+  getStudentAttemptResults: async (attemptId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quiz-attempts/${attemptId}/results`, {
+      method: 'GET'
+    });
+  },
+
   // Questions
   createQuestion: async (quizId: string, questionData: any) => {
     // Map frontend field names to backend field names

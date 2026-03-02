@@ -125,6 +125,14 @@ const QuizTakingPage: React.FC = () => {
     return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  const getOptionText = (option: any): string => {
+    // Handle both string and object option formats
+    if (typeof option === 'string') {
+      return option;
+    }
+    return option?.text || '';
+  };
+
   const handleAnswerChange = (questionId: string, value: any) => {
     const newAnswers = new Map(answers);
     newAnswers.set(questionId, value);
@@ -154,8 +162,10 @@ const QuizTakingPage: React.FC = () => {
       // Prepare submissions
       const submissions = Array.from(answers.entries()).map(([questionId, answer]) => {
         const question = questions.find(q => q._id === questionId);
+        const questionIndex = questions.findIndex(q => q._id === questionId);
         const submission: any = {
           questionId,
+          questionNo: questionIndex + 1, // Add questionNo (1-based index)
           questionType: question?.type,
         };
 
@@ -332,33 +342,36 @@ const QuizTakingPage: React.FC = () => {
               <div className="question-body">
                 {currentQuestion.type === 'mcq_single' || currentQuestion.type === 'mcq_multiple' ? (
                   <div className="mcq-options">
-                    {currentQuestion.options?.map((option, index) => (
-                      <label key={index} className="option-label">
-                        <input
-                          type={currentQuestion.type === 'mcq_single' ? 'radio' : 'checkbox'}
-                          name={`question-${currentQuestion._id}`}
-                          value={option.text}
-                          checked={
-                            currentQuestion.type === 'mcq_single'
-                              ? answers.get(currentQuestion._id) === option.text
-                              : Array.isArray(answers.get(currentQuestion._id)) && answers.get(currentQuestion._id).includes(option.text)
-                          }
-                          onChange={(e) => {
-                            if (currentQuestion.type === 'mcq_single') {
-                              handleAnswerChange(currentQuestion._id, e.target.value);
-                            } else {
-                              const currentAnswers = Array.isArray(answers.get(currentQuestion._id)) ? answers.get(currentQuestion._id) : [];
-                              if (e.target.checked) {
-                                handleAnswerChange(currentQuestion._id, [...currentAnswers, option.text]);
-                              } else {
-                                handleAnswerChange(currentQuestion._id, currentAnswers.filter((a: string) => a !== option.text));
-                              }
+                    {currentQuestion.options?.map((option, index) => {
+                      const optionText = getOptionText(option);
+                      return (
+                        <label key={index} className="option-label">
+                          <input
+                            type={currentQuestion.type === 'mcq_single' ? 'radio' : 'checkbox'}
+                            name={`question-${currentQuestion._id}`}
+                            value={optionText}
+                            checked={
+                              currentQuestion.type === 'mcq_single'
+                                ? answers.get(currentQuestion._id) === optionText
+                                : Array.isArray(answers.get(currentQuestion._id)) && answers.get(currentQuestion._id).includes(optionText)
                             }
-                          }}
-                        />
-                        <span className="option-text">{option.text}</span>
-                      </label>
-                    ))}
+                            onChange={(e) => {
+                              if (currentQuestion.type === 'mcq_single') {
+                                handleAnswerChange(currentQuestion._id, e.target.value);
+                              } else {
+                                const currentAnswers = Array.isArray(answers.get(currentQuestion._id)) ? answers.get(currentQuestion._id) : [];
+                                if (e.target.checked) {
+                                  handleAnswerChange(currentQuestion._id, [...currentAnswers, optionText]);
+                                } else {
+                                  handleAnswerChange(currentQuestion._id, currentAnswers.filter((a: string) => a !== optionText));
+                                }
+                              }
+                            }}
+                          />
+                          <span className="option-text">{optionText}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 ) : currentQuestion.type === 'short_answer' ? (
                   <textarea

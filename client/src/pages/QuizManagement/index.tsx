@@ -156,63 +156,67 @@ const QuizManagementPage: React.FC = () => {
             <p>Create your first quiz to get started</p>
           </div>
         ) : (
-          <div className="quizzes-grid">
-            {quizzes.map(quiz => (
-              <div key={quiz._id} className="quiz-card">
-                <div className="quiz-card-header">
-                  <h3>{quiz.title}</h3>
-                  <span className={`badge ${quiz.isActive ? 'active' : 'inactive'}`}>
-                    {quiz.isActive ? 'Active' : 'Inactive'}
-                  </span>
-                </div>
-
-                <p className="quiz-description">{quiz.description}</p>
-
-                <div className="quiz-meta">
-                  <div className="meta-item">
-                    <span className="label">📝 Questions:</span>
-                    <span className="value">{quiz.totalQuestions}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="label">⭐ Marks:</span>
-                    <span className="value">{quiz.totalMarks}</span>
-                  </div>
-                  <div className="meta-item">
-                    <span className="label">⏱️ Time:</span>
-                    <span className="value">{quiz.totalTime} min</span>
-                  </div>
-                </div>
-
-                <div className="quiz-dates">
-                  <small>
-                    📅 {new Date(quiz.startDate).toLocaleDateString()} -
-                    {new Date(quiz.endDate).toLocaleDateString()}
-                  </small>
-                </div>
-
-                <div className="quiz-actions">
-                  <Button
-                    onClick={() => handleEditQuiz(quiz)}
-                    className="btn-secondary btn-sm"
-                  >
-                    ✏️ Edit
-                  </Button>
-                  <Button
-                    onClick={() => handleLinkQuestions(quiz)}
-                    className="btn-primary btn-sm"
-                    title="Link questions from Question Bank"
-                  >
-                    🔗 Link Questions
-                  </Button>
-                  <Button
-                    onClick={() => handleDeleteQuiz(quiz._id)}
-                    className="btn-danger btn-sm"
-                  >
-                    🗑️ Delete
-                  </Button>
-                </div>
-              </div>
-            ))}
+          <div className="quizzes-table-wrapper">
+            <table className="quizzes-table">
+              <thead>
+                <tr>
+                  <th>Quiz Title</th>
+                  <th>Questions</th>
+                  <th>Marks</th>
+                  <th>Duration</th>
+                  <th>Start Date & Time</th>
+                  <th>End Date & Time</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quizzes.map(quiz => (
+                  <tr key={quiz._id} className="quiz-row">
+                    <td className="quiz-title">{quiz.title}</td>
+                    <td className="quiz-questions">{quiz.totalQuestions || 0}</td>
+                    <td className="quiz-marks">{quiz.totalMarks}</td>
+                    <td className="quiz-time">{quiz.totalTime} min</td>
+                    <td className="quiz-date">
+                      {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
+                    </td>
+                    <td className="quiz-date">
+                      {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
+                    </td>
+                    <td className="quiz-status">
+                      <span className={`status-badge ${quiz.isActive ? 'active' : 'inactive'}`}>
+                        {quiz.isActive ? 'Active' : 'Inactive'}
+                      </span>
+                    </td>
+                    <td className="quiz-actions-cell">
+                      <div className="action-buttons">
+                        <Button
+                          onClick={() => handleEditQuiz(quiz)}
+                          className="btn-action btn-edit"
+                          title="Edit quiz"
+                        >
+                          ✏️
+                        </Button>
+                        <Button
+                          onClick={() => handleLinkQuestions(quiz)}
+                          className="btn-action btn-link"
+                          title="Link questions from Question Bank"
+                        >
+                          🔗
+                        </Button>
+                        <Button
+                          onClick={() => handleDeleteQuiz(quiz._id)}
+                          className="btn-action btn-delete"
+                          title="Delete quiz"
+                        >
+                          🗑️
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

@@ -20,6 +20,7 @@ router.post(
 
 router.get('/instructor', quizController.getQuizzes);
 
+router.get('/:quizId/attempts/latest', quizController.getLatestStudentAttempt);
 router.get('/student/available', quizController.getStudentQuizzes);
 
 router.get('/:quizId', quizController.getQuizById);

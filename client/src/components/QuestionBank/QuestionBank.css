@@ -174,15 +174,19 @@
 
 .qb-questions-list {
   display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1rem;
+  margin-bottom: 2rem;
 }
 
 .qb-question-card {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 1.5rem;
+  padding: 1rem;
   transition: all 0.3s ease;
   background: #f9f9f9;
+  display: flex;
+  flex-direction: column;
 }
 
 .qb-question-card:hover {
@@ -195,15 +199,16 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 1rem;
-  gap: 1rem;
+  margin-bottom: 0.75rem;
+  gap: 0.5rem;
 }
 
 .qb-question-header h3 {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 0.95rem;
   flex: 1;
   color: #333;
+  line-height: 1.3;
 }
 
 .qb-question-meta {
@@ -217,17 +222,17 @@
   display: inline-block;
   background: #005897;
   color: white;
-  padding: 0.35rem 0.75rem;
+  padding: 0.25rem 0.5rem;
   border-radius: 20px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
 
 .qb-tags {
   display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
   flex-wrap: wrap;
 }
 
@@ -288,6 +293,34 @@
   outline: none;
   border-color: #005897;
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
+}
+
+/* Pagination Styles */
+.qb-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #f5f5f5;
+  border-radius: 8px;
+}
+
+.qb-pagination-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.95rem;
+}
+
+.qb-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.qb-pagination-info {
+  font-size: 0.95rem;
+  color: #666;
+  font-weight: 500;
 }
 
 .qb-textarea {
@@ -457,6 +490,10 @@
   }
 
   .qb-form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .qb-pagination {
     grid-template-columns: 1fr;
   }
 

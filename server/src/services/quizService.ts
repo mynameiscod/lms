@@ -88,18 +88,23 @@ export class QuizService {
     const [startHour, startMin] = quiz.startTime.split(':').map(Number);
     const [endHour, endMin] = quiz.endTime.split(':').map(Number);
 
+    // Create start datetime
     const startDateTime = new Date(quiz.startDate);
-    startDateTime.setHours(startHour, startMin, 0);
+    startDateTime.setHours(startHour, startMin, 0, 0);
 
+    // Create end datetime - same day or different day
     const endDateTime = new Date(quiz.endDate);
-    endDateTime.setHours(endHour, endMin, 59);
+    endDateTime.setHours(endHour, endMin, 59, 999);
 
+    // Allow quiz access if current time is within the start and end window
     if (now < startDateTime) {
-      return { available: false, reason: 'Quiz has not started yet' };
+      const startFormatted = startDateTime.toLocaleString();
+      return { available: false, reason: `Quiz will be available on ${startFormatted}` };
     }
 
     if (now > endDateTime) {
-      return { available: false, reason: 'Quiz has ended' };
+      const endFormatted = endDateTime.toLocaleString();
+      return { available: false, reason: `Quiz ended on ${endFormatted}` };
     }
 
     return { available: true };
@@ -120,8 +125,10 @@ export class QuizService {
     const canAccess = await this.canStudentAccessQuiz(quizId, studentId);
     if (!canAccess) throw new Error('You do not have access to this quiz');
 
-    const { available } = await this.isQuizAvailable(quizId);
-    if (!available) throw new Error('Quiz is not available at this time');
+    const availabilityCheck = await this.isQuizAvailable(quizId);
+    if (!availabilityCheck.available) {
+      throw new Error(availabilityCheck.reason || 'Quiz is not available at this time');
+    }
 
     // Check attempt count
     if (quiz.multipleAttempts && quiz.maxAttempts) {
@@ -135,7 +142,12 @@ export class QuizService {
         throw new Error(`Maximum attempts (${quiz.maxAttempts}) reached`);
       }
     } else if (!quiz.multipleAttempts) {
-      const existingAttempt = await QuizAttempt.findOne({ quizId, studentId });
+      // For single attempt quizzes, check only completed/submitted attempts
+      const existingAttempt = await QuizAttempt.findOne({ 
+        quizId, 
+        studentId,
+        status: { $in: ['submitted', 'abandoned'] }
+      });
       if (existingAttempt) {
         throw new Error('You have already attempted this quiz');
       }
@@ -166,14 +178,38 @@ export class QuizService {
 
     // Remove correct answers from response (don't send to student)
     return questions.map(q => {
-      const qObj = q.toObject();
+      const qObj = q.toObject() as any;
+      
+      // Map backend fields to frontend field names
+      qObj.questionText = qObj.question || qObj.questionText;
+      qObj.difficulty = qObj.difficultyLevel || qObj.difficulty;
+      
       if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
-        qObj.options = qObj.options.map((opt: any) => ({
-          _id: opt._id,
-          text: opt.text,
-          isCorrect: false
-          // Don't include actual correct answer
-        }));
+        qObj.options = (qObj.options || []).map((opt: any) => {
+          // Null/undefined safety
+          if (!opt) {
+            return { text: '', isCorrect: false, _id: '' };
+          }
+          
+          // Handle string options
+          if (typeof opt === 'string') {
+            return { _id: opt, text: String(opt), isCorrect: false };
+          }
+          
+          // Handle object options
+          if (typeof opt === 'object') {
+            const optText = opt.text || opt.option || opt.label || '';
+            return {
+              _id: opt._id || opt.text || opt.id || '',
+              text: String(optText),
+              isCorrect: false
+              // Don't include actual correct answer
+            };
+          }
+          
+          // Fallback
+          return { text: String(opt), isCorrect: false, _id: String(opt) };
+        });
       }
       delete qObj.correctAnswers;
       delete qObj.correctAnswerText;
@@ -202,9 +238,45 @@ export class QuizService {
 
       if (question.type === 'mcq_single' || question.type === 'mcq_multiple') {
         const selectedOptions = answer.selectedOptions || [];
-        const correctAnswers = question.correctAnswers || [];
-        isCorrect = JSON.stringify(selectedOptions.sort()) === 
-                   JSON.stringify(correctAnswers.sort());
+        
+        // Ensure selectedOptions is an array
+        const normalizedSelected = (Array.isArray(selectedOptions) ? selectedOptions : [])
+          .map(o => String(o || '').trim())
+          .filter(o => o !== '')
+          .sort();
+        
+        // Convert correctAnswers indices/text to actual option text
+        let correctAnswerTexts: string[] = [];
+        if (question.correctAnswers && question.correctAnswers.length > 0) {
+          correctAnswerTexts = question.correctAnswers
+            .map(ans => {
+              if (!ans) return '';
+              
+              // If it's a number or numeric string (index), convert to option text
+              const ansStr = String(ans).trim();
+              if (!isNaN(Number(ansStr))) {
+                const index = parseInt(ansStr);
+                // Access the option directly from the array
+                if (Array.isArray(question.options) && question.options.length > index && index >= 0) {
+                  const option = question.options[index];
+                  // Option could be a string or an object with text property
+                  const optionText = typeof option === 'string' ? option : (option?.text || '');
+                  return String(optionText || '').trim();
+                }
+                return '';
+              }
+              // Otherwise it's already the option text
+              return ansStr;
+            })
+            .filter(a => a !== '')
+            .sort();
+        }
+        
+        // Only mark as correct if both have values and they match
+        // Empty arrays should NOT match (student didn't select anything or system couldn't resolve correct answer)
+        isCorrect = normalizedSelected.length > 0 && 
+                   correctAnswerTexts.length > 0 && 
+                   JSON.stringify(normalizedSelected) === JSON.stringify(correctAnswerTexts);
         marksAwarded = isCorrect ? question.marks : 0;
       } else if (question.type === 'short_answer') {
         // For short answers, mark as pending for manual review
@@ -217,6 +289,22 @@ export class QuizService {
       if (isCorrect) correctAnswers++;
       obtainedMarks += marksAwarded;
 
+      // Properly store student answer based on question type
+      let studentAnswerValue = '';
+      if (question.type === 'mcq_single' || question.type === 'mcq_multiple') {
+        // For MCQ, always use selectedOptions (convert to comma-separated string)
+        const selectedOpts = answer.selectedOptions || [];
+        studentAnswerValue = Array.isArray(selectedOpts) 
+          ? selectedOpts.join(', ') 
+          : String(selectedOpts || '');
+      } else if (question.type === 'short_answer') {
+        // For short answer, use the answer field
+        studentAnswerValue = answer.answer || '';
+      } else if (question.type === 'coding') {
+        // For coding, use the answer field
+        studentAnswerValue = answer.answer || '';
+      }
+
       // Save submission
       const submission = new QuizSubmission({
         quizAttemptId: attemptId,
@@ -224,9 +312,9 @@ export class QuizService {
         questionId: answer.questionId,
         studentId: attempt.studentId,
         tenantId: attempt.tenantId,
-        questionNo: question.questionNo,
+        questionNo: answer.questionNo || 1, // Use questionNo from submission (now sent by frontend)
         questionType: question.type,
-        studentAnswer: answer.answer || '',
+        studentAnswer: studentAnswerValue, // NOW PROPERLY SET FOR ALL QUESTION TYPES
         selectedOptions: answer.selectedOptions || [],
         isCorrect,
         marksAwarded
@@ -314,24 +402,68 @@ export class QuizService {
       questions = await Question.find({ quizId }).sort({ questionNo: 1 });
     }
 
-    // Remove answers if not needed
-    if (!includeAnswers) {
-      return questions.map(q => {
-        const qObj = q.toObject();
-        if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
-          qObj.options = qObj.options?.map((opt: any) => {
-            // Handle both string options (from Question Bank) and embedded objects (from quizzes)
-            if (typeof opt === 'string') return opt;
-            return { ...opt, isCorrect: false };
-          });
-        }
+    // Process questions and map fields
+    return questions.map(q => {
+      const qObj = q.toObject() as any;
+      
+      // Map backend fields to frontend field names
+      qObj.questionText = qObj.question || qObj.questionText;
+      qObj.difficulty = qObj.difficultyLevel || qObj.difficulty;
+      
+      // Ensure options are always objects with text property
+      if (q.type === 'mcq_single' || q.type === 'mcq_multiple') {
+        qObj.options = (qObj.options || []).map((opt: any, optIndex: number) => {
+          // Null/undefined safety
+          if (!opt) {
+            return { text: '', isCorrect: false, _id: '' };
+          }
+          
+          // Handle string options (from Question Bank)
+          if (typeof opt === 'string') {
+            // Check if correctAnswers contains index or text
+            const isCorrect = includeAnswers && qObj.correctAnswers && (
+              qObj.correctAnswers.includes(opt) || // Text match
+              qObj.correctAnswers.includes(String(optIndex)) // Index match
+            );
+            return { _id: opt, text: String(opt), isCorrect };
+          }
+          
+          // Handle object options
+          if (typeof opt === 'object') {
+            const optText = opt.text || opt.option || opt.label || '';
+            // Check both isCorrect property and correctAnswers array (for indices and text)
+            const isCorrect = includeAnswers ? (
+              opt.isCorrect || 
+              (qObj.correctAnswers && (
+                qObj.correctAnswers.includes(optText) || 
+                qObj.correctAnswers.includes(String(optIndex))
+              ))
+            ) : false;
+            return {
+              _id: opt._id || opt.text || opt.id || '',
+              text: String(optText),
+              isCorrect
+            };
+          }
+          
+          // Fallback for any other type
+          const optStr = String(opt);
+          const isCorrect = includeAnswers && qObj.correctAnswers && (
+            qObj.correctAnswers.includes(optStr) ||
+            qObj.correctAnswers.includes(String(optIndex))
+          );
+          return { text: optStr, isCorrect, _id: optStr };
+        }) || [];
+      }
+      
+      // Remove answers if not needed
+      if (!includeAnswers) {
         delete qObj.correctAnswers;
         delete qObj.correctAnswerText;
-        return qObj;
-      });
-    }
-
-    return questions;
+      }
+      
+      return qObj;
+    });
   }
 
   // Remove questions from quiz

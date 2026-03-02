@@ -21,6 +21,7 @@ WORKDIR /app
 # Copy backend compiled JS from build stage
 COPY --from=backend-build /app/dist ./dist
 COPY server/package*.json ./
+COPY server/.env ./
 RUN npm install --production
 
 # Copy built frontend

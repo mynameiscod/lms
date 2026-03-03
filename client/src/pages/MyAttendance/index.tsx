@@ -7,20 +7,18 @@ import './MyAttendancePage.css';
 
 const MyAttendancePage: React.FC = () => {
   const { user } = useAuth();
-  const [batches, setBatches] = useState<Batch[]>([]);
-  const [selectedBatchId, setSelectedBatchId] = useState<string>('');
-  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
+  const [currentBatch, setCurrentBatch] = useState<Batch | null>(null);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
+  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
 
   // Get date constraints
   const getMinDate = () => {
-    if (!selectedBatch || !user) return '';
-    const batchStart = selectedBatch.startDate ? new Date(selectedBatch.startDate) : null;
+    if (!currentBatch || !user) return '';
+    const batchStart = currentBatch.startDate ? new Date(currentBatch.startDate) : null;
     const userJoined = user.createdAt ? new Date(user.createdAt) : null;
     
     if (batchStart && userJoined) {
@@ -31,59 +29,45 @@ const MyAttendancePage: React.FC = () => {
     return batchStart?.toISOString().split('T')[0] || userJoined?.toISOString().split('T')[0] || '';
   };
 
-  const getMaxDate = () => {
+  const getFromDateMax = () => {
     return new Date().toISOString().split('T')[0];
   };
 
-  useEffect(() => {
-    fetchBatches();
-    setEndDate(new Date().toISOString().split('T')[0]);
-  }, []);
-
-  // Update start date when batch changes
-  useEffect(() => {
-    if (selectedBatch) {
-      const minDate = getMinDate();
-      if (minDate) setStartDate(minDate);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedBatch]);
-
-  const fetchBatches = async () => {
-    try {
-      setLoading(true);
-      const res = await batchApi.getBatches();
-      setBatches(res.data || []);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch batches');
-    } finally {
-      setLoading(false);
-    }
+  const getToDateMax = () => {
+    if (!currentBatch) return new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
+    const batchEnd = currentBatch.endDate ? new Date(currentBatch.endDate).toISOString().split('T')[0] : today;
+    // Return whichever is earlier - today or batch end date
+    return batchEnd < today ? batchEnd : today;
   };
 
-  const handleBatchSelect = async (batchId: string) => {
-    setSelectedBatchId(batchId);
-    const batch = batches.find(b => b._id === batchId) || null;
-    setSelectedBatch(batch);
-    
-    if (user?._id && batchId) {
+  useEffect(() => {
+    const fetchStudentBatch = async () => {
       try {
-        setError('');
-        const summaryRes = await attendanceApi.getStudentAttendanceSummary(user._id, batchId);
-        setSummary(summaryRes.data || null);
+        setLoading(true);
+        if (user?.batchId) {
+          // Fetch the student's batch
+          const res = await batchApi.getBatchById(user.batchId);
+          const batch = res.data || res;
+          setCurrentBatch(batch);
+          
+          // Fetch attendance summary
+          if (user._id) {
+            const summaryRes = await attendanceApi.getStudentAttendanceSummary(user._id, user.batchId);
+            setSummary(summaryRes.data || null);
+          }
+        }
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch attendance summary');
+        setError(err.message || 'Failed to fetch batch');
+      } finally {
+        setLoading(false);
       }
-    } else {
-      setSummary(null);
-    }
-  };
+    };
+    
+    fetchStudentBatch();
+  }, [user]);
 
   const handleFilter = async () => {
-    if (!selectedBatchId) {
-      setError('Please select a batch first');
-      return;
-    }
     if (!startDate || !endDate) {
       setError('Please select both from and to dates');
       return;
@@ -113,43 +97,34 @@ const MyAttendancePage: React.FC = () => {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
       <div className="attendance-container">
+        {/* Batch Info */}
+        {currentBatch && (
+          <div className="batch-info">
+            <span>Batch: <strong>{currentBatch.name}</strong></span>
+          </div>
+        )}
+
         {/* Filters Row */}
         <div className="filters-row">
           <div className="filter-item">
-            <label>Batch</label>
-            <select
-              value={selectedBatchId}
-              onChange={(e) => handleBatchSelect(e.target.value)}
-              className="batch-select"
-            >
-              <option value="">-- Select Batch --</option>
-              {batches.map(batch => (
-                <option key={batch._id} value={batch._id}>
-                  {batch.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-item">
-            <label>From Date</label>
+            <label>From</label>
             <input
               type="date"
               value={startDate}
               min={getMinDate()}
-              max={endDate || getMaxDate()}
+              max={getFromDateMax()}
               onChange={(e) => setStartDate(e.target.value)}
               className="date-input"
             />
           </div>
 
           <div className="filter-item">
-            <label>To Date</label>
+            <label>To</label>
             <input
               type="date"
               value={endDate}
               min={startDate || getMinDate()}
-              max={getMaxDate()}
+              max={getToDateMax()}
               onChange={(e) => setEndDate(e.target.value)}
               className="date-input"
             />
@@ -161,7 +136,7 @@ const MyAttendancePage: React.FC = () => {
         </div>
 
         {/* Summary Cards */}
-        {summary && (
+        {currentBatch && summary && (
           <div className="summary-cards">
             <div className="summary-card">
               <span className="label">Total Days</span>
@@ -192,7 +167,7 @@ const MyAttendancePage: React.FC = () => {
 
           {attendance.length === 0 ? (
             <div className="no-records">
-              <p>No attendance records found. Select a batch and date range, then click Filter.</p>
+              <p>No attendance records found for the selected dates.</p>
             </div>
           ) : (
             <div className="table-wrapper">

@@ -17,48 +17,67 @@
   border: 1px solid #e0e0e0;
 }
 
+.batch-info {
+  margin-bottom: 20px;
+  padding: 12px 15px;
+  background: #f0f4f7;
+  border-left: 4px solid #005897;
+  border-radius: 4px;
+  font-size: 0.95em;
+}
+
+.batch-info span {
+  color: #555;
+}
+
+.batch-info strong {
+  color: #005897;
+  font-weight: 600;
+}
+
 .filters-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr auto;
   gap: 15px;
   margin-bottom: 25px;
-  padding: 15px;
+  padding: 20px;
   background: #f5f7fa;
   border-radius: 6px;
   border: 1px solid #e0e6ff;
   align-items: flex-end;
+  box-sizing: border-box;
 }
 
 .filter-item {
   display: flex;
   flex-direction: column;
-  min-width: 150px;
+  gap: 8px;
 }
 
 .filter-item label {
   font-weight: 600;
   color: #444;
-  margin-bottom: 6px;
   font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.batch-select,
 .date-input {
+  width: 100%;
   padding: 10px 12px;
   border: 2px solid #ddd;
   border-radius: 6px;
   font-size: 0.95em;
   font-family: inherit;
   transition: all 0.3s ease;
+  box-sizing: border-box;
 }
 
-.batch-select:hover,
 .date-input:hover {
   border-color: #005897;
   box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.1);
 }
 
-.batch-select:focus,
 .date-input:focus {
   outline: none;
   border-color: #005897;
@@ -73,13 +92,20 @@
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.95em;
   transition: all 0.3s ease;
   box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+  height: fit-content;
+  white-space: nowrap;
 }
 
 .filter-btn:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 15px rgba(0, 88, 151, 0.3);
+}
+
+.filter-btn:active {
+  transform: translateY(0);
 }
 
 /* Summary Cards */
@@ -177,12 +203,13 @@
 
 .no-records {
   text-align: center;
-  padding: 60px 20px;
+  padding: 40px 20px;
   color: #999;
-  background: linear-gradient(135deg, #fff3cd 0%, #ffebaf 100%);
-  border: 2px solid #ffc107;
+  background: #fafafa;
+  border: 1px solid #e0e0e0;
   border-radius: 6px;
-  font-weight: 500;
+  font-weight: 400;
+  font-size: 0.95em;
 }
 
 .table-wrapper {
@@ -262,6 +289,11 @@
   }
 
   .filters-section {
+    grid-template-columns: 1fr;
+    padding: 15px;
+  }
+
+  .filters-row {
     grid-template-columns: 1fr;
     padding: 15px;
   }

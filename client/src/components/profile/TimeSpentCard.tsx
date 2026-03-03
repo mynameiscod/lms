@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import './TimeSpentCard.css';
 
@@ -6,50 +6,86 @@ const TimeSpentCard: React.FC = () => {
   const { user } = useAuth();
   const [sessionTime, setSessionTime] = useState<number>(0);
   const [totalTimeToday, setTotalTimeToday] = useState<number>(0);
+  const [isActive, setIsActive] = useState<boolean>(true);
+  const lastActivityRef = useRef<number>(Date.now());
+  const activeSessionStartRef = useRef<number>(Date.now());
+  const IDLE_TIMEOUT = 2 * 60 * 1000; // 2 minutes of inactivity
 
+  // Track user activity
+  useEffect(() => {
+    const handleActivity = () => {
+      lastActivityRef.current = Date.now();
+      if (!isActive) {
+        setIsActive(true);
+        activeSessionStartRef.current = Date.now();
+      }
+    };
+
+    // Listen for user interactions
+    window.addEventListener('mousedown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('click', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+
+    return () => {
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('click', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
+  }, [isActive]);
+
+  // Main timer and idle detection
   useEffect(() => {
     if (!user?._id) return;
 
     // Get today's date
     const today = new Date().toISOString().split('T')[0];
-    const storageKey = `session_start_${user._id}_${today}`;
-    const totalTimeKey = `total_time_${user._id}_${today}`;
+    const totalTimeKey = `total_active_time_${user._id}_${today}`;
 
-    // Initialize session start time
-    let sessionStartTime = localStorage.getItem(storageKey);
-    if (!sessionStartTime) {
-      sessionStartTime = Date.now().toString();
-      localStorage.setItem(storageKey, sessionStartTime);
-    }
-
-    // Get total time from previous sessions today
+    // Get total active time from previous sessions today
     const storedTotalTime = localStorage.getItem(totalTimeKey);
     const totalTimeAtStart = storedTotalTime ? parseInt(storedTotalTime) : 0;
 
-    // Update session time every second
+    // Update timer every second
     const interval = setInterval(() => {
-      const startTime = parseInt(sessionStartTime!);
-      const elapsed = Math.floor((Date.now() - startTime) / 1000); // in seconds
-      const total = totalTimeAtStart + elapsed;
+      const timeSinceLastActivity = Date.now() - lastActivityRef.current;
+      const wasActive = isActive;
 
-      setSessionTime(elapsed);
-      setTotalTimeToday(total);
+      // Check if user is idle
+      if (timeSinceLastActivity > IDLE_TIMEOUT) {
+        if (wasActive) {
+          setIsActive(false);
+        }
+      }
 
-      // Save total time periodically (every 30 seconds)
-      if (elapsed % 30 === 0) {
-        localStorage.setItem(totalTimeKey, total.toString());
+      // Calculate current session active time
+      if (isActive) {
+        const activeElapsed = Math.floor((Date.now() - activeSessionStartRef.current) / 1000);
+        const total = totalTimeAtStart + activeElapsed;
+
+        setSessionTime(activeElapsed);
+        setTotalTimeToday(total);
+
+        // Save total time periodically (every 30 seconds)
+        if (activeElapsed % 30 === 0) {
+          localStorage.setItem(totalTimeKey, total.toString());
+        }
       }
     }, 1000);
 
     // Cleanup: save total time when component unmounts
     return () => {
       clearInterval(interval);
-      const startTime = parseInt(sessionStartTime!);
-      const finalElapsed = Math.floor((Date.now() - startTime) / 1000);
-      const finalTotal = totalTimeAtStart + finalElapsed;
-      localStorage.setItem(totalTimeKey, finalTotal.toString());
+      const activeElapsed = Math.floor((Date.now() - activeSessionStartRef.current) / 1000);
+      if (activeElapsed > 0 && isActive) {
+        const finalTotal = totalTimeAtStart + activeElapsed;
+        localStorage.setItem(totalTimeKey, finalTotal.toString());
+      }
     };
-  }, [user?._id]);
+  }, [user?._id, isActive]);
 
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
@@ -69,7 +105,15 @@ const TimeSpentCard: React.FC = () => {
     <div className="time-spent-card">
       <div className="card-header">
         <h3>Time Spent Today</h3>
-        <span className="card-icon">⏱️</span>
+        <span className={`card-icon ${isActive ? 'active' : 'idle'}`}>
+          {isActive ? '🟢' : '⏸️'}
+        </span>
+      </div>
+
+      <div className="activity-status">
+        <span className={`status-badge ${isActive ? 'active' : 'idle'}`}>
+          {isActive ? 'Active' : 'Idle'}
+        </span>
       </div>
 
       <div className="time-stats">
@@ -97,6 +141,10 @@ const TimeSpentCard: React.FC = () => {
         <div className="progress-info">
           {Math.min(totalTimeToday / 3600, 8).toFixed(1)} / 8 hour goal
         </div>
+      </div>
+
+      <div className="status-note">
+        <small>{isActive ? '✓ Actively engaged' : '⚠ No activity for 2+ minutes'}</small>
       </div>
     </div>
   );

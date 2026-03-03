@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Button, Input, Card, Alert } from '../../components/common';
+import { Alert } from '../../components/common';
 import './LoginPage.css';
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [tenantId, setTenantId] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -20,7 +21,7 @@ const LoginPage: React.FC = () => {
     const urlTenantId = searchParams.get('tenantId');
     if (urlTenantId) {
       setTenantId(urlTenantId);
-      setShowTenantField(false); // Hide field - it's pre-filled from URL
+      setShowTenantField(false);
     }
   }, [searchParams]);
 
@@ -48,72 +49,149 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-container">
-      <div className="auth-card">
-        <Card title="Welcome Back" subtitle="Sign in to your account">
-          {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+    <div className="login-container">
+      {/* Left Section - Logo & Branding with White Background */}
+      <div className="login-left">
+        <div className="logo-section">
+          <div className="logo">
+            <span className="logo-main">COD</span>
+            <span className="logo-accent">B</span>
+            <span className="logo-main">GUN</span>
+          </div>
+          <div className="logo-tagline">SOFTWARE TRAINING & CAREER SOLUTIONS</div>
+        </div>
 
-          <form onSubmit={handleSubmit}>
-            <Input
-              type="email"
-              name="email"
-              label="Email Address"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-              required
+        <div className="branding-content">
+          <h1 className="main-tagline">
+            Gamify Learning, <span className="emoji">✨</span>
+            <br />
+            Simplify Employment
+          </h1>
+
+          <div className="features-grid">
+            <div className="feature-card">
+              <div className="feature-icon">🎮</div>
+              <h3>Learn Through Play</h3>
+              <p>Master coding with interactive challenges and rewards</p>
+            </div>
+
+            <div className="feature-card">
+              <div className="feature-icon">📌</div>
+              <h3>Direct Placement</h3>
+              <p>Get placed in top tech companies</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Section - Login Form with Primary Color */}
+      <div className="login-right">
+        <div className="login-form-wrapper">
+          <div className="form-header">
+            <h2>Login</h2>
+            <p>Enter your email and password to continue your journey with Tap Academy</p>
+          </div>
+
+          {error && (
+            <Alert 
+              type="error" 
+              message={error} 
+              onClose={() => setError('')}
             />
+          )}
 
-            <Input
-              type="password"
-              name="password"
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              required
-            />
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <div className="input-wrapper">
+                <input
+                  type="email"
+                  id="email"
+                  placeholder="Enter your email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="form-input"
+                />
+                <span className="input-icon">✉️</span>
+              </div>
+            </div>
 
-            {showTenantField && (
-              <Input
-                type="text"
-                name="tenantId"
-                label="Tenant ID"
-                placeholder="Enter your tenant ID"
-                value={tenantId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTenantId(e.target.value)}
-                required={showTenantField}
-              />
-            )}
-
-            <Button type="submit" loading={loading} className="auth-button">
-              Sign In
-            </Button>
-          </form>
-
-          <div className="auth-footer">
-            {!showTenantField && !searchParams.get('tenantId') && (
-              <p className="tenant-hint">
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <div className="input-wrapper">
+                <input
+                  type={passwordVisible ? 'text' : 'password'}
+                  id="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="form-input"
+                />
                 <button
                   type="button"
-                  className="tenant-toggle-link"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowTenantField(true);
-                  }}
+                  className="toggle-password"
+                  onClick={() => setPasswordVisible(!passwordVisible)}
                 >
-                  ↔️ Enter Tenant ID manually?
+                  {passwordVisible ? '👁️' : '👁️‍🗨️'}
                 </button>
-              </p>
+              </div>
+              <div className="password-footer">
+                <Link to="/forgot-password" className="forgot-password-link">
+                  Forgot Password?
+                </Link>
+              </div>
+            </div>
+
+            {showTenantField && (
+              <div className="form-group">
+                <label htmlFor="tenantId">Tenant ID</label>
+                <div className="input-wrapper">
+                  <input
+                    type="text"
+                    id="tenantId"
+                    placeholder="Enter your tenant ID"
+                    value={tenantId}
+                    onChange={(e) => setTenantId(e.target.value)}
+                    required={showTenantField}
+                    className="form-input"
+                  />
+                </div>
+              </div>
             )}
-            <p style={{ marginTop: '16px' }}>
+
+            <button 
+              type="submit" 
+              className="continue-button"
+              disabled={loading}
+            >
+              {loading ? 'Logging in...' : 'Continue'}
+            </button>
+          </form>
+
+          <div className="form-footer">
+            {!showTenantField && !searchParams.get('tenantId') && (
+              <button
+                type="button"
+                className="tenant-link"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setShowTenantField(true);
+                }}
+              >
+                ↔️ Enter Tenant ID manually?
+              </button>
+            )}
+
+            <p className="signup-text">
               Don't have an account?{' '}
-              <Link to="/create-organization" className="auth-link">
+              <Link to="/create-organization" className="signup-link">
                 Create Organization
               </Link>
             </p>
           </div>
-        </Card>
+        </div>
       </div>
     </div>
   );

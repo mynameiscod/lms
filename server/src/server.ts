@@ -7,12 +7,16 @@ import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 
 const PORT = process.env.PORT || 5000;
+console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
 
 const startServer = async () => {
   try {
+    console.log('📡 Attempting to connect to MongoDB...');
     // Connect to database
     await connectDB();
+    console.log('✅ MongoDB connection successful');
 
+    console.log('📦 Creating HTTP server with Socket.io...');
     // Create HTTP server with Socket.io
     const httpServer = http.createServer(app);
     const io = new SocketIOServer(httpServer, {
@@ -34,6 +38,7 @@ const startServer = async () => {
     // Store io instance in app for access in controllers
     app.set('io', io);
 
+    console.log('🔌 Setting up WebSocket handlers...');
     // WebSocket connection handlers
     io.on('connection', (socket) => {
       console.log(`✅ Client connected: ${socket.id}`);
@@ -56,6 +61,7 @@ const startServer = async () => {
       });
     });
 
+    console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server
     httpServer.listen(PORT, () => {
       console.log(`✅ Server is running on http://localhost:${PORT}`);

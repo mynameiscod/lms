@@ -13,20 +13,6 @@ dotenv.config();
 
 const app: Express = express();
 
-// Serve static files FIRST - before security headers interfere
-const staticPath = process.env.NODE_ENV === 'production' 
-  ? '/app/client/build'
-  : path.join(__dirname, '..', 'client', 'build');
-
-app.use(express.static(staticPath));
-console.log(`📁 Serving static files from: ${staticPath}`);
-
-// Middleware - Helmet with relaxed settings for static files
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
-}));
-app.use(morgan('combined'));
-
 // CORS configuration - allow localhost for development and production origins
 const allowedOrigins = [
   'http://localhost:3000',
@@ -55,6 +41,11 @@ const corsOptions = process.env.NODE_ENV === 'production'
       credentials: true
     };
 
+// Middleware - PROPER ORDER for Express
+app.use(helmet({
+  contentSecurityPolicy: false, // Disable CSP to avoid blocking static assets
+}));
+app.use(morgan('combined'));
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -101,8 +92,16 @@ app.post('/api/debug/auth', (req: AuthenticatedRequest, res: Response<ApiRespons
   }
 });
 
-// API Routes
+// API Routes - BEFORE static files and catch-all
 app.use('/api/v1', apiRoutes);
+
+// Serve static files AFTER API routes
+const staticPath = process.env.NODE_ENV === 'production' 
+  ? '/app/client/build'
+  : path.join(__dirname, '..', 'client', 'build');
+
+app.use(express.static(staticPath));
+console.log(`📁 Serving static files from: ${staticPath}`);
 
 // Serve React index.html for all non-API routes (client-side routing)
 const indexPath = process.env.NODE_ENV === 'production'

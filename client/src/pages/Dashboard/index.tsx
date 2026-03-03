@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner } from '../../components/common';
+import { userApi, courseApi } from '../../api';
+import { contentAPI } from '../../api/contentAPI';
 import WeekNavigator from '../../components/dashboard/WeekNavigator';
 import DailyActivityPanel from '../../components/dashboard/DailyActivityPanel';
 import ActivityLog from '../../components/dashboard/ActivityLog';
@@ -35,12 +37,23 @@ interface AttendanceData {
   attendancePercentage: number;
 }
 
+interface DashboardStats {
+  totalStudents: number;
+  activeCourses: number;
+  totalContent: number;
+}
+
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [stats, setStats] = useState<DashboardStats>({
+    totalStudents: 0,
+    activeCourses: 0,
+    totalContent: 0,
+  });
   const [attendance, setAttendance] = useState<AttendanceData>({
     status: 'pending',
     inTime: undefined,
@@ -79,25 +92,35 @@ const DashboardPage: React.FC = () => {
     return motivationMessages[seed % motivationMessages.length];
   };
 
-  // Generate mock data for activities and logs
-  useEffect(() => {
-    const mockActivities: ActivityItem[] = [
-      {
-        id: '1',
-        type: 'announcement',
-        title: 'Important: Test Reschedule',
-        content: 'The java programming test has been rescheduled to next Friday. Please prepare accordingly.',
-        author: 'Prof. Johnson',
-        timestamp: '09:30 AM',
-        icon: '📢',
-      },
-      {
-        id: '2',
-        type: 'note',
-        title: 'React Hooks - useEffect Deep Dive',
-        content: 'Today we covered the useEffect hook lifecycle, dependency arrays, and cleanup functions. Remember to always handle side effects properly.',
-        author: 'Prof. Sarah',
-        timestamp: '10:15 AM',
+  // Fetch dashboard stats
+  const fetchStats = async () => {
+    try {
+      const [usersRes, coursesRes, contentRes] = await Promise.all([
+        userApi.getUsers().catch(() => ({ data: [] })),
+        courseApi.getCourses().catch(() => ({ data: [] })),
+        contentAPI.getAllContent(1, 1000).catch(() => ({ data: { content: [] } }))
+      ]);
+
+      const allUsers = usersRes.data || [];
+      const students = allUsers.filter((u: any) => u.role === 'STUDENT');
+      const totalStudents = students.length;
+
+      const allCourses = coursesRes.data || [];
+      const activeCourses = allCourses.filter((c: any) => c.isActive !== false).length;
+
+      const contentData = contentRes.data?.content || [];
+      const totalContent = contentData.length;
+
+      setStats({
+        totalStudents,
+        activeCourses,
+        totalContent,
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      // Keep default values if fetch fails
+    }
+  };
         icon: '📝',
       },
       {
@@ -199,6 +222,8 @@ const DashboardPage: React.FC = () => {
       });
     }
 
+    // Fetch statistics
+    fetchStats();
     setLoading(false);
   }, [selectedDate]);
 
@@ -247,15 +272,15 @@ const DashboardPage: React.FC = () => {
               <div className="card-content">
                 <div className="stat-item">
                   <span className="stat-label">Total Students</span>
-                  <span className="stat-value">0</span>
+                  <span className="stat-value">{stats.totalStudents}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Active Courses</span>
-                  <span className="stat-value">0</span>
+                  <span className="stat-value">{stats.activeCourses}</span>
                 </div>
                 <div className="stat-item">
                   <span className="stat-label">Total Content</span>
-                  <span className="stat-value">0</span>
+                  <span className="stat-value">{stats.totalContent}</span>
                 </div>
               </div>
             </div>
@@ -275,10 +300,10 @@ const DashboardPage: React.FC = () => {
                 <a href="/admin/content" className="action-link">
                   📄 Manage Content
                 </a>
-                <a href="/admin/users" className="action-link">
+                <a href="/users" className="action-link">
                   👥 Manage Users
                 </a>
-                <a href="/admin/courses" className="action-link">
+                <a href="/courses" className="action-link">
                   📚 Manage Courses
                 </a>
               </div>

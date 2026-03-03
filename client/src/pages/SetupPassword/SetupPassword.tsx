@@ -21,8 +21,9 @@ export const SetupPassword: React.FC = () => {
 
   useEffect(() => {
     // Validate token and email are present
+    // If missing, show error and offer to go back to login
     if (!email || !token) {
-      setError('Invalid setup link. Please check your email for a new invitation link.');
+      setError('Invalid setup link. This link may have expired or is malformed.');
     }
   }, [email, token]);
 
@@ -32,6 +33,10 @@ export const SetupPassword: React.FC = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const handleBackToLogin = () => {
+    navigate('/login');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -56,7 +61,7 @@ export const SetupPassword: React.FC = () => {
     }
 
     if (!email || !token) {
-      setError('Invalid setup link');
+      setError('Invalid setup link. Please check your email for the setup link.');
       return;
     }
 
@@ -88,7 +93,7 @@ export const SetupPassword: React.FC = () => {
         navigate('/login');
       }, 2000);
     } catch (err: any) {
-      setError(err.message || 'Failed to setup password. Please try again.');
+      setError(err.message || 'Failed to setup password. Please try again or request a new setup link.');
     } finally {
       setLoading(false);
     }
@@ -103,47 +108,65 @@ export const SetupPassword: React.FC = () => {
           <p>Set up your password to get started</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="setup-form">
-          {error && <div className="error-message">{error}</div>}
-          {success && <div className="success-message">{success}</div>}
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Create a strong password"
-              disabled={loading}
-              autoComplete="new-password"
-            />
-            <p className="help-text">Minimum 6 characters</p>
+        {!email || !token ? (
+          <div className="invalid-link-notice">
+            <div className="error-message" style={{ marginBottom: '20px' }}>
+              {error}
+            </div>
+            <p style={{ marginBottom: '20px', textAlign: 'center', color: '#666' }}>
+              Your setup link is invalid or has expired. Please contact your administrator for a new invite link.
+            </p>
+            <button 
+              type="button"
+              className="submit-btn" 
+              onClick={handleBackToLogin}
+            >
+              Back to Login
+            </button>
           </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="setup-form">
+            {error && <div className="error-message">{error}</div>}
+            {success && <div className="success-message">{success}</div>}
 
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Confirm Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Re-enter your password"
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                placeholder="Create a strong password"
+                disabled={loading}
+                autoComplete="new-password"
+              />
+              <p className="help-text">Minimum 6 characters</p>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword">Confirm Password</label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                placeholder="Re-enter your password"
+                disabled={loading}
+                autoComplete="new-password"
+              />
+            </div>
+
+            <button 
+              type="submit" 
+              className="submit-btn" 
               disabled={loading}
-              autoComplete="new-password"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="submit-btn" 
-            disabled={loading || !email || !token}
-          >
-            {loading ? 'Setting up...' : 'Complete Registration'}
-          </button>
-        </form>
+            >
+              {loading ? 'Setting up...' : 'Complete Registration'}
+            </button>
+          </form>
+        )}
 
         <div className="setup-footer">
           <p>Already have access? <a href="/login">Login here</a></p>

@@ -92,12 +92,6 @@ const LoginPage: React.FC = () => {
           </form>
 
           <div className="auth-footer">
-            <p>
-              Don't have an account?{' '}
-              <Link to="/register" className="auth-link">
-                Create one
-              </Link>
-            </p>
             {!showTenantField && !searchParams.get('tenantId') && (
               <p className="tenant-hint">
                 <button
@@ -108,7 +102,7 @@ const LoginPage: React.FC = () => {
                     setShowTenantField(true);
                   }}
                 >
-                  Enter Tenant ID manually?
+                  ↔️ Enter Tenant ID manually?
                 </button>
               </p>
             )}

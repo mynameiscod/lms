@@ -447,40 +447,76 @@ export const attendanceApi = {
     status: 'present' | 'absent' | 'leave';
     remarks?: string;
   }) => {
-    const response = await fetch(`${API_BASE_URL}/attendance`, {
-      method: 'POST',
-      headers: getAuthHeaders(),
-      body: JSON.stringify(data)
-    });
-    if (!response.ok) throw new Error('Failed to mark attendance');
-    return response.json();
+    try {
+      const response = await fetch(`${API_BASE_URL}/attendance`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(data)
+      });
+      
+      const responseData = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        const errorMsg = responseData?.message || responseData?.error || 'Failed to mark attendance';
+        throw new Error(errorMsg);
+      }
+      
+      return responseData;
+    } catch (error: any) {
+      console.error('[API] markAttendance error:', error);
+      throw error;
+    }
   },
 
   getStudentAttendance: async (studentId: string, startDate?: string, endDate?: string) => {
-    let url = `${API_BASE_URL}/attendance/student/${studentId}`;
-    const params = new URLSearchParams();
-    if (startDate) params.append('startDate', startDate);
-    if (endDate) params.append('endDate', endDate);
-    if (params.toString()) url += `?${params.toString()}`;
+    try {
+      let url = `${API_BASE_URL}/attendance/student/${studentId}`;
+      const params = new URLSearchParams();
+      if (startDate) params.append('startDate', startDate);
+      if (endDate) params.append('endDate', endDate);
+      if (params.toString()) url += `?${params.toString()}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch student attendance');
-    return response.json();
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      const responseData = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        const errorMsg = responseData?.message || responseData?.error || 'Failed to fetch student attendance';
+        throw new Error(errorMsg);
+      }
+      
+      return responseData;
+    } catch (error: any) {
+      console.error('[API] getStudentAttendance error:', error);
+      throw error;
+    }
   },
 
   getBatchAttendance: async (batchId: string, date?: string) => {
-    let url = `${API_BASE_URL}/attendance/batch/${batchId}/date`;
-    if (date) url += `?date=${date}`;
+    try {
+      let url = `${API_BASE_URL}/attendance/batch/${batchId}/date`;
+      if (date) url += `?date=${date}`;
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: getAuthHeaders()
-    });
-    if (!response.ok) throw new Error('Failed to fetch batch attendance');
-    return response.json();
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders()
+      });
+      
+      const responseData = await response.json().catch(() => ({}));
+      
+      if (!response.ok) {
+        const errorMsg = responseData?.message || responseData?.error || 'Failed to fetch batch attendance';
+        throw new Error(errorMsg);
+      }
+      
+      return responseData;
+    } catch (error: any) {
+      console.error('[API] getBatchAttendance error:', error);
+      throw error;
+    }
   },
 
   getBatchAttendanceSummary: async (batchId: string) => {

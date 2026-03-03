@@ -66,12 +66,7 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
         ? questionsResponse 
         : questionsResponse?.data || questionsResponse?.questions || [];
       
-      const tags = Array.isArray(tagsResponse)
-        ? tagsResponse
-        : tagsResponse?.tags || [];
-
       setAvailableQuestions(questions);
-      setTags(tags);
     } catch (err: any) {
       setError(err.message || 'Failed to load questions');
     } finally {

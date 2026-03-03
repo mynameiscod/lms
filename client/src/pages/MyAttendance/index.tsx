@@ -174,7 +174,14 @@ const MyAttendancePage: React.FC = () => {
                 <tbody>
                   {attendance.map(record => (
                     <tr key={record._id}>
-                      <td>{new Date(record.date).toLocaleDateString()}</td>
+                      <td>
+                        {new Date(record.date).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric',
+                          weekday: 'short'
+                        })}
+                      </td>
                       <td>{record.batchId.name}</td>
                       <td>{record.inTime || '-'}</td>
                       <td>{record.outTime || '-'}</td>

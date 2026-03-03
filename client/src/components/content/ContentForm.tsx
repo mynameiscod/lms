@@ -380,6 +380,25 @@ const ContentForm: React.FC<ContentFormProps> = ({
               <option value="all_students">🌍 All Students</option>
               <option value="specific_batch">🎓 Specific Batch</option>
             </select>
+            
+            {/* Batch Selector - Show when "Specific Batch" is selected */}
+            {formData.visibility === 'specific_batch' && (
+              <div className="batch-selector-group active">
+                <label htmlFor="batchId" style={{ display: 'block', marginTop: '8px' }}>
+                  Select Batch *
+                </label>
+                <Input
+                  id="batchId"
+                  type="text"
+                  name="batchId"
+                  value={formData.batchId || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter batch ID or select from list"
+                  disabled={loading}
+                  required={formData.visibility === 'specific_batch'}
+                />
+              </div>
+            )}
           </div>
 
           <div className="form-group checkbox-group">

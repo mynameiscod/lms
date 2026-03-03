@@ -263,7 +263,7 @@ const DashboardPage: React.FC = () => {
         <div className="admin-dashboard">
           <div className="dashboard-header">
             <h1>Admin Dashboard</h1>
-            <p>Welcome back, {user.firstName}!</p>
+            <p>Welcome back, <strong>{user.firstName}!</strong></p>
           </div>
 
           <div className="dashboard-grid">

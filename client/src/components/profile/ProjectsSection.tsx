@@ -171,6 +171,46 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({
                     </div>
                   )}
                 </div>
+
+                <div className="form-group project-url-field">
+                  <label>Project URL</label>
+                  {isEditing ? (
+                    <input
+                      type="url"
+                      value={project.url || ''}
+                      onChange={(e) =>
+                        onChange(index, 'url', e.target.value)
+                      }
+                      placeholder="https://example.com or GitHub link"
+                    />
+                  ) : (
+                    <p className="view-text">
+                      {project.url ? (
+                        <a href={project.url} target="_blank" rel="noopener noreferrer">
+                          {project.url}
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </p>
+                  )}
+                </div>
+
+                <div className="form-group project-duration-field">
+                  <label>Duration</label>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={project.duration || ''}
+                      onChange={(e) =>
+                        onChange(index, 'duration', e.target.value)
+                      }
+                      placeholder="e.g., Jan 2024 - Mar 2024"
+                    />
+                  ) : (
+                    <p className="view-text">{project.duration || '—'}</p>
+                  )}
+                </div>
               </div>
             )}
           </div>

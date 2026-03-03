@@ -27,28 +27,36 @@ export const PersonalDetails: React.FC<PersonalDetailsProps> = ({
 
       <div className="details-grid">
         <div className="form-group">
-          <label>First Name</label>
+          <label>First Name *</label>
           {isEditing ? (
-            <input
-              type="text"
-              value={data.firstName}
-              onChange={(e) => onChange('firstName', e.target.value)}
-              placeholder="Enter first name"
-            />
+            <>
+              <input
+                type="text"
+                value={data.firstName}
+                onChange={(e) => onChange('firstName', e.target.value)}
+                placeholder="Enter first name"
+                required
+              />
+              {!data.firstName && <span className="form-validation-error">First name is required</span>}
+            </>
           ) : (
             <p className="view-text">{data.firstName || '—'}</p>
           )}
         </div>
 
         <div className="form-group">
-          <label>Last Name</label>
+          <label>Last Name *</label>
           {isEditing ? (
-            <input
-              type="text"
-              value={data.lastName}
-              onChange={(e) => onChange('lastName', e.target.value)}
-              placeholder="Enter last name"
-            />
+            <>
+              <input
+                type="text"
+                value={data.lastName}
+                onChange={(e) => onChange('lastName', e.target.value)}
+                placeholder="Enter last name"
+                required
+              />
+              {!data.lastName && <span className="form-validation-error">Last name is required</span>}
+            </>
           ) : (
             <p className="view-text">{data.lastName || '—'}</p>
           )}
@@ -69,29 +77,41 @@ export const PersonalDetails: React.FC<PersonalDetailsProps> = ({
         </div>
 
         <div className="form-group">
-          <label>Mobile Number</label>
+          <label>Mobile Number *</label>
           {isEditing ? (
-            <input
-              type="tel"
-              value={data.mobileNumber}
-              onChange={(e) => onChange('mobileNumber', e.target.value)}
-              placeholder="Enter mobile number"
-              pattern="[0-9-+()]+"
-            />
+            <>
+              <input
+                type="tel"
+                value={data.mobileNumber}
+                onChange={(e) => onChange('mobileNumber', e.target.value)}
+                placeholder="Enter 10-digit mobile number"
+                pattern="[0-9-+()]+"
+                required
+              />
+              {data.mobileNumber && !/^[0-9\-+()]+$/.test(data.mobileNumber) && (
+                <span className="form-validation-error">Invalid mobile number format</span>
+              )}
+            </>
           ) : (
             <p className="view-text">{data.mobileNumber || '—'}</p>
           )}
         </div>
 
         <div className="form-group">
-          <label>Email Address</label>
+          <label>Email Address *</label>
           {isEditing ? (
-            <input
-              type="email"
-              value={data.email}
-              onChange={(e) => onChange('email', e.target.value)}
-              placeholder="Enter email address"
-            />
+            <>
+              <input
+                type="email"
+                value={data.email}
+                onChange={(e) => onChange('email', e.target.value)}
+                placeholder="Enter email address"
+                required
+              />
+              {data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email) && (
+                <span className="form-validation-error">Invalid email address</span>
+              )}
+            </>
           ) : (
             <p className="view-text">{data.email || '—'}</p>
           )}

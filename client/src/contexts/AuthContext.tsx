@@ -20,22 +20,71 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Initialize from localStorage
+  // Initialize from localStorage and validate user still exists
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    const savedToken = localStorage.getItem('token');
-    
-    if (savedUser && savedToken) {
-      try {
-        setUser(JSON.parse(savedUser));
-        setToken(savedToken);
-      } catch (error) {
-        console.error('Failed to parse stored user:', error);
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
+    const initializeAuth = async () => {
+      const savedUser = localStorage.getItem('user');
+      const savedToken = localStorage.getItem('token');
+      
+      if (savedUser && savedToken) {
+        try {
+          const parsedUser = JSON.parse(savedUser);
+          
+          // Validate user still exists and is active
+          try {
+            const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
+            const response = await fetch(`${API_URL}/users/${parsedUser._id}`, {
+              method: 'GET',
+              headers: {
+                'Authorization': `Bearer ${savedToken}`,
+                'X-Tenant-Id': parsedUser.tenantId,
+                'Content-Type': 'application/json'
+              }
+            });
+            
+            if (!response.ok) {
+              // User no longer exists or is inactive - logout
+              localStorage.removeItem('user');
+              localStorage.removeItem('token');
+              localStorage.removeItem('tenantId');
+              setUser(null);
+              setToken(null);
+              setLoading(false);
+              return;
+            }
+            
+            const userData = await response.json();
+            // Check if user is still active
+            if (!userData.data?.isActive) {
+              // User was deactivated - logout
+              localStorage.removeItem('user');
+              localStorage.removeItem('token');
+              localStorage.removeItem('tenantId');
+              setUser(null);
+              setToken(null);
+              setLoading(false);
+              return;
+            }
+            
+            setUser(parsedUser);
+            setToken(savedToken);
+          } catch (validationError) {
+            console.error('Failed to validate user:', validationError);
+            // If validation fails, still load the user but they might get logged out on next action
+            setUser(parsedUser);
+            setToken(savedToken);
+          }
+        } catch (error) {
+          console.error('Failed to parse stored user:', error);
+          localStorage.removeItem('user');
+          localStorage.removeItem('token');
+          localStorage.removeItem('tenantId');
+        }
       }
-    }
-    setLoading(false);
+      setLoading(false);
+    };
+    
+    initializeAuth();
   }, []);
 
   const login = async (email: string, password: string, tenantId?: string) => {

@@ -106,8 +106,10 @@ const AttendancePage: React.FC = () => {
       const usersRes = await userApi.getUsers();
       const allUsers = usersRes.data || [];
 
-      // Filter students
-      const students = allUsers.filter((u: User) => u.role === 'STUDENT');
+      // Filter students by role AND batch enrollment only
+      const students = allUsers.filter((u: User) => 
+        u.role === 'STUDENT' && u.batchId === batch._id && u.isActive
+      );
       setBatchStudents(students);
 
       // Initialize attendance form for all students with default values

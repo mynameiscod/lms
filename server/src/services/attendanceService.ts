@@ -39,8 +39,12 @@ class AttendanceService {
     });
 
     let attendance;
+    let isNewRecord = false;
+    let previousStatus: string | null = null;
+    
     if (existingAttendance) {
-      // Update existing record
+      // Update existing record - track previous status
+      previousStatus = existingAttendance.status;
       existingAttendance.inTime = inTime;
       existingAttendance.outTime = outTime;
       existingAttendance.status = status;
@@ -49,6 +53,7 @@ class AttendanceService {
       attendance = await existingAttendance.save();
     } else {
       // Create new attendance record
+      isNewRecord = true;
       attendance = new Attendance({
         studentId,
         batchId,
@@ -63,8 +68,12 @@ class AttendanceService {
       attendance = await attendance.save();
     }
 
-    // Send email notification for absent or leave status
-    if ((status === 'absent' || status === 'leave') && student.email) {
+    // Send email notification ONLY for new records with absent/leave status
+    // OR if status changed TO absent/leave from a different status
+    const shouldSendEmail = (status === 'absent' || status === 'leave') && 
+      (isNewRecord || previousStatus !== status);
+    
+    if (shouldSendEmail && student.email) {
       const emailService = new EmailService();
       const studentName = `${student.firstName} ${student.lastName || ''}`.trim();
       

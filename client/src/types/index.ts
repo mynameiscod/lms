@@ -8,6 +8,7 @@ export interface User {
   batchId?: string;
   isActive: boolean;
   profilePicture?: string;
+  createdAt?: string;
 }
 
 export interface Tenant {

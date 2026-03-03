@@ -14,6 +14,7 @@ services:
       - mongodb_data:/data/db
     networks:
       - lms-network
+    restart: unless-stopped
 
   server:
     build:
@@ -23,15 +24,14 @@ services:
     ports:
       - "5000:5000"
     environment:
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/lms-saas
-      JWT_SECRET: your-secret-key
-      NODE_ENV: development
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/lms-saas?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
+      NODE_ENV: production
     depends_on:
       - mongodb
     networks:
       - lms-network
-    volumes:
-      - ./server/src:/app/src
+    restart: unless-stopped
 
   client:
     build:
@@ -41,11 +41,12 @@ services:
     ports:
       - "3000:3000"
     environment:
-      REACT_APP_API_URL: http://localhost:5000/api/v1
+      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5000/api/v1}
     depends_on:
       - server
     networks:
       - lms-network
+    restart: unless-stopped
 
 volumes:
   mongodb_data:

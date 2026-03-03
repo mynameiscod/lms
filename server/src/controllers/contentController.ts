@@ -3,13 +3,7 @@ import mongoose from 'mongoose';
 import Content, { IContent } from '../models/Content';
 import User from '../models/User';
 import Course from '../models/Course';
-
-// Custom request interface with user data
-interface AuthRequest extends Request {
-  user?: any;
-  file?: Express.Multer.File;
-  files?: Express.Multer.File[];
-}
+import { AuthRequest } from '../types/express';
 
 // CREATE - Admin creates new content
 export const createContent = async (req: AuthRequest, res: Response) => {

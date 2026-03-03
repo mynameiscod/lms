@@ -58,6 +58,7 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
           type: undefined,
           tags: filters.tags.length > 0 ? filters.tags : undefined
         })
+      ]);
 
       // Handle response data format (might be wrapped in .data or .questions)
       const questions = Array.isArray(questionsResponse) 

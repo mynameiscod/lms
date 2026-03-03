@@ -23,6 +23,7 @@ export interface ContentData {
   tags?: string[];
   isPublished: boolean;
   visibility: 'all_students' | 'specific_batch' | 'enrolled_only';
+  batchId?: string; // For specific batch visibility
   dueDate?: string; // For assignments
   code?: string; // For snippets
   language?: string; // For snippets

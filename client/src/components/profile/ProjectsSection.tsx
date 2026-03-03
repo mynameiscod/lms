@@ -7,6 +7,8 @@ interface Project {
   description: string;
   roles: string;
   techStack: string[];
+  url?: string;
+  duration?: string;
 }
 
 interface ProjectsSectionProps {

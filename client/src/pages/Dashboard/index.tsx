@@ -121,7 +121,26 @@ const DashboardPage: React.FC = () => {
       // Keep default values if fetch fails
     }
   };
+
+  const fetchDashboardData = () => {
+    const mockActivities: ActivityItem[] = [
+      {
+        id: '1',
+        type: 'note',
+        title: 'Class Notes: React Hooks',
+        content: 'Understanding useState, useEffect, and custom hooks for managing component state and side effects.',
+        author: 'Prof. Smith',
+        timestamp: '09:30 AM',
         icon: '📝',
+      },
+      {
+        id: '2',
+        type: 'announcement',
+        title: 'Announcement: Midterm Exam Scheduled',
+        content: 'The midterm exam will be held on March 15, 2026. It will cover chapters 1-5 and will be 2 hours long.',
+        author: 'Admin',
+        timestamp: '10:00 AM',
+        icon: '📣',
       },
       {
         id: '3',
@@ -225,7 +244,12 @@ const DashboardPage: React.FC = () => {
     // Fetch statistics
     fetchStats();
     setLoading(false);
-  }, [selectedDate]);
+  };
+
+  // Fetch dashboard data on mount or when selectedDate changes
+  useEffect(() => {
+    fetchDashboardData();
+  }, [selectedDate, fetchDashboardData]);
 
   const handlePrevWeek = () => {
     const newDate = new Date(selectedDate);

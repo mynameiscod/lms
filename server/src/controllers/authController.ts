@@ -4,6 +4,43 @@ import { AuthService } from '../services/authService';
 
 const authService = new AuthService();
 
+// Register a new organization with admin user
+export const registerOrganization = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { organizationName, email, firstName, lastName, password } = req.body;
+
+    if (!organizationName || !email || !firstName || !lastName || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields',
+        error: 'Organization name, email, firstName, lastName, and password are required'
+      });
+    }
+
+    // Create organization (tenant) + admin user using existing service
+    // The authService.register will create tenant if slug doesn't exist
+    const user = await authService.register(email, firstName, lastName, password, organizationName);
+
+    // Generate token for auto-login
+    const loginResult = await authService.login(email, password);
+
+    res.status(201).json({
+      success: true,
+      message: 'Organization created successfully',
+      data: loginResult
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+      error: error.message
+    });
+  }
+};
+
 export const register = async (
   req: AuthenticatedRequest,
   res: Response<ApiResponse<any>>

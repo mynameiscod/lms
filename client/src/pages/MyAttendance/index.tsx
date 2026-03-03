@@ -9,6 +9,7 @@ const MyAttendancePage: React.FC = () => {
   const { user } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatchId, setSelectedBatchId] = useState<string>('');
+  const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [attendance, setAttendance] = useState<Attendance[]>([]);
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -16,14 +17,37 @@ const MyAttendancePage: React.FC = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
+  // Get date constraints
+  const getMinDate = () => {
+    if (!selectedBatch || !user) return '';
+    const batchStart = selectedBatch.startDate ? new Date(selectedBatch.startDate) : null;
+    const userJoined = user.createdAt ? new Date(user.createdAt) : null;
+    
+    if (batchStart && userJoined) {
+      return batchStart > userJoined 
+        ? batchStart.toISOString().split('T')[0]
+        : userJoined.toISOString().split('T')[0];
+    }
+    return batchStart?.toISOString().split('T')[0] || userJoined?.toISOString().split('T')[0] || '';
+  };
+
+  const getMaxDate = () => {
+    return new Date().toISOString().split('T')[0];
+  };
+
   useEffect(() => {
     fetchBatches();
-    // Set default date range (last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    setEndDate(today.toISOString().split('T')[0]);
-    setStartDate(thirtyDaysAgo.toISOString().split('T')[0]);
+    setEndDate(new Date().toISOString().split('T')[0]);
   }, []);
+
+  // Update start date when batch changes
+  useEffect(() => {
+    if (selectedBatch) {
+      const minDate = getMinDate();
+      if (minDate) setStartDate(minDate);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedBatch]);
 
   const fetchBatches = async () => {
     try {
@@ -39,24 +63,37 @@ const MyAttendancePage: React.FC = () => {
 
   const handleBatchSelect = async (batchId: string) => {
     setSelectedBatchId(batchId);
-    if (user?._id) {
+    const batch = batches.find(b => b._id === batchId) || null;
+    setSelectedBatch(batch);
+    
+    if (user?._id && batchId) {
       try {
         setError('');
-        const [attendanceRes, summaryRes] = await Promise.all([
-          attendanceApi.getStudentAttendance(user._id, startDate, endDate),
-          attendanceApi.getStudentAttendanceSummary(user._id, batchId)
-        ]);
-
-        setAttendance(attendanceRes.data || []);
+        const summaryRes = await attendanceApi.getStudentAttendanceSummary(user._id, batchId);
         setSummary(summaryRes.data || null);
       } catch (err: any) {
-        setError(err.message || 'Failed to fetch attendance');
+        setError(err.message || 'Failed to fetch attendance summary');
       }
+    } else {
+      setSummary(null);
     }
   };
 
-  const handleDateRangeChange = async () => {
-    if (selectedBatchId && user?._id && startDate && endDate) {
+  const handleFilter = async () => {
+    if (!selectedBatchId) {
+      setError('Please select a batch first');
+      return;
+    }
+    if (!startDate || !endDate) {
+      setError('Please select both from and to dates');
+      return;
+    }
+    if (new Date(startDate) > new Date(endDate)) {
+      setError('From date cannot be greater than to date');
+      return;
+    }
+    
+    if (user?._id) {
       try {
         setError('');
         const attendanceRes = await attendanceApi.getStudentAttendance(user._id, startDate, endDate);
@@ -71,26 +108,21 @@ const MyAttendancePage: React.FC = () => {
 
   return (
     <div className="my-attendance-page">
-      <div className="attendance-header">
-        <div className="header-text">
-          <h1>📊 My Attendance</h1>
-          <p className="subtitle">View your attendance records and statistics</p>
-        </div>
-      </div>
+      <h1 className="page-title">My Attendance</h1>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
       <div className="attendance-container">
-        {/* Filters Section */}
-        <div className="filters-section">
-          <div className="filter-group">
-            <label>🏛️ Select Batch</label>
+        {/* Filters Row */}
+        <div className="filters-row">
+          <div className="filter-item">
+            <label>Batch</label>
             <select
               value={selectedBatchId}
               onChange={(e) => handleBatchSelect(e.target.value)}
               className="batch-select"
             >
-              <option value="">-- All Batches --</option>
+              <option value="">-- Select Batch --</option>
               {batches.map(batch => (
                 <option key={batch._id} value={batch._id}>
                   {batch.name}
@@ -99,28 +131,32 @@ const MyAttendancePage: React.FC = () => {
             </select>
           </div>
 
-          <div className="filter-group">
-            <label>📅 From Date</label>
+          <div className="filter-item">
+            <label>From Date</label>
             <input
               type="date"
               value={startDate}
+              min={getMinDate()}
+              max={endDate || getMaxDate()}
               onChange={(e) => setStartDate(e.target.value)}
               className="date-input"
             />
           </div>
 
-          <div className="filter-group">
-            <label>📅 To Date</label>
+          <div className="filter-item">
+            <label>To Date</label>
             <input
               type="date"
               value={endDate}
+              min={startDate || getMinDate()}
+              max={getMaxDate()}
               onChange={(e) => setEndDate(e.target.value)}
               className="date-input"
             />
           </div>
 
-          <button className="filter-btn" onClick={handleDateRangeChange}>
-            🔍 Filter
+          <button className="filter-btn" onClick={handleFilter}>
+            Filter
           </button>
         </div>
 
@@ -128,23 +164,23 @@ const MyAttendancePage: React.FC = () => {
         {summary && (
           <div className="summary-cards">
             <div className="summary-card">
-              <span className="label">📆 Total Days</span>
+              <span className="label">Total Days</span>
               <span className="value">{summary.total}</span>
             </div>
             <div className="summary-card present">
-              <span className="label">✓ Present</span>
+              <span className="label">Present</span>
               <span className="value">{summary.present}</span>
             </div>
             <div className="summary-card absent">
-              <span className="label">✗ Absent</span>
+              <span className="label">Absent</span>
               <span className="value">{summary.absent}</span>
             </div>
             <div className="summary-card leave">
-              <span className="label">📝 Leave</span>
+              <span className="label">Leave</span>
               <span className="value">{summary.leave}</span>
             </div>
             <div className="summary-card percentage">
-              <span className="label">📊 Percentage</span>
+              <span className="label">Percentage</span>
               <span className="value">{summary.percentage}%</span>
             </div>
           </div>
@@ -156,7 +192,7 @@ const MyAttendancePage: React.FC = () => {
 
           {attendance.length === 0 ? (
             <div className="no-records">
-              <p>No attendance records found</p>
+              <p>No attendance records found. Select a batch and date range, then click Filter.</p>
             </div>
           ) : (
             <div className="table-wrapper">
@@ -182,7 +218,7 @@ const MyAttendancePage: React.FC = () => {
                           weekday: 'short'
                         })}
                       </td>
-                      <td>{record.batchId.name}</td>
+                      <td>{record.batchId?.name || '-'}</td>
                       <td>{record.inTime || '-'}</td>
                       <td>{record.outTime || '-'}</td>
                       <td>
@@ -191,7 +227,7 @@ const MyAttendancePage: React.FC = () => {
                         </span>
                       </td>
                       <td>
-                        {record.markedBy.firstName} {record.markedBy.lastName}
+                        {record.markedBy?.firstName} {record.markedBy?.lastName}
                       </td>
                     </tr>
                   ))}

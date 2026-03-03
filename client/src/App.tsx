@@ -9,6 +9,7 @@ import { Spinner } from './components/common';
 // Pages
 import LoginPage from './pages/Login';
 import RegisterPage from './pages/Register';
+import CreateOrganizationPage from './pages/CreateOrganization';
 import { SetupPassword } from './pages/SetupPassword/SetupPassword';
 import { ProfileCompletion } from './pages/ProfileCompletion/ProfileCompletion';
 import DashboardPage from './pages/Dashboard';
@@ -59,6 +60,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/create-organization" element={<CreateOrganizationPage />} />
 
       <Route
         path="/dashboard"

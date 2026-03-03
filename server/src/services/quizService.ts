@@ -88,13 +88,31 @@ export class QuizService {
     const [startHour, startMin] = quiz.startTime.split(':').map(Number);
     const [endHour, endMin] = quiz.endTime.split(':').map(Number);
 
-    // Create start datetime
-    const startDateTime = new Date(quiz.startDate);
-    startDateTime.setHours(startHour, startMin, 0, 0);
+    // Extract local date parts from stored dates (ignoring time component)
+    const startDateLocal = new Date(quiz.startDate);
+    const endDateLocal = new Date(quiz.endDate);
 
-    // Create end datetime - same day or different day
-    const endDateTime = new Date(quiz.endDate);
-    endDateTime.setHours(endHour, endMin, 59, 999);
+    // Create start datetime using local date and time
+    const startDateTime = new Date(
+      startDateLocal.getFullYear(),
+      startDateLocal.getMonth(),
+      startDateLocal.getDate(),
+      startHour,
+      startMin,
+      0,
+      0
+    );
+
+    // Create end datetime using local date and time
+    const endDateTime = new Date(
+      endDateLocal.getFullYear(),
+      endDateLocal.getMonth(),
+      endDateLocal.getDate(),
+      endHour,
+      endMin,
+      59,
+      999
+    );
 
     // Allow quiz access if current time is within the start and end window
     if (now < startDateTime) {

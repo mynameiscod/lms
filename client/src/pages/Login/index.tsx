@@ -106,6 +106,12 @@ const LoginPage: React.FC = () => {
                 </button>
               </p>
             )}
+            <p style={{ marginTop: '16px' }}>
+              Don't have an account?{' '}
+              <Link to="/create-organization" className="auth-link">
+                Create Organization
+              </Link>
+            </p>
           </div>
         </Card>
       </div>

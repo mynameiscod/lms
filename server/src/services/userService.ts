@@ -61,8 +61,13 @@ export class UserService {
     );
   }
 
-  async deleteUser(userId: string): Promise<any> {
-    return await User.findByIdAndDelete(userId);
+  async deleteUser(userId: string): Promise<IUser | null> {
+    // Soft delete - mark user as inactive instead of removing from database
+    return await User.findByIdAndUpdate(
+      userId,
+      { isActive: false },
+      { new: true }
+    );
   }
 
   async getUserByEmail(email: string): Promise<IUser | null> {

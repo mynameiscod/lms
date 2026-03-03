@@ -127,9 +127,10 @@ jobs:
           
           chmod +x /tmp/deploy-vps.sh
           
-          # Execute deployment
+          # Execute deployment using SSHPASS env var (handles special characters better)
           echo "Connecting to VPS and deploying..."
-          sshpass -p "$VPS_PASSWORD" ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null $VPS_USER@$VPS_HOST "bash -s" < /tmp/deploy-vps.sh
+          export SSHPASS="$VPS_PASSWORD"
+          sshpass -e ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o PubkeyAuthentication=no $VPS_USER@$VPS_HOST "bash -s" < /tmp/deploy-vps.sh
 
       - name: Deployment Success
         if: success()

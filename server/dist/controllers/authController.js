@@ -1,8 +1,39 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = void 0;
+exports.login = exports.register = exports.registerOrganization = void 0;
 const authService_1 = require("../services/authService");
 const authService = new authService_1.AuthService();
+// Register a new organization with admin user
+const registerOrganization = async (req, res) => {
+    try {
+        const { organizationName, email, firstName, lastName, password } = req.body;
+        if (!organizationName || !email || !firstName || !lastName || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Missing required fields',
+                error: 'Organization name, email, firstName, lastName, and password are required'
+            });
+        }
+        // Create organization (tenant) + admin user using existing service
+        // The authService.register will create tenant if slug doesn't exist
+        const user = await authService.register(email, firstName, lastName, password, organizationName);
+        // Generate token for auto-login
+        const loginResult = await authService.login(email, password);
+        res.status(201).json({
+            success: true,
+            message: 'Organization created successfully',
+            data: loginResult
+        });
+    }
+    catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+            error: error.message
+        });
+    }
+};
+exports.registerOrganization = registerOrganization;
 const register = async (req, res) => {
     try {
         const { email, firstName, lastName, password, tenantId } = req.body;

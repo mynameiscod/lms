@@ -9,6 +9,10 @@ const tenantMiddleware = (req, res, next) => {
     }
     // Attach tenant ID to request object
     req.tenantId = tenantId;
+    // Attach user ID from authenticated user
+    if (req.user && req.user.id) {
+        req.userId = req.user.id;
+    }
     next();
 };
 exports.tenantMiddleware = tenantMiddleware;

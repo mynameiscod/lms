@@ -70,9 +70,46 @@ const UserSchema = new mongoose_1.Schema({
         ref: 'Tenant',
         required: true
     },
+    batchId: {
+        type: mongoose_1.default.Types.ObjectId,
+        ref: 'Batch',
+        default: null
+    },
     isActive: {
         type: Boolean,
         default: true
+    },
+    profileComplete: {
+        type: Boolean,
+        default: false
+    },
+    phone: {
+        type: String,
+        default: null
+    },
+    avatar: {
+        type: String,
+        default: null
+    },
+    bio: {
+        type: String,
+        default: null
+    },
+    linkedin: {
+        type: String,
+        default: null
+    },
+    github: {
+        type: String,
+        default: null
+    },
+    resetToken: {
+        type: String,
+        default: null
+    },
+    resetTokenExpires: {
+        type: Date,
+        default: null
     }
 }, { timestamps: true });
 // Hash password before saving

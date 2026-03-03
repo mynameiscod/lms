@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateTenant = exports.getTenant = exports.createTenant = void 0;
+exports.generateInviteLink = exports.updateTenant = exports.getTenant = exports.createTenant = void 0;
 const tenantService_1 = require("../services/tenantService");
 const tenantService = new tenantService_1.TenantService();
 const createTenant = async (req, res) => {
@@ -82,4 +82,53 @@ const updateTenant = async (req, res) => {
     }
 };
 exports.updateTenant = updateTenant;
+/**
+ * Generate an invite link for students/employees to join the tenant
+ * Admin/Tenant Admin can use this to create shareable links
+ */
+const generateInviteLink = async (req, res) => {
+    try {
+        const { tenantId } = req.params;
+        // Verify the requesting user is an admin of this tenant
+        const user = req.user;
+        if (!user || (user.role !== 'SUPER_ADMIN' && user.role !== 'TENANT_ADMIN')) {
+            return res.status(403).json({
+                success: false,
+                message: 'Unauthorized',
+                error: 'Only administrators can generate invite links'
+            });
+        }
+        // Verify the tenant exists
+        const tenant = await tenantService.getTenantById(tenantId);
+        if (!tenant) {
+            return res.status(404).json({
+                success: false,
+                message: 'Tenant not found',
+                error: 'Tenant does not exist'
+            });
+        }
+        // Generate based on frontend URL - can be customized
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const loginLink = `${frontendUrl}/login?tenantId=${tenantId}`;
+        const registerLink = `${frontendUrl}/register?tenantId=${tenantId}`;
+        res.status(200).json({
+            success: true,
+            message: 'Invite links generated successfully',
+            data: {
+                loginLink,
+                registerLink,
+                tenantId,
+                instructions: 'Share the appropriate link with students or new employees. Login link for existing users, Register link for new users.'
+            }
+        });
+    }
+    catch (error) {
+        res.status(400).json({
+            success: false,
+            message: error.message,
+            error: error.message
+        });
+    }
+};
+exports.generateInviteLink = generateInviteLink;
 //# sourceMappingURL=tenantController.js.map

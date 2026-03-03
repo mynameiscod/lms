@@ -52,14 +52,12 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
       setLoading(true);
       setError('');
 
-      const [questionsResponse, tagsResponse] = await Promise.all([
+      const [questionsResponse] = await Promise.all([
         quizApi.getAvailableQuestions(quizId, {
           difficulty: filters.difficulty || undefined,
           type: undefined,
           tags: filters.tags.length > 0 ? filters.tags : undefined
-        }),
-        quizApi.getAllTags()
-      ]);
+        })
 
       // Handle response data format (might be wrapped in .data or .questions)
       const questions = Array.isArray(questionsResponse) 

@@ -18,7 +18,7 @@ const QuizzesPage: React.FC = () => {
 
   useEffect(() => {
     filterQuizzes();
-  }, [quizzes, searchQuery, filterTab]);
+  }, [quizzes, searchQuery, filterTab, filterQuizzes]);
 
   const loadQuizzes = async () => {
     try {

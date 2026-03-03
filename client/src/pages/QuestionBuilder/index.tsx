@@ -52,7 +52,7 @@ const QuestionBuilder: React.FC = () => {
 
   useEffect(() => {
     loadQuestions();
-  }, [quizId]);
+  }, [quizId, loadQuestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

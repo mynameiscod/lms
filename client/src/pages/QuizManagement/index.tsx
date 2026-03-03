@@ -4,7 +4,6 @@ import { Button, Alert, Spinner } from '../../components/common';
 import QuizWizard from '../../components/QuizWizard/QuizWizard';
 import QuizQuestionLinking from '../../components/QuizQuestionLinking/QuizQuestionLinking';
 import { Quiz, Batch } from '../../types';
-import { useAuth } from '../../contexts/AuthContext';
 import './QuizManagementPage.css';
 
 const QuizManagementPage: React.FC = () => {

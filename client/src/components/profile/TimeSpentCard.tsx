@@ -86,8 +86,7 @@ const TimeSpentCard: React.FC = () => {
         localStorage.setItem(totalTimeKey, finalTotal.toString());
       }
     };
-  }, [user?._id, isActive]);
-
+    }, [user?._id, isActive, IDLE_TIMEOUT]);
   const formatTime = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);

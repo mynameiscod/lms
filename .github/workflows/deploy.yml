@@ -25,18 +25,18 @@ jobs:
           node-version: '18'
 
       - name: Install dependencies (root)
-        run: npm install --production
+        run: npm install
 
       - name: Install dependencies (server)
         run: |
           cd server
-          npm install --production
+          npm install
           cd ..
 
       - name: Install dependencies (client)
         run: |
           cd client
-          npm install --production
+          npm install
           cd ..
 
       - name: Build server
@@ -88,7 +88,7 @@ jobs:
           # Install and build server
           echo "Step 2: Building server..."
           cd server
-          npm install --production
+          npm install
           npm run build
           cd ..
           echo "✓ Server built successfully"
@@ -97,7 +97,7 @@ jobs:
           # Install and build client
           echo "Step 3: Building client..."
           cd client
-          npm install --production
+          npm install
           npm run build
           cd ..
           echo "✓ Client built successfully"

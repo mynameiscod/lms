@@ -43,8 +43,6 @@ const QuizzesPage: React.FC = () => {
                           quiz.description.toLowerCase().includes(searchQuery.toLowerCase());
       
       const now = new Date();
-      const startDate = new Date(quiz.startDate);
-      const endDate = new Date(quiz.endDate);
       const startTime = new Date(`${quiz.startDate.split('T')[0]}T${quiz.startTime}`);
       const endTime = new Date(`${quiz.endDate.split('T')[0]}T${quiz.endTime}`);
       let statusMatch = true;

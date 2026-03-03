@@ -34,7 +34,6 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
-  const [tags, setTags] = useState<string[]>([]);
 
   const [filters, setFilters] = useState({
     search: '',

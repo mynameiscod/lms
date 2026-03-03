@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Button, Alert, Spinner } from '../common';
+import { Button, Spinner } from '../common';
 import QuestionSelector from '../QuestionSelector/QuestionSelector';
 import './QuizQuestionLinking.css';
 import { quizApi } from '../../api';

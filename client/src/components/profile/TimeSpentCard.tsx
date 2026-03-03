@@ -12,6 +12,7 @@ const TimeSpentCard: React.FC = () => {
   const IDLE_TIMEOUT = 2 * 60 * 1000; // 2 minutes of inactivity
 
   // Track user activity
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const handleActivity = () => {
       lastActivityRef.current = Date.now();

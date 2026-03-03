@@ -6,7 +6,6 @@ import './SetupPassword.css';
 export const SetupPassword: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuth();
 
   const [formData, setFormData] = useState({
     password: '',

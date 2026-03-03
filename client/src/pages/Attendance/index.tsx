@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { batchApi, attendanceApi, userApi } from '../../api';
-import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
+import { Button, Alert, Spinner } from '../../components/common';
 import { Batch, User, Attendance } from '../../types';
 import './AttendancePage.css';
 
@@ -83,6 +83,7 @@ const AttendancePage: React.FC = () => {
       };
       fetchAttendanceData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedDate, selectedBatch]);
 
   const fetchBatches = async () => {

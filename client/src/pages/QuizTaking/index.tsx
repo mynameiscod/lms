@@ -186,7 +186,7 @@ const QuizTakingPage: React.FC = () => {
     } catch (err: any) {
       setError(err.message || 'Failed to submit quiz');
     }
-  }, [quizId, attempt, answers, questions]);
+  }, [quizId, attempt, answers, questions, quiz]);
 
   useEffect(() => {
     if (timeLeft <= 0 && quiz) return;

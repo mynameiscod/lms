@@ -59,10 +59,6 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
   const currentHour = String(now.getHours()).padStart(2, '0');
   const currentMinute = String(now.getMinutes()).padStart(2, '0');
   const currentTime = `${currentHour}:${currentMinute}`;
-  const endTime = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour later
-  const endHour = String(endTime.getHours()).padStart(2, '0');
-  const endMinute = String(endTime.getMinutes()).padStart(2, '0');
-  const endTimeFormatted = `${endHour}:${endMinute}`;
 
   // Helper function to format date from ISO format
   const formatDateForInput = (dateStr?: string): string => {

@@ -8,7 +8,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import './QuizManagementPage.css';
 
 const QuizManagementPage: React.FC = () => {
-  const { user } = useAuth();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);

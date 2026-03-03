@@ -37,10 +37,6 @@ const QuestionBuilder: React.FC = () => {
     testCases: []
   });
 
-  useEffect(() => {
-    loadQuestions();
-  }, [quizId]);
-
   const loadQuestions = async () => {
     try {
       setLoading(true);
@@ -53,6 +49,10 @@ const QuestionBuilder: React.FC = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadQuestions();
+  }, [quizId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

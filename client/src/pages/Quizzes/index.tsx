@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { quizApi } from '../../api';
 import { Alert, Spinner, Button } from '../../components/common';
 import { Quiz } from '../../types';
@@ -12,14 +12,6 @@ const QuizzesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'available' | 'completed' | 'pending'>('available');
 
-  useEffect(() => {
-    loadQuizzes();
-  }, []);
-
-  useEffect(() => {
-    filterQuizzes();
-  }, [quizzes, searchQuery, filterTab, filterQuizzes]);
-
   const loadQuizzes = async () => {
     try {
       setLoading(true);
@@ -32,7 +24,7 @@ const QuizzesPage: React.FC = () => {
     }
   };
 
-  const filterQuizzes = () => {
+  const filterQuizzes = useCallback(() => {
     let filtered = quizzes.filter(quiz => {
       // IMPORTANT: Filter out quizzes with no questions
       if (!quiz.totalQuestions || quiz.totalQuestions === 0) {
@@ -66,7 +58,15 @@ const QuizzesPage: React.FC = () => {
     });
 
     setFilteredQuizzes(filtered);
-  };
+  }, [quizzes, searchQuery, filterTab]);
+
+  useEffect(() => {
+    loadQuizzes();
+  }, []);
+
+  useEffect(() => {
+    filterQuizzes();
+  }, [filterQuizzes]);
 
   const isQuizAlive = (quiz: Quiz): boolean => {
     const now = new Date();

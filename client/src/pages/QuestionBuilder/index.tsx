@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Button, Input, Alert, Spinner, Modal } from '../../components/common';
@@ -37,7 +37,7 @@ const QuestionBuilder: React.FC = () => {
     testCases: []
   });
 
-  const loadQuestions = async () => {
+  const loadQuestions = useCallback(async () => {
     try {
       setLoading(true);
       if (!quizId) return;
@@ -48,11 +48,11 @@ const QuestionBuilder: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId]);
 
   useEffect(() => {
     loadQuestions();
-  }, [quizId, loadQuestions]);
+  }, [loadQuestions]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

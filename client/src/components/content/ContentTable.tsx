@@ -44,11 +44,13 @@ const ContentTable: React.FC<ContentTableProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [page, typeFilter, publishedFilter, onError]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, typeFilter, publishedFilter]);
 
   useEffect(() => {
     loadContent();
-  }, [loadContent, refreshTrigger]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, typeFilter, publishedFilter, refreshTrigger]);
 
   const handleDelete = async (contentId: string) => {
     if (!window.confirm('Are you sure you want to delete this content?')) {

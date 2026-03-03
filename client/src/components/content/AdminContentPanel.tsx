@@ -79,6 +79,14 @@ const AdminContentPanel: React.FC = () => {
     setEditingContent(null);
   }, []);
 
+  const handleDeleteSuccess = useCallback(
+    (message: string) => {
+      showAlert(message, 'success');
+      triggerTableRefresh();
+    },
+    [showAlert, triggerTableRefresh]
+  );
+
   return (
     <div className="admin-content-panel">
       <div className="panel-header">
@@ -120,10 +128,7 @@ const AdminContentPanel: React.FC = () => {
         <section className="table-section">
           <ContentTable
             onEdit={handleEdit}
-            onDeleteSuccess={(message) => {
-              showAlert(message, 'success');
-              triggerTableRefresh();
-            }}
+            onDeleteSuccess={handleDeleteSuccess}
             onError={handleFormError}
             refreshTrigger={refreshTrigger}
           />

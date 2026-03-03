@@ -249,7 +249,8 @@ const DashboardPage: React.FC = () => {
   // Fetch dashboard data on mount or when selectedDate changes
   useEffect(() => {
     fetchDashboardData();
-  }, [selectedDate, fetchDashboardData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedDate]); // Only re-run when selectedDate changes
 
   const handlePrevWeek = () => {
     const newDate = new Date(selectedDate);

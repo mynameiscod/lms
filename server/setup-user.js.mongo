@@ -1,0 +1,30 @@
+// MongoDB authentication setup
+db = db.getSiblingDB('admin');
+
+try {
+  db.createUser({
+    user: 'lms_user',
+    pwd: 'LMS_Compass_Pass_123!',
+    roles: [{role: 'root', db: 'admin'}]
+  });
+  print("✓ User 'lms_user' created successfully!");
+} catch (err) {
+  if (err.message.includes('already exists')) {
+    print("User 'lms_user' already exists, updating password...");
+    try {
+      db.updateUser('lms_user', {pwd: 'LMS_Compass_Pass_123!'});
+      print("✓ Password updated!");
+    } catch (e) {
+      print("Update failed: " + e.message);
+    }
+  } else {
+    print("Error: " + err.message);
+  }
+}
+
+// Show user info
+print("\nCreated/Updated user details:");
+db.getUser('lms_user');
+
+print("\n✓ MongoDB authentication setup complete!");
+print("Connection URL: mongodb://lms_user:LMS_Compass_Pass_123!@127.0.0.1:27017/lms-saas?authSource=admin");

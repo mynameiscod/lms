@@ -81,6 +81,11 @@ export class AuthService {
       throw new Error('Invalid credentials');
     }
 
+    // Check if user account is active
+    if (!user.isActive) {
+      throw new Error('Your account has been deactivated. Please contact your administrator.');
+    }
+
     const isValidPassword = await user.comparePassword(password);
 
     if (!isValidPassword) {

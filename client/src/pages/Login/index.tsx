@@ -10,10 +10,20 @@ const LoginPage: React.FC = () => {
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [tenantId, setTenantId] = useState(''); // Only used when pre-filled from URL
   const [error, setError] = useState('');
+  const [infoMessage, setInfoMessage] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  // Check for loginMessage from logout redirect (e.g., account deactivated)
+  useEffect(() => {
+    const message = localStorage.getItem('loginMessage');
+    if (message) {
+      setInfoMessage(message);
+      localStorage.removeItem('loginMessage');
+    }
+  }, []);
 
   // Auto-populate tenant ID from URL (for invite links)
   useEffect(() => {
@@ -84,6 +94,14 @@ const LoginPage: React.FC = () => {
             <h2>Login</h2>
             <p>Enter your email and password to continue your journey with Codebegun</p>
           </div>
+
+          {infoMessage && (
+            <Alert 
+              type="warning" 
+              message={infoMessage} 
+              onClose={() => setInfoMessage('')}
+            />
+          )}
 
           {error && (
             <Alert 

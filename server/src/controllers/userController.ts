@@ -214,27 +214,45 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
 
     // Check if user already exists
     const existingUser = await userService.getUserByEmail(email);
+    let user;
+    
     if (existingUser) {
-      console.log('   ❌ User already exists\n');
-      return res.status(400).json({
-        success: false,
-        message: 'User already exists'
-      });
+      // Check if user is inactive (was deleted) - reactivate them
+      if (!existingUser.isActive) {
+        console.log('   🔄 Reactivating previously deleted user...');
+        existingUser.isActive = true;
+        existingUser.firstName = firstName;
+        existingUser.lastName = lastName;
+        if (batchId) {
+          existingUser.batchId = batchId;
+          existingUser.batchJoinedDate = new Date();
+        }
+        await existingUser.save();
+        user = existingUser;
+        console.log('   ✅ User reactivated:', user._id);
+      } else {
+        // User exists and is active
+        console.log('   ❌ User already exists and is active\n');
+        return res.status(400).json({
+          success: false,
+          message: 'User already exists'
+        });
+      }
+    } else {
+      // Create new user with temporary password
+      console.log('   Step 1: Creating user...');
+      const tempPassword = crypto.randomBytes(8).toString('hex');
+      user = await userService.createUser(
+        email,
+        firstName,
+        lastName,
+        tempPassword,
+        'STUDENT',
+        req.tenantId!,
+        batchId
+      );
+      console.log('   ✅ User created:', user._id);
     }
-
-    // Create user with temporary password
-    console.log('   Step 1: Creating user...');
-    const tempPassword = crypto.randomBytes(8).toString('hex');
-    const user = await userService.createUser(
-      email,
-      firstName,
-      lastName,
-      tempPassword,
-      'STUDENT',
-      req.tenantId!,
-      batchId
-    );
-    console.log('   ✅ User created:', user._id);
 
     // Generate reset token for password setup
     console.log('   Step 2: Generating reset token...');

@@ -33,6 +33,21 @@
   transform: scale(0.95);
 }
 
+.nav-arrow.disabled,
+.nav-arrow:disabled {
+  background: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.nav-arrow.disabled:hover,
+.nav-arrow:disabled:hover {
+  background: #e2e8f0;
+  box-shadow: none;
+  transform: none;
+}
+
 .week-header {
   flex: 0 0 auto;
   min-width: 200px;
@@ -96,6 +111,31 @@
 .day-button:hover {
   background: #f0f4ff;
   border-color: #2563eb;
+}
+
+.day-button.disabled,
+.day-button:disabled {
+  background: #f1f5f9;
+  color: #cbd5e1;
+  cursor: not-allowed;
+  opacity: 0.5;
+  border-color: transparent;
+}
+
+.day-button.disabled:hover,
+.day-button:disabled:hover {
+  background: #f1f5f9;
+  border-color: transparent;
+}
+
+.day-button.disabled .day-name,
+.day-button:disabled .day-name {
+  color: #cbd5e1;
+}
+
+.day-button.disabled .day-date,
+.day-button:disabled .day-date {
+  color: #cbd5e1;
 }
 
 .day-button.active {

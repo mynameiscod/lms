@@ -132,6 +132,15 @@ export const forgotPassword = async (
       });
     }
 
+    // Check if user account is deactivated
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been deactivated. Please contact your administrator to reactivate your account.',
+        error: 'ACCOUNT_DEACTIVATED'
+      });
+    }
+
     // Generate reset token
     const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(resetToken).digest('hex');

@@ -162,6 +162,59 @@
   font-weight: 600;
 }
 
+.attendance-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 0;
+}
+
+.attendance-header h2 {
+  margin: 0;
+}
+
+.unsaved-badge {
+  background: #f59e0b;
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75em;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.row-modified {
+  background: #fef3c7 !important;
+}
+
+.modified-indicator {
+  color: #f59e0b;
+  margin-left: 6px;
+  font-size: 0.7em;
+}
+
+.time-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.required-star {
+  color: #ef4444;
+  font-weight: bold;
+  font-size: 1.2em;
+}
+
+.required-field {
+  border-color: #ef4444 !important;
+  background: #fef2f2 !important;
+}
+
 .date-info {
   color: #666;
   font-size: 0.95em;

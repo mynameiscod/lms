@@ -49,13 +49,25 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
 
   console.log('[API] Response:', { url, status: response.status });
 
-  // Handle 401 Unauthorized
+  // Handle 401 Unauthorized - user session expired or account deactivated
   if (response.status === 401) {
-    console.log('[API] Token invalid, clearing localStorage');
+    const errorData = await response.json().catch(() => ({ message: 'Session expired' }));
+    console.log('[API] 401 Unauthorized - clearing session and redirecting to login');
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('tenantId');
-    throw new Error('Your session has expired. Please log in again.');
+    
+    // Redirect to login with appropriate message
+    const message = errorData.code === 'ACCOUNT_DEACTIVATED' 
+      ? 'Your account has been deactivated. Please contact your administrator.'
+      : 'Your session has expired. Please log in again.';
+    
+    // Store message to show on login page
+    localStorage.setItem('loginMessage', message);
+    
+    // Redirect to login
+    window.location.href = '/login';
+    throw new Error(message);
   }
 
   if (!response.ok) {

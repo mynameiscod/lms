@@ -26,7 +26,8 @@ export class UserService {
       tenantId,
       isActive: true,
       profileComplete: false,
-      batchId: batchId || undefined
+      batchId: batchId || undefined,
+      batchJoinedDate: batchId ? new Date() : undefined
     });
 
     await user.save();

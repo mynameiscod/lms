@@ -282,6 +282,17 @@ const DashboardPage: React.FC = () => {
     setSelectedDate(newDate);
   };
 
+  // Get minimum date for student calendar (batch join date or account creation date)
+  const getMinDate = (): Date | undefined => {
+    if (user?.role !== 'STUDENT') return undefined;
+    // Use batchJoinedDate if available, otherwise fall back to createdAt
+    const minDateStr = (user as any).batchJoinedDate || user?.createdAt;
+    if (minDateStr) {
+      return new Date(minDateStr);
+    }
+    return undefined;
+  };
+
   if (loading) return <Spinner fullScreen />;
 
   // Redirect unauthenticated users
@@ -380,6 +391,7 @@ const DashboardPage: React.FC = () => {
         onDateSelect={setSelectedDate}
         onPrevWeek={handlePrevWeek}
         onNextWeek={handleNextWeek}
+        minDate={getMinDate()}
       />
 
       {/* Main Layout - Bootstrap Grid Style */}

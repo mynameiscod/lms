@@ -20,7 +20,8 @@ const AttendancePage: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [selectedBatch, setSelectedBatch] = useState<Batch | null>(null);
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [batchStudents, setBatchStudents] = useState<User[]>([]);
+  const [allBatchStudents, setAllBatchStudents] = useState<User[]>([]); // All students in batch (unfiltered)
+  const [batchStudents, setBatchStudents] = useState<User[]>([]); // Filtered by joined date
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState<SuccessState>({ show: false, count: 0 });
@@ -28,6 +29,39 @@ const AttendancePage: React.FC = () => {
 
   // Attendance form state
   const [studentAttendance, setStudentAttendance] = useState<{ [key: string]: StudentAttendanceForm }>({});
+  // Track original attendance loaded from DB (for change detection)
+  const [originalAttendance, setOriginalAttendance] = useState<{ [key: string]: StudentAttendanceForm }>({});
+
+  // Helper function to filter students by joined date
+  const filterStudentsByDate = (students: User[], date: string): User[] => {
+    return students.filter((u: User) => {
+      if (u.batchJoinedDate) {
+        const joinedDate = new Date(u.batchJoinedDate);
+        const attendanceDate = new Date(date);
+        // Compare dates only (ignore time)
+        joinedDate.setHours(0, 0, 0, 0);
+        attendanceDate.setHours(0, 0, 0, 0);
+        return joinedDate <= attendanceDate;
+      }
+      // If no batchJoinedDate, show the student (legacy data)
+      return true;
+    });
+  };
+
+  // Check if a student's attendance has changed
+  const hasStudentChanged = (studentId: string): boolean => {
+    const current = studentAttendance[studentId];
+    const original = originalAttendance[studentId];
+    if (!current || !original) return true; // New record
+    return current.status !== original.status || 
+           current.inTime !== original.inTime || 
+           current.outTime !== original.outTime;
+  };
+
+  // Get count of unsaved changes
+  const getChangedCount = (): number => {
+    return Object.keys(studentAttendance).filter(id => hasStudentChanged(id)).length;
+  };
 
   useEffect(() => {
     fetchBatches();
@@ -42,9 +76,13 @@ const AttendancePage: React.FC = () => {
     }
   }, [success.show]);
 
-  // Fetch attendance data when date changes
+  // Re-filter students and fetch attendance data when date changes
   useEffect(() => {
-    if (selectedBatch && batchStudents.length > 0) {
+    if (selectedBatch && allBatchStudents.length > 0) {
+      // Filter students based on new date
+      const filteredStudents = filterStudentsByDate(allBatchStudents, selectedDate);
+      setBatchStudents(filteredStudents);
+
       const fetchAttendanceData = async () => {
         try {
           const attendanceRes = await attendanceApi.getBatchAttendance(
@@ -53,7 +91,7 @@ const AttendancePage: React.FC = () => {
           );
           
           const updatedAttendance: { [key: string]: StudentAttendanceForm } = {};
-          batchStudents.forEach((student: User) => {
+          filteredStudents.forEach((student: User) => {
             updatedAttendance[student._id] = {
               studentId: student._id,
               inTime: '',
@@ -77,14 +115,28 @@ const AttendancePage: React.FC = () => {
           }
 
           setStudentAttendance(updatedAttendance);
+          // Save original state for change detection
+          setOriginalAttendance(JSON.parse(JSON.stringify(updatedAttendance)));
         } catch (err) {
           console.log('No attendance data for this date');
+          // Reset original attendance when no data found
+          const defaultAttendance: { [key: string]: StudentAttendanceForm } = {};
+          filteredStudents.forEach((student: User) => {
+            defaultAttendance[student._id] = {
+              studentId: student._id,
+              inTime: '',
+              outTime: '',
+              status: 'absent'
+            };
+          });
+          setStudentAttendance(defaultAttendance);
+          setOriginalAttendance(JSON.parse(JSON.stringify(defaultAttendance)));
         }
       };
       fetchAttendanceData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate, selectedBatch]);
+  }, [selectedDate, selectedBatch, allBatchStudents]);
 
   const fetchBatches = async () => {
     try {
@@ -107,15 +159,21 @@ const AttendancePage: React.FC = () => {
       const usersRes = await userApi.getUsers();
       const allUsers = usersRes.data || [];
 
-      // Filter students by role AND batch enrollment only
-      const students = allUsers.filter((u: User) => 
+      // Filter students by role AND batch enrollment (not by date yet - that's done in effect)
+      const studentsInBatch = allUsers.filter((u: User) => 
         u.role === 'STUDENT' && u.batchId === batch._id && u.isActive
       );
-      setBatchStudents(students);
+      
+      // Store all students in batch (unfiltered by date)
+      setAllBatchStudents(studentsInBatch);
+      
+      // Filter by joined date for display
+      const filteredStudents = filterStudentsByDate(studentsInBatch, selectedDate);
+      setBatchStudents(filteredStudents);
 
-      // Initialize attendance form for all students with default values
+      // Initialize attendance form for all filtered students with default values
       const initialAttendance: { [key: string]: StudentAttendanceForm } = {};
-      students.forEach((student: User) => {
+      filteredStudents.forEach((student: User) => {
         initialAttendance[student._id] = {
           studentId: student._id,
           inTime: '',
@@ -151,6 +209,8 @@ const AttendancePage: React.FC = () => {
       }
 
       setStudentAttendance(initialAttendance);
+      // Save original state for change detection
+      setOriginalAttendance(JSON.parse(JSON.stringify(initialAttendance)));
     } catch (err: any) {
       setError(err.message || 'Failed to load batch details');
     }
@@ -206,12 +266,34 @@ const AttendancePage: React.FC = () => {
       return;
     }
 
+    // Get only changed records
+    const changedRecords = Object.values(studentAttendance).filter(att => hasStudentChanged(att.studentId));
+
+    if (changedRecords.length === 0) {
+      setError('No changes to save');
+      return;
+    }
+
+    // Validate: Present students must have inTime
+    const invalidRecords = changedRecords.filter(att => 
+      att.status === 'present' && !att.inTime
+    );
+
+    if (invalidRecords.length > 0) {
+      const studentNames = invalidRecords.map(att => {
+        const student = batchStudents.find(s => s._id === att.studentId);
+        return student ? `${student.firstName} ${student.lastName}` : att.studentId;
+      }).join(', ');
+      setError(`In Time is required for present students: ${studentNames}`);
+      return;
+    }
+
     try {
       setSubmitting(true);
       setError('');
 
-      // Submit attendance for all students
-      const promises = Object.values(studentAttendance).map(attendance =>
+      // Submit attendance for only changed students
+      const promises = changedRecords.map(attendance =>
         attendanceApi.markAttendance({
           studentId: attendance.studentId,
           batchId: selectedBatch._id,
@@ -223,7 +305,10 @@ const AttendancePage: React.FC = () => {
       );
 
       await Promise.all(promises);
-      setSuccess({ show: true, count: batchStudents.length });
+      setSuccess({ show: true, count: changedRecords.length });
+      
+      // Update original attendance to match current (so re-submit won't send again)
+      setOriginalAttendance(JSON.parse(JSON.stringify(studentAttendance)));
     } catch (err: any) {
       setError(err.message || 'Failed to mark attendance');
     } finally {
@@ -292,7 +377,14 @@ const AttendancePage: React.FC = () => {
         {/* Attendance Marking Section */}
         {selectedBatch && batchStudents.length > 0 && (
           <div className="attendance-marking">
-            <h2>Mark Attendance - {selectedBatch.name}</h2>
+            <div className="attendance-header">
+              <h2>Mark Attendance - {selectedBatch.name}</h2>
+              {getChangedCount() > 0 && (
+                <span className="unsaved-badge">
+                  {getChangedCount()} unsaved change{getChangedCount() !== 1 ? 's' : ''}
+                </span>
+              )}
+            </div>
             <p className="date-info">Date: {new Date(selectedDate).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</p>
 
             <div className="attendance-table-wrapper">
@@ -310,22 +402,28 @@ const AttendancePage: React.FC = () => {
                 </thead>
                 <tbody>
                   {batchStudents.map((student, idx) => (
-                    <tr key={student._id}>
+                    <tr key={student._id} className={hasStudentChanged(student._id) ? 'row-modified' : ''}>
                       <td className="index-cell">{idx + 1}</td>
                       <td className="student-name">
                         {student.firstName} {student.lastName}
+                        {hasStudentChanged(student._id) && <span className="modified-indicator">●</span>}
                       </td>
                       <td className="student-email">{student.email}</td>
                       <td>
-                        <input
-                          type="time"
-                          value={studentAttendance[student._id]?.inTime || ''}
-                          onChange={(e) =>
-                            handleAttendanceChange(student._id, 'inTime', e.target.value)
-                          }
-                          className="time-input"
-                          disabled={studentAttendance[student._id]?.status !== 'present'}
-                        />
+                        <div className="time-input-wrapper">
+                          <input
+                            type="time"
+                            value={studentAttendance[student._id]?.inTime || ''}
+                            onChange={(e) =>
+                              handleAttendanceChange(student._id, 'inTime', e.target.value)
+                            }
+                            className={`time-input ${studentAttendance[student._id]?.status === 'present' && !studentAttendance[student._id]?.inTime ? 'required-field' : ''}`}
+                            disabled={studentAttendance[student._id]?.status !== 'present'}
+                          />
+                          {studentAttendance[student._id]?.status === 'present' && !studentAttendance[student._id]?.inTime && (
+                            <span className="required-star">*</span>
+                          )}
+                        </div>
                       </td>
                       <td>
                         <input
@@ -384,13 +482,19 @@ const AttendancePage: React.FC = () => {
               <Button
                 onClick={() => {
                   setSelectedBatch(null);
+                  setAllBatchStudents([]);
                   setBatchStudents([]);
                 }}
               >
                 Cancel
               </Button>
-              <Button onClick={handleSubmitAttendance} loading={submitting} className="btn-primary">
-                ✓ Submit Attendance
+              <Button 
+                onClick={handleSubmitAttendance} 
+                loading={submitting} 
+                className="btn-primary"
+                disabled={getChangedCount() === 0}
+              >
+                ✓ Submit {getChangedCount() > 0 ? `(${getChangedCount()} change${getChangedCount() !== 1 ? 's' : ''})` : 'Attendance'}
               </Button>
             </div>
           </div>

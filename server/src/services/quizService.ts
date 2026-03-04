@@ -88,40 +88,53 @@ export class QuizService {
     const [startHour, startMin] = quiz.startTime.split(':').map(Number);
     const [endHour, endMin] = quiz.endTime.split(':').map(Number);
 
-    // Extract local date parts from stored dates (ignoring time component)
-    const startDateLocal = new Date(quiz.startDate);
-    const endDateLocal = new Date(quiz.endDate);
+    // Extract UTC date parts from stored dates (dates are stored as UTC midnight)
+    const startDateUTC = new Date(quiz.startDate);
+    const endDateUTC = new Date(quiz.endDate);
 
-    // Create start datetime using local date and time
+    // Create start datetime: combine stored date with stored time
+    // Times are stored in IST (Indian Standard Time, UTC+5:30)
+    // Create datetime in IST, then it will be compared correctly
     const startDateTime = new Date(
-      startDateLocal.getFullYear(),
-      startDateLocal.getMonth(),
-      startDateLocal.getDate(),
+      startDateUTC.getUTCFullYear(),
+      startDateUTC.getUTCMonth(),
+      startDateUTC.getUTCDate(),
       startHour,
       startMin,
       0,
       0
     );
+    // Convert from IST to UTC by subtracting 5:30
+    const startDateTimeUTC = new Date(startDateTime.getTime() - (5.5 * 60 * 60 * 1000));
 
-    // Create end datetime using local date and time
+    // Create end datetime
     const endDateTime = new Date(
-      endDateLocal.getFullYear(),
-      endDateLocal.getMonth(),
-      endDateLocal.getDate(),
+      endDateUTC.getUTCFullYear(),
+      endDateUTC.getUTCMonth(),
+      endDateUTC.getUTCDate(),
       endHour,
       endMin,
       59,
       999
     );
+    // Convert from IST to UTC by subtracting 5:30
+    const endDateTimeUTC = new Date(endDateTime.getTime() - (5.5 * 60 * 60 * 1000));
 
     // Allow quiz access if current time is within the start and end window
-    if (now < startDateTime) {
-      const startFormatted = startDateTime.toLocaleString();
+    if (now < startDateTimeUTC) {
+      // Display time in IST format
+      const startFormatted = startDateTime.toLocaleString('en-IN', { 
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true 
+      });
       return { available: false, reason: `Quiz will be available on ${startFormatted}` };
     }
 
-    if (now > endDateTime) {
-      const endFormatted = endDateTime.toLocaleString();
+    if (now > endDateTimeUTC) {
+      const endFormatted = endDateTime.toLocaleString('en-IN', { 
+        year: 'numeric', month: 'numeric', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true 
+      });
       return { available: false, reason: `Quiz ended on ${endFormatted}` };
     }
 

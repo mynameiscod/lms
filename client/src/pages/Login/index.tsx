@@ -8,20 +8,18 @@ const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
-  const [tenantId, setTenantId] = useState('');
+  const [tenantId, setTenantId] = useState(''); // Only used when pre-filled from URL
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showTenantField, setShowTenantField] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Auto-populate tenant ID from URL and hide field if pre-filled
+  // Auto-populate tenant ID from URL (for invite links)
   useEffect(() => {
     const urlTenantId = searchParams.get('tenantId');
     if (urlTenantId) {
       setTenantId(urlTenantId);
-      setShowTenantField(false);
     }
   }, [searchParams]);
 
@@ -35,11 +33,8 @@ const LoginPage: React.FC = () => {
         throw new Error('Please enter email and password');
       }
 
-      if (!tenantId && showTenantField) {
-        throw new Error('Please enter your Tenant ID or use an invite link from your administrator.');
-      }
-
-      await login(email, password, tenantId);
+      // Pass tenantId only if it was pre-filled from URL
+      await login(email, password, tenantId || undefined);
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials and try again.');
@@ -87,7 +82,7 @@ const LoginPage: React.FC = () => {
         <div className="login-form-wrapper">
           <div className="form-header">
             <h2>Login</h2>
-            <p>Enter your email and password to continue your journey with Tap Academy</p>
+            <p>Enter your email and password to continue your journey with Codebegun</p>
           </div>
 
           {error && (
@@ -141,23 +136,6 @@ const LoginPage: React.FC = () => {
               </div>
             </div>
 
-            {showTenantField && (
-              <div className="form-group">
-                <label htmlFor="tenantId">Tenant ID</label>
-                <div className="input-wrapper">
-                  <input
-                    type="text"
-                    id="tenantId"
-                    placeholder="Enter your tenant ID"
-                    value={tenantId}
-                    onChange={(e) => setTenantId(e.target.value)}
-                    required={showTenantField}
-                    className="form-input"
-                  />
-                </div>
-              </div>
-            )}
-
             <button 
               type="submit" 
               className="continue-button"
@@ -166,28 +144,6 @@ const LoginPage: React.FC = () => {
               {loading ? 'Logging in...' : 'Continue'}
             </button>
           </form>
-
-          <div className="form-footer">
-            {!showTenantField && !searchParams.get('tenantId') && (
-              <button
-                type="button"
-                className="tenant-link"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setShowTenantField(true);
-                }}
-              >
-                ↔️ Enter Tenant ID manually?
-              </button>
-            )}
-
-            <p className="signup-text">
-              Don't have an account?{' '}
-              <Link to="/create-organization" className="signup-link">
-                Create Organization
-              </Link>
-            </p>
-          </div>
         </div>
       </div>
     </div>

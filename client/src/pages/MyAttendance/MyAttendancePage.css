@@ -58,7 +58,7 @@
   font-weight: 600;
   color: #444;
   font-size: 0.85em;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 
@@ -136,7 +136,7 @@
   display: block;
   font-size: 0.8em;
   color: #666;
-  text-transform: uppercase;
+  text-transform: capitalize;
   font-weight: 700;
   margin-bottom: 8px;
   letter-spacing: 0.5px;

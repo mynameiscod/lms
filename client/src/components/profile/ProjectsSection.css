@@ -153,7 +153,7 @@
   font-size: 13px;
   font-weight: 600;
   color: #475569;
-  text-transform: uppercase;
+  text-transform: capitalize;
   letter-spacing: 0.5px;
 }
 

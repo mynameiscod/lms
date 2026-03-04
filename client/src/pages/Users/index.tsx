@@ -20,7 +20,7 @@ const UsersPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [batchFilter, setBatchFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
 
   // Modal state for invite student
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);

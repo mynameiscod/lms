@@ -35,11 +35,13 @@ export class UserService {
   }
 
   async getAllUsers(tenantId: string): Promise<IUser[]> {
-    return await User.find({ tenantId, isActive: true });
+    // Return all users (including inactive) for admin management
+    return await User.find({ tenantId });
   }
 
   async getUsersByTenant(tenantId: string): Promise<IUser[]> {
-    return await User.find({ tenantId, isActive: true });
+    // Return all users (including inactive) for admin management
+    return await User.find({ tenantId });
   }
 
   async getUserById(userId: string): Promise<IUser | null> {

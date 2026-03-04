@@ -31,6 +31,8 @@ const AttendancePage: React.FC = () => {
   const [studentAttendance, setStudentAttendance] = useState<{ [key: string]: StudentAttendanceForm }>({});
   // Track original attendance loaded from DB (for change detection)
   const [originalAttendance, setOriginalAttendance] = useState<{ [key: string]: StudentAttendanceForm }>({});
+  // Track which students have existing records in DB (vs default values)
+  const [existingRecords, setExistingRecords] = useState<Set<string>>(new Set());
 
   // Helper function to filter students by joined date
   const filterStudentsByDate = (students: User[], date: string): User[] => {
@@ -48,11 +50,16 @@ const AttendancePage: React.FC = () => {
     });
   };
 
-  // Check if a student's attendance has changed
+  // Check if a student's attendance has changed or needs to be saved
   const hasStudentChanged = (studentId: string): boolean => {
     const current = studentAttendance[studentId];
     const original = originalAttendance[studentId];
     if (!current || !original) return true; // New record
+    
+    // If no existing record in DB, this is a new record that needs to be saved
+    if (!existingRecords.has(studentId)) return true;
+    
+    // Check if values changed from what was in DB
     return current.status !== original.status || 
            current.inTime !== original.inTime || 
            current.outTime !== original.outTime;
@@ -91,6 +98,7 @@ const AttendancePage: React.FC = () => {
           );
           
           const updatedAttendance: { [key: string]: StudentAttendanceForm } = {};
+          const recordsInDb = new Set<string>();
           filteredStudents.forEach((student: User) => {
             updatedAttendance[student._id] = {
               studentId: student._id,
@@ -104,6 +112,7 @@ const AttendancePage: React.FC = () => {
             attendanceRes.data.forEach((record: Attendance) => {
               const studentId = typeof record.studentId === 'string' ? record.studentId : record.studentId._id;
               if (updatedAttendance[studentId]) {
+                recordsInDb.add(studentId); // Track that this student has a record in DB
                 updatedAttendance[studentId] = {
                   studentId: studentId,
                   inTime: record.inTime || '',
@@ -114,12 +123,14 @@ const AttendancePage: React.FC = () => {
             });
           }
 
+          setExistingRecords(recordsInDb);
           setStudentAttendance(updatedAttendance);
           // Save original state for change detection
           setOriginalAttendance(JSON.parse(JSON.stringify(updatedAttendance)));
         } catch (err) {
           console.log('No attendance data for this date');
           // Reset original attendance when no data found
+          setExistingRecords(new Set()); // No records exist in DB
           const defaultAttendance: { [key: string]: StudentAttendanceForm } = {};
           filteredStudents.forEach((student: User) => {
             defaultAttendance[student._id] = {
@@ -173,6 +184,7 @@ const AttendancePage: React.FC = () => {
 
       // Initialize attendance form for all filtered students with default values
       const initialAttendance: { [key: string]: StudentAttendanceForm } = {};
+      const recordsInDb = new Set<string>();
       filteredStudents.forEach((student: User) => {
         initialAttendance[student._id] = {
           studentId: student._id,
@@ -194,6 +206,7 @@ const AttendancePage: React.FC = () => {
           attendanceRes.data.forEach((record: Attendance) => {
             const studentId = typeof record.studentId === 'string' ? record.studentId : record.studentId._id;
             if (initialAttendance[studentId]) {
+              recordsInDb.add(studentId); // Track that this student has a record in DB
               initialAttendance[studentId] = {
                 studentId: studentId,
                 inTime: record.inTime || '',
@@ -208,6 +221,7 @@ const AttendancePage: React.FC = () => {
         console.log('No previous attendance data found');
       }
 
+      setExistingRecords(recordsInDb);
       setStudentAttendance(initialAttendance);
       // Save original state for change detection
       setOriginalAttendance(JSON.parse(JSON.stringify(initialAttendance)));
@@ -309,6 +323,13 @@ const AttendancePage: React.FC = () => {
       
       // Update original attendance to match current (so re-submit won't send again)
       setOriginalAttendance(JSON.parse(JSON.stringify(studentAttendance)));
+      
+      // Mark submitted students as having existing records in DB
+      setExistingRecords(prev => {
+        const updated = new Set(prev);
+        changedRecords.forEach(att => updated.add(att.studentId));
+        return updated;
+      });
     } catch (err: any) {
       setError(err.message || 'Failed to mark attendance');
     } finally {

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner } from '../../components/common';
-import { userApi, courseApi, attendanceApi } from '../../api';
+import { userApi, courseApi, attendanceApi, batchApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
 import WeekNavigator from '../../components/dashboard/WeekNavigator';
 import DailyActivityPanel from '../../components/dashboard/DailyActivityPanel';
@@ -47,6 +47,7 @@ const DashboardPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [batchStartDate, setBatchStartDate] = useState<Date | undefined>(undefined);
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [stats, setStats] = useState<DashboardStats>({
@@ -123,6 +124,18 @@ const DashboardPage: React.FC = () => {
   };
 
   const fetchDashboardData = async () => {
+    // Fetch batch start date for students (for calendar navigation)
+    if (user?.role === 'STUDENT' && user?.batchId) {
+      try {
+        const batchRes = await batchApi.getBatchById(user.batchId);
+        if (batchRes.data?.startDate) {
+          setBatchStartDate(new Date(batchRes.data.startDate));
+        }
+      } catch (error) {
+        console.error('Error fetching batch details:', error);
+      }
+    }
+
     const mockActivities: ActivityItem[] = [
       {
         id: '1',
@@ -282,15 +295,11 @@ const DashboardPage: React.FC = () => {
     setSelectedDate(newDate);
   };
 
-  // Get minimum date for student calendar (batch join date or account creation date)
+  // Get minimum date for student calendar (batch start date)
   const getMinDate = (): Date | undefined => {
     if (user?.role !== 'STUDENT') return undefined;
-    // Use batchJoinedDate if available, otherwise fall back to createdAt
-    const minDateStr = (user as any).batchJoinedDate || user?.createdAt;
-    if (minDateStr) {
-      return new Date(minDateStr);
-    }
-    return undefined;
+    // Use batch start date for calendar navigation
+    return batchStartDate;
   };
 
   if (loading) return <Spinner fullScreen />;

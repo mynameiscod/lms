@@ -65,9 +65,11 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     // Store message to show on login page
     localStorage.setItem('loginMessage', message);
     
-    // Redirect to login
-    window.location.href = '/login';
-    throw new Error(message);
+    // Redirect to login - use replace to ensure navigation happens immediately
+    window.location.replace('/login');
+    
+    // Return a never-resolving promise to prevent further code execution
+    return new Promise(() => {});
   }
 
   if (!response.ok) {

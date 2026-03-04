@@ -224,4 +224,113 @@ This is an automated message from CodeBegun Learning Management System.
       console.log('📧 [EMAIL SERVICE] Email delivery failed (attendance still saved)\n');
     }
   }
+
+  async sendQuizNotificationEmail(
+    email: string,
+    studentName: string,
+    quizTitle: string,
+    quizDescription: string | undefined,
+    startDate: Date,
+    endDate: Date,
+    totalTime: number,
+    totalMarks: number
+  ): Promise<void> {
+    console.log('\n📧 [EMAIL SERVICE] Quiz Notification Email Request');
+    console.log('   Recipient:', email);
+    console.log('   Student Name:', studentName);
+    console.log('   Quiz Title:', quizTitle);
+
+    const formattedStartDate = startDate.toLocaleDateString('en-IN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+    const formattedEndDate = endDate.toLocaleDateString('en-IN', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #005897 0%, #0077cc 100%); color: white; padding: 2rem; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0; font-size: 24px;">📝 New Quiz Available!</h2>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 2rem; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
+          <p style="margin-top: 0;">Hello <strong>${studentName}</strong>,</p>
+          
+          <p style="color: #666; line-height: 1.6;">
+            A new quiz has been assigned to you. Please complete it before the deadline.
+          </p>
+
+          <div style="background: white; border-left: 4px solid #005897; padding: 1rem; margin: 1.5rem 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 1rem 0; color: #005897;">${quizTitle}</h3>
+            ${quizDescription ? `<p style="margin: 0.5rem 0; color: #666;">${quizDescription}</p>` : ''}
+            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 1rem 0;">
+            <p style="margin: 0.5rem 0;"><strong>📅 Available From:</strong> ${formattedStartDate}</p>
+            <p style="margin: 0.5rem 0;"><strong>⏰ Deadline:</strong> ${formattedEndDate}</p>
+            <p style="margin: 0.5rem 0;"><strong>⏱️ Duration:</strong> ${totalTime} minutes</p>
+            <p style="margin: 0.5rem 0;"><strong>📊 Total Marks:</strong> ${totalMarks}</p>
+          </div>
+
+          <p style="color: #666; line-height: 1.6;">
+            Log in to your account to start the quiz. Make sure to complete it before the deadline!
+          </p>
+
+          <div style="text-align: center; margin: 2rem 0;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/quizzes" 
+               style="background: #005897; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
+              Go to Quizzes
+            </a>
+          </div>
+
+          <p style="margin-bottom: 0; color: #999; font-size: 12px; border-top: 1px solid #e0e0e0; padding-top: 1rem;">
+            This is an automated message from CodeBegun Learning Management System. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const plainTextContent = `
+New Quiz Available!
+
+Hello ${studentName},
+
+A new quiz has been assigned to you. Please complete it before the deadline.
+
+Quiz Details:
+Title: ${quizTitle}
+${quizDescription ? `Description: ${quizDescription}` : ''}
+Available From: ${formattedStartDate}
+Deadline: ${formattedEndDate}
+Duration: ${totalTime} minutes
+Total Marks: ${totalMarks}
+
+Log in to your account to start the quiz. Make sure to complete it before the deadline!
+
+This is an automated message from CodeBegun Learning Management System.
+    `;
+
+    const mailOptions = {
+      from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+      to: email,
+      subject: `📝 New Quiz: ${quizTitle} - Action Required`,
+      html: htmlContent,
+      text: plainTextContent
+    };
+
+    try {
+      console.log('   Status: Sending...');
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      console.log('   Message ID:', info.messageId);
+      console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
+    } catch (error: any) {
+      console.log('   ❌ STATUS: EMAIL SENT FAILED');
+      console.error('   Error:', error.message);
+      // Don't throw - quiz creation should succeed even if email fails
+      console.log('📧 [EMAIL SERVICE] Email delivery failed (quiz still created)\n');
+    }
+  }
 }

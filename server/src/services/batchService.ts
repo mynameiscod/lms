@@ -1,4 +1,5 @@
 import Batch, { IBatch } from '../models/Batch';
+import User from '../models/User';
 
 export class BatchService {
   async createBatch(batchData: {
@@ -22,14 +23,34 @@ export class BatchService {
   }
 
   async getBatchesByTenant(tenantId: string): Promise<IBatch[]> {
-    return await Batch.find({ tenantId, isActive: true })
+    const batches = await Batch.find({ tenantId, isActive: true })
       .populate('instructors', 'firstName lastName email role')
       .sort({ startDate: -1 });
+    
+    // Calculate enrolledCount dynamically for each batch
+    const batchesWithCount = await Promise.all(
+      batches.map(async (batch) => {
+        const enrolledCount = await User.countDocuments({ batchId: batch._id, tenantId });
+        const batchObj = batch.toObject();
+        batchObj.enrolledCount = enrolledCount;
+        return batchObj as IBatch;
+      })
+    );
+    
+    return batchesWithCount;
   }
 
   async getBatchById(batchId: string): Promise<IBatch | null> {
-    return await Batch.findById(batchId)
+    const batch = await Batch.findById(batchId)
       .populate('instructors', 'firstName lastName email role');
+    
+    if (!batch) return null;
+    
+    // Calculate enrolledCount dynamically
+    const enrolledCount = await User.countDocuments({ batchId: batch._id });
+    const batchObj = batch.toObject();
+    batchObj.enrolledCount = enrolledCount;
+    return batchObj as IBatch;
   }
 
   async updateBatch(

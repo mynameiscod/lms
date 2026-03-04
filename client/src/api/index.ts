@@ -857,4 +857,96 @@ export const quizApi = {
 
     return authenticatedFetch(url, { method: 'GET' });
   },
+
+  // ========== QUIZ REPORTS ==========
+
+  // Get quiz report summary
+  getQuizReportSummary: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/report/summary`, {
+      method: 'GET'
+    });
+  },
+
+  // Get all quiz attempts
+  getQuizAttempts: async (quizId: string, page?: number, limit?: number) => {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page.toString());
+    if (limit) params.append('limit', limit.toString());
+
+    const queryString = params.toString();
+    return authenticatedFetch(
+      `${API_BASE_URL}/quizzes/${quizId}/report/attempts${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET' }
+    );
+  },
+
+  // Get student performance report
+  getStudentPerformanceReport: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/report/student-performance`, {
+      method: 'GET'
+    });
+  },
+
+  // Get question analytics
+  getQuestionAnalytics: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/report/question-analytics`, {
+      method: 'GET'
+    });
+  },
+
+  // Get complete quiz report
+  getCompleteQuizReport: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/report/complete`, {
+      method: 'GET'
+    });
+  },
+
+  // Export quiz report as CSV
+  exportQuizReportCSV: async (quizId: string) => {
+    const token = localStorage.getItem('token');
+    const tenantId = localStorage.getItem('tenantId');
+    
+    const headers: any = {
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(tenantId && { 'X-Tenant-Id': tenantId })
+    };
+
+    const response = await fetch(`${API_BASE_URL}/quizzes/${quizId}/report/export-csv`, {
+      method: 'GET',
+      headers
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to export CSV');
+    }
+
+    return response.text();
+  },
+
+  // Get top performers for a quiz
+  getTopPerformers: async (quizId: string, limit?: number) => {
+    const params = new URLSearchParams();
+    if (limit) params.append('limit', limit.toString());
+
+    const queryString = params.toString();
+    return authenticatedFetch(
+      `${API_BASE_URL}/quizzes/${quizId}/report/top-performers${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET' }
+    );
+  },
+
+  // Get quiz distribution stats (sent to, pending, completed, in-progress)
+  getQuizDistributionStats: async (quizId: string) => {
+    return authenticatedFetch(
+      `${API_BASE_URL}/quizzes/${quizId}/report/distribution`,
+      { method: 'GET' }
+    );
+  },
+
+  // Get all quizzes for reporting (with stats)
+  getQuizzesForReporting: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/report/list`, {
+      method: 'GET'
+    });
+  },
 };

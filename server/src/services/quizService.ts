@@ -88,53 +88,69 @@ export class QuizService {
     const [startHour, startMin] = quiz.startTime.split(':').map(Number);
     const [endHour, endMin] = quiz.endTime.split(':').map(Number);
 
-    // Extract UTC date parts from stored dates (dates are stored as UTC midnight)
-    const startDateUTC = new Date(quiz.startDate);
-    const endDateUTC = new Date(quiz.endDate);
+    // Extract date parts as UTC
+    const startDate = new Date(quiz.startDate);
+    const endDate = new Date(quiz.endDate);
 
-    // Create start datetime: combine stored date with stored time
-    // Times are stored in IST (Indian Standard Time, UTC+5:30)
-    // Create datetime in IST, then it will be compared correctly
-    const startDateTime = new Date(
-      startDateUTC.getUTCFullYear(),
-      startDateUTC.getUTCMonth(),
-      startDateUTC.getUTCDate(),
-      startHour,
-      startMin,
-      0,
-      0
-    );
-    // Convert from IST to UTC by subtracting 5:30
-    const startDateTimeUTC = new Date(startDateTime.getTime() - (5.5 * 60 * 60 * 1000));
+    // Convert IST times to UTC (IST = UTC + 5:30, so UTC = IST - 5:30)
+    // For start time
+    let startUTCHour = startHour - 5;
+    let startUTCMin = startMin - 30;
+    if (startUTCMin < 0) {
+      startUTCHour -= 1;
+      startUTCMin += 60;
+    }
+    if (startUTCHour < 0) {
+      // Previous day in UTC
+      startUTCHour += 24;
+      startDate.setUTCDate(startDate.getUTCDate() - 1);
+    }
 
-    // Create end datetime
-    const endDateTime = new Date(
-      endDateUTC.getUTCFullYear(),
-      endDateUTC.getUTCMonth(),
-      endDateUTC.getUTCDate(),
-      endHour,
-      endMin,
-      59,
-      999
+    const startDateTimeUTC = new Date(
+      Date.UTC(
+        startDate.getUTCFullYear(),
+        startDate.getUTCMonth(),
+        startDate.getUTCDate(),
+        startUTCHour,
+        startUTCMin,
+        0,
+        0
+      )
     );
-    // Convert from IST to UTC by subtracting 5:30
-    const endDateTimeUTC = new Date(endDateTime.getTime() - (5.5 * 60 * 60 * 1000));
+
+    // For end time
+    let endUTCHour = endHour - 5;
+    let endUTCMin = endMin - 30;
+    if (endUTCMin < 0) {
+      endUTCHour -= 1;
+      endUTCMin += 60;
+    }
+    if (endUTCHour < 0) {
+      // Previous day in UTC
+      endUTCHour += 24;
+      endDate.setUTCDate(endDate.getUTCDate() - 1);
+    }
+
+    const endDateTimeUTC = new Date(
+      Date.UTC(
+        endDate.getUTCFullYear(),
+        endDate.getUTCMonth(),
+        endDate.getUTCDate(),
+        endUTCHour,
+        endUTCMin,
+        59,
+        999
+      )
+    );
 
     // Allow quiz access if current time is within the start and end window
     if (now < startDateTimeUTC) {
-      // Display time in IST format
-      const startFormatted = startDateTime.toLocaleString('en-IN', { 
-        year: 'numeric', month: 'numeric', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true 
-      });
+      const startFormatted = startDate.toLocaleDateString('en-IN') + ' ' + quiz.startTime + ' IST';
       return { available: false, reason: `Quiz will be available on ${startFormatted}` };
     }
 
     if (now > endDateTimeUTC) {
-      const endFormatted = endDateTime.toLocaleString('en-IN', { 
-        year: 'numeric', month: 'numeric', day: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true 
-      });
+      const endFormatted = endDate.toLocaleDateString('en-IN') + ' ' + quiz.endTime + ' IST';
       return { available: false, reason: `Quiz ended on ${endFormatted}` };
     }
 

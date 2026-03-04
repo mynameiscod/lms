@@ -105,8 +105,18 @@ class AttendanceService {
 
     if (startDate || endDate) {
       query.date = {};
-      if (startDate) query.date.$gte = startDate;
-      if (endDate) query.date.$lte = endDate;
+      if (startDate) {
+        // Adjust for timezone - subtract 12 hours to catch records stored in different timezones
+        const adjustedStart = new Date(startDate);
+        adjustedStart.setHours(adjustedStart.getHours() - 12);
+        query.date.$gte = adjustedStart;
+      }
+      if (endDate) {
+        // Adjust for timezone - add 12 hours to catch records stored in different timezones
+        const adjustedEnd = new Date(endDate);
+        adjustedEnd.setHours(adjustedEnd.getHours() + 12);
+        query.date.$lte = adjustedEnd;
+      }
     }
 
     return await Attendance.find(query)

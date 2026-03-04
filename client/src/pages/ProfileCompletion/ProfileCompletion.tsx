@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProfileCompletion.css';
@@ -18,6 +18,19 @@ export const ProfileCompletion: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Load existing user data into form
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        phone: user.phone || '',
+        bio: user.bio || '',
+        avatar: user.avatar || '',
+        linkedin: user.linkedin || '',
+        github: user.github || ''
+      });
+    }
+  }, [user]);
 
   if (!user) {
     navigate('/login');

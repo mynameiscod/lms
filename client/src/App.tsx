@@ -22,6 +22,7 @@ import BatchesPage from './pages/Batches';
 import AttendancePage from './pages/Attendance';
 import MyAttendancePage from './pages/MyAttendance';
 import AttendanceReportsPage from './pages/AttendanceReports';
+import QuizReportsPage from './pages/QuizReports';
 import QuizManagementPage from './pages/QuizManagement';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import QuestionManagementPage from './pages/QuestionManagement';
@@ -213,6 +214,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <QuizResultsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quiz-reports"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <QuizReportsPage />
             </Layout>
           </ProtectedRoute>
         }

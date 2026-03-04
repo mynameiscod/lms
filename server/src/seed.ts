@@ -25,8 +25,22 @@ const seed = async () => {
     await connectDB();
 
     // Delete existing test users to ensure fresh password hashes
-    await User.deleteMany({ email: { $in: ['admin@test.com', 'student@test.com', 'tempAdmin@seed.internal'] } });
+    await User.deleteMany({ email: { $in: ['admin@test.com', 'student@test.com', 'instructor@test.com', 'tempAdmin@seed.internal'] } });
     console.log('✅ Cleared old test users');
+
+    // Define permissions
+    const allPermissions = [
+      'manage_roles', 'manage_users', 'create_courses', 'edit_courses', 'delete_courses',
+      'view_courses', 'manage_enrollments', 'view_reports', 'manage_tenant',
+      'create_quiz', 'edit_quiz', 'delete_quiz', 'view_quiz', 'create_question',
+      'edit_question', 'delete_question', 'view_attendance', 'edit_attendance'
+    ];
+
+    const instructorPermissions = [
+      'create_courses', 'edit_courses', 'view_courses', 'manage_enrollments',
+      'view_reports', 'create_quiz', 'edit_quiz', 'delete_quiz', 'view_quiz',
+      'create_question', 'edit_question', 'delete_question'
+    ];
 
     // Create admin role if not exists
     let adminRole: any = await Role.findOne({ name: 'TENANT_ADMIN' });
@@ -34,9 +48,26 @@ const seed = async () => {
       adminRole = await Role.create({
         name: 'TENANT_ADMIN',
         description: 'Tenant Administrator',
-        permissions: ['create', 'read', 'update', 'delete'],
+        permissions: allPermissions,
       });
       console.log('✅ Admin Role created');
+    } else {
+      // Update existing role to include all permissions
+      await Role.updateOne({ name: 'TENANT_ADMIN' }, { permissions: allPermissions });
+    }
+
+    // Create instructor role if not exists
+    let instructorRole: any = await Role.findOne({ name: 'INSTRUCTOR' });
+    if (!instructorRole) {
+      instructorRole = await Role.create({
+        name: 'INSTRUCTOR',
+        description: 'Instructor',
+        permissions: instructorPermissions,
+      });
+      console.log('✅ Instructor Role created');
+    } else {
+      // Update existing role to include report viewing permission
+      await Role.updateOne({ name: 'INSTRUCTOR' }, { permissions: instructorPermissions });
     }
 
     // Create student role if not exists
@@ -45,7 +76,7 @@ const seed = async () => {
       studentRole = await Role.create({
         name: 'STUDENT',
         description: 'Student',
-        permissions: ['read'],
+        permissions: ['view_courses', 'view_quiz'],
       });
       console.log('✅ Student Role created');
     }
@@ -108,11 +139,29 @@ const seed = async () => {
     console.log('   Email: student@test.com');
     console.log('   Password: Test123!');
 
+    // Create test instructor user (password will be hashed by pre-save hook)
+    const instructorUser = await User.create({
+      email: 'instructor@test.com',
+      password: 'Test123!', // Plain text - will be hashed by pre-save hook
+      firstName: 'Instructor',
+      lastName: 'User',
+      tenantId: tenant?._id,
+      role: 'INSTRUCTOR',
+      isActive: true,
+    });
+    console.log('✅ Test Instructor user created');
+    console.log('   Email: instructor@test.com');
+    console.log('   Password: Test123!');
+
     console.log('\n✅ Seeding completed successfully!\n');
     console.log('Test Credentials:');
     console.log('─────────────────');
     console.log('Admin Login:');
     console.log('  Email: admin@test.com');
+    console.log('  Password: Test123!');
+    console.log('  Tenant: Test Tenant (optional)');
+    console.log('\nInstructor Login:');
+    console.log('  Email: instructor@test.com');
     console.log('  Password: Test123!');
     console.log('  Tenant: Test Tenant (optional)');
     console.log('\nStudent Login:');

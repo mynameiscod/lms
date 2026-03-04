@@ -66,7 +66,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
             
-            setUser(parsedUser);
+            // Use fresh data from API, update localStorage
+            const freshUser = userData.data;
+            localStorage.setItem('user', JSON.stringify(freshUser));
+            setUser(freshUser);
             setToken(savedToken);
           } catch (validationError) {
             console.error('Failed to validate user:', validationError);

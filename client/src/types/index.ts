@@ -9,6 +9,13 @@ export interface User {
   isActive: boolean;
   profilePicture?: string;
   createdAt?: string;
+  // Profile fields
+  phone?: string;
+  bio?: string;
+  avatar?: string;
+  linkedin?: string;
+  github?: string;
+  profileComplete?: boolean;
 }
 
 export interface Tenant {

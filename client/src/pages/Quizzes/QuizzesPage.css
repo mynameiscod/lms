@@ -5,7 +5,7 @@
 }
 
 .page-header {
-  text-align: center;
+  text-align: left;
   margin-bottom: 40px;
   color: #333;
 }
@@ -420,4 +420,138 @@
   .info-value {
     font-size: 1rem;
   }
+}
+
+/* Table Styles */
+.quizzes-table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.quizzes-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.quizzes-table thead {
+  background: #f8f9fa;
+}
+
+.quizzes-table th {
+  padding: 14px 16px;
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.quizzes-table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  color: #555;
+}
+
+.quizzes-table tbody tr:hover {
+  background: #f8f9fa;
+}
+
+.quizzes-table tbody tr.clickable:hover {
+  background: #e8f4fc;
+}
+
+.quizzes-table .center {
+  text-align: center;
+}
+
+.quiz-title-cell strong {
+  display: block;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+.quiz-title-cell small {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.quizzes-table .status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.quizzes-table .status-badge.live {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.quizzes-table .status-badge.pending {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.quizzes-table .status-badge.closed {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.score-cell .passed {
+  color: #2e7d32;
+  font-weight: 600;
+}
+
+.score-cell .failed {
+  color: #c62828;
+  font-weight: 600;
+}
+
+.score-cell .not-attempted {
+  color: #888;
+}
+
+.quizzes-table tbody tr.inactive {
+  opacity: 0.7;
+}
+
+/* Action Cell Styles */
+.action-cell {
+  text-align: center;
+}
+
+.action-link {
+  font-weight: 600;
+  cursor: pointer;
+  padding: 6px 12px;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  display: inline-block;
+}
+
+.action-link.start {
+  color: #005897;
+  background: #e3f2fd;
+}
+
+.action-link.start:hover {
+  background: #005897;
+  color: white;
+}
+
+.action-link.view {
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.action-link.view:hover {
+  background: #2e7d32;
+  color: white;
+}
+
+.action-disabled {
+  color: #999;
+  font-size: 0.9rem;
 }

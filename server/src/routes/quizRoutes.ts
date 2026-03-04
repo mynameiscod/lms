@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import * as quizController from '../controllers/quizController';
 import * as questionController from '../controllers/questionController';
+import * as quizReportController from '../controllers/quizReportController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
@@ -10,6 +11,17 @@ const router = Router();
 // Middleware
 router.use(authMiddleware);
 router.use(tenantMiddleware);
+
+// ========== QUIZ REPORTS (Must come before generic /:quizId routes) ==========
+
+// Get all quizzes for reporting
+router.get(
+  '/report/list',
+  roleGuard(['view_reports']),
+  quizReportController.getQuizzesForReporting
+);
+
+// ========== QUIZ ROUTES ==========
 
 // Quiz Routes
 router.post(
@@ -118,6 +130,64 @@ router.delete(
 router.get(
   '/:quizId/available-questions',
   quizController.getAvailableQuestions
+);
+
+// ========== QUIZ REPORTS ==========
+
+// Get quiz report summary
+router.get(
+  '/:quizId/report/summary',
+  roleGuard(['view_reports']),
+  quizReportController.getQuizReportSummary
+);
+
+// Get all quiz attempts
+router.get(
+  '/:quizId/report/attempts',
+  roleGuard(['view_reports']),
+  quizReportController.getQuizAttempts
+);
+
+// Get student performance report
+router.get(
+  '/:quizId/report/student-performance',
+  roleGuard(['view_reports']),
+  quizReportController.getStudentPerformanceReport
+);
+
+// Get question analytics
+router.get(
+  '/:quizId/report/question-analytics',
+  roleGuard(['view_reports']),
+  quizReportController.getQuestionAnalytics
+);
+
+// Get complete quiz report
+router.get(
+  '/:quizId/report/complete',
+  roleGuard(['view_reports']),
+  quizReportController.getCompleteQuizReport
+);
+
+// Export quiz report as CSV
+router.get(
+  '/:quizId/report/export-csv',
+  roleGuard(['view_reports']),
+  quizReportController.exportQuizReportCSV
+);
+
+// Get top performers
+router.get(
+  '/:quizId/report/top-performers',
+  roleGuard(['view_reports']),
+  quizReportController.getTopPerformers
+);
+
+// Get quiz distribution stats (sent to, pending, completed, in-progress)
+router.get(
+  '/:quizId/report/distribution',
+  roleGuard(['view_reports']),
+  quizReportController.getQuizDistributionStats
 );
 
 export default router;

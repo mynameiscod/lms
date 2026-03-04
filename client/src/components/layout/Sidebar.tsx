@@ -30,15 +30,15 @@ const Sidebar: React.FC = () => {
   };
 
   const menuItems: MenuItem[] = [
-    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '📊' },
-    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'], icon: '📚' },
-    { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '👥' },
-    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🔐' },
-    { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '📅' },
+    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂' },
+    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'], icon: '▦' },
+    { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⊕' },
+    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⚙' },
+    { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '▤' },
     {
       label: 'Attendance',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],
-      icon: '✅',
+      icon: '☑',
       submenu: [
         { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'] },
         { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'] },
@@ -48,7 +48,7 @@ const Sidebar: React.FC = () => {
     {
       label: 'Quizzes',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
-      icon: '📝',
+      icon: '✎',
       submenu: [
         { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'] },
         { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
@@ -127,7 +127,7 @@ const Sidebar: React.FC = () => {
           }
         }}
       >
-        <div className="header-icon">📚</div>
+        <div className="header-icon">☰</div>
         <div className="header-text">Menu</div>
         <div className="header-toggle">{isOpen ? '‹' : '›'}</div>
       </div>

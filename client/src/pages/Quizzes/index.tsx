@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { quizApi } from '../../api';
-import { Alert, Spinner, Button } from '../../components/common';
+import { Alert, Spinner } from '../../components/common';
 import { Quiz } from '../../types';
 import './QuizzesPage.css';
 
@@ -119,43 +119,32 @@ const QuizzesPage: React.FC = () => {
       {/* Header */}
       <div className="page-header">
         <div className="header-text">
-          <h1>📝 Quizzes</h1>
-          <p className="subtitle">Take quizzes to test your knowledge</p>
+          <h3 style={{ color: '#005897', margin: 0 }}>My Quiz</h3>
         </div>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      {/* Search and Filter */}
+      {/* Filter */}
       <div className="search-filter-section">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="🔍 Search quizzes..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="search-input"
-          />
-        </div>
-
         <div className="filter-tabs">
           <button
             className={`filter-tab ${filterTab === 'available' ? 'active' : ''}`}
             onClick={() => setFilterTab('available')}
           >
-            ⏱️ Available ({quizzes.filter(q => (q.totalQuestions || 0) > 0 && isQuizAlive(q) && !q.isAttempted).length})
+            Available ({quizzes.filter(q => (q.totalQuestions || 0) > 0 && isQuizAlive(q) && !q.isAttempted).length})
           </button>
           <button
             className={`filter-tab ${filterTab === 'pending' ? 'active' : ''}`}
             onClick={() => setFilterTab('pending')}
           >
-            ⏳ Pending ({quizzes.filter(q => (q.totalQuestions || 0) > 0 && new Date() < new Date(`${q.startDate.split('T')[0]}T${q.startTime}`)).length})
+            Pending ({quizzes.filter(q => (q.totalQuestions || 0) > 0 && new Date() < new Date(`${q.startDate.split('T')[0]}T${q.startTime}`)).length})
           </button>
           <button
             className={`filter-tab ${filterTab === 'completed' ? 'active' : ''}`}
             onClick={() => setFilterTab('completed')}
           >
-            ✅ Completed ({quizzes.filter(q => q.isAttempted || new Date() > new Date(`${q.endDate.split('T')[0]}T${q.endTime}`)).length})
+            Completed ({quizzes.filter(q => q.isAttempted || new Date() > new Date(`${q.endDate.split('T')[0]}T${q.endTime}`)).length})
           </button>
         </div>
       </div>
@@ -164,7 +153,6 @@ const QuizzesPage: React.FC = () => {
       <div className="quizzes-table-container">
         {filteredQuizzes.length === 0 ? (
           <div className="empty-state">
-            <div className="empty-icon">📭</div>
             <h3>No quizzes found</h3>
             <p>
               {filterTab === 'available' && 'No quizzes available right now'}
@@ -178,14 +166,10 @@ const QuizzesPage: React.FC = () => {
               <tr>
                 <th>Quiz Title</th>
                 <th>Status</th>
-                <th>Questions</th>
                 <th>Total Marks</th>
-                <th>Duration</th>
-                <th>Start Date</th>
-                <th>End Date</th>
                 <th>Your Score</th>
                 <th>Attempts</th>
-                <th>Actions</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
@@ -194,26 +178,35 @@ const QuizzesPage: React.FC = () => {
                 const canAttemptQuiz = canAttempt(quiz);
                 const attempted = quiz.isAttempted;
 
+                const handleRowClick = () => {
+                  if (canAttemptQuiz) {
+                    handleStartQuiz(quiz._id);
+                  } else if (attempted) {
+                    handleViewResults(quiz._id);
+                  }
+                };
+
                 return (
-                  <tr key={quiz._id} className={`quiz-row ${status === 'closed' ? 'inactive' : ''}`}>
+                  <tr 
+                    key={quiz._id} 
+                    className={`quiz-row ${status === 'closed' ? 'inactive' : ''} ${canAttemptQuiz || attempted ? 'clickable' : ''}`}
+                    onClick={handleRowClick}
+                    style={{ cursor: canAttemptQuiz || attempted ? 'pointer' : 'default' }}
+                  >
                     <td className="quiz-title-cell">
                       <strong>{quiz.title}</strong>
                       {quiz.description && <small>{quiz.description.substring(0, 50)}...</small>}
                     </td>
                     <td>
                       <span className={`status-badge ${status}`}>
-                        {status === 'live' ? '🔴 Live' : status === 'pending' ? '⏳ Pending' : '⚫ Closed'}
+                        {status === 'live' ? 'Live' : status === 'pending' ? 'Pending' : 'Closed'}
                       </span>
                     </td>
-                    <td className="center">{quiz.totalQuestions || 0}</td>
                     <td className="center">{quiz.totalMarks}</td>
-                    <td className="center">{quiz.totalTime}m</td>
-                    <td className="date-cell">{new Date(quiz.startDate).toLocaleDateString()}</td>
-                    <td className="date-cell">{new Date(quiz.endDate).toLocaleDateString()}</td>
                     <td className="score-cell">
                       {attempted ? (
                         <span className={quiz.lastAttemptPassed ? 'passed' : 'failed'}>
-                          {quiz.lastAttemptMarks}/{quiz.totalMarks}
+                          {quiz.lastAttemptMarks || 0}/{quiz.totalMarks}
                         </span>
                       ) : (
                         <span className="not-attempted">—</span>
@@ -226,24 +219,14 @@ const QuizzesPage: React.FC = () => {
                         <span>Single</span>
                       )}
                     </td>
-                    <td className="actions-cell">
-                      <div className="quiz-actions">
-                        {canAttemptQuiz ? (
-                          <Button onClick={() => handleStartQuiz(quiz._id)} className="btn-sm btn-primary">
-                            Start
-                          </Button>
-                        ) : attempted && !canAttemptQuiz ? (
-                          <>
-                            <Button onClick={() => handleViewResults(quiz._id)} className="btn-sm btn-secondary">
-                              Results
-                            </Button>
-                          </>
-                        ) : status === 'closed' ? (
-                          <span className="text-muted">Expired</span>
-                        ) : (
-                          <span className="text-muted">N/A</span>
-                        )}
-                      </div>
+                    <td className="action-cell">
+                      {canAttemptQuiz ? (
+                        <span className="action-link start">Start Quiz →</span>
+                      ) : attempted ? (
+                        <span className="action-link view">View Results →</span>
+                      ) : (
+                        <span className="action-disabled">Not Available</span>
+                      )}
                     </td>
                   </tr>
                 );

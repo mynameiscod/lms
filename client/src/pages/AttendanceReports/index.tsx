@@ -82,12 +82,7 @@ const AttendanceReportsPage: React.FC = () => {
 
   return (
     <div className="attendance-reports-page">
-      <div className="reports-header">
-        <div className="header-text">
-          <h1>📈 Attendance Reports</h1>
-          <p className="subtitle">View and analyze attendance statistics</p>
-        </div>
-      </div>
+      <h2 style={{ color: '#005897', marginBottom: '10px' }}>Attendance Reports</h2>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
@@ -95,7 +90,7 @@ const AttendanceReportsPage: React.FC = () => {
         {/* Filters and Controls */}
         <div className="filters-section">
           <div className="filter-group">
-            <label>🏛️ Select Batch *</label>
+            <label>Select Batch *</label>
             <select
               value={selectedBatchId}
               onChange={(e) => handleBatchSelect(e.target.value)}
@@ -112,7 +107,7 @@ const AttendanceReportsPage: React.FC = () => {
           </div>
 
           <div className="filter-group">
-            <label>📊 Report Type</label>
+            <label>Report Type</label>
             <div className="view-tabs">
               <button
                 className={`tab-btn ${viewType === 'batch' ? 'active' : ''}`}
@@ -131,7 +126,7 @@ const AttendanceReportsPage: React.FC = () => {
 
           {selectedBatchId && (
             <button className="export-btn" onClick={exportToCSV}>
-              📥 Export to CSV
+              Export to CSV
             </button>
           )}
         </div>
@@ -147,7 +142,7 @@ const AttendanceReportsPage: React.FC = () => {
               <>
                 {/* Summary Stats */}
                 <div className="stats-section">
-                  <h2>Batch Overview</h2>
+                  <h3>Batch Overview</h3>
                   <div className="stats-grid">
                     <div className="stat-item">
                       <span className="stat-label">Total Students</span>
@@ -178,7 +173,7 @@ const AttendanceReportsPage: React.FC = () => {
 
                 {/* Student Details Table */}
                 <div className="table-section">
-                  <h2>Student Attendance Details</h2>
+                  <h3>Student Attendance Details</h3>
                   <div className="table-wrapper">
                     <table className="reports-table">
                       <thead>
@@ -224,7 +219,7 @@ const AttendanceReportsPage: React.FC = () => {
 
                 {/* Attendance Distribution Chart */}
                 <div className="chart-section">
-                  <h2>Attendance Distribution</h2>
+                  <h3>Attendance Distribution</h3>
                   <div className="distribution-grid">
                     <div className="distribution-item excellent">
                       <span className="dist-label">Excellent (75%+)</span>
@@ -281,7 +276,7 @@ const AttendanceReportsPage: React.FC = () => {
           </div>
         ) : (
           <div className="no-batch-selected">
-            <p>👈 Select a batch to view attendance reports</p>
+            <p>Select a batch to view attendance reports</p>
           </div>
         )}
       </div>

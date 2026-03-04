@@ -5,6 +5,7 @@ import Quiz from '../models/Quiz';
 import QuizAttempt from '../models/QuizAttempt';
 import User from '../models/User';
 import Content from '../models/Content';
+import { EmailService } from '../services/emailService';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -56,6 +57,71 @@ export const createQuiz = async (req: Request, res: Response) => {
     } catch (annError) {
       // Log error but don't fail the quiz creation
       console.error('Failed to create announcement:', annError);
+    }
+
+    // Send email notifications to target students
+    try {
+      const emailService = new EmailService();
+      let targetStudents: any[] = [];
+
+      // Determine target students based on quiz accessibility
+      const accessibleTo = rest.accessibleTo || 'everyone';
+      
+      if (accessibleTo === 'everyone') {
+        // Get all students in the tenant
+        targetStudents = await User.find({ 
+          tenantId, 
+          role: 'STUDENT',
+          isActive: true 
+        }).select('_id firstName lastName email').lean();
+      } else if (accessibleTo === 'batch_wise' && rest.selectedBatches && rest.selectedBatches.length > 0) {
+        // Get students in selected batches
+        targetStudents = await User.find({ 
+          tenantId, 
+          role: 'STUDENT',
+          isActive: true,
+          batchId: { $in: rest.selectedBatches }
+        }).select('_id firstName lastName email').lean();
+      } else if (accessibleTo === 'individual' && rest.selectedStudents && rest.selectedStudents.length > 0) {
+        // Get individual selected students
+        targetStudents = await User.find({ 
+          _id: { $in: rest.selectedStudents },
+          tenantId,
+          role: 'STUDENT',
+          isActive: true
+        }).select('_id firstName lastName email').lean();
+      }
+
+      console.log(`📧 Sending quiz notification emails to ${targetStudents.length} students...`);
+
+      // Send emails to all target students (in parallel, limited batch)
+      const emailPromises = targetStudents.map(async (student) => {
+        try {
+          await emailService.sendQuizNotificationEmail(
+            student.email,
+            `${student.firstName} ${student.lastName}`.trim(),
+            title,
+            description,
+            new Date(startDate),
+            new Date(endDate),
+            totalTime,
+            totalMarks
+          );
+        } catch (emailErr) {
+          console.error(`Failed to send email to ${student.email}:`, emailErr);
+        }
+      });
+
+      // Execute all email sends (don't await to not block response)
+      Promise.all(emailPromises).then(() => {
+        console.log(`✅ Quiz notification emails sent to ${targetStudents.length} students`);
+      }).catch((err) => {
+        console.error('Error sending quiz notification emails:', err);
+      });
+
+    } catch (emailError) {
+      // Log error but don't fail the quiz creation
+      console.error('Failed to send quiz notification emails:', emailError);
     }
 
     res.status(201).json(quiz);

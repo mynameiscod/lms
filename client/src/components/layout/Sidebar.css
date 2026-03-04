@@ -39,8 +39,10 @@
 }
 
 .header-icon {
-  font-size: 20px;
+  font-size: 22px;
   flex-shrink: 0;
+  color: #005897;
+  font-weight: bold;
 }
 
 .header-text {
@@ -99,6 +101,7 @@
   height: 24px;
   font-size: 18px;
   flex-shrink: 0;
+  color: #005897;
 }
 
 .sidebar-link {
@@ -155,6 +158,13 @@
   width: 70px;
 }
 
+.sidebar.closed .menu-icon {
+  font-size: 24px;
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+}
+
 .sidebar.closed .sidebar-link.active::before {
   display: none;
 }
@@ -203,6 +213,7 @@
   height: 24px;
   font-size: 18px;
   flex-shrink: 0;
+  color: #005897;
 }
 
 .group-label {
@@ -236,6 +247,17 @@
   padding: 10px 0;
   margin: 2px 0;
   width: 70px;
+}
+
+.sidebar.closed .group-icon {
+  font-size: 24px;
+  min-width: 32px;
+  width: 32px;
+  height: 32px;
+}
+
+.sidebar.closed .header-icon {
+  font-size: 26px;
 }
 
 /* ========== SUBMENU ========== */

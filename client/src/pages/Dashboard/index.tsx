@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner } from '../../components/common';
-import { userApi, courseApi } from '../../api';
+import { userApi, courseApi, attendanceApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
 import WeekNavigator from '../../components/dashboard/WeekNavigator';
 import DailyActivityPanel from '../../components/dashboard/DailyActivityPanel';
@@ -122,7 +122,7 @@ const DashboardPage: React.FC = () => {
     }
   };
 
-  const fetchDashboardData = () => {
+  const fetchDashboardData = async () => {
     const mockActivities: ActivityItem[] = [
       {
         id: '1',
@@ -219,26 +219,44 @@ const DashboardPage: React.FC = () => {
     setActivities(mockActivities);
     setLogs(mockLogs);
 
-    // Set attendance based on selected date
-    const today = new Date();
-    if (selectedDate.toDateString() === today.toDateString()) {
-      setAttendance({
-        status: 'present',
-        inTime: '09:15 AM',
-        outTime: undefined,
-        totalPresent: 8,
-        totalAbsent: 2,
-        attendancePercentage: 80,
-      });
-    } else {
-      setAttendance({
-        status: 'absent',
-        inTime: undefined,
-        outTime: undefined,
-        totalPresent: 8,
-        totalAbsent: 2,
-        attendancePercentage: 80,
-      });
+    // Fetch real attendance data for students
+    if (user?._id && user?.role === 'STUDENT') {
+      try {
+        // Get selected date for attendance check
+        const dateStr = selectedDate.toISOString().split('T')[0];
+        console.log('[Dashboard] Fetching attendance for:', { userId: user._id, batchId: user.batchId, date: dateStr });
+        
+        // Fetch summary (total present/absent/percentage) - batchId is optional
+        const summaryRes = await attendanceApi.getStudentAttendanceSummary(user._id, user.batchId);
+        const summary = summaryRes.data || summaryRes;
+        console.log('[Dashboard] Attendance summary:', summary);
+        
+        // Fetch today's attendance record
+        const todayRes = await attendanceApi.getStudentAttendance(user._id, dateStr, dateStr);
+        const todayRecords = todayRes.data || todayRes || [];
+        console.log('[Dashboard] Today attendance records:', todayRecords);
+        const todayRecord = Array.isArray(todayRecords) && todayRecords.length > 0 ? todayRecords[0] : null;
+        
+        setAttendance({
+          status: todayRecord?.status || 'pending',
+          inTime: todayRecord?.inTime || undefined,
+          outTime: todayRecord?.outTime || undefined,
+          totalPresent: summary?.present || 0,
+          totalAbsent: summary?.absent || 0,
+          attendancePercentage: summary?.percentage || 0,
+        });
+      } catch (error) {
+        console.error('[Dashboard] Error fetching attendance:', error);
+        // Set default values on error
+        setAttendance({
+          status: 'pending',
+          inTime: undefined,
+          outTime: undefined,
+          totalPresent: 0,
+          totalAbsent: 0,
+          attendancePercentage: 0,
+        });
+      }
     }
 
     // Fetch statistics

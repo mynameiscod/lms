@@ -54,9 +54,7 @@ const LoginPage: React.FC = () => {
       <div className="login-left">
         <div className="logo-section">
           <div className="logo">
-            <span className="logo-main">COD</span>
-            <span className="logo-accent">B</span>
-            <span className="logo-main">GUN</span>
+            <img src="/assets/logo.png" alt="CODEBEGUN Logo" className="logo-image" />
           </div>
           <div className="logo-tagline">SOFTWARE TRAINING & CAREER SOLUTIONS</div>
         </div>

@@ -1,5 +1,5 @@
 .quiz-management-page {
-  padding: 30px;
+  padding: 20px 30px;
   background: white;
   min-height: 100vh;
 }
@@ -8,23 +8,31 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 40px;
-  gap: 30px;
+  margin-bottom: 30px;
+  gap: 20px;
   flex-wrap: wrap;
 }
 
-.header-text h1 {
+.header-text h2 {
   margin: 0;
-  color: #333;
-  font-size: 2.5rem;
-  font-weight: 700;
+  color: #1e3a5f !important;
+  font-size: 1.25rem;
+  font-weight: 600;
   text-shadow: none;
+  text-align: left;
+  display: block;
 }
 
 .header-text .subtitle {
-  margin: 10px 0 0 0;
+  margin: 4px 0 0 0;
   color: #666;
-  font-size: 1.1rem;
+  font-size: 0.9rem;
+}
+
+.page-header .btn-primary {
+  padding: 8px 16px;
+  font-size: 0.875rem;
+  height: auto;
 }
 
 /* Form Styles */
@@ -262,9 +270,19 @@
   text-transform: uppercase;
 }
 
+.status-badge.pending {
+  background: #fff3cd;
+  color: #856404;
+}
+
 .status-badge.active {
   background: #d4edda;
   color: #155724;
+}
+
+.status-badge.closed {
+  background: #f8d7da;
+  color: #721c24;
 }
 
 .status-badge.inactive {
@@ -274,34 +292,65 @@
 
 .quiz-actions-cell {
   text-align: center;
+  white-space: nowrap;
+  width: 170px;
 }
 
 .action-buttons {
-  display: flex;
-  gap: 8px;
+  display: inline-flex !important;
+  gap: 4px;
   justify-content: center;
-  flex-wrap: nowrap;
+  align-items: center;
+  flex-wrap: nowrap !important;
+  flex-direction: row !important;
+  white-space: nowrap;
+  width: 100%;
 }
 
 .btn-action {
-  padding: 6px 10px;
-  border: 1px solid #e0e0e0;
-  background: white;
-  color: #333;
-  border-radius: 6px;
+  padding: 0 !important;
+  border: none;
+  background: #005897;
+  color: white;
+  border-radius: 4px;
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s ease;
-  display: inline-flex;
+  display: inline-flex !important;
   align-items: center;
   justify-content: center;
+  min-width: 28px;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+}
+
+.btn-action:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: #cccccc;
+}
+
+.btn-action:disabled:hover {
+  background: #cccccc;
+  cursor: not-allowed;
 }
 
 .btn-action:hover {
   background: #f5f5f5;
   border-color: #999;
 }
+.btn-action.btn-preview:hover {
+  background: #f3e5f5;
+  border-color: #7b1fa2;
+  color: #7b1fa2;
+}
 
+.btn-action.btn-results:hover {
+  background: #e0f2f1;
+  border-color: #00897b;
+  color: #00897b;
+}
 .btn-action.btn-edit:hover {
   background: #e3f2fd;
   border-color: #2196f3;
@@ -331,12 +380,17 @@
   }
 
   .action-buttons {
-    flex-wrap: wrap;
+    flex-wrap: nowrap !important;
+    display: inline-flex !important;
+    gap: 4px;
   }
 
   .btn-action {
-    padding: 5px 8px;
-    font-size: 0.9rem;
+    padding: 0 !important;
+    font-size: 1rem;
+    min-width: 28px;
+    width: 28px;
+    height: 28px;
   }
 }
 
@@ -356,8 +410,8 @@
     flex-direction: column;
   }
 
-  .header-text h1 {
-    font-size: 2rem;
+  .header-text h2 {
+    font-size: 1.375rem;
   }
 
   .quiz-meta {
@@ -383,8 +437,8 @@
     padding: 15px;
   }
 
-  .header-text h1 {
-    font-size: 1.5rem;
+  .header-text h2 {
+    font-size: 1.25rem;
   }
 
   .form-section {

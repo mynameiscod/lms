@@ -17,6 +17,9 @@ interface Question {
   source: string;
   usageCount: number;
   createdAt: string;
+  options?: { text: string; isCorrect: boolean }[];
+  correctAnswers?: string[];
+  description?: string;
 }
 
 type InputMethod = 'view' | 'manual' | 'csv' | 'ai';
@@ -41,6 +44,20 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12; // Show 12 cards per page for better density
+
+  // Edit modal state
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
+  const [editForm, setEditForm] = useState({
+    question: '',
+    type: 'mcq_single',
+    options: ['', '', '', ''],
+    correctAnswer: '0',
+    marks: 1,
+    difficulty: 'medium',
+    tags: '',
+    description: ''
+  });
 
   // Manual entry form state
   const [manualForm, setManualForm] = useState({
@@ -249,12 +266,97 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     }
   };
 
+  // Open edit modal
+  const handleEditQuestion = (question: Question) => {
+    setEditingQuestion(question);
+    
+    // Extract options text if they exist
+    const optionTexts = question.options 
+      ? question.options.map(opt => typeof opt === 'string' ? opt : opt.text)
+      : ['', '', '', ''];
+    
+    // Find correct answer index
+    let correctAnswerIndex = '0';
+    if (question.options) {
+      const correctIndex = question.options.findIndex(opt => 
+        typeof opt === 'object' && opt.isCorrect
+      );
+      if (correctIndex >= 0) correctAnswerIndex = correctIndex.toString();
+    }
+    
+    setEditForm({
+      question: question.question,
+      type: question.type,
+      options: optionTexts.length >= 4 ? optionTexts.slice(0, 4) : [...optionTexts, ...Array(4 - optionTexts.length).fill('')],
+      correctAnswer: correctAnswerIndex,
+      marks: question.marks,
+      difficulty: question.difficultyLevel || question.difficulty || 'medium',
+      tags: (question.tags || []).join(', '),
+      description: question.description || ''
+    });
+    setShowEditModal(true);
+  };
+
+  // Submit edit
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingQuestion) return;
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const updateData = {
+        question: editForm.question,
+        type: editForm.type,
+        marks: editForm.marks,
+        difficultyLevel: editForm.difficulty,
+        tags: editForm.tags ? editForm.tags.split(',').map(t => t.trim()).filter(t => t) : [],
+        description: editForm.description,
+        options: editForm.type.startsWith('mcq')
+          ? editForm.options.filter(o => o.trim() !== '').map((text, idx) => ({
+              text,
+              isCorrect: idx === parseInt(editForm.correctAnswer)
+            }))
+          : undefined,
+        correctAnswers: editForm.type.startsWith('mcq')
+          ? [editForm.correctAnswer]
+          : undefined
+      };
+
+      await quizApi.updateQuestionBankQuestion(editingQuestion._id, updateData);
+      
+      // Update local state
+      const updatedQuestions = questions.map(q => 
+        q._id === editingQuestion._id 
+          ? { ...q, ...updateData, difficulty: updateData.difficultyLevel }
+          : q
+      );
+      setQuestions(updatedQuestions);
+      setFilteredQuestions(updatedQuestions.filter(q => {
+        let match = true;
+        if (searchTerm) match = match && q.question.toLowerCase().includes(searchTerm.toLowerCase());
+        if (selectedTags.length > 0) match = match && selectedTags.some(tag => (q.tags || []).includes(tag));
+        if (difficultyFilter) match = match && (q.difficultyLevel || q.difficulty) === difficultyFilter;
+        return match;
+      }));
+      
+      setSuccessMessage('Question updated successfully!');
+      setShowEditModal(false);
+      setEditingQuestion(null);
+      setTimeout(() => setSuccessMessage(''), 3000);
+    } catch (err: any) {
+      setError(err.message || 'Failed to update question');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="question-bank">
       <div className="qb-header">
         <div>
-          <h1>Question Bank</h1>
-          <p>Manage your reusable question library</p>
+          <h2>Question Bank</h2>
         </div>
         {onClose && (
           <Button
@@ -395,9 +497,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                       <div className="qb-question-actions">
                         <Button
                           variant="secondary"
-                          onClick={() => {
-                            // TODO: Edit functionality
-                          }}
+                          onClick={() => handleEditQuestion(question)}
                         >
                           Edit
                         </Button>
@@ -608,6 +708,120 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
           </div>
         )}
       </div>
+
+      {/* Edit Question Modal */}
+      {showEditModal && editingQuestion && (
+        <div className="qb-modal-overlay" onClick={() => setShowEditModal(false)}>
+          <div className="qb-modal" onClick={e => e.stopPropagation()}>
+            <div className="qb-modal-header">
+              <h2>Edit Question</h2>
+              <Button variant="secondary" onClick={() => setShowEditModal(false)}>✕</Button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="qb-edit-form">
+              <div className="form-group">
+                <label>Question Text *</label>
+                <textarea
+                  value={editForm.question}
+                  onChange={e => setEditForm({...editForm, question: e.target.value})}
+                  required
+                  rows={3}
+                  placeholder="Enter your question"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Type</label>
+                  <select
+                    value={editForm.type}
+                    onChange={e => setEditForm({...editForm, type: e.target.value})}
+                  >
+                    <option value="mcq_single">MCQ (Single)</option>
+                    <option value="mcq_multiple">MCQ (Multiple)</option>
+                    <option value="short_answer">Short Answer</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Difficulty</label>
+                  <select
+                    value={editForm.difficulty}
+                    onChange={e => setEditForm({...editForm, difficulty: e.target.value})}
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label>Marks</label>
+                  <Input
+                    type="number"
+                    value={editForm.marks}
+                    onChange={e => setEditForm({...editForm, marks: parseInt(e.target.value) || 1})}
+                    min={1}
+                  />
+                </div>
+              </div>
+
+              {editForm.type.startsWith('mcq') && (
+                <div className="form-group">
+                  <label>Options</label>
+                  {editForm.options.map((option, idx) => (
+                    <div key={idx} className="option-row">
+                      <input
+                        type="radio"
+                        name="correctAnswer"
+                        checked={editForm.correctAnswer === idx.toString()}
+                        onChange={() => setEditForm({...editForm, correctAnswer: idx.toString()})}
+                      />
+                      <Input
+                        value={option}
+                        onChange={e => {
+                          const newOptions = [...editForm.options];
+                          newOptions[idx] = e.target.value;
+                          setEditForm({...editForm, options: newOptions});
+                        }}
+                        placeholder={`Option ${idx + 1}`}
+                      />
+                    </div>
+                  ))}
+                  <small>Select the radio button for the correct answer</small>
+                </div>
+              )}
+
+              <div className="form-group">
+                <label>Tags (comma-separated)</label>
+                <Input
+                  value={editForm.tags}
+                  onChange={e => setEditForm({...editForm, tags: e.target.value})}
+                  placeholder="java, loops, basics"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>Description/Explanation</label>
+                <textarea
+                  value={editForm.description}
+                  onChange={e => setEditForm({...editForm, description: e.target.value})}
+                  rows={2}
+                  placeholder="Optional explanation or hint"
+                />
+              </div>
+
+              <div className="qb-modal-actions">
+                <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { quizApi, batchApi } from '../../api';
 import { Button, Alert, Spinner } from '../../components/common';
 import QuizWizard from '../../components/QuizWizard/QuizWizard';
@@ -7,6 +8,7 @@ import { Quiz, Batch } from '../../types';
 import './QuizManagementPage.css';
 
 const QuizManagementPage: React.FC = () => {
+  const navigate = useNavigate();
   const [quizzes, setQuizzes] = useState<Quiz[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +92,55 @@ const QuizManagementPage: React.FC = () => {
     setLinkingQuizTitle(quiz.title);
   };
 
+  const getQuizStatus = (quiz: Quiz): string => {
+    try {
+      const now = new Date();
+      
+      // Parse start date and time
+      const startDateParts = quiz.startDate.split('T')[0].split('-');
+      const startTimeParts = quiz.startTime.split(':');
+      const startDateTime = new Date(
+        parseInt(startDateParts[0]),
+        parseInt(startDateParts[1]) - 1,
+        parseInt(startDateParts[2]),
+        parseInt(startTimeParts[0]),
+        parseInt(startTimeParts[1]),
+        0
+      );
+      
+      // Parse end date and time
+      const endDateParts = quiz.endDate.split('T')[0].split('-');
+      const endTimeParts = quiz.endTime.split(':');
+      const endDateTime = new Date(
+        parseInt(endDateParts[0]),
+        parseInt(endDateParts[1]) - 1,
+        parseInt(endDateParts[2]),
+        parseInt(endTimeParts[0]),
+        parseInt(endTimeParts[1]),
+        0
+      );
+      
+      if (now < startDateTime) return 'pending';
+      if (now > endDateTime) return 'closed';
+      return 'active';
+    } catch (err) {
+      return 'active';
+    }
+  };
+
+  const getQuizStatusLabel = (quiz: Quiz): string => {
+    const status = getQuizStatus(quiz);
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'closed':
+        return 'Closed';
+      case 'active':
+      default:
+        return 'Active';
+    }
+  };
+
   if (loading) return <Spinner fullScreen />;
 
   // Show wizard full-page
@@ -132,8 +183,7 @@ const QuizManagementPage: React.FC = () => {
     <div className="quiz-management-page">
       <div className="page-header">
         <div className="header-text">
-          <h1>📝 Quiz Management</h1>
-          <p className="subtitle">Create and manage quizzes for your students</p>
+          <h2>Quiz Management</h2>
         </div>
         <Button onClick={() => {
           resetForm();
@@ -159,9 +209,6 @@ const QuizManagementPage: React.FC = () => {
               <thead>
                 <tr>
                   <th>Quiz Title</th>
-                  <th>Questions</th>
-                  <th>Marks</th>
-                  <th>Duration</th>
                   <th>Start Date & Time</th>
                   <th>End Date & Time</th>
                   <th>Status</th>
@@ -172,9 +219,6 @@ const QuizManagementPage: React.FC = () => {
                 {quizzes.map(quiz => (
                   <tr key={quiz._id} className="quiz-row">
                     <td className="quiz-title">{quiz.title}</td>
-                    <td className="quiz-questions">{quiz.totalQuestions || 0}</td>
-                    <td className="quiz-marks">{quiz.totalMarks}</td>
-                    <td className="quiz-time">{quiz.totalTime} min</td>
                     <td className="quiz-date">
                       {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
                     </td>
@@ -182,26 +226,44 @@ const QuizManagementPage: React.FC = () => {
                       {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
                     </td>
                     <td className="quiz-status">
-                      <span className={`status-badge ${quiz.isActive ? 'active' : 'inactive'}`}>
-                        {quiz.isActive ? 'Active' : 'Inactive'}
+                      <span className={`status-badge ${getQuizStatus(quiz)}`}>
+                        {getQuizStatusLabel(quiz)}
                       </span>
                     </td>
                     <td className="quiz-actions-cell">
                       <div className="action-buttons">
                         <Button
-                          onClick={() => handleEditQuiz(quiz)}
-                          className="btn-action btn-edit"
-                          title="Edit quiz"
+                          onClick={() => navigate(`/quiz-taking/${quiz._id}`)}
+                          className="btn-action btn-preview"
+                          title="Preview quiz"
                         >
-                          ✏️
+                          👁️
                         </Button>
                         <Button
-                          onClick={() => handleLinkQuestions(quiz)}
-                          className="btn-action btn-link"
-                          title="Link questions from Question Bank"
+                          onClick={() => navigate(`/quiz-results?quizId=${quiz._id}`)}
+                          className="btn-action btn-results"
+                          title="View quiz results"
                         >
-                          🔗
+                          📊
                         </Button>
+                        {getQuizStatus(quiz) !== 'closed' && (
+                          <Button
+                            onClick={() => handleEditQuiz(quiz)}
+                            className="btn-action btn-edit"
+                            title="Edit quiz"
+                          >
+                            ✏️
+                          </Button>
+                        )}
+                        {getQuizStatus(quiz) !== 'closed' && (
+                          <Button
+                            onClick={() => handleLinkQuestions(quiz)}
+                            className="btn-action btn-link"
+                            title="Link questions from Question Bank"
+                          >
+                            🔗
+                          </Button>
+                        )}
                         <Button
                           onClick={() => handleDeleteQuiz(quiz._id)}
                           className="btn-action btn-delete"

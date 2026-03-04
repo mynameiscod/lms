@@ -111,7 +111,6 @@ const LoginPage: React.FC = () => {
                   required
                   className="form-input"
                 />
-                <span className="input-icon">✉️</span>
               </div>
             </div>
 

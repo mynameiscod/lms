@@ -1,11 +1,33 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Input, Alert } from '../common';
 import { Batch } from '../../types';
+import { courseApi, subjectApi, chapterApi } from '../../api';
 import './QuizWizard.css';
+
+interface Course {
+  _id: string;
+  title: string;
+  code: string;
+}
+
+interface Subject {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+interface Chapter {
+  _id: string;
+  title: string;
+}
 
 interface QuizFormData {
   title: string;
   description: string;
+  instructions: string;
+  courseId: string;
+  subjectId: string;
+  chapterId: string;
   startDate: string;
   endDate: string;
   startTime: string;
@@ -84,6 +106,10 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
   const [formData, setFormData] = useState<QuizFormData>({
     title: initialData?.title || '',
     description: initialData?.description || '',
+    instructions: (initialData as any)?.instructions || '',
+    courseId: (initialData as any)?.courseId || '',
+    subjectId: (initialData as any)?.subjectId || '',
+    chapterId: (initialData as any)?.chapterId || '',
     startDate: formatDateForInput(initialData?.startDate),
     endDate: formatDateForInput(initialData?.endDate),
     startTime: formatTimeForInput(initialData?.startTime),
@@ -107,6 +133,60 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     requireFullScreen: initialData?.requireFullScreen || false,
     tabSwitchWarnings: initialData?.tabSwitchWarnings !== false
   });
+
+  // Course, Subject, Chapter state
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+
+  // Fetch courses on mount
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await courseApi.getCourses({ isActive: true });
+        setCourses(res.data || res || []);
+      } catch (err) {
+        console.error('Failed to fetch courses:', err);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Fetch subjects when course changes
+  useEffect(() => {
+    if (formData.courseId) {
+      const fetchSubjects = async () => {
+        try {
+          const res = await subjectApi.getSubjects({ courseId: formData.courseId });
+          setSubjects(res.data || res || []);
+        } catch (err) {
+          console.error('Failed to fetch subjects:', err);
+        }
+      };
+      fetchSubjects();
+    } else {
+      setSubjects([]);
+      setFormData(prev => ({ ...prev, subjectId: '', chapterId: '' }));
+    }
+  }, [formData.courseId]);
+
+  // Fetch chapters when subject changes
+  useEffect(() => {
+    if (formData.subjectId) {
+      const fetchChapters = async () => {
+        try {
+          const res = await chapterApi.getChapters({ subjectId: formData.subjectId });
+          setChapters(res.data || res || []);
+        } catch (err) {
+          console.error('Failed to fetch chapters:', err);
+        }
+      };
+      fetchChapters();
+    } else {
+      setChapters([]);
+      setFormData(prev => ({ ...prev, chapterId: '' }));
+    }
+  }, [formData.subjectId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target as any;
@@ -286,48 +366,118 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
               />
             </div>
 
-            <div className="form-group">
-              <label>Start Date *</label>
-              <input
-                type="date"
-                name="startDate"
-                value={formData.startDate}
+            <div className="form-group full">
+              <label>Instructions (shown to students before starting)</label>
+              <textarea
+                name="instructions"
+                value={formData.instructions}
                 onChange={handleInputChange}
-                className="date-input"
+                placeholder="Enter instructions for students (e.g., 'Read each question carefully. No switching tabs allowed. Each question carries equal marks.')"
+                rows={4}
+                className="textarea-input"
               />
             </div>
 
+            {/* Course/Subject/Chapter Assignment */}
             <div className="form-group">
-              <label>End Date *</label>
-              <input
-                type="date"
-                name="endDate"
-                value={formData.endDate}
+              <label>Course (Optional)</label>
+              <select
+                name="courseId"
+                value={formData.courseId}
                 onChange={handleInputChange}
-                className="date-input"
-              />
+                className="select-input"
+              >
+                <option value="">-- Select Course --</option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.title} ({course.code})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
-              <label>Start Time</label>
-              <input
-                type="time"
-                name="startTime"
-                value={formData.startTime}
+              <label>Subject (Optional)</label>
+              <select
+                name="subjectId"
+                value={formData.subjectId}
                 onChange={handleInputChange}
-                className="time-input"
-              />
+                className="select-input"
+                disabled={!formData.courseId}
+              >
+                <option value="">-- Select Subject --</option>
+                {subjects.map((subject) => (
+                  <option key={subject._id} value={subject._id}>
+                    {subject.name} ({subject.code})
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div className="form-group">
-              <label>End Time</label>
-              <input
-                type="time"
-                name="endTime"
-                value={formData.endTime}
+              <label>Chapter (Optional)</label>
+              <select
+                name="chapterId"
+                value={formData.chapterId}
                 onChange={handleInputChange}
-                className="time-input"
-              />
+                className="select-input"
+                disabled={!formData.subjectId}
+              >
+                <option value="">-- Select Chapter --</option>
+                {chapters.map((chapter) => (
+                  <option key={chapter._id} value={chapter._id}>
+                    {chapter.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Start Date *</label>
+                <input
+                  type="date"
+                  name="startDate"
+                  value={formData.startDate}
+                  onChange={handleInputChange}
+                  className="date-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>End Date *</label>
+                <input
+                  type="date"
+                  name="endDate"
+                  value={formData.endDate}
+                  onChange={handleInputChange}
+                  className="date-input"
+                />
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group">
+                <label>Start Time</label>
+                <input
+                  type="time"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleInputChange}
+                  className="time-input"
+                />
+              </div>
+
+              <div className="form-group">
+                <label>End Time</label>
+                <input
+                  type="time"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleInputChange}
+                  className="time-input"
+                />
+              </div>
             </div>
           </div>
         </div>

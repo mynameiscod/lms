@@ -61,6 +61,11 @@ export class EmailService {
     const fromEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] || process.env.EMAIL_USER;
     const fromName = process.env.EMAIL_FROM?.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
     
+    console.log('   📤 Brevo API Call:');
+    console.log('      From:', fromName, '<' + fromEmail + '>');
+    console.log('      To:', to);
+    console.log('      Subject:', subject);
+    
     const response = await fetch('https://api.brevo.com/v3/smtp/email', {
       method: 'POST',
       headers: {
@@ -77,10 +82,14 @@ export class EmailService {
       })
     });
 
+    const responseData = await response.json() as { message?: string; messageId?: string };
+    console.log('      Brevo Response:', response.status, JSON.stringify(responseData));
+
     if (!response.ok) {
-      const errorData = await response.json() as { message?: string };
-      throw new Error(`Brevo API error: ${errorData.message || response.statusText}`);
+      throw new Error(`Brevo API error: ${responseData.message || response.statusText}`);
     }
+    
+    console.log('      ✅ Message ID:', responseData.messageId || 'N/A');
   }
 
   async sendWelcomeEmail(

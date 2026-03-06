@@ -835,6 +835,12 @@ export const quizApi = {
     });
   },
 
+  getQuizzesByChapter: async (chapterId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/chapter/${chapterId}`, {
+      method: 'GET'
+    });
+  },
+
   updateQuiz: async (quizId: string, updateData: any) => {
     return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}`, {
       method: 'PUT',

@@ -32,6 +32,8 @@ router.post(
 
 router.get('/instructor', quizController.getQuizzes);
 
+router.get('/chapter/:chapterId', quizController.getQuizzesByChapter);
+
 router.get('/:quizId/attempts/latest', quizController.getLatestStudentAttempt);
 router.get('/student/available', quizController.getStudentQuizzes);
 

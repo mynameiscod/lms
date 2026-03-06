@@ -8,7 +8,7 @@ import { AuthRequest } from '../types/express';
 // CREATE - Admin creates new content
 export const createContent = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, title, description, content, courseId, courseName, dueDate, priority, tags, visibility, code, language } = req.body;
+    const { type, title, description, content, courseId, courseName, subjectId, chapterId, dueDate, priority, tags, visibility, code, language } = req.body;
     const userId = req.user?.id;  // Use 'id' not '_id' from JWT
     const tenantId = req.user?.tenantId;
 
@@ -70,6 +70,8 @@ export const createContent = async (req: AuthRequest, res: Response) => {
         courseId: new mongoose.Types.ObjectId(courseId),
         courseName,
       },
+      subjectId: subjectId ? new mongoose.Types.ObjectId(subjectId) : undefined,
+      chapterId: chapterId ? new mongoose.Types.ObjectId(chapterId) : undefined,
       tenant: tenantId,
       tags: tags || [],
       visibility: visibility || 'enrolled_only',
@@ -98,6 +100,8 @@ export const createContent = async (req: AuthRequest, res: Response) => {
     });
   } catch (error) {
     console.error('Create content error:', error);
+    console.error('Request body:', req.body);
+    console.error('Request files:', req.files);
     res.status(500).json({
       success: false,
       message: 'Failed to create content',
@@ -393,6 +397,52 @@ export const getContentByType = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch content',
+      error: (error as Error).message,
+    });
+  }
+};
+
+// Get content (notes/cheatsheets) by chapter
+export const getContentByChapter = async (req: AuthRequest, res: Response) => {
+  try {
+    const { chapterId } = req.params;
+    const { type } = req.query; // optional filter by type
+    const tenantId = req.user?.tenantId;
+
+    if (!mongoose.Types.ObjectId.isValid(chapterId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid chapter ID',
+      });
+    }
+
+    const query: any = {
+      tenant: tenantId,
+      chapterId: new mongoose.Types.ObjectId(chapterId),
+      isPublished: true,
+    };
+
+    // Filter by type if provided (note, cheatsheet)
+    if (type && ['note', 'cheatsheet'].includes(type as string)) {
+      query.type = type;
+    } else {
+      // Default to both notes and cheatsheets
+      query.type = { $in: ['note', 'cheatsheet'] };
+    }
+
+    const contents = await Content.find(query)
+      .sort({ type: 1, createdAt: -1 }) // Group by type, then by date
+      .select('type title description attachments createdAt author');
+
+    res.status(200).json({
+      success: true,
+      data: contents,
+    });
+  } catch (error) {
+    console.error('Get content by chapter error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch chapter content',
       error: (error as Error).message,
     });
   }

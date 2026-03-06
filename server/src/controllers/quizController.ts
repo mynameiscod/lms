@@ -155,6 +155,17 @@ export const getQuizById = async (req: Request, res: Response) => {
   }
 };
 
+export const getQuizzesByChapter = async (req: Request, res: Response) => {
+  try {
+    const { chapterId } = req.params;
+    const tenantId = (req as any).tenantId;
+    const quizzes = await quizService.getQuizzesByChapter(chapterId, tenantId);
+    res.json(quizzes);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const updateQuiz = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;

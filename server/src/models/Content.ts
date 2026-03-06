@@ -17,6 +17,10 @@ export interface IContent extends Document {
     courseName: string;
   };
   
+  // Chapter-level association (optional)
+  subjectId?: Schema.Types.ObjectId;
+  chapterId?: Schema.Types.ObjectId;
+  
   tenant: Schema.Types.ObjectId;
   
   // Type-specific fields
@@ -88,6 +92,14 @@ const ContentSchema = new Schema<IContent>(
         required: true,
       },
       courseName: String,
+    },
+    subjectId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Subject',
+    },
+    chapterId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Chapter',
     },
     tenant: {
       type: Schema.Types.ObjectId,
@@ -161,6 +173,7 @@ const ContentSchema = new Schema<IContent>(
 // Indexes for common queries
 ContentSchema.index({ tenant: 1, type: 1 });
 ContentSchema.index({ tenant: 1, course: 1 });
+ContentSchema.index({ tenant: 1, chapterId: 1, type: 1 });
 ContentSchema.index({ tenant: 1, isPublished: 1, createdAt: -1 });
 ContentSchema.index({ dueDate: 1, type: 1 });
 

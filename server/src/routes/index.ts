@@ -13,6 +13,8 @@ import quizRoutes from './quizRoutes';
 import questionRoutes from './questionRoutes';
 import contentRoutes from './contentRoutes';
 import progressRoutes from './progressRoutes';
+import studentProfileRoutes from './studentProfileRoutes';
+import oauthRoutes from './oauthRoutes';
 
 const router = express.Router();
 
@@ -30,5 +32,7 @@ router.use('/quizzes', quizRoutes);
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);
+router.use('/student-profile', studentProfileRoutes);
+router.use('/oauth', oauthRoutes);
 
 export default router;

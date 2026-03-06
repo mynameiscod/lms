@@ -20,6 +20,8 @@ export interface ContentData {
   content: string;
   courseId?: string;
   courseName?: string;
+  subjectId?: string;
+  chapterId?: string;
   tags?: string[];
   isPublished: boolean;
   visibility: 'all_students' | 'specific_batch' | 'enrolled_only';
@@ -57,6 +59,8 @@ export const contentAPI = {
     formData.append('content', data.content);
     formData.append('courseId', data.courseId || '');
     formData.append('courseName', data.courseName || '');
+    if (data.subjectId) formData.append('subjectId', data.subjectId);
+    if (data.chapterId) formData.append('chapterId', data.chapterId);
     formData.append('isPublished', String(data.isPublished));
     formData.append('visibility', data.visibility);
     
@@ -195,6 +199,18 @@ export const contentAPI = {
   getContentById: async (id: string) => {
     const token = localStorage.getItem('token');
     const response = await axios.get(`${API_BASE_URL}/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+
+  // Get content (notes/cheatsheets) by chapter
+  getContentByChapter: async (chapterId: string, type?: 'note' | 'cheatsheet') => {
+    const token = localStorage.getItem('token');
+    const params = type ? `?type=${type}` : '';
+    const response = await axios.get(`${API_BASE_URL}/chapter/${chapterId}${params}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },

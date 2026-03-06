@@ -33,6 +33,7 @@ import QuizTakingPage from './pages/QuizTaking';
 import QuizResultsPage from './pages/QuizResults';
 import QuestionBuilder from './pages/QuestionBuilder';
 import StudentProfilePage from './pages/StudentProfile';
+import OAuthCallbackPage from './pages/OAuthCallback';
 import AdminContentPage from './pages/AdminContent';
 import NotFoundPage from './pages/NotFound';  
 
@@ -264,6 +265,9 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* OAuth Callback - handles redirects from GitHub/LinkedIn */}
+      <Route path="/profile/oauth-callback" element={<OAuthCallbackPage />} />
 
       <Route
         path="/admin/content"

@@ -1,11 +1,29 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Button from '../common/Button';
 import Input from '../common/Input';
 import Card from '../common/Card';
 import Spinner from '../common/Spinner';
 import { type AlertType } from '../common';
 import contentAPI, { ContentData } from '../../api/contentAPI';
+import { courseApi, subjectApi, chapterApi } from '../../api';
 import './ContentForm.css';
+
+interface Course {
+  _id: string;
+  title: string;
+  code: string;
+}
+
+interface Subject {
+  _id: string;
+  name: string;
+  code: string;
+}
+
+interface Chapter {
+  _id: string;
+  title: string;
+}
 
 export interface ContentFormProps {
   onSuccess?: (message: string) => void;
@@ -40,6 +58,94 @@ const ContentForm: React.FC<ContentFormProps> = ({
   const [loading, setLoading] = useState(false);
   const [tagInput, setTagInput] = useState('');
   const [dragOver, setDragOver] = useState(false);
+  
+  // State for course/subject/chapter dropdowns (for notes and cheatsheets)
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  
+  // Check if content type requires chapter selection
+  const requiresChapter = formData.type === 'note' || formData.type === 'cheatsheet';
+  
+  // Fetch courses when type requires chapter selection
+  useEffect(() => {
+    if (requiresChapter) {
+      const fetchCourses = async () => {
+        try {
+          const res = await courseApi.getCourses();
+          // Handle various response formats
+          let courseList: Course[] = [];
+          if (Array.isArray(res)) {
+            courseList = res;
+          } else if (Array.isArray(res?.data?.courses)) {
+            courseList = res.data.courses;
+          } else if (Array.isArray(res?.courses)) {
+            courseList = res.courses;
+          } else if (Array.isArray(res?.data)) {
+            courseList = res.data;
+          }
+          setCourses(courseList);
+        } catch (err) {
+          console.error('Failed to fetch courses:', err);
+        }
+      };
+      fetchCourses();
+    }
+  }, [requiresChapter]);
+  
+  // Fetch subjects when course changes (for notes/cheatsheets)
+  useEffect(() => {
+    if (requiresChapter && formData.courseId) {
+      const fetchSubjects = async () => {
+        try {
+          const res = await subjectApi.getSubjects({ courseId: formData.courseId });
+          // Handle various response formats
+          let subjectList: Subject[] = [];
+          if (Array.isArray(res)) {
+            subjectList = res;
+          } else if (Array.isArray(res?.data)) {
+            subjectList = res.data;
+          } else if (Array.isArray(res?.subjects)) {
+            subjectList = res.subjects;
+          }
+          setSubjects(subjectList);
+        } catch (err) {
+          console.error('Failed to fetch subjects:', err);
+        }
+      };
+      fetchSubjects();
+    } else {
+      setSubjects([]);
+      setFormData(prev => ({ ...prev, subjectId: undefined, chapterId: undefined }));
+    }
+  }, [requiresChapter, formData.courseId]);
+  
+  // Fetch chapters when subject changes
+  useEffect(() => {
+    if (requiresChapter && formData.subjectId) {
+      const fetchChapters = async () => {
+        try {
+          const res = await chapterApi.getChapters({ subjectId: formData.subjectId });
+          // Handle various response formats
+          let chapterList: Chapter[] = [];
+          if (Array.isArray(res)) {
+            chapterList = res;
+          } else if (Array.isArray(res?.data)) {
+            chapterList = res.data;
+          } else if (Array.isArray(res?.chapters)) {
+            chapterList = res.chapters;
+          }
+          setChapters(chapterList);
+        } catch (err) {
+          console.error('Failed to fetch chapters:', err);
+        }
+      };
+      fetchChapters();
+    } else {
+      setChapters([]);
+      setFormData(prev => ({ ...prev, chapterId: undefined }));
+    }
+  }, [requiresChapter, formData.subjectId]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -153,6 +259,8 @@ const ContentForm: React.FC<ContentFormProps> = ({
         content: '',
         courseId: '',
         courseName: '',
+        subjectId: undefined,
+        chapterId: undefined,
         isPublished: false,
         visibility: 'enrolled_only',
         tags: [],
@@ -224,18 +332,80 @@ const ContentForm: React.FC<ContentFormProps> = ({
 
         {/* Course ID */}
         <div className="form-group">
-          <label htmlFor="courseId">Course ID *</label>
-          <Input
-            id="courseId"
-            type="text"
-            name="courseId"
-            value={formData.courseId || ''}
-            onChange={handleInputChange}
-            placeholder="Enter the course ID or name"
-            disabled={loading}
-            required
-          />
+          <label htmlFor="courseId">Course {requiresChapter ? '' : 'ID '}*</label>
+          {requiresChapter ? (
+            <select
+              id="courseId"
+              name="courseId"
+              value={formData.courseId || ''}
+              onChange={handleInputChange}
+              disabled={loading}
+              required
+            >
+              <option value="">Select a course</option>
+              {courses.map((course) => (
+                <option key={course._id} value={course._id}>
+                  {course.title} ({course.code})
+                </option>
+              ))}
+            </select>
+          ) : (
+            <Input
+              id="courseId"
+              type="text"
+              name="courseId"
+              value={formData.courseId || ''}
+              onChange={handleInputChange}
+              placeholder="Enter the course ID or name"
+              disabled={loading}
+              required
+            />
+          )}
         </div>
+        
+        {/* Subject Selection (for notes and cheatsheets only) */}
+        {requiresChapter && (
+          <div className="form-group">
+            <label htmlFor="subjectId">Subject *</label>
+            <select
+              id="subjectId"
+              name="subjectId"
+              value={formData.subjectId || ''}
+              onChange={handleInputChange}
+              disabled={loading || !formData.courseId}
+              required
+            >
+              <option value="">Select a subject</option>
+              {subjects.map((subject) => (
+                <option key={subject._id} value={subject._id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        {/* Chapter Selection (for notes and cheatsheets only) */}
+        {requiresChapter && (
+          <div className="form-group">
+            <label htmlFor="chapterId">Chapter *</label>
+            <select
+              id="chapterId"
+              name="chapterId"
+              value={formData.chapterId || ''}
+              onChange={handleInputChange}
+              disabled={loading || !formData.subjectId}
+              required
+            >
+              <option value="">Select a chapter</option>
+              {chapters.map((chapter) => (
+                <option key={chapter._id} value={chapter._id}>
+                  {chapter.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Main Content */}
         <div className="form-group">

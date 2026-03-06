@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { enrollmentApi, subjectApi, chapterApi, progressApi } from '../../api';
+import { useNavigate } from 'react-router-dom';
+import { enrollmentApi, subjectApi, chapterApi, progressApi, quizApi } from '../../api';
+import { contentAPI } from '../../api/contentAPI';
 import { Spinner, Alert } from '../../components/common';
 import WeekNavigator from '../../components/dashboard/WeekNavigator';
 import './MyCourse.css';
@@ -26,10 +28,37 @@ interface Chapter {
   videos: Video[];
   notes: Note[];
   quizId?: string;
+  quizzes?: Quiz[];
+  content?: ChapterContent[]; // Notes and cheatsheets
   assignmentIds: string[];
   estimatedDuration: number;
   subjectName?: string;
   subjectId?: string;
+}
+
+interface Quiz {
+  _id: string;
+  title: string;
+  description: string;
+  totalQuestions: number;
+  totalMarks: number;
+  totalTime: number;
+  isAttempted?: boolean;
+  attemptCount?: number;
+}
+
+interface ChapterContent {
+  _id: string;
+  type: 'note' | 'cheatsheet';
+  title: string;
+  description?: string;
+  attachments?: Array<{
+    name: string;
+    url: string;
+    size: number;
+    type: string;
+  }>;
+  createdAt: string;
 }
 
 interface Subject {
@@ -56,6 +85,7 @@ interface ScheduleItem {
 }
 
 const MyCourse: React.FC = () => {
+  const navigate = useNavigate();
   const [course, setCourse] = useState<Course | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
@@ -104,13 +134,41 @@ const MyCourse: React.FC = () => {
       const subjectsRes = await subjectApi.getSubjectsByCourse(courseData._id);
       const subjectsData = subjectsRes.data || [];
 
-      // Get chapters for each subject
+      // Get chapters for each subject and their quizzes
       const subjectsWithChapters = await Promise.all(
         subjectsData.map(async (subject: any) => {
           const chaptersRes = await chapterApi.getChaptersBySubject(subject._id);
+          const chapters = chaptersRes.data || [];
+          
+          // Fetch quizzes and content for each chapter
+          const chaptersWithQuizzes = await Promise.all(
+            chapters.map(async (chapter: Chapter) => {
+              let quizzes: Quiz[] = [];
+              let content: ChapterContent[] = [];
+              
+              // Fetch quizzes for chapter
+              try {
+                const quizzesRes = await quizApi.getQuizzesByChapter(chapter._id);
+                quizzes = quizzesRes || [];
+              } catch (err) {
+                // No quizzes or error
+              }
+              
+              // Fetch content (notes/cheatsheets) for chapter
+              try {
+                const contentRes = await contentAPI.getContentByChapter(chapter._id);
+                content = contentRes.data || [];
+              } catch (err) {
+                // No content or error
+              }
+              
+              return { ...chapter, quizzes, content };
+            })
+          );
+          
           return {
             ...subject,
-            chapters: (chaptersRes.data || []).sort((a: Chapter, b: Chapter) => a.order - b.order)
+            chapters: chaptersWithQuizzes.sort((a: Chapter, b: Chapter) => a.order - b.order)
           };
         })
       );
@@ -426,14 +484,66 @@ const MyCourse: React.FC = () => {
                             )}
 
                             {/* Quiz */}
-                            {chapter.quizId && (
+                            {chapter.quizzes && chapter.quizzes.length > 0 && (
                               <div className="content-section">
-                                <h4>Quiz</h4>
-                                <div className="quiz-item">
-                                  <span className="content-icon">📝</span>
-                                  <span>Chapter Quiz</span>
-                                  <button className="start-quiz-btn">Start Quiz</button>
-                                </div>
+                                <h4>Quizzes</h4>
+                                <ul className="content-list">
+                                  {chapter.quizzes.map((quiz) => (
+                                    <li key={quiz._id} className="content-item quiz">
+                                      <span className="content-icon">📝</span>
+                                      <div className="quiz-info">
+                                        <span className="quiz-title">{quiz.title}</span>
+                                        <span className="quiz-meta">
+                                          {quiz.totalQuestions} questions • {quiz.totalMarks} marks • {quiz.totalTime} min
+                                        </span>
+                                      </div>
+                                      <button 
+                                        className="start-quiz-btn"
+                                        onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                                      >
+                                        {quiz.isAttempted ? 'Retake' : 'Start Quiz'}
+                                      </button>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {/* Notes & Cheatsheets */}
+                            {chapter.content && chapter.content.length > 0 && (
+                              <div className="content-section">
+                                <h4>Notes & Cheatsheets</h4>
+                                <ul className="content-list">
+                                  {chapter.content.map((item) => (
+                                    <li key={item._id} className={`content-item ${item.type}`}>
+                                      <span className="content-icon">
+                                        {item.type === 'cheatsheet' ? '📋' : '📄'}
+                                      </span>
+                                      <div className="content-info">
+                                        <span className="content-title">{item.title}</span>
+                                        {item.description && (
+                                          <span className="content-desc">{item.description}</span>
+                                        )}
+                                        <span className="content-type-badge">{item.type}</span>
+                                      </div>
+                                      {item.attachments && item.attachments.length > 0 && (
+                                        <div className="content-attachments">
+                                          {item.attachments.map((att, idx) => (
+                                            <a 
+                                              key={idx}
+                                              href={`${window.location.origin}${att.url}`}
+                                              target="_blank"
+                                              rel="noopener noreferrer"
+                                              className="download-btn"
+                                            >
+                                              ⬇️ {att.name}
+                                            </a>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </li>
+                                  ))}
+                                </ul>
                               </div>
                             )}
 
@@ -450,7 +560,7 @@ const MyCourse: React.FC = () => {
                             )}
 
                             {/* Empty state */}
-                            {chapter.videos.length === 0 && chapter.notes.length === 0 && !chapter.quizId && (!chapter.assignmentIds || chapter.assignmentIds.length === 0) && (
+                            {chapter.videos.length === 0 && chapter.notes.length === 0 && (!chapter.quizzes || chapter.quizzes.length === 0) && (!chapter.content || chapter.content.length === 0) && (!chapter.assignmentIds || chapter.assignmentIds.length === 0) && (
                               <div className="no-content-message">
                                 No content available for this chapter yet.
                               </div>

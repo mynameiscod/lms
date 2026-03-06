@@ -165,6 +165,16 @@
   gap: 20px;
 }
 
+.form-row {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 20px;
+}
+
+.form-row .form-group {
+  flex: 1;
+}
+
 .form-group {
   display: flex;
   flex-direction: column;

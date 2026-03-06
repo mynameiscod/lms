@@ -4,8 +4,12 @@ export interface IQuiz extends Document {
   _id: string;
   title: string;
   description: string;
+  instructions?: string; // Instructions shown before quiz starts
   tenantId: string;
   createdBy: string; // Instructor ID
+  courseId?: mongoose.Types.ObjectId; // Optional course reference
+  subjectId?: mongoose.Types.ObjectId; // Optional subject reference
+  chapterId?: mongoose.Types.ObjectId; // Optional chapter reference
   startDate: Date;
   endDate: Date;
   startTime: string; // HH:mm format
@@ -48,8 +52,12 @@ const quizSchema = new Schema<IQuiz>(
   {
     title: { type: String, required: true },
     description: { type: String },
+    instructions: { type: String }, // Instructions shown before quiz starts
     tenantId: { type: String, required: true },
     createdBy: { type: String, required: true },
+    courseId: { type: Schema.Types.ObjectId, ref: 'Course' },
+    subjectId: { type: Schema.Types.ObjectId, ref: 'Subject' },
+    chapterId: { type: Schema.Types.ObjectId, ref: 'Chapter' },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     startTime: { type: String, required: true },

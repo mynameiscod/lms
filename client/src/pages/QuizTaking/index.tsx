@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Alert, Spinner, Button, Modal } from '../../components/common';
 import { Quiz, Question, QuizAttempt } from '../../types';
@@ -7,6 +7,7 @@ import './QuizTakingPage.css';
 
 const QuizTakingPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
+  const navigate = useNavigate();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -15,6 +16,8 @@ const QuizTakingPage: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [showInstructions, setShowInstructions] = useState(true);
+  const [startingQuiz, setStartingQuiz] = useState(false);
   const [showTabWarnModal, setShowTabWarnModal] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
@@ -68,25 +71,9 @@ const QuizTakingPage: React.FC = () => {
         return;
       }
 
-      // Fetch quiz and questions
+      // Fetch quiz info only (don't start attempt yet)
       const quizRes = await quizApi.getQuizById(quizId);
-      const questionsRes = await quizApi.getQuestionsWithAnswers(quizId);
-      
       setQuiz(quizRes.data || quizRes);
-      setQuestions(questionsRes.data || questionsRes);
-
-      // Start attempt
-      const attemptRes = await quizApi.startAttempt(quizId);
-      setAttempt(attemptRes.data || attemptRes);
-
-      // Calculate time left in minutes
-      const quiz = quizRes.data || quizRes;
-      setTimeLeft(quiz.totalTime * 60); // Convert to seconds
-
-      // Require fullscreen if needed
-      if (quiz.requireFullScreen && !document.fullscreenElement) {
-        requestFullscreen();
-      }
     } catch (err: any) {
       setError(err.message || 'Failed to load quiz');
     } finally {
@@ -94,15 +81,51 @@ const QuizTakingPage: React.FC = () => {
     }
   }, [quizId]);
 
+  // Function to actually start the quiz (called from instructions page)
+  const handleStartQuiz = useCallback(async () => {
+    try {
+      setStartingQuiz(true);
+      if (!quizId) return;
+
+      // Fetch questions
+      const questionsRes = await quizApi.getQuestionsWithAnswers(quizId);
+      setQuestions(questionsRes.data || questionsRes);
+
+      // Start attempt
+      const attemptRes = await quizApi.startAttempt(quizId);
+      setAttempt(attemptRes.data || attemptRes);
+
+      // Calculate time left in minutes
+      if (quiz) {
+        setTimeLeft(quiz.totalTime * 60); // Convert to seconds
+      }
+
+      // Require fullscreen if needed
+      if (quiz?.requireFullScreen && !document.fullscreenElement) {
+        requestFullscreen();
+      }
+
+      // Show quiz (hide instructions)
+      setShowInstructions(false);
+      
+      // Setup event listeners after starting
+      setupEventListeners();
+    } catch (err: any) {
+      setError(err.message || 'Failed to start quiz');
+    } finally {
+      setStartingQuiz(false);
+    }
+  }, [quizId, quiz, setupEventListeners]);
+
   useEffect(() => {
     loadQuiz();
-    setupEventListeners();
+    // Don't setup event listeners here - do it when quiz starts
 
     return () => {
       cleanupEventListeners();
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [quizId, loadQuiz, setupEventListeners, cleanupEventListeners]);
+  }, [quizId, loadQuiz, cleanupEventListeners]);
 
   const requestFullscreen = async () => {
     if (fullScreenRef.current) {
@@ -189,7 +212,8 @@ const QuizTakingPage: React.FC = () => {
   }, [quizId, attempt, answers, questions, quiz]);
 
   useEffect(() => {
-    if (timeLeft <= 0 && quiz) return;
+    // Only run timer when quiz has started (not on instruction page)
+    if (showInstructions || timeLeft <= 0 || !quiz) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -204,7 +228,7 @@ const QuizTakingPage: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timeLeft, quiz, handleSubmitQuiz]);
+  }, [showInstructions, timeLeft, quiz, handleSubmitQuiz]);
 
   if (loading) return <Spinner fullScreen />;
   
@@ -228,8 +252,117 @@ const QuizTakingPage: React.FC = () => {
       </div>
     );
   }
+
+  if (!quiz) return <Alert type="error" message="Failed to load quiz" />;
+
+  // Show instructions page before starting quiz
+  if (showInstructions) {
+    return (
+      <div className="quiz-instructions-page">
+        <div className="instructions-container">
+          <div className="instructions-header">
+            <h1>{quiz.title}</h1>
+            {quiz.description && <p className="quiz-description">{quiz.description}</p>}
+          </div>
+
+          <div className="quiz-info-cards">
+            <div className="info-card">
+              <div className="info-icon">📝</div>
+              <div className="info-content">
+                <span className="info-label">Total Questions</span>
+                <span className="info-value">{quiz.totalQuestions}</span>
+              </div>
+            </div>
+            <div className="info-card">
+              <div className="info-icon">🎯</div>
+              <div className="info-content">
+                <span className="info-label">Total Marks</span>
+                <span className="info-value">{quiz.totalMarks}</span>
+              </div>
+            </div>
+            <div className="info-card">
+              <div className="info-icon">⏱️</div>
+              <div className="info-content">
+                <span className="info-label">Duration</span>
+                <span className="info-value">{quiz.totalTime} mins</span>
+              </div>
+            </div>
+            {quiz.passingMarks && (
+              <div className="info-card">
+                <div className="info-icon">✅</div>
+                <div className="info-content">
+                  <span className="info-label">Passing Marks</span>
+                  <span className="info-value">{quiz.passingMarks}</span>
+                </div>
+              </div>
+            )}
+            {quiz.negativeMarking && (
+              <div className="info-card negative">
+                <div className="info-icon">⚠️</div>
+                <div className="info-content">
+                  <span className="info-label">Negative Marking</span>
+                  <span className="info-value">-{quiz.negativeMarkingValue} per wrong answer</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="instructions-section">
+            <h2>📋 Instructions</h2>
+            {quiz.instructions ? (
+              <div className="custom-instructions">
+                {quiz.instructions.split('\n').map((line, index) => (
+                  <p key={index}>{line}</p>
+                ))}
+              </div>
+            ) : (
+              <ul className="default-instructions">
+                <li>Read each question carefully before answering.</li>
+                <li>You have <strong>{quiz.totalTime} minutes</strong> to complete this quiz.</li>
+                <li>All questions are mandatory.</li>
+                {quiz.negativeMarking && (
+                  <li className="warning">Wrong answers will result in <strong>-{quiz.negativeMarkingValue}</strong> marks deduction.</li>
+                )}
+                {quiz.shuffleQuestions && <li>Questions will be shuffled randomly.</li>}
+                {!quiz.canCopyPaste && <li>Copy-paste is disabled during the quiz.</li>}
+                {quiz.requireFullScreen && <li>Full screen mode is required during the quiz.</li>}
+                {quiz.tabSwitchWarnings && <li>Switching tabs/windows will be tracked and may result in penalties.</li>}
+                {!quiz.multipleAttempts && <li>Only one attempt is allowed for this quiz.</li>}
+                {quiz.multipleAttempts && quiz.maxAttempts && (
+                  <li>Maximum {quiz.maxAttempts} attempts are allowed.</li>
+                )}
+              </ul>
+            )}
+          </div>
+
+          <div className="instructions-actions">
+            <Button 
+              onClick={() => navigate(-1)} 
+              className="btn-secondary"
+              disabled={startingQuiz}
+            >
+              ← Go Back
+            </Button>
+            <Button 
+              onClick={handleStartQuiz} 
+              className="btn-primary btn-lg"
+              disabled={startingQuiz}
+            >
+              {startingQuiz ? (
+                <>
+                  <Spinner size="small" /> Starting...
+                </>
+              ) : (
+                '🚀 Start Quiz'
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
   
-  if (!quiz || !attempt) return <Alert type="error" message="Failed to load quiz" />;
+  if (!attempt) return <Spinner fullScreen />;
 
   const currentQuestion = questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;

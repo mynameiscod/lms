@@ -15,6 +15,11 @@ export class QuizService {
     return quiz.save();
   }
 
+  // Get quizzes by chapter ID
+  async getQuizzesByChapter(chapterId: string, tenantId: string): Promise<IQuiz[]> {
+    return Quiz.find({ chapterId, tenantId, isActive: true }).sort({ createdAt: -1 });
+  }
+
   // Get all quizzes for a tenant with filters
   async getQuizzes(tenantId: string, filters?: any) {
     const query: any = { tenantId };

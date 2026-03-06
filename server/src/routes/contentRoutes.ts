@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import path from 'path';
+import fs from 'fs';
 import {
   createContent,
   getAllContent,
@@ -9,12 +10,19 @@ import {
   updateContent,
   deleteContent,
   getContentByType,
+  getContentByChapter,
 } from '../controllers/contentController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 import { tenantResolver } from '../middleware/tenantResolver';
 
 const router = express.Router();
+
+// Ensure uploads/content directory exists
+const uploadsDir = 'uploads/content';
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
@@ -108,6 +116,14 @@ router.get(
   authMiddleware,
   tenantResolver,
   getContentByType
+);
+
+// Get content (notes/cheatsheets) by chapter
+router.get(
+  '/chapter/:chapterId',
+  authMiddleware,
+  tenantResolver,
+  getContentByChapter
 );
 
 // Get single content by ID

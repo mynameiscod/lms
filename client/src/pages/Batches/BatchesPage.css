@@ -69,6 +69,13 @@
   font-size: 13px;
 }
 
+.batch-course {
+  margin: 0 0 4px 0;
+  color: #2563eb;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .status-badge {
   padding: 4px 12px;
   border-radius: 20px;
@@ -238,6 +245,33 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 15px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.form-select {
+  padding: 10px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.form-select:focus {
+  outline: none;
+  border-color: #2563eb;
 }
 
 .timings-section,

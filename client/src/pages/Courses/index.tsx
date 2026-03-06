@@ -10,7 +10,6 @@ const CoursesPage: React.FC = () => {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,59 +46,60 @@ const CoursesPage: React.FC = () => {
     return enrollments.some((e) => e.courseId === courseId);
   };
 
-  const filteredCourses = courses.filter((course) => {
-    if (filter === 'enrolled') {
-      return isEnrolled(course._id);
-    }
-    if (filter === 'available') {
-      return !isEnrolled(course._id);
-    }
-    return true;
-  });
+  const hasAnyEnrollment = enrollments.length > 0;
+
+  // Show only published courses to students
+  const publishedCourses = courses.filter(c => c.isPublished);
 
   if (loading) return <Spinner fullScreen />;
 
+  // If student is already enrolled, show their course
+  if (hasAnyEnrollment) {
+    const enrolledCourse = courses.find(c => isEnrolled(c._id));
+    return (
+      <div className="courses-page">
+        <div className="courses-header">
+          <h1>My Course</h1>
+          <p className="courses-subtitle">Your enrolled course</p>
+        </div>
+
+        {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+
+        <div className="courses-grid">
+          {enrolledCourse && (
+            <CourseCard
+              key={enrolledCourse._id}
+              course={enrolledCourse}
+              isEnrolled={true}
+              onEnroll={() => Promise.resolve()}
+            />
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // If not enrolled, show available courses
   return (
     <div className="courses-page">
       <div className="courses-header">
-        <h1>Courses</h1>
-        <p className="courses-subtitle">Explore and enroll in our courses</p>
+        <h1>Available Courses</h1>
+        <p className="courses-subtitle">Select a course to enroll</p>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <div className="filter-bar">
-        <button
-          className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-          onClick={() => setFilter('all')}
-        >
-          All Courses ({courses.length})
-        </button>
-        <button
-          className={`filter-btn ${filter === 'enrolled' ? 'active' : ''}`}
-          onClick={() => setFilter('enrolled')}
-        >
-          My Courses ({enrollments.length})
-        </button>
-        <button
-          className={`filter-btn ${filter === 'available' ? 'active' : ''}`}
-          onClick={() => setFilter('available')}
-        >
-          Available ({courses.length - enrollments.length})
-        </button>
-      </div>
-
       <div className="courses-grid">
-        {filteredCourses.length === 0 ? (
+        {publishedCourses.length === 0 ? (
           <div className="no-courses">
-            <p>No courses found. Try a different filter.</p>
+            <p>No courses available at the moment.</p>
           </div>
         ) : (
-          filteredCourses.map((course) => (
+          publishedCourses.map((course) => (
             <CourseCard
               key={course._id}
               course={course}
-              isEnrolled={isEnrolled(course._id)}
+              isEnrolled={false}
               onEnroll={() => handleEnroll(course._id)}
             />
           ))

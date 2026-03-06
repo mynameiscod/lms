@@ -15,7 +15,7 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   TENANT_ADMIN: [
     'manage_roles', 'manage_tenant_users', 'manage_tenant_courses', 'manage_tenant_settings',
-    'view_tenant_analytics', 'manage_instructors', 'create_courses',
+    'view_tenant_analytics', 'manage_instructors', 'create_courses', 'edit_courses', 'delete_courses',
     'manage_own_courses', 'view_enrolled_students', 'grade_assignments',
     'create_lessons', 'enroll_courses', 'view_courses', 'view_grades', 'mark_attendance',
     'create_quiz', 'edit_quiz', 'delete_quiz', 'view_quiz', 'create_question',

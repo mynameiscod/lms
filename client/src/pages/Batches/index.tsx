@@ -1,14 +1,21 @@
 import React, { useEffect, useState } from 'react';
-import { batchApi, userApi } from '../../api';
+import { batchApi, userApi, courseApi } from '../../api';
 import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
 import { Batch, User } from '../../types';
 import './BatchesPage.css';
+
+interface Course {
+  _id: string;
+  title: string;
+  code: string;
+}
 
 const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
 
 const BatchesPage: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -18,6 +25,7 @@ const BatchesPage: React.FC = () => {
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
   const [formData, setFormData] = useState({
     name: '',
+    courseId: '',
     startDate: '',
     endDate: '',
     timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
@@ -33,12 +41,14 @@ const BatchesPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [batchesRes, instructorsRes] = await Promise.all([
+      const [batchesRes, instructorsRes, coursesRes] = await Promise.all([
         batchApi.getBatches(),
-        userApi.getUsers()
+        userApi.getUsers(),
+        courseApi.getCourses({ isActive: true })
       ]);
 
       setBatches(batchesRes.data || []);
+      setCourses(coursesRes.data || []);
       // Filter instructors - only users with INSTRUCTOR role
       const instructorUsers = (instructorsRes.data || []).filter(
         (u: User) => u.role === 'INSTRUCTOR' || u.role === 'TENANT_ADMIN'
@@ -114,6 +124,7 @@ const BatchesPage: React.FC = () => {
     setEditingBatch(null);
     setFormData({
       name: '',
+      courseId: '',
       startDate: today,
       endDate,
       timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
@@ -127,6 +138,7 @@ const BatchesPage: React.FC = () => {
     setEditingBatch(batch);
     setFormData({
       name: batch.name,
+      courseId: (batch as any).courseId?._id || (batch as any).courseId || '',
       startDate: batch.startDate.split('T')[0],
       endDate: batch.endDate.split('T')[0],
       timings: batch.timings,
@@ -233,6 +245,13 @@ const BatchesPage: React.FC = () => {
               <div className="batch-header">
                 <div>
                   <h3>{batch.name}</h3>
+                  {(batch as any).courseId && (
+                    <p className="batch-course">
+                      📚 {typeof (batch as any).courseId === 'object' 
+                        ? (batch as any).courseId.title 
+                        : courses.find(c => c._id === (batch as any).courseId)?.title || 'Course'}
+                    </p>
+                  )}
                   <p className="batch-dates">
                     {new Date(batch.startDate).toLocaleDateString()} -{' '}
                     {new Date(batch.endDate).toLocaleDateString()}
@@ -318,15 +337,42 @@ const BatchesPage: React.FC = () => {
         size="large"
       >
         <form onSubmit={handleSubmit} className="batch-form">
-          <Input
-            type="text"
-            name="name"
-            label="Batch Name"
-            placeholder="E.g., Python Batch - Week 1"
-            value={formData.name}
-            onChange={handleFormChange}
-            required
-          />
+          <div className="form-row">
+            <Input
+              type="text"
+              name="name"
+              label="Batch Name"
+              placeholder="E.g., Python Batch - Week 1"
+              value={formData.name}
+              onChange={handleFormChange}
+              required
+            />
+            <Input
+              type="number"
+              name="capacity"
+              label="Batch Size"
+              value={formData.capacity.toString()}
+              onChange={handleFormChange}
+              required
+            />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Course</label>
+            <select
+              name="courseId"
+              value={formData.courseId}
+              onChange={handleFormChange}
+              className="form-select"
+            >
+              <option value="">-- Select Course --</option>
+              {courses.map((course) => (
+                <option key={course._id} value={course._id}>
+                  {course.title} ({course.code})
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="form-row">
             <Input
@@ -346,15 +392,6 @@ const BatchesPage: React.FC = () => {
               required
             />
           </div>
-
-          <Input
-            type="number"
-            name="capacity"
-            label="Batch Capacity"
-            value={formData.capacity.toString()}
-            onChange={handleFormChange}
-            required
-          />
 
           {/* Timings Section */}
           <div className="timings-section">

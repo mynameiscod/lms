@@ -1,0 +1,561 @@
+.my-course-page {
+  padding: 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* No Course Message */
+.no-course-message {
+  text-align: center;
+  padding: 60px 20px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.no-course-message h2 {
+  color: #334155;
+  margin-bottom: 12px;
+}
+
+.no-course-message p {
+  color: #64748b;
+}
+
+/* Subjects Container */
+.subjects-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.no-content {
+  background: #fff;
+  padding: 40px;
+  border-radius: 12px;
+  text-align: center;
+  color: #64748b;
+}
+
+/* Subject Card */
+.subject-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+}
+
+.subject-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.subject-header:hover {
+  background: #f8fafc;
+}
+
+.subject-header.expanded {
+  background: #f1f5f9;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.subject-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.subject-number {
+  width: 36px;
+  height: 36px;
+  background: #3b82f6;
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.subject-name-wrapper h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+}
+
+.subject-code {
+  font-size: 12px;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.subject-meta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.chapter-count {
+  font-size: 13px;
+  color: #64748b;
+}
+
+.expand-icon {
+  color: #94a3b8;
+  font-size: 12px;
+  transition: transform 0.2s;
+}
+
+.expand-icon.rotated {
+  transform: rotate(180deg);
+}
+
+.expand-icon.small {
+  font-size: 10px;
+}
+
+/* Chapters List */
+.chapters-list {
+  padding: 8px 24px 16px;
+}
+
+.no-chapters {
+  padding: 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+}
+
+/* Chapter Item */
+.chapter-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  overflow: hidden;
+}
+
+.chapter-item:last-child {
+  margin-bottom: 0;
+}
+
+.chapter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.chapter-header:hover {
+  background: #f8fafc;
+}
+
+.chapter-header.expanded {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.chapter-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chapter-number {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  min-width: 32px;
+}
+
+.chapter-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: #334155;
+}
+
+.chapter-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.duration {
+  font-size: 12px;
+  color: #64748b;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Chapter Content */
+.chapter-content {
+  padding: 16px;
+  background: #fafafa;
+}
+
+.chapter-description {
+  font-size: 14px;
+  color: #64748b;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.content-section {
+  margin-bottom: 16px;
+}
+
+.content-section:last-child {
+  margin-bottom: 0;
+}
+
+.content-section h4 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #475569;
+  margin: 0 0 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.content-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.content-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 6px;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.content-item:last-child {
+  margin-bottom: 0;
+}
+
+.content-icon {
+  font-size: 16px;
+}
+
+.content-item a {
+  color: #3b82f6;
+  text-decoration: none;
+  flex: 1;
+}
+
+.content-item a:hover {
+  text-decoration: underline;
+}
+
+.item-duration {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.note-title {
+  flex: 1;
+  color: #334155;
+}
+
+.attachment-link {
+  font-size: 12px;
+  color: #3b82f6;
+  text-decoration: none;
+}
+
+.attachment-link:hover {
+  text-decoration: underline;
+}
+
+/* Quiz and Assignment Items */
+.quiz-item,
+.assignment-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.quiz-item span:not(.content-icon),
+.assignment-item span:not(.content-icon) {
+  flex: 1;
+  color: #334155;
+}
+
+.start-quiz-btn,
+.view-assignment-btn {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.start-quiz-btn:hover,
+.view-assignment-btn:hover {
+  background: #2563eb;
+}
+
+.no-content-message {
+  padding: 20px;
+  text-align: center;
+  color: #94a3b8;
+  font-size: 14px;
+  font-style: italic;
+}
+
+/* Calendar Section */
+.calendar-section {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 12px 16px;
+  margin-bottom: 12px;
+}
+
+.calendar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.calendar-row .week-navigator {
+  flex: 1;
+}
+
+.course-info-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  min-width: 180px;
+}
+
+.course-info-compact .course-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.course-info-compact .course-stats {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Selected Topic - Compact */
+.selected-topic-compact {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0 0 0;
+  font-size: 13px;
+  color: #334155;
+  flex-wrap: wrap;
+}
+
+.selected-topic-compact .topic-chapter {
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.selected-topic-compact .topic-divider {
+  color: #cbd5e1;
+}
+
+.selected-topic-compact .topic-subject {
+  color: #64748b;
+}
+
+.selected-topic-compact .topic-status {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 6px;
+  border-radius: 8px;
+}
+
+.selected-topic-compact .topic-status.completed {
+  background: #d1fae5;
+  color: #047857;
+}
+
+.selected-topic-compact .topic-status.upcoming {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.no-chapter-compact {
+  padding: 6px 0 0 0;
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+/* Chapter Date Badge */
+.chapter-date {
+  background: #f0f9ff;
+  color: #3b82f6;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+/* Highlighted Chapter */
+.chapter-item.highlighted {
+  box-shadow: 0 0 0 2px #3b82f6;
+  background: #f0f9ff;
+}
+
+.chapter-item.highlighted .chapter-header {
+  background: #e0f2fe;
+}
+
+/* Progress Tracking */
+.chapter-item.chapter-completed {
+  border-left: 3px solid #10b981;
+}
+
+.chapter-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  background: #10b981;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 12px;
+  margin-right: 8px;
+}
+
+.chapter-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mark-complete-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mark-complete-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.completed-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #d1fae5;
+  color: #047857;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .calendar-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .course-info-compact {
+    align-items: center;
+    min-width: auto;
+  }
+
+  .course-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .course-stats {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .stat {
+    flex: 1;
+  }
+
+  .subject-header {
+    padding: 16px;
+  }
+
+  .chapters-list {
+    padding: 8px 12px 12px;
+  }
+
+  .chapter-header {
+    padding: 12px;
+  }
+}
+
+/* WeekNavigator overrides for compact display */
+.calendar-section .week-navigator {
+  padding: 8px;
+  margin-bottom: 0;
+  border: none;
+  background: transparent;
+  gap: 8px;
+}
+
+.calendar-section .nav-arrow {
+  padding: 6px 10px;
+  font-size: 12px;
+}
+
+.calendar-section .week-header {
+  min-width: 150px;
+}
+
+.calendar-section .week-range {
+  font-size: 12px;
+  padding: 6px 10px;
+}
+
+.calendar-section .day-button {
+  padding: 6px 8px;
+  min-width: 50px;
+}
+
+.calendar-section .day-name {
+  font-size: 10px;
+}
+
+.calendar-section .day-date {
+  font-size: 11px;
+}

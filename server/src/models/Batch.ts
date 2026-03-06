@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IBatch extends Document {
   name: string;
+  courseId: mongoose.Types.ObjectId; // Links batch to a specific course
   startDate: Date;
   endDate: Date;
   timings: {
@@ -24,6 +25,11 @@ const BatchSchema: Schema = new Schema(
       type: String,
       required: true,
       trim: true
+    },
+    courseId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Course',
+      required: false // Optional for now to support existing batches
     },
     startDate: {
       type: Date,

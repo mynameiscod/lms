@@ -4,6 +4,7 @@ import User from '../models/User';
 export class BatchService {
   async createBatch(batchData: {
     name: string;
+    courseId?: string;
     startDate: Date;
     endDate: Date;
     timings: Array<{ day: string; startTime: string; endTime: string }>;
@@ -25,6 +26,7 @@ export class BatchService {
   async getBatchesByTenant(tenantId: string): Promise<IBatch[]> {
     const batches = await Batch.find({ tenantId, isActive: true })
       .populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code')
       .sort({ startDate: -1 });
     
     // Calculate enrolledCount dynamically for each batch
@@ -42,7 +44,8 @@ export class BatchService {
 
   async getBatchById(batchId: string): Promise<IBatch | null> {
     const batch = await Batch.findById(batchId)
-      .populate('instructors', 'firstName lastName email role');
+      .populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code');
     
     if (!batch) return null;
     
@@ -62,7 +65,8 @@ export class BatchService {
       { _id: batchId, tenantId },
       { $set: updateData },
       { new: true }
-    ).populate('instructors', 'firstName lastName email role');
+    ).populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code');
   }
 
   async deleteBatch(batchId: string, tenantId: string): Promise<IBatch | null> {
@@ -78,7 +82,8 @@ export class BatchService {
       { _id: batchId, tenantId },
       { $set: { isActive: false } },
       { new: true }
-    ).populate('instructors', 'firstName lastName email role');
+    ).populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code');
   }
 
   async activateBatch(batchId: string, tenantId: string): Promise<IBatch | null> {
@@ -86,7 +91,8 @@ export class BatchService {
       { _id: batchId, tenantId },
       { $set: { isActive: true } },
       { new: true }
-    ).populate('instructors', 'firstName lastName email role');
+    ).populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code');
   }
 
   async addInstructor(
@@ -98,7 +104,8 @@ export class BatchService {
       { _id: batchId, tenantId },
       { $addToSet: { instructors: instructorId } },
       { new: true }
-    ).populate('instructors', 'firstName lastName email role');
+    ).populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code');
   }
 
   async removeInstructor(
@@ -110,6 +117,7 @@ export class BatchService {
       { _id: batchId, tenantId },
       { $pull: { instructors: instructorId } },
       { new: true }
-    ).populate('instructors', 'firstName lastName email role');
+    ).populate('instructors', 'firstName lastName email role')
+      .populate('courseId', 'title code');
   }
 }

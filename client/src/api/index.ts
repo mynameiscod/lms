@@ -106,8 +106,14 @@ export const authApi = {
 
 // Course API
 export const courseApi = {
-  getCourses: async () => {
-    const response = await fetch(`${API_BASE_URL}/courses`, {
+  getCourses: async (filters?: { isActive?: boolean; isPublished?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    if (filters?.isPublished !== undefined) params.append('isPublished', String(filters.isPublished));
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/courses${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await fetch(url, {
       method: 'GET',
       headers: getAuthHeaders()
     });
@@ -131,6 +137,234 @@ export const courseApi = {
       body: JSON.stringify(courseData)
     });
     if (!response.ok) throw new Error('Failed to create course');
+    return response.json();
+  },
+
+  updateCourse: async (courseId: string, courseData: any) => {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(courseData)
+    });
+    if (!response.ok) throw new Error('Failed to update course');
+    return response.json();
+  },
+
+  deleteCourse: async (courseId: string) => {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete course');
+    return response.json();
+  },
+
+  toggleCourseStatus: async (courseId: string, status: { isActive?: boolean; isPublished?: boolean }) => {
+    const response = await fetch(`${API_BASE_URL}/courses/${courseId}/status`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(status)
+    });
+    if (!response.ok) throw new Error('Failed to update course status');
+    return response.json();
+  }
+};
+
+// Subject API
+export const subjectApi = {
+  getSubjects: async (filters?: { courseId?: string; isActive?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.courseId) params.append('courseId', filters.courseId);
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/subjects${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch subjects');
+    return response.json();
+  },
+
+  getSubjectsByCourse: async (courseId: string) => {
+    const response = await fetch(`${API_BASE_URL}/subjects/course/${courseId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch subjects');
+    return response.json();
+  },
+
+  getSubjectById: async (subjectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/subjects/${subjectId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch subject');
+    return response.json();
+  },
+
+  createSubject: async (subjectData: any) => {
+    const response = await fetch(`${API_BASE_URL}/subjects`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(subjectData)
+    });
+    if (!response.ok) throw new Error('Failed to create subject');
+    return response.json();
+  },
+
+  updateSubject: async (subjectId: string, subjectData: any) => {
+    const response = await fetch(`${API_BASE_URL}/subjects/${subjectId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(subjectData)
+    });
+    if (!response.ok) throw new Error('Failed to update subject');
+    return response.json();
+  },
+
+  deleteSubject: async (subjectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/subjects/${subjectId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete subject');
+    return response.json();
+  },
+
+  reorderSubjects: async (courseId: string, orders: Array<{ subjectId: string; order: number }>) => {
+    const response = await fetch(`${API_BASE_URL}/subjects/course/${courseId}/reorder`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ orders })
+    });
+    if (!response.ok) throw new Error('Failed to reorder subjects');
+    return response.json();
+  }
+};
+
+// Chapter API
+export const chapterApi = {
+  getChapters: async (filters?: { subjectId?: string; courseId?: string; isActive?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters?.courseId) params.append('courseId', filters.courseId);
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/chapters${queryString ? `?${queryString}` : ''}`;
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch chapters');
+    return response.json();
+  },
+
+  getChaptersBySubject: async (subjectId: string) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/subject/${subjectId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch chapters');
+    return response.json();
+  },
+
+  getChaptersByCourse: async (courseId: string) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/course/${courseId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch chapters');
+    return response.json();
+  },
+
+  getChapterById: async (chapterId: string) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch chapter');
+    return response.json();
+  },
+
+  createChapter: async (chapterData: any) => {
+    const response = await fetch(`${API_BASE_URL}/chapters`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(chapterData)
+    });
+    if (!response.ok) throw new Error('Failed to create chapter');
+    return response.json();
+  },
+
+  updateChapter: async (chapterId: string, chapterData: any) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(chapterData)
+    });
+    if (!response.ok) throw new Error('Failed to update chapter');
+    return response.json();
+  },
+
+  deleteChapter: async (chapterId: string) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete chapter');
+    return response.json();
+  },
+
+  reorderChapters: async (subjectId: string, orders: Array<{ chapterId: string; order: number }>) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/subject/${subjectId}/reorder`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ orders })
+    });
+    if (!response.ok) throw new Error('Failed to reorder chapters');
+    return response.json();
+  },
+
+  // Content management
+  addVideo: async (chapterId: string, videoData: { title: string; url: string; duration?: number; isRequired?: boolean }) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}/videos`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(videoData)
+    });
+    if (!response.ok) throw new Error('Failed to add video');
+    return response.json();
+  },
+
+  removeVideo: async (chapterId: string, videoIndex: number) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}/videos/${videoIndex}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to remove video');
+    return response.json();
+  },
+
+  addNote: async (chapterId: string, noteData: { title: string; content: string; attachmentUrl?: string }) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}/notes`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(noteData)
+    });
+    if (!response.ok) throw new Error('Failed to add note');
+    return response.json();
+  },
+
+  removeNote: async (chapterId: string, noteIndex: number) => {
+    const response = await fetch(`${API_BASE_URL}/chapters/${chapterId}/notes/${noteIndex}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to remove note');
     return response.json();
   }
 };
@@ -964,6 +1198,37 @@ export const quizApi = {
   // Get all quizzes for reporting (with stats)
   getQuizzesForReporting: async () => {
     return authenticatedFetch(`${API_BASE_URL}/quizzes/report/list`, {
+      method: 'GET'
+    });
+  },
+};
+
+// Progress API
+export const progressApi = {
+  // Get progress for a course
+  getProgress: async (courseId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/progress/course/${courseId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Get completed chapter IDs for a course
+  getCompletedChapters: async (courseId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/progress/course/${courseId}/completed-chapters`, {
+      method: 'GET'
+    });
+  },
+
+  // Mark chapter as completed
+  markChapterComplete: async (chapterId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/progress/chapter/${chapterId}/complete`, {
+      method: 'POST'
+    });
+  },
+
+  // Check if chapter is completed
+  isChapterCompleted: async (chapterId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/progress/chapter/${chapterId}/status`, {
       method: 'GET'
     });
   },

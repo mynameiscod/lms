@@ -7,14 +7,14 @@ export class EnrollmentService {
     courseId: string,
     tenantId: string
   ): Promise<IEnrollment> {
-    const existingEnrollment = await Enrollment.findOne({
+    // Check if student already has any enrollment (single course policy)
+    const existingAnyEnrollment = await Enrollment.findOne({
       userId,
-      courseId,
       tenantId
     });
 
-    if (existingEnrollment) {
-      throw new Error('Student already enrolled in this course');
+    if (existingAnyEnrollment) {
+      throw new Error('Student can only be enrolled in one course at a time');
     }
 
     const enrollment = new Enrollment({ userId, courseId, tenantId });

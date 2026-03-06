@@ -7,8 +7,11 @@ export class CourseService {
     return course.populate('instructor', 'firstName lastName email');
   }
 
-  async getCoursesByTenant(tenantId: string): Promise<ICourse[]> {
-    return await Course.find({ tenantId }).populate('instructor', 'firstName lastName email');
+  async getCoursesByTenant(tenantId: string, filters: any = {}): Promise<ICourse[]> {
+    const query: any = { tenantId, ...filters };
+    return await Course.find(query)
+      .populate('instructor', 'firstName lastName email')
+      .sort({ createdAt: -1 });
   }
 
   async getCourseById(courseId: string): Promise<ICourse | null> {
@@ -16,7 +19,8 @@ export class CourseService {
   }
 
   async updateCourse(courseId: string, updateData: Partial<ICourse>): Promise<ICourse | null> {
-    return await Course.findByIdAndUpdate(courseId, updateData, { new: true });
+    return await Course.findByIdAndUpdate(courseId, updateData, { new: true })
+      .populate('instructor', 'firstName lastName email');
   }
 
   async deleteCourse(courseId: string): Promise<ICourse | null> {
@@ -25,5 +29,13 @@ export class CourseService {
 
   async publishCourse(courseId: string): Promise<ICourse | null> {
     return await Course.findByIdAndUpdate(courseId, { isPublished: true }, { new: true });
+  }
+
+  async incrementSubjectCount(courseId: string): Promise<void> {
+    await Course.findByIdAndUpdate(courseId, { $inc: { subjectCount: 1 } });
+  }
+
+  async decrementSubjectCount(courseId: string): Promise<void> {
+    await Course.findByIdAndUpdate(courseId, { $inc: { subjectCount: -1 } });
   }
 }

@@ -2,6 +2,8 @@ import express from 'express';
 import authRoutes from './authRoutes';
 import tenantRoutes from './tenantRoutes';
 import courseRoutes from './courseRoutes';
+import subjectRoutes from './subjectRoutes';
+import chapterRoutes from './chapterRoutes';
 import enrollmentRoutes from './enrollmentRoutes';
 import userRoutes from './userRoutes';
 import roleRoutes from './roleRoutes';
@@ -10,12 +12,15 @@ import attendanceRoutes from './attendanceRoutes';
 import quizRoutes from './quizRoutes';
 import questionRoutes from './questionRoutes';
 import contentRoutes from './contentRoutes';
+import progressRoutes from './progressRoutes';
 
 const router = express.Router();
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);
 router.use('/courses', courseRoutes);
+router.use('/subjects', subjectRoutes);
+router.use('/chapters', chapterRoutes);
 router.use('/enrollments', enrollmentRoutes);
 router.use('/users', userRoutes);
 router.use('/roles', roleRoutes);
@@ -24,5 +29,6 @@ router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
+router.use('/progress', progressRoutes);
 
 export default router;

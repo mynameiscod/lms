@@ -16,6 +16,8 @@ import { SetupPassword } from './pages/SetupPassword/SetupPassword';
 import { ProfileCompletion } from './pages/ProfileCompletion/ProfileCompletion';
 import DashboardPage from './pages/Dashboard';
 import CoursesPage from './pages/Courses';
+import MyCoursePage from './pages/MyCourse';
+import CourseManagementPage from './pages/CourseManagement';
 import UsersPage from './pages/Users';
 import RolesPage from './pages/Roles';
 import BatchesPage from './pages/Batches';
@@ -84,6 +86,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <CoursesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/my-course"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <MyCoursePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/course-management"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <CourseManagementPage />
             </Layout>
           </ProtectedRoute>
         }

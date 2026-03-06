@@ -22,6 +22,10 @@ const UsersPage: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   // Modal state for invite student
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
@@ -93,6 +97,28 @@ const UsersPage: React.FC = () => {
 
     return matchesSearch && matchesBatch && matchesRole && matchesActive;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, batchFilter, roleFilter, activeFilter]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
+
+  const handleItemsPerPageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
 
   const openEditModal = (user: User) => {
     setEditingUser(user);
@@ -426,7 +452,7 @@ const UsersPage: React.FC = () => {
               </tr>
             </thead>
             <tbody>
-              {filteredUsers.map((user) => (
+              {paginatedUsers.map((user) => (
                 <tr key={user._id} className={!user.isActive ? 'inactive-row' : ''}>
                   <td>
                     <div className="user-name">
@@ -486,6 +512,82 @@ const UsersPage: React.FC = () => {
               ))}
             </tbody>
           </table>
+        )}
+
+        {/* Pagination Controls */}
+        {filteredUsers.length > 0 && (
+          <div className="pagination-container">
+            <div className="pagination-info">
+              <span>Showing {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users</span>
+              <select
+                value={itemsPerPage}
+                onChange={handleItemsPerPageChange}
+                className="items-per-page-select"
+              >
+                <option value={5}>5 per page</option>
+                <option value={10}>10 per page</option>
+                <option value={25}>25 per page</option>
+                <option value={50}>50 per page</option>
+              </select>
+            </div>
+            <div className="pagination-controls">
+              <button
+                className="pagination-btn"
+                onClick={() => handlePageChange(1)}
+                disabled={currentPage === 1}
+                title="First page"
+              >
+                «
+              </button>
+              <button
+                className="pagination-btn"
+                onClick={() => handlePageChange(currentPage - 1)}
+                disabled={currentPage === 1}
+                title="Previous page"
+              >
+                ‹
+              </button>
+              <div className="pagination-pages">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  return (
+                    <button
+                      key={pageNum}
+                      className={`pagination-btn ${currentPage === pageNum ? 'active' : ''}`}
+                      onClick={() => handlePageChange(pageNum)}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                className="pagination-btn"
+                onClick={() => handlePageChange(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                title="Next page"
+              >
+                ›
+              </button>
+              <button
+                className="pagination-btn"
+                onClick={() => handlePageChange(totalPages)}
+                disabled={currentPage === totalPages}
+                title="Last page"
+              >
+                »
+              </button>
+            </div>
+          </div>
         )}
       </div>
 

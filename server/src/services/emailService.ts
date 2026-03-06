@@ -8,13 +8,22 @@ import {
 } from './emailTemplates';
 
 export class EmailService {
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
+  private useBrevoApi: boolean = false;
 
   constructor() {
     console.log('\n📧 [EMAIL SERVICE] Initializing Email Service');
     
-    // Configure email transporter
-    if (process.env.EMAIL_SERVICE === 'smtp') {
+    const emailService = process.env.EMAIL_SERVICE || 'gmail';
+    
+    // Configure email transporter based on service type
+    if (emailService === 'brevo') {
+      // Brevo (formerly Sendinblue) - Use HTTP API
+      console.log('   Service Type: Brevo (HTTP API)');
+      console.log('   Email From:', process.env.EMAIL_FROM || process.env.EMAIL_USER);
+      this.useBrevoApi = true;
+      console.log('   Status: ✅ Brevo API Configured\n');
+    } else if (emailService === 'smtp') {
       // Custom SMTP configuration (e.g., Ethereal, SendGrid SMTP, etc.)
       console.log('   Service Type: SMTP');
       console.log('   SMTP Host:', process.env.SMTP_HOST);
@@ -38,13 +47,39 @@ export class EmailService {
       console.log('   Password Length:', (process.env.EMAIL_PASSWORD || '').length, 'characters');
       
       this.transporter = nodemailer.createTransport({
-        service: process.env.EMAIL_SERVICE || 'gmail',
+        service: emailService,
         auth: {
           user: process.env.EMAIL_USER || 'your-email@gmail.com',
           pass: process.env.EMAIL_PASSWORD || 'your-app-password'
         }
       });
       console.log('   Status: ✅ Gmail Transporter Created\n');
+    }
+  }
+
+  private async sendViaBrevoApi(to: string, subject: string, htmlContent: string, textContent: string): Promise<void> {
+    const fromEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] || process.env.EMAIL_USER;
+    const fromName = process.env.EMAIL_FROM?.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
+    
+    const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'api-key': process.env.BREVO_API_KEY || '',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        sender: { name: fromName, email: fromEmail },
+        to: [{ email: to }],
+        subject: subject,
+        htmlContent: htmlContent,
+        textContent: textContent
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json() as { message?: string };
+      throw new Error(`Brevo API error: ${errorData.message || response.statusText}`);
     }
   }
 
@@ -69,20 +104,27 @@ export class EmailService {
       setupLink: setupLink
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: DEFAULT_SUBJECT_LINE,
-      html: htmlContent,
-      text: plainTextContent
-    };
-
     try {
       console.log('   Status: Sending...');
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-      console.log('   Message ID:', info.messageId);
-      console.log('   Response:', info.response);
+      
+      if (this.useBrevoApi) {
+        // Use Brevo HTTP API
+        await this.sendViaBrevoApi(email, DEFAULT_SUBJECT_LINE, htmlContent, plainTextContent);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
+      } else {
+        // Use nodemailer transporter
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: DEFAULT_SUBJECT_LINE,
+          html: htmlContent,
+          text: plainTextContent
+        };
+        const info = await this.transporter!.sendMail(mailOptions);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+        console.log('   Message ID:', info.messageId);
+        console.log('   Response:', info.response);
+      }
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');
@@ -114,18 +156,25 @@ export class EmailService {
       setupLink: resetLink
     });
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: '🔐 Reset Your Password - CodeBegun',
-      html: htmlContent,
-      text: plainTextContent
-    };
+    const subject = '🔐 Reset Your Password - CodeBegun';
 
     try {
       console.log('   Status: Sending...');
-      await this.transporter.sendMail(mailOptions);
-      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
+      } else {
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: subject,
+          html: htmlContent,
+          text: plainTextContent
+        };
+        await this.transporter!.sendMail(mailOptions);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+      }
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error) {
       console.error('❌ Failed to send password reset email:', error);
@@ -203,19 +252,26 @@ If you believe this is an error, please contact your instructor or admin immedia
 This is an automated message from CodeBegun Learning Management System.
     `;
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: `📋 Attendance Marked: ${statusText} - ${formattedDate}`,
-      html: htmlContent,
-      text: plainTextContent
-    };
+    const subject = `📋 Attendance Marked: ${statusText} - ${formattedDate}`;
 
     try {
       console.log('   Status: Sending...');
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-      console.log('   Message ID:', info.messageId);
+      
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
+      } else {
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: subject,
+          html: htmlContent,
+          text: plainTextContent
+        };
+        const info = await this.transporter!.sendMail(mailOptions);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+        console.log('   Message ID:', info.messageId);
+      }
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');
@@ -312,19 +368,26 @@ Log in to your account to start the quiz. Make sure to complete it before the de
 This is an automated message from CodeBegun Learning Management System.
     `;
 
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject: `📝 New Quiz: ${quizTitle} - Action Required`,
-      html: htmlContent,
-      text: plainTextContent
-    };
+    const subject = `📝 New Quiz: ${quizTitle} - Action Required`;
 
     try {
       console.log('   Status: Sending...');
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
-      console.log('   Message ID:', info.messageId);
+      
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
+      } else {
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: subject,
+          html: htmlContent,
+          text: plainTextContent
+        };
+        const info = await this.transporter!.sendMail(mailOptions);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+        console.log('   Message ID:', info.messageId);
+      }
       console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
     } catch (error: any) {
       console.log('   ❌ STATUS: EMAIL SENT FAILED');

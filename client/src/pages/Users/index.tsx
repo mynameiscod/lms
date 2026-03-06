@@ -17,6 +17,7 @@ const UsersPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [warning, setWarning] = useState<{ message: string; setupLink?: string } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [batchFilter, setBatchFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
@@ -160,16 +161,28 @@ const UsersPage: React.FC = () => {
     try {
       setInvitingStudent(true);
       setError('');
+      setWarning(null);
 
       // Use inviteStudent endpoint which sends welcome email
-      await userApi.inviteStudent(
+      const result = await userApi.inviteStudent(
         inviteFormData.email,
         inviteFormData.firstName,
         inviteFormData.lastName,
         inviteFormData.batchId || undefined
       );
 
-      setSuccess(`✅ Student invited successfully! Welcome email sent to ${inviteFormData.email}`);
+      // Check if email was sent successfully
+      if (result.emailSent) {
+        setSuccess(`✅ Student invited successfully! Welcome email sent to ${inviteFormData.email}`);
+      } else {
+        // Email failed but user was created - show warning with setup link
+        setSuccess(`Student account created for ${inviteFormData.email}`);
+        setWarning({
+          message: `Email could not be sent: ${result.emailError || 'Unknown error'}`,
+          setupLink: result.data?.setupLink
+        });
+      }
+      
       closeInviteModal();
       fetchData();
     } catch (err: any) {
@@ -311,6 +324,44 @@ const UsersPage: React.FC = () => {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
+      {warning && (
+        <div className="alert alert-warning" style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <strong>⚠️ Email Failed</strong>
+              <p style={{ margin: '0.5rem 0' }}>{warning.message}</p>
+              {warning.setupLink && (
+                <div style={{ marginTop: '0.5rem' }}>
+                  <p style={{ margin: '0.25rem 0', fontWeight: 'bold' }}>Share this setup link manually:</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <input
+                      type="text"
+                      value={warning.setupLink}
+                      readOnly
+                      style={{ flex: 1, padding: '0.5rem', border: '1px solid #ccc', borderRadius: '4px', fontSize: '0.85rem' }}
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(warning.setupLink || '');
+                        setSuccess('Setup link copied to clipboard!');
+                      }}
+                      style={{ padding: '0.5rem 1rem', backgroundColor: '#007bff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setWarning(null)}
+              style={{ background: 'none', border: 'none', fontSize: '1.2rem', cursor: 'pointer', padding: '0' }}
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="users-controls">
         <div className="search-box">

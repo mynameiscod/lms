@@ -239,8 +239,12 @@ export const userApi = {
       headers: getAuthHeaders(),
       body: JSON.stringify({ email, firstName, lastName, batchId })
     });
-    if (!response.ok) throw new Error('Failed to invite student');
-    return response.json();
+    const data = await response.json();
+    if (!response.ok) {
+      throw new Error(data.message || 'Failed to invite student');
+    }
+    // Return full response including email status
+    return data;
   },
 
   updateProfile: async (userId: string, profileData: any) => {

@@ -15,7 +15,8 @@ const Sidebar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
-    quizzes: false
+    quizzes: false,
+    assignments: false
   });
   const location = useLocation();
   const { user } = useAuth();
@@ -56,6 +57,15 @@ const Sidebar: React.FC = () => {
         { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
         { label: 'Question Bank', path: '/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
         { label: 'Quiz Reports', path: '/quiz-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
+      ]
+    },
+    {
+      label: 'Assignments',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      icon: '📝',
+      submenu: [
+        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'] },
+        { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
       ]
     },
   ];

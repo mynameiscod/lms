@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { TenantService } from '../services/tenantService';
+import Tenant from '../models/Tenant';
 
 const tenantService = new TenantService();
 

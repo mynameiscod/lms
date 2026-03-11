@@ -20,14 +20,15 @@ const ROLE_PERMISSIONS: Record<string, string[]> = {
     'create_lessons', 'enroll_courses', 'view_courses', 'view_grades', 'mark_attendance',
     'create_quiz', 'edit_quiz', 'delete_quiz', 'view_quiz', 'create_question',
     'edit_question', 'delete_question', 'manage_enrollments', 'view_reports',
-    'view_attendance', 'manage_tenant'
+    'view_attendance', 'manage_tenant', 'manage_assignments', 'grade_submissions'
   ],
   INSTRUCTOR: [
     'create_courses', 'manage_own_courses', 'view_enrolled_students',
     'grade_assignments', 'create_lessons', 'enroll_courses', 'view_courses',
     'view_grades', 'access_resources', 'mark_attendance', 'view_attendance',
     'view_reports', 'create_quiz', 'edit_quiz', 'delete_quiz', 'view_quiz',
-    'create_question', 'edit_question', 'delete_question', 'manage_enrollments'
+    'create_question', 'edit_question', 'delete_question', 'manage_enrollments',
+    'manage_assignments', 'grade_submissions'
   ],
   STUDENT: [
     'enroll_courses', 'view_courses', 'submit_assignments', 'view_grades',

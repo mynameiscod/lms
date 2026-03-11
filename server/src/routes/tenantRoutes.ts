@@ -1,5 +1,10 @@
 import express from 'express';
-import { createTenant, getTenant, updateTenant, generateInviteLink } from '../controllers/tenantController';
+import { 
+  createTenant, 
+  getTenant, 
+  updateTenant, 
+  generateInviteLink
+} from '../controllers/tenantController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 

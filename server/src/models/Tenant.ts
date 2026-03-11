@@ -1,5 +1,13 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+export interface ITenantSettings {
+  // Default Assignment Settings
+  showExpectedOutput: boolean; // Default for new assignments
+  showTestCaseResults: boolean; // Default for new assignments
+  maxAttempts: number; // Default max attempts for assignments
+  enablePlagiarismCheck: boolean; // Default plagiarism check setting
+}
+
 export interface ITenant extends Document {
   name: string;
   description?: string;
@@ -9,6 +17,7 @@ export interface ITenant extends Document {
   adminId: mongoose.Types.ObjectId;
   isActive: boolean;
   subscriptionPlan: 'free' | 'pro' | 'enterprise';
+  settings: ITenantSettings;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +59,12 @@ const TenantSchema: Schema = new Schema(
       type: String, 
       enum: ['free', 'pro', 'enterprise'], 
       default: 'free' 
+    },
+    settings: {
+      showExpectedOutput: { type: Boolean, default: true },
+      showTestCaseResults: { type: Boolean, default: true },
+      maxAttempts: { type: Number, default: 3 },
+      enablePlagiarismCheck: { type: Boolean, default: false }
     }
   },
   { timestamps: true }

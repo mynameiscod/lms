@@ -35,7 +35,17 @@ import QuestionBuilder from './pages/QuestionBuilder';
 import StudentProfilePage from './pages/StudentProfile';
 import OAuthCallbackPage from './pages/OAuthCallback';
 import AdminContentPage from './pages/AdminContent';
-import NotFoundPage from './pages/NotFound';  
+import NotFoundPage from './pages/NotFound';
+
+// Assignment Pages
+import {
+  AdminAssignmentList,
+  AdminAssignmentForm,
+  AdminSubmissions,
+  StudentAssignmentList,
+  AssignmentWorkspace,
+  AssignmentResult
+} from './pages/assignments';  
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -288,6 +298,78 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <ProfileCompletion />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Assignment Routes - Admin */}
+      <Route
+        path="/admin/assignments"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AdminAssignmentList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/assignments/create"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AdminAssignmentForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/assignments/:id/edit"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AdminAssignmentForm />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/assignments/:assignmentId/submissions"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AdminSubmissions />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Assignment Routes - Student */}
+      <Route
+        path="/assignments"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <StudentAssignmentList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assignments/:assignmentId/workspace"
+        element={
+          <ProtectedRoute>
+            <AssignmentWorkspace />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/assignments/:assignmentId/result"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AssignmentResult />
+            </Layout>
           </ProtectedRoute>
         }
       />

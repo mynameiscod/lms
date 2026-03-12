@@ -293,10 +293,14 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     
     try {
       setLoading(true);
-      // Only include maxAttempts if multipleAttempts is enabled
+      // Clean up data before submitting
       const submitData = {
         ...formData,
-        maxAttempts: formData.multipleAttempts ? formData.maxAttempts : null
+        maxAttempts: formData.multipleAttempts ? formData.maxAttempts : null,
+        // Don't send empty strings for optional ObjectId fields
+        courseId: formData.courseId || undefined,
+        subjectId: formData.subjectId || undefined,
+        chapterId: formData.chapterId || undefined,
       };
       await onSubmit(submitData);
     } catch (err: any) {

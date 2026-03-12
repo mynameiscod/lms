@@ -9,13 +9,21 @@ import { EmailService } from '../services/emailService';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
-    const { title, description, startDate, endDate, startTime, endTime, totalMarks, totalTime, ...rest } = req.body;
+    const { title, description, startDate, endDate, startTime, endTime, totalMarks, totalTime, courseId, subjectId, chapterId, ...rest } = req.body;
     const tenantId = (req as any).tenantId;
     const userId = (req as any).userId;
 
     if (!title || !totalMarks || !totalTime) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
+
+    // Clean up empty strings for optional ObjectId fields
+    const cleanedData = {
+      ...rest,
+      courseId: courseId || undefined,
+      subjectId: subjectId || undefined,
+      chapterId: chapterId || undefined,
+    };
 
     const quiz = await quizService.createQuiz(
       {
@@ -28,7 +36,7 @@ export const createQuiz = async (req: Request, res: Response) => {
         totalMarks,
         totalTime,
         createdBy: userId,
-        ...rest
+        ...cleanedData
       },
       tenantId
     );

@@ -71,9 +71,11 @@ const AssignmentResult: React.FC = () => {
   };
 
   const getPassFailStatus = () => {
-    if (!assignment || !submission || submission.score === undefined) return null;
+    if (!assignment || !submission) return null;
+    const score = submission.totalScore ?? submission.finalScore ?? submission.score;
+    if (score === undefined) return null;
     const passingPoints = assignment.passingPoints || (assignment.totalPoints * 0.5);
-    const isPassing = submission.score >= passingPoints;
+    const isPassing = score >= passingPoints;
     return {
       isPassing,
       label: isPassing ? 'PASSED' : 'FAILED',
@@ -121,9 +123,11 @@ const AssignmentResult: React.FC = () => {
     );
   }
 
-  const scorePercentage = submission.score !== undefined 
-    ? Math.round((submission.score / assignment.totalPoints) * 100) 
+  const scorePercentage = (submission.totalScore ?? submission.finalScore ?? submission.score) !== undefined 
+    ? Math.round(((submission.totalScore ?? submission.finalScore ?? submission.score)! / assignment.totalPoints) * 100) 
     : null;
+  
+  const displayScore = submission.totalScore ?? submission.finalScore ?? submission.score ?? 0;
 
   return (
     <div className="assignment-page">
@@ -150,7 +154,7 @@ const AssignmentResult: React.FC = () => {
               width: '150px',
               height: '150px',
               borderRadius: '50%',
-              background: `conic-gradient(${getScoreColor(submission.score!, assignment.totalPoints)} ${scorePercentage}%, #e5e7eb ${scorePercentage}%)`,
+              background: `conic-gradient(${getScoreColor(displayScore, assignment.totalPoints)} ${scorePercentage}%, #e5e7eb ${scorePercentage}%)`,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -169,7 +173,7 @@ const AssignmentResult: React.FC = () => {
                 <div style={{ 
                   fontSize: '32px', 
                   fontWeight: 700,
-                  color: getScoreColor(submission.score!, assignment.totalPoints)
+                  color: getScoreColor(displayScore, assignment.totalPoints)
                 }}>
                   {scorePercentage}%
                 </div>
@@ -201,13 +205,13 @@ const AssignmentResult: React.FC = () => {
             
             <h2 style={{ 
               marginBottom: '8px',
-              color: getScoreColor(submission.score!, assignment.totalPoints)
+              color: getScoreColor(displayScore, assignment.totalPoints)
             }}>
-              {submission.score} / {assignment.totalPoints} points
+              {displayScore} / {assignment.totalPoints} points
             </h2>
             
             <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '4px' }}>
-              {getGradeLabel(submission.score!, assignment.totalPoints)}
+              {getGradeLabel(displayScore, assignment.totalPoints)}
             </p>
             
             {/* Passing score info */}

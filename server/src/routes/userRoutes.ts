@@ -9,7 +9,9 @@ import {
   activateUser,
   inviteStudent,
   setupPassword,
-  updateProfile
+  updateProfile,
+  bulkUploadStudents,
+  downloadBulkTemplate
 } from '../controllers/userController';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { authMiddleware } from '../middleware/auth';
@@ -49,6 +51,12 @@ router.delete('/:userId', roleGuard(['manage_tenant_users']), deleteUser);
 // Onboarding Routes
 // Invite a student (requires manage_tenant_users permission)
 router.post('/invite/student', roleGuard(['manage_tenant_users']), inviteStudent);
+
+// Bulk upload students (requires manage_tenant_users permission)
+router.post('/bulk-upload', roleGuard(['manage_tenant_users']), bulkUploadStudents);
+
+// Download CSV template for bulk upload
+router.get('/bulk-upload/template', roleGuard(['manage_tenant_users']), downloadBulkTemplate);
 
 // Update user profile
 router.patch('/:userId/profile', updateProfile);

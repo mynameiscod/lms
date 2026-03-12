@@ -482,129 +482,144 @@ const MyCourse: React.FC = () => {
                               <p className="chapter-description">{chapter.description}</p>
                             )}
 
-                            {/* Videos */}
-                            {chapter.videos.length > 0 && (
-                              <div className="content-section">
-                                <h4>Videos</h4>
-                                <ul className="content-list">
-                                  {chapter.videos.sort((a, b) => a.order - b.order).map((video, idx) => (
-                                    <li key={idx} className="content-item video">
-                                      <span className="content-icon">🎬</span>
-                                      <a href={video.url} target="_blank" rel="noopener noreferrer">
-                                        {video.title}
-                                      </a>
-                                      {video.duration > 0 && (
-                                        <span className="item-duration">{formatDuration(video.duration)}</span>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Notes */}
-                            {chapter.notes.length > 0 && (
-                              <div className="content-section">
-                                <h4>Notes</h4>
-                                <ul className="content-list">
-                                  {chapter.notes.sort((a, b) => a.order - b.order).map((note, idx) => (
-                                    <li key={idx} className="content-item note">
-                                      <span className="content-icon">📄</span>
-                                      <span className="note-title">{note.title}</span>
-                                      {note.attachmentUrl && (
-                                        <a href={note.attachmentUrl} target="_blank" rel="noopener noreferrer" className="attachment-link">
-                                          Download
-                                        </a>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Quiz */}
-                            {chapter.quizzes && chapter.quizzes.length > 0 && (
-                              <div className="content-section">
-                                <h4>Quizzes</h4>
-                                <ul className="content-list">
-                                  {chapter.quizzes.map((quiz) => (
-                                    <li key={quiz._id} className="content-item quiz">
-                                      <span className="content-icon">📝</span>
-                                      <div className="quiz-info">
-                                        <span className="quiz-title">{quiz.title}</span>
-                                        <span className="quiz-meta">
-                                          {quiz.totalQuestions} questions • {quiz.totalMarks} marks • {quiz.totalTime} min
-                                        </span>
-                                      </div>
-                                      <button 
-                                        className="start-quiz-btn"
-                                        onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                                      >
-                                        {quiz.isAttempted ? 'Retake' : 'Start Quiz'}
-                                      </button>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Notes & Cheatsheets */}
-                            {chapter.content && chapter.content.length > 0 && (
-                              <div className="content-section">
-                                <h4>Notes & Cheatsheets</h4>
-                                <ul className="content-list">
-                                  {chapter.content.map((item) => (
-                                    <li key={item._id} className={`content-item ${item.type}`}>
-                                      <span className="content-icon">
-                                        {item.type === 'cheatsheet' ? '📋' : '📄'}
-                                      </span>
-                                      <div className="content-info">
-                                        <span className="content-title">{item.title}</span>
-                                        {item.description && (
-                                          <span className="content-desc">{item.description}</span>
-                                        )}
-                                        <span className="content-type-badge">{item.type}</span>
-                                      </div>
-                                      {item.attachments && item.attachments.length > 0 && (
-                                        <div className="content-attachments">
-                                          {item.attachments.map((att, idx) => (
-                                            <a 
-                                              key={idx}
-                                              href={`${window.location.origin}${att.url}`}
-                                              target="_blank"
-                                              rel="noopener noreferrer"
-                                              className="download-btn"
-                                            >
-                                              ⬇️ {att.name}
-                                            </a>
-                                          ))}
-                                        </div>
-                                      )}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {/* Assignments */}
-                            {chapter.assignments && chapter.assignments.length > 0 && (
-                              <div className="content-section">
-                                <h4>Assignments</h4>
-                                {chapter.assignments.map((assignment) => (
-                                  <div key={assignment._id} className="assignment-item">
-                                    <span className="content-icon">✍️</span>
-                                    <span>{assignment.title}</span>
-                                    <span className="assignment-badge">{assignment.type}</span>
-                                    <button 
-                                      className="view-assignment-btn"
-                                      onClick={() => navigate(`/assignments/${assignment._id}/workspace`)}
-                                    >
-                                      View
-                                    </button>
+                            {/* Content Grid Layout */}
+                            <div className="chapter-content-grid">
+                              {/* Videos Section */}
+                              {chapter.videos.length > 0 && (
+                                <div className="content-card videos-card">
+                                  <div className="content-card-header">
+                                    <span className="card-icon">🎬</span>
+                                    <span className="card-title">Videos</span>
+                                    <span className="card-count">{chapter.videos.length}</span>
                                   </div>
-                                ))}
-                              </div>
-                            )}
+                                  <div className="content-card-body">
+                                    {chapter.videos.sort((a, b) => a.order - b.order).map((video, idx) => (
+                                      <a key={idx} href={video.url} target="_blank" rel="noopener noreferrer" className="content-row">
+                                        <span className="row-title">{video.title}</span>
+                                        {video.duration > 0 && (
+                                          <span className="row-meta">{formatDuration(video.duration)}</span>
+                                        )}
+                                      </a>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Notes Section */}
+                              {chapter.notes.length > 0 && (
+                                <div className="content-card notes-card">
+                                  <div className="content-card-header">
+                                    <span className="card-icon">📄</span>
+                                    <span className="card-title">Notes</span>
+                                    <span className="card-count">{chapter.notes.length}</span>
+                                  </div>
+                                  <div className="content-card-body">
+                                    {chapter.notes.sort((a, b) => a.order - b.order).map((note, idx) => (
+                                      <div key={idx} className="content-row">
+                                        <span className="row-title">{note.title}</span>
+                                        {note.attachmentUrl && (
+                                          <a href={note.attachmentUrl} target="_blank" rel="noopener noreferrer" className="row-action">
+                                            Download
+                                          </a>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Quizzes Section */}
+                              {chapter.quizzes && chapter.quizzes.length > 0 && (
+                                <div className="content-card quizzes-card">
+                                  <div className="content-card-header">
+                                    <span className="card-icon">📝</span>
+                                    <span className="card-title">Quizzes</span>
+                                    <span className="card-count">{chapter.quizzes.length}</span>
+                                  </div>
+                                  <div className="content-card-body">
+                                    {chapter.quizzes.map((quiz) => (
+                                      <div key={quiz._id} className="content-row quiz-row">
+                                        <div className="quiz-row-info">
+                                          <span className="row-title">{quiz.title}</span>
+                                          <span className="quiz-row-meta">
+                                            {quiz.totalQuestions} questions • {quiz.totalMarks} marks • {quiz.totalTime} min
+                                          </span>
+                                        </div>
+                                        <button 
+                                          className="row-btn primary"
+                                          onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                                        >
+                                          {quiz.isAttempted ? 'Retake' : 'Start Quiz'}
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Notes & Cheatsheets from Content API */}
+                              {chapter.content && chapter.content.length > 0 && (
+                                <div className="content-card resources-card">
+                                  <div className="content-card-header">
+                                    <span className="card-icon">📋</span>
+                                    <span className="card-title">Resources</span>
+                                    <span className="card-count">{chapter.content.length}</span>
+                                  </div>
+                                  <div className="content-card-body">
+                                    {chapter.content.map((item) => (
+                                      <div key={item._id} className={`content-row resource-row ${item.type}`}>
+                                        <div className="resource-info">
+                                          <span className="row-title">{item.title}</span>
+                                          <span className={`resource-badge ${item.type}`}>{item.type}</span>
+                                        </div>
+                                        {item.attachments && item.attachments.length > 0 && (
+                                          <div className="resource-downloads">
+                                            {item.attachments.map((att, idx) => (
+                                              <a 
+                                                key={idx}
+                                                href={`${window.location.origin}${att.url}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="row-action"
+                                              >
+                                                ⬇ {att.name}
+                                              </a>
+                                            ))}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Assignments Section */}
+                              {chapter.assignments && chapter.assignments.length > 0 && (
+                                <div className="content-card assignments-card">
+                                  <div className="content-card-header">
+                                    <span className="card-icon">✍️</span>
+                                    <span className="card-title">Assignments</span>
+                                    <span className="card-count">{chapter.assignments.length}</span>
+                                  </div>
+                                  <div className="content-card-body">
+                                    {chapter.assignments.map((assignment) => (
+                                      <div key={assignment._id} className="content-row assignment-row">
+                                        <div className="assignment-info">
+                                          <span className="row-title">{assignment.title}</span>
+                                          <span className="assignment-type-badge">{assignment.type}</span>
+                                        </div>
+                                        <button 
+                                          className="row-btn secondary"
+                                          onClick={() => navigate(`/assignments/${assignment._id}/workspace`)}
+                                        >
+                                          View
+                                        </button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
 
                             {/* Empty state */}
                             {chapter.videos.length === 0 && chapter.notes.length === 0 && (!chapter.quizzes || chapter.quizzes.length === 0) && (!chapter.content || chapter.content.length === 0) && (!chapter.assignments || chapter.assignments.length === 0) && (

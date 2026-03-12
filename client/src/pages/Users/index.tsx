@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { userApi, roleApi, batchApi } from '../../api';
 import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
 import { User, Role } from '../../types';
@@ -11,6 +12,7 @@ interface Batch {
 }
 
 const UsersPage: React.FC = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -338,6 +340,12 @@ const UsersPage: React.FC = () => {
             className="btn-header-sm"
           >
             📧 Invite Student
+          </Button>
+          <Button 
+            onClick={() => navigate('/bulk-upload')}
+            className="btn-header-sm btn-secondary-header"
+          >
+            📤 Bulk Upload
           </Button>
           <Button 
             onClick={openCreateModal}

@@ -20,7 +20,8 @@ interface StudentAssignment extends Assignment {
   submission?: {
     _id: string;
     status: SubmissionStatus;
-    score?: number;
+    finalScore?: number;
+    percentage?: number;
     submittedAt?: string;
   };
 }
@@ -351,12 +352,12 @@ const StudentAssignmentList: React.FC = () => {
                     
                     {/* Score */}
                     <td style={{ padding: '14px 16px' }}>
-                      {assignment.submission?.score !== undefined ? (
+                      {assignment.submission?.finalScore !== undefined ? (
                         <span style={{ 
                           fontWeight: 600,
-                          color: assignment.submission.score >= assignment.totalPoints * 0.6 ? '#059669' : '#dc2626'
+                          color: assignment.submission.finalScore >= assignment.totalPoints * 0.6 ? '#059669' : '#dc2626'
                         }}>
-                          {assignment.submission.score}/{assignment.totalPoints}
+                          {assignment.submission.finalScore}/{assignment.totalPoints}
                         </span>
                       ) : (
                         <span style={{ color: '#9ca3af' }}>-</span>

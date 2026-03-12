@@ -17,6 +17,7 @@ import studentProfileRoutes from './studentProfileRoutes';
 import oauthRoutes from './oauthRoutes';
 import assignmentRoutes from './assignmentRoutes';
 import dashboardRoutes from './dashboardRoutes';
+import studentReportRoutes from './studentReportRoutes';
 
 const router = express.Router();
 
@@ -38,5 +39,6 @@ router.use('/student-profile', studentProfileRoutes);
 router.use('/oauth', oauthRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/dashboard', dashboardRoutes);
+router.use('/student-reports', studentReportRoutes);
 
 export default router;

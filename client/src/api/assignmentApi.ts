@@ -214,6 +214,13 @@ export interface Submission {
   mcqAnswers?: MCQAnswer[];
   theoryAnswer?: string;
   score?: number;
+  autoScore?: number;
+  manualScore?: number;
+  totalScore?: number;
+  finalScore?: number;
+  penaltyApplied?: number;
+  percentage?: number;
+  isPassing?: boolean;
   feedback?: string;
   rubricScores?: RubricScore[];
   createdAt: string;

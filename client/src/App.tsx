@@ -36,6 +36,8 @@ import StudentProfilePage from './pages/StudentProfile';
 import OAuthCallbackPage from './pages/OAuthCallback';
 import AdminContentPage from './pages/AdminContent';
 import NotFoundPage from './pages/NotFound';
+import StudentReportsPage from './pages/StudentReports';
+import BulkUploadPage from './pages/BulkUpload';
 
 // Assignment Pages
 import {
@@ -137,6 +139,17 @@ const AppRoutes: React.FC = () => {
       />
 
       <Route
+        path="/bulk-upload"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <BulkUploadPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/roles"
         element={
           <ProtectedRoute>
@@ -186,6 +199,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN']}>
             <Layout>
               <AttendanceReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student-reports"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <StudentReportsPage />
             </Layout>
           </ProtectedRoute>
         }

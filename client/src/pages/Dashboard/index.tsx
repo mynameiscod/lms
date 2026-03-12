@@ -335,14 +335,14 @@ const DashboardPage: React.FC = () => {
           <div className="stat-icon-circle green">✅</div>
           <div className="stat-content">
             <span className="stat-number">{data?.stats.completedAssignments || 0}</span>
-            <span className="stat-label">Completed</span>
+            <span className="stat-label">Assignments Done</span>
           </div>
         </div>
         <div className="stat-card" onClick={() => navigate('/assignments')}>
           <div className="stat-icon-circle orange">⏰</div>
           <div className="stat-content">
             <span className="stat-number">{data?.stats.pendingAssignments || 0}</span>
-            <span className="stat-label">Pending</span>
+            <span className="stat-label">Assignments Pending</span>
           </div>
         </div>
         <div className="stat-card">

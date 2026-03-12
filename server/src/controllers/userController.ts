@@ -3,9 +3,28 @@ import { UserService } from '../services/userService';
 import { AuthenticatedRequest } from '../types';
 import { EmailService } from '../services/emailService';
 import crypto from 'crypto';
+import Batch from '../models/Batch';
+import Enrollment from '../models/Enrollment';
+import Course from '../models/Course';
+import csvParser from 'csv-parser';
 
 const userService = new UserService();
 const emailService = new EmailService();
+
+// Helper function to auto-enroll student in batch's course
+const autoEnrollInBatchCourse = async (userId: string, batchId: string, tenantId: string): Promise<void> => {
+  const batch = await Batch.findById(batchId);
+  if (batch?.courseId) {
+    // Check if already enrolled
+    const existing = await Enrollment.findOne({ userId, courseId: batch.courseId, tenantId });
+    if (!existing) {
+      const enrollment = new Enrollment({ userId, courseId: batch.courseId, tenantId });
+      await enrollment.save();
+      await Course.findByIdAndUpdate(batch.courseId, { $inc: { enrollmentCount: 1 } });
+      console.log(`   ✅ Auto-enrolled in batch course`);
+    }
+  }
+};
 
 export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
@@ -230,6 +249,11 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
         await existingUser.save();
         user = existingUser;
         console.log('   ✅ User reactivated:', user._id);
+        
+        // Auto-enroll in batch course if batch has a course
+        if (batchId) {
+          await autoEnrollInBatchCourse(user._id.toString(), batchId, req.tenantId!);
+        }
       } else {
         // User exists and is active
         console.log('   ❌ User already exists and is active\n');
@@ -252,6 +276,11 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
         batchId
       );
       console.log('   ✅ User created:', user._id);
+      
+      // Auto-enroll in batch course if batch has a course
+      if (batchId) {
+        await autoEnrollInBatchCourse(user._id.toString(), batchId, req.tenantId!);
+      }
     }
 
     // Generate reset token for password setup
@@ -411,6 +440,181 @@ export const updateProfile = async (req: AuthenticatedRequest, res: Response) =>
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to update profile'
+    });
+  }
+};
+
+// Bulk upload students from CSV
+export const bulkUploadStudents = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { students, batchId } = req.body;
+
+    console.log('\n📤 [BULK UPLOAD] Received bulk upload request');
+    console.log('   Number of students:', students?.length || 0);
+    console.log('   Batch ID:', batchId);
+
+    if (!batchId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Batch ID is required for bulk upload'
+      });
+    }
+
+    if (!students || !Array.isArray(students) || students.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No students data provided'
+      });
+    }
+
+    // Verify batch exists
+    const batch = await Batch.findById(batchId);
+    if (!batch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Batch not found'
+      });
+    }
+
+    const results = {
+      successful: [] as any[],
+      failed: [] as any[],
+      total: students.length
+    };
+
+    for (const studentData of students) {
+      const { email, firstName, lastName } = studentData;
+
+      // Validate required fields
+      if (!email || !firstName || !lastName) {
+        results.failed.push({
+          email: email || 'N/A',
+          firstName: firstName || 'N/A',
+          lastName: lastName || 'N/A',
+          error: 'Missing required fields (email, firstName, lastName)'
+        });
+        continue;
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        results.failed.push({
+          email,
+          firstName,
+          lastName,
+          error: 'Invalid email format'
+        });
+        continue;
+      }
+
+      try {
+        // Check if user already exists
+        const existingUser = await userService.getUserByEmail(email);
+        let user;
+
+        if (existingUser) {
+          if (!existingUser.isActive) {
+            // Reactivate previously deleted user
+            existingUser.isActive = true;
+            existingUser.firstName = firstName;
+            existingUser.lastName = lastName;
+            existingUser.batchId = batchId;
+            existingUser.batchJoinedDate = new Date();
+            await existingUser.save();
+            user = existingUser;
+          } else {
+            results.failed.push({
+              email,
+              firstName,
+              lastName,
+              error: 'User already exists'
+            });
+            continue;
+          }
+        } else {
+          // Create new user
+          const tempPassword = crypto.randomBytes(8).toString('hex');
+          user = await userService.createUser(
+            email,
+            firstName,
+            lastName,
+            tempPassword,
+            'STUDENT',
+            req.tenantId!,
+            batchId
+          );
+        }
+
+        // Auto-enroll in batch course if batch has a course
+        await autoEnrollInBatchCourse(user._id.toString(), batchId, req.tenantId!);
+
+        // Generate reset token for password setup
+        const resetToken = crypto.randomBytes(32).toString('hex');
+        const resetTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days for bulk
+
+        await userService.setResetToken(user._id.toString(), resetToken, resetTokenExpires);
+
+        // Generate setup link
+        const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/setup-password?token=${resetToken}&email=${email}`;
+
+        // Try to send email (don't fail the whole operation if email fails)
+        let emailSent = false;
+        try {
+          await emailService.sendWelcomeEmail(email, firstName, setupLink);
+          emailSent = true;
+        } catch (emailErr: any) {
+          console.log(`   ⚠️ Email failed for ${email}: ${emailErr.message}`);
+        }
+
+        results.successful.push({
+          email,
+          firstName,
+          lastName,
+          userId: user._id,
+          emailSent
+        });
+
+      } catch (err: any) {
+        results.failed.push({
+          email,
+          firstName,
+          lastName,
+          error: err.message || 'Failed to create user'
+        });
+      }
+    }
+
+    console.log(`   ✅ Bulk upload complete: ${results.successful.length} success, ${results.failed.length} failed\n`);
+
+    res.status(200).json({
+      success: true,
+      message: `Bulk upload completed. ${results.successful.length} students added, ${results.failed.length} failed.`,
+      data: results
+    });
+
+  } catch (error: any) {
+    console.error('   ❌ Bulk upload error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Bulk upload failed',
+      error: error.message
+    });
+  }
+};
+
+// Download CSV template for bulk upload
+export const downloadBulkTemplate = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const csvContent = 'email,firstName,lastName\njohn.doe@example.com,John,Doe\njane.smith@example.com,Jane,Smith';
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="student_upload_template.csv"');
+    res.send(csvContent);
+  } catch (error: any) {
+    res.status(500).json({
+      success: false,
+      message: 'Failed to generate template'
     });
   }
 };

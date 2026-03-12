@@ -659,11 +659,11 @@ const AdminAssignmentForm: React.FC = () => {
             </div>
 
             {/* Course Structure Linking */}
-            <div className="form-section" style={{ marginTop: '24px' }}>
-              <h4 className="section-title">📚 Link to Course Structure (Optional)</h4>
-              <p className="section-description">Associate this assignment with a specific course, subject, or chapter</p>
+            <div className="form-section" style={{ marginTop: '24px', marginBottom: '16px' }}>
+              <h4 className="section-title" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>Link to Course Structure (Optional)</h4>
+              <p className="section-description" style={{ padding: '8px 16px 0', margin: 0, fontSize: '13px' }}>Associate this assignment with a specific course, subject, or chapter</p>
               
-              <div className="form-row">
+              <div className="form-row" style={{ padding: '12px 16px' }}>
                 <div className="form-group">
                   <label className="form-label">Course</label>
                   <select

@@ -69,6 +69,7 @@ const Sidebar: React.FC = () => {
         { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
       ]
     },
+    { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊' },
   ];
 
   const hasAccessToMenu = (item: MenuItem): boolean => {

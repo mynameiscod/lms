@@ -1229,6 +1229,7 @@
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
+  color: #4b5563;
 }
 
 .language-pill:hover {
@@ -1236,10 +1237,16 @@
   color: #005897;
 }
 
-.language-pill.selected {
+.language-pill.selected,
+.language-pill.active {
   background: #005897;
   border-color: #005897;
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 88, 151, 0.3);
+}
+
+.language-pill.active::before {
+  content: '✓ ';
 }
 
 /* Rubric */

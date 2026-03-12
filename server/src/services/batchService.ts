@@ -1,7 +1,36 @@
 import Batch, { IBatch } from '../models/Batch';
 import User from '../models/User';
+import Enrollment from '../models/Enrollment';
+import Course from '../models/Course';
 
 export class BatchService {
+  // Helper method to auto-enroll batch students in a course
+  private async autoEnrollBatchStudents(batchId: string, courseId: string, tenantId: string): Promise<void> {
+    // Get all students in this batch
+    const students = await User.find({ batchId, tenantId, role: 'STUDENT', isActive: true });
+    
+    for (const student of students) {
+      // Check if student is already enrolled in this course
+      const existingEnrollment = await Enrollment.findOne({
+        userId: student._id,
+        courseId,
+        tenantId
+      });
+      
+      if (!existingEnrollment) {
+        // Create enrollment
+        const enrollment = new Enrollment({
+          userId: student._id,
+          courseId,
+          tenantId
+        });
+        await enrollment.save();
+        await Course.findByIdAndUpdate(courseId, { $inc: { enrollmentCount: 1 } });
+        console.log(`   ✅ Auto-enrolled student ${student.email} in course`);
+      }
+    }
+  }
+
   async createBatch(batchData: {
     name: string;
     courseId?: string;
@@ -61,12 +90,28 @@ export class BatchService {
     tenantId: string,
     updateData: Partial<IBatch>
   ): Promise<IBatch | null> {
-    return await Batch.findOneAndUpdate(
+    // Check if courseId is being set/updated
+    const courseIdBeingSet = updateData.courseId;
+    
+    // Get existing batch to check if courseId is new
+    const existingBatch = await Batch.findOne({ _id: batchId, tenantId });
+    const isNewCourse = courseIdBeingSet && 
+      (!existingBatch?.courseId || existingBatch.courseId.toString() !== courseIdBeingSet.toString());
+    
+    const batch = await Batch.findOneAndUpdate(
       { _id: batchId, tenantId },
       { $set: updateData },
       { new: true }
     ).populate('instructors', 'firstName lastName email role')
       .populate('courseId', 'title code');
+    
+    // Auto-enroll all batch students if a new course is being assigned
+    if (isNewCourse && batch && courseIdBeingSet) {
+      console.log(`\n📚 [BATCH UPDATE] Auto-enrolling batch students in new course...`);
+      await this.autoEnrollBatchStudents(batchId, courseIdBeingSet.toString(), tenantId);
+    }
+    
+    return batch;
   }
 
   async deleteBatch(batchId: string, tenantId: string): Promise<IBatch | null> {

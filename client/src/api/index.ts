@@ -489,6 +489,19 @@ export const userApi = {
     });
     if (!response.ok) throw new Error('Failed to update profile');
     return response.json();
+  },
+
+  bulkUploadStudents: async (data: { students: Array<{ email: string; firstName: string; lastName: string }>; batchId: string }) => {
+    const response = await fetch(`${API_BASE_URL}/users/bulk-upload`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(data)
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.message || 'Failed to upload students');
+    }
+    return result;
   }
 };
 

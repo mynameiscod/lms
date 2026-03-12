@@ -39,6 +39,7 @@ const AssignmentWorkspace: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'instructions' | 'output'>('instructions');
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [showInstructionsPage, setShowInstructionsPage] = useState(true);
 
   // Timer for timed assignments
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
@@ -116,7 +117,7 @@ const AssignmentWorkspace: React.FC = () => {
 
   // Auto-save for coding assignments
   useEffect(() => {
-    if (!submission || assignment?.type !== AssignmentType.CODING) return;
+    if (!submission || (assignment?.type !== AssignmentType.CODING && assignment?.type !== AssignmentType.WEB)) return;
     
     const saveInterval = setInterval(() => {
       handleSave(true);
@@ -126,7 +127,7 @@ const AssignmentWorkspace: React.FC = () => {
   }, [submission, code, selectedLanguage]);
 
   const handleSave = async (silent = false) => {
-    if (!submission || (assignment?.type !== AssignmentType.CODING && assignment?.type !== AssignmentType.SQL)) return;
+    if (!submission || (assignment?.type !== AssignmentType.CODING && assignment?.type !== AssignmentType.SQL && assignment?.type !== AssignmentType.WEB)) return;
     
     try {
       if (!silent) setSaving(true);
@@ -184,7 +185,7 @@ const AssignmentWorkspace: React.FC = () => {
     try {
       setSubmitting(true);
       
-      if (assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL) {
+      if (assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) {
         await submissionApi.submitCoding(submission._id, {
           code,
           language: selectedLanguage
@@ -235,7 +236,9 @@ const AssignmentWorkspace: React.FC = () => {
       [ProgrammingLanguage.CSHARP]: 'csharp',
       [ProgrammingLanguage.GO]: 'go',
       [ProgrammingLanguage.RUST]: 'rust',
-      [ProgrammingLanguage.SQL]: 'sql'
+      [ProgrammingLanguage.SQL]: 'sql',
+      [ProgrammingLanguage.HTML]: 'html',
+      [ProgrammingLanguage.CSS]: 'css'
     };
     return map[lang] || 'plaintext';
   };
@@ -272,6 +275,78 @@ const AssignmentWorkspace: React.FC = () => {
           >
             View Results
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show instructions page before starting
+  if (showInstructionsPage) {
+    return (
+      <div className="assignment-page">
+        <div className="instructions-page">
+          <div className="instructions-header">
+            <button 
+              className="btn btn-secondary"
+              onClick={() => navigate('/assignments')}
+              style={{ marginBottom: '16px' }}
+            >
+              ← Back to Assignments
+            </button>
+            <h1>{assignment.title}</h1>
+            <div className="assignment-meta">
+              <span className="meta-badge">🏆 {assignment.totalPoints} Points</span>
+              <span className="meta-badge">📊 {assignment.difficulty}</span>
+              <span className="meta-badge">📝 {assignment.type}</span>
+              {assignment.settings?.timeLimitMinutes && (
+                <span className="meta-badge">⏱️ {assignment.settings.timeLimitMinutes} Minutes</span>
+              )}
+            </div>
+          </div>
+          
+          <div className="instructions-content">
+            <div className="instructions-section">
+              <h3>📋 Description</h3>
+              <div 
+                className="description-text"
+                dangerouslySetInnerHTML={{ __html: assignment.description || 'No description provided.' }}
+              />
+            </div>
+            
+            {assignment.instructions && (
+              <div className="instructions-section">
+                <h3>📖 Instructions</h3>
+                <div 
+                  className="instructions-text"
+                  dangerouslySetInnerHTML={{ __html: assignment.instructions }}
+                />
+              </div>
+            )}
+            
+            <div className="instructions-section">
+              <h3>⚠️ Important Notes</h3>
+              <ul className="notes-list">
+                <li>Make sure you understand the requirements before starting</li>
+                <li>Your progress will be auto-saved every 30 seconds</li>
+                {assignment.settings?.timeLimitMinutes && (
+                  <li>This assignment has a time limit of {assignment.settings.timeLimitMinutes} minutes</li>
+                )}
+                {assignment.settings?.maxAttempts && assignment.settings.maxAttempts > 0 && (
+                  <li>You have {assignment.settings.maxAttempts} attempt(s) for this assignment</li>
+                )}
+                <li>Click Submit when you're ready to finalize your work</li>
+              </ul>
+            </div>
+          </div>
+          
+          <div className="instructions-actions">
+            <button 
+              className="btn btn-primary btn-lg"
+              onClick={() => setShowInstructionsPage(false)}
+            >
+              ▶️ Start Assignment
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -318,7 +393,7 @@ const AssignmentWorkspace: React.FC = () => {
             </span>
           )}
           
-          {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL) && (
+          {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) && (
             <button 
               className="btn"
               onClick={() => handleSave(false)}
@@ -333,7 +408,7 @@ const AssignmentWorkspace: React.FC = () => {
             </button>
           )}
           
-          {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL) && (
+          {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) && (
             <button 
               className="btn"
               onClick={handleRun}
@@ -430,7 +505,7 @@ const AssignmentWorkspace: React.FC = () => {
                 )}
                 
                 {/* Test Cases (visible ones) */}
-                {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL) && (
+                {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) && (
                   <div>
                     <h3 style={{ marginBottom: '8px' }}>🧪 Test Cases</h3>
                     {assignment.testCases.filter(tc => !tc.isHidden).map((tc, index) => (
@@ -729,7 +804,7 @@ const AssignmentWorkspace: React.FC = () => {
         {/* Right Panel - Editor/Input */}
         <div className="workspace-editor">
           {/* Coding Assignment */}
-          {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL) && (
+          {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) && (
             <>
               <div className="language-pills" style={{ display: 'flex' }}>
                 {assignment.allowedLanguages.map(lang => (
@@ -748,7 +823,9 @@ const AssignmentWorkspace: React.FC = () => {
                     {lang === 'go' && '🐹 Go'}
                     {lang === 'rust' && '🦀 Rust'}
                     {lang === 'sql' && '🗄️ SQL'}
-                    {!['javascript', 'python', 'java', 'cpp', 'c', 'typescript', 'csharp', 'go', 'rust', 'sql'].includes(lang) && lang}
+                    {lang === 'html' && '🌐 HTML'}
+                    {lang === 'css' && '🎨 CSS'}
+                    {!['javascript', 'python', 'java', 'cpp', 'c', 'typescript', 'csharp', 'go', 'rust', 'sql', 'html', 'css'].includes(lang) && lang}
                   </button>
                 ))}
               </div>

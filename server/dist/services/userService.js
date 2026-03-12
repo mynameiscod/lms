@@ -22,16 +22,19 @@ class UserService {
             tenantId,
             isActive: true,
             profileComplete: false,
-            batchId: batchId || undefined
+            batchId: batchId || undefined,
+            batchJoinedDate: batchId ? new Date() : undefined
         });
         await user.save();
         return user;
     }
     async getAllUsers(tenantId) {
-        return await User_1.default.find({ tenantId, isActive: true });
+        // Return all users (including inactive) for admin management
+        return await User_1.default.find({ tenantId });
     }
     async getUsersByTenant(tenantId) {
-        return await User_1.default.find({ tenantId, isActive: true });
+        // Return all users (including inactive) for admin management
+        return await User_1.default.find({ tenantId });
     }
     async getUserById(userId) {
         return await User_1.default.findById(userId);

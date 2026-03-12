@@ -75,6 +75,10 @@ const UserSchema = new mongoose_1.Schema({
         ref: 'Batch',
         default: null
     },
+    batchJoinedDate: {
+        type: Date,
+        default: null
+    },
     isActive: {
         type: Boolean,
         default: true

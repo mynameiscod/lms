@@ -380,12 +380,18 @@ export class QuizService {
     const passed = quiz.passingMarks ? obtainedMarks >= quiz.passingMarks : 
                   (quiz.passPercentage ? percentage >= quiz.passPercentage : false);
 
+    // Calculate time spent
+    const timeSpent = attempt.startedAt 
+      ? Math.floor((Date.now() - new Date(attempt.startedAt).getTime()) / 1000)
+      : 0;
+
     attempt.status = 'submitted';
     attempt.submittedAt = new Date();
     attempt.obtainedMarks = obtainedMarks;
     attempt.percentage = percentage;
     attempt.passed = passed;
     attempt.questionsAnswered = answers.length;
+    attempt.timeSpent = timeSpent;
 
     return attempt.save();
   }

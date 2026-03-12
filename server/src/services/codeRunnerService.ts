@@ -547,7 +547,9 @@ class CodeRunnerService {
       [ProgrammingLanguage.CSHARP]: { language: 'csharp', version: '6.12.0' },
       [ProgrammingLanguage.GO]: { language: 'go', version: '1.16.2' },
       [ProgrammingLanguage.RUST]: { language: 'rust', version: '1.68.2' },
-      [ProgrammingLanguage.SQL]: { language: 'sqlite3', version: '3.36.0' }
+      [ProgrammingLanguage.SQL]: { language: 'sqlite3', version: '3.36.0' },
+      [ProgrammingLanguage.HTML]: { language: 'html', version: '5' },
+      [ProgrammingLanguage.CSS]: { language: 'css', version: '3' }
     };
 
     return mapping[language] || { language: 'javascript', version: '18.15.0' };

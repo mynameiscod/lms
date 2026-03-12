@@ -11,20 +11,30 @@ class CourseService {
         await course.save();
         return course.populate('instructor', 'firstName lastName email');
     }
-    async getCoursesByTenant(tenantId) {
-        return await Course_1.default.find({ tenantId }).populate('instructor', 'firstName lastName email');
+    async getCoursesByTenant(tenantId, filters = {}) {
+        const query = { tenantId, ...filters };
+        return await Course_1.default.find(query)
+            .populate('instructor', 'firstName lastName email')
+            .sort({ createdAt: -1 });
     }
     async getCourseById(courseId) {
         return await Course_1.default.findById(courseId).populate('instructor');
     }
     async updateCourse(courseId, updateData) {
-        return await Course_1.default.findByIdAndUpdate(courseId, updateData, { new: true });
+        return await Course_1.default.findByIdAndUpdate(courseId, updateData, { new: true })
+            .populate('instructor', 'firstName lastName email');
     }
     async deleteCourse(courseId) {
         return await Course_1.default.findByIdAndDelete(courseId);
     }
     async publishCourse(courseId) {
         return await Course_1.default.findByIdAndUpdate(courseId, { isPublished: true }, { new: true });
+    }
+    async incrementSubjectCount(courseId) {
+        await Course_1.default.findByIdAndUpdate(courseId, { $inc: { subjectCount: 1 } });
+    }
+    async decrementSubjectCount(courseId) {
+        await Course_1.default.findByIdAndUpdate(courseId, { $inc: { subjectCount: -1 } });
     }
 }
 exports.CourseService = CourseService;

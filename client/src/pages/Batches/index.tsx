@@ -49,9 +49,12 @@ const BatchesPage: React.FC = () => {
 
       setBatches(batchesRes.data || []);
       setCourses(coursesRes.data || []);
-      // Filter instructors - only users with INSTRUCTOR role
+      // Filter instructors - only users with INSTRUCTOR, TENANT_ADMIN, or SUPER_ADMIN role
       const instructorUsers = (instructorsRes.data || []).filter(
-        (u: User) => u.role === 'INSTRUCTOR' || u.role === 'TENANT_ADMIN'
+        (u: User) => {
+          const role = u.role?.toUpperCase();
+          return role === 'INSTRUCTOR' || role === 'TENANT_ADMIN' || role === 'SUPER_ADMIN';
+        }
       );
       setInstructors(instructorUsers);
     } catch (err: any) {

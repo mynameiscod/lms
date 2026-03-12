@@ -197,18 +197,38 @@ const inviteStudent = async (req, res) => {
         }
         // Check if user already exists
         const existingUser = await userService.getUserByEmail(email);
+        let user;
         if (existingUser) {
-            console.log('   ❌ User already exists\n');
-            return res.status(400).json({
-                success: false,
-                message: 'User already exists'
-            });
+            // Check if user is inactive (was deleted) - reactivate them
+            if (!existingUser.isActive) {
+                console.log('   🔄 Reactivating previously deleted user...');
+                existingUser.isActive = true;
+                existingUser.firstName = firstName;
+                existingUser.lastName = lastName;
+                if (batchId) {
+                    existingUser.batchId = batchId;
+                    existingUser.batchJoinedDate = new Date();
+                }
+                await existingUser.save();
+                user = existingUser;
+                console.log('   ✅ User reactivated:', user._id);
+            }
+            else {
+                // User exists and is active
+                console.log('   ❌ User already exists and is active\n');
+                return res.status(400).json({
+                    success: false,
+                    message: 'User already exists'
+                });
+            }
         }
-        // Create user with temporary password
-        console.log('   Step 1: Creating user...');
-        const tempPassword = crypto_1.default.randomBytes(8).toString('hex');
-        const user = await userService.createUser(email, firstName, lastName, tempPassword, 'STUDENT', req.tenantId, batchId);
-        console.log('   ✅ User created:', user._id);
+        else {
+            // Create new user with temporary password
+            console.log('   Step 1: Creating user...');
+            const tempPassword = crypto_1.default.randomBytes(8).toString('hex');
+            user = await userService.createUser(email, firstName, lastName, tempPassword, 'STUDENT', req.tenantId, batchId);
+            console.log('   ✅ User created:', user._id);
+        }
         // Generate reset token for password setup
         console.log('   Step 2: Generating reset token...');
         const resetToken = crypto_1.default.randomBytes(32).toString('hex');
@@ -220,20 +240,44 @@ const inviteStudent = async (req, res) => {
         console.log('   ✅ Setup link generated');
         // Send welcome email
         console.log('   Step 3: Attempting to send welcome email...');
+        let emailSent = false;
+        let emailError = null;
         try {
             await emailService.sendWelcomeEmail(email, firstName, setupLink);
+            emailSent = true;
             console.log('   ✅ Welcome email sent successfully');
         }
-        catch (emailError) {
+        catch (err) {
             console.log('   ❌ Warning: Email sending failed, but user was created');
-            console.error('   Email Error:', emailError.message);
+            console.error('   Email Error:', err.message);
+            emailError = err.message;
+            // Parse common Gmail errors for user-friendly messages
+            if (err.message.includes('Daily user sending limit exceeded')) {
+                emailError = 'Gmail daily sending limit exceeded. Please try again tomorrow or use a different email service.';
+            }
+            else if (err.message.includes('Invalid login') || err.message.includes('authentication')) {
+                emailError = 'Email authentication failed. Please check SMTP credentials.';
+            }
+            else if (err.message.includes('ECONNREFUSED') || err.message.includes('ETIMEDOUT')) {
+                emailError = 'Unable to connect to email server. Please check network settings.';
+            }
         }
         console.log('   🎉 Student invitation process complete\n');
-        res.status(201).json({
+        // Return response with email status
+        const response = {
             success: true,
-            message: 'Student invited successfully. Welcome email sent.',
-            data: { userId: user._id, email: user.email }
-        });
+            message: emailSent
+                ? 'Student invited successfully. Welcome email sent.'
+                : 'Student created but email could not be sent.',
+            data: {
+                userId: user._id,
+                email: user.email,
+                setupLink: !emailSent ? setupLink : undefined // Only include link if email failed
+            },
+            emailSent,
+            emailError
+        };
+        res.status(201).json(response);
     }
     catch (error) {
         console.log('   ❌ INVITATION FAILED');

@@ -453,3 +453,33 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Quill Editor Styles */
+.quill-editor {
+  background: white;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.quill-editor .ql-toolbar {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px 8px 0 0;
+  background: #fafafa;
+}
+
+.quill-editor .ql-container {
+  border: 1px solid #e0e0e0;
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  min-height: 150px;
+  font-size: 14px;
+}
+
+.quill-editor .ql-editor {
+  min-height: 150px;
+}
+
+.quill-editor .ql-editor.ql-blank::before {
+  color: #aaa;
+  font-style: normal;
+}

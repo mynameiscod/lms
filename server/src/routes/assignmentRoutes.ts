@@ -47,6 +47,7 @@ router.post('/:id/clone', roleGuard(['manage_assignments']), assignmentControlle
 router.get('/:assignmentId/submissions', roleGuard(['grade_submissions']), submissionController.getAssignmentSubmissions);
 router.get('/:assignmentId/stats', roleGuard(['grade_submissions']), submissionController.getStats);
 router.post('/submissions/:submissionId/grade', roleGuard(['grade_submissions']), submissionController.grade);
+router.post('/submissions/:submissionId/allow-reattempt', roleGuard(['grade_submissions']), submissionController.allowReattempt);
 
 // ==================== STUDENT SUBMISSION WORKFLOW ====================
 

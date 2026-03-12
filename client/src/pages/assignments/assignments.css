@@ -1626,3 +1626,96 @@
   border-radius: 8px;
   margin: 8px 0;
 }
+
+/* Instructions Page (Before Starting Assignment) */
+.instructions-page {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.instructions-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.instructions-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 16px 0;
+}
+
+.assignment-meta {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.meta-badge {
+  background: #f3f4f6;
+  color: #374151;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.instructions-content {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.instructions-section {
+  margin-bottom: 24px;
+}
+
+.instructions-section:last-child {
+  margin-bottom: 0;
+}
+
+.instructions-section h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0 0 12px 0;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.description-text,
+.instructions-text {
+  color: #4b5563;
+  line-height: 1.7;
+}
+
+.description-text p,
+.instructions-text p {
+  margin: 8px 0;
+}
+
+.notes-list {
+  margin: 0;
+  padding: 0 0 0 24px;
+  color: #4b5563;
+}
+
+.notes-list li {
+  margin: 8px 0;
+  line-height: 1.6;
+}
+
+.instructions-actions {
+  text-align: center;
+}
+
+.instructions-actions .btn-lg {
+  padding: 14px 48px;
+  font-size: 18px;
+  font-weight: 600;
+}
+

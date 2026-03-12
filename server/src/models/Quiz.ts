@@ -36,6 +36,8 @@ export interface IQuiz extends Document {
   canCopyPaste: boolean;
   requireFullScreen: boolean;
   tabSwitchWarnings: boolean;
+  enableCamera: boolean;
+  enableMicrophone: boolean;
   warningCount: number;
   warnings: number[];
   isActive: boolean;
@@ -88,6 +90,8 @@ const quizSchema = new Schema<IQuiz>(
     canCopyPaste: { type: Boolean, default: false },
     requireFullScreen: { type: Boolean, default: false },
     tabSwitchWarnings: { type: Boolean, default: true },
+    enableCamera: { type: Boolean, default: false },
+    enableMicrophone: { type: Boolean, default: false },
     warningCount: { type: Number, default: 0 },
     warnings: { type: [Number], default: [] }, // [50%, 75%, 90%] etc
     isActive: { type: Boolean, default: true }

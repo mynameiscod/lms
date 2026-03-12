@@ -26,19 +26,31 @@ const allowedOrigins = [
     process.env.CLIENT_URL, // Production URL from env (e.g., http://187.124.97.56:5000)
 ].filter(Boolean);
 // In production, frontend and backend are on the same origin, so allow any origin
+// In development, be more permissive to avoid CORS issues during testing
 const corsOptions = process.env.NODE_ENV === 'production'
-    ? { origin: true, credentials: true }
+    ? {
+        origin: true,
+        credentials: true,
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id'],
+    }
     : {
         origin: (origin, callback) => {
             // Allow requests with no origin (like mobile apps or curl requests)
-            if (!origin || allowedOrigins.includes(origin)) {
+            // Also allow any localhost/127.0.0.1 origin in development
+            if (!origin) {
+                callback(null, true);
+            }
+            else if (allowedOrigins.includes(origin) || origin.includes('localhost') || origin.includes('127.0.0.1')) {
                 callback(null, true);
             }
             else {
+                console.warn(`[CORS] Blocked origin: ${origin}`);
                 callback(new Error('Not allowed by CORS'));
             }
         },
-        credentials: true
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-tenant-id'],
     };
 // Middleware - PROPER ORDER for Express
 app.use((0, helmet_1.default)({
@@ -89,6 +101,10 @@ app.post('/api/debug/auth', (req, res) => {
 });
 // API Routes - BEFORE static files and catch-all
 app.use('/api/v1', routes_1.default);
+// Serve uploaded files (profile photos, resumes, etc.)
+const uploadsPath = path_1.default.join(__dirname, '..', 'uploads');
+app.use('/uploads', express_1.default.static(uploadsPath));
+console.log(`📁 Serving uploaded files from: ${uploadsPath}`);
 // Serve static files AFTER API routes
 const staticPath = process.env.NODE_ENV === 'production'
     ? '/app/client/build'

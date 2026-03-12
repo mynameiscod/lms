@@ -70,6 +70,18 @@ const AssignmentResult: React.FC = () => {
     return 'Review Material 📖';
   };
 
+  const getPassFailStatus = () => {
+    if (!assignment || !submission || submission.score === undefined) return null;
+    const passingPoints = assignment.passingPoints || (assignment.totalPoints * 0.5);
+    const isPassing = submission.score >= passingPoints;
+    return {
+      isPassing,
+      label: isPassing ? 'PASSED' : 'FAILED',
+      color: isPassing ? '#10b981' : '#ef4444',
+      passingScore: passingPoints
+    };
+  };
+
   if (loading) {
     return (
       <div className="assignment-page">
@@ -164,6 +176,29 @@ const AssignmentResult: React.FC = () => {
               </div>
             </div>
             
+            {/* Pass/Fail Badge */}
+            {(() => {
+              const passFailStatus = getPassFailStatus();
+              if (passFailStatus) {
+                return (
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '8px 24px',
+                    borderRadius: '20px',
+                    background: passFailStatus.isPassing ? '#dcfce7' : '#fee2e2',
+                    color: passFailStatus.color,
+                    fontWeight: 700,
+                    fontSize: '18px',
+                    marginBottom: '16px',
+                    border: `2px solid ${passFailStatus.color}`
+                  }}>
+                    {passFailStatus.isPassing ? '✓' : '✗'} {passFailStatus.label}
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            
             <h2 style={{ 
               marginBottom: '8px',
               color: getScoreColor(submission.score!, assignment.totalPoints)
@@ -171,9 +206,22 @@ const AssignmentResult: React.FC = () => {
               {submission.score} / {assignment.totalPoints} points
             </h2>
             
-            <p style={{ fontSize: '18px', color: '#6b7280' }}>
+            <p style={{ fontSize: '18px', color: '#6b7280', marginBottom: '4px' }}>
               {getGradeLabel(submission.score!, assignment.totalPoints)}
             </p>
+            
+            {/* Passing score info */}
+            {(() => {
+              const passFailStatus = getPassFailStatus();
+              if (passFailStatus) {
+                return (
+                  <p style={{ fontSize: '14px', color: '#9ca3af' }}>
+                    Passing score: {passFailStatus.passingScore} points
+                  </p>
+                );
+              }
+              return null;
+            })()}
           </>
         ) : (
           <>

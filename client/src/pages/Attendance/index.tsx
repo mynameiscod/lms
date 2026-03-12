@@ -259,7 +259,9 @@ const AttendancePage: React.FC = () => {
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        status: 'absent'
+        status: 'absent',
+        inTime: '',  // Clear in time when marking absent
+        outTime: ''  // Clear out time when marking absent
       }
     }));
   };
@@ -269,7 +271,9 @@ const AttendancePage: React.FC = () => {
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        status: 'leave'
+        status: 'leave',
+        inTime: '',  // Clear in time when marking leave
+        outTime: ''  // Clear out time when marking leave
       }
     }));
   };

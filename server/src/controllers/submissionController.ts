@@ -377,6 +377,44 @@ class SubmissionController {
       });
     }
   }
+
+  // Allow student to reattempt assignment (instructor)
+  async allowReattempt(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = req.tenantId;
+      const userId = req.user?.id;
+      const { submissionId } = req.params;
+
+      if (!tenantId || !userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const submission = await submissionService.allowReattempt(
+        submissionId,
+        tenantId as any,
+        userId as any
+      );
+
+      if (!submission) {
+        return res.status(404).json({ 
+          success: false, 
+          message: 'Submission not found' 
+        });
+      }
+
+      res.json({
+        success: true,
+        data: submission,
+        message: 'Student can now reattempt this assignment'
+      });
+    } catch (error) {
+      console.error('Allow reattempt error:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to allow reattempt'
+      });
+    }
+  }
 }
 
 export default new SubmissionController();

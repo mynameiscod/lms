@@ -237,7 +237,7 @@ export function getStudentWelcomeEmailHtml({
                                         <table cellpadding="0" cellspacing="0" style="margin: 0 auto; text-align: center;">
                                             <tr>
                                                 <td style="padding: 0 12px;">
-                                                    <a href="https://www.linkedin.com/company/codebegun" style="color: #517ff4; text-decoration: none; font-size: 13px; font-weight: 500;">LinkedIn</a>
+                                                    <a href="https://www.linkedin.com/company/codbegun" style="color: #517ff4; text-decoration: none; font-size: 13px; font-weight: 500;">LinkedIn</a>
                                                 </td>
                                                 <td style="padding: 0 12px; color: #ddd;">|</td>
                                                 <td style="padding: 0 12px;">
@@ -361,7 +361,7 @@ If you have any questions or need assistance, feel free to reply to this email o
 
 STAY CONNECTED:
 
-LinkedIn: https://www.linkedin.com/company/codebegun
+LinkedIn: https://www.linkedin.com/company/codbegun
 Instagram: https://www.instagram.com/codebegun
 YouTube: https://www.youtube.com/@codebegun
 Website: https://codebegun.com

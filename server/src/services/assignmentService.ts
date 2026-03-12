@@ -252,14 +252,23 @@ class AssignmentService {
   // Send email notifications to students about new assignment
   private async sendAssignmentNotifications(assignment: IAssignment, tenant: Types.ObjectId): Promise<void> {
     try {
-      // Get all active students in the tenant
-      const students = await User.find({
+      // Build query to filter students - only students in the assignment's batch if specified
+      const studentQuery: any = {
         tenantId: tenant,
         role: 'student',
         isActive: true
-      }).select('firstName lastName email');
+      };
+      
+      // If assignment has a specific batch, only send to students in that batch
+      if (assignment.batch) {
+        studentQuery.batchId = assignment.batch;
+      }
+      
+      // Get students based on query
+      const students = await User.find(studentQuery).select('firstName lastName email');
 
-      console.log(`📧 Sending assignment notifications to ${students.length} students`);
+      console.log(`📧 Sending assignment notifications to ${students.length} students` + 
+        (assignment.batch ? ` (batch: ${assignment.batch})` : ' (all students)'));
 
       for (const student of students) {
         try {

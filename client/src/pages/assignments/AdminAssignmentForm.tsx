@@ -66,6 +66,7 @@ const AdminAssignmentForm: React.FC = () => {
   const [rubric, setRubric] = useState<RubricItem[]>([]);
 
   // Settings
+  const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [timeLimitMinutes, setTimeLimitMinutes] = useState(0);
   const [maxAttempts, setMaxAttempts] = useState(0);
@@ -78,6 +79,8 @@ const AdminAssignmentForm: React.FC = () => {
   const [showTestCaseResults, setShowTestCaseResults] = useState(true);
   const [showExpectedOutput, setShowExpectedOutput] = useState(true);
   const [enablePlagiarismCheck, setEnablePlagiarismCheck] = useState(false);
+  const [enableCamera, setEnableCamera] = useState(false);
+  const [enableMicrophone, setEnableMicrophone] = useState(false);
 
   // Rich text editor configuration
   const quillModules = useMemo(() => ({
@@ -225,6 +228,9 @@ const AdminAssignmentForm: React.FC = () => {
       setRubric(a.rubric);
 
       // Settings
+      if (a.startDate) {
+        setStartDate(new Date(a.startDate).toISOString().slice(0, 16));
+      }
       if (a.dueDate) {
         setDueDate(new Date(a.dueDate).toISOString().slice(0, 16));
       }
@@ -238,6 +244,8 @@ const AdminAssignmentForm: React.FC = () => {
       setShowTestCaseResults(a.showTestCaseResults ?? true);
       setShowExpectedOutput(a.showExpectedOutput ?? true);
       setEnablePlagiarismCheck(a.enablePlagiarismCheck ?? false);
+      setEnableCamera(a.enableCamera ?? false);
+      setEnableMicrophone(a.enableMicrophone ?? false);
     } catch (err) {
       setError('Failed to load assignment');
     } finally {
@@ -275,6 +283,7 @@ const AdminAssignmentForm: React.FC = () => {
         memoryLimit,
         mcqQuestions,
         rubric,
+        startDate: startDate ? new Date(startDate).toISOString() : undefined,
         dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
         settings: {
           shuffleQuestions,
@@ -288,7 +297,9 @@ const AdminAssignmentForm: React.FC = () => {
         showSyntaxErrors,
         showTestCaseResults,
         showExpectedOutput,
-        enablePlagiarismCheck
+        enablePlagiarismCheck,
+        enableCamera,
+        enableMicrophone
       };
 
       if (isEdit) {
@@ -491,7 +502,7 @@ const AdminAssignmentForm: React.FC = () => {
         >
           📝 Basic Info
         </button>
-        {(type === AssignmentType.CODING || type === AssignmentType.SQL) && (
+        {(type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && (
           <button 
             className={`tab ${activeTab === 'coding' ? 'active' : ''}`}
             onClick={() => setActiveTab('coding')}
@@ -558,6 +569,7 @@ const AdminAssignmentForm: React.FC = () => {
                   <option value="project">🚀 Project</option>
                   <option value="file_upload">📎 File Upload</option>
                   <option value="sql">🗄️ SQL Challenge</option>
+                  <option value="web">🌐 Web (HTML/CSS/Bootstrap)</option>
                 </select>
               </div>
 
@@ -713,7 +725,7 @@ const AdminAssignmentForm: React.FC = () => {
         )}
 
         {/* Coding Settings Tab */}
-        {activeTab === 'coding' && (type === AssignmentType.CODING || type === AssignmentType.SQL) && (
+        {activeTab === 'coding' && (type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && (
           <>
             <div className="form-section">
               <h3 className="section-title">Programming Languages</h3>
@@ -1019,9 +1031,19 @@ const AdminAssignmentForm: React.FC = () => {
         {activeTab === 'settings' && (
           <div className="form-section" style={{ padding: '24px' }}>
             <h3 className="section-title" style={{ marginTop: 0 }}>Assignment Settings</h3>
-            <p className="section-description">Configure deadline and submission rules</p>
+            <p className="section-description">Configure schedule and submission rules</p>
 
             <div className="form-row">
+              <div className="form-group">
+                <label className="form-label">Start Date</label>
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                />
+                <small className="form-hint">Leave empty to be available immediately</small>
+              </div>
               <div className="form-group">
                 <label className="form-label">Due Date</label>
                 <input
@@ -1032,6 +1054,9 @@ const AdminAssignmentForm: React.FC = () => {
                 />
                 <small className="form-hint">Leave empty for no deadline</small>
               </div>
+            </div>
+
+            <div className="form-row">
               <div className="form-group">
                 <label className="form-label">Time Limit (minutes)</label>
                 <input
@@ -1116,7 +1141,7 @@ const AdminAssignmentForm: React.FC = () => {
               </div>
             )}
 
-            {(type === AssignmentType.CODING || type === AssignmentType.SQL) && (
+            {(type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && (
               <>
                 <hr style={{ margin: '24px 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />
                 <h4 style={{ marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1289,6 +1314,96 @@ const AdminAssignmentForm: React.FC = () => {
                           height: '20px',
                           width: '20px',
                           left: enablePlagiarismCheck ? '25px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: 'white',
+                          transition: '0.3s',
+                          borderRadius: '50%'
+                        }}></span>
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Enable Camera */}
+                  <div style={{ boxSizing: 'border-box', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '16px',
+                    backgroundColor: enableCamera ? '#dcfce7' : '#f8fafc',
+                    borderRadius: '8px',
+                    border: enableCamera ? '1px solid #22c55e' : '1px solid #e2e8f0'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 500, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>📷</span> Enable Camera
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#64748b' }}>Require webcam access during assignment</div>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px' }}>
+                      <input
+                        type="checkbox"
+                        checked={enableCamera}
+                        onChange={(e) => setEnableCamera(e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        cursor: 'pointer',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: enableCamera ? '#22c55e' : '#cbd5e1',
+                        transition: '0.3s',
+                        borderRadius: '26px'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          height: '20px',
+                          width: '20px',
+                          left: enableCamera ? '25px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: 'white',
+                          transition: '0.3s',
+                          borderRadius: '50%'
+                        }}></span>
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Enable Microphone */}
+                  <div style={{ boxSizing: 'border-box', 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center',
+                    padding: '16px',
+                    backgroundColor: enableMicrophone ? '#dbeafe' : '#f8fafc',
+                    borderRadius: '8px',
+                    border: enableMicrophone ? '1px solid #3b82f6' : '1px solid #e2e8f0'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 500, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🎤</span> Enable Microphone
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#64748b' }}>Require microphone access during assignment</div>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px' }}>
+                      <input
+                        type="checkbox"
+                        checked={enableMicrophone}
+                        onChange={(e) => setEnableMicrophone(e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        cursor: 'pointer',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: enableMicrophone ? '#3b82f6' : '#cbd5e1',
+                        transition: '0.3s',
+                        borderRadius: '26px'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          height: '20px',
+                          width: '20px',
+                          left: enableMicrophone ? '25px' : '3px',
                           bottom: '3px',
                           backgroundColor: 'white',
                           transition: '0.3s',

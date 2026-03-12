@@ -226,12 +226,23 @@ export const saveProfile = async (req: AuthRequest, res: Response) => {
       message: 'Profile saved successfully',
       data: profile,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Save profile error:', error);
+    
+    // Handle Mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map((e: any) => e.message).join(', ');
+      return res.status(400).json({
+        success: false,
+        message: messages || 'Validation failed',
+        error: error.message,
+      });
+    }
+    
     res.status(500).json({
       success: false,
       message: 'Failed to save profile',
-      error: (error as Error).message,
+      error: error.message,
     });
   }
 };

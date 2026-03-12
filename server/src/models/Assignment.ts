@@ -7,7 +7,8 @@ export enum AssignmentType {
   MCQ = 'mcq',
   THEORY = 'theory',
   SQL = 'sql',
-  FILE_UPLOAD = 'file_upload'
+  FILE_UPLOAD = 'file_upload',
+  WEB = 'web'
 }
 
 export enum DifficultyLevel {
@@ -34,7 +35,9 @@ export enum ProgrammingLanguage {
   CSHARP = 'csharp',
   GO = 'go',
   RUST = 'rust',
-  SQL = 'sql'
+  SQL = 'sql',
+  HTML = 'html',
+  CSS = 'css'
 }
 
 // Interfaces for embedded documents
@@ -131,6 +134,8 @@ export interface IAssignment extends Document {
   enablePlagiarismCheck: boolean;
   enableHints: boolean;
   hints: string[];
+  enableCamera: boolean;
+  enableMicrophone: boolean;
   
   // Bank
   isInBank: boolean;
@@ -244,6 +249,8 @@ const AssignmentSchema = new Schema<IAssignment>({
   enablePlagiarismCheck: { type: Boolean, default: false },
   enableHints: { type: Boolean, default: false },
   hints: [{ type: String }],
+  enableCamera: { type: Boolean, default: false },
+  enableMicrophone: { type: Boolean, default: false },
   
   // Bank
   isInBank: { type: Boolean, default: false },

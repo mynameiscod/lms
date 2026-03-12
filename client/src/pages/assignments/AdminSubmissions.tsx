@@ -18,6 +18,7 @@ const AdminSubmissions: React.FC = () => {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [reattemptLoading, setReattemptLoading] = useState<string | null>(null);
 
   // Grading modal
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
@@ -106,6 +107,22 @@ const AdminSubmissions: React.FC = () => {
     }
   };
 
+  const handleAllowReattempt = async (submissionId: string) => {
+    if (!window.confirm('Are you sure you want to allow this student to reattempt? This will reset their current submission.')) {
+      return;
+    }
+    
+    try {
+      setReattemptLoading(submissionId);
+      await submissionApi.allowReattempt(submissionId);
+      loadData();
+    } catch (err) {
+      setError('Failed to allow reattempt');
+    } finally {
+      setReattemptLoading(null);
+    }
+  };
+
   const calculateRubricTotal = () => {
     return Object.values(rubricScores).reduce((sum, score) => sum + score, 0);
   };
@@ -125,7 +142,7 @@ const AdminSubmissions: React.FC = () => {
     const statusMap: Record<SubmissionStatus, { class: string; label: string }> = {
       [SubmissionStatus.NOT_STARTED]: { class: 'badge-draft', label: 'Not Started' },
       [SubmissionStatus.IN_PROGRESS]: { class: 'badge-published', label: 'In Progress' },
-      [SubmissionStatus.SUBMITTED]: { class: 'badge-archived', label: 'Submitted' },
+      [SubmissionStatus.SUBMITTED]: { class: 'badge-warning', label: 'In Review' },
       [SubmissionStatus.GRADED]: { class: 'badge-success', label: 'Graded' },
       [SubmissionStatus.LATE]: { class: 'badge-danger', label: 'Late' }
     };
@@ -285,12 +302,24 @@ const AdminSubmissions: React.FC = () => {
                     {(submission.status === SubmissionStatus.SUBMITTED || 
                       submission.status === SubmissionStatus.GRADED ||
                       submission.status === SubmissionStatus.LATE) && (
-                      <button
-                        className="btn btn-primary btn-sm"
-                        onClick={() => openGrading(submission)}
-                      >
-                        {submission.status === SubmissionStatus.GRADED ? 'View/Edit Grade' : 'Grade'}
-                      </button>
+                      <>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          onClick={() => openGrading(submission)}
+                        >
+                          {submission.status === SubmissionStatus.GRADED ? 'View/Edit Grade' : 'Grade'}
+                        </button>
+                        {submission.status === SubmissionStatus.GRADED && (
+                          <button
+                            className="btn btn-secondary btn-sm"
+                            onClick={() => handleAllowReattempt(submission._id)}
+                            disabled={reattemptLoading === submission._id}
+                            style={{ marginLeft: '8px' }}
+                          >
+                            {reattemptLoading === submission._id ? 'Resetting...' : 'Allow Reattempt'}
+                          </button>
+                        )}
+                      </>
                     )}
                   </td>
                 </tr>

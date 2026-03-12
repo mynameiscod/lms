@@ -29,7 +29,8 @@ export enum AssignmentType {
   MCQ = 'mcq',
   THEORY = 'theory',
   SQL = 'sql',
-  FILE_UPLOAD = 'file_upload'
+  FILE_UPLOAD = 'file_upload',
+  WEB = 'web'
 }
 
 export enum DifficultyLevel {
@@ -64,7 +65,9 @@ export enum ProgrammingLanguage {
   CSHARP = 'csharp',
   GO = 'go',
   RUST = 'rust',
-  SQL = 'sql'
+  SQL = 'sql',
+  HTML = 'html',
+  CSS = 'css'
 }
 
 // Interfaces
@@ -140,6 +143,8 @@ export interface Assignment {
   showExpectedOutput: boolean;
   showSyntaxErrors: boolean;
   enablePlagiarismCheck: boolean;
+  enableCamera?: boolean;
+  enableMicrophone?: boolean;
   enableHints: boolean;
   hints: string[];
   isInBank: boolean;
@@ -460,7 +465,11 @@ export const submissionApi = {
     score: number;
     feedback?: string;
     rubricScores?: { criterion: string; score: number }[];
-  }) => api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/grade`, data)
+  }) => api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/grade`, data),
+  
+  // Admin - Allow re-attempt (reset submission)
+  allowReattempt: (submissionId: string) =>
+    api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/allow-reattempt`)
 };
 
 export default assignmentApi;

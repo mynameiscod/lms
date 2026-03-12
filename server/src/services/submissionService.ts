@@ -613,6 +613,48 @@ class SubmissionService {
       passRate: total > 0 ? Math.round((passing / total) * 100) : 0
     };
   }
+
+  // Allow student to reattempt assignment (reset submission)
+  async allowReattempt(
+    submissionId: string | Types.ObjectId,
+    tenant: Types.ObjectId,
+    resetBy: Types.ObjectId
+  ): Promise<ISubmission | null> {
+    const submission = await Submission.findOne({ _id: submissionId, tenant });
+    if (!submission) return null;
+
+    // Reset the submission to allow reattempt
+    submission.status = SubmissionStatus.IN_PROGRESS;
+    submission.attemptNumber = (submission.attemptNumber || 1) + 1;
+    submission.startedAt = new Date();
+    submission.submittedAt = undefined;
+    submission.gradedAt = undefined;
+    submission.gradedBy = undefined;
+    submission.autoScore = 0;
+    submission.manualScore = 0;
+    submission.totalScore = 0;
+    submission.finalScore = 0;
+    submission.percentage = 0;
+    submission.isPassing = false;
+    submission.penaltyApplied = 0;
+    submission.overallFeedback = '';
+    submission.privateFeedback = '';
+    
+    // Clear answers but keep the submission record
+    submission.testCaseResults = [];
+    submission.mcqAnswers = [];
+    submission.codeSnapshots = [];
+    
+    await submission.save();
+    
+    // Update assignment stats
+    const assignment = await Assignment.findById(submission.assignment);
+    if (assignment) {
+      await assignmentService.updateStats(assignment._id, tenant);
+    }
+
+    return submission;
+  }
 }
 
 export default new SubmissionService();

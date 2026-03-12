@@ -89,7 +89,8 @@ const StudentAssignmentList: React.FC = () => {
       [AssignmentType.THEORY]: '📝',
       [AssignmentType.PROJECT]: '🚀',
       [AssignmentType.FILE_UPLOAD]: '📎',
-      [AssignmentType.SQL]: '🗄️'
+      [AssignmentType.SQL]: '🗄️',
+      [AssignmentType.WEB]: '🌐'
     };
     return icons[type] || '📄';
   };
@@ -110,7 +111,7 @@ const StudentAssignmentList: React.FC = () => {
     const statusMap: Record<string, { color: string; label: string; icon: string }> = {
       not_started: { color: '#6b7280', label: 'Not Started', icon: '⏸️' },
       in_progress: { color: '#3b82f6', label: 'In Progress', icon: '🔄' },
-      submitted: { color: '#f59e0b', label: 'Submitted', icon: '📤' },
+      submitted: { color: '#f59e0b', label: 'In Review', icon: '👀' },
       graded: { color: '#10b981', label: 'Graded', icon: '✅' },
       late: { color: '#ef4444', label: 'Late', icon: '⚠️' }
     };

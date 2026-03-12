@@ -1,7 +1,13 @@
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.login = exports.register = exports.registerOrganization = void 0;
+exports.resetPassword = exports.forgotPassword = exports.login = exports.register = exports.registerOrganization = void 0;
+const crypto_1 = __importDefault(require("crypto"));
 const authService_1 = require("../services/authService");
+const emailService_1 = require("../services/emailService");
+const User_1 = __importDefault(require("../models/User"));
 const authService = new authService_1.AuthService();
 // Register a new organization with admin user
 const registerOrganization = async (req, res) => {
@@ -86,4 +92,123 @@ const login = async (req, res) => {
     }
 };
 exports.login = login;
+// Forgot Password - Send reset email
+const forgotPassword = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required',
+                error: 'Email is required'
+            });
+        }
+        const user = await User_1.default.findOne({ email: email.toLowerCase() });
+        if (!user) {
+            // Don't reveal if user exists for security
+            return res.status(200).json({
+                success: true,
+                message: 'If an account with that email exists, a password reset link has been sent.'
+            });
+        }
+        // Check if user account is deactivated
+        if (!user.isActive) {
+            return res.status(403).json({
+                success: false,
+                message: 'Your account has been deactivated. Please contact your administrator to reactivate your account.',
+                error: 'ACCOUNT_DEACTIVATED'
+            });
+        }
+        // Generate reset token
+        const resetToken = crypto_1.default.randomBytes(32).toString('hex');
+        const hashedToken = crypto_1.default.createHash('sha256').update(resetToken).digest('hex');
+        // Set token and expiry (1 hour)
+        user.resetToken = hashedToken;
+        user.resetTokenExpires = new Date(Date.now() + 60 * 60 * 1000);
+        await user.save();
+        // Create reset URL
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+        const resetUrl = `${frontendUrl}/reset-password?token=${resetToken}`;
+        // Send email
+        try {
+            const emailService = new emailService_1.EmailService();
+            await emailService.sendPasswordResetEmail(user.email, user.firstName, resetUrl);
+        }
+        catch (emailError) {
+            console.error('Failed to send reset email:', emailError);
+            // Reset the token fields if email fails
+            user.resetToken = undefined;
+            user.resetTokenExpires = undefined;
+            await user.save();
+            return res.status(500).json({
+                success: false,
+                message: 'Failed to send reset email. Please try again later.',
+                error: 'Email service error'
+            });
+        }
+        res.status(200).json({
+            success: true,
+            message: 'If an account with that email exists, a password reset link has been sent.'
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error processing forgot password request',
+            error: error.message
+        });
+    }
+};
+exports.forgotPassword = forgotPassword;
+// Reset Password - Verify token and set new password
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Token and new password are required',
+                error: 'Missing required fields'
+            });
+        }
+        if (password.length < 6) {
+            return res.status(400).json({
+                success: false,
+                message: 'Password must be at least 6 characters long',
+                error: 'Password too short'
+            });
+        }
+        // Hash the token to compare with stored hash
+        const hashedToken = crypto_1.default.createHash('sha256').update(token).digest('hex');
+        // Find user with valid token
+        const user = await User_1.default.findOne({
+            resetToken: hashedToken,
+            resetTokenExpires: { $gt: new Date() }
+        });
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or expired reset token',
+                error: 'Invalid token'
+            });
+        }
+        // Update password (will be hashed by pre-save hook)
+        user.password = password;
+        user.resetToken = undefined;
+        user.resetTokenExpires = undefined;
+        await user.save();
+        res.status(200).json({
+            success: true,
+            message: 'Password has been reset successfully. You can now log in with your new password.'
+        });
+    }
+    catch (error) {
+        res.status(500).json({
+            success: false,
+            message: 'Error resetting password',
+            error: error.message
+        });
+    }
+};
+exports.resetPassword = resetPassword;
 //# sourceMappingURL=authController.js.map

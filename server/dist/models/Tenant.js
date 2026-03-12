@@ -70,6 +70,12 @@ const TenantSchema = new mongoose_1.Schema({
         type: String,
         enum: ['free', 'pro', 'enterprise'],
         default: 'free'
+    },
+    settings: {
+        showExpectedOutput: { type: Boolean, default: true },
+        showTestCaseResults: { type: Boolean, default: true },
+        maxAttempts: { type: Number, default: 3 },
+        enablePlagiarismCheck: { type: Boolean, default: false }
     }
 }, { timestamps: true });
 exports.default = mongoose_1.default.model('Tenant', TenantSchema);

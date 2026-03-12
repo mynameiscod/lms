@@ -1,4 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import ReactQuill from 'react-quill';
+import 'react-quill/dist/quill.snow.css';
 import { Button, Input, Alert } from '../common';
 import { Batch } from '../../types';
 import { courseApi, subjectApi, chapterApi } from '../../api';
@@ -50,6 +52,8 @@ interface QuizFormData {
   canCopyPaste: boolean;
   requireFullScreen: boolean;
   tabSwitchWarnings: boolean;
+  enableCamera: boolean;
+  enableMicrophone: boolean;
 }
 
 interface QuizWizardProps {
@@ -131,13 +135,38 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     maxAttempts: initialData?.maxAttempts || 1,
     canCopyPaste: initialData?.canCopyPaste || false,
     requireFullScreen: initialData?.requireFullScreen || false,
-    tabSwitchWarnings: initialData?.tabSwitchWarnings !== false
+    tabSwitchWarnings: initialData?.tabSwitchWarnings !== false,
+    enableCamera: (initialData as any)?.enableCamera || false,
+    enableMicrophone: (initialData as any)?.enableMicrophone || false
   });
 
   // Course, Subject, Chapter state
   const [courses, setCourses] = useState<Course[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+
+  // Rich text editor configuration
+  const quillModules = useMemo(() => ({
+    toolbar: [
+      [{ 'header': [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ 'color': [] }, { 'background': [] }],
+      [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+      [{ 'indent': '-1' }, { 'indent': '+1' }],
+      ['blockquote', 'code-block'],
+      ['link'],
+      ['clean']
+    ],
+  }), []);
+
+  const quillFormats = [
+    'header',
+    'bold', 'italic', 'underline', 'strike',
+    'color', 'background',
+    'list', 'bullet', 'indent',
+    'blockquote', 'code-block',
+    'link'
+  ];
 
   // Fetch courses on mount
   useEffect(() => {
@@ -372,13 +401,14 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
 
             <div className="form-group full">
               <label>Instructions (shown to students before starting)</label>
-              <textarea
-                name="instructions"
+              <ReactQuill
+                theme="snow"
                 value={formData.instructions}
-                onChange={handleInputChange}
+                onChange={(value) => setFormData(prev => ({ ...prev, instructions: value }))}
+                modules={quillModules}
+                formats={quillFormats}
                 placeholder="Enter instructions for students (e.g., 'Read each question carefully. No switching tabs allowed. Each question carries equal marks.')"
-                rows={4}
-                className="textarea-input"
+                className="quill-editor"
               />
             </div>
 
@@ -664,6 +694,28 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                 />
                 <span>Allow Copy/Paste</span>
                 <small>Students can copy text during quiz</small>
+              </label>
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="enableCamera"
+                  checked={formData.enableCamera}
+                  onChange={handleInputChange}
+                />
+                <span>📷 Enable Camera</span>
+                <small>Require webcam access during quiz</small>
+              </label>
+
+              <label className="checkbox-label">
+                <input
+                  type="checkbox"
+                  name="enableMicrophone"
+                  checked={formData.enableMicrophone}
+                  onChange={handleInputChange}
+                />
+                <span>🎤 Enable Microphone</span>
+                <small>Require microphone access during quiz</small>
               </label>
             </div>
           </div>

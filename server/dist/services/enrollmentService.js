@@ -8,13 +8,13 @@ const Enrollment_1 = __importDefault(require("../models/Enrollment"));
 const Course_1 = __importDefault(require("../models/Course"));
 class EnrollmentService {
     async enrollStudent(userId, courseId, tenantId) {
-        const existingEnrollment = await Enrollment_1.default.findOne({
+        // Check if student already has any enrollment (single course policy)
+        const existingAnyEnrollment = await Enrollment_1.default.findOne({
             userId,
-            courseId,
             tenantId
         });
-        if (existingEnrollment) {
-            throw new Error('Student already enrolled in this course');
+        if (existingAnyEnrollment) {
+            throw new Error('Student can only be enrolled in one course at a time');
         }
         const enrollment = new Enrollment_1.default({ userId, courseId, tenantId });
         await enrollment.save();

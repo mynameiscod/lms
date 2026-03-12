@@ -40,9 +40,19 @@ const CourseSchema = new mongoose_1.Schema({
         required: true,
         trim: true
     },
+    code: {
+        type: String,
+        required: true,
+        trim: true,
+        uppercase: true
+    },
     description: {
         type: String,
         required: true,
+        trim: true
+    },
+    thumbnail: {
+        type: String,
         trim: true
     },
     instructor: {
@@ -65,14 +75,37 @@ const CourseSchema = new mongoose_1.Schema({
         enum: ['beginner', 'intermediate', 'advanced'],
         default: 'beginner'
     },
+    duration: {
+        value: { type: Number, default: 3 },
+        unit: { type: String, enum: ['days', 'weeks', 'months'], default: 'months' }
+    },
+    prerequisites: [{
+            type: String,
+            trim: true
+        }],
+    learningOutcomes: [{
+            type: String,
+            trim: true
+        }],
     isPublished: {
         type: Boolean,
         default: false
     },
+    isActive: {
+        type: Boolean,
+        default: true
+    },
     enrollmentCount: {
+        type: Number,
+        default: 0
+    },
+    subjectCount: {
         type: Number,
         default: 0
     }
 }, { timestamps: true });
+// Indexes for faster queries
+CourseSchema.index({ tenantId: 1, isActive: 1 });
+CourseSchema.index({ tenantId: 1, code: 1 }, { unique: true });
 exports.default = mongoose_1.default.model('Course', CourseSchema);
 //# sourceMappingURL=Course.js.map

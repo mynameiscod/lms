@@ -9,5 +9,7 @@ const router = express_1.default.Router();
 router.post('/register', authController_1.register);
 router.post('/register-organization', authController_1.registerOrganization);
 router.post('/login', authController_1.login);
+router.post('/forgot-password', authController_1.forgotPassword);
+router.post('/reset-password', authController_1.resetPassword);
 exports.default = router;
 //# sourceMappingURL=authRoutes.js.map

@@ -405,4 +405,137 @@ This is an automated message from CodeBegun Learning Management System.
       console.log('📧 [EMAIL SERVICE] Email delivery failed (quiz still created)\n');
     }
   }
+
+  async sendAssignmentNotificationEmail(
+    email: string,
+    studentName: string,
+    assignmentTitle: string,
+    assignmentType: string,
+    description: string | undefined,
+    dueDate: Date,
+    totalPoints: number,
+    difficulty: string
+  ): Promise<void> {
+    console.log('\n📧 [EMAIL SERVICE] Assignment Notification Email Request');
+    console.log('   Recipient:', email);
+    console.log('   Assignment:', assignmentTitle);
+    console.log('   Due Date:', dueDate);
+
+    const formattedDueDate = dueDate.toLocaleDateString('en-IN', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const typeEmoji: Record<string, string> = {
+      coding: '💻',
+      mcq: '📝',
+      theory: '📖',
+      project: '🚀',
+      sql: '🗃️'
+    };
+
+    const difficultyColor: Record<string, string> = {
+      beginner: '#10b981',
+      easy: '#22c55e',
+      medium: '#f59e0b',
+      hard: '#ef4444',
+      expert: '#7c3aed'
+    };
+
+    const htmlContent = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); color: white; padding: 2rem; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0; font-size: 24px;">${typeEmoji[assignmentType] || '📋'} New Assignment Available</h2>
+        </div>
+        
+        <div style="background: #f9f9f9; padding: 2rem; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
+          <p style="margin-top: 0;">Hello <strong>${studentName}</strong>,</p>
+          
+          <p style="color: #666; line-height: 1.6;">
+            A new assignment has been published for you to complete.
+          </p>
+
+          <div style="background: white; border-left: 4px solid #3b82f6; padding: 1rem; margin: 1.5rem 0; border-radius: 4px;">
+            <h3 style="margin: 0 0 1rem 0; color: #1e293b;">${assignmentTitle}</h3>
+            ${description ? `<p style="margin: 0.5rem 0; color: #64748b;">${description.substring(0, 200)}${description.length > 200 ? '...' : ''}</p>` : ''}
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 1rem 0;">
+            <p style="margin: 0.5rem 0;"><strong>Type:</strong> <span style="text-transform: capitalize;">${assignmentType}</span></p>
+            <p style="margin: 0.5rem 0;"><strong>Difficulty:</strong> <span style="color: ${difficultyColor[difficulty] || '#6b7280'}; font-weight: 600; text-transform: capitalize;">${difficulty}</span></p>
+            <p style="margin: 0.5rem 0;"><strong>Points:</strong> ${totalPoints}</p>
+            <p style="margin: 0.5rem 0;"><strong>Due Date:</strong> <span style="color: #dc2626;">${formattedDueDate}</span></p>
+          </div>
+
+          <div style="text-align: center; margin: 1.5rem 0;">
+            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/assignments" 
+               style="display: inline-block; background: #3b82f6; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: 600;">
+              View Assignment
+            </a>
+          </div>
+
+          <p style="color: #64748b; line-height: 1.6;">
+            Make sure to complete this assignment before the due date to avoid late submission penalties.
+          </p>
+
+          <p style="margin-bottom: 0; color: #999; font-size: 12px; border-top: 1px solid #e0e0e0; padding-top: 1rem;">
+            This is an automated message from CodeBegun Learning Management System. Please do not reply to this email.
+          </p>
+        </div>
+      </div>
+    `;
+
+    const plainTextContent = `
+New Assignment Available
+
+Hello ${studentName},
+
+A new assignment has been published for you to complete.
+
+Assignment Details:
+Title: ${assignmentTitle}
+Type: ${assignmentType}
+Difficulty: ${difficulty}
+Points: ${totalPoints}
+Due Date: ${formattedDueDate}
+
+${description ? `Description: ${description.substring(0, 200)}${description.length > 200 ? '...' : ''}` : ''}
+
+View your assignment at: ${process.env.FRONTEND_URL || 'http://localhost:3000'}/assignments
+
+Make sure to complete this assignment before the due date to avoid late submission penalties.
+
+This is an automated message from CodeBegun Learning Management System.
+    `;
+
+    const subject = `${typeEmoji[assignmentType] || '📋'} New Assignment: ${assignmentTitle} - Due ${dueDate.toLocaleDateString()}`;
+
+    try {
+      console.log('   Status: Sending...');
+      
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, htmlContent, plainTextContent);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
+      } else {
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: subject,
+          html: htmlContent,
+          text: plainTextContent
+        };
+        const info = await this.transporter!.sendMail(mailOptions);
+        console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
+        console.log('   Message ID:', info.messageId);
+      }
+      console.log('📧 [EMAIL SERVICE] Email delivery complete\n');
+    } catch (error: any) {
+      console.log('   ❌ STATUS: EMAIL SENT FAILED');
+      console.error('   Error:', error.message);
+      // Don't throw - assignment publish should succeed even if email fails
+      console.log('📧 [EMAIL SERVICE] Email delivery failed (assignment still published)\n');
+    }
+  }
 }

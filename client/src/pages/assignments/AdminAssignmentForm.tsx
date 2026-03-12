@@ -12,6 +12,7 @@ import {
   RubricItem,
   MCQQuestion
 } from '../../api/assignmentApi';
+import { courseApi, subjectApi, chapterApi } from '../../api';
 import './assignments.css';
 
 type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'settings';
@@ -35,6 +36,14 @@ const AdminAssignmentForm: React.FC = () => {
   const [totalPoints, setTotalPoints] = useState(100);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState('');
+
+  // Course Structure Linking
+  const [courses, setCourses] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [chapters, setChapters] = useState<any[]>([]);
+  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [selectedChapter, setSelectedChapter] = useState<string>('');
 
   // Coding Settings
   const [allowedLanguages, setAllowedLanguages] = useState<ProgrammingLanguage[]>([
@@ -100,6 +109,77 @@ const AdminAssignmentForm: React.FC = () => {
     }
   }, [id]);
 
+  // Load courses on mount
+  useEffect(() => {
+    const loadCourses = async () => {
+      try {
+        const response = await courseApi.getCourses();
+        setCourses(response.data || []);
+      } catch (err) {
+        console.error('Failed to load courses:', err);
+      }
+    };
+    loadCourses();
+  }, []);
+
+  // Load subjects when course changes
+  useEffect(() => {
+    if (selectedCourse) {
+      const loadSubjects = async () => {
+        try {
+          const response = await subjectApi.getSubjectsByCourse(selectedCourse);
+          console.log('Subjects response:', response);
+          // API returns { success, data, message } - data is the array
+          const subjectList = response.data || response || [];
+          setSubjects(Array.isArray(subjectList) ? subjectList : []);
+          setChapters([]);
+          // Only reset subject if it doesn't belong to this course
+          const subjectExists = subjectList.some((s: any) => s._id === selectedSubject);
+          if (!subjectExists) {
+            setSelectedSubject('');
+            setSelectedChapter('');
+          }
+        } catch (err) {
+          console.error('Failed to load subjects:', err);
+          setSubjects([]);
+        }
+      };
+      loadSubjects();
+    } else {
+      setSubjects([]);
+      setChapters([]);
+      setSelectedSubject('');
+      setSelectedChapter('');
+    }
+  }, [selectedCourse]);
+
+  // Load chapters when subject changes
+  useEffect(() => {
+    if (selectedSubject) {
+      const loadChapters = async () => {
+        try {
+          const response = await chapterApi.getChaptersBySubject(selectedSubject);
+          console.log('Chapters response:', response);
+          // API returns { success, data, message } - data is the array
+          const chapterList = response.data || response || [];
+          setChapters(Array.isArray(chapterList) ? chapterList : []);
+          // Only reset chapter if it doesn't belong to this subject
+          const chapterExists = chapterList.some((c: any) => c._id === selectedChapter);
+          if (!chapterExists) {
+            setSelectedChapter('');
+          }
+        } catch (err) {
+          console.error('Failed to load chapters:', err);
+          setChapters([]);
+        }
+      };
+      loadChapters();
+    } else {
+      setChapters([]);
+      setSelectedChapter('');
+    }
+  }, [selectedSubject]);
+
   const loadAssignment = async () => {
     try {
       setLoading(true);
@@ -113,6 +193,20 @@ const AdminAssignmentForm: React.FC = () => {
       setDifficulty(a.difficulty);
       setTotalPoints(a.totalPoints);
       setTopics(a.topics);
+
+      // Course structure linking
+      if (a.course) {
+        const courseId = typeof a.course === 'object' ? a.course._id : a.course;
+        setSelectedCourse(courseId);
+      }
+      if (a.subject) {
+        const subjectId = typeof a.subject === 'object' ? a.subject._id : a.subject;
+        setSelectedSubject(subjectId);
+      }
+      if (a.chapter) {
+        const chapterId = typeof a.chapter === 'object' ? a.chapter._id : a.chapter;
+        setSelectedChapter(chapterId);
+      }
 
       // Coding settings
       setAllowedLanguages(a.allowedLanguages);
@@ -170,6 +264,10 @@ const AdminAssignmentForm: React.FC = () => {
         difficulty,
         totalPoints,
         topics,
+        // Course structure linking
+        course: selectedCourse || undefined,
+        subject: selectedSubject || undefined,
+        chapter: selectedChapter || undefined,
         allowedLanguages,
         starterCode,
         testCases,
@@ -545,6 +643,70 @@ const AdminAssignmentForm: React.FC = () => {
                     </button>
                   </span>
                 ))}
+              </div>
+            </div>
+
+            {/* Course Structure Linking */}
+            <div className="form-section" style={{ marginTop: '24px' }}>
+              <h4 className="section-title">📚 Link to Course Structure (Optional)</h4>
+              <p className="section-description">Associate this assignment with a specific course, subject, or chapter</p>
+              
+              <div className="form-row">
+                <div className="form-group">
+                  <label className="form-label">Course</label>
+                  <select
+                    className="form-control"
+                    value={selectedCourse}
+                    onChange={(e) => setSelectedCourse(e.target.value)}
+                  >
+                    <option value="">-- Select Course --</option>
+                    {courses.map((course) => (
+                      <option key={course._id} value={course._id}>
+                        {course.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Subject</label>
+                  <select
+                    className="form-control"
+                    value={selectedSubject}
+                    onChange={(e) => setSelectedSubject(e.target.value)}
+                    disabled={!selectedCourse || subjects.length === 0}
+                  >
+                    <option value="">-- Select Subject --</option>
+                    {subjects.map((subject) => (
+                      <option key={subject._id} value={subject._id}>
+                        {subject.name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedCourse && subjects.length === 0 && (
+                    <small className="form-hint">No subjects found for this course</small>
+                  )}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Chapter</label>
+                  <select
+                    className="form-control"
+                    value={selectedChapter}
+                    onChange={(e) => setSelectedChapter(e.target.value)}
+                    disabled={!selectedSubject || chapters.length === 0}
+                  >
+                    <option value="">-- Select Chapter --</option>
+                    {chapters.map((chapter) => (
+                      <option key={chapter._id} value={chapter._id}>
+                        {chapter.title}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedSubject && chapters.length === 0 && (
+                    <small className="form-hint">No chapters found for this subject</small>
+                  )}
+                </div>
               </div>
             </div>
           </div>

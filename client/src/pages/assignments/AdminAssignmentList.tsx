@@ -351,6 +351,26 @@ const AdminAssignmentList: React.FC = () => {
           >
             <span>📤</span> Import CSV
           </button>
+
+          {/* Reports Button */}
+          <button 
+            className="btn btn-secondary"
+            onClick={() => navigate('/admin/assignments/reports')}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px',
+              padding: '10px 16px',
+              border: '1px solid #10b981',
+              borderRadius: '8px',
+              backgroundColor: '#ecfdf5',
+              color: '#10b981',
+              cursor: 'pointer',
+              fontWeight: 500
+            }}
+          >
+            <span>📊</span> Reports
+          </button>
           
           <button 
             className="btn btn-primary btn-lg"
@@ -662,7 +682,7 @@ const AdminAssignmentList: React.FC = () => {
                       onClick={() => navigate(`/admin/assignments/${assignment._id}/edit`)}
                       title="Edit"
                     >
-                      <i className="bi bi-pencil"></i>
+                      ✏️
                     </button>
                     {assignment.status === AssignmentStatus.DRAFT && (
                       <button
@@ -670,7 +690,7 @@ const AdminAssignmentList: React.FC = () => {
                         onClick={() => handlePublish(assignment._id)}
                         title="Publish"
                       >
-                        <i className="bi bi-send"></i>
+                        🚀
                       </button>
                     )}
                     {assignment.status === AssignmentStatus.PUBLISHED && (
@@ -680,14 +700,14 @@ const AdminAssignmentList: React.FC = () => {
                           onClick={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
                           title="View Submissions"
                         >
-                          <i className="bi bi-people"></i>
+                          👥
                         </button>
                         <button
                           className="btn btn-icon btn-secondary"
                           onClick={() => handleArchive(assignment._id)}
                           title="Archive"
                         >
-                          <i className="bi bi-archive"></i>
+                          📦
                         </button>
                       </>
                     )}
@@ -696,14 +716,14 @@ const AdminAssignmentList: React.FC = () => {
                       onClick={() => handleClone(assignment._id)}
                       title="Clone"
                     >
-                      <i className="bi bi-files"></i>
+                      📋
                     </button>
                     <button
                       className="btn btn-icon btn-danger"
                       onClick={() => handleDelete(assignment._id)}
                       title="Delete"
                     >
-                      <i className="bi bi-trash"></i>
+                      🗑️
                     </button>
                   </td>
                 </tr>

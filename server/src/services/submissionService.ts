@@ -63,50 +63,66 @@ class SubmissionService {
       throw new Error('Assignment has not started yet');
     }
 
-    // Get existing submissions count
-    const attemptCount = await Submission.countDocuments({ assignment, student, tenant });
-    
-    // Check max attempts (0 = unlimited)
-    if (assignmentDoc.maxAttempts > 0 && attemptCount >= assignmentDoc.maxAttempts) {
-      throw new Error(`Maximum attempts (${assignmentDoc.maxAttempts}) reached`);
-    }
-
-    // Check for in-progress submission
-    const inProgressSubmission = await Submission.findOne({
+    // Check for existing submission (any status) - return it if exists
+    const existingSubmission = await Submission.findOne({
       assignment,
       student,
-      tenant,
-      status: SubmissionStatus.IN_PROGRESS
-    });
+      tenant
+    }).sort({ attemptNumber: -1 }); // Get the latest attempt
 
-    if (inProgressSubmission) {
-      return inProgressSubmission;
+    if (existingSubmission) {
+      // If in-progress, return it
+      if (existingSubmission.status === SubmissionStatus.IN_PROGRESS) {
+        return existingSubmission;
+      }
+      
+      // If completed but max attempts not reached, check if we can create new attempt
+      const attemptCount = existingSubmission.attemptNumber;
+      if (assignmentDoc.maxAttempts > 0 && attemptCount >= assignmentDoc.maxAttempts) {
+        // Return the last submission if max attempts reached
+        return existingSubmission;
+      }
+      
+      // For now, return existing submission to allow continuing/viewing
+      // New attempts can be explicitly created through a different flow
+      return existingSubmission;
     }
 
-    // Create new submission
-    const submission = new Submission({
-      tenant,
-      assignment,
-      student,
-      attemptNumber: attemptCount + 1,
-      status: SubmissionStatus.IN_PROGRESS,
-      startedAt: new Date(),
-      ipAddress,
-      userAgent
-    });
+    // No existing submission - create new one
+    try {
+      const submission = new Submission({
+        tenant,
+        assignment,
+        student,
+        attemptNumber: 1,
+        status: SubmissionStatus.IN_PROGRESS,
+        startedAt: new Date(),
+        ipAddress,
+        userAgent
+      });
 
-    // Set initial MCQ answers if MCQ type
-    if (assignmentDoc.type === AssignmentType.MCQ) {
-      submission.mcqAnswers = assignmentDoc.mcqQuestions.map((_, index) => ({
-        questionIndex: index,
-        selectedOptionIndex: -1,
-        isCorrect: false,
-        pointsEarned: 0
-      }));
+      // Set initial MCQ answers if MCQ type
+      if (assignmentDoc.type === AssignmentType.MCQ) {
+        submission.mcqAnswers = assignmentDoc.mcqQuestions.map((_, index) => ({
+          questionIndex: index,
+          selectedOptionIndex: -1,
+          isCorrect: false,
+          pointsEarned: 0
+        }));
+      }
+
+      await submission.save();
+      return submission;
+    } catch (error: any) {
+      // Handle duplicate key error - submission exists, fetch and return it
+      if (error.code === 11000) {
+        const existingSub = await Submission.findOne({ assignment, student, tenant }).sort({ attemptNumber: -1 });
+        if (existingSub) {
+          return existingSub;
+        }
+      }
+      throw error;
     }
-
-    await submission.save();
-    return submission;
   }
 
   // Get submission for student

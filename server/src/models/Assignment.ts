@@ -101,6 +101,8 @@ export interface IAssignment extends Document {
   
   // Assignment Scope
   course?: Types.ObjectId;
+  subject?: Types.ObjectId;
+  chapter?: Types.ObjectId;
   batch?: Types.ObjectId;
   
   // Coding Assignment Fields
@@ -212,6 +214,8 @@ const AssignmentSchema = new Schema<IAssignment>({
   
   // Assignment Scope
   course: { type: Schema.Types.ObjectId, ref: 'Course', index: true },
+  subject: { type: Schema.Types.ObjectId, ref: 'Subject', index: true },
+  chapter: { type: Schema.Types.ObjectId, ref: 'Chapter', index: true },
   batch: { type: Schema.Types.ObjectId, ref: 'Batch', index: true },
   
   // Coding Assignment Fields

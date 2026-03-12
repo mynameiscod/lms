@@ -6,7 +6,12 @@ import Assignment, {
   ProgrammingLanguage 
 } from '../models/Assignment';
 import Submission, { SubmissionStatus } from '../models/Submission';
+import User from '../models/User';
+import Chapter from '../models/Chapter';
+import { EmailService } from './emailService';
 import { Types } from 'mongoose';
+
+const emailService = new EmailService();
 
 interface CreateAssignmentInput {
   tenant: Types.ObjectId;
@@ -25,6 +30,8 @@ interface CreateAssignmentInput {
   lateSubmissionDeadline?: Date;
   lateSubmissionPenalty?: number;
   course?: Types.ObjectId;
+  subject?: Types.ObjectId;
+  chapter?: Types.ObjectId;
   batch?: Types.ObjectId;
   allowedLanguages?: ProgrammingLanguage[];
   testCases?: any[];
@@ -80,6 +87,15 @@ class AssignmentService {
       status: AssignmentStatus.DRAFT
     });
     await assignment.save();
+
+    // Link assignment to chapter if specified
+    if (input.chapter) {
+      await Chapter.findByIdAndUpdate(
+        input.chapter,
+        { $addToSet: { assignmentIds: assignment._id } }
+      );
+    }
+
     return assignment;
   }
 
@@ -93,11 +109,35 @@ class AssignmentService {
 
   // Update assignment
   async update(id: string | Types.ObjectId, tenant: Types.ObjectId, input: UpdateAssignmentInput): Promise<IAssignment | null> {
+    // Get existing assignment to check chapter changes
+    const existingAssignment = await Assignment.findOne({ _id: id, tenant });
+    const oldChapterId = existingAssignment?.chapter?.toString();
+    const newChapterId = input.chapter?.toString();
+
     const assignment = await Assignment.findOneAndUpdate(
       { _id: id, tenant },
       { $set: input },
       { new: true, runValidators: true }
     );
+
+    // Handle chapter linking changes
+    if (assignment && oldChapterId !== newChapterId) {
+      // Remove from old chapter
+      if (oldChapterId) {
+        await Chapter.findByIdAndUpdate(
+          oldChapterId,
+          { $pull: { assignmentIds: assignment._id } }
+        );
+      }
+      // Add to new chapter
+      if (newChapterId) {
+        await Chapter.findByIdAndUpdate(
+          newChapterId,
+          { $addToSet: { assignmentIds: assignment._id } }
+        );
+      }
+    }
+
     return assignment;
   }
 
@@ -107,6 +147,16 @@ class AssignmentService {
     const submissionCount = await Submission.countDocuments({ assignment: id, tenant });
     if (submissionCount > 0) {
       throw new Error('Cannot delete assignment with existing submissions. Archive it instead.');
+    }
+
+    // Get assignment to check if linked to a chapter
+    const assignment = await Assignment.findOne({ _id: id, tenant });
+    if (assignment?.chapter) {
+      // Remove from chapter's assignmentIds
+      await Chapter.findByIdAndUpdate(
+        assignment.chapter,
+        { $pull: { assignmentIds: id } }
+      );
     }
     
     const result = await Assignment.deleteOne({ _id: id, tenant });
@@ -191,7 +241,45 @@ class AssignmentService {
     assignment.updatedBy = userId;
     await assignment.save();
     
+    // Send email notifications to students (async, don't block)
+    this.sendAssignmentNotifications(assignment, tenant).catch(err => {
+      console.error('Failed to send assignment notifications:', err);
+    });
+    
     return assignment;
+  }
+
+  // Send email notifications to students about new assignment
+  private async sendAssignmentNotifications(assignment: IAssignment, tenant: Types.ObjectId): Promise<void> {
+    try {
+      // Get all active students in the tenant
+      const students = await User.find({
+        tenantId: tenant,
+        role: 'student',
+        isActive: true
+      }).select('firstName lastName email');
+
+      console.log(`📧 Sending assignment notifications to ${students.length} students`);
+
+      for (const student of students) {
+        try {
+          await emailService.sendAssignmentNotificationEmail(
+            student.email,
+            `${student.firstName} ${student.lastName}`,
+            assignment.title,
+            assignment.type,
+            assignment.description,
+            assignment.dueDate || new Date(),
+            assignment.totalPoints,
+            assignment.difficulty
+          );
+        } catch (err) {
+          console.error(`Failed to send email to ${student.email}:`, err);
+        }
+      }
+    } catch (err) {
+      console.error('Error sending assignment notifications:', err);
+    }
   }
 
   // Archive assignment

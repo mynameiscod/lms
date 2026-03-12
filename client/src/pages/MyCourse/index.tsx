@@ -2,6 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { enrollmentApi, subjectApi, chapterApi, progressApi, quizApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
+import { assignmentApi } from '../../api/assignmentApi';
 import { Spinner, Alert } from '../../components/common';
 import WeekNavigator from '../../components/dashboard/WeekNavigator';
 import './MyCourse.css';
@@ -31,9 +32,18 @@ interface Chapter {
   quizzes?: Quiz[];
   content?: ChapterContent[]; // Notes and cheatsheets
   assignmentIds: string[];
+  assignments?: ChapterAssignment[];
   estimatedDuration: number;
   subjectName?: string;
   subjectId?: string;
+}
+
+interface ChapterAssignment {
+  _id: string;
+  title: string;
+  type: string;
+  difficulty: string;
+  totalPoints: number;
 }
 
 interface Quiz {
@@ -145,6 +155,7 @@ const MyCourse: React.FC = () => {
             chapters.map(async (chapter: Chapter) => {
               let quizzes: Quiz[] = [];
               let content: ChapterContent[] = [];
+              let assignments: ChapterAssignment[] = [];
               
               // Fetch quizzes for chapter
               try {
@@ -161,8 +172,36 @@ const MyCourse: React.FC = () => {
               } catch (err) {
                 // No content or error
               }
+
+              // Fetch assignments for chapter
+              if (chapter.assignmentIds && chapter.assignmentIds.length > 0) {
+                try {
+                  const assignmentPromises = chapter.assignmentIds.map(async (id: string) => {
+                    try {
+                      const res = await assignmentApi.getById(id);
+                      const a = res.data?.data;
+                      if (a) {
+                        return { 
+                          _id: a._id, 
+                          title: a.title, 
+                          type: String(a.type), 
+                          difficulty: String(a.difficulty), 
+                          totalPoints: a.totalPoints 
+                        } as ChapterAssignment;
+                      }
+                      return null;
+                    } catch {
+                      return null;
+                    }
+                  });
+                  const fetchedAssignments = await Promise.all(assignmentPromises);
+                  assignments = fetchedAssignments.filter((a): a is ChapterAssignment => a !== null);
+                } catch (err) {
+                  // No assignments or error
+                }
+              }
               
-              return { ...chapter, quizzes, content };
+              return { ...chapter, quizzes, content, assignments };
             })
           );
           
@@ -548,19 +587,27 @@ const MyCourse: React.FC = () => {
                             )}
 
                             {/* Assignments */}
-                            {chapter.assignmentIds && chapter.assignmentIds.length > 0 && (
+                            {chapter.assignments && chapter.assignments.length > 0 && (
                               <div className="content-section">
                                 <h4>Assignments</h4>
-                                <div className="assignment-item">
-                                  <span className="content-icon">✍️</span>
-                                  <span>{chapter.assignmentIds.length} Assignment(s)</span>
-                                  <button className="view-assignment-btn">View</button>
-                                </div>
+                                {chapter.assignments.map((assignment) => (
+                                  <div key={assignment._id} className="assignment-item">
+                                    <span className="content-icon">✍️</span>
+                                    <span>{assignment.title}</span>
+                                    <span className="assignment-badge">{assignment.type}</span>
+                                    <button 
+                                      className="view-assignment-btn"
+                                      onClick={() => navigate(`/assignments/${assignment._id}/workspace`)}
+                                    >
+                                      View
+                                    </button>
+                                  </div>
+                                ))}
                               </div>
                             )}
 
                             {/* Empty state */}
-                            {chapter.videos.length === 0 && chapter.notes.length === 0 && (!chapter.quizzes || chapter.quizzes.length === 0) && (!chapter.content || chapter.content.length === 0) && (!chapter.assignmentIds || chapter.assignmentIds.length === 0) && (
+                            {chapter.videos.length === 0 && chapter.notes.length === 0 && (!chapter.quizzes || chapter.quizzes.length === 0) && (!chapter.content || chapter.content.length === 0) && (!chapter.assignments || chapter.assignments.length === 0) && (
                               <div className="no-content-message">
                                 No content available for this chapter yet.
                               </div>

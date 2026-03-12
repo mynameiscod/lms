@@ -1,31 +1,62 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner } from '../../components/common';
-import { userApi, courseApi, attendanceApi, batchApi } from '../../api';
+import { userApi, courseApi, attendanceApi, batchApi, dashboardApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
-import WeekNavigator from '../../components/dashboard/WeekNavigator';
-import DailyActivityPanel from '../../components/dashboard/DailyActivityPanel';
-import ActivityLog from '../../components/dashboard/ActivityLog';
 import AttendanceCard from '../../components/dashboard/AttendanceCard';
-import TimeSpentCard from '../../components/profile/TimeSpentCard';
 import './DashboardPage.css';
 
-interface ActivityItem {
-  id: string;
-  type: 'note' | 'assignment' | 'announcement' | 'cheatsheet' | 'snippet';
-  title: string;
-  content: string;
-  author: string;
-  timestamp: string;
-  icon: string;
-}
-
-interface LogEntry {
-  id: string;
-  action: string;
-  message: string;
-  timestamp: string;
-  icon: string;
+interface DashboardData {
+  course: {
+    _id: string;
+    title: string;
+    description: string;
+  } | null;
+  courseProgress: {
+    completed: number;
+    total: number;
+    percentage: number;
+  };
+  upcomingDeadlines: {
+    assignments: Array<{
+      _id: string;
+      title: string;
+      type: string;
+      difficulty: string;
+      dueDate: string;
+      totalPoints: number;
+      isSubmitted: boolean;
+      daysUntilDue: number;
+    }>;
+    quizzes: Array<{
+      _id: string;
+      title: string;
+      passingScore: number;
+      timeLimit: number;
+      endDate: string | null;
+      totalQuestions: number;
+      isAttempted: boolean;
+      daysUntilEnd: number | null;
+    }>;
+  };
+  recentActivity: Array<{
+    type: string;
+    title: string;
+    timestamp: string;
+    status: string;
+    score?: number;
+    icon: string;
+  }>;
+  stats: {
+    totalAssignments: number;
+    completedAssignments: number;
+    pendingAssignments: number;
+    totalQuizzes: number;
+    completedQuizzes: number;
+    pendingQuizzes: number;
+    courseProgress: number;
+  };
 }
 
 interface AttendanceData {
@@ -45,11 +76,10 @@ interface DashboardStats {
 
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [batchStartDate, setBatchStartDate] = useState<Date | undefined>(undefined);
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [selectedDate] = useState(new Date());
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [stats, setStats] = useState<DashboardStats>({
     totalStudents: 0,
     activeCourses: 0,
@@ -59,9 +89,9 @@ const DashboardPage: React.FC = () => {
     status: 'pending',
     inTime: undefined,
     outTime: undefined,
-    totalPresent: 8,
-    totalAbsent: 2,
-    attendancePercentage: 80,
+    totalPresent: 0,
+    totalAbsent: 0,
+    attendancePercentage: 0,
   });
 
   // Get greeting based on time of day
@@ -93,8 +123,8 @@ const DashboardPage: React.FC = () => {
     return motivationMessages[seed % motivationMessages.length];
   };
 
-  // Fetch dashboard stats
-  const fetchStats = async () => {
+  // Fetch admin stats
+  const fetchAdminStats = async () => {
     try {
       const [usersRes, coursesRes, contentRes] = await Promise.all([
         userApi.getUsers().catch(() => ({ data: [] })),
@@ -112,199 +142,99 @@ const DashboardPage: React.FC = () => {
       const contentData = contentRes.data?.content || [];
       const totalContent = contentData.length;
 
-      setStats({
-        totalStudents,
-        activeCourses,
-        totalContent,
+      setStats({ totalStudents, activeCourses, totalContent });
+    } catch (error) {
+      console.error('Error fetching admin stats:', error);
+    }
+  };
+
+  // Fetch student dashboard data
+  const fetchStudentDashboard = async () => {
+    try {
+      const response = await dashboardApi.getStudentDashboard();
+      if (response.success && response.data) {
+        setDashboardData(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching student dashboard:', error);
+    }
+  };
+
+  // Fetch attendance data
+  const fetchAttendance = async () => {
+    if (!user?._id || user?.role !== 'STUDENT') return;
+    
+    try {
+      const dateStr = selectedDate.toISOString().split('T')[0];
+      const [summaryRes, todayRes] = await Promise.all([
+        attendanceApi.getStudentAttendanceSummary(user._id, user.batchId),
+        attendanceApi.getStudentAttendance(user._id, dateStr, dateStr)
+      ]);
+
+      const summary = summaryRes.data || summaryRes;
+      const todayRecords = todayRes.data || todayRes || [];
+      const todayRecord = Array.isArray(todayRecords) && todayRecords.length > 0 ? todayRecords[0] : null;
+
+      setAttendance({
+        status: todayRecord?.status || 'pending',
+        inTime: todayRecord?.inTime || undefined,
+        outTime: todayRecord?.outTime || undefined,
+        totalPresent: summary?.present || 0,
+        totalAbsent: summary?.absent || 0,
+        attendancePercentage: summary?.percentage || 0,
       });
     } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
-      // Keep default values if fetch fails
+      console.error('Error fetching attendance:', error);
     }
   };
 
-  const fetchDashboardData = async () => {
-    // Fetch batch start date for students (for calendar navigation)
-    if (user?.role === 'STUDENT' && user?.batchId) {
-      try {
-        const batchRes = await batchApi.getBatchById(user.batchId);
-        if (batchRes.data?.startDate) {
-          setBatchStartDate(new Date(batchRes.data.startDate));
-        }
-      } catch (error) {
-        console.error('Error fetching batch details:', error);
-      }
-    }
-
-    const mockActivities: ActivityItem[] = [
-      {
-        id: '1',
-        type: 'note',
-        title: 'Class Notes: React Hooks',
-        content: 'Understanding useState, useEffect, and custom hooks for managing component state and side effects.',
-        author: 'Prof. Smith',
-        timestamp: '09:30 AM',
-        icon: '📝',
-      },
-      {
-        id: '2',
-        type: 'announcement',
-        title: 'Announcement: Midterm Exam Scheduled',
-        content: 'The midterm exam will be held on March 15, 2026. It will cover chapters 1-5 and will be 2 hours long.',
-        author: 'Admin',
-        timestamp: '10:00 AM',
-        icon: '📣',
-      },
-      {
-        id: '3',
-        type: 'assignment',
-        title: 'Assignment: Build a Todo App',
-        content: 'Create a todo application using React with add, edit, and delete functionality. Due by Friday 11:59 PM.',
-        author: 'Prof. Johnson',
-        timestamp: '11:00 AM',
-        icon: '✏️',
-      },
-      {
-        id: '4',
-        type: 'cheatsheet',
-        title: 'JavaScript Array Methods Cheatsheet',
-        content: 'Quick reference for map, filter, reduce, sort, and other essential array methods with examples.',
-        author: 'Prof. Sarah',
-        timestamp: '02:30 PM',
-        icon: '📋',
-      },
-      {
-        id: '5',
-        type: 'snippet',
-        title: 'Code Snippet: API Call with Error Handling',
-        content: 'async function fetchData() { try { const res = await fetch(url); } catch(e) { console.error(e); } }',
-        author: 'Prof. Johnson',
-        timestamp: '03:45 PM',
-        icon: '🔧',
-      },
-    ];
-
-    const mockLogs: LogEntry[] = [
-      {
-        id: '1',
-        action: 'Logged In',
-        message: 'Logged into the system',
-        timestamp: '09:15 AM',
-        icon: '🔓',
-      },
-      {
-        id: '2',
-        action: 'Opened Chapter',
-        message: 'Opened Chapter 5: Advanced React Patterns',
-        timestamp: '09:45 AM',
-        icon: '📖',
-      },
-      {
-        id: '3',
-        action: 'Attempted Quiz',
-        message: 'Completed JavaScript Basics Quiz (Score: 85/100)',
-        timestamp: '10:30 AM',
-        icon: '✅',
-      },
-      {
-        id: '4',
-        action: 'Submitted Assignment',
-        message: 'Submitted "Build Calculator" assignment',
-        timestamp: '11:20 AM',
-        icon: '📤',
-      },
-      {
-        id: '5',
-        action: 'Downloaded Resource',
-        message: 'Downloaded: React_Best_Practices.pdf',
-        timestamp: '02:15 PM',
-        icon: '⬇️',
-      },
-      {
-        id: '6',
-        action: 'Posted Comment',
-        message: 'Added comment to discussion thread',
-        timestamp: '03:00 PM',
-        icon: '💬',
-      },
-    ];
-
-    setActivities(mockActivities);
-    setLogs(mockLogs);
-
-    // Fetch real attendance data for students
-    if (user?._id && user?.role === 'STUDENT') {
-      try {
-        // Get selected date for attendance check
-        const dateStr = selectedDate.toISOString().split('T')[0];
-        console.log('[Dashboard] Fetching attendance for:', { userId: user._id, batchId: user.batchId, date: dateStr });
-        
-        // Fetch summary (total present/absent/percentage) - batchId is optional
-        const summaryRes = await attendanceApi.getStudentAttendanceSummary(user._id, user.batchId);
-        const summary = summaryRes.data || summaryRes;
-        console.log('[Dashboard] Attendance summary:', summary);
-        
-        // Fetch today's attendance record
-        const todayRes = await attendanceApi.getStudentAttendance(user._id, dateStr, dateStr);
-        const todayRecords = todayRes.data || todayRes || [];
-        console.log('[Dashboard] Today attendance records:', todayRecords);
-        const todayRecord = Array.isArray(todayRecords) && todayRecords.length > 0 ? todayRecords[0] : null;
-        
-        setAttendance({
-          status: todayRecord?.status || 'pending',
-          inTime: todayRecord?.inTime || undefined,
-          outTime: todayRecord?.outTime || undefined,
-          totalPresent: summary?.present || 0,
-          totalAbsent: summary?.absent || 0,
-          attendancePercentage: summary?.percentage || 0,
-        });
-      } catch (error) {
-        console.error('[Dashboard] Error fetching attendance:', error);
-        // Set default values on error
-        setAttendance({
-          status: 'pending',
-          inTime: undefined,
-          outTime: undefined,
-          totalPresent: 0,
-          totalAbsent: 0,
-          attendancePercentage: 0,
-        });
-      }
-    }
-
-    // Fetch statistics
-    fetchStats();
-    setLoading(false);
-  };
-
-  // Fetch dashboard data on mount or when selectedDate changes
   useEffect(() => {
-    fetchDashboardData();
+    const loadDashboard = async () => {
+      setLoading(true);
+      
+      if (user?.role === 'STUDENT') {
+        await Promise.all([fetchStudentDashboard(), fetchAttendance()]);
+      } else {
+        await fetchAdminStats();
+      }
+      
+      setLoading(false);
+    };
+
+    if (user) {
+      loadDashboard();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]); // Only re-run when selectedDate changes
+  }, [user]);
 
-  const handlePrevWeek = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() - 7);
-    setSelectedDate(newDate);
+  // Format date for display
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffTime = date.getTime() - now.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Tomorrow';
+    if (diffDays < 7) return `${diffDays} days`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const handleNextWeek = () => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + 7);
-    setSelectedDate(newDate);
-  };
-
-  // Get minimum date for student calendar (batch start date)
-  const getMinDate = (): Date | undefined => {
-    if (user?.role !== 'STUDENT') return undefined;
-    // Use batch start date for calendar navigation
-    return batchStartDate;
+  // Format timestamp for activity
+  const formatTimestamp = (timestamp: string) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffTime = now.getTime() - date.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   if (loading) return <Spinner fullScreen />;
 
-  // Redirect unauthenticated users
   if (!isAuthenticated || !user) {
     return (
       <div className="dashboard-container">
@@ -316,11 +246,10 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  // Route to appropriate dashboard based on role
+  // Admin Dashboard
   const isAdmin = user.role === 'TENANT_ADMIN' || user.role === 'SUPER_ADMIN';
 
   if (isAdmin) {
-    // Admin Dashboard
     return (
       <div className="dashboard-container">
         <div className="admin-dashboard">
@@ -360,15 +289,9 @@ const DashboardPage: React.FC = () => {
             <div className="dashboard-card">
               <h2>⚙️ Quick Actions</h2>
               <div className="card-content">
-                <a href="/admin/content" className="action-link">
-                  📄 Manage Content
-                </a>
-                <a href="/users" className="action-link">
-                  👥 Manage Users
-                </a>
-                <a href="/courses" className="action-link">
-                  📚 Manage Courses
-                </a>
+                <a href="/admin/content" className="action-link">📄 Manage Content</a>
+                <a href="/users" className="action-link">👥 Manage Users</a>
+                <a href="/courses" className="action-link">📚 Manage Courses</a>
               </div>
             </div>
 
@@ -386,73 +309,226 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  // Student Dashboard - Original Full Layout
+  // Student Dashboard - Redesigned Option A
+  const data = dashboardData;
+
   return (
-    <div className="student-dashboard">
-      <div className="dashboard-title">
-        <h1>{getGreeting()}, {user?.firstName}</h1>
-        <p>{getMotivation()}</p>
+    <div className="student-dashboard-v2">
+      {/* Header with Greeting */}
+      <div className="dashboard-header-v2">
+        <div className="greeting-section">
+          <h1>{getGreeting()}, {user?.firstName}!</h1>
+          <p className="motivation">{getMotivation()}</p>
+        </div>
       </div>
 
-      {/* Week Navigator */}
-      <WeekNavigator
-        selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
-        onPrevWeek={handlePrevWeek}
-        onNextWeek={handleNextWeek}
-        minDate={getMinDate()}
-      />
+      {/* Quick Stats Row */}
+      <div className="quick-stats-row">
+        <div className="stat-card" onClick={() => navigate('/my-course')}>
+          <div className="stat-icon-circle blue">📚</div>
+          <div className="stat-content">
+            <span className="stat-number">{data?.courseProgress.percentage || 0}%</span>
+            <span className="stat-label">Course Progress</span>
+          </div>
+        </div>
+        <div className="stat-card" onClick={() => navigate('/assignments')}>
+          <div className="stat-icon-circle green">✅</div>
+          <div className="stat-content">
+            <span className="stat-number">{data?.stats.completedAssignments || 0}</span>
+            <span className="stat-label">Completed</span>
+          </div>
+        </div>
+        <div className="stat-card" onClick={() => navigate('/assignments')}>
+          <div className="stat-icon-circle orange">⏰</div>
+          <div className="stat-content">
+            <span className="stat-number">{data?.stats.pendingAssignments || 0}</span>
+            <span className="stat-label">Pending</span>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon-circle purple">📊</div>
+          <div className="stat-content">
+            <span className="stat-number">{attendance.attendancePercentage}%</span>
+            <span className="stat-label">Attendance</span>
+          </div>
+        </div>
+      </div>
 
-      {/* Main Layout - Bootstrap Grid Style */}
-      <div className="dashboard-grid">
-        {/* Left Column (Main Content) */}
-        <div className="dashboard-main">
-          {/* Daily Activity Panel */}
-          <DailyActivityPanel date={selectedDate} activities={activities} />
+      {/* Main Grid */}
+      <div className="dashboard-main-grid">
+        {/* Left Column */}
+        <div className="dashboard-left">
+          {/* Course Progress Card */}
+          {data?.course && (
+            <div className="dashboard-card-v2">
+              <div className="card-header-v2">
+                <h3>📈 My Progress</h3>
+                <button className="btn-link" onClick={() => navigate('/my-course')}>View Course</button>
+              </div>
+              <div className="course-progress-section">
+                <div className="course-info">
+                  <h4>{data.course.title}</h4>
+                  <p className="course-desc">{data.course.description}</p>
+                </div>
+                <div className="progress-bar-container">
+                  <div className="progress-bar-v2">
+                    <div 
+                      className="progress-fill-v2" 
+                      style={{ width: `${data.courseProgress.percentage}%` }}
+                    />
+                  </div>
+                  <div className="progress-text">
+                    <span>{data.courseProgress.completed} / {data.courseProgress.total} chapters</span>
+                    <span className="progress-percentage">{data.courseProgress.percentage}%</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Activity Log */}
-          <ActivityLog logs={logs} />
+          {/* Upcoming Deadlines */}
+          <div className="dashboard-card-v2">
+            <div className="card-header-v2">
+              <h3>📅 Upcoming Deadlines</h3>
+            </div>
+            <div className="deadlines-section">
+              {(!data?.upcomingDeadlines.assignments.length && !data?.upcomingDeadlines.quizzes.length) ? (
+                <div className="empty-state">
+                  <span className="empty-icon">🎉</span>
+                  <p>No pending deadlines!</p>
+                </div>
+              ) : (
+                <div className="deadline-list">
+                  {data?.upcomingDeadlines.assignments.map((a) => (
+                    <div 
+                      key={a._id} 
+                      className="deadline-item" 
+                      onClick={() => navigate(`/assignments/${a._id}/workspace`)}
+                    >
+                      <div className="deadline-icon assignment">✏️</div>
+                      <div className="deadline-info">
+                        <span className="deadline-title">{a.title}</span>
+                        <span className="deadline-meta">{a.type} • {a.totalPoints} pts</span>
+                      </div>
+                      <div className={`deadline-due ${a.daysUntilDue <= 2 ? 'urgent' : ''}`}>
+                        {formatDate(a.dueDate)}
+                      </div>
+                    </div>
+                  ))}
+                  {data?.upcomingDeadlines.quizzes.map((q) => (
+                    <div 
+                      key={q._id} 
+                      className="deadline-item"
+                      onClick={() => navigate(`/quizzes/${q._id}`)}
+                    >
+                      <div className="deadline-icon quiz">📝</div>
+                      <div className="deadline-info">
+                        <span className="deadline-title">{q.title}</span>
+                        <span className="deadline-meta">{q.totalQuestions} questions • {q.timeLimit} min</span>
+                      </div>
+                      {q.daysUntilEnd && (
+                        <div className={`deadline-due ${q.daysUntilEnd <= 2 ? 'urgent' : ''}`}>
+                          {formatDate(q.endDate!)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="dashboard-card-v2">
+            <div className="card-header-v2">
+              <h3>📝 Recent Activity</h3>
+            </div>
+            <div className="activity-section">
+              {!data?.recentActivity.length ? (
+                <div className="empty-state">
+                  <span className="empty-icon">📭</span>
+                  <p>No recent activity</p>
+                </div>
+              ) : (
+                <div className="activity-list">
+                  {data.recentActivity.map((activity, idx) => (
+                    <div key={idx} className="activity-item">
+                      <div className="activity-icon">{activity.icon}</div>
+                      <div className="activity-info">
+                        <span className="activity-title">{activity.title}</span>
+                        <span className="activity-meta">
+                          {activity.type === 'assignment' ? 'Assignment' : 'Quiz'}
+                          {activity.score !== undefined && ` • Score: ${activity.score}`}
+                        </span>
+                      </div>
+                      <div className="activity-time">{formatTimestamp(activity.timestamp)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
 
-        {/* Right Column (Sidebar) */}
-        <div className="dashboard-sidebar">
-          {/* Time Spent Card */}
-          <TimeSpentCard />
-
+        {/* Right Column */}
+        <div className="dashboard-right">
           {/* Attendance Card */}
           <AttendanceCard date={selectedDate} attendance={attendance} />
+        </div>
+      </div>
 
-          {/* Quick Stats Card */}
-          <div className="quick-stats-card">
-            <h3>This Week's Stats</h3>
-            <div className="stats-grid-vertical">
-              <div className="stat-item">
-                <span className="stat-icon">📚</span>
-                <div className="stat-info">
-                  <span className="stat-label">Classes</span>
-                  <span className="stat-value">8</span>
-                </div>
+      {/* Bottom Row - Quick Actions & Summary */}
+      <div className="dashboard-bottom-row">
+        {/* Quick Actions */}
+        <div className="dashboard-card-v2">
+          <div className="card-header-v2">
+            <h3>⚡ Quick Actions</h3>
+          </div>
+          <div className="quick-actions">
+            <button className="quick-action-btn" onClick={() => navigate('/my-course')}>
+              <span className="action-icon">📚</span>
+              <span>My Course</span>
+            </button>
+            <button className="quick-action-btn" onClick={() => navigate('/assignments')}>
+              <span className="action-icon">✏️</span>
+              <span>Assignments</span>
+            </button>
+            <button className="quick-action-btn" onClick={() => navigate('/quizzes')}>
+              <span className="action-icon">📝</span>
+              <span>Quizzes</span>
+            </button>
+            <button className="quick-action-btn" onClick={() => navigate('/my-attendance')}>
+              <span className="action-icon">☑</span>
+              <span>Attendance</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="dashboard-card-v2">
+          <div className="card-header-v2">
+            <h3>📊 Summary</h3>
+          </div>
+          <div className="summary-stats horizontal">
+            <div className="summary-item">
+              <span className="summary-icon">✏️</span>
+              <div className="summary-info">
+                <span className="summary-label">Assignments</span>
+                <span className="summary-value">{data?.stats.completedAssignments || 0} / {data?.stats.totalAssignments || 0}</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-icon">✏️</span>
-                <div className="stat-info">
-                  <span className="stat-label">Assignments</span>
-                  <span className="stat-value">3</span>
-                </div>
+            </div>
+            <div className="summary-item">
+              <span className="summary-icon">📝</span>
+              <div className="summary-info">
+                <span className="summary-label">Quizzes</span>
+                <span className="summary-value">{data?.stats.completedQuizzes || 0} / {data?.stats.totalQuizzes || 0}</span>
               </div>
-              <div className="stat-item">
-                <span className="stat-icon">📝</span>
-                <div className="stat-info">
-                  <span className="stat-label">Quizzes</span>
-                  <span className="stat-value">2</span>
-                </div>
-              </div>
-              <div className="stat-item">
-                <span className="stat-icon">🎯</span>
-                <div className="stat-info">
-                  <span className="stat-label">Progress</span>
-                  <span className="stat-value">75%</span>
-                </div>
+            </div>
+            <div className="summary-item">
+              <span className="summary-icon">📖</span>
+              <div className="summary-info">
+                <span className="summary-label">Chapters</span>
+                <span className="summary-value">{data?.courseProgress.completed || 0} / {data?.courseProgress.total || 0}</span>
               </div>
             </div>
           </div>

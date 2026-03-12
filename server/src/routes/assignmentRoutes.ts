@@ -23,6 +23,11 @@ router.get('/student/submissions', submissionController.getStudentSubmissions);
 router.get('/template/download', roleGuard(['manage_assignments']), assignmentController.downloadTemplate);
 router.post('/import', roleGuard(['manage_assignments']), assignmentController.importFromCSV);
 
+// Reports routes (must be before :id routes)
+router.get('/reports/overall', roleGuard(['manage_assignments']), assignmentController.getOverallReports);
+router.get('/reports/by-assignment', roleGuard(['manage_assignments']), assignmentController.getReportsByAssignment);
+router.get('/reports/by-student', roleGuard(['manage_assignments']), assignmentController.getReportsByStudent);
+
 // Assignment CRUD
 router.post('/', roleGuard(['manage_assignments']), assignmentController.create);
 router.get('/', roleGuard(['manage_assignments']), assignmentController.list);

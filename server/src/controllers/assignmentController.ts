@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { Types } from 'mongoose';
 import assignmentService from '../services/assignmentService';
 import { AssignmentType, AssignmentStatus, DifficultyLevel } from '../models/Assignment';
 
@@ -513,6 +514,267 @@ class AssignmentController {
         success: false,
         message: error instanceof Error ? error.message : 'Failed to import assignments'
       });
+    }
+  }
+
+  // Get overall reports
+  getOverallReports = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { type } = req.query;
+      
+      let tenantObjectId;
+      try {
+        tenantObjectId = new Types.ObjectId(tenantId);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: 'Invalid tenant ID' });
+      }
+
+      const Assignment = require('../models/Assignment').default;
+      const Submission = require('../models/Submission').default;
+
+      // Get assignment stats
+      const assignmentMatch: any = { tenant: tenantObjectId };
+      if (type && type !== 'all') {
+        assignmentMatch.type = type;
+      }
+
+      const totalAssignments = await Assignment.countDocuments(assignmentMatch);
+      const publishedAssignments = await Assignment.countDocuments({ ...assignmentMatch, status: 'published' });
+      const draftAssignments = await Assignment.countDocuments({ ...assignmentMatch, status: 'draft' });
+
+      // Get submission stats - simpler approach
+      let totalSubmissions = 0;
+      let averageScore = 0;
+      
+      try {
+        totalSubmissions = await Submission.countDocuments({ tenant: tenantObjectId, status: 'submitted' });
+        
+        const scoreAgg = await Submission.aggregate([
+          { $match: { tenant: tenantObjectId, status: 'submitted', 'grading.score': { $exists: true, $ne: null } } },
+          { $group: { _id: null, avgScore: { $avg: '$grading.score' } } }
+        ]);
+        averageScore = scoreAgg[0]?.avgScore || 0;
+      } catch (subErr) {
+        console.error('Submission query error:', subErr);
+      }
+
+      // Get by type
+      const byType = await Assignment.aggregate([
+        { $match: { tenant: tenantObjectId } },
+        { $group: { _id: '$type', count: { $sum: 1 } } }
+      ]);
+
+      // Get by difficulty
+      const byDifficulty = await Assignment.aggregate([
+        { $match: { tenant: tenantObjectId } },
+        { $group: { _id: '$difficulty', count: { $sum: 1 } } }
+      ]);
+
+      res.json({
+        success: true,
+        data: {
+          totalAssignments,
+          publishedAssignments,
+          draftAssignments,
+          totalSubmissions,
+          averageScore,
+          averageCompletionRate: totalAssignments > 0 ? (totalSubmissions / totalAssignments) * 10 : 0,
+          byType,
+          byDifficulty
+        }
+      });
+    } catch (error) {
+      console.error('Get overall reports error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to get reports' });
+    }
+  }
+
+  // Get reports by assignment
+  getReportsByAssignment = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const { type } = req.query;
+      
+      let tenantObjectId;
+      try {
+        tenantObjectId = new Types.ObjectId(tenantId);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: 'Invalid tenant ID' });
+      }
+      
+      const Assignment = require('../models/Assignment').default;
+      const Submission = require('../models/Submission').default;
+
+      const assignmentMatch: any = { tenant: tenantObjectId };
+      if (type && type !== 'all') {
+        assignmentMatch.type = type;
+      }
+
+      const assignments = await Assignment.find(assignmentMatch)
+        .select('title type difficulty status totalPoints dueDate')
+        .lean();
+
+      const assignmentStats = await Promise.all(assignments.map(async (assignment: any) => {
+        try {
+          const submissions = await Submission.find({ 
+            assignment: assignment._id,
+            status: 'submitted'
+          }).lean();
+
+          const scores = submissions
+            .filter((s: any) => s.grading?.score !== undefined)
+            .map((s: any) => s.grading.score);
+
+          const now = new Date();
+          const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : new Date();
+          
+          const onTimeSubmissions = submissions.filter((s: any) => 
+            new Date(s.submittedAt || s.createdAt) <= dueDate
+          ).length;
+
+          return {
+            ...assignment,
+            stats: {
+              totalSubmissions: submissions.length,
+              completedSubmissions: submissions.length,
+              averageScore: scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 0,
+              highestScore: scores.length > 0 ? Math.max(...scores) : 0,
+              lowestScore: scores.length > 0 ? Math.min(...scores) : 0,
+              passRate: submissions.length > 0 ? (scores.filter((s: number) => s >= 60).length / submissions.length) * 100 : 0,
+              onTimeSubmissions,
+              lateSubmissions: submissions.length - onTimeSubmissions
+            }
+          };
+        } catch (err) {
+          console.error('Error processing assignment:', assignment._id, err);
+          return {
+            ...assignment,
+            stats: {
+              totalSubmissions: 0,
+              completedSubmissions: 0,
+              averageScore: 0,
+              highestScore: 0,
+              lowestScore: 0,
+              passRate: 0,
+              onTimeSubmissions: 0,
+              lateSubmissions: 0
+            }
+          };
+        }
+      }));
+
+      res.json({ success: true, data: assignmentStats });
+    } catch (error) {
+      console.error('Get reports by assignment error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to get reports' });
+    }
+  }
+
+  // Get reports by student
+  getReportsByStudent = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      let tenantObjectId;
+      try {
+        tenantObjectId = new Types.ObjectId(tenantId);
+      } catch (e) {
+        return res.status(400).json({ success: false, message: 'Invalid tenant ID' });
+      }
+
+      const User = require('../models/User').default;
+      const Assignment = require('../models/Assignment').default;
+      const Submission = require('../models/Submission').default;
+
+      // Get all students
+      const students = await User.find({ 
+        tenantId: tenantObjectId, 
+        role: 'STUDENT',
+        isActive: true 
+      }).select('firstName lastName email').lean();
+
+      // Get published assignments count
+      const totalAssignments = await Assignment.countDocuments({ 
+        tenant: tenantObjectId, 
+        status: 'published' 
+      });
+
+      const studentStats = await Promise.all(students.map(async (student: any) => {
+        try {
+          const submissions = await Submission.find({
+            student: student._id,
+            status: 'submitted'
+          }).populate('assignment', 'dueDate').lean();
+
+          const scores = submissions
+            .filter((s: any) => s.grading?.score !== undefined)
+            .map((s: any) => s.grading.score);
+
+          const onTime = submissions.filter((s: any) => {
+            const dueDate = (s.assignment as any)?.dueDate ? new Date((s.assignment as any).dueDate) : new Date();
+            const submittedAt = new Date(s.submittedAt || s.createdAt);
+            return submittedAt <= dueDate;
+          }).length;
+
+          return {
+            _id: student._id,
+            name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email,
+            email: student.email,
+            totalAssignments,
+            completed: submissions.length,
+            averageScore: scores.length > 0 ? scores.reduce((a: number, b: number) => a + b, 0) / scores.length : 0,
+            onTime,
+            late: submissions.length - onTime
+          };
+        } catch (err) {
+          console.error('Error processing student:', student._id, err);
+          return {
+            _id: student._id,
+            name: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email,
+            email: student.email,
+            totalAssignments,
+            completed: 0,
+            averageScore: 0,
+            onTime: 0,
+            late: 0
+          };
+        }
+      }));
+
+      // Sort by completion
+      studentStats.sort((a, b) => b.completed - a.completed);
+
+      res.json({ success: true, data: studentStats });
+    } catch (error) {
+      console.error('Get reports by student error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to get reports' });
+    }
+  }
+
+  // Helper to get date filter
+  private getDateFilter(dateRange: string): any {
+    const now = new Date();
+    switch (dateRange) {
+      case 'week':
+        return { $gte: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000) };
+      case 'month':
+        return { $gte: new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000) };
+      case 'quarter':
+        return { $gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) };
+      default:
+        return null;
     }
   }
 }

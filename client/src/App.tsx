@@ -45,7 +45,8 @@ import {
   StudentAssignmentList,
   AssignmentWorkspace,
   AssignmentResult
-} from './pages/assignments';  
+} from './pages/assignments';
+import AssignmentReports from './pages/AssignmentReports';  
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -339,6 +340,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <AdminSubmissions />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/assignments/reports"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AssignmentReports />
             </Layout>
           </ProtectedRoute>
         }

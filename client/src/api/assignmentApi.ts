@@ -119,7 +119,9 @@ export interface Assignment {
   dueDate?: string;
   lateSubmissionDeadline?: string;
   lateSubmissionPenalty: number;
-  course?: { _id: string; name: string };
+  course?: { _id: string; name: string } | string;
+  subject?: { _id: string; title: string } | string;
+  chapter?: { _id: string; title: string } | string;
   batch?: { _id: string; name: string };
   allowedLanguages: ProgrammingLanguage[];
   testCases: TestCase[];
@@ -395,7 +397,13 @@ export const assignmentApi = {
 
   // Import assignments from CSV data
   importFromCSV: (assignments: any[]) =>
-    api.post<ApiResponse<{ success: any[]; failed: any[] }>>('/assignments/import', { assignments })
+    api.post<ApiResponse<{ success: any[]; failed: any[] }>>('/assignments/import', { assignments }),
+
+  // Reports
+  getOverallReports: (params: string) => api.get(`/assignments/reports/overall?${params}`),
+  getByAssignmentReports: (params: string) => api.get(`/assignments/reports/by-assignment?${params}`),
+  getByStudentReports: (params: string) => api.get(`/assignments/reports/by-student?${params}`),
+  exportReports: (params: string) => api.get(`/assignments/reports/export?${params}`, { responseType: 'blob' })
 };
 
 // Submission API  

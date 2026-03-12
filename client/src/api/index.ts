@@ -1239,3 +1239,13 @@ export const progressApi = {
     });
   },
 };
+
+// Dashboard API
+export const dashboardApi = {
+  // Get student dashboard data
+  getStudentDashboard: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/dashboard/student`, {
+      method: 'GET'
+    });
+  },
+};

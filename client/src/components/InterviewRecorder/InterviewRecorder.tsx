@@ -1,0 +1,279 @@
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import './InterviewRecorder.css';
+
+interface InterviewRecorderProps {
+  isEnabled: boolean;
+  onRecordingComplete: (data: {
+    recordingUrl: string;
+    recordingDuration: number;
+    recordingSize: number;
+    recordingType: 'video' | 'audio';
+  }) => void;
+  autoStart?: boolean;
+}
+
+const InterviewRecorder: React.FC<InterviewRecorderProps> = ({
+  isEnabled,
+  onRecordingComplete,
+  autoStart = false
+}) => {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  
+  const [isRecording, setIsRecording] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [error, setError] = useState<string>('');
+  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [recordingComplete, setRecordingComplete] = useState(false);
+
+  // Timer for recording duration
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (isRecording && !isPaused) {
+      interval = setInterval(() => {
+        setRecordingTime(prev => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isRecording, isPaused]);
+
+  // Initial camera setup
+  useEffect(() => {
+    if (isEnabled && hasPermission === null) {
+      requestCameraPermission();
+    }
+    return () => {
+      // Cleanup stream on unmount
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [isEnabled]);
+
+  // Auto-start recording
+  useEffect(() => {
+    if (autoStart && hasPermission && !isRecording && !recordingComplete) {
+      startRecording();
+    }
+  }, [autoStart, hasPermission]);
+
+  const requestCameraPermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          width: { ideal: 640 },
+          height: { ideal: 480 },
+          facingMode: 'user'
+        },
+        audio: true
+      });
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      
+      setHasPermission(true);
+      setError('');
+    } catch (err: any) {
+      console.error('Camera permission error:', err);
+      setHasPermission(false);
+      setError(err.name === 'NotAllowedError' 
+        ? 'Camera permission denied. Please allow camera access to record your interview.'
+        : 'Could not access camera. Please check your device settings.'
+      );
+    }
+  };
+
+  const startRecording = useCallback(() => {
+    if (!videoRef.current?.srcObject) {
+      setError('Camera not ready. Please try again.');
+      return;
+    }
+
+    const stream = videoRef.current.srcObject as MediaStream;
+    chunksRef.current = [];
+    
+    const options = { mimeType: 'video/webm;codecs=vp9,opus' };
+    let mediaRecorder: MediaRecorder;
+    
+    try {
+      mediaRecorder = new MediaRecorder(stream, options);
+    } catch (e) {
+      // Fallback to default
+      mediaRecorder = new MediaRecorder(stream);
+    }
+    
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) {
+        chunksRef.current.push(e.data);
+      }
+    };
+    
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      setPreviewUrl(url);
+      setRecordingComplete(true);
+      
+      // Create a downloadable URL (in production, upload to server)
+      // For now, we return a data URL or blob URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onRecordingComplete({
+          recordingUrl: url, // In production: upload and get server URL
+          recordingDuration: recordingTime,
+          recordingSize: blob.size,
+          recordingType: 'video'
+        });
+      };
+      reader.readAsDataURL(blob);
+    };
+    
+    mediaRecorderRef.current = mediaRecorder;
+    mediaRecorder.start(1000); // Collect data every 1 second
+    setIsRecording(true);
+    setIsPaused(false);
+    setRecordingTime(0);
+  }, [onRecordingComplete, recordingTime]);
+
+  const pauseRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.pause();
+      setIsPaused(true);
+    }
+  };
+
+  const resumeRecording = () => {
+    if (mediaRecorderRef.current && isPaused) {
+      mediaRecorderRef.current.resume();
+      setIsPaused(false);
+    }
+  };
+
+  const stopRecording = useCallback(() => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+      setIsPaused(false);
+      
+      // Stop all tracks
+      if (videoRef.current?.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+      }
+    }
+  }, [isRecording]);
+
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  if (!isEnabled) {
+    return null;
+  }
+
+  return (
+    <div className="interview-recorder">
+      <div className="recorder-header">
+        <div className="recorder-title">
+          <span className="recorder-icon">📹</span>
+          <span>Interview Recording</span>
+        </div>
+        {isRecording && (
+          <div className={`recording-indicator ${isPaused ? 'paused' : 'active'}`}>
+            <span className="recording-dot"></span>
+            <span>{isPaused ? 'PAUSED' : 'REC'}</span>
+            <span className="recording-time">{formatTime(recordingTime)}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="video-container">
+        {recordingComplete && previewUrl ? (
+          <video 
+            src={previewUrl} 
+            className="video-preview" 
+            controls
+          />
+        ) : (
+          <video 
+            ref={videoRef} 
+            className="video-preview" 
+            autoPlay 
+            muted 
+            playsInline
+          />
+        )}
+        
+        {hasPermission === false && (
+          <div className="permission-overlay">
+            <div className="permission-message">
+              <span className="permission-icon">🎥</span>
+              <p>{error}</p>
+              <button onClick={requestCameraPermission} className="retry-btn">
+                Request Permission
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {error && hasPermission !== false && (
+        <div className="recorder-error">{error}</div>
+      )}
+
+      {hasPermission && !recordingComplete && (
+        <div className="recorder-controls">
+          {!isRecording ? (
+            <button onClick={startRecording} className="control-btn start">
+              <span className="btn-icon">⏺</span>
+              Start Recording
+            </button>
+          ) : (
+            <>
+              {!isPaused ? (
+                <button onClick={pauseRecording} className="control-btn pause">
+                  <span className="btn-icon">⏸</span>
+                  Pause
+                </button>
+              ) : (
+                <button onClick={resumeRecording} className="control-btn resume">
+                  <span className="btn-icon">▶</span>
+                  Resume
+                </button>
+              )}
+              <button onClick={stopRecording} className="control-btn stop">
+                <span className="btn-icon">⏹</span>
+                Stop
+              </button>
+            </>
+          )}
+        </div>
+      )}
+
+      {recordingComplete && (
+        <div className="recording-saved">
+          <span className="saved-icon">✅</span>
+          <span>Recording saved ({formatTime(recordingTime)})</span>
+        </div>
+      )}
+
+      <div className="recorder-tips">
+        <p><strong>Tips:</strong></p>
+        <ul>
+          <li>Ensure good lighting on your face</li>
+          <li>Speak clearly and maintain eye contact with camera</li>
+          <li>Recording will be saved when you complete the interview</li>
+        </ul>
+      </div>
+    </div>
+  );
+};
+
+export default InterviewRecorder;

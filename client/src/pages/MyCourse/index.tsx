@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { enrollmentApi, subjectApi, chapterApi, progressApi, quizApi } from '../../api';
+import { enrollmentApi, subjectApi, chapterApi, progressApi, quizApi, interviewQuestionApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
 import { assignmentApi } from '../../api/assignmentApi';
 import { Spinner, Alert } from '../../components/common';
@@ -33,6 +33,7 @@ interface Chapter {
   content?: ChapterContent[]; // Notes and cheatsheets
   assignmentIds: string[];
   assignments?: ChapterAssignment[];
+  interviewQuestions?: InterviewQuestion[];
   estimatedDuration: number;
   subjectName?: string;
   subjectId?: string;
@@ -44,6 +45,17 @@ interface ChapterAssignment {
   type: string;
   difficulty: string;
   totalPoints: number;
+}
+
+interface InterviewQuestion {
+  _id: string;
+  question: string;
+  answer: string;
+  explanation?: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  category: string;
+  companyTags: string[];
+  order: number;
 }
 
 interface Quiz {
@@ -101,6 +113,7 @@ const MyCourse: React.FC = () => {
   const [expandedSubjects, setExpandedSubjects] = useState<Set<string>>(new Set());
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(new Set());
   const [completedChapters, setCompletedChapters] = useState<Set<string>>(new Set());
+  const [activeChapterTab, setActiveChapterTab] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -200,8 +213,17 @@ const MyCourse: React.FC = () => {
                   // No assignments or error
                 }
               }
+
+              // Fetch interview questions for chapter
+              let interviewQuestions: InterviewQuestion[] = [];
+              try {
+                const iqRes = await interviewQuestionApi.getQuestionsByChapter(chapter._id);
+                interviewQuestions = iqRes.data || [];
+              } catch (err) {
+                // No interview questions or error
+              }
               
-              return { ...chapter, quizzes, content, assignments };
+              return { ...chapter, quizzes, content, assignments, interviewQuestions };
             })
           );
           
@@ -482,151 +504,169 @@ const MyCourse: React.FC = () => {
                               <p className="chapter-description">{chapter.description}</p>
                             )}
 
-                            {/* Content Grid Layout */}
-                            <div className="chapter-content-grid">
-                              {/* Videos Section */}
-                              {chapter.videos.length > 0 && (
-                                <div className="content-card videos-card">
-                                  <div className="content-card-header">
-                                    <span className="card-icon">🎬</span>
-                                    <span className="card-title">Videos</span>
-                                    <span className="card-count">{chapter.videos.length}</span>
+                            {/* Tabbed Content Interface */}
+                            {(() => {
+                              const tabs = [
+                                { id: 'videos', icon: '🎬', label: 'Videos', count: chapter.videos.length },
+                                { id: 'notes', icon: '📄', label: 'Notes', count: chapter.notes.length },
+                                { id: 'quizzes', icon: '📝', label: 'Quizzes', count: chapter.quizzes?.length || 0 },
+                                { id: 'resources', icon: '📋', label: 'Resources', count: chapter.content?.length || 0 },
+                                { id: 'assignments', icon: '✍️', label: 'Assignments', count: chapter.assignments?.length || 0 },
+                                { id: 'interview', icon: '💼', label: 'Interview Q&A', count: chapter.interviewQuestions?.length || 0 },
+                              ].filter(tab => tab.count > 0);
+
+                              const activeTab = activeChapterTab[chapter._id] || tabs[0]?.id || '';
+                              const setTab = (tabId: string) => setActiveChapterTab(prev => ({ ...prev, [chapter._id]: tabId }));
+
+                              if (tabs.length === 0) {
+                                return (
+                                  <div className="no-content-message">
+                                    No content available for this chapter yet.
                                   </div>
-                                  <div className="content-card-body">
-                                    {chapter.videos.sort((a, b) => a.order - b.order).map((video, idx) => (
-                                      <a key={idx} href={video.url} target="_blank" rel="noopener noreferrer" className="content-row">
-                                        <span className="row-title">{video.title}</span>
-                                        {video.duration > 0 && (
-                                          <span className="row-meta">{formatDuration(video.duration)}</span>
-                                        )}
-                                      </a>
+                                );
+                              }
+
+                              return (
+                                <div className="chapter-tabs-container">
+                                  {/* Tab Headers */}
+                                  <div className="chapter-tabs">
+                                    {tabs.map(tab => (
+                                      <button
+                                        key={tab.id}
+                                        className={`chapter-tab ${activeTab === tab.id ? 'active' : ''}`}
+                                        onClick={() => setTab(tab.id)}
+                                      >
+                                        <span className="tab-icon">{tab.icon}</span>
+                                        <span className="tab-label">{tab.label}</span>
+                                        <span className="tab-count">{tab.count}</span>
+                                      </button>
                                     ))}
                                   </div>
-                                </div>
-                              )}
 
-                              {/* Notes Section */}
-                              {chapter.notes.length > 0 && (
-                                <div className="content-card notes-card">
-                                  <div className="content-card-header">
-                                    <span className="card-icon">📄</span>
-                                    <span className="card-title">Notes</span>
-                                    <span className="card-count">{chapter.notes.length}</span>
-                                  </div>
-                                  <div className="content-card-body">
-                                    {chapter.notes.sort((a, b) => a.order - b.order).map((note, idx) => (
-                                      <div key={idx} className="content-row">
-                                        <span className="row-title">{note.title}</span>
-                                        {note.attachmentUrl && (
-                                          <a href={note.attachmentUrl} target="_blank" rel="noopener noreferrer" className="row-action">
-                                            Download
+                                  {/* Tab Content */}
+                                  <div className="chapter-tab-content">
+                                    {activeTab === 'videos' && (
+                                      <div className="tab-panel">
+                                        {chapter.videos.sort((a, b) => a.order - b.order).map((video, idx) => (
+                                          <a key={idx} href={video.url} target="_blank" rel="noopener noreferrer" className="content-item video-item">
+                                            <span className="item-icon">▶️</span>
+                                            <span className="item-title">{video.title}</span>
+                                            {video.duration > 0 && <span className="item-meta">{formatDuration(video.duration)}</span>}
                                           </a>
-                                        )}
+                                        ))}
                                       </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
+                                    )}
 
-                              {/* Quizzes Section */}
-                              {chapter.quizzes && chapter.quizzes.length > 0 && (
-                                <div className="content-card quizzes-card">
-                                  <div className="content-card-header">
-                                    <span className="card-icon">📝</span>
-                                    <span className="card-title">Quizzes</span>
-                                    <span className="card-count">{chapter.quizzes.length}</span>
-                                  </div>
-                                  <div className="content-card-body">
-                                    {chapter.quizzes.map((quiz) => (
-                                      <div key={quiz._id} className="content-row quiz-row">
-                                        <div className="quiz-row-info">
-                                          <span className="row-title">{quiz.title}</span>
-                                          <span className="quiz-row-meta">
-                                            {quiz.totalQuestions} questions • {quiz.totalMarks} marks • {quiz.totalTime} min
-                                          </span>
-                                        </div>
-                                        <button 
-                                          className="row-btn primary"
-                                          onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                                        >
-                                          {quiz.isAttempted ? 'Retake' : 'Start Quiz'}
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Notes & Cheatsheets from Content API */}
-                              {chapter.content && chapter.content.length > 0 && (
-                                <div className="content-card resources-card">
-                                  <div className="content-card-header">
-                                    <span className="card-icon">📋</span>
-                                    <span className="card-title">Resources</span>
-                                    <span className="card-count">{chapter.content.length}</span>
-                                  </div>
-                                  <div className="content-card-body">
-                                    {chapter.content.map((item) => (
-                                      <div key={item._id} className={`content-row resource-row ${item.type}`}>
-                                        <div className="resource-info">
-                                          <span className="row-title">{item.title}</span>
-                                          <span className={`resource-badge ${item.type}`}>{item.type}</span>
-                                        </div>
-                                        {item.attachments && item.attachments.length > 0 && (
-                                          <div className="resource-downloads">
-                                            {item.attachments.map((att, idx) => (
-                                              <a 
-                                                key={idx}
-                                                href={`${window.location.origin}${att.url}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="row-action"
-                                              >
-                                                ⬇ {att.name}
+                                    {activeTab === 'notes' && (
+                                      <div className="tab-panel">
+                                        {chapter.notes.sort((a, b) => a.order - b.order).map((note, idx) => (
+                                          <div key={idx} className="content-item note-item">
+                                            <span className="item-icon">📄</span>
+                                            <span className="item-title">{note.title}</span>
+                                            {note.attachmentUrl && (
+                                              <a href={note.attachmentUrl} target="_blank" rel="noopener noreferrer" className="item-action">
+                                                ⬇ Download
                                               </a>
-                                            ))}
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {activeTab === 'quizzes' && chapter.quizzes && (
+                                      <div className="tab-panel">
+                                        {chapter.quizzes.map((quiz) => (
+                                          <div key={quiz._id} className="content-item quiz-item">
+                                            <div className="item-main">
+                                              <span className="item-icon">📝</span>
+                                              <div className="item-details">
+                                                <span className="item-title">{quiz.title}</span>
+                                                <span className="item-subtitle">{quiz.totalQuestions} questions • {quiz.totalMarks} marks • {quiz.totalTime} min</span>
+                                              </div>
+                                            </div>
+                                            <button className="item-btn primary" onClick={() => navigate(`/quiz/${quiz._id}/take`)}>
+                                              {quiz.isAttempted ? 'Retake' : 'Start'}
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {activeTab === 'resources' && chapter.content && (
+                                      <div className="tab-panel">
+                                        {chapter.content.map((item) => (
+                                          <div key={item._id} className="content-item resource-item">
+                                            <div className="item-main">
+                                              <span className="item-icon">{item.type === 'cheatsheet' ? '📋' : '📝'}</span>
+                                              <div className="item-details">
+                                                <span className="item-title">{item.title}</span>
+                                                <span className={`item-badge ${item.type}`}>{item.type}</span>
+                                              </div>
+                                            </div>
+                                            {item.attachments && item.attachments.length > 0 && (
+                                              <a href={`${window.location.origin}${item.attachments[0].url}`} target="_blank" rel="noopener noreferrer" className="item-action">
+                                                ⬇ Download
+                                              </a>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {activeTab === 'assignments' && chapter.assignments && (
+                                      <div className="tab-panel">
+                                        {chapter.assignments.map((assignment) => (
+                                          <div key={assignment._id} className="content-item assignment-item">
+                                            <div className="item-main">
+                                              <span className="item-icon">✍️</span>
+                                              <div className="item-details">
+                                                <span className="item-title">{assignment.title}</span>
+                                                <span className={`item-badge ${assignment.type.toLowerCase()}`}>{assignment.type}</span>
+                                              </div>
+                                            </div>
+                                            <button className="item-btn secondary" onClick={() => navigate(`/assignments/${assignment._id}/workspace`)}>
+                                              View
+                                            </button>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+
+                                    {activeTab === 'interview' && chapter.interviewQuestions && (
+                                      <div className="tab-panel">
+                                        <div className="interview-tab-header">
+                                          <span>{chapter.interviewQuestions.length} questions</span>
+                                          <button className="practice-all-btn" onClick={() => navigate(`/interview-questions/${chapter._id}`)}>
+                                            Practice All →
+                                          </button>
+                                        </div>
+                                        {chapter.interviewQuestions.slice(0, 5).map((iq) => (
+                                          <div key={iq._id} className="content-item interview-item">
+                                            <div className="item-main">
+                                              <span className="item-icon">💡</span>
+                                              <div className="item-details">
+                                                <span className="item-title">{iq.question.length > 60 ? iq.question.substring(0, 60) + '...' : iq.question}</span>
+                                                <div className="item-tags">
+                                                  <span className={`difficulty-tag ${iq.difficulty}`}>{iq.difficulty}</span>
+                                                  {iq.companyTags.slice(0, 2).map((tag, i) => (
+                                                    <span key={i} className="company-tag">{tag}</span>
+                                                  ))}
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                        {chapter.interviewQuestions.length > 5 && (
+                                          <div className="show-more" onClick={() => navigate(`/interview-questions/${chapter._id}`)}>
+                                            +{chapter.interviewQuestions.length - 5} more questions
                                           </div>
                                         )}
                                       </div>
-                                    ))}
+                                    )}
                                   </div>
                                 </div>
-                              )}
-
-                              {/* Assignments Section */}
-                              {chapter.assignments && chapter.assignments.length > 0 && (
-                                <div className="content-card assignments-card">
-                                  <div className="content-card-header">
-                                    <span className="card-icon">✍️</span>
-                                    <span className="card-title">Assignments</span>
-                                    <span className="card-count">{chapter.assignments.length}</span>
-                                  </div>
-                                  <div className="content-card-body">
-                                    {chapter.assignments.map((assignment) => (
-                                      <div key={assignment._id} className="content-row assignment-row">
-                                        <div className="assignment-info">
-                                          <span className="row-title">{assignment.title}</span>
-                                          <span className="assignment-type-badge">{assignment.type}</span>
-                                        </div>
-                                        <button 
-                                          className="row-btn secondary"
-                                          onClick={() => navigate(`/assignments/${assignment._id}/workspace`)}
-                                        >
-                                          View
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-
-                            {/* Empty state */}
-                            {chapter.videos.length === 0 && chapter.notes.length === 0 && (!chapter.quizzes || chapter.quizzes.length === 0) && (!chapter.content || chapter.content.length === 0) && (!chapter.assignments || chapter.assignments.length === 0) && (
-                              <div className="no-content-message">
-                                No content available for this chapter yet.
-                              </div>
-                            )}
+                              );
+                            })()}
 
                             {/* Mark Complete Button */}
                             <div className="chapter-actions">

@@ -12,5 +12,6 @@ export const tenantResolver = (req: AuthenticatedRequest, res: Response, next: N
   }
 
   req.tenantId = tenantId;
+  req.userId = req.user?.id;
   next();
 };

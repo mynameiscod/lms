@@ -18,6 +18,8 @@ import oauthRoutes from './oauthRoutes';
 import assignmentRoutes from './assignmentRoutes';
 import dashboardRoutes from './dashboardRoutes';
 import studentReportRoutes from './studentReportRoutes';
+import interviewQuestionRoutes from './interviewQuestionRoutes';
+import mockInterviewRoutes from './mockInterviewRoutes';
 
 const router = express.Router();
 
@@ -40,5 +42,7 @@ router.use('/oauth', oauthRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/student-reports', studentReportRoutes);
+router.use('/interview-questions', interviewQuestionRoutes);
+router.use('/mock-interviews', mockInterviewRoutes);
 
 export default router;

@@ -38,6 +38,12 @@ import AdminContentPage from './pages/AdminContent';
 import NotFoundPage from './pages/NotFound';
 import StudentReportsPage from './pages/StudentReports';
 import BulkUploadPage from './pages/BulkUpload';
+import InterviewQuestionsPage from './pages/InterviewQuestions';
+import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
+import MockInterviewHub from './pages/MockInterviewHub';
+import TakeInterview from './pages/TakeInterview';
+import InterviewResult from './pages/InterviewResult';
+import AssignInterviewPage from './pages/AssignInterview';
 
 // Assignment Pages
 import {
@@ -111,6 +117,74 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT']}>
             <Layout>
               <MyCoursePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/interview-questions/:chapterId"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <InterviewQuestionsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Mock Interview Routes */}
+      <Route
+        path="/mock-interviews"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <MockInterviewHub />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/mock-interviews/history"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <MockInterviewHub />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/mock-interviews/:interviewId/take"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TakeInterview />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/mock-interviews/:interviewId/result"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InterviewResult />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Admin: Assign Interviews */}
+      <Route
+        path="/mock-interviews/assign"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AssignInterviewPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -221,6 +295,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <QuizManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/interview-question-bank"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewQuestionBankPage />
             </Layout>
           </ProtectedRoute>
         }

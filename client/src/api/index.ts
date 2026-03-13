@@ -81,6 +81,9 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
   return response.json();
 };
 
+// Export for use in other API files
+export { authenticatedFetch, API_BASE_URL };
+
 // Auth API
 export const authApi = {
   login: async (email: string, password: string) => {
@@ -1259,6 +1262,153 @@ export const dashboardApi = {
   getStudentDashboard: async () => {
     return authenticatedFetch(`${API_BASE_URL}/dashboard/student`, {
       method: 'GET'
+    });
+  },
+};
+
+// Interview Question API
+export const interviewQuestionApi = {
+  // ==================== ADMIN OPERATIONS ====================
+  
+  // Create single question
+  createQuestion: async (questionData: {
+    chapterId: string;
+    subjectId: string;
+    courseId: string;
+    question: string;
+    answer: string;
+    explanation?: string;
+    difficulty?: 'easy' | 'medium' | 'hard';
+    category?: string;
+    companyTags?: string[];
+    tags?: string[];
+  }) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions`, {
+      method: 'POST',
+      body: JSON.stringify(questionData)
+    });
+  },
+
+  // Bulk create questions
+  bulkCreateQuestions: async (questions: any[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ questions })
+    });
+  },
+
+  // Update question
+  updateQuestion: async (questionId: string, updateData: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(updateData)
+    });
+  },
+
+  // Delete question
+  deleteQuestion: async (questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/${questionId}`, {
+      method: 'DELETE'
+    });
+  },
+
+  // Reorder questions
+  reorderQuestions: async (chapterId: string, orders: { questionId: string; order: number }[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/chapter/${chapterId}/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ orders })
+    });
+  },
+
+  // ==================== QUERY OPERATIONS ====================
+
+  // Get all questions with filters
+  getAllQuestions: async (filters?: {
+    difficulty?: string;
+    category?: string;
+    companyTag?: string;
+    search?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.difficulty) params.append('difficulty', filters.difficulty);
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.companyTag) params.append('companyTag', filters.companyTag);
+    if (filters?.search) params.append('search', filters.search);
+    
+    const queryString = params.toString();
+    return authenticatedFetch(
+      `${API_BASE_URL}/interview-questions${queryString ? `?${queryString}` : ''}`,
+      { method: 'GET' }
+    );
+  },
+
+  // Get questions by chapter
+  getQuestionsByChapter: async (chapterId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/chapter/${chapterId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Get questions by subject
+  getQuestionsBySubject: async (subjectId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/subject/${subjectId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Get questions by course
+  getQuestionsByCourse: async (courseId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/course/${courseId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Get single question
+  getQuestionById: async (questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/${questionId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Mark question as helpful
+  markHelpful: async (questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/${questionId}/helpful`, {
+      method: 'POST'
+    });
+  },
+
+  // Get chapter stats
+  getChapterStats: async (chapterId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/chapter/${chapterId}/stats`, {
+      method: 'GET'
+    });
+  },
+
+  // ==================== STUDENT PROGRESS ====================
+
+  // Get student progress for chapter
+  getStudentProgress: async (chapterId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/progress/chapter/${chapterId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Get student progress for course
+  getStudentCourseProgress: async (courseId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/progress/course/${courseId}`, {
+      method: 'GET'
+    });
+  },
+
+  // Update student progress on a question
+  updateStudentProgress: async (questionId: string, data: {
+    status: 'not_reviewed' | 'reviewing' | 'understood' | 'confident';
+    notes?: string;
+    chapterId: string;
+  }) => {
+    return authenticatedFetch(`${API_BASE_URL}/interview-questions/progress/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
     });
   },
 };

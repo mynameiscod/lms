@@ -30,9 +30,9 @@ class DashboardController {
 
       // Get student's enrollment (single course)
       const enrollment = await Enrollment.findOne({
-        student: userObjectId,
-        tenant: tenantObjectId,
-        status: 'active'
+        userId: userObjectId,
+        tenantId: tenantObjectId,
+        status: 'enrolled'
       }).populate('courseId', 'title description');
 
       let courseData = null;

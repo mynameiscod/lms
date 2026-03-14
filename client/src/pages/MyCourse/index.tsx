@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { enrollmentApi, subjectApi, chapterApi, progressApi, quizApi, interviewQuestionApi } from '../../api';
+import { enrollmentApi, subjectApi, chapterApi, progressApi, quizApi, interviewQuestionApi, topicApi, subTopicApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
 import { assignmentApi } from '../../api/assignmentApi';
 import { Spinner, Alert } from '../../components/common';
@@ -34,9 +34,30 @@ interface Chapter {
   assignmentIds: string[];
   assignments?: ChapterAssignment[];
   interviewQuestions?: InterviewQuestion[];
+  topics?: TopicData[];
   estimatedDuration: number;
   subjectName?: string;
   subjectId?: string;
+}
+
+interface TopicData {
+  _id: string;
+  title: string;
+  description: string;
+  order: number;
+  subTopics: SubTopicData[];
+}
+
+interface SubTopicData {
+  _id: string;
+  title: string;
+  description: string;
+  order: number;
+  scheduledDay: number | null;
+  scheduledDate: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  durationMinutes: number | null;
 }
 
 interface ChapterAssignment {
@@ -222,8 +243,30 @@ const MyCourse: React.FC = () => {
               } catch (err) {
                 // No interview questions or error
               }
+
+              // Fetch topics and subtopics for chapter
+              let topicsData: TopicData[] = [];
+              try {
+                const topicsRes = await topicApi.getTopicsByChapter(chapter._id);
+                const rawTopics = topicsRes.data || [];
+                topicsData = await Promise.all(
+                  rawTopics.map(async (topic: any) => {
+                    let subTopicsData: SubTopicData[] = [];
+                    try {
+                      const stRes = await subTopicApi.getSubTopicsByTopic(topic._id);
+                      subTopicsData = (stRes.data || []).sort((a: any, b: any) => a.order - b.order);
+                    } catch (err) {
+                      // No subtopics
+                    }
+                    return { ...topic, subTopics: subTopicsData };
+                  })
+                );
+                topicsData.sort((a, b) => a.order - b.order);
+              } catch (err) {
+                // No topics or error
+              }
               
-              return { ...chapter, quizzes, content, assignments, interviewQuestions };
+              return { ...chapter, quizzes, content, assignments, interviewQuestions, topics: topicsData };
             })
           );
           
@@ -502,6 +545,43 @@ const MyCourse: React.FC = () => {
                           <div className="chapter-content">
                             {chapter.description && (
                               <p className="chapter-description">{chapter.description}</p>
+                            )}
+
+                            {/* Topics & Sub-Topics */}
+                            {chapter.topics && chapter.topics.length > 0 && (
+                              <div className="topics-section">
+                                <div className="topics-header">Topics</div>
+                                {chapter.topics.map((topic) => (
+                                  <div key={topic._id} className="topic-block">
+                                    <div className="topic-title-row">
+                                      <span className="topic-bullet">●</span>
+                                      <span className="topic-name">{topic.title}</span>
+                                      {topic.subTopics.length > 0 && (
+                                        <span className="subtopic-count">{topic.subTopics.length} sub-topics</span>
+                                      )}
+                                    </div>
+                                    {topic.description && (
+                                      <p className="topic-desc">{topic.description}</p>
+                                    )}
+                                    {topic.subTopics.length > 0 && (
+                                      <div className="subtopics-list">
+                                        {topic.subTopics.map((st) => (
+                                          <div key={st._id} className="subtopic-row">
+                                            <span className="subtopic-bullet">○</span>
+                                            <span className="subtopic-name">{st.title}</span>
+                                            <span className="subtopic-schedule">
+                                              {st.scheduledDay != null && <span className="schedule-tag day">Day {st.scheduledDay}</span>}
+                                              {st.startTime && st.endTime && <span className="schedule-tag time">{st.startTime} - {st.endTime}</span>}
+                                              {st.durationMinutes && <span className="schedule-tag duration">{st.durationMinutes} min</span>}
+                                              {st.scheduledDate && <span className="schedule-tag date">{new Date(st.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                                            </span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                              </div>
                             )}
 
                             {/* Tabbed Content Interface */}

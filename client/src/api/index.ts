@@ -372,6 +372,143 @@ export const chapterApi = {
   }
 };
 
+// Topic API
+export const topicApi = {
+  getTopics: async (filters?: { chapterId?: string; subjectId?: string; courseId?: string; isActive?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.chapterId) params.append('chapterId', filters.chapterId);
+    if (filters?.subjectId) params.append('subjectId', filters.subjectId);
+    if (filters?.courseId) params.append('courseId', filters.courseId);
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/topics${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch topics');
+    return response.json();
+  },
+
+  getTopicsByChapter: async (chapterId: string) => {
+    const response = await fetch(`${API_BASE_URL}/topics/chapter/${chapterId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch topics');
+    return response.json();
+  },
+
+  getTopicById: async (topicId: string) => {
+    const response = await fetch(`${API_BASE_URL}/topics/${topicId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch topic');
+    return response.json();
+  },
+
+  createTopic: async (topicData: any) => {
+    const response = await fetch(`${API_BASE_URL}/topics`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(topicData)
+    });
+    if (!response.ok) throw new Error('Failed to create topic');
+    return response.json();
+  },
+
+  updateTopic: async (topicId: string, topicData: any) => {
+    const response = await fetch(`${API_BASE_URL}/topics/${topicId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(topicData)
+    });
+    if (!response.ok) throw new Error('Failed to update topic');
+    return response.json();
+  },
+
+  deleteTopic: async (topicId: string) => {
+    const response = await fetch(`${API_BASE_URL}/topics/${topicId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete topic');
+    return response.json();
+  }
+};
+
+// SubTopic API
+export const subTopicApi = {
+  getSubTopics: async (filters?: { topicId?: string; chapterId?: string; courseId?: string; isActive?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.topicId) params.append('topicId', filters.topicId);
+    if (filters?.chapterId) params.append('chapterId', filters.chapterId);
+    if (filters?.courseId) params.append('courseId', filters.courseId);
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    const queryString = params.toString();
+    const url = `${API_BASE_URL}/sub-topics${queryString ? `?${queryString}` : ''}`;
+
+    const response = await fetch(url, { method: 'GET', headers: getAuthHeaders() });
+    if (!response.ok) throw new Error('Failed to fetch sub-topics');
+    return response.json();
+  },
+
+  getSubTopicsByTopic: async (topicId: string) => {
+    const response = await fetch(`${API_BASE_URL}/sub-topics/topic/${topicId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch sub-topics');
+    return response.json();
+  },
+
+  getSubTopicsByChapter: async (chapterId: string) => {
+    const response = await fetch(`${API_BASE_URL}/sub-topics/chapter/${chapterId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch sub-topics');
+    return response.json();
+  },
+
+  getSubTopicById: async (subTopicId: string) => {
+    const response = await fetch(`${API_BASE_URL}/sub-topics/${subTopicId}`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch sub-topic');
+    return response.json();
+  },
+
+  createSubTopic: async (subTopicData: any) => {
+    const response = await fetch(`${API_BASE_URL}/sub-topics`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(subTopicData)
+    });
+    if (!response.ok) throw new Error('Failed to create sub-topic');
+    return response.json();
+  },
+
+  updateSubTopic: async (subTopicId: string, subTopicData: any) => {
+    const response = await fetch(`${API_BASE_URL}/sub-topics/${subTopicId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(subTopicData)
+    });
+    if (!response.ok) throw new Error('Failed to update sub-topic');
+    return response.json();
+  },
+
+  deleteSubTopic: async (subTopicId: string) => {
+    const response = await fetch(`${API_BASE_URL}/sub-topics/${subTopicId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to delete sub-topic');
+    return response.json();
+  }
+};
+
 // Enrollment API
 export const enrollmentApi = {
   enrollCourse: async (courseId: string) => {

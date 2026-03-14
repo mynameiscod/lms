@@ -20,6 +20,8 @@ import dashboardRoutes from './dashboardRoutes';
 import studentReportRoutes from './studentReportRoutes';
 import interviewQuestionRoutes from './interviewQuestionRoutes';
 import mockInterviewRoutes from './mockInterviewRoutes';
+import topicRoutes from './topicRoutes';
+import subTopicRoutes from './subTopicRoutes';
 
 const router = express.Router();
 
@@ -44,5 +46,7 @@ router.use('/dashboard', dashboardRoutes);
 router.use('/student-reports', studentReportRoutes);
 router.use('/interview-questions', interviewQuestionRoutes);
 router.use('/mock-interviews', mockInterviewRoutes);
+router.use('/topics', topicRoutes);
+router.use('/sub-topics', subTopicRoutes);
 
 export default router;

@@ -3,6 +3,8 @@ import quizService from '../services/quizService';
 import questionService from '../services/questionService';
 import Quiz from '../models/Quiz';
 import QuizAttempt from '../models/QuizAttempt';
+import QuizSubmission from '../models/QuizSubmission';
+import Question from '../models/Question';
 import User from '../models/User';
 import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
@@ -275,16 +277,107 @@ export const getQuizResults = async (req: Request, res: Response) => {
   }
 };
 
+export const getStudentAttemptResults = async (req: Request, res: Response) => {
+  try {
+    const { attemptId } = req.params;
+    const studentId = (req as any).userId;
+
+    const attempt = await QuizAttempt.findById(attemptId);
+    if (!attempt) {
+      return res.status(404).json({ message: 'Attempt not found' });
+    }
+
+    // Ensure student can only view their own attempts
+    if (attempt.studentId !== studentId) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    const quiz = await Quiz.findById(attempt.quizId);
+    const student = await User.findById(attempt.studentId);
+    const submissions = await QuizSubmission.find({ quizAttemptId: attemptId }).sort({ questionNo: 1 });
+
+    // Fetch questions for text and correct answers
+    const questionIds = submissions.map(s => s.questionId);
+    const questions = await Question.find({ _id: { $in: questionIds } });
+    const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+
+    const attemptResult = {
+      attemptId: attempt._id,
+      quizTitle: quiz?.title || 'Quiz',
+      studentName: student ? `${student.firstName} ${student.lastName}` : 'Student',
+      score: attempt.obtainedMarks || 0,
+      totalMarks: attempt.totalMarks,
+      percentage: attempt.percentage || 0,
+      passed: attempt.passed || false,
+      timeSpent: attempt.timeSpent || 0,
+      totalTime: (quiz?.totalTime || 0) * 60,
+      questionsAnswered: attempt.questionsAnswered || 0,
+      totalQuestions: quiz?.totalQuestions || 0,
+      submittedAt: attempt.submittedAt || attempt.createdAt
+    };
+
+    // Build answer review (only if quiz allows it)
+    const showAnswers = quiz?.showAnswersAfterSubmit !== false;
+    const answers = submissions.map(sub => {
+      const question = questionMap.get(sub.questionId);
+      const correctOption = question?.options?.find(o => o.isCorrect);
+      const correctAnswerText = correctOption?.text ||
+        question?.correctAnswers?.join(', ') ||
+        question?.correctAnswerText || '';
+
+      return {
+        questionId: sub.questionId,
+        questionText: question?.question || '',
+        isCorrect: sub.isCorrect || false,
+        selectedAnswer: Array.isArray(sub.studentAnswer)
+          ? sub.studentAnswer.join(', ')
+          : (sub.studentAnswer?.toString() || 'Not answered'),
+        correctAnswer: showAnswers ? correctAnswerText : '',
+        marksAwarded: sub.marksAwarded || 0,
+        maxMarks: question?.marks || 0,
+        feedback: sub.feedback || question?.explanation || ''
+      };
+    });
+
+    res.json({ attempt: attemptResult, answers });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getLatestStudentAttempt = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
     const studentId = (req as any).userId;
 
-    const attempt = await QuizAttempt.findOne({
+    // First try submitted/abandoned attempts
+    let attempt = await QuizAttempt.findOne({
       quizId,
       studentId,
       status: { $in: ['submitted', 'abandoned'] }
     }).sort({ createdAt: -1 });
+
+    // If no submitted attempt, check for in_progress attempts (quiz may have been closed/abandoned)
+    if (!attempt) {
+      attempt = await QuizAttempt.findOne({
+        quizId,
+        studentId,
+        status: 'in_progress'
+      }).sort({ createdAt: -1 });
+
+      // Auto-abandon in_progress attempt if quiz time has ended
+      if (attempt) {
+        const quiz = await Quiz.findById(quizId);
+        if (quiz) {
+          const endTime = new Date(`${quiz.endDate.toISOString().split('T')[0]}T${quiz.endTime}`);
+          if (new Date() > endTime) {
+            attempt.status = 'abandoned';
+            attempt.abandonedAt = new Date();
+            await attempt.save();
+          }
+        }
+      }
+    }
 
     if (!attempt) {
       return res.status(404).json({ message: 'No attempts found for this quiz' });
@@ -339,21 +432,37 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
           return null;
         }
 
-        // Get attempt information for this student
-        const attempts = await QuizAttempt.find({
+        // Get attempt information for this student (include all statuses)
+        const allAttempts = await QuizAttempt.find({
           quizId: quiz._id,
-          studentId: userId,
-          status: { $in: ['submitted', 'abandoned'] }
+          studentId: userId
         }).sort({ createdAt: -1 });
 
-        const latestAttempt = attempts[0];
+        const completedAttempts = allAttempts.filter(a => a.status === 'submitted' || a.status === 'abandoned');
+        const inProgressAttempts = allAttempts.filter(a => a.status === 'in_progress');
+
+        // Auto-abandon in_progress attempts if quiz time has ended
+        const now = new Date();
+        const endTime = new Date(`${quiz.endDate.toISOString().split('T')[0]}T${quiz.endTime}`);
+        if (now > endTime && inProgressAttempts.length > 0) {
+          for (const ip of inProgressAttempts) {
+            ip.status = 'abandoned';
+            ip.abandonedAt = now;
+            await ip.save();
+            completedAttempts.push(ip);
+          }
+        }
+
+        const latestAttempt = completedAttempts[0] || inProgressAttempts[0];
+        const hasAttempted = completedAttempts.length > 0 || inProgressAttempts.length > 0;
         
         // Convert to plain object and add student-specific info
         const quizData = quiz.toObject() as any;
-        quizData.isAttempted = attempts.length > 0;
-        quizData.attemptCount = attempts.length;
+        quizData.isAttempted = hasAttempted;
+        quizData.attemptCount = completedAttempts.length;
         quizData.lastAttemptMarks = latestAttempt?.obtainedMarks || 0;
         quizData.lastAttemptPassed = latestAttempt ? (latestAttempt.obtainedMarks || 0) >= quiz.passingMarks : false;
+        quizData.hasInProgressAttempt = inProgressAttempts.length > 0 && now <= endTime;
 
         return quizData;
       })

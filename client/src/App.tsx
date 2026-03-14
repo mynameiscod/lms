@@ -2,6 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
+import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
@@ -55,6 +56,7 @@ import {
   AssignmentResult
 } from './pages/assignments';
 import AssignmentReports from './pages/AssignmentReports';  
+import StudentFeaturesPage from './pages/StudentFeatures';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -77,6 +79,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     return <Navigate to="/dashboard" />;
   }
 
+  return <>{children}</>;
+};
+
+// Wraps student routes to check if a feature is enabled by admin
+const FeatureRoute: React.FC<{ feature: keyof StudentFeatures; children: React.ReactNode }> = ({ feature, children }) => {
+  const { isFeatureEnabled } = useStudentFeatures();
+  const { user } = useAuth();
+  
+  if (user?.role === 'STUDENT' && !isFeatureEnabled(feature)) {
+    return <Navigate to="/dashboard" />;
+  }
   return <>{children}</>;
 };
 
@@ -115,9 +128,11 @@ const AppRoutes: React.FC = () => {
         path="/my-course"
         element={
           <ProtectedRoute requiredRoles={['STUDENT']}>
-            <Layout>
-              <MyCoursePage />
-            </Layout>
+            <FeatureRoute feature="myCourse">
+              <Layout>
+                <MyCoursePage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -126,9 +141,11 @@ const AppRoutes: React.FC = () => {
         path="/interview-questions/:chapterId"
         element={
           <ProtectedRoute requiredRoles={['STUDENT']}>
-            <Layout>
-              <InterviewQuestionsPage />
-            </Layout>
+            <FeatureRoute feature="myCourse">
+              <Layout>
+                <InterviewQuestionsPage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -138,9 +155,11 @@ const AppRoutes: React.FC = () => {
         path="/mock-interviews"
         element={
           <ProtectedRoute>
-            <Layout>
-              <MockInterviewHub />
-            </Layout>
+            <FeatureRoute feature="mockInterviews">
+              <Layout>
+                <MockInterviewHub />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -149,9 +168,11 @@ const AppRoutes: React.FC = () => {
         path="/mock-interviews/history"
         element={
           <ProtectedRoute>
-            <Layout>
-              <MockInterviewHub />
-            </Layout>
+            <FeatureRoute feature="mockInterviews">
+              <Layout>
+                <MockInterviewHub />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -160,9 +181,11 @@ const AppRoutes: React.FC = () => {
         path="/mock-interviews/:interviewId/take"
         element={
           <ProtectedRoute>
-            <Layout>
-              <TakeInterview />
-            </Layout>
+            <FeatureRoute feature="mockInterviews">
+              <Layout>
+                <TakeInterview />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -171,9 +194,11 @@ const AppRoutes: React.FC = () => {
         path="/mock-interviews/:interviewId/result"
         element={
           <ProtectedRoute>
-            <Layout>
-              <InterviewResult />
-            </Layout>
+            <FeatureRoute feature="mockInterviews">
+              <Layout>
+                <InterviewResult />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -260,9 +285,11 @@ const AppRoutes: React.FC = () => {
         path="/my-attendance"
         element={
           <ProtectedRoute>
-            <Layout>
-              <MyAttendancePage />
-            </Layout>
+            <FeatureRoute feature="attendance">
+              <Layout>
+                <MyAttendancePage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -337,9 +364,11 @@ const AppRoutes: React.FC = () => {
         path="/quizzes"
         element={
           <ProtectedRoute>
-            <Layout>
-              <QuizzesPage />
-            </Layout>
+            <FeatureRoute feature="quizzes">
+              <Layout>
+                <QuizzesPage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -348,7 +377,9 @@ const AppRoutes: React.FC = () => {
         path="/quiz/:quizId/take"
         element={
           <ProtectedRoute>
-            <QuizTakingPage />
+            <FeatureRoute feature="quizzes">
+              <QuizTakingPage />
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -357,9 +388,11 @@ const AppRoutes: React.FC = () => {
         path="/quiz/:quizId/results/:attemptId"
         element={
           <ProtectedRoute>
-            <Layout>
-              <QuizResultsPage />
-            </Layout>
+            <FeatureRoute feature="quizzes">
+              <Layout>
+                <QuizResultsPage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -395,6 +428,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <AdminContentPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student-features"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <StudentFeaturesPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -469,9 +513,11 @@ const AppRoutes: React.FC = () => {
         path="/assignments"
         element={
           <ProtectedRoute>
-            <Layout>
-              <StudentAssignmentList />
-            </Layout>
+            <FeatureRoute feature="assignments">
+              <Layout>
+                <StudentAssignmentList />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -479,7 +525,9 @@ const AppRoutes: React.FC = () => {
         path="/assignments/:assignmentId/workspace"
         element={
           <ProtectedRoute>
-            <AssignmentWorkspace />
+            <FeatureRoute feature="assignments">
+              <AssignmentWorkspace />
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -487,9 +535,11 @@ const AppRoutes: React.FC = () => {
         path="/assignments/:assignmentId/result"
         element={
           <ProtectedRoute>
-            <Layout>
-              <AssignmentResult />
-            </Layout>
+            <FeatureRoute feature="assignments">
+              <Layout>
+                <AssignmentResult />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -504,11 +554,13 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <TenantProvider>
-        <SocketProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </SocketProvider>
+        <StudentFeaturesProvider>
+          <SocketProvider>
+            <BrowserRouter>
+              <AppRoutes />
+            </BrowserRouter>
+          </SocketProvider>
+        </StudentFeaturesProvider>
       </TenantProvider>
     </AuthProvider>
   );

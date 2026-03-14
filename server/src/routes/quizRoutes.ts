@@ -63,6 +63,7 @@ router.get('/:quizId/questions', quizController.getQuizQuestions);
 router.post('/:quizId/attempt/:attemptId/submit', quizController.submitQuizAttempt);
 
 router.get('/attempt/:attemptId/results', quizController.getQuizResults);
+router.get('/attempt/:attemptId/student-results', quizController.getStudentAttemptResults);
 
 // Question Routes
 router.post(

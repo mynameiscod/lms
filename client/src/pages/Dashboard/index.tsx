@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { Spinner } from '../../components/common';
 import { userApi, courseApi, attendanceApi, batchApi, dashboardApi } from '../../api';
 import { contentAPI } from '../../api/contentAPI';
@@ -76,6 +77,7 @@ interface DashboardStats {
 
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
+  const { isFeatureEnabled } = useStudentFeatures();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [selectedDate] = useState(new Date());
@@ -324,6 +326,7 @@ const DashboardPage: React.FC = () => {
 
       {/* Quick Stats Row */}
       <div className="quick-stats-row">
+        {isFeatureEnabled('myCourse') && (
         <div className="stat-card" onClick={() => navigate('/my-course')}>
           <div className="stat-icon-circle blue">📚</div>
           <div className="stat-content">
@@ -331,6 +334,9 @@ const DashboardPage: React.FC = () => {
             <span className="stat-label">Course Progress</span>
           </div>
         </div>
+        )}
+        {isFeatureEnabled('assignments') && (
+        <>
         <div className="stat-card" onClick={() => navigate('/assignments')}>
           <div className="stat-icon-circle green">✅</div>
           <div className="stat-content">
@@ -345,6 +351,9 @@ const DashboardPage: React.FC = () => {
             <span className="stat-label">Assignments Pending</span>
           </div>
         </div>
+        </>
+        )}
+        {isFeatureEnabled('attendance') && (
         <div className="stat-card">
           <div className="stat-icon-circle purple">📊</div>
           <div className="stat-content">
@@ -352,6 +361,7 @@ const DashboardPage: React.FC = () => {
             <span className="stat-label">Attendance</span>
           </div>
         </div>
+        )}
       </div>
 
       {/* Main Grid */}
@@ -359,7 +369,7 @@ const DashboardPage: React.FC = () => {
         {/* Left Column */}
         <div className="dashboard-left">
           {/* Course Progress Card */}
-          {data?.course && (
+          {isFeatureEnabled('myCourse') && data?.course && (
             <div className="dashboard-card-v2">
               <div className="card-header-v2">
                 <h3>📈 My Progress</h3>
@@ -473,7 +483,9 @@ const DashboardPage: React.FC = () => {
         {/* Right Column */}
         <div className="dashboard-right">
           {/* Attendance Card */}
-          <AttendanceCard date={selectedDate} attendance={attendance} />
+          {isFeatureEnabled('attendance') && (
+            <AttendanceCard date={selectedDate} attendance={attendance} />
+          )}
         </div>
       </div>
 
@@ -485,22 +497,30 @@ const DashboardPage: React.FC = () => {
             <h3>⚡ Quick Actions</h3>
           </div>
           <div className="quick-actions">
+            {isFeatureEnabled('myCourse') && (
             <button className="quick-action-btn" onClick={() => navigate('/my-course')}>
               <span className="action-icon">📚</span>
               <span>My Course</span>
             </button>
+            )}
+            {isFeatureEnabled('assignments') && (
             <button className="quick-action-btn" onClick={() => navigate('/assignments')}>
               <span className="action-icon">✏️</span>
               <span>Assignments</span>
             </button>
+            )}
+            {isFeatureEnabled('quizzes') && (
             <button className="quick-action-btn" onClick={() => navigate('/quizzes')}>
               <span className="action-icon">📝</span>
               <span>Quizzes</span>
             </button>
+            )}
+            {isFeatureEnabled('attendance') && (
             <button className="quick-action-btn" onClick={() => navigate('/my-attendance')}>
               <span className="action-icon">☑</span>
               <span>Attendance</span>
             </button>
+            )}
           </div>
         </div>
 
@@ -510,6 +530,7 @@ const DashboardPage: React.FC = () => {
             <h3>📊 Summary</h3>
           </div>
           <div className="summary-stats horizontal">
+            {isFeatureEnabled('assignments') && (
             <div className="summary-item">
               <span className="summary-icon">✏️</span>
               <div className="summary-info">
@@ -517,6 +538,8 @@ const DashboardPage: React.FC = () => {
                 <span className="summary-value">{data?.stats.completedAssignments || 0} / {data?.stats.totalAssignments || 0}</span>
               </div>
             </div>
+            )}
+            {isFeatureEnabled('quizzes') && (
             <div className="summary-item">
               <span className="summary-icon">📝</span>
               <div className="summary-info">
@@ -524,6 +547,8 @@ const DashboardPage: React.FC = () => {
                 <span className="summary-value">{data?.stats.completedQuizzes || 0} / {data?.stats.totalQuizzes || 0}</span>
               </div>
             </div>
+            )}
+            {isFeatureEnabled('myCourse') && (
             <div className="summary-item">
               <span className="summary-icon">📖</span>
               <div className="summary-info">
@@ -531,6 +556,7 @@ const DashboardPage: React.FC = () => {
                 <span className="summary-value">{data?.courseProgress.completed || 0} / {data?.courseProgress.total || 0}</span>
               </div>
             </div>
+            )}
           </div>
         </div>
       </div>

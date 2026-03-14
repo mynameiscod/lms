@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import mockInterviewApi, { MockInterview, InterviewResponse, RecordingData } from '../../api/mockInterviewApi';
-import { InterviewRecorder } from '../../components/InterviewRecorder';
+import { InterviewRecorder, InterviewRecorderRef } from '../../components/InterviewRecorder';
 import './TakeInterview.css';
 
 const TakeInterview: React.FC = () => {
@@ -18,18 +18,29 @@ const TakeInterview: React.FC = () => {
   const [questionStartTime, setQuestionStartTime] = useState<number>(Date.now());
   const [recordingData, setRecordingData] = useState<RecordingData | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const recorderRef = useRef<InterviewRecorderRef>(null);
 
   const handleRecordingComplete = useCallback((data: RecordingData) => {
     setRecordingData(data);
     console.log('Recording completed:', data);
   }, []);
 
+  // Cleanup function to stop camera and recording
+  const cleanupRecording = useCallback(() => {
+    console.log('🎥 Cleaning up recording...');
+    if (recorderRef.current) {
+      recorderRef.current.stopRecording();
+    }
+  }, []);
+
   useEffect(() => {
     loadInterview();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      // Cleanup recording on unmount
+      cleanupRecording();
     };
-  }, [interviewId]);
+  }, [interviewId, cleanupRecording]);
 
   useEffect(() => {
     if (interview?.status === 'in-progress') {
@@ -105,24 +116,41 @@ const TakeInterview: React.FC = () => {
     }
   };
 
-  const handleNextQuestion = () => {
-    if (!interview) return;
+  const handleNextQuestion = useCallback(() => {
+    setInterview(currentInterview => {
+      if (!currentInterview) return currentInterview;
+      
+      console.log('📝 Moving to next question...');
+      console.log('   Current index:', currentInterview.currentQuestionIndex);
+      console.log('   Total questions:', currentInterview.responses.length);
+      
+      if (currentInterview.currentQuestionIndex < currentInterview.responses.length) {
+        const nextQuestion = currentInterview.responses[currentInterview.currentQuestionIndex];
+        console.log('   Next question:', nextQuestion?.question?.substring(0, 50) + '...');
+        
+        // Update current question state
+        setCurrentQuestion(nextQuestion);
+        setQuestionStartTime(Date.now());
+      } else {
+        console.log('   No more questions');
+      }
+      
+      return currentInterview; // No change to interview state itself
+    });
     
     setShowFeedback(false);
     setAnswer('');
     setLastFeedback(null);
-    
-    if (interview.currentQuestionIndex < interview.responses.length) {
-      setCurrentQuestion(interview.responses[interview.currentQuestionIndex]);
-      setQuestionStartTime(Date.now());
-    }
-  };
+  }, []);
 
   const handleCompleteInterview = async () => {
     if (!interviewId) return;
     
     try {
       setSubmitting(true);
+      
+      // Stop recording and camera
+      cleanupRecording();
       
       // Save recording if available
       if (recordingData) {
@@ -247,6 +275,7 @@ const TakeInterview: React.FC = () => {
       {interview.recordingEnabled && (
         <div className="recording-section">
           <InterviewRecorder
+            ref={recorderRef}
             isEnabled={interview.recordingEnabled}
             onRecordingComplete={handleRecordingComplete}
             autoStart={true}
@@ -376,6 +405,8 @@ const TakeInterview: React.FC = () => {
           className="exit-btn"
           onClick={() => {
             if (window.confirm('Are you sure you want to exit? Your progress will be saved.')) {
+              // Stop camera and recording before navigating
+              cleanupRecording();
               navigate('/mock-interviews');
             }
           }}

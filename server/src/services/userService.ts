@@ -80,7 +80,7 @@ export class UserService {
   async deactivateUser(userId: string): Promise<IUser | null> {
     return await User.findByIdAndUpdate(
       userId,
-      { isActive: false },
+      { isActive: false, resetToken: null, resetTokenExpires: null },
       { new: true }
     );
   }

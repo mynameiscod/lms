@@ -433,11 +433,11 @@ export const userApi = {
     return response.json();
   },
 
-  updateUserRole: async (userId: string, role: string) => {
+  updateUserRole: async (userId: string, role: string, customRoleId?: string | null) => {
     const response = await fetch(`${API_BASE_URL}/users/${userId}/role`, {
       method: 'PATCH',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ role })
+      body: JSON.stringify({ role, customRoleId: customRoleId || null })
     });
     if (!response.ok) throw new Error('Failed to update user role');
     return response.json();
@@ -536,6 +536,25 @@ export const tenantApi = {
     });
     if (!response.ok) throw new Error('Failed to generate invite link');
     return response.json();
+  },
+
+  getStudentFeatures: async (tenantId: string) => {
+    const response = await fetch(`${API_BASE_URL}/tenants/${tenantId}/student-features`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch student features');
+    return response.json();
+  },
+
+  updateStudentFeatures: async (tenantId: string, features: { [key: string]: boolean }) => {
+    const response = await fetch(`${API_BASE_URL}/tenants/${tenantId}/student-features`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(features)
+    });
+    if (!response.ok) throw new Error('Failed to update student features');
+    return response.json();
   }
 };
 
@@ -547,6 +566,15 @@ export const roleApi = {
       headers: getAuthHeaders()
     });
     if (!response.ok) throw new Error('Failed to fetch roles');
+    return response.json();
+  },
+
+  getAvailablePermissions: async () => {
+    const response = await fetch(`${API_BASE_URL}/roles/permissions/available`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch permissions');
     return response.json();
   },
 
@@ -925,7 +953,7 @@ export const quizApi = {
   },
 
   getStudentAttemptResults: async (attemptId: string) => {
-    return authenticatedFetch(`${API_BASE_URL}/quiz-attempts/${attemptId}/results`, {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/attempt/${attemptId}/student-results`, {
       method: 'GET'
     });
   },

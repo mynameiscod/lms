@@ -244,12 +244,42 @@ const AttendancePage: React.FC = () => {
     }));
   };
 
+  // Get default in-time based on batch class timing for the selected date
+  const getDefaultInTime = (): string => {
+    if (!selectedBatch) return '';
+    
+    // Get the day of week for the selected date
+    const date = new Date(selectedDate + 'T00:00:00');
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const dayOfWeek = dayNames[date.getDay()];
+    
+    // Find matching timing for this day
+    const timing = selectedBatch.timings?.find(t => t.day === dayOfWeek);
+    if (!timing?.startTime) return '';
+    
+    // Get current time as HH:MM
+    const now = new Date();
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    
+    // If current time has passed class start time, student is late → use current time
+    // If class hasn't started yet → use class start time
+    if (currentTime > timing.startTime) {
+      return currentTime;
+    }
+    
+    return timing.startTime;
+  };
+
   const handleMarkPresent = (studentId: string) => {
+    const currentInTime = studentAttendance[studentId]?.inTime;
+    const defaultInTime = currentInTime || getDefaultInTime();
+    
     setStudentAttendance(prev => ({
       ...prev,
       [studentId]: {
         ...prev[studentId],
-        status: 'present'
+        status: 'present',
+        inTime: prev[studentId]?.inTime || defaultInTime
       }
     }));
   };
@@ -373,6 +403,7 @@ const AttendancePage: React.FC = () => {
               <input
                 type="date"
                 value={selectedDate}
+                max={new Date().toISOString().split('T')[0]}
                 onChange={(e) => setSelectedDate(e.target.value)}
                 className="date-input"
               />

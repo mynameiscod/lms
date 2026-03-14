@@ -417,6 +417,24 @@
   font-size: 13px;
 }
 
+.optional-label {
+  font-weight: 400;
+  color: #9ca3af;
+  font-size: 11px;
+}
+
+.role-help-text {
+  margin: 4px 0 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.role-badge.custom {
+  background: #eef2ff;
+  color: #4338ca;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;

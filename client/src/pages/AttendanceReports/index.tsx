@@ -86,50 +86,48 @@ const AttendanceReportsPage: React.FC = () => {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <div className="reports-container">
-        {/* Filters and Controls */}
-        <div className="filters-section">
-          <div className="filter-group">
-            <label>Select Batch *</label>
-            <select
-              value={selectedBatchId}
-              onChange={(e) => handleBatchSelect(e.target.value)}
-              className="batch-select"
-              required
-            >
-              <option value="">-- Select a Batch --</option>
-              {batches.map(batch => (
-                <option key={batch._id} value={batch._id}>
-                  {batch.name} ({batch.enrolledCount} students)
-                </option>
-              ))}
-            </select>
-          </div>
+      {/* Select Batch - Top */}
+      <div className="filter-group" style={{ marginBottom: '16px' }}>
+        <label>Select Batch *</label>
+        <select
+          value={selectedBatchId}
+          onChange={(e) => handleBatchSelect(e.target.value)}
+          className="batch-select"
+          required
+        >
+          <option value="">-- Select a Batch --</option>
+          {batches.map(batch => (
+            <option key={batch._id} value={batch._id}>
+              {batch.name} ({batch.enrolledCount} students)
+            </option>
+          ))}
+        </select>
+      </div>
 
-          <div className="filter-group">
-            <label>Report Type</label>
-            <div className="view-tabs">
-              <button
-                className={`tab-btn ${viewType === 'batch' ? 'active' : ''}`}
-                onClick={() => setViewType('batch')}
-              >
-                Batch Summary
-              </button>
-              <button
-                className={`tab-btn ${viewType === 'student' ? 'active' : ''}`}
-                onClick={() => setViewType('student')}
-              >
-                Student Details
-              </button>
-            </div>
-          </div>
-
-          {selectedBatchId && (
-            <button className="export-btn" onClick={exportToCSV}>
-              Export to CSV
-            </button>
-          )}
+      {/* Report Type Tabs + Export */}
+      <div className="report-type-section" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="view-tabs">
+          <button
+            className={`tab-btn ${viewType === 'batch' ? 'active' : ''}`}
+            onClick={() => setViewType('batch')}
+          >
+            Batch Summary
+          </button>
+          <button
+            className={`tab-btn ${viewType === 'student' ? 'active' : ''}`}
+            onClick={() => setViewType('student')}
+          >
+            Student Details
+          </button>
         </div>
+        {selectedBatchId && (
+          <button className="export-btn" onClick={exportToCSV}>
+            Export to CSV
+          </button>
+        )}
+      </div>
+
+      <div className="reports-container">
 
         {/* Reports Content */}
         {selectedBatchId ? (

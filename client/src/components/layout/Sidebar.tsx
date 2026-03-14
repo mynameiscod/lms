@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -9,6 +10,7 @@ interface MenuItem {
   roles: string[];
   icon?: string;
   submenu?: MenuItem[];
+  featureKey?: keyof StudentFeatures;
 }
 
 const Sidebar: React.FC = () => {
@@ -20,6 +22,7 @@ const Sidebar: React.FC = () => {
   });
   const location = useLocation();
   const { user } = useAuth();
+  const { isFeatureEnabled } = useStudentFeatures();
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -31,8 +34,8 @@ const Sidebar: React.FC = () => {
   };
 
   const menuItems: MenuItem[] = [
-    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂' },
-    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: '📚' },
+    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂', featureKey: 'dashboard' },
+    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: '📚', featureKey: 'myCourse' },
     { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '▦' },
     { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '⚡' },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⊕' },
@@ -42,6 +45,7 @@ const Sidebar: React.FC = () => {
       label: 'Attendance',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],
       icon: '☑',
+      featureKey: 'attendance',
       submenu: [
         { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'] },
         { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'] },
@@ -52,6 +56,7 @@ const Sidebar: React.FC = () => {
       label: 'Quizzes',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: '✎',
+      featureKey: 'quizzes',
       submenu: [
         { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'] },
         { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
@@ -63,6 +68,7 @@ const Sidebar: React.FC = () => {
       label: 'Assignments',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: '📝',
+      featureKey: 'assignments',
       submenu: [
         { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'] },
         { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
@@ -70,11 +76,13 @@ const Sidebar: React.FC = () => {
       ]
     },
     { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊' },
+    { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🎛' },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '💼' },
     {
       label: 'Mock Interviews',
       roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: '🎯',
+      featureKey: 'mockInterviews',
       submenu: [
         { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
         { label: 'Assign to Students', path: '/mock-interviews/assign', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
@@ -83,7 +91,12 @@ const Sidebar: React.FC = () => {
   ];
 
   const hasAccessToMenu = (item: MenuItem): boolean => {
-    return user?.role ? item.roles.includes(user.role) : false;
+    if (!user?.role || !item.roles.includes(user.role)) return false;
+    // For students, check if the feature is enabled by admin
+    if (user.role === 'STUDENT' && item.featureKey && !isFeatureEnabled(item.featureKey)) {
+      return false;
+    }
+    return true;
   };
 
   const filteredItems = menuItems.filter(hasAccessToMenu);

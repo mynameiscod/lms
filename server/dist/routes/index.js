@@ -22,6 +22,9 @@ const studentProfileRoutes_1 = __importDefault(require("./studentProfileRoutes")
 const oauthRoutes_1 = __importDefault(require("./oauthRoutes"));
 const assignmentRoutes_1 = __importDefault(require("./assignmentRoutes"));
 const dashboardRoutes_1 = __importDefault(require("./dashboardRoutes"));
+const studentReportRoutes_1 = __importDefault(require("./studentReportRoutes"));
+const interviewQuestionRoutes_1 = __importDefault(require("./interviewQuestionRoutes"));
+const mockInterviewRoutes_1 = __importDefault(require("./mockInterviewRoutes"));
 const router = express_1.default.Router();
 router.use('/auth', authRoutes_1.default);
 router.use('/tenants', tenantRoutes_1.default);
@@ -41,5 +44,8 @@ router.use('/student-profile', studentProfileRoutes_1.default);
 router.use('/oauth', oauthRoutes_1.default);
 router.use('/assignments', assignmentRoutes_1.default);
 router.use('/dashboard', dashboardRoutes_1.default);
+router.use('/student-reports', studentReportRoutes_1.default);
+router.use('/interview-questions', interviewQuestionRoutes_1.default);
+router.use('/mock-interviews', mockInterviewRoutes_1.default);
 exports.default = router;
 //# sourceMappingURL=index.js.map

@@ -26,13 +26,13 @@ const QuizzesPage: React.FC = () => {
 
   const filterQuizzes = useCallback(() => {
     let filtered = quizzes.filter(quiz => {
-      // IMPORTANT: Filter out quizzes with no questions
-      if (!quiz.totalQuestions || quiz.totalQuestions === 0) {
+      // Filter out quizzes with no questions (but keep attempted ones in Completed tab)
+      if ((!quiz.totalQuestions || quiz.totalQuestions === 0) && !quiz.isAttempted) {
         return false;
       }
 
       const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          quiz.description.toLowerCase().includes(searchQuery.toLowerCase());
+                          (quiz.description || '').toLowerCase().includes(searchQuery.toLowerCase());
       
       const now = new Date();
       const startTime = new Date(`${quiz.startDate.split('T')[0]}T${quiz.startTime}`);
@@ -46,10 +46,11 @@ const QuizzesPage: React.FC = () => {
         statusMatch = now >= startTime && now <= endTime && (!quiz.isAttempted || canRetake);
       } else if (filterTab === 'completed') {
         // Show in completed if:
-        // 1. Already attempted AND can't retake (no multiple attempts) OR
+        // 1. Student has attempted the quiz (any status) OR
         // 2. Quiz time has ended
-        const cantRetake = !quiz.multipleAttempts && quiz.isAttempted;
-        statusMatch = (cantRetake || now > endTime);
+        // 3. For multi-attempt: all attempts used up
+        const allAttemptsUsed = quiz.multipleAttempts && quiz.maxAttempts && (quiz.attemptCount || 0) >= quiz.maxAttempts;
+        statusMatch = (quiz.isAttempted || now > endTime || allAttemptsUsed);
       } else if (filterTab === 'pending') {
         statusMatch = now < startTime;
       }
@@ -144,7 +145,11 @@ const QuizzesPage: React.FC = () => {
             className={`filter-tab ${filterTab === 'completed' ? 'active' : ''}`}
             onClick={() => setFilterTab('completed')}
           >
-            Completed ({quizzes.filter(q => q.isAttempted || new Date() > new Date(`${q.endDate.split('T')[0]}T${q.endTime}`)).length})
+            Completed ({quizzes.filter(q => {
+              const ended = new Date() > new Date(`${q.endDate.split('T')[0]}T${q.endTime}`);
+              const allUsed = q.multipleAttempts && q.maxAttempts && (q.attemptCount || 0) >= q.maxAttempts;
+              return q.isAttempted || ended || allUsed;
+            }).length})
           </button>
         </div>
       </div>

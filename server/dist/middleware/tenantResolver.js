@@ -10,6 +10,7 @@ const tenantResolver = (req, res, next) => {
         });
     }
     req.tenantId = tenantId;
+    req.userId = req.user?.id;
     next();
 };
 exports.tenantResolver = tenantResolver;

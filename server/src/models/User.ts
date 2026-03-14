@@ -10,6 +10,7 @@ export interface IUser extends Document {
   tenantId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
   batchJoinedDate?: Date;
+  customRoleId?: mongoose.Types.ObjectId;
   isActive: boolean;
   profileComplete: boolean;
   phone?: string;
@@ -64,6 +65,11 @@ const UserSchema: Schema = new Schema(
     },
     batchJoinedDate: {
       type: Date,
+      default: null
+    },
+    customRoleId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Role',
       default: null
     },
     isActive: { 

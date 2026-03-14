@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Button, Spinner, Alert } from '../../components/common';
-import '../QuizResults/index.css';
+import './QuizResultsPage.css';
 
 interface QuizResult {
   attemptId: string;
@@ -29,7 +30,8 @@ interface QuestionResult {
   feedback?: string;
 }
 
-const QuizResultsPage: React.FC<{ attemptId: string }> = ({ attemptId }) => {
+const QuizResultsPage: React.FC = () => {
+  const { attemptId } = useParams<{ attemptId: string }>();
   const [result, setResult] = useState<QuizResult | null>(null);
   const [questionResults, setQuestionResults] = useState<QuestionResult[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,11 +43,17 @@ const QuizResultsPage: React.FC<{ attemptId: string }> = ({ attemptId }) => {
   }, [attemptId]);
 
   const fetchResults = async () => {
+    if (!attemptId) {
+      setError('No attempt ID provided');
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       const res = await quizApi.getStudentAttemptResults(attemptId);
-      setResult(res.data?.attempt);
-      setQuestionResults(res.data?.answers || []);
+      const data = res.data || res;
+      setResult(data?.attempt);
+      setQuestionResults(data?.answers || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load results');
     } finally {

@@ -22,7 +22,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
     console.log(`[AUTH] Token valid for user: ${decoded.id}`);
     
     // Check if user still exists and is active
-    const user = await User.findById(decoded.id).select('isActive');
+    const user = await User.findById(decoded.id).select('isActive customRoleId');
     if (!user) {
       console.log('[AUTH] User not found in database');
       return res.status(401).json({ 
@@ -41,7 +41,7 @@ export const authMiddleware = async (req: AuthenticatedRequest, res: Response, n
       });
     }
     
-    req.user = decoded;
+    req.user = { ...decoded, customRoleId: user.customRoleId?.toString() || null };
     next();
   } catch (error) {
     console.log(`[AUTH] Token verification failed: ${error}`);

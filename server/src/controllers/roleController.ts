@@ -1,8 +1,20 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { RoleService } from '../services/roleService';
+import { PERMISSION_GROUPS } from '../middleware/roleGuard';
 
 const roleService = new RoleService();
+
+export const getAvailablePermissions = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  res.status(200).json({
+    success: true,
+    message: 'Available permissions fetched',
+    data: PERMISSION_GROUPS
+  });
+};
 
 export const createRole = async (
   req: AuthenticatedRequest,

@@ -8,6 +8,15 @@ export interface ITenantSettings {
   enablePlagiarismCheck: boolean; // Default plagiarism check setting
 }
 
+export interface IStudentFeatures {
+  dashboard: boolean;
+  myCourse: boolean;
+  attendance: boolean;
+  quizzes: boolean;
+  assignments: boolean;
+  mockInterviews: boolean;
+}
+
 export interface ITenant extends Document {
   name: string;
   description?: string;
@@ -18,6 +27,7 @@ export interface ITenant extends Document {
   isActive: boolean;
   subscriptionPlan: 'free' | 'pro' | 'enterprise';
   settings: ITenantSettings;
+  studentFeatures: IStudentFeatures;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +75,14 @@ const TenantSchema: Schema = new Schema(
       showTestCaseResults: { type: Boolean, default: true },
       maxAttempts: { type: Number, default: 3 },
       enablePlagiarismCheck: { type: Boolean, default: false }
+    },
+    studentFeatures: {
+      dashboard: { type: Boolean, default: true },
+      myCourse: { type: Boolean, default: true },
+      attendance: { type: Boolean, default: true },
+      quizzes: { type: Boolean, default: true },
+      assignments: { type: Boolean, default: true },
+      mockInterviews: { type: Boolean, default: true }
     }
   },
   { timestamps: true }

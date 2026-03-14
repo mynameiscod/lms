@@ -118,6 +118,7 @@ export class AuthService {
         lastName: user.lastName,
         role: user.role,
         tenantId: user.tenantId,
+        customRoleId: user.customRoleId || null,
         isActive: user.isActive
       },
       tenant 

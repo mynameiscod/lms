@@ -6,13 +6,17 @@ import {
   updateRole,
   deleteRole,
   addPermissions,
-  removePermissions
+  removePermissions,
+  getAvailablePermissions
 } from '../controllers/roleController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 
 const router = express.Router();
+
+// Get available permissions list (must be before /:roleId)
+router.get('/permissions/available', authMiddleware, tenantResolver, getAvailablePermissions);
 
 // Create a new role (requires manage_roles permission)
 router.post('/', authMiddleware, tenantResolver, roleGuard(['manage_roles']), createRole);

@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { TenantService } from '../services/tenantService';
-import Tenant from '../models/Tenant';
+import Tenant, { IStudentFeatures } from '../models/Tenant';
 
 const tenantService = new TenantService();
 
@@ -144,6 +144,91 @@ export const generateInviteLink = async (
         tenantId,
         instructions: 'Share the appropriate link with students or new employees. Login link for existing users, Register link for new users.'
       }
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+      error: error.message
+    });
+  }
+};
+
+export const getStudentFeatures = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { tenantId } = req.params;
+    const tenant = await Tenant.findById(tenantId).select('studentFeatures');
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found',
+        error: 'Tenant does not exist'
+      });
+    }
+
+    const defaults: IStudentFeatures = {
+      dashboard: true,
+      myCourse: true,
+      attendance: true,
+      quizzes: true,
+      assignments: true,
+      mockInterviews: true
+    };
+
+    res.status(200).json({
+      success: true,
+      message: 'Student features fetched successfully',
+      data: tenant.studentFeatures || defaults
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+      error: error.message
+    });
+  }
+};
+
+export const updateStudentFeatures = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { tenantId } = req.params;
+    const features = req.body as Partial<IStudentFeatures>;
+
+    const allowedKeys: (keyof IStudentFeatures)[] = [
+      'dashboard', 'myCourse', 'attendance', 'quizzes', 'assignments', 'mockInterviews'
+    ];
+    const updateObj: Record<string, boolean> = {};
+    for (const key of allowedKeys) {
+      if (typeof features[key] === 'boolean') {
+        updateObj[`studentFeatures.${key}`] = features[key]!;
+      }
+    }
+
+    const tenant = await Tenant.findByIdAndUpdate(
+      tenantId,
+      { $set: updateObj },
+      { new: true }
+    ).select('studentFeatures');
+
+    if (!tenant) {
+      return res.status(404).json({
+        success: false,
+        message: 'Tenant not found',
+        error: 'Tenant does not exist'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Student features updated successfully',
+      data: tenant.studentFeatures
     });
   } catch (error: any) {
     res.status(400).json({

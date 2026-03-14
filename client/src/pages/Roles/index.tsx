@@ -1,37 +1,39 @@
 import React, { useEffect, useState } from 'react';
 import { roleApi } from '../../api';
-import { Spinner, Alert, Button, Modal, Input } from '../../components/common';
+import { Spinner, Alert, Button } from '../../components/common';
 import { Role } from '../../types';
 import './RolesPage.css';
 
-// Available permissions list
-const AVAILABLE_PERMISSIONS = [
-  'manage_roles',
-  'manage_users',
-  'create_courses',
-  'edit_courses',
-  'delete_courses',
-  'view_courses',
-  'manage_enrollments',
-  'view_reports',
-  'manage_tenant'
-];
+interface PermissionItem {
+  key: string;
+  label: string;
+}
+
+interface PermissionGroup {
+  label: string;
+  permissions: PermissionItem[];
+}
+
+type ViewMode = 'list' | 'form';
 
 const RolesPage: React.FC = () => {
   const [roles, setRoles] = useState<Role[]>([]);
+  const [permissionGroups, setPermissionGroups] = useState<Record<string, PermissionGroup>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // View & form state
+  const [viewMode, setViewMode] = useState<ViewMode>('list');
   const [editingRole, setEditingRole] = useState<Role | null>(null);
   const [roleName, setRoleName] = useState('');
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchRoles();
+    fetchPermissions();
   }, []);
 
   const fetchRoles = async () => {
@@ -46,38 +48,98 @@ const RolesPage: React.FC = () => {
     }
   };
 
-  const openCreateModal = () => {
+  const fetchPermissions = async () => {
+    try {
+      const response = await roleApi.getAvailablePermissions();
+      setPermissionGroups(response.data || {});
+    } catch (err: any) {
+      console.error('Failed to fetch permissions:', err);
+    }
+  };
+
+  const openCreateForm = () => {
     setEditingRole(null);
     setRoleName('');
     setSelectedPermissions([]);
-    setIsModalOpen(true);
+    setExpandedGroups(new Set(Object.keys(permissionGroups)));
+    setError('');
+    setViewMode('form');
   };
 
-  const openEditModal = (role: Role) => {
+  const openEditForm = (role: Role) => {
     setEditingRole(role);
     setRoleName(role.name);
-    setSelectedPermissions(role.permissions);
-    setIsModalOpen(true);
+    setSelectedPermissions([...role.permissions]);
+    const expanded = new Set<string>();
+    Object.entries(permissionGroups).forEach(([groupKey, group]) => {
+      if (group.permissions.some(p => role.permissions.includes(p.key))) {
+        expanded.add(groupKey);
+      }
+    });
+    if (expanded.size === 0) expanded.add(Object.keys(permissionGroups)[0] || '');
+    setExpandedGroups(expanded);
+    setError('');
+    setViewMode('form');
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
+  const goBack = () => {
+    setViewMode('list');
     setEditingRole(null);
     setRoleName('');
     setSelectedPermissions([]);
+    setExpandedGroups(new Set());
   };
 
   const handlePermissionToggle = (permission: string) => {
-    setSelectedPermissions(prev => 
+    setSelectedPermissions(prev =>
       prev.includes(permission)
         ? prev.filter(p => p !== permission)
         : [...prev, permission]
     );
   };
 
+  const handleGroupToggle = (groupKey: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev);
+      if (next.has(groupKey)) next.delete(groupKey);
+      else next.add(groupKey);
+      return next;
+    });
+  };
+
+  const handleSelectAllGroup = (groupKey: string) => {
+    const group = permissionGroups[groupKey];
+    if (!group) return;
+    const groupPermKeys = group.permissions.map(p => p.key);
+    const allSelected = groupPermKeys.every(k => selectedPermissions.includes(k));
+    if (allSelected) {
+      setSelectedPermissions(prev => prev.filter(p => !groupPermKeys.includes(p)));
+    } else {
+      setSelectedPermissions(prev => [...new Set([...prev, ...groupPermKeys])]);
+    }
+  };
+
+  const handleSelectAll = () => {
+    const allKeys = Object.values(permissionGroups).flatMap(g => g.permissions.map(p => p.key));
+    if (selectedPermissions.length === allKeys.length) {
+      setSelectedPermissions([]);
+    } else {
+      setSelectedPermissions(allKeys);
+    }
+  };
+
+  const handleExpandAll = () => {
+    const allKeys = Object.keys(permissionGroups);
+    if (expandedGroups.size === allKeys.length) {
+      setExpandedGroups(new Set());
+    } else {
+      setExpandedGroups(new Set(allKeys));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!roleName.trim()) {
       setError('Role name is required');
       return;
@@ -98,7 +160,7 @@ const RolesPage: React.FC = () => {
         setSuccess('Role created successfully');
       }
 
-      closeModal();
+      goBack();
       fetchRoles();
     } catch (err: any) {
       setError(err.message || 'Operation failed');
@@ -122,16 +184,141 @@ const RolesPage: React.FC = () => {
     }
   };
 
+  const getGroupPermissionCount = (groupKey: string): { selected: number; total: number } => {
+    const group = permissionGroups[groupKey];
+    if (!group) return { selected: 0, total: 0 };
+    const total = group.permissions.length;
+    const selected = group.permissions.filter(p => selectedPermissions.includes(p.key)).length;
+    return { selected, total };
+  };
+
+  const getPermissionGroupLabel = (permKey: string): string => {
+    for (const group of Object.values(permissionGroups)) {
+      const found = group.permissions.find(p => p.key === permKey);
+      if (found) return found.label;
+    }
+    return permKey.replace(/_/g, ' ');
+  };
+
+  const allPermKeys = Object.values(permissionGroups).flatMap(g => g.permissions.map(p => p.key));
+
   if (loading) return <Spinner fullScreen />;
 
+  // ─── FORM VIEW ───
+  if (viewMode === 'form') {
+    return (
+      <div className="roles-page">
+        <div className="form-top-bar">
+          <button type="button" className="back-btn" onClick={goBack}>
+            ← Back to Roles
+          </button>
+          <h2 className="form-title">{editingRole ? `Edit Role: ${editingRole.name}` : 'Create New Role'}</h2>
+        </div>
+
+        {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+
+        <form onSubmit={handleSubmit} className="role-form-inline">
+          {/* Role name input */}
+          <div className="form-name-row">
+            <label htmlFor="roleName" className="form-label">Role Name</label>
+            <input
+              id="roleName"
+              type="text"
+              className="role-name-input"
+              placeholder="e.g. Content Manager, Lab Assistant"
+              value={roleName}
+              onChange={(e) => setRoleName(e.target.value)}
+              required
+              autoFocus
+            />
+          </div>
+
+          {/* Permissions toolbar */}
+          <div className="permissions-toolbar">
+            <div className="toolbar-left">
+              <span className="toolbar-title">Feature Permissions</span>
+              <span className="selected-count">
+                {selectedPermissions.length} / {allPermKeys.length} selected
+              </span>
+            </div>
+            <div className="toolbar-right">
+              <button type="button" className="toolbar-btn" onClick={handleExpandAll}>
+                {expandedGroups.size === Object.keys(permissionGroups).length ? 'Collapse All' : 'Expand All'}
+              </button>
+              <button type="button" className="toolbar-btn primary" onClick={handleSelectAll}>
+                {selectedPermissions.length === allPermKeys.length ? 'Deselect All' : 'Select All'}
+              </button>
+            </div>
+          </div>
+
+          {/* Permission groups */}
+          <div className="permission-groups-inline">
+            {Object.entries(permissionGroups).map(([groupKey, group]) => {
+              const { selected, total } = getGroupPermissionCount(groupKey);
+              const isExpanded = expandedGroups.has(groupKey);
+              const allGroupSelected = selected === total;
+
+              return (
+                <div key={groupKey} className={`permission-group ${isExpanded ? 'expanded' : ''}`}>
+                  <div className="group-header" onClick={() => handleGroupToggle(groupKey)}>
+                    <div className="group-header-left">
+                      <span className={`expand-arrow ${isExpanded ? 'open' : ''}`}>▶</span>
+                      <span className="group-label">{group.label}</span>
+                      <span className={`group-count ${selected > 0 ? 'has-selected' : ''}`}>
+                        {selected}/{total}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className={`group-select-all ${allGroupSelected ? 'active' : ''}`}
+                      onClick={(e) => { e.stopPropagation(); handleSelectAllGroup(groupKey); }}
+                    >
+                      {allGroupSelected ? '✓ All' : 'Select All'}
+                    </button>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="group-permissions">
+                      {group.permissions.map((perm) => (
+                        <label key={perm.key} className={`permission-checkbox ${selectedPermissions.includes(perm.key) ? 'checked' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={selectedPermissions.includes(perm.key)}
+                            onChange={() => handlePermissionToggle(perm.key)}
+                          />
+                          <span className="perm-label">{perm.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Sticky bottom actions */}
+          <div className="form-actions-bar">
+            <Button type="button" onClick={goBack} className="btn-secondary">
+              Cancel
+            </Button>
+            <Button type="submit" loading={submitting}>
+              {editingRole ? 'Update Role' : 'Create Role'}
+            </Button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
+  // ─── LIST VIEW ───
   return (
     <div className="roles-page">
       <div className="roles-header">
         <div className="roles-header-text">
-          <h1>Roles Management</h1>
-          <p className="roles-subtitle">Create and manage roles with custom permissions for your organization</p>
+          <h1 style={{ color: '#005897' }}>Roles Management</h1>
+          <p className="roles-subtitle">Create and manage roles with feature-level permissions</p>
         </div>
-        <Button onClick={openCreateModal}>+ Create Role</Button>
+        <Button onClick={openCreateForm}>+ Create Role</Button>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
@@ -148,7 +335,7 @@ const RolesPage: React.FC = () => {
               <div className="role-card-header">
                 <h3>{role.name}</h3>
                 <div className="role-actions">
-                  <button className="action-btn edit" onClick={() => openEditModal(role)}>
+                  <button className="action-btn edit" onClick={() => openEditForm(role)}>
                     Edit
                   </button>
                   <button className="action-btn delete" onClick={() => handleDelete(role)}>
@@ -157,16 +344,23 @@ const RolesPage: React.FC = () => {
                 </div>
               </div>
               <div className="role-permissions">
-                <span className="permissions-label">Permissions ({role.permissions.length})</span>
+                <span className="permissions-count-label">
+                  {role.permissions.length} permission{role.permissions.length !== 1 ? 's' : ''} assigned
+                </span>
                 <div className="permissions-list">
                   {role.permissions.length === 0 ? (
                     <span className="no-permissions">No permissions assigned</span>
                   ) : (
-                    role.permissions.map((perm) => (
+                    role.permissions.slice(0, 8).map((perm) => (
                       <span key={perm} className="permission-badge">
-                        {perm.replace(/_/g, ' ')}
+                        {getPermissionGroupLabel(perm)}
                       </span>
                     ))
+                  )}
+                  {role.permissions.length > 8 && (
+                    <span className="permission-badge more-badge">
+                      +{role.permissions.length - 8} more
+                    </span>
                   )}
                 </div>
               </div>
@@ -177,51 +371,6 @@ const RolesPage: React.FC = () => {
           ))
         )}
       </div>
-
-      {/* Create/Edit Role Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={editingRole ? 'Edit Role' : 'Create New Role'}
-        size="medium"
-      >
-        <form onSubmit={handleSubmit} className="role-form">
-          <Input
-            type="text"
-            name="roleName"
-            label="Role Name"
-            placeholder="Enter role name"
-            value={roleName}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setRoleName(e.target.value)}
-            required
-          />
-
-          <div className="permissions-section">
-            <label className="permissions-label">Permissions</label>
-            <div className="permissions-grid">
-              {AVAILABLE_PERMISSIONS.map((perm) => (
-                <label key={perm} className="permission-checkbox">
-                  <input
-                    type="checkbox"
-                    checked={selectedPermissions.includes(perm)}
-                    onChange={() => handlePermissionToggle(perm)}
-                  />
-                  <span>{perm.replace(/_/g, ' ')}</span>
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <div className="modal-actions">
-            <Button type="button" onClick={closeModal} className="btn-secondary">
-              Cancel
-            </Button>
-            <Button type="submit" loading={submitting}>
-              {editingRole ? 'Update Role' : 'Create Role'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
     </div>
   );
 };

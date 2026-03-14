@@ -38,6 +38,9 @@ const UsersPage: React.FC = () => {
     batchId: ''
   });
   const [invitingStudent, setInvitingStudent] = useState(false);
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [inviteWarning, setInviteWarning] = useState<{ message: string; setupLink?: string } | null>(null);
 
   // Modal state for create user (non-student)
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -53,6 +56,7 @@ const UsersPage: React.FC = () => {
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [selectedRole, setSelectedRole] = useState('');
+  const [selectedCustomRoleId, setSelectedCustomRoleId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -125,6 +129,7 @@ const UsersPage: React.FC = () => {
   const openEditModal = (user: User) => {
     setEditingUser(user);
     setSelectedRole(user.role);
+    setSelectedCustomRoleId(user.customRoleId || '');
     setIsRoleModalOpen(true);
   };
 
@@ -132,6 +137,7 @@ const UsersPage: React.FC = () => {
     setIsRoleModalOpen(false);
     setEditingUser(null);
     setSelectedRole('');
+    setSelectedCustomRoleId('');
   };
 
   const openInviteModal = () => {
@@ -146,6 +152,9 @@ const UsersPage: React.FC = () => {
       lastName: '',
       batchId: ''
     });
+    setInviteError('');
+    setInviteSuccess('');
+    setInviteWarning(null);
   };
 
   const openCreateModal = () => {
@@ -182,14 +191,15 @@ const UsersPage: React.FC = () => {
     e.preventDefault();
 
     if (!inviteFormData.email || !inviteFormData.firstName || !inviteFormData.lastName) {
-      setError('Email, First Name, and Last Name are required');
+      setInviteError('Email, First Name, and Last Name are required');
       return;
     }
 
     try {
       setInvitingStudent(true);
-      setError('');
-      setWarning(null);
+      setInviteError('');
+      setInviteSuccess('');
+      setInviteWarning(null);
 
       // Use inviteStudent endpoint which sends welcome email
       const result = await userApi.inviteStudent(
@@ -201,20 +211,19 @@ const UsersPage: React.FC = () => {
 
       // Check if email was sent successfully
       if (result.emailSent) {
-        setSuccess(`✅ Student invited successfully! Welcome email sent to ${inviteFormData.email}`);
+        setInviteSuccess(`✅ Student invited successfully! Welcome email sent to ${inviteFormData.email}`);
       } else {
         // Email failed but user was created - show warning with setup link
-        setSuccess(`Student account created for ${inviteFormData.email}`);
-        setWarning({
-          message: `Email could not be sent: ${result.emailError || 'Unknown error'}`,
+        setInviteSuccess(`✅ Student account created for ${inviteFormData.email}`);
+        setInviteWarning({
+          message: `⚠️ Email could not be sent: ${result.emailError || 'Unknown error'}`,
           setupLink: result.data?.setupLink
         });
       }
       
-      closeInviteModal();
       fetchData();
     } catch (err: any) {
-      setError(err.message || 'Failed to invite student');
+      setInviteError(err.message || 'Failed to invite student');
     } finally {
       setInvitingStudent(false);
     }
@@ -255,8 +264,16 @@ const UsersPage: React.FC = () => {
   };
 
   const handleRoleChange = async () => {
-    if (!editingUser || !selectedRole || selectedRole === editingUser.role) {
-      setError('Please select a different role');
+    if (!editingUser || !selectedRole) {
+      setError('Please select a role');
+      return;
+    }
+
+    const roleChanged = selectedRole !== editingUser.role;
+    const customRoleChanged = selectedCustomRoleId !== (editingUser.customRoleId || '');
+
+    if (!roleChanged && !customRoleChanged) {
+      setError('No changes to save');
       return;
     }
 
@@ -264,12 +281,12 @@ const UsersPage: React.FC = () => {
       setSubmitting(true);
       setError('');
 
-      await userApi.updateUserRole(editingUser._id, selectedRole);
+      await userApi.updateUserRole(editingUser._id, selectedRole, selectedCustomRoleId || null);
       setSuccess('User role updated successfully');
 
       // Update local state
       setUsers(users.map(u =>
-        u._id === editingUser._id ? { ...u, role: selectedRole } : u
+        u._id === editingUser._id ? { ...u, role: selectedRole, customRoleId: selectedCustomRoleId || undefined } : u
       ));
 
       closeRoleModal();
@@ -285,9 +302,7 @@ const UsersPage: React.FC = () => {
       setError('');
       await userApi.activateUser(user._id);
       setSuccess('User activated successfully');
-      setUsers(users.map(u =>
-        u._id === user._id ? { ...u, isActive: true } : u
-      ));
+      await fetchData();
     } catch (err: any) {
       setError(err.message || 'Failed to activate user');
     }
@@ -302,9 +317,7 @@ const UsersPage: React.FC = () => {
       setError('');
       await userApi.deactivateUser(user._id);
       setSuccess('User deactivated successfully');
-      setUsers(users.map(u =>
-        u._id === user._id ? { ...u, isActive: false } : u
-      ));
+      await fetchData();
     } catch (err: any) {
       setError(err.message || 'Failed to deactivate user');
     }
@@ -475,6 +488,11 @@ const UsersPage: React.FC = () => {
                     <span className={`role-badge ${user.role.toLowerCase()}`}>
                       {user.role === 'TENANT_ADMIN' ? 'Tenant Admin' : user.role === 'SUPER_ADMIN' ? 'Super Admin' : user.role}
                     </span>
+                    {user.customRoleId && (
+                      <span className="role-badge custom" style={{ marginLeft: 4, fontSize: 10 }}>
+                        {roles.find(r => r._id === user.customRoleId)?.name || 'Custom'}
+                      </span>
+                    )}
                   </td>
                   <td>
                     <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
@@ -607,76 +625,121 @@ const UsersPage: React.FC = () => {
         size="medium"
       >
         <form onSubmit={handleInviteStudent} className="invite-form">
-          <div className="invite-info">
-            <p className="info-text">
-              ℹ️ A welcome email with setup instructions will be sent to the student.
-            </p>
-          </div>
+          {inviteError && (
+            <Alert type="error" message={inviteError} onClose={() => setInviteError('')} />
+          )}
+          {inviteSuccess && (
+            <Alert type="success" message={inviteSuccess} onClose={() => setInviteSuccess('')} />
+          )}
+          {inviteWarning && (
+            <div className="invite-warning" style={{ background: '#fff8e1', border: '1px solid #ffcc02', borderRadius: '8px', padding: '12px', marginBottom: '16px' }}>
+              <p style={{ margin: 0, color: '#856404' }}>{inviteWarning.message}</p>
+              {inviteWarning.setupLink && (
+                <p style={{ margin: '8px 0 0', fontSize: '13px' }}>
+                  <strong>Setup Link:</strong>{' '}
+                  <code style={{ background: '#f5f5f5', padding: '2px 6px', borderRadius: '4px', fontSize: '12px', wordBreak: 'break-all' }}>
+                    {inviteWarning.setupLink}
+                  </code>
+                </p>
+              )}
+            </div>
+          )}
 
-          <Input
-            type="text"
-            name="firstName"
-            label="First Name *"
-            placeholder="John"
-            value={inviteFormData.firstName}
-            onChange={handleInviteFormChange}
-            required
-          />
+          {!inviteSuccess ? (
+            <>
+              <div className="invite-info">
+                <p className="info-text">
+                  ℹ️ A welcome email with setup instructions will be sent to the student.
+                </p>
+              </div>
 
-          <Input
-            type="text"
-            name="lastName"
-            label="Last Name *"
-            placeholder="Doe"
-            value={inviteFormData.lastName}
-            onChange={handleInviteFormChange}
-            required
-          />
+              <Input
+                type="text"
+                name="firstName"
+                label="First Name *"
+                placeholder="John"
+                value={inviteFormData.firstName}
+                onChange={handleInviteFormChange}
+                required
+              />
 
-          <Input
-            type="email"
-            name="email"
-            label="Email Address *"
-            placeholder="john.doe@example.com"
-            value={inviteFormData.email}
-            onChange={handleInviteFormChange}
-            required
-          />
+              <Input
+                type="text"
+                name="lastName"
+                label="Last Name *"
+                placeholder="Doe"
+                value={inviteFormData.lastName}
+                onChange={handleInviteFormChange}
+                required
+              />
 
-          <div className="form-group">
-            <label htmlFor="batch">Batch (Optional)</label>
-            <select
-              id="batch"
-              name="batchId"
-              value={inviteFormData.batchId}
-              onChange={handleInviteFormChange}
-              className="form-select"
-            >
-              <option value="">-- Select a batch --</option>
-              {batches.map(batch => (
-                <option key={batch._id} value={batch._id}>
-                  {batch.name}
-                </option>
-              ))}
-            </select>
-          </div>
+              <Input
+                type="email"
+                name="email"
+                label="Email Address *"
+                placeholder="john.doe@example.com"
+                value={inviteFormData.email}
+                onChange={handleInviteFormChange}
+                required
+              />
 
-          <div className="modal-actions">
-            <Button
-              type="button"
-              onClick={closeInviteModal}
-              className="btn-secondary"
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              loading={invitingStudent}
-              className="btn-primary"
-            >
-              Send Invitation Email
-            </Button>
-          </div>
+              <div className="form-group">
+                <label htmlFor="batch">Batch (Optional)</label>
+                <select
+                  id="batch"
+                  name="batchId"
+                  value={inviteFormData.batchId}
+                  onChange={handleInviteFormChange}
+                  className="form-select"
+                >
+                  <option value="">-- Select a batch --</option>
+                  {batches.map(batch => (
+                    <option key={batch._id} value={batch._id}>
+                      {batch.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="modal-actions">
+                <Button
+                  type="button"
+                  onClick={closeInviteModal}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  loading={invitingStudent}
+                  className="btn-primary"
+                >
+                  Send Invitation Email
+                </Button>
+              </div>
+            </>
+          ) : (
+            <div className="modal-actions">
+              <Button
+                type="button"
+                onClick={() => {
+                  setInviteSuccess('');
+                  setInviteWarning(null);
+                  setInviteFormData({ email: '', firstName: '', lastName: '', batchId: '' });
+                }}
+                className="btn-secondary"
+              >
+                Invite Another
+              </Button>
+              <Button
+                type="button"
+                onClick={closeInviteModal}
+                className="btn-primary"
+              >
+                Done
+              </Button>
+            </div>
+          )}
         </form>
       </Modal>
 
@@ -764,7 +827,7 @@ const UsersPage: React.FC = () => {
         isOpen={isRoleModalOpen}
         onClose={closeRoleModal}
         title="🔄 Change User Role"
-        size="small"
+        size="medium"
       >
         {editingUser && (
           <div className="role-modal-content">
@@ -772,10 +835,13 @@ const UsersPage: React.FC = () => {
               <p><strong>User:</strong> {editingUser.firstName} {editingUser.lastName}</p>
               <p><strong>Email:</strong> {editingUser.email}</p>
               <p><strong>Current Role:</strong> <span className="role-badge">{editingUser.role}</span></p>
+              {editingUser.customRoleId && (
+                <p><strong>Custom Role:</strong> <span className="role-badge custom">{roles.find(r => r._id === editingUser.customRoleId)?.name || 'Unknown'}</span></p>
+              )}
             </div>
 
             <div className="role-selection">
-              <label>New Role</label>
+              <label>Base Role</label>
               <select
                 value={selectedRole}
                 onChange={(e) => setSelectedRole(e.target.value)}
@@ -787,6 +853,27 @@ const UsersPage: React.FC = () => {
                 <option value="STAFF">Staff</option>
                 <option value="TENANT_ADMIN">Tenant Admin</option>
               </select>
+            </div>
+
+            <div className="role-selection">
+              <label>Custom Permission Role <span className="optional-label">(Optional)</span></label>
+              <select
+                value={selectedCustomRoleId}
+                onChange={(e) => setSelectedCustomRoleId(e.target.value)}
+                className="form-select"
+              >
+                <option value="">-- Use default permissions for base role --</option>
+                {roles.map((r) => (
+                  <option key={r._id} value={r._id}>
+                    {r.name} ({r.permissions.length} permissions)
+                  </option>
+                ))}
+              </select>
+              <p className="role-help-text">
+                {selectedCustomRoleId
+                  ? '⚡ This user will get permissions from the selected custom role instead of the default permissions.'
+                  : 'ℹ️ User will get the default permissions for their base role.'}
+              </p>
             </div>
 
             <div className="modal-actions">
@@ -801,7 +888,6 @@ const UsersPage: React.FC = () => {
                 type="button"
                 onClick={handleRoleChange}
                 loading={submitting}
-                disabled={!selectedRole || selectedRole === editingUser.role}
                 className="btn-primary"
               >
                 Update Role

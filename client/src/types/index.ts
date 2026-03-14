@@ -7,6 +7,7 @@ export interface User {
   tenantId: string;
   batchId?: string;
   batchJoinedDate?: string;
+  customRoleId?: string;
   isActive: boolean;
   profilePicture?: string;
   createdAt?: string;

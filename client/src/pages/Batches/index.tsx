@@ -89,17 +89,28 @@ const BatchesPage: React.FC = () => {
   };
 
   const handleTimingChange = (index: number, field: string, value: string) => {
+    // If changing day, check for duplicate
+    if (field === 'day') {
+      const alreadyUsed = formData.timings.some((t, i) => i !== index && t.day === value);
+      if (alreadyUsed) return; // Don't allow duplicate days
+    }
     const newTimings = [...formData.timings];
     newTimings[index] = { ...newTimings[index], [field]: value };
     setFormData({ ...formData, timings: newTimings });
   };
 
+  // Get days already used in timings
+  const usedDays = formData.timings.map(t => t.day);
+  const availableDays = DAYS_OF_WEEK.filter(day => !usedDays.includes(day));
+
   const addTiming = () => {
+    if (formData.timings.length >= 7) return; // Max 7 days
+    const nextDay = availableDays[0] || 'Monday';
     setFormData({
       ...formData,
       timings: [
         ...formData.timings,
-        { day: 'Monday', startTime: '10:00', endTime: '11:30' }
+        { day: nextDay, startTime: '10:00', endTime: '11:30' }
       ]
     });
   };
@@ -406,9 +417,14 @@ const BatchesPage: React.FC = () => {
                   onChange={(e) => handleTimingChange(idx, 'day', e.target.value)}
                   className="day-select"
                 >
-                  {DAYS_OF_WEEK.map(day => (
-                    <option key={day} value={day}>{day}</option>
-                  ))}
+                  {DAYS_OF_WEEK.map(day => {
+                    const isUsed = formData.timings.some((t, i) => i !== idx && t.day === day);
+                    return (
+                      <option key={day} value={day} disabled={isUsed}>
+                        {day}{isUsed ? ' (already added)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
 
                 <input
@@ -439,13 +455,15 @@ const BatchesPage: React.FC = () => {
               </div>
             ))}
 
-            <button
-              type="button"
-              className="add-timing-btn"
-              onClick={addTiming}
-            >
-              + Add Another Timing
-            </button>
+            {formData.timings.length < 7 && (
+              <button
+                type="button"
+                className="add-timing-btn"
+                onClick={addTiming}
+              >
+                + Add Another Timing ({7 - formData.timings.length} day{7 - formData.timings.length !== 1 ? 's' : ''} remaining)
+              </button>
+            )}
           </div>
 
           {/* Instructors Section */}

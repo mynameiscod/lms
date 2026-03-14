@@ -6,23 +6,67 @@ import crypto from 'crypto';
 import Batch from '../models/Batch';
 import Enrollment from '../models/Enrollment';
 import Course from '../models/Course';
+import User from '../models/User';
 import csvParser from 'csv-parser';
 
 const userService = new UserService();
 const emailService = new EmailService();
 
+// Helper function to check batch capacity
+const checkBatchCapacity = async (batchId: string, tenantId: string): Promise<{ batch: any; isFull: boolean; enrolledCount: number; capacity: number }> => {
+  const batch = await Batch.findById(batchId);
+  if (!batch) {
+    throw new Error('Batch not found');
+  }
+  const enrolledCount = await User.countDocuments({ batchId, tenantId, isActive: true, role: 'STUDENT' });
+  const capacity = batch.capacity || 30;
+  return { batch, isFull: enrolledCount >= capacity, enrolledCount, capacity };
+};
+
 // Helper function to auto-enroll student in batch's course
 const autoEnrollInBatchCourse = async (userId: string, batchId: string, tenantId: string): Promise<void> => {
-  const batch = await Batch.findById(batchId);
-  if (batch?.courseId) {
+  try {
+    console.log(`   📚 Auto-enrolling student in batch course...`);
+    console.log(`      User ID: ${userId}, Batch ID: ${batchId}`);
+    
+    const batch = await Batch.findById(batchId);
+    if (!batch) {
+      console.log(`   ⚠️ Batch not found: ${batchId}`);
+      return;
+    }
+    
+    console.log(`      Batch found: ${batch.name}`);
+    console.log(`      Batch courseId: ${batch.courseId}`);
+    
+    if (!batch.courseId) {
+      console.log(`   ⚠️ Batch has no associated course`);
+      return;
+    }
+    
     // Check if already enrolled
     const existing = await Enrollment.findOne({ userId, courseId: batch.courseId, tenantId });
-    if (!existing) {
-      const enrollment = new Enrollment({ userId, courseId: batch.courseId, tenantId });
-      await enrollment.save();
-      await Course.findByIdAndUpdate(batch.courseId, { $inc: { enrollmentCount: 1 } });
-      console.log(`   ✅ Auto-enrolled in batch course`);
+    if (existing) {
+      console.log(`   ℹ️ Student already enrolled in course`);
+      return;
     }
+    
+    // Create enrollment
+    const enrollment = new Enrollment({ 
+      userId, 
+      courseId: batch.courseId, 
+      tenantId,
+      status: 'enrolled',
+      progress: 0,
+      enrolledAt: new Date()
+    });
+    await enrollment.save();
+    
+    // Increment course enrollment count
+    await Course.findByIdAndUpdate(batch.courseId, { $inc: { enrollmentCount: 1 } });
+    
+    console.log(`   ✅ Auto-enrolled in batch course (Course ID: ${batch.courseId})`);
+  } catch (error: any) {
+    console.error(`   ❌ Failed to auto-enroll in batch course:`, error.message);
   }
 };
 
@@ -105,7 +149,7 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
 export const updateUserRole = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { userId } = req.params;
-    const { role } = req.body;
+    const { role, customRoleId } = req.body;
 
     if (!role) {
       return res.status(400).json({
@@ -114,7 +158,11 @@ export const updateUserRole = async (req: AuthenticatedRequest, res: Response) =
       });
     }
 
-    const user = await userService.changeUserRole(userId, role);
+    const updateData: any = { role };
+    // Allow setting or clearing customRoleId
+    updateData.customRoleId = customRoleId || null;
+
+    const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
 
     if (!user) {
       return res.status(404).json({
@@ -229,6 +277,27 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
         message: 'Missing required fields',
         error: 'Email, firstName, and lastName are required'
       });
+    }
+
+    // Check batch capacity before adding student
+    if (batchId) {
+      try {
+        const { isFull, enrolledCount, capacity } = await checkBatchCapacity(batchId, req.tenantId!);
+        if (isFull) {
+          console.log(`   ❌ Batch is full (${enrolledCount}/${capacity})\n`);
+          return res.status(400).json({
+            success: false,
+            message: `Batch is full. Current enrollment: ${enrolledCount}/${capacity}. Cannot add more students.`
+          });
+        }
+        console.log(`   📊 Batch capacity: ${enrolledCount}/${capacity}`);
+      } catch (err: any) {
+        console.log(`   ❌ Batch capacity check failed: ${err.message}`);
+        return res.status(400).json({
+          success: false,
+          message: err.message
+        });
+      }
     }
 
     // Check if user already exists
@@ -377,6 +446,14 @@ export const setupPassword = async (req: Request, res: Response) => {
       });
     }
 
+    // Block inactive/deactivated users
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: 'This account has been deactivated. Please contact your administrator.'
+      });
+    }
+
     if (!user.resetToken || user.resetToken !== token) {
       return res.status(400).json({
         success: false,
@@ -467,12 +544,31 @@ export const bulkUploadStudents = async (req: AuthenticatedRequest, res: Respons
       });
     }
 
-    // Verify batch exists
+    // Verify batch exists and check capacity
     const batch = await Batch.findById(batchId);
     if (!batch) {
       return res.status(404).json({
         success: false,
         message: 'Batch not found'
+      });
+    }
+
+    // Check batch capacity
+    const { enrolledCount, capacity } = await checkBatchCapacity(batchId, req.tenantId!);
+    const availableSlots = capacity - enrolledCount;
+    console.log(`   📊 Batch capacity: ${enrolledCount}/${capacity} (${availableSlots} slots available)`);
+
+    if (availableSlots <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Batch is full. Current enrollment: ${enrolledCount}/${capacity}. Cannot add more students.`
+      });
+    }
+
+    if (students.length > availableSlots) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot add ${students.length} students. Only ${availableSlots} slot(s) available in this batch (${enrolledCount}/${capacity}).`
       });
     }
 

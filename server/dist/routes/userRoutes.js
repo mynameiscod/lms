@@ -29,6 +29,10 @@ router.delete('/:userId', (0, roleGuard_1.roleGuard)(['manage_tenant_users']), u
 // Onboarding Routes
 // Invite a student (requires manage_tenant_users permission)
 router.post('/invite/student', (0, roleGuard_1.roleGuard)(['manage_tenant_users']), userController_1.inviteStudent);
+// Bulk upload students (requires manage_tenant_users permission)
+router.post('/bulk-upload', (0, roleGuard_1.roleGuard)(['manage_tenant_users']), userController_1.bulkUploadStudents);
+// Download CSV template for bulk upload
+router.get('/bulk-upload/template', (0, roleGuard_1.roleGuard)(['manage_tenant_users']), userController_1.downloadBulkTemplate);
 // Update user profile
 router.patch('/:userId/profile', userController_1.updateProfile);
 exports.default = router;

@@ -44,7 +44,7 @@ export const createChapter = async (
         minimumQuizScore: 60,
         submitAssignments: false
       },
-      estimatedDuration: estimatedDuration || 60,
+      estimatedDuration: estimatedDuration || { months: 0, weeks: 0, days: 0, hours: 1, minutes: 0 },
       tenantId: req.tenantId,
       isPublished: false,
       isActive: true

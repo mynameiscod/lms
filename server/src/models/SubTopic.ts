@@ -9,6 +9,14 @@ export interface ISubTopic extends Document {
   description: string;
   order: number;
 
+  estimatedDuration: {
+    months: number;
+    weeks: number;
+    days: number;
+    hours: number;
+    minutes: number;
+  };
+
   // Day and time scheduling
   scheduledDay: number | null;       // Day number in the course (e.g., Day 1, Day 2)
   scheduledDate: Date | null;        // Specific calendar date (optional)
@@ -58,6 +66,14 @@ const SubTopicSchema: Schema = new Schema(
       type: Number,
       required: true,
       default: 1
+    },
+
+    estimatedDuration: {
+      months: { type: Number, default: 0 },
+      weeks: { type: Number, default: 0 },
+      days: { type: Number, default: 0 },
+      hours: { type: Number, default: 0 },
+      minutes: { type: Number, default: 0 }
     },
 
     // Day and time scheduling

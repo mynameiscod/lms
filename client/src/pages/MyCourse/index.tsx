@@ -35,7 +35,7 @@ interface Chapter {
   assignments?: ChapterAssignment[];
   interviewQuestions?: InterviewQuestion[];
   topics?: TopicData[];
-  estimatedDuration: number;
+  estimatedDuration?: { months?: number; weeks?: number; days?: number; hours?: number; minutes?: number };
   subjectName?: string;
   subjectId?: string;
 }
@@ -320,11 +320,23 @@ const MyCourse: React.FC = () => {
     });
   };
 
-  const formatDuration = (minutes: number) => {
-    if (minutes < 60) return `${minutes} min`;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+  const formatDuration = (val: any) => {
+    if (typeof val === 'number') {
+      if (val < 60) return `${val} min`;
+      const hours = Math.floor(val / 60);
+      const mins = val % 60;
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    if (val && typeof val === 'object') {
+      const parts: string[] = [];
+      if (val.months) parts.push(`${val.months}mo`);
+      if (val.weeks) parts.push(`${val.weeks}w`);
+      if (val.days) parts.push(`${val.days}d`);
+      if (val.hours) parts.push(`${val.hours}h`);
+      if (val.minutes) parts.push(`${val.minutes}m`);
+      return parts.length > 0 ? parts.join(' ') : '';
+    }
+    return '';
   };
 
   // Generate course schedule - distribute chapters across dates
@@ -532,7 +544,7 @@ const MyCourse: React.FC = () => {
                             )}
                           </div>
                           <div className="chapter-meta">
-                            {chapter.estimatedDuration > 0 && (
+                            {chapter.estimatedDuration && formatDuration(chapter.estimatedDuration) && (
                               <span className="duration">{formatDuration(chapter.estimatedDuration)}</span>
                             )}
                             <span className={`expand-icon small ${expandedChapters.has(chapter._id) ? 'rotated' : ''}`}>

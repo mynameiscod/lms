@@ -44,7 +44,13 @@ export interface IChapter extends Document {
     submitAssignments: boolean;
   };
   
-  estimatedDuration: number; // in minutes
+  estimatedDuration: {
+    months: number;
+    weeks: number;
+    days: number;
+    hours: number;
+    minutes: number;
+  };
   isPublished: boolean;
   isActive: boolean;
   tenantId: mongoose.Types.ObjectId;
@@ -125,8 +131,11 @@ const ChapterSchema: Schema = new Schema(
       submitAssignments: { type: Boolean, default: false }
     },
     estimatedDuration: {
-      type: Number,
-      default: 60 // minutes
+      months: { type: Number, default: 0 },
+      weeks: { type: Number, default: 0 },
+      days: { type: Number, default: 0 },
+      hours: { type: Number, default: 0 },
+      minutes: { type: Number, default: 0 }
     },
     isPublished: {
       type: Boolean,

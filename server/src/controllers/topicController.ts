@@ -9,7 +9,7 @@ export const createTopic = async (
   res: Response<ApiResponse<any>>
 ) => {
   try {
-    const { chapterId, subjectId, courseId, title, description } = req.body;
+    const { chapterId, subjectId, courseId, title, description, estimatedDuration } = req.body;
 
     if (!chapterId || !subjectId || !courseId || !title) {
       return res.status(400).json({
@@ -25,6 +25,7 @@ export const createTopic = async (
       courseId,
       title,
       description: description || '',
+      estimatedDuration: estimatedDuration || { months: 0, weeks: 0, days: 0, hours: 0, minutes: 0 },
       tenantId: req.tenantId,
       isPublished: false,
       isActive: true

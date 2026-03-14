@@ -91,8 +91,10 @@ export class ChapterService {
     const order = chapter.videos.length + 1;
     chapter.videos.push({ ...videoData, order });
     
-    // Update estimated duration
-    chapter.estimatedDuration += videoData.duration || 0;
+    // Update estimated duration (add video duration to minutes)
+    if (chapter.estimatedDuration) {
+      chapter.estimatedDuration.minutes = (chapter.estimatedDuration.minutes || 0) + (videoData.duration || 0);
+    }
     
     await chapter.save();
     return chapter;
@@ -105,8 +107,10 @@ export class ChapterService {
     const removedVideo = chapter.videos[videoIndex];
     chapter.videos.splice(videoIndex, 1);
     
-    // Update estimated duration
-    chapter.estimatedDuration -= removedVideo.duration || 0;
+    // Update estimated duration (subtract video duration from minutes)
+    if (chapter.estimatedDuration) {
+      chapter.estimatedDuration.minutes = Math.max(0, (chapter.estimatedDuration.minutes || 0) - (removedVideo.duration || 0));
+    }
     
     // Reorder remaining videos
     chapter.videos.forEach((video, idx) => {

@@ -11,6 +11,7 @@ export const createSubTopic = async (
   try {
     const {
       topicId, chapterId, subjectId, courseId, title, description,
+      estimatedDuration,
       scheduledDay, scheduledDate, startTime, endTime, durationMinutes
     } = req.body;
 
@@ -29,6 +30,7 @@ export const createSubTopic = async (
       courseId,
       title,
       description: description || '',
+      estimatedDuration: estimatedDuration || { months: 0, weeks: 0, days: 0, hours: 0, minutes: 0 },
       scheduledDay: scheduledDay || null,
       scheduledDate: scheduledDate || null,
       startTime: startTime || null,

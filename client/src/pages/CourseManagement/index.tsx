@@ -30,6 +30,14 @@ interface Subject {
   isActive: boolean;
 }
 
+interface EstimatedDuration {
+  months: number;
+  weeks: number;
+  days: number;
+  hours: number;
+  minutes: number;
+}
+
 interface Chapter {
   _id: string;
   subjectId: { _id: string; name: string; code: string };
@@ -39,6 +47,7 @@ interface Chapter {
   order: number;
   videos: Array<{ title: string; url: string; duration: number }>;
   notes: Array<{ title: string; content: string }>;
+  estimatedDuration?: EstimatedDuration;
   isPublished: boolean;
   isActive: boolean;
 }
@@ -52,6 +61,7 @@ interface Topic {
   description: string;
   order: number;
   subTopicCount: number;
+  estimatedDuration?: EstimatedDuration;
   isPublished: boolean;
   isActive: boolean;
 }
@@ -65,6 +75,7 @@ interface SubTopicItem {
   title: string;
   description: string;
   order: number;
+  estimatedDuration?: EstimatedDuration;
   scheduledDay: number | null;
   scheduledDate: string | null;
   startTime: string | null;
@@ -131,7 +142,11 @@ const CourseManagement: React.FC = () => {
     subjectId: '',
     title: '',
     description: '',
-    estimatedDuration: 60
+    durationMonths: '',
+    durationWeeks: '',
+    durationDays: '',
+    durationHours: '',
+    durationMinutes: ''
   });
 
   const [topicForm, setTopicForm] = useState({
@@ -139,7 +154,12 @@ const CourseManagement: React.FC = () => {
     subjectId: '',
     chapterId: '',
     title: '',
-    description: ''
+    description: '',
+    durationMonths: '',
+    durationWeeks: '',
+    durationDays: '',
+    durationHours: '',
+    durationMinutes: ''
   });
 
   const [subTopicForm, setSubTopicForm] = useState({
@@ -149,11 +169,16 @@ const CourseManagement: React.FC = () => {
     topicId: '',
     title: '',
     description: '',
+    durationMonths: '',
+    durationWeeks: '',
+    durationDays: '',
+    durationHours: '',
+    durationMinutes: '',
     scheduledDay: '',
     scheduledDate: '',
     startTime: '',
     endTime: '',
-    durationMinutes: ''
+    scheduleDurationMinutes: ''
   });
 
   // Filter states
@@ -296,7 +321,13 @@ const CourseManagement: React.FC = () => {
         subjectId: chapterForm.subjectId,
         title: chapterForm.title,
         description: chapterForm.description,
-        estimatedDuration: chapterForm.estimatedDuration
+        estimatedDuration: {
+          months: parseInt(chapterForm.durationMonths) || 0,
+          weeks: parseInt(chapterForm.durationWeeks) || 0,
+          days: parseInt(chapterForm.durationDays) || 0,
+          hours: parseInt(chapterForm.durationHours) || 0,
+          minutes: parseInt(chapterForm.durationMinutes) || 0
+        }
       };
 
       if (editingChapter) {
@@ -335,7 +366,14 @@ const CourseManagement: React.FC = () => {
         subjectId: topicForm.subjectId,
         chapterId: topicForm.chapterId,
         title: topicForm.title,
-        description: topicForm.description
+        description: topicForm.description,
+        estimatedDuration: {
+          months: parseInt(topicForm.durationMonths) || 0,
+          weeks: parseInt(topicForm.durationWeeks) || 0,
+          days: parseInt(topicForm.durationDays) || 0,
+          hours: parseInt(topicForm.durationHours) || 0,
+          minutes: parseInt(topicForm.durationMinutes) || 0
+        }
       };
 
       if (editingTopic) {
@@ -375,13 +413,20 @@ const CourseManagement: React.FC = () => {
         chapterId: subTopicForm.chapterId,
         topicId: subTopicForm.topicId,
         title: subTopicForm.title,
-        description: subTopicForm.description
+        description: subTopicForm.description,
+        estimatedDuration: {
+          months: parseInt(subTopicForm.durationMonths) || 0,
+          weeks: parseInt(subTopicForm.durationWeeks) || 0,
+          days: parseInt(subTopicForm.durationDays) || 0,
+          hours: parseInt(subTopicForm.durationHours) || 0,
+          minutes: parseInt(subTopicForm.durationMinutes) || 0
+        }
       };
       if (subTopicForm.scheduledDay) subTopicData.scheduledDay = parseInt(subTopicForm.scheduledDay);
       if (subTopicForm.scheduledDate) subTopicData.scheduledDate = subTopicForm.scheduledDate;
       if (subTopicForm.startTime) subTopicData.startTime = subTopicForm.startTime;
       if (subTopicForm.endTime) subTopicData.endTime = subTopicForm.endTime;
-      if (subTopicForm.durationMinutes) subTopicData.durationMinutes = parseInt(subTopicForm.durationMinutes);
+      if (subTopicForm.scheduleDurationMinutes) subTopicData.durationMinutes = parseInt(subTopicForm.scheduleDurationMinutes);
 
       if (editingSubTopic) {
         await subTopicApi.updateSubTopic(editingSubTopic._id, subTopicData);
@@ -443,7 +488,11 @@ const CourseManagement: React.FC = () => {
       subjectId: '',
       title: '',
       description: '',
-      estimatedDuration: 60
+      durationMonths: '',
+      durationWeeks: '',
+      durationDays: '',
+      durationHours: '',
+      durationMinutes: ''
     });
     setEditingChapter(null);
   };
@@ -454,7 +503,12 @@ const CourseManagement: React.FC = () => {
       subjectId: '',
       chapterId: '',
       title: '',
-      description: ''
+      description: '',
+      durationMonths: '',
+      durationWeeks: '',
+      durationDays: '',
+      durationHours: '',
+      durationMinutes: ''
     });
     setEditingTopic(null);
   };
@@ -467,11 +521,16 @@ const CourseManagement: React.FC = () => {
       topicId: '',
       title: '',
       description: '',
+      durationMonths: '',
+      durationWeeks: '',
+      durationDays: '',
+      durationHours: '',
+      durationMinutes: '',
       scheduledDay: '',
       scheduledDate: '',
       startTime: '',
       endTime: '',
-      durationMinutes: ''
+      scheduleDurationMinutes: ''
     });
     setEditingSubTopic(null);
   };
@@ -511,7 +570,11 @@ const CourseManagement: React.FC = () => {
       subjectId: chapter.subjectId._id,
       title: chapter.title,
       description: chapter.description || '',
-      estimatedDuration: 60
+      durationMonths: chapter.estimatedDuration?.months ? String(chapter.estimatedDuration.months) : '',
+      durationWeeks: chapter.estimatedDuration?.weeks ? String(chapter.estimatedDuration.weeks) : '',
+      durationDays: chapter.estimatedDuration?.days ? String(chapter.estimatedDuration.days) : '',
+      durationHours: chapter.estimatedDuration?.hours ? String(chapter.estimatedDuration.hours) : '',
+      durationMinutes: chapter.estimatedDuration?.minutes ? String(chapter.estimatedDuration.minutes) : ''
     });
     setEditingChapter(chapter);
     setShowChapterModal(true);
@@ -523,7 +586,12 @@ const CourseManagement: React.FC = () => {
       subjectId: topic.subjectId._id,
       chapterId: topic.chapterId._id,
       title: topic.title,
-      description: topic.description || ''
+      description: topic.description || '',
+      durationMonths: topic.estimatedDuration?.months ? String(topic.estimatedDuration.months) : '',
+      durationWeeks: topic.estimatedDuration?.weeks ? String(topic.estimatedDuration.weeks) : '',
+      durationDays: topic.estimatedDuration?.days ? String(topic.estimatedDuration.days) : '',
+      durationHours: topic.estimatedDuration?.hours ? String(topic.estimatedDuration.hours) : '',
+      durationMinutes: topic.estimatedDuration?.minutes ? String(topic.estimatedDuration.minutes) : ''
     });
     setEditingTopic(topic);
     setShowTopicModal(true);
@@ -537,14 +605,31 @@ const CourseManagement: React.FC = () => {
       topicId: st.topicId._id,
       title: st.title,
       description: st.description || '',
+      durationMonths: st.estimatedDuration?.months ? String(st.estimatedDuration.months) : '',
+      durationWeeks: st.estimatedDuration?.weeks ? String(st.estimatedDuration.weeks) : '',
+      durationDays: st.estimatedDuration?.days ? String(st.estimatedDuration.days) : '',
+      durationHours: st.estimatedDuration?.hours ? String(st.estimatedDuration.hours) : '',
+      durationMinutes: st.estimatedDuration?.minutes ? String(st.estimatedDuration.minutes) : '',
       scheduledDay: st.scheduledDay != null ? String(st.scheduledDay) : '',
       scheduledDate: st.scheduledDate ? st.scheduledDate.substring(0, 10) : '',
       startTime: st.startTime || '',
       endTime: st.endTime || '',
-      durationMinutes: st.durationMinutes != null ? String(st.durationMinutes) : ''
+      scheduleDurationMinutes: st.durationMinutes != null ? String(st.durationMinutes) : ''
     });
     setEditingSubTopic(st);
     setShowSubTopicModal(true);
+  };
+
+  // Format estimated duration for display
+  const formatEstimatedDuration = (d?: EstimatedDuration) => {
+    if (!d) return '-';
+    const parts: string[] = [];
+    if (d.months) parts.push(`${d.months}mo`);
+    if (d.weeks) parts.push(`${d.weeks}w`);
+    if (d.days) parts.push(`${d.days}d`);
+    if (d.hours) parts.push(`${d.hours}h`);
+    if (d.minutes) parts.push(`${d.minutes}m`);
+    return parts.length > 0 ? parts.join(' ') : '-';
   };
 
   // Filtered data
@@ -764,6 +849,7 @@ const CourseManagement: React.FC = () => {
                   <th>Course</th>
                   <th>Videos</th>
                   <th>Notes</th>
+                  <th>Duration</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -777,6 +863,7 @@ const CourseManagement: React.FC = () => {
                     <td>{chapter.courseId?.code}</td>
                     <td>{chapter.videos?.length || 0}</td>
                     <td>{chapter.notes?.length || 0}</td>
+                    <td>{formatEstimatedDuration(chapter.estimatedDuration)}</td>
                     <td>
                       <span className={`status-badge ${chapter.isActive ? 'active' : 'inactive'}`}>
                         {chapter.isActive ? 'Active' : 'Inactive'}
@@ -835,6 +922,7 @@ const CourseManagement: React.FC = () => {
                   <th>Subject</th>
                   <th>Course</th>
                   <th>Sub-Topics</th>
+                  <th>Duration</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -848,6 +936,7 @@ const CourseManagement: React.FC = () => {
                     <td>{topic.subjectId?.code}</td>
                     <td>{topic.courseId?.code}</td>
                     <td>{topic.subTopicCount || 0}</td>
+                    <td>{formatEstimatedDuration(topic.estimatedDuration)}</td>
                     <td>
                       <span className={`status-badge ${topic.isActive ? 'active' : 'inactive'}`}>
                         {topic.isActive ? 'Active' : 'Inactive'}
@@ -939,7 +1028,7 @@ const CourseManagement: React.FC = () => {
                           ? new Date(st.scheduledDate).toLocaleDateString() 
                           : '-'}
                     </td>
-                    <td>{st.durationMinutes ? `${st.durationMinutes} min` : '-'}</td>
+                    <td>{st.durationMinutes ? `${st.durationMinutes} min` : formatEstimatedDuration(st.estimatedDuration)}</td>
                     <td>
                       <span className={`status-badge ${st.isActive ? 'active' : 'inactive'}`}>
                         {st.isActive ? 'Active' : 'Inactive'}
@@ -1148,7 +1237,7 @@ const CourseManagement: React.FC = () => {
       {/* Chapter Modal */}
       {showChapterModal && (
         <div className="modal-overlay" onClick={() => setShowChapterModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content modal-wide" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingChapter ? 'Edit Chapter' : 'Add Chapter'}</h2>
               <button className="close-btn" onClick={() => setShowChapterModal(false)}>×</button>
@@ -1204,14 +1293,28 @@ const CourseManagement: React.FC = () => {
                   rows={3}
                 />
               </div>
-              <div className="form-group">
-                <label>Estimated Duration (minutes)</label>
-                <input
-                  type="number"
-                  value={chapterForm.estimatedDuration}
-                  onChange={e => setChapterForm({ ...chapterForm, estimatedDuration: parseInt(e.target.value) })}
-                  min={1}
-                />
+              <div className="form-section-label">Estimated Duration</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Months</label>
+                  <input type="number" value={chapterForm.durationMonths} onChange={e => setChapterForm({ ...chapterForm, durationMonths: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Weeks</label>
+                  <input type="number" value={chapterForm.durationWeeks} onChange={e => setChapterForm({ ...chapterForm, durationWeeks: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Days</label>
+                  <input type="number" value={chapterForm.durationDays} onChange={e => setChapterForm({ ...chapterForm, durationDays: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Hours</label>
+                  <input type="number" value={chapterForm.durationHours} onChange={e => setChapterForm({ ...chapterForm, durationHours: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Minutes</label>
+                  <input type="number" value={chapterForm.durationMinutes} onChange={e => setChapterForm({ ...chapterForm, durationMinutes: e.target.value })} placeholder="0" min={0} />
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setShowChapterModal(false)}>Cancel</button>
@@ -1225,7 +1328,7 @@ const CourseManagement: React.FC = () => {
       {/* Topic Modal */}
       {showTopicModal && (
         <div className="modal-overlay" onClick={() => setShowTopicModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
+          <div className="modal-content modal-wide" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <h2>{editingTopic ? 'Edit Topic' : 'Add Topic'}</h2>
               <button className="close-btn" onClick={() => setShowTopicModal(false)}>×</button>
@@ -1292,6 +1395,29 @@ const CourseManagement: React.FC = () => {
                   placeholder="Topic description..."
                   rows={3}
                 />
+              </div>
+              <div className="form-section-label">Estimated Duration</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Months</label>
+                  <input type="number" value={topicForm.durationMonths} onChange={e => setTopicForm({ ...topicForm, durationMonths: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Weeks</label>
+                  <input type="number" value={topicForm.durationWeeks} onChange={e => setTopicForm({ ...topicForm, durationWeeks: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Days</label>
+                  <input type="number" value={topicForm.durationDays} onChange={e => setTopicForm({ ...topicForm, durationDays: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Hours</label>
+                  <input type="number" value={topicForm.durationHours} onChange={e => setTopicForm({ ...topicForm, durationHours: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Minutes</label>
+                  <input type="number" value={topicForm.durationMinutes} onChange={e => setTopicForm({ ...topicForm, durationMinutes: e.target.value })} placeholder="0" min={0} />
+                </div>
               </div>
               <div className="modal-footer">
                 <button type="button" className="btn-secondary" onClick={() => setShowTopicModal(false)}>Cancel</button>
@@ -1389,6 +1515,29 @@ const CourseManagement: React.FC = () => {
                   rows={2}
                 />
               </div>
+              <div className="form-section-label">Estimated Duration</div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Months</label>
+                  <input type="number" value={subTopicForm.durationMonths} onChange={e => setSubTopicForm({ ...subTopicForm, durationMonths: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Weeks</label>
+                  <input type="number" value={subTopicForm.durationWeeks} onChange={e => setSubTopicForm({ ...subTopicForm, durationWeeks: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Days</label>
+                  <input type="number" value={subTopicForm.durationDays} onChange={e => setSubTopicForm({ ...subTopicForm, durationDays: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Hours</label>
+                  <input type="number" value={subTopicForm.durationHours} onChange={e => setSubTopicForm({ ...subTopicForm, durationHours: e.target.value })} placeholder="0" min={0} />
+                </div>
+                <div className="form-group">
+                  <label>Minutes</label>
+                  <input type="number" value={subTopicForm.durationMinutes} onChange={e => setSubTopicForm({ ...subTopicForm, durationMinutes: e.target.value })} placeholder="0" min={0} />
+                </div>
+              </div>
               <div className="form-section-label">Schedule (Optional)</div>
               <div className="form-row">
                 <div className="form-group">
@@ -1431,8 +1580,8 @@ const CourseManagement: React.FC = () => {
                   <label>Duration (min)</label>
                   <input
                     type="number"
-                    value={subTopicForm.durationMinutes}
-                    onChange={e => setSubTopicForm({ ...subTopicForm, durationMinutes: e.target.value })}
+                    value={subTopicForm.scheduleDurationMinutes}
+                    onChange={e => setSubTopicForm({ ...subTopicForm, scheduleDurationMinutes: e.target.value })}
                     placeholder="e.g., 45"
                     min={1}
                   />

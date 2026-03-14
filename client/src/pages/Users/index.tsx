@@ -35,7 +35,9 @@ const UsersPage: React.FC = () => {
     email: '',
     firstName: '',
     lastName: '',
-    batchId: ''
+    batchId: '',
+    role: 'STUDENT',
+    customRoleId: ''
   });
   const [invitingStudent, setInvitingStudent] = useState(false);
   const [inviteError, setInviteError] = useState('');
@@ -48,7 +50,8 @@ const UsersPage: React.FC = () => {
     email: '',
     firstName: '',
     lastName: '',
-    role: 'INSTRUCTOR'
+    role: 'INSTRUCTOR',
+    customRoleId: ''
   });
   const [creatingUser, setCreatingUser] = useState(false);
 
@@ -150,7 +153,9 @@ const UsersPage: React.FC = () => {
       email: '',
       firstName: '',
       lastName: '',
-      batchId: ''
+      batchId: '',
+      role: 'STUDENT',
+      customRoleId: ''
     });
     setInviteError('');
     setInviteSuccess('');
@@ -167,7 +172,8 @@ const UsersPage: React.FC = () => {
       email: '',
       firstName: '',
       lastName: '',
-      role: 'INSTRUCTOR'
+      role: 'INSTRUCTOR',
+      customRoleId: ''
     });
   };
 
@@ -206,7 +212,9 @@ const UsersPage: React.FC = () => {
         inviteFormData.email,
         inviteFormData.firstName,
         inviteFormData.lastName,
-        inviteFormData.batchId || undefined
+        inviteFormData.batchId || undefined,
+        inviteFormData.role || undefined,
+        inviteFormData.customRoleId || undefined
       );
 
       // Check if email was sent successfully
@@ -250,7 +258,8 @@ const UsersPage: React.FC = () => {
         createFormData.firstName,
         createFormData.lastName,
         tempPassword,
-        createFormData.role
+        createFormData.role,
+        createFormData.customRoleId || undefined
       );
 
       setSuccess(`✅ User created successfully! Role: ${createFormData.role}`);
@@ -701,6 +710,42 @@ const UsersPage: React.FC = () => {
                 </select>
               </div>
 
+              <div className="form-group">
+                <label htmlFor="inviteRole">Role</label>
+                <select
+                  id="inviteRole"
+                  name="role"
+                  value={inviteFormData.role}
+                  onChange={handleInviteFormChange}
+                  className="form-select"
+                >
+                  <option value="STUDENT">Student</option>
+                  <option value="INSTRUCTOR">Instructor</option>
+                  <option value="STAFF">Staff</option>
+                  <option value="TENANT_ADMIN">Tenant Admin</option>
+                </select>
+              </div>
+
+              {roles.length > 0 && (
+                <div className="form-group">
+                  <label htmlFor="inviteCustomRole">Custom Permission Role <span className="optional-label">(Optional)</span></label>
+                  <select
+                    id="inviteCustomRole"
+                    name="customRoleId"
+                    value={inviteFormData.customRoleId}
+                    onChange={handleInviteFormChange}
+                    className="form-select"
+                  >
+                    <option value="">-- Use default permissions for base role --</option>
+                    {roles.map((r) => (
+                      <option key={r._id} value={r._id}>
+                        {r.name} ({r.permissions.length} permissions)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="modal-actions">
                 <Button
                   type="button"
@@ -725,7 +770,7 @@ const UsersPage: React.FC = () => {
                 onClick={() => {
                   setInviteSuccess('');
                   setInviteWarning(null);
-                  setInviteFormData({ email: '', firstName: '', lastName: '', batchId: '' });
+                  setInviteFormData({ email: '', firstName: '', lastName: '', batchId: '', role: 'STUDENT', customRoleId: '' });
                 }}
                 className="btn-secondary"
               >
@@ -797,11 +842,32 @@ const UsersPage: React.FC = () => {
               className="form-select"
               required
             >
+              <option value="STUDENT">Student</option>
               <option value="INSTRUCTOR">Instructor</option>
               <option value="STAFF">Staff</option>
               <option value="TENANT_ADMIN">Tenant Admin</option>
             </select>
           </div>
+
+          {roles.length > 0 && (
+            <div className="form-group">
+              <label htmlFor="createCustomRole">Custom Permission Role <span className="optional-label">(Optional)</span></label>
+              <select
+                id="createCustomRole"
+                name="customRoleId"
+                value={createFormData.customRoleId}
+                onChange={handleCreateFormChange}
+                className="form-select"
+              >
+                <option value="">-- Use default permissions for base role --</option>
+                {roles.map((r) => (
+                  <option key={r._id} value={r._id}>
+                    {r.name} ({r.permissions.length} permissions)
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="modal-actions">
             <Button

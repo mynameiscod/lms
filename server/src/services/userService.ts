@@ -8,7 +8,8 @@ export class UserService {
     password: string,
     role: string,
     tenantId: string,
-    batchId?: string
+    batchId?: string,
+    customRoleId?: string
   ): Promise<IUser> {
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -27,7 +28,8 @@ export class UserService {
       isActive: true,
       profileComplete: false,
       batchId: batchId || undefined,
-      batchJoinedDate: batchId ? new Date() : undefined
+      batchJoinedDate: batchId ? new Date() : undefined,
+      customRoleId: customRoleId || undefined
     });
 
     await user.save();

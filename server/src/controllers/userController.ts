@@ -72,7 +72,7 @@ const autoEnrollInBatchCourse = async (userId: string, batchId: string, tenantId
 
 export const createUser = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { email, firstName, lastName, password, role } = req.body;
+    const { email, firstName, lastName, password, role, customRoleId } = req.body;
 
     if (!email || !firstName || !lastName || !password) {
       return res.status(400).json({
@@ -88,7 +88,9 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       lastName,
       password,
       role || 'STUDENT',
-      req.tenantId!
+      req.tenantId!,
+      undefined,
+      customRoleId || undefined
     );
 
     res.status(201).json({
@@ -263,7 +265,7 @@ export const activateUser = async (req: AuthenticatedRequest, res: Response) => 
 
 export const inviteStudent = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { email, firstName, lastName, batchId } = req.body;
+    const { email, firstName, lastName, batchId, role, customRoleId } = req.body;
 
     console.log('\n👤 [INVITE STUDENT] Received invitation request');
     console.log('   Email:', email);
@@ -340,9 +342,10 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
         firstName,
         lastName,
         tempPassword,
-        'STUDENT',
+        role || 'STUDENT',
         req.tenantId!,
-        batchId
+        batchId,
+        customRoleId || undefined
       );
       console.log('   ✅ User created:', user._id);
       

@@ -542,11 +542,13 @@ export const enrollmentApi = {
 
 // User API
 export const userApi = {
-  createUser: async (email: string, firstName: string, lastName: string, password: string, role: string) => {
+  createUser: async (email: string, firstName: string, lastName: string, password: string, role: string, customRoleId?: string) => {
+    const body: any = { email, firstName, lastName, password, role };
+    if (customRoleId) body.customRoleId = customRoleId;
     const response = await fetch(`${API_BASE_URL}/users`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ email, firstName, lastName, password, role })
+      body: JSON.stringify(body)
     });
     if (!response.ok) throw new Error('Failed to create user');
     return response.json();
@@ -607,11 +609,15 @@ export const userApi = {
     return response.json();
   },
 
-  inviteStudent: async (email: string, firstName: string, lastName: string, batchId?: string) => {
+  inviteStudent: async (email: string, firstName: string, lastName: string, batchId?: string, role?: string, customRoleId?: string) => {
+    const body: any = { email, firstName, lastName };
+    if (batchId) body.batchId = batchId;
+    if (role) body.role = role;
+    if (customRoleId) body.customRoleId = customRoleId;
     const response = await fetch(`${API_BASE_URL}/users/invite/student`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ email, firstName, lastName, batchId })
+      body: JSON.stringify(body)
     });
     const data = await response.json();
     if (!response.ok) {

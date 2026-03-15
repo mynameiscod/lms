@@ -244,7 +244,9 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
 export const getQuizQuestions = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;
-    const questions = await quizService.getQuizQuestions(quizId, false);
+    const quiz = await Quiz.findById(quizId);
+    const shuffle = quiz?.shuffleQuestions || false;
+    const questions = await quizService.getQuizQuestions(quizId, shuffle);
     res.json(questions);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
@@ -271,6 +273,31 @@ export const getQuizResults = async (req: Request, res: Response) => {
   try {
     const { attemptId } = req.params;
     const results = await quizService.getQuizResults(attemptId);
+    
+    // Respect quiz settings
+    const quiz = results.quiz;
+    if (quiz) {
+      // If showScoreAfterSubmit is false, hide score details
+      if (quiz.showScoreAfterSubmit === false) {
+        results.attempt.obtainedMarks = undefined;
+        results.attempt.percentage = undefined;
+        results.attempt.passed = undefined;
+      }
+      // If allowReview is false, hide submissions
+      if (quiz.allowReview === false) {
+        results.submissions = [];
+      }
+      // If showAnswersAfterSubmit is false, strip correct answers from submissions
+      if (quiz.showAnswersAfterSubmit === false) {
+        results.submissions = results.submissions.map((s: any) => {
+          const sub = s.toObject ? s.toObject() : { ...s };
+          delete sub.correctAnswer;
+          delete sub.correctAnswers;
+          return sub;
+        });
+      }
+    }
+    
     res.json(results);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

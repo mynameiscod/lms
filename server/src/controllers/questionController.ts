@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import questionService from '../services/questionService';
 import quizService from '../services/quizService';
+import Quiz from '../models/Quiz';
 
 export const createQuestion = async (req: Request, res: Response) => {
   try {
@@ -31,6 +32,16 @@ export const getQuestionsForQuiz = async (req: Request, res: Response) => {
 
     // Use quizService to properly handle linked questions from Question Bank
     const questions = await quizService.getQuestionsForQuiz(quizId, includeAnswers);
+    
+    // Shuffle if quiz setting requires it
+    const quiz = await Quiz.findById(quizId);
+    if (quiz?.shuffleQuestions) {
+      for (let i = questions.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [questions[i], questions[j]] = [questions[j], questions[i]];
+      }
+    }
+    
     res.json(questions);
   } catch (error: any) {
     res.status(500).json({ message: error.message });

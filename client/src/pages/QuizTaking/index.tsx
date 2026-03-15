@@ -23,6 +23,7 @@ const QuizTakingPage: React.FC = () => {
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
+  const preventCopyPasteRef = useRef((e: Event) => e.preventDefault());
 
   const handleTabSwitch = useCallback(() => {
     if (document.hidden || document.visibilityState === 'hidden') {
@@ -42,8 +43,11 @@ const QuizTakingPage: React.FC = () => {
   }, [quiz?.tabSwitchWarnings]);
 
   const handleFullscreenChange = useCallback(() => {
-    // Handle fullscreen changes if needed
-  }, []);
+    // Re-enforce fullscreen if user exits it
+    if (quiz?.requireFullScreen && !document.fullscreenElement && !showInstructions) {
+      requestFullscreen();
+    }
+  }, [quiz?.requireFullScreen, showInstructions]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setupEventListeners = useCallback(() => {
@@ -53,7 +57,15 @@ const QuizTakingPage: React.FC = () => {
     window.addEventListener('focus', handleWindowFocus);
     // Fullscreen detection
     document.addEventListener('fullscreenchange', handleFullscreenChange);
-  }, [handleTabSwitch, handleWindowFocus, handleFullscreenChange]);
+    
+    // Copy/paste prevention
+    if (!quiz?.canCopyPaste) {
+      document.addEventListener('copy', preventCopyPasteRef.current);
+      document.addEventListener('paste', preventCopyPasteRef.current);
+      document.addEventListener('cut', preventCopyPasteRef.current);
+      document.addEventListener('contextmenu', preventCopyPasteRef.current);
+    }
+  }, [handleTabSwitch, handleWindowFocus, handleFullscreenChange, quiz?.canCopyPaste]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const cleanupEventListeners = useCallback(() => {
@@ -61,6 +73,12 @@ const QuizTakingPage: React.FC = () => {
     window.removeEventListener('blur', handleTabSwitch);
     window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    
+    // Remove copy/paste prevention
+    document.removeEventListener('copy', preventCopyPasteRef.current);
+    document.removeEventListener('paste', preventCopyPasteRef.current);
+    document.removeEventListener('cut', preventCopyPasteRef.current);
+    document.removeEventListener('contextmenu', preventCopyPasteRef.current);
   }, [handleTabSwitch, handleWindowFocus, handleFullscreenChange]);
 
   const loadQuiz = useCallback(async () => {

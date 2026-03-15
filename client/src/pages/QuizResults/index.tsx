@@ -37,12 +37,15 @@ const QuizResultsPage: React.FC = () => {
         return;
       }
 
-      const [resultRes, questionsRes] = await Promise.all([
-        quizApi.getResults(attemptId),
-        quizApi.getQuestionsWithAnswers(quizId)
-      ]);
+      const resultRes = await quizApi.getResults(attemptId);
+      const resultData = resultRes.data || resultRes;
+      // Only fetch answers if showAnswersAfterSubmit is enabled
+      const includeAnswers = resultData.quiz?.showAnswersAfterSubmit !== false;
+      const questionsRes = includeAnswers
+        ? await quizApi.getQuestionsWithAnswers(quizId)
+        : await quizApi.getQuestions(quizId);
 
-      setResult(resultRes.data || resultRes);
+      setResult(resultData);
       setQuestions(questionsRes.data || questionsRes || []);
     } catch (err: any) {
       setError(err.message || 'Failed to load results');
@@ -87,68 +90,88 @@ const QuizResultsPage: React.FC = () => {
       <div className="results-container">
         {/* Score Card */}
         <div className={`score-card ${isPassed ? 'passed' : 'failed'}`}>
-          <div className="score-circle">
-            <svg viewBox="0 0 120 120" className="progress-ring">
-              <defs>
-                <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                  <stop offset="0%" style={{ stopColor: getPercentageColor(percentage) === 'green' ? '#4caf50' : getPercentageColor(percentage) === 'orange' ? '#ff9800' : '#f44336', stopOpacity: 1 }} />
-                </linearGradient>
-              </defs>
-              <circle cx="60" cy="60" r="55" className="progress-ring-bg" />
-              <circle
-                cx="60"
-                cy="60"
-                r="55"
-                className={`progress-ring-circle ${getPercentageColor(percentage)}`}
-                style={{
-                  strokeDasharray: `${(percentage / 100) * 345.575} 345.575`
-                }}
-              />
-            </svg>
-            <div className={`score-value ${getPercentageColor(percentage)}`}>
-              {Math.round(percentage)}%
-            </div>
-          </div>
-
-          <div className="score-stats">
-            <h2>{isPassed ? '🎉 Congratulations!' : '😔 Try Again'}</h2>
-            <p className="status">{isPassed ? 'Quiz Passed' : 'Quiz Not Passed'}</p>
-
-            <div className="stats-grid">
-              <div className="stat-item">
-                <span className="label">Score Obtained</span>
-                <span className="value">{result.attempt.obtainedMarks}/{result.quiz.totalMarks}</span>
-              </div>
-              <div className="stat-item">
-                <span className="label">Passing Marks</span>
-                <span className="value">{result.quiz.passingMarks || 0}</span>
-              </div>
-              <div className="stat-item">
-                <span className="label">Time Taken</span>
-                <span className="value">{formatTime(result.attempt.timeSpent || 0)}</span>
-              </div>
-              {result.quiz.multipleAttempts && result.quiz.maxAttempts && (
-                <div className="stat-item">
-                  <span className="label">Attempts Left</span>
-                  <span className="value">{result.quiz.maxAttempts - (result.attempt.attemptNo || 1)}</span>
+          {result.quiz.showScoreAfterSubmit !== false ? (
+            <>
+              <div className="score-circle">
+                <svg viewBox="0 0 120 120" className="progress-ring">
+                  <defs>
+                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" style={{ stopColor: getPercentageColor(percentage) === 'green' ? '#4caf50' : getPercentageColor(percentage) === 'orange' ? '#ff9800' : '#f44336', stopOpacity: 1 }} />
+                    </linearGradient>
+                  </defs>
+                  <circle cx="60" cy="60" r="55" className="progress-ring-bg" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="55"
+                    className={`progress-ring-circle ${getPercentageColor(percentage)}`}
+                    style={{
+                      strokeDasharray: `${(percentage / 100) * 345.575} 345.575`
+                    }}
+                  />
+                </svg>
+                <div className={`score-value ${getPercentageColor(percentage)}`}>
+                  {Math.round(percentage)}%
                 </div>
-              )}
-            </div>
+              </div>
 
-            <div className="action-buttons">
-              <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
-                📚 Back to Quizzes
-              </Button>
-              {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
-                <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
-                  🔄 Retry Quiz
+              <div className="score-stats">
+                <h2>{isPassed ? '🎉 Congratulations!' : '😔 Try Again'}</h2>
+                <p className="status">{isPassed ? 'Quiz Passed' : 'Quiz Not Passed'}</p>
+
+                <div className="stats-grid">
+                  <div className="stat-item">
+                    <span className="label">Score Obtained</span>
+                    <span className="value">{result.attempt.obtainedMarks}/{result.quiz.totalMarks}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="label">Passing Marks</span>
+                    <span className="value">{result.quiz.passingMarks || 0}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="label">Time Taken</span>
+                    <span className="value">{formatTime(result.attempt.timeSpent || 0)}</span>
+                  </div>
+                  {result.quiz.multipleAttempts && result.quiz.maxAttempts && (
+                    <div className="stat-item">
+                      <span className="label">Attempts Left</span>
+                      <span className="value">{result.quiz.maxAttempts - (result.attempt.attemptNo || 1)}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="action-buttons">
+                  <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
+                    📚 Back to Quizzes
+                  </Button>
+                  {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
+                    <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
+                      🔄 Retry Quiz
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="score-stats">
+              <h2>✅ Quiz Submitted Successfully</h2>
+              <p className="status">Your responses have been recorded.</p>
+              <div className="action-buttons">
+                <Button onClick={() => window.location.href = `/quizzes`} className="btn-primary">
+                  📚 Back to Quizzes
                 </Button>
-              )}
+                {result.quiz.multipleAttempts && result.quiz.maxAttempts && result.quiz.maxAttempts - (result.attempt.attemptNo || 1) > 0 && (
+                  <Button onClick={() => window.location.href = `/quiz/${quizId}/take`} className="btn-secondary">
+                    🔄 Retry Quiz
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Detailed Results */}
+        {result.quiz.allowReview !== false && (
         <div className="detailed-results">
           <h3>📋 Detailed Review</h3>
 
@@ -293,6 +316,7 @@ const QuizResultsPage: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

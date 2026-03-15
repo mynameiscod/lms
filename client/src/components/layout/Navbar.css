@@ -41,27 +41,27 @@
 .user-avatar {
   font-size: 13px;
   font-weight: 700;
-  width: 38px;
-  height: 38px;
-  background: linear-gradient(135deg, #005897 0%, #0284c7 100%);
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  background: none;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #ffffff;
+  color: #005897;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 8px rgba(0, 88, 151, 0.25);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none;
+  transition: none;
 }
 
 .user-avatar-img {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e0edfa;
-  box-shadow: 0 2px 8px rgba(0, 88, 151, 0.15);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: none;
+  box-shadow: none;
+  transition: none;
 }
 
 .user-meta {
@@ -96,23 +96,23 @@
   display: flex;
   align-items: center;
   cursor: pointer;
-  transition: all 0.2s ease;
-  border-radius: 10px;
-  padding: 5px 10px;
+  transition: none;
+  border-radius: 0;
+  padding: 0;
 }
 
 .profile-link:hover {
-  background: #f0f6fc;
+  background: none;
 }
 
 .profile-link:hover .user-avatar {
-  transform: scale(1.06);
-  box-shadow: 0 3px 12px rgba(0, 88, 151, 0.35);
+  transform: none;
+  box-shadow: none;
 }
 
 .profile-link:hover .user-avatar-img {
-  transform: scale(1.06);
-  box-shadow: 0 3px 12px rgba(0, 88, 151, 0.25);
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 768px) {

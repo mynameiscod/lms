@@ -7,8 +7,8 @@
 /* Header */
 .results-header {
   position: relative;
-  padding: 24px 30px;
-  color: white;
+  padding: 16px 30px;
+  color: #ffffff;
   background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
 }
 
@@ -30,16 +30,18 @@
 }
 
 .results-header h1 {
-  margin: 0 0 4px 0;
-  font-size: 1.6rem;
+  margin: 0 0 2px 0;
+  font-size: 1.3rem;
   font-weight: 700;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  color: #ffffff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 
 .quiz-name {
   margin: 0;
-  font-size: 1.1rem;
-  opacity: 0.95;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.9);
+  opacity: 1;
 }
 
 /* Container */
@@ -53,12 +55,12 @@
 .score-card {
   background: white;
   border-radius: 12px;
-  padding: 24px 30px;
+  padding: 28px 32px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
   margin-bottom: 24px;
   display: flex;
   align-items: center;
-  gap: 30px;
+  gap: 32px;
 }
 
 .score-card.passed {
@@ -71,8 +73,8 @@
 
 .score-circle {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: 110px;
+  height: 110px;
   flex-shrink: 0;
 }
 
@@ -84,28 +86,28 @@
 
 .progress-ring-bg {
   fill: none;
-  stroke: #e0e0e0;
-  stroke-width: 8;
+  stroke: #f0f0f0;
+  stroke-width: 10;
 }
 
 .progress-ring-circle {
   fill: none;
   stroke: url(#gradient);
-  stroke-width: 8;
+  stroke-width: 10;
   stroke-linecap: round;
-  transition: stroke-dasharray 0.5s;
+  transition: stroke-dasharray 0.6s ease;
 }
 
 .progress-ring-circle.green {
-  stroke: #4caf50;
+  stroke: #22c55e;
 }
 
 .progress-ring-circle.orange {
-  stroke: #ff9800;
+  stroke: #f59e0b;
 }
 
 .progress-ring-circle.red {
-  stroke: #f44336;
+  stroke: #ef4444;
 }
 
 .score-value {
@@ -114,75 +116,85 @@
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  font-size: 1.6rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 800;
   color: #333;
   transition: color 0.3s ease;
 }
 
 .score-value.green {
-  color: #4caf50;
+  color: #16a34a;
 }
 
 .score-value.orange {
-  color: #ff9800;
+  color: #d97706;
 }
 
 .score-value.red {
-  color: #f44336;
+  color: #dc2626;
+}
+
+.score-stats {
+  flex: 1;
 }
 
 .score-stats h2 {
-  margin: 0 0 4px 0;
-  font-size: 1.3rem;
-  color: #333;
+  margin: 0 0 2px 0;
+  font-size: 1.25rem;
+  color: #1e293b;
 }
 
 .score-stats .status {
-  margin: 0 0 16px 0;
-  font-size: 0.95rem;
-  color: #666;
+  margin: 0 0 14px 0;
+  font-size: 0.85rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .stats-grid {
   display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
+  flex-wrap: nowrap;
+  gap: 12px;
   margin-bottom: 16px;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 4px;
-  background: #f8f9fa;
-  padding: 10px 16px;
-  border-radius: 8px;
-  min-width: 120px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  padding: 10px 18px;
+  border-radius: 10px;
+  flex: 1;
+  min-width: 0;
+  text-align: center;
 }
 
 .stat-item .label {
-  color: #999;
-  font-size: 0.75rem;
-  font-weight: 500;
+  color: #94a3b8;
+  font-size: 0.7rem;
+  font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .stat-item .value {
-  color: #333;
-  font-size: 1.1rem;
+  color: #1e293b;
+  font-size: 1.05rem;
   font-weight: 700;
 }
 
 .action-buttons {
   display: flex;
-  gap: 15px;
+  gap: 12px;
   flex-wrap: wrap;
 }
 
 .action-buttons button {
-  padding: 12px 24px;
-  font-size: 0.95rem;
+  padding: 10px 22px;
+  font-size: 0.9rem;
 }
 
 /* Detailed Results */
@@ -490,9 +502,18 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .score-card {
-    grid-template-columns: 1fr;
-    gap: 30px;
+    flex-direction: column;
     text-align: center;
+    gap: 20px;
+  }
+
+  .stats-grid {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    flex: 1 1 calc(50% - 8px);
+    min-width: 100px;
   }
 
   .results-layout {
@@ -521,11 +542,11 @@
   }
 
   .results-header {
-    padding: 40px 20px 30px;
+    padding: 14px 20px;
   }
 
   .results-header h1 {
-    font-size: 1.8rem;
+    font-size: 1.2rem;
   }
 
   .results-container {
@@ -537,16 +558,20 @@
   }
 
   .score-circle {
-    width: 150px;
-    height: 150px;
+    width: 100px;
+    height: 100px;
   }
 
   .score-value {
-    font-size: 2rem;
+    font-size: 1.3rem;
   }
 
   .stats-grid {
-    grid-template-columns: 1fr;
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    flex: 1 1 100%;
   }
 
   .detailed-results {
@@ -564,11 +589,11 @@
 
 @media (max-width: 480px) {
   .results-header {
-    padding: 30px 15px 20px;
+    padding: 12px 15px;
   }
 
   .results-header h1 {
-    font-size: 1.4rem;
+    font-size: 1.1rem;
   }
 
   .results-container {

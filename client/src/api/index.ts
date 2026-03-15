@@ -1127,6 +1127,15 @@ export const quizApi = {
     );
   },
 
+  getQuestionsWithoutAnswers: async (quizId: string) => {
+    return authenticatedFetch(
+      `${API_BASE_URL}/quizzes/${quizId}/questions/list?includeAnswers=false`,
+      {
+        method: 'GET'
+      }
+    );
+  },
+
   updateQuestion: async (quizId: string, questionId: string, updateData: any) => {
     // Map frontend field names to backend field names
     const mappedData = {

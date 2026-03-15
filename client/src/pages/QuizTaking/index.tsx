@@ -25,6 +25,9 @@ const QuizTakingPage: React.FC = () => {
   const fullScreenRef = useRef<HTMLDivElement>(null);
   const preventCopyPasteRef = useRef((e: Event) => e.preventDefault());
   const submitQuizRef = useRef<() => void>(() => {});
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
+  const [mediaError, setMediaError] = useState('');
 
   const handleTabSwitch = useCallback(() => {
     if (document.hidden || document.visibilityState === 'hidden') {
@@ -131,6 +134,24 @@ const QuizTakingPage: React.FC = () => {
         requestFullscreen();
       }
 
+      // Request camera/microphone if needed
+      if (quiz?.enableCamera || quiz?.enableMicrophone) {
+        try {
+          const constraints: MediaStreamConstraints = {
+            video: quiz.enableCamera ? { width: 320, height: 240, facingMode: 'user' } : false,
+            audio: quiz.enableMicrophone ? true : false,
+          };
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          mediaStreamRef.current = stream;
+          if (videoRef.current && quiz.enableCamera) {
+            videoRef.current.srcObject = stream;
+          }
+        } catch (mediaErr: any) {
+          setMediaError(`Could not access ${quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone'}. Please grant permission and try again.`);
+          return;
+        }
+      }
+
       // Show quiz (hide instructions)
       setShowInstructions(false);
       
@@ -150,6 +171,11 @@ const QuizTakingPage: React.FC = () => {
     return () => {
       cleanupEventListeners();
       if (timerRef.current) clearInterval(timerRef.current);
+      // Stop media stream on unmount
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
     };
   }, [quizId, loadQuiz, cleanupEventListeners]);
 
@@ -229,6 +255,12 @@ const QuizTakingPage: React.FC = () => {
       });
 
       await quizApi.submitAttempt(quizId, attempt._id, submissions);
+
+      // Stop media stream on submit
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach(track => track.stop());
+        mediaStreamRef.current = null;
+      }
 
       // Redirect to results
       window.location.href = `/quiz/${quizId}/results/${attempt._id}`;
@@ -358,6 +390,8 @@ const QuizTakingPage: React.FC = () => {
                 {!quiz.canCopyPaste && <li>Copy-paste is disabled during the quiz.</li>}
                 {quiz.requireFullScreen && <li>Full screen mode is required during the quiz.</li>}
                 {quiz.tabSwitchWarnings && <li>Switching tabs/windows will be tracked and may result in penalties.</li>}
+                {quiz.enableCamera && <li>Your camera will be enabled during the quiz for proctoring.</li>}
+                {quiz.enableMicrophone && <li>Your microphone will be enabled during the quiz for proctoring.</li>}
                 {!quiz.multipleAttempts && <li>Only one attempt is allowed for this quiz.</li>}
                 {quiz.multipleAttempts && quiz.maxAttempts && (
                   <li>Maximum {quiz.maxAttempts} attempts are allowed.</li>
@@ -402,6 +436,30 @@ const QuizTakingPage: React.FC = () => {
 
   return (
     <div ref={fullScreenRef} className="quiz-taking-page">
+      {/* Camera Proctoring Preview */}
+      {quiz.enableCamera && !showInstructions && (
+        <div className="proctoring-preview">
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            className="proctoring-video"
+          />
+          <div className="proctoring-label">🔴 Proctored</div>
+        </div>
+      )}
+
+      {/* Microphone indicator (no camera) */}
+      {quiz.enableMicrophone && !quiz.enableCamera && !showInstructions && (
+        <div className="proctoring-mic-indicator">
+          <span>🎙️ Mic Active</span>
+        </div>
+      )}
+
+      {/* Media Error */}
+      {mediaError && <Alert type="error" message={mediaError} onClose={() => setMediaError('')} />}
+
       {/* Tab Switch Warning Modal */}
       <Modal
         isOpen={showTabWarnModal}

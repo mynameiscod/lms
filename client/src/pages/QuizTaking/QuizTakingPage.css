@@ -616,7 +616,7 @@
   background: #555;
 }
 
-/* Quiz Error Page */
+/* Proctoring Preview */\n.proctoring-preview {\n  position: fixed;\n  bottom: 20px;\n  right: 20px;\n  z-index: 1000;\n  border-radius: 12px;\n  overflow: hidden;\n  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);\n  border: 2px solid #e53935;\n}\n\n.proctoring-video {\n  width: 180px;\n  height: 135px;\n  object-fit: cover;\n  display: block;\n  background: #000;\n  transform: scaleX(-1);\n}\n\n.proctoring-label {\n  background: rgba(0, 0, 0, 0.7);\n  color: #ff5252;\n  text-align: center;\n  font-size: 0.7rem;\n  font-weight: 600;\n  padding: 3px 0;\n  letter-spacing: 1px;\n}\n\n.proctoring-mic-indicator {\n  position: fixed;\n  bottom: 20px;\n  right: 20px;\n  z-index: 1000;\n  background: rgba(0, 0, 0, 0.75);\n  color: #ff5252;\n  padding: 8px 16px;\n  border-radius: 20px;\n  font-size: 0.85rem;\n  font-weight: 600;\n  border: 2px solid #e53935;\n  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);\n}\n\n@media (max-width: 768px) {\n  .proctoring-preview {\n    bottom: 10px;\n    right: 10px;\n  }\n  .proctoring-video {\n    width: 120px;\n    height: 90px;\n  }\n}\n\n/* Quiz Error Page */
 .quiz-error-page {
   display: flex;
   align-items: center;

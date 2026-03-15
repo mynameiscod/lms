@@ -220,6 +220,8 @@ export interface Quiz {
   canCopyPaste: boolean;
   requireFullScreen: boolean;
   tabSwitchWarnings: boolean;
+  enableCamera: boolean;
+  enableMicrophone: boolean;
   warningCount?: number;
   warnings?: number[];
   isActive: boolean;

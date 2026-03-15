@@ -43,7 +43,7 @@ const QuizResultsPage: React.FC = () => {
       const includeAnswers = resultData.quiz?.showAnswersAfterSubmit !== false;
       const questionsRes = includeAnswers
         ? await quizApi.getQuestionsWithAnswers(quizId)
-        : await quizApi.getQuestions(quizId);
+        : await quizApi.getQuestionsWithoutAnswers(quizId);
 
       setResult(resultData);
       setQuestions(questionsRes.data || questionsRes || []);
@@ -69,8 +69,10 @@ const QuizResultsPage: React.FC = () => {
   if (loading) return <Spinner fullScreen />;
   if (!result) return <Alert type="error" message={error || 'Failed to load results'} />;
 
-  const percentage = (result.attempt.obtainedMarks / result.quiz.totalMarks) * 100;
-  const isPassed = result.attempt.passed;
+  const percentage = result.attempt.obtainedMarks != null 
+    ? (result.attempt.obtainedMarks / result.quiz.totalMarks) * 100 
+    : 0;
+  const isPassed = result.attempt.passed ?? false;
   const selectedQuestion = selectedQuestionIndex !== null ? questions[selectedQuestionIndex] : null;
   const selectedSubmission = selectedQuestion && result.submissions?.find(s => s.questionId === selectedQuestion._id);
 

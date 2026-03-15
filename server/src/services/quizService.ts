@@ -173,35 +173,41 @@ export class QuizService {
     const quiz = await Quiz.findById(quizId);
     if (!quiz) throw new Error('Quiz not found');
 
-    // Check if student can attempt
-    const canAccess = await this.canStudentAccessQuiz(quizId, studentId);
-    if (!canAccess) throw new Error('You do not have access to this quiz');
+    // Check if user is admin/instructor (allow preview without access checks)
+    const user = await User.findById(studentId);
+    const isAdminOrInstructor = user && ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(user.role);
 
-    const availabilityCheck = await this.isQuizAvailable(quizId);
-    if (!availabilityCheck.available) {
-      throw new Error(availabilityCheck.reason || 'Quiz is not available at this time');
-    }
+    if (!isAdminOrInstructor) {
+      // Check if student can attempt
+      const canAccess = await this.canStudentAccessQuiz(quizId, studentId);
+      if (!canAccess) throw new Error('You do not have access to this quiz');
 
-    // Check attempt count
-    if (quiz.multipleAttempts && quiz.maxAttempts) {
-      const previousAttempts = await QuizAttempt.countDocuments({
-        quizId,
-        studentId,
-        status: { $in: ['submitted', 'abandoned'] }
-      });
-
-      if (previousAttempts >= quiz.maxAttempts) {
-        throw new Error(`Maximum attempts (${quiz.maxAttempts}) reached`);
+      const availabilityCheck = await this.isQuizAvailable(quizId);
+      if (!availabilityCheck.available) {
+        throw new Error(availabilityCheck.reason || 'Quiz is not available at this time');
       }
-    } else if (!quiz.multipleAttempts) {
-      // For single attempt quizzes, check only completed/submitted attempts
-      const existingAttempt = await QuizAttempt.findOne({ 
-        quizId, 
-        studentId,
-        status: { $in: ['submitted', 'abandoned'] }
-      });
-      if (existingAttempt) {
-        throw new Error('You have already attempted this quiz');
+
+      // Check attempt count
+      if (quiz.multipleAttempts && quiz.maxAttempts) {
+        const previousAttempts = await QuizAttempt.countDocuments({
+          quizId,
+          studentId,
+          status: { $in: ['submitted', 'abandoned'] }
+        });
+
+        if (previousAttempts >= quiz.maxAttempts) {
+          throw new Error(`Maximum attempts (${quiz.maxAttempts}) reached`);
+        }
+      } else if (!quiz.multipleAttempts) {
+        // For single attempt quizzes, check only completed/submitted attempts
+        const existingAttempt = await QuizAttempt.findOne({ 
+          quizId, 
+          studentId,
+          status: { $in: ['submitted', 'abandoned'] }
+        });
+        if (existingAttempt) {
+          throw new Error('You have already attempted this quiz');
+        }
       }
     }
 

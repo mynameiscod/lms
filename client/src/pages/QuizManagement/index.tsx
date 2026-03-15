@@ -233,7 +233,7 @@ const QuizManagementPage: React.FC = () => {
                     <td className="quiz-actions-cell">
                       <div className="action-buttons">
                         <Button
-                          onClick={() => navigate(`/quiz-taking/${quiz._id}`)}
+                          onClick={() => navigate(`/quiz/${quiz._id}/take`)}
                           className="btn-action btn-preview"
                           title="Preview quiz"
                         >

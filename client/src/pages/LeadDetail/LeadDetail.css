@@ -311,3 +311,215 @@
   padding: 60px;
   color: #6b7280;
 }
+
+/* Convert to Student Button */
+.btn-convert {
+  padding: 8px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: #059669;
+  color: white;
+}
+
+.btn-convert:hover { background: #047857; }
+.btn-convert:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.converted-badge {
+  padding: 8px 16px;
+  background: #d1fae5;
+  color: #065f46;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Call Outcome */
+.call-outcome-select {
+  min-width: 140px !important;
+}
+
+.call-outcome-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.call-outcome-badge.connected { background: #d1fae5; color: #059669; }
+.call-outcome-badge.not_answered { background: #fef3c7; color: #d97706; }
+.call-outcome-badge.not_connected { background: #fee2e2; color: #dc2626; }
+.call-outcome-badge.busy { background: #fce7f3; color: #db2777; }
+.call-outcome-badge.rejected { background: #e5e7eb; color: #6b7280; }
+
+/* Interest Concerns */
+.edit-concerns-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin-left: 6px;
+}
+
+.edit-concerns-btn:hover { color: #005897; }
+
+.concerns-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.concern-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.concern-chip {
+  padding: 5px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 16px;
+  background: white;
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.concern-chip.active {
+  background: #005897;
+  color: white;
+  border-color: #005897;
+}
+
+.concern-chip:hover { border-color: #005897; }
+
+.btn-save-concerns {
+  padding: 5px 14px;
+  border: none;
+  border-radius: 6px;
+  background: #005897;
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.btn-save-concerns:hover { background: #003d6b; }
+
+.concern-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.concern-tag {
+  padding: 3px 10px;
+  background: #fef3c7;
+  color: #92400e;
+  border-radius: 12px;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.not-interested-reason {
+  color: #dc2626 !important;
+  font-style: italic;
+}
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  padding: 28px;
+  max-width: 480px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modal-content h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.modal-subtitle {
+  margin: 0 0 20px 0;
+  font-size: 0.88rem;
+  color: #6b7280;
+}
+
+.modal-content .form-group {
+  margin-bottom: 16px;
+}
+
+.modal-content .form-group label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.modal-content .form-group input,
+.modal-content .form-group textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.modal-content .form-group textarea {
+  height: 80px;
+  resize: none;
+}
+
+.modal-content .form-group input:focus,
+.modal-content .form-group textarea:focus {
+  border-color: #005897;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-secondary {
+  padding: 8px 18px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: white;
+  color: #374151;
+}
+
+.btn-secondary:hover { background: #f3f4f6; }

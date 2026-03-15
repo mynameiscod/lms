@@ -1661,16 +1661,22 @@ export const leadApi = {
       method: 'DELETE'
     });
   },
-  changeStage: async (leadId: string, stageId: string) => {
+  changeStage: async (leadId: string, stageId: string, notInterestedReason?: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, {
       method: 'PATCH',
-      body: JSON.stringify({ stageId })
+      body: JSON.stringify({ stageId, notInterestedReason })
     });
   },
-  addActivity: async (leadId: string, data: { type: string; description: string }) => {
+  addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string }) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/activities`, {
       method: 'POST',
       body: JSON.stringify(data)
+    });
+  },
+  convertToStudent: async (leadId: string, password?: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/convert`, {
+      method: 'POST',
+      body: JSON.stringify({ password })
     });
   },
   getAnalytics: async () => {

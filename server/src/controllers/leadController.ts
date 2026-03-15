@@ -2,6 +2,8 @@ import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
+import User from '../models/User';
+import bcryptjs from 'bcryptjs';
 
 // Get all leads for tenant with filters
 export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
@@ -119,7 +121,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes } = req.body;
+    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason } = req.body;
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId },
@@ -131,7 +133,9 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(source && { source }),
         ...(assignedTo !== undefined && { assignedTo: assignedTo || null }),
         ...(nextFollowUp !== undefined && { nextFollowUp: nextFollowUp || null }),
-        ...(notes !== undefined && { notes })
+        ...(notes !== undefined && { notes }),
+        ...(interestConcerns !== undefined && { interestConcerns }),
+        ...(notInterestedReason !== undefined && { notInterestedReason })
       },
       { new: true, runValidators: true }
     )
@@ -153,7 +157,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { stageId } = req.body;
+    const { stageId, notInterestedReason } = req.body;
 
     if (!stageId) {
       return res.status(400).json({ success: false, message: 'stageId is required' });
@@ -165,6 +169,11 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       return res.status(404).json({ success: false, message: 'Stage not found' });
     }
 
+    // Enforce mandatory reason for "Not Interested"
+    if (newStage.name === 'Not Interested' && !notInterestedReason?.trim()) {
+      return res.status(400).json({ success: false, message: 'Reason is required when marking lead as Not Interested' });
+    }
+
     const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId }).populate('stageId', 'name');
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
@@ -172,6 +181,11 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
 
     const oldStageName = (lead.stageId as any)?.name || 'Unknown';
     lead.stageId = newStage._id;
+    
+    if (newStage.name === 'Not Interested') {
+      lead.notInterestedReason = notInterestedReason.trim();
+    }
+
     lead.activities.push({
       type: 'status_change',
       description: `Stage changed from "${oldStageName}" to "${newStage.name}"`,
@@ -196,7 +210,7 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
 export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { type, description } = req.body;
+    const { type, description, callOutcome } = req.body;
 
     if (!type || !description) {
       return res.status(400).json({ success: false, message: 'Activity type and description are required' });
@@ -207,16 +221,26 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       return res.status(400).json({ success: false, message: `Invalid activity type. Must be one of: ${validTypes.join(', ')}` });
     }
 
+    const validCallOutcomes = ['not_answered', 'not_connected', 'busy', 'rejected', 'connected'];
+    if (type === 'call' && callOutcome && !validCallOutcomes.includes(callOutcome)) {
+      return res.status(400).json({ success: false, message: `Invalid call outcome. Must be one of: ${validCallOutcomes.join(', ')}` });
+    }
+
+    const activityData: any = {
+      type,
+      description,
+      createdBy: req.user!.id,
+      createdAt: new Date()
+    };
+    if (type === 'call' && callOutcome) {
+      activityData.callOutcome = callOutcome;
+    }
+
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId },
       {
         $push: {
-          activities: {
-            type,
-            description,
-            createdBy: req.user!.id,
-            createdAt: new Date()
-          }
+          activities: activityData
         }
       },
       { new: true }
@@ -296,5 +320,85 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch analytics', error: error.message });
+  }
+};
+
+// Convert lead to student
+export const convertToStudent = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { leadId } = req.params;
+    const { password } = req.body;
+
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId });
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    if (lead.convertedStudentId) {
+      return res.status(400).json({ success: false, message: 'Lead has already been converted to a student' });
+    }
+
+    if (!lead.email) {
+      return res.status(400).json({ success: false, message: 'Lead must have an email to convert to student' });
+    }
+
+    // Check if user with this email already exists
+    const existingUser = await User.findOne({ email: lead.email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'A user with this email already exists' });
+    }
+
+    // Split name into first and last
+    const nameParts = lead.name.trim().split(/\s+/);
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || firstName;
+
+    // Create student user
+    const student = await User.create({
+      email: lead.email,
+      firstName,
+      lastName,
+      password: password || 'Welcome@123',
+      role: 'STUDENT',
+      tenantId: req.tenantId,
+      phone: lead.phone,
+      isActive: true,
+      profileComplete: false
+    });
+
+    // Update lead with converted student reference and move to "Converted" stage
+    const convertedStage = await LeadStage.findOne({ tenantId: req.tenantId, name: 'Converted' });
+    
+    lead.convertedStudentId = student._id;
+    if (convertedStage) {
+      const oldStage = await LeadStage.findById(lead.stageId);
+      lead.stageId = convertedStage._id;
+      lead.activities.push({
+        type: 'status_change',
+        description: `Stage changed from "${oldStage?.name || 'Unknown'}" to "Converted"`,
+        createdBy: req.user!.id as any,
+        createdAt: new Date(),
+        metadata: { from: oldStage?.name, to: 'Converted' }
+      });
+    }
+
+    lead.activities.push({
+      type: 'note',
+      description: `Converted to student: ${student.firstName} ${student.lastName} (${student.email})`,
+      createdBy: req.user!.id as any,
+      createdAt: new Date(),
+      metadata: { studentId: student._id }
+    });
+
+    await lead.save();
+
+    const populated = await Lead.findById(lead._id)
+      .populate('stageId', 'name color order')
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('createdBy', 'firstName lastName');
+
+    res.json({ success: true, message: 'Lead converted to student successfully', data: { lead: populated, student } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to convert lead', error: error.message });
   }
 };

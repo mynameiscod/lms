@@ -53,6 +53,12 @@ const LeadsPage: React.FC = () => {
     stageId: '', assignedTo: '', nextFollowUp: '', notes: ''
   });
 
+  // Not Interested reason modal
+  const [showReasonModal, setShowReasonModal] = useState(false);
+  const [pendingLeadId, setPendingLeadId] = useState('');
+  const [pendingStageId, setPendingStageId] = useState('');
+  const [notInterestedReason, setNotInterestedReason] = useState('');
+
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 3000);
@@ -155,8 +161,31 @@ const LeadsPage: React.FC = () => {
   };
 
   const handleStageChange = async (leadId: string, newStageId: string) => {
+    // Check if target is "Not Interested"
+    const targetStage = stages.find(s => s._id === newStageId);
+    if (targetStage?.name === 'Not Interested') {
+      setPendingLeadId(leadId);
+      setPendingStageId(newStageId);
+      setNotInterestedReason('');
+      setShowReasonModal(true);
+      return;
+    }
     try {
       await leadApi.changeStage(leadId, newStageId);
+      loadData();
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to change stage');
+    }
+  };
+
+  const handleConfirmNotInterested = async () => {
+    if (!notInterestedReason.trim()) {
+      showAlertMsg('error', 'Please provide a reason');
+      return;
+    }
+    try {
+      await leadApi.changeStage(pendingLeadId, pendingStageId, notInterestedReason.trim());
+      setShowReasonModal(false);
       loadData();
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to change stage');
@@ -412,6 +441,33 @@ const LeadsPage: React.FC = () => {
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn-primary" onClick={handleSave}>{editingLead ? 'Update' : 'Create'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Not Interested Reason Modal */}
+      {showReasonModal && (
+        <div className="modal-overlay" onClick={() => setShowReasonModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 420 }}>
+            <h2>Not Interested - Reason Required</h2>
+            <p style={{ color: '#6b7280', fontSize: '0.88rem', margin: '0 0 16px' }}>
+              Please provide a reason why this lead is not interested.
+            </p>
+            <div className="form-group">
+              <label>Reason *</label>
+              <textarea
+                value={notInterestedReason}
+                onChange={e => setNotInterestedReason(e.target.value)}
+                placeholder="e.g., Found another institute, budget constraints..."
+                autoFocus
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowReasonModal(false)}>Cancel</button>
+              <button className="btn-danger" style={{ padding: '8px 18px', fontSize: '0.85rem' }} onClick={handleConfirmNotInterested} disabled={!notInterestedReason.trim()}>
+                Confirm
+              </button>
             </div>
           </div>
         </div>

@@ -7,7 +7,8 @@ import {
   changeLeadStage,
   addLeadActivity,
   deleteLead,
-  getLeadAnalytics
+  getLeadAnalytics,
+  convertToStudent
 } from '../controllers/leadController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -30,5 +31,8 @@ router.patch('/:leadId/stage', authMiddleware, tenantResolver, roleGuard(['manag
 
 // Activities
 router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['manage_leads']), addLeadActivity);
+
+// Convert to student
+router.post('/:leadId/convert', authMiddleware, tenantResolver, roleGuard(['manage_leads']), convertToStudent);
 
 export default router;

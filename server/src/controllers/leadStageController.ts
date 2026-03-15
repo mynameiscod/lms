@@ -129,13 +129,16 @@ export const initializeDefaultStages = async (req: AuthenticatedRequest, res: Re
     }
 
     const defaultStages = [
-      { name: 'New', color: '#3b82f6', order: 0, isDefault: true, tenantId: req.tenantId },
-      { name: 'Contacted', color: '#8b5cf6', order: 1, isDefault: true, tenantId: req.tenantId },
-      { name: 'Interested', color: '#f59e0b', order: 2, isDefault: true, tenantId: req.tenantId },
-      { name: 'Demo Scheduled', color: '#06b6d4', order: 3, isDefault: true, tenantId: req.tenantId },
-      { name: 'Follow-up', color: '#ec4899', order: 4, isDefault: true, tenantId: req.tenantId },
-      { name: 'Converted', color: '#10b981', order: 5, isDefault: true, tenantId: req.tenantId },
-      { name: 'Not Interested', color: '#6b7280', order: 6, isDefault: true, tenantId: req.tenantId },
+      { name: 'New Lead', color: '#3b82f6', order: 0, isDefault: true, tenantId: req.tenantId },
+      { name: 'WhatsApp Sent', color: '#25d366', order: 1, isDefault: true, tenantId: req.tenantId },
+      { name: 'Call Attempted', color: '#f97316', order: 2, isDefault: true, tenantId: req.tenantId },
+      { name: 'Contacted', color: '#8b5cf6', order: 3, isDefault: true, tenantId: req.tenantId },
+      { name: 'Follow-up', color: '#f59e0b', order: 4, isDefault: true, tenantId: req.tenantId },
+      { name: 'Demo Scheduled', color: '#06b6d4', order: 5, isDefault: true, tenantId: req.tenantId },
+      { name: 'Interested', color: '#6366f1', order: 6, isDefault: true, tenantId: req.tenantId },
+      { name: 'Fee Paid', color: '#10b981', order: 7, isDefault: true, tenantId: req.tenantId },
+      { name: 'Converted', color: '#059669', order: 8, isDefault: true, tenantId: req.tenantId },
+      { name: 'Not Interested', color: '#6b7280', order: 9, isDefault: true, tenantId: req.tenantId },
     ];
 
     const stages = await LeadStage.insertMany(defaultStages);

@@ -298,7 +298,9 @@ This is an automated message from CodeBegun Learning Management System.
     startDate: Date,
     endDate: Date,
     totalTime: number,
-    totalMarks: number
+    totalMarks: number,
+    startTime?: string,
+    endTime?: string
   ): Promise<void> {
     console.log('\n📧 [EMAIL SERVICE] Quiz Notification Email Request');
     console.log('   Recipient:', email);
@@ -306,75 +308,180 @@ This is an automated message from CodeBegun Learning Management System.
     console.log('   Quiz Title:', quizTitle);
 
     const formattedStartDate = startDate.toLocaleDateString('en-IN', { 
+      weekday: 'short',
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     });
     const formattedEndDate = endDate.toLocaleDateString('en-IN', { 
+      weekday: 'short',
       year: 'numeric', 
       month: 'long', 
       day: 'numeric' 
     });
 
+    // Format time from 24h (HH:mm) to 12h (h:mm AM/PM)
+    const formatTime = (time: string | undefined): string => {
+      if (!time) return '';
+      const [hours, minutes] = time.split(':').map(Number);
+      const ampm = hours >= 12 ? 'PM' : 'AM';
+      const h = hours % 12 || 12;
+      return `${h}:${minutes.toString().padStart(2, '0')} ${ampm}`;
+    };
+
+    const formattedStartTime = formatTime(startTime);
+    const formattedEndTime = formatTime(endTime);
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+    const motivationalQuotes = [
+      'Every expert was once a beginner. You\'ve got this!',
+      'Success is the sum of small efforts repeated day in and day out.',
+      'Believe in yourself — you are more prepared than you think!',
+      'The only way to do great work is to challenge yourself. Go ace it!',
+      'Your potential is limitless. Show what you\'ve learned!'
+    ];
+    const motivation = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+
     const htmlContent = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="background: linear-gradient(135deg, #005897 0%, #0077cc 100%); color: white; padding: 2rem; border-radius: 8px 8px 0 0;">
-          <h2 style="margin: 0; font-size: 24px;">📝 New Quiz Available!</h2>
-        </div>
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin: 0; padding: 0; background-color: #f0f4f8; font-family: 'Segoe UI', Arial, sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color: #f0f4f8; padding: 24px 0;">
+    <tr><td align="center">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
         
-        <div style="background: #f9f9f9; padding: 2rem; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
-          <p style="margin-top: 0;">Hello <strong>${studentName}</strong>,</p>
-          
-          <p style="color: #666; line-height: 1.6;">
-            A new quiz has been assigned to you. Please complete it before the deadline.
+        <!-- Logo / Brand Header -->
+        <tr><td style="text-align: center; padding: 24px 0 16px;">
+          <span style="font-size: 28px; font-weight: 800; color: #005897; letter-spacing: -0.5px;">Code</span><span style="font-size: 28px; font-weight: 800; color: #f97316; letter-spacing: -0.5px;">Begun</span>
+          <p style="margin: 4px 0 0; font-size: 12px; color: #94a3b8; text-transform: uppercase; letter-spacing: 2px;">Learning Management System</p>
+        </td></tr>
+
+        <!-- Hero Banner -->
+        <tr><td>
+          <div style="background: linear-gradient(135deg, #005897 0%, #0369a1 50%, #0284c7 100%); border-radius: 16px 16px 0 0; padding: 40px 32px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 12px;">📝</div>
+            <h1 style="margin: 0; font-size: 26px; font-weight: 700; color: #ffffff; line-height: 1.3;">New Quiz Assigned!</h1>
+            <p style="margin: 8px 0 0; font-size: 15px; color: #bae6fd; font-weight: 400;">Time to showcase your knowledge</p>
+          </div>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="background: #ffffff; padding: 32px; border-left: 1px solid #e2e8f0; border-right: 1px solid #e2e8f0;">
+          <p style="margin: 0 0 16px; font-size: 16px; color: #334155;">Hi <strong style="color: #0f172a;">${studentName}</strong>,</p>
+          <p style="margin: 0 0 24px; font-size: 15px; color: #475569; line-height: 1.7;">
+            A new quiz has been assigned to you. Review the details below and make sure to attempt it within the scheduled window.
           </p>
 
-          <div style="background: white; border-left: 4px solid #005897; padding: 1rem; margin: 1.5rem 0; border-radius: 4px;">
-            <h3 style="margin: 0 0 1rem 0; color: #005897;">${quizTitle}</h3>
-            ${quizDescription ? `<p style="margin: 0.5rem 0; color: #666;">${quizDescription}</p>` : ''}
-            <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 1rem 0;">
-            <p style="margin: 0.5rem 0;"><strong>📅 Available From:</strong> ${formattedStartDate}</p>
-            <p style="margin: 0.5rem 0;"><strong>⏰ Deadline:</strong> ${formattedEndDate}</p>
-            <p style="margin: 0.5rem 0;"><strong>⏱️ Duration:</strong> ${totalTime} minutes</p>
-            <p style="margin: 0.5rem 0;"><strong>📊 Total Marks:</strong> ${totalMarks}</p>
+          <!-- Quiz Details Card -->
+          <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; margin-bottom: 24px;">
+            <div style="background: linear-gradient(90deg, #005897, #0284c7); padding: 16px 20px;">
+              <h2 style="margin: 0; font-size: 18px; font-weight: 700; color: #ffffff;">${quizTitle}</h2>
+              ${quizDescription ? `<p style="margin: 6px 0 0; font-size: 13px; color: #bae6fd; line-height: 1.5;">${quizDescription}</p>` : ''}
+            </div>
+            <div style="padding: 20px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" style="padding: 8px 0; vertical-align: top;">
+                    <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600;">Start Date</p>
+                    <p style="margin: 4px 0 0; font-size: 14px; color: #1e293b; font-weight: 600;">📅 ${formattedStartDate}</p>
+                    ${formattedStartTime ? `<p style="margin: 2px 0 0; font-size: 13px; color: #0284c7; font-weight: 600;">🕐 ${formattedStartTime}</p>` : ''}
+                  </td>
+                  <td width="50%" style="padding: 8px 0; vertical-align: top;">
+                    <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600;">End Date</p>
+                    <p style="margin: 4px 0 0; font-size: 14px; color: #1e293b; font-weight: 600;">📅 ${formattedEndDate}</p>
+                    ${formattedEndTime ? `<p style="margin: 2px 0 0; font-size: 13px; color: #dc2626; font-weight: 600;">🕐 ${formattedEndTime}</p>` : ''}
+                  </td>
+                </tr>
+              </table>
+
+              <div style="border-top: 1px solid #e2e8f0; margin: 12px 0;"></div>
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td width="50%" style="padding: 8px 0;">
+                    <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600;">Duration</p>
+                    <p style="margin: 4px 0 0; font-size: 14px; color: #1e293b; font-weight: 600;">⏱️ ${totalTime} minutes</p>
+                  </td>
+                  <td width="50%" style="padding: 8px 0;">
+                    <p style="margin: 0; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; font-weight: 600;">Total Marks</p>
+                    <p style="margin: 4px 0 0; font-size: 14px; color: #1e293b; font-weight: 600;">🏆 ${totalMarks} marks</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
           </div>
 
-          <p style="color: #666; line-height: 1.6;">
-            Log in to your account to start the quiz. Make sure to complete it before the deadline!
-          </p>
+          <!-- Motivation Box -->
+          <div style="background: linear-gradient(135deg, #fef3c7, #fff7ed); border-left: 4px solid #f59e0b; border-radius: 0 8px 8px 0; padding: 16px 20px; margin-bottom: 24px;">
+            <p style="margin: 0; font-size: 14px; color: #92400e; line-height: 1.6; font-style: italic;">💪 "${motivation}"</p>
+          </div>
 
-          <div style="text-align: center; margin: 2rem 0;">
-            <a href="${process.env.FRONTEND_URL || 'http://localhost:3000'}/quizzes" 
-               style="background: #005897; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
-              Go to Quizzes
+          <!-- CTA Button -->
+          <div style="text-align: center; margin: 28px 0;">
+            <a href="${frontendUrl}/quizzes" 
+               style="display: inline-block; background: linear-gradient(135deg, #005897, #0284c7); color: #ffffff; padding: 14px 40px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 15px; letter-spacing: 0.3px; box-shadow: 0 4px 14px rgba(0,88,151,0.3);">
+              Start Quiz →
             </a>
           </div>
 
-          <p style="margin-bottom: 0; color: #999; font-size: 12px; border-top: 1px solid #e0e0e0; padding-top: 1rem;">
-            This is an automated message from CodeBegun Learning Management System. Please do not reply to this email.
+          <!-- Tips -->
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 16px 20px; margin-bottom: 8px;">
+            <p style="margin: 0 0 8px; font-size: 13px; font-weight: 700; color: #166534;">💡 Quick Tips</p>
+            <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #15803d; line-height: 1.8;">
+              <li>Find a quiet place with a stable internet connection</li>
+              <li>Read each question carefully before answering</li>
+              <li>Keep an eye on the timer and manage your time wisely</li>
+              <li>Don't forget to submit before the deadline!</li>
+            </ul>
+          </div>
+        </td></tr>
+
+        <!-- Footer -->
+        <tr><td style="background: #1e293b; border-radius: 0 0 16px 16px; padding: 24px 32px; text-align: center;">
+          <p style="margin: 0 0 4px; font-size: 14px; font-weight: 700;">
+            <span style="color: #60a5fa;">Code</span><span style="color: #fb923c;">Begun</span>
           </p>
-        </div>
-      </div>
+          <p style="margin: 0 0 12px; font-size: 11px; color: #64748b;">Empowering learners, one quiz at a time.</p>
+          <p style="margin: 0; font-size: 11px; color: #475569;">
+            This is an automated notification. Please do not reply to this email.
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
     `;
 
     const plainTextContent = `
-New Quiz Available!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  CodeBegun - New Quiz Assigned!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-Hello ${studentName},
+Hi ${studentName},
 
-A new quiz has been assigned to you. Please complete it before the deadline.
+A new quiz has been assigned to you. Here are the details:
 
-Quiz Details:
-Title: ${quizTitle}
-${quizDescription ? `Description: ${quizDescription}` : ''}
-Available From: ${formattedStartDate}
-Deadline: ${formattedEndDate}
-Duration: ${totalTime} minutes
-Total Marks: ${totalMarks}
+📝 QUIZ: ${quizTitle}
+${quizDescription ? `📖 Description: ${quizDescription}\n` : ''}
+📅 Start: ${formattedStartDate}${formattedStartTime ? ` at ${formattedStartTime}` : ''}
+📅 End:   ${formattedEndDate}${formattedEndTime ? ` at ${formattedEndTime}` : ''}
+⏱️  Duration: ${totalTime} minutes
+🏆 Total Marks: ${totalMarks}
 
-Log in to your account to start the quiz. Make sure to complete it before the deadline!
+💪 "${motivation}"
 
-This is an automated message from CodeBegun Learning Management System.
+👉 Login to take the quiz: ${frontendUrl}/quizzes
+
+💡 Tips:
+  • Find a quiet place with stable internet
+  • Read each question carefully
+  • Manage your time wisely
+  • Submit before the deadline!
+
+— CodeBegun LMS
     `;
 
     const subject = `📝 New Quiz: ${quizTitle} - Action Required`;

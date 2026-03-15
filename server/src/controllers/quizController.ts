@@ -115,7 +115,9 @@ export const createQuiz = async (req: Request, res: Response) => {
             new Date(startDate),
             new Date(endDate),
             totalTime,
-            totalMarks
+            totalMarks,
+            startTime,
+            endTime
           );
         } catch (emailErr) {
           console.error(`Failed to send email to ${student.email}:`, emailErr);

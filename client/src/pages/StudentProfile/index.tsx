@@ -35,6 +35,7 @@ const StudentProfilePage: React.FC = () => {
     linkedin: { connected: false } 
   });
   const [connectingOAuth, setConnectingOAuth] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const [profile, setProfile] = useState<StudentProfileData>({
     personalInfo: {
@@ -290,11 +291,59 @@ const StudentProfilePage: React.FC = () => {
     }
   };
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < totalSteps) {
+      const errors = validateStep(currentStep);
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        setError('Please fill in all required fields before proceeding.');
+        window.scrollTo(0, 0);
+        return;
+      }
+      setValidationErrors({});
+      setError(null);
+      // Auto-save before moving to next step
+      await handleSave();
       setCurrentStep(currentStep + 1);
       window.scrollTo(0, 0);
     }
+  };
+
+  const validateStep = (step: number): Record<string, string> => {
+    const errors: Record<string, string> = {};
+    switch (step) {
+      case 1: {
+        const p = profile.personalInfo;
+        if (!p?.firstName?.trim()) errors['personalInfo.firstName'] = 'First name is required';
+        if (!p?.surname?.trim()) errors['personalInfo.surname'] = 'Surname is required';
+        if (!p?.mobileNumber?.trim()) errors['personalInfo.mobileNumber'] = 'Mobile number is required';
+        if (!p?.gender) errors['personalInfo.gender'] = 'Gender is required';
+        if (!p?.dateOfBirth) errors['personalInfo.dateOfBirth'] = 'Date of birth is required';
+        if (!p?.country?.trim()) errors['personalInfo.country'] = 'Country is required';
+        if (!p?.state?.trim()) errors['personalInfo.state'] = 'State is required';
+        if (!p?.city?.trim()) errors['personalInfo.city'] = 'City is required';
+        break;
+      }
+      case 3: {
+        const e = profile.education;
+        if (!e?.currentStatus) errors['education.currentStatus'] = 'Current status is required';
+        if (!e?.highestQualification) errors['education.highestQualification'] = 'Highest qualification is required';
+        if (!e?.tenthClass?.schoolName?.trim()) errors['education.tenthClass.schoolName'] = 'School name is required';
+        break;
+      }
+      case 4: {
+        if (!profile.technicalBackground?.experienceLevel) errors['technicalBackground.experienceLevel'] = 'Experience level is required';
+        break;
+      }
+      case 5: {
+        const c = profile.courseInterest;
+        if (!c?.interestedCourse) errors['courseInterest.interestedCourse'] = 'Interested course is required';
+        if (!c?.preferredLearningMode) errors['courseInterest.preferredLearningMode'] = 'Learning mode is required';
+        if (!c?.preferredBatchTime) errors['courseInterest.preferredBatchTime'] = 'Batch time is required';
+        break;
+      }
+    }
+    return errors;
   };
 
   const handlePrevious = () => {
@@ -391,7 +440,14 @@ const StudentProfilePage: React.FC = () => {
           <div 
             key={step.num}
             className={`step-indicator ${currentStep === step.num ? 'active' : ''} ${currentStep > step.num ? 'completed' : ''}`}
-            onClick={() => setCurrentStep(step.num)}
+            onClick={() => {
+              if (step.num <= currentStep) {
+                setValidationErrors({});
+                setError(null);
+                setCurrentStep(step.num);
+              }
+            }}
+            style={{ cursor: step.num <= currentStep ? 'pointer' : 'default', opacity: step.num > currentStep ? 0.6 : 1 }}
           >
             <div className="step-number">{currentStep > step.num ? '✓' : step.num}</div>
             <span className="step-label">{step.label}</span>
@@ -440,7 +496,7 @@ const StudentProfilePage: React.FC = () => {
 
             {/* Row 1: First Name, Middle Name, Surname */}
             <div className="form-row three-columns">
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.firstName'] ? 'has-error' : ''}`}>
                 <label>First Name <span className="required">*</span></label>
                 <input
                   type="text"
@@ -449,6 +505,7 @@ const StudentProfilePage: React.FC = () => {
                   placeholder="First Name"
                   required
                 />
+                {validationErrors['personalInfo.firstName'] && <small className="error-text">{validationErrors['personalInfo.firstName']}</small>}
               </div>
 
               <div className="form-group">
@@ -461,7 +518,7 @@ const StudentProfilePage: React.FC = () => {
                 />
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.surname'] ? 'has-error' : ''}`}>
                 <label>Surname <span className="required">*</span></label>
                 <input
                   type="text"
@@ -470,6 +527,7 @@ const StudentProfilePage: React.FC = () => {
                   placeholder="Surname"
                   required
                 />
+                {validationErrors['personalInfo.surname'] && <small className="error-text">{validationErrors['personalInfo.surname']}</small>}
               </div>
             </div>
 
@@ -487,7 +545,7 @@ const StudentProfilePage: React.FC = () => {
                 <small className="field-hint">Email cannot be changed</small>
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.mobileNumber'] ? 'has-error' : ''}`}>
                 <label>Mobile Number <span className="required">*</span></label>
                 <input
                   type="tel"
@@ -496,12 +554,13 @@ const StudentProfilePage: React.FC = () => {
                   placeholder="+91 9876543210"
                   required
                 />
+                {validationErrors['personalInfo.mobileNumber'] && <small className="error-text">{validationErrors['personalInfo.mobileNumber']}</small>}
               </div>
             </div>
 
             {/* Row 3: Gender, Date of Birth */}
             <div className="form-row two-columns">
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.gender'] ? 'has-error' : ''}`}>
                 <label>Gender <span className="required">*</span></label>
                 <select
                   value={profile.personalInfo?.gender || ''}
@@ -514,9 +573,10 @@ const StudentProfilePage: React.FC = () => {
                   <option value="Other">Other</option>
                   <option value="Prefer not to say">Prefer not to say</option>
                 </select>
+                {validationErrors['personalInfo.gender'] && <small className="error-text">{validationErrors['personalInfo.gender']}</small>}
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.dateOfBirth'] ? 'has-error' : ''}`}>
                 <label>Date of Birth <span className="required">*</span></label>
                 <input
                   type="date"
@@ -524,12 +584,13 @@ const StudentProfilePage: React.FC = () => {
                   onChange={e => handleInputChange('personalInfo', 'dateOfBirth', e.target.value)}
                   required
                 />
+                {validationErrors['personalInfo.dateOfBirth'] && <small className="error-text">{validationErrors['personalInfo.dateOfBirth']}</small>}
               </div>
             </div>
 
             {/* Row 4: Country, State, City */}
             <div className="form-row three-columns">
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.country'] ? 'has-error' : ''}`}>
                 <label>Country <span className="required">*</span></label>
                 <select
                   value={profile.personalInfo?.country || 'India'}
@@ -545,7 +606,7 @@ const StudentProfilePage: React.FC = () => {
                 </select>
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.state'] ? 'has-error' : ''}`}>
                 <label>State <span className="required">*</span></label>
                 {STATES_BY_COUNTRY[profile.personalInfo?.country || 'India'] ? (
                   <select
@@ -569,7 +630,7 @@ const StudentProfilePage: React.FC = () => {
                 )}
               </div>
 
-              <div className="form-group">
+              <div className={`form-group ${validationErrors['personalInfo.city'] ? 'has-error' : ''}`}>
                 <label>City <span className="required">*</span></label>
                 <input
                   type="text"
@@ -578,6 +639,7 @@ const StudentProfilePage: React.FC = () => {
                   placeholder="Enter your city"
                   required
                 />
+                {validationErrors['personalInfo.city'] && <small className="error-text">{validationErrors['personalInfo.city']}</small>}
               </div>
             </div>
 
@@ -755,7 +817,7 @@ const StudentProfilePage: React.FC = () => {
             <p className="step-description">Help us understand your academic background</p>
 
             {/* Current Status */}
-            <div className="form-section">
+            <div className={`form-section ${validationErrors['education.currentStatus'] ? 'has-error' : ''}`}>
               <label>Current Status <span className="required">*</span></label>
               <div className="status-cards small">
                 {[
@@ -772,13 +834,14 @@ const StudentProfilePage: React.FC = () => {
                   </div>
                 ))}
               </div>
+              {validationErrors['education.currentStatus'] && <small className="error-text">{validationErrors['education.currentStatus']}</small>}
             </div>
 
             {/* Highest Qualification & Degree Details */}
             <div className="form-section education-section">
               <h3>Education Details</h3>
               <div className="form-grid">
-                <div className="form-group">
+                <div className={`form-group ${validationErrors['education.highestQualification'] ? 'has-error' : ''}`}>
                   <label>Highest Qualification <span className="required">*</span></label>
                   <select
                     value={profile.education?.highestQualification || ''}
@@ -920,7 +983,7 @@ const StudentProfilePage: React.FC = () => {
             <div className="form-section education-section">
               <h3>10th Class (SSC) Details</h3>
               <div className="form-grid">
-                <div className="form-group">
+                <div className={`form-group ${validationErrors['education.tenthClass.schoolName'] ? 'has-error' : ''}`}>
                   <label>School Name <span className="required">*</span></label>
                   <input
                     type="text"
@@ -929,6 +992,7 @@ const StudentProfilePage: React.FC = () => {
                     placeholder="e.g., Kendriya Vidyalaya"
                     required
                   />
+                  {validationErrors['education.tenthClass.schoolName'] && <small className="error-text">{validationErrors['education.tenthClass.schoolName']}</small>}
                 </div>
 
                 <div className="form-group">
@@ -1002,7 +1066,7 @@ const StudentProfilePage: React.FC = () => {
             </div>
 
             <div className="form-grid">
-              <div className="form-group full-width">
+              <div className={`form-group full-width ${validationErrors['technicalBackground.experienceLevel'] ? 'has-error' : ''}`}>
                 <label>Experience Level <span className="required">*</span></label>
                 <div className="experience-cards small">
                   {[
@@ -1019,6 +1083,7 @@ const StudentProfilePage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                {validationErrors['technicalBackground.experienceLevel'] && <small className="error-text">{validationErrors['technicalBackground.experienceLevel']}</small>}
               </div>
 
               <div className="form-group full-width">
@@ -1042,7 +1107,7 @@ const StudentProfilePage: React.FC = () => {
             <p className="step-description">What would you like to learn at CodeBegun?</p>
 
             <div className="form-grid">
-              <div className="form-group full-width">
+              <div className={`form-group full-width ${validationErrors['courseInterest.interestedCourse'] ? 'has-error' : ''}`}>
                 <label>Interested Course <span className="required">*</span></label>
                 <div className="course-cards">
                   {INTERESTED_COURSES.map(course => (
@@ -1055,9 +1120,10 @@ const StudentProfilePage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                {validationErrors['courseInterest.interestedCourse'] && <small className="error-text">{validationErrors['courseInterest.interestedCourse']}</small>}
               </div>
 
-              <div className="form-group full-width">
+              <div className={`form-group full-width ${validationErrors['courseInterest.preferredLearningMode'] ? 'has-error' : ''}`}>
                 <label>Preferred Learning Mode <span className="required">*</span></label>
                 <div className="mode-cards small">
                   {[
@@ -1074,9 +1140,10 @@ const StudentProfilePage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                {validationErrors['courseInterest.preferredLearningMode'] && <small className="error-text">{validationErrors['courseInterest.preferredLearningMode']}</small>}
               </div>
 
-              <div className="form-group full-width">
+              <div className={`form-group full-width ${validationErrors['courseInterest.preferredBatchTime'] ? 'has-error' : ''}`}>
                 <label>Preferred Batch Time <span className="required">*</span></label>
                 <div className="time-cards small">
                   {[
@@ -1094,6 +1161,7 @@ const StudentProfilePage: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                {validationErrors['courseInterest.preferredBatchTime'] && <small className="error-text">{validationErrors['courseInterest.preferredBatchTime']}</small>}
               </div>
             </div>
           </div>

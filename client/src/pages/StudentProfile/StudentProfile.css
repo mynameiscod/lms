@@ -221,6 +221,24 @@
   color: #ef4444;
 }
 
+.has-error input,
+.has-error select,
+.has-error textarea {
+  border-color: #ef4444 !important;
+  background-color: #fef2f2;
+}
+
+.has-error label {
+  color: #ef4444;
+}
+
+.error-text {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  display: block;
+}
+
 .form-group input,
 .form-group select,
 .form-group textarea {

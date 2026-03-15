@@ -57,11 +57,11 @@ const QuizTakingPage: React.FC = () => {
   }, [quiz?.tabSwitchWarnings, quiz?.warningCount]);
 
   const handleFullscreenChange = useCallback(() => {
-    // Re-enforce fullscreen if user exits it
-    if (quiz?.requireFullScreen && !document.fullscreenElement && !showInstructions) {
+    // Re-enforce fullscreen if user exits it during quiz
+    if (quiz?.requireFullScreen && !document.fullscreenElement && attempt) {
       requestFullscreen();
     }
-  }, [quiz?.requireFullScreen, showInstructions]);
+  }, [quiz?.requireFullScreen, attempt]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setupEventListeners = useCallback(() => {
@@ -115,11 +115,37 @@ const QuizTakingPage: React.FC = () => {
   const handleStartQuiz = useCallback(async () => {
     try {
       setStartingQuiz(true);
+      setError('');
+      setMediaError('');
       if (!quizId) return;
 
-      // Fetch questions
-      const questionsRes = await quizApi.getQuestionsWithAnswers(quizId);
-      setQuestions(questionsRes.data || questionsRes);
+      // Request camera/microphone BEFORE starting attempt (to avoid wasting attempts)
+      if (quiz?.enableCamera || quiz?.enableMicrophone) {
+        try {
+          const constraints: MediaStreamConstraints = {
+            video: quiz.enableCamera ? { width: 320, height: 240, facingMode: 'user' } : false,
+            audio: quiz.enableMicrophone ? true : false,
+          };
+          const stream = await navigator.mediaDevices.getUserMedia(constraints);
+          mediaStreamRef.current = stream;
+        } catch (mediaErr: any) {
+          const device = quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone';
+          setError(`Could not access ${device}. Please grant permission in your browser and try again.`);
+          setStartingQuiz(false);
+          return;
+        }
+      }
+
+      // Fetch questions (without answers for security)
+      const questionsRes = await quizApi.getQuestionsWithoutAnswers(quizId);
+      const loadedQuestions = questionsRes.data || questionsRes;
+      setQuestions(loadedQuestions);
+
+      if (!loadedQuestions || loadedQuestions.length === 0) {
+        setError('This quiz has no questions. Please contact your instructor.');
+        setStartingQuiz(false);
+        return;
+      }
 
       // Start attempt
       const attemptRes = await quizApi.startAttempt(quizId);
@@ -133,21 +159,6 @@ const QuizTakingPage: React.FC = () => {
       // Require fullscreen if needed
       if (quiz?.requireFullScreen && !document.fullscreenElement) {
         requestFullscreen();
-      }
-
-      // Request camera/microphone if needed
-      if (quiz?.enableCamera || quiz?.enableMicrophone) {
-        try {
-          const constraints: MediaStreamConstraints = {
-            video: quiz.enableCamera ? { width: 320, height: 240, facingMode: 'user' } : false,
-            audio: quiz.enableMicrophone ? true : false,
-          };
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          mediaStreamRef.current = stream;
-        } catch (mediaErr: any) {
-          setMediaError(`Could not access ${quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone'}. Please grant permission and try again.`);
-          return;
-        }
       }
 
       // Show quiz (hide instructions)
@@ -300,8 +311,8 @@ const QuizTakingPage: React.FC = () => {
 
   if (loading) return <Spinner fullScreen />;
   
-  // If there's an error (like already attempted), show error with back button
-  if (error) {
+  // If there's a fatal error before quiz loads (like quiz not found), show error page
+  if (error && !quiz) {
     return (
       <div className="quiz-error-page">
         <div className="error-container">
@@ -328,6 +339,9 @@ const QuizTakingPage: React.FC = () => {
     return (
       <div className="quiz-instructions-page">
         <div className="instructions-container">
+          {error && (
+            <Alert type="error" message={error} onClose={() => setError('')} />
+          )}
           <div className="instructions-header">
             <h1>{quiz.title}</h1>
             {quiz.description && <p className="quiz-description">{quiz.description}</p>}

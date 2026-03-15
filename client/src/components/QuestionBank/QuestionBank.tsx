@@ -174,6 +174,35 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     }
   };
 
+  // Parse a CSV line handling quoted fields
+  const parseCSVLine = (line: string): string[] => {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"' && line[i + 1] === '"') { current += '"'; i++; }
+        else if (ch === '"') { inQuotes = false; }
+        else { current += ch; }
+      } else {
+        if (ch === '"') { inQuotes = true; }
+        else if (ch === ',') { result.push(current.trim()); current = ''; }
+        else { current += ch; }
+      }
+    }
+    result.push(current.trim());
+    return result;
+  };
+
+  // Normalize difficulty value to valid enum
+  const normalizeDifficulty = (val: string): 'easy' | 'medium' | 'hard' => {
+    const v = (val || '').toString().trim().toLowerCase();
+    if (v === 'easy' || v === '1' || v === 'e') return 'easy';
+    if (v === 'hard' || v === '3' || v === 'h') return 'hard';
+    return 'medium'; // default for 'medium', '2', 'm', or anything else
+  };
+
   // Handle CSV upload
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -184,25 +213,32 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
       setError('');
 
       const text = await file.text();
-      const lines = text.split('\n');
-      const headers = lines[0].split(',');
+      const lines = text.split(/\r?\n/);
+      const headers = parseCSVLine(lines[0]);
 
       const uploadedQuestions = [];
+      const errors: string[] = [];
 
       for (let i = 1; i < lines.length; i++) {
         if (!lines[i].trim()) continue;
 
-        const values = lines[i].split(',');
+        const values = parseCSVLine(lines[i]);
         const questionData: any = {};
 
         headers.forEach((header, index) => {
-          questionData[header.trim()] = values[index]?.trim();
+          questionData[header.trim()] = values[index] || '';
         });
+
+        const questionText = questionData.Question || questionData.question || '';
+        if (!questionText) {
+          errors.push(`Row ${i + 1}: Empty question, skipped`);
+          continue;
+        }
 
         // Convert to the format expected by the API
         const newQuestion = {
-          question: questionData.Question || '',
-          type: 'mcq_single',
+          question: questionText,
+          type: 'mcq_single' as const,
           options: [
             questionData['Option A'],
             questionData['Option B'],
@@ -210,26 +246,31 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
             questionData['Option D']
           ].filter(Boolean),
           correctAnswers: [questionData['Correct Answer'] || '0'],
-          marks: parseInt(questionData.Marks) || 1,
-          difficultyLevel: questionData.Difficulty || 'medium',
-          tags: questionData.Tags ? questionData.Tags.split(';') : [],
+          marks: parseInt(questionData.Marks || questionData.marks) || 1,
+          difficultyLevel: normalizeDifficulty(questionData.Difficulty || questionData.difficulty),
+          tags: (questionData.Tags || questionData.tags || '').split(';').map((t: string) => t.trim()).filter(Boolean),
           source: 'csv'
         };
 
-        if (newQuestion.question) {
-          uploadedQuestions.push(newQuestion);
+        uploadedQuestions.push(newQuestion);
+      }
+
+      let imported = 0;
+      for (const q of uploadedQuestions) {
+        try {
+          const created = await quizApi.createQuestionBankQuestion(q);
+          setQuestions(prev => [created, ...prev]);
+          imported++;
+        } catch (err: any) {
+          errors.push(`"${q.question.substring(0, 40)}...": ${err.message || 'Failed'}`);
         }
       }
 
-      // Bulk create questions
-      for (const q of uploadedQuestions) {
-        const created = await quizApi.createQuestionBankQuestion(q);
-        setQuestions(prev => [created, ...prev]);
-      }
-
-      setFilteredQuestions(questions);
-      setSuccessMessage(`${uploadedQuestions.length} questions imported successfully!`);
-      setTimeout(() => setSuccessMessage(''), 3000);
+      await fetchQuestionBank();
+      const msg = `${imported} of ${uploadedQuestions.length} questions imported.`;
+      setSuccessMessage(errors.length ? `${msg} ${errors.length} failed.` : msg);
+      if (errors.length) setError(errors.join('\n'));
+      setTimeout(() => setSuccessMessage(''), 5000);
     } catch (err: any) {
       setError(err.message || 'Failed to upload CSV');
     } finally {
@@ -241,7 +282,9 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
   // Download template CSV
   const handleDownloadTemplate = () => {
     const csvContent = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Difficulty,Marks,Tags\n' +
-      'What is 2+2?,3,4,5,6,1,easy,1,math;basic\n';
+      '"What is 2+2?",3,4,5,6,1,easy,1,math;basic\n' +
+      '"Which keyword is used to create a class in Java?",class,Class,new,create,0,medium,2,java;oop\n' +
+      '"What is the time complexity of binary search?","O(n)","O(log n)","O(n^2)","O(1)",1,hard,3,algorithms;search\n';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

@@ -91,17 +91,19 @@
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  background: #005897;
-  color: white;
+  background: #f0f6fc;
+  color: #005897;
   text-decoration: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 600;
   transition: all 0.2s ease;
+  border: 1px solid #d0e3f3;
 }
 
 .action-link:hover {
-  background: #003d6b;
+  background: #005897;
+  color: white;
   transform: translateX(2px);
 }
 

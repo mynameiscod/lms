@@ -9,6 +9,9 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
+// Admin stats
+router.get('/admin-stats', dashboardController.getAdminStats);
+
 // Student dashboard
 router.get('/student', dashboardController.getStudentDashboard);
 

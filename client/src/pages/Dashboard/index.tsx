@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { Spinner } from '../../components/common';
-import { userApi, courseApi, attendanceApi, batchApi, dashboardApi } from '../../api';
-import { contentAPI } from '../../api/contentAPI';
+import { attendanceApi, dashboardApi } from '../../api';
 import AttendanceCard from '../../components/dashboard/AttendanceCard';
 import './DashboardPage.css';
 
@@ -137,23 +136,14 @@ const DashboardPage: React.FC = () => {
   // Fetch admin stats
   const fetchAdminStats = async () => {
     try {
-      const [usersRes, coursesRes, contentRes] = await Promise.all([
-        userApi.getUsers().catch(() => ({ data: [] })),
-        courseApi.getCourses().catch(() => ({ data: [] })),
-        contentAPI.getAllContent(1, 1000).catch(() => ({ data: { content: [] } }))
-      ]);
-
-      const allUsers = usersRes.data || [];
-      const students = allUsers.filter((u: any) => u.role === 'STUDENT');
-      const totalStudents = students.length;
-
-      const allCourses = coursesRes.data || [];
-      const activeCourses = allCourses.filter((c: any) => c.isActive !== false).length;
-
-      const contentData = contentRes.data?.content || [];
-      const totalContent = contentData.length;
-
-      setStats({ totalStudents, activeCourses, totalContent });
+      const res = await dashboardApi.getAdminStats();
+      if (res.success && res.data) {
+        setStats({
+          totalStudents: res.data.totalStudents,
+          activeCourses: res.data.activeCourses,
+          totalContent: res.data.totalContent,
+        });
+      }
     } catch (error) {
       console.error('Error fetching admin stats:', error);
     }

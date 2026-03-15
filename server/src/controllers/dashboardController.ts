@@ -8,6 +8,8 @@ import Course from '../models/Course';
 import Chapter from '../models/Chapter';
 import Enrollment from '../models/Enrollment';
 import StudentProgress from '../models/StudentProgress';
+import User from '../models/User';
+import Content from '../models/Content';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -219,6 +221,33 @@ class DashboardController {
       });
     }
   };
-}
+  // Get admin dashboard stats
+  getAdminStats = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) {
+        return res.status(401).json({ success: false, message: 'Unauthorized' });
+      }
+
+      const tenantObjectId = new Types.ObjectId(tenantId);
+
+      const [totalStudents, activeCourses, totalContent] = await Promise.all([
+        User.countDocuments({ tenantId: tenantObjectId, role: 'STUDENT', isActive: true }),
+        Course.countDocuments({ tenantId: tenantObjectId, isActive: true }),
+        Content.countDocuments({ tenant: tenantObjectId })
+      ]);
+
+      res.json({
+        success: true,
+        data: { totalStudents, activeCourses, totalContent }
+      });
+    } catch (error) {
+      console.error('Get admin stats error:', error);
+      res.status(500).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to load admin stats'
+      });
+    }
+  };}
 
 export default new DashboardController();

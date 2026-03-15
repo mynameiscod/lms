@@ -1438,6 +1438,13 @@ export const progressApi = {
 
 // Dashboard API
 export const dashboardApi = {
+  // Get admin dashboard stats
+  getAdminStats: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/dashboard/admin-stats`, {
+      method: 'GET'
+    });
+  },
+
   // Get student dashboard data
   getStudentDashboard: async () => {
     return authenticatedFetch(`${API_BASE_URL}/dashboard/student`, {

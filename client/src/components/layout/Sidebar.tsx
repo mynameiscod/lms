@@ -19,7 +19,8 @@ const Sidebar: React.FC = () => {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
     quizzes: false,
-    assignments: false
+    assignments: false,
+    leads: false
   });
   const location = useLocation();
   const { user } = useAuth();
@@ -91,6 +92,16 @@ const Sidebar: React.FC = () => {
       submenu: [
         { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['take_interviews'] },
         { label: 'Assign to Students', path: '/mock-interviews/assign', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_interviews'] },
+      ]
+    },
+    {
+      label: 'Leads',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
+      icon: '🎯',
+      permissions: ['manage_leads', 'view_leads'],
+      submenu: [
+        { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_leads'] },
+        { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
       ]
     },
   ];

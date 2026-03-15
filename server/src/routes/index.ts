@@ -22,6 +22,8 @@ import interviewQuestionRoutes from './interviewQuestionRoutes';
 import mockInterviewRoutes from './mockInterviewRoutes';
 import topicRoutes from './topicRoutes';
 import subTopicRoutes from './subTopicRoutes';
+import leadRoutes from './leadRoutes';
+import leadStageRoutes from './leadStageRoutes';
 
 const router = express.Router();
 
@@ -48,5 +50,7 @@ router.use('/interview-questions', interviewQuestionRoutes);
 router.use('/mock-interviews', mockInterviewRoutes);
 router.use('/topics', topicRoutes);
 router.use('/sub-topics', subTopicRoutes);
+router.use('/leads', leadRoutes);
+router.use('/lead-stages', leadStageRoutes);
 
 export default router;

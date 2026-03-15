@@ -1592,3 +1592,88 @@ export const interviewQuestionApi = {
     });
   },
 };
+
+// Lead Stage API
+export const leadStageApi = {
+  getStages: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-stages`);
+  },
+  createStage: async (data: { name: string; color: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-stages`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  updateStage: async (stageId: string, data: { name?: string; color?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-stages/${stageId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  deleteStage: async (stageId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-stages/${stageId}`, {
+      method: 'DELETE'
+    });
+  },
+  reorderStages: async (stageIds: string[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-stages/reorder/all`, {
+      method: 'PUT',
+      body: JSON.stringify({ stageIds })
+    });
+  },
+  initializeDefaults: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-stages/initialize`, {
+      method: 'POST'
+    });
+  }
+};
+
+// Lead API
+export const leadApi = {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.stageId) params.append('stageId', filters.stageId);
+    if (filters?.source) params.append('source', filters.source);
+    if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('limit', String(filters.limit));
+    const q = params.toString();
+    return authenticatedFetch(`${API_BASE_URL}/leads${q ? `?${q}` : ''}`);
+  },
+  getLeadById: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`);
+  },
+  createLead: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  updateLead: async (leadId: string, data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  deleteLead: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`, {
+      method: 'DELETE'
+    });
+  },
+  changeStage: async (leadId: string, stageId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/stage`, {
+      method: 'PATCH',
+      body: JSON.stringify({ stageId })
+    });
+  },
+  addActivity: async (leadId: string, data: { type: string; description: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/activities`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  getAnalytics: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/analytics`);
+  }
+};

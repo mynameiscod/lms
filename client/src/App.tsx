@@ -58,6 +58,9 @@ import {
 } from './pages/assignments';
 import AssignmentReports from './pages/AssignmentReports';  
 import StudentFeaturesPage from './pages/StudentFeatures';
+import LeadsPage from './pages/Leads';
+import LeadDetailPage from './pages/LeadDetail';
+import LeadStagesPage from './pages/LeadStages';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -69,10 +72,10 @@ interface ProtectedRouteProps {
 // Used to grant custom role users access to routes they have permissions for
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
-  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
-  'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses'],
+  'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'manage_leads'],
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews'],
 };
 
@@ -579,6 +582,38 @@ const AppRoutes: React.FC = () => {
 
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<NotFoundPage />} />
+
+      {/* Lead Management */}
+      <Route
+        path="/leads"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leads/:leadId"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-stages"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadStagesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 };

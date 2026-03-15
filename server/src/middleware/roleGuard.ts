@@ -94,6 +94,13 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_billing', label: 'Manage Billing (Super Admin)' },
     ]
   },
+  leads: {
+    label: 'Lead Management',
+    permissions: [
+      { key: 'manage_leads', label: 'Manage Leads (Create, Edit, Delete, Stages)' },
+      { key: 'view_leads', label: 'View Leads' },
+    ]
+  },
 };
 
 // Flatten all permission keys
@@ -125,6 +132,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_reports', 'view_analytics', 'view_tenant_analytics',
     // Admin
     'manage_tenant', 'manage_tenant_settings',
+    // Leads
+    'manage_leads', 'view_leads',
   ],
   INSTRUCTOR: [
     // Courses

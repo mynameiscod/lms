@@ -24,15 +24,23 @@ const QuizTakingPage: React.FC = () => {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
   const preventCopyPasteRef = useRef((e: Event) => e.preventDefault());
+  const submitQuizRef = useRef<() => void>(() => {});
 
   const handleTabSwitch = useCallback(() => {
     if (document.hidden || document.visibilityState === 'hidden') {
-      setTabSwitchCount(prev => prev + 1);
+      setTabSwitchCount(prev => {
+        const newCount = prev + 1;
+        // Auto-submit if tab switches exceed warning count limit
+        if (quiz?.tabSwitchWarnings && quiz?.warningCount && newCount >= quiz.warningCount) {
+          submitQuizRef.current();
+        }
+        return newCount;
+      });
       if (quiz?.tabSwitchWarnings) {
         setShowTabWarnModal(true);
       }
     }
-  }, [quiz?.tabSwitchWarnings]);
+  }, [quiz?.tabSwitchWarnings, quiz?.warningCount]);
 
   const handleWindowFocus = useCallback(() => {
     // Detect when window loses focus
@@ -229,6 +237,11 @@ const QuizTakingPage: React.FC = () => {
     }
   }, [quizId, attempt, answers, questions, quiz]);
 
+  // Keep ref in sync so tab-switch handler can call it without circular deps
+  useEffect(() => {
+    submitQuizRef.current = handleSubmitQuiz;
+  }, [handleSubmitQuiz]);
+
   useEffect(() => {
     // Only run timer when quiz has started (not on instruction page)
     if (showInstructions || timeLeft <= 0 || !quiz) return;
@@ -397,7 +410,7 @@ const QuizTakingPage: React.FC = () => {
         maxWidth="500px"
       >
         <div className="warning-content">
-          <p>You've switched tabs {tabSwitchCount} time(s). Repeated tab switching may result in termination of the quiz.</p>
+          <p>You've switched tabs {tabSwitchCount} time(s).{quiz?.warningCount ? ` You have ${Math.max(0, quiz.warningCount - tabSwitchCount)} warning(s) remaining before auto-submission.` : ' Repeated tab switching may result in termination of the quiz.'}</p>
           <p>Please focus on the quiz window to continue.</p>
           <Button onClick={() => setShowTabWarnModal(false)} className="btn-primary btn-block">
             Continue Quiz

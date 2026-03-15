@@ -335,7 +335,14 @@ export class QuizService {
         isCorrect = normalizedSelected.length > 0 && 
                    correctAnswerTexts.length > 0 && 
                    JSON.stringify(normalizedSelected) === JSON.stringify(correctAnswerTexts);
-        marksAwarded = isCorrect ? question.marks : 0;
+        if (isCorrect) {
+          marksAwarded = question.marks;
+        } else if (normalizedSelected.length > 0 && quiz.negativeMarking && quiz.negativeMarkingValue) {
+          // Apply negative marking for wrong answers (only if student selected something)
+          marksAwarded = -(quiz.negativeMarkingValue);
+        } else {
+          marksAwarded = 0;
+        }
       } else if (question.type === 'short_answer') {
         // For short answers, mark as pending for manual review
         marksAwarded = 0; // Will be graded manually

@@ -145,19 +145,31 @@ const LeadFormSettings: React.FC = () => {
     }
   };
 
-  const handleAddSource = () => {
+  const handleAddSource = async () => {
     const val = newSource.trim().toLowerCase().replace(/\s+/g, '_');
     if (!val) return;
     if (sources.includes(val)) {
       showAlertMsg('error', 'Source already exists');
       return;
     }
-    setSources(prev => [...prev, val]);
+    const updatedSources = [...sources, val];
+    setSources(updatedSources);
     setNewSource('');
+    try {
+      await leadFormConfigApi.updateConfig({ fields, sources: updatedSources });
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to save source');
+    }
   };
 
-  const handleRemoveSource = (source: string) => {
-    setSources(prev => prev.filter(s => s !== source));
+  const handleRemoveSource = async (source: string) => {
+    const updatedSources = sources.filter(s => s !== source);
+    setSources(updatedSources);
+    try {
+      await leadFormConfigApi.updateConfig({ fields, sources: updatedSources });
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to save source');
+    }
   };
 
   const handleLabelChange = (fieldKey: string, newLabel: string) => {

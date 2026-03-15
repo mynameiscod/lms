@@ -16,75 +16,92 @@ interface AttendanceCardProps {
 }
 
 const AttendanceCard: React.FC<AttendanceCardProps> = ({ date, attendance }) => {
-  const getStatusBadge = (status: string) => {
+  const getStatusConfig = (status: string) => {
     switch (status) {
       case 'present':
-        return { label: 'Present', color: '#10b981', icon: '✓' };
+        return { label: 'Present', color: '#10b981', bg: '#ecfdf5', icon: '✓' };
       case 'late':
-        return { label: 'Late', color: '#f59e0b', icon: '⏱' };
+        return { label: 'Late', color: '#f59e0b', bg: '#fffbeb', icon: '⏱' };
       case 'pending':
-        return { label: 'Pending', color: '#8b5cf6', icon: '—' };
+        return { label: 'Pending', color: '#8b5cf6', bg: '#f5f3ff', icon: '◷' };
       case 'absent':
-        return { label: 'Absent', color: '#ef4444', icon: '✗' };
+        return { label: 'Absent', color: '#ef4444', bg: '#fef2f2', icon: '✗' };
       default:
-        return { label: 'Unknown', color: '#64748b', icon: '?' };
+        return { label: 'Unknown', color: '#64748b', bg: '#f8fafc', icon: '?' };
     }
   };
 
-  const badge = getStatusBadge(attendance.status);
+  const status = getStatusConfig(attendance.status);
+  const totalDays = attendance.totalPresent + attendance.totalAbsent;
+  const pct = attendance.attendancePercentage;
+  const pctColor = pct >= 75 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#ef4444';
 
   return (
-    <div className="attendance-card">
-      <div className="card-header">
-        <h3>Attendance</h3>
-        <div className="card-date">
+    <div className="att-card">
+      {/* Header */}
+      <div className="att-header">
+        <div className="att-header-left">
+          <span className="att-icon">📋</span>
+          <span className="att-title">Attendance</span>
+        </div>
+        <span className="att-date">
           {date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+      </div>
+
+      {/* Today's Status */}
+      <div className="att-status" style={{ backgroundColor: status.bg }}>
+        <div className="att-status-dot" style={{ backgroundColor: status.color }} />
+        <span className="att-status-label" style={{ color: status.color }}>{status.label}</span>
+        <div className="att-times">
+          <span className="att-time">
+            <span className="att-time-icon">↓</span>
+            {attendance.inTime || '--:--'}
+          </span>
+          <span className="att-time">
+            <span className="att-time-icon">↑</span>
+            {attendance.outTime || '--:--'}
+          </span>
         </div>
       </div>
 
-      {/* Status Badge */}
-      <div className="status-section" style={{ borderLeftColor: badge.color }}>
-        <div className="status-badge" style={{ backgroundColor: badge.color }}>
-          <span className="badge-icon">{badge.icon}</span>
-          <span className="badge-label">{badge.label}</span>
+      {/* Circular Progress */}
+      <div className="att-progress-section">
+        <div className="att-ring-wrap">
+          <svg className="att-ring" viewBox="0 0 80 80">
+            <circle cx="40" cy="40" r="34" fill="none" stroke="#e5e7eb" strokeWidth="6" />
+            <circle
+              cx="40" cy="40" r="34" fill="none"
+              stroke={pctColor}
+              strokeWidth="6"
+              strokeLinecap="round"
+              strokeDasharray={`${(pct / 100) * 213.6} 213.6`}
+              transform="rotate(-90 40 40)"
+            />
+          </svg>
+          <div className="att-ring-text">
+            <span className="att-ring-val" style={{ color: pctColor }}>{pct}%</span>
+          </div>
         </div>
+        <div className="att-ring-label">Overall</div>
       </div>
 
-      {/* Time Info */}
-      <div className="time-section">
-        <div className="time-item">
-          <span className="time-label">In Time</span>
-          <span className="time-value">{attendance.inTime || '—'}</span>
+      {/* Stats Row */}
+      <div className="att-stats">
+        <div className="att-stat">
+          <span className="att-stat-num" style={{ color: '#10b981' }}>{attendance.totalPresent}</span>
+          <span className="att-stat-lbl">Present</span>
         </div>
-        <div className="time-divider"></div>
-        <div className="time-item">
-          <span className="time-label">Out Time</span>
-          <span className="time-value">{attendance.outTime || '—'}</span>
+        <div className="att-stat-divider" />
+        <div className="att-stat">
+          <span className="att-stat-num" style={{ color: '#ef4444' }}>{attendance.totalAbsent}</span>
+          <span className="att-stat-lbl">Absent</span>
         </div>
-      </div>
-
-      {/* Stats */}
-      <div className="stats-section">
-        <div className="stat-row">
-          <span className="stat-label">Total Present</span>
-          <span className="stat-value present">{attendance.totalPresent}</span>
+        <div className="att-stat-divider" />
+        <div className="att-stat">
+          <span className="att-stat-num" style={{ color: '#64748b' }}>{totalDays}</span>
+          <span className="att-stat-lbl">Total</span>
         </div>
-        <div className="stat-row">
-          <span className="stat-label">Total Absent</span>
-          <span className="stat-value absent">{attendance.totalAbsent}</span>
-        </div>
-      </div>
-
-      {/* Attendance Percentage */}
-      <div className="percentage-section">
-        <div className="percentage-label">Attendance %</div>
-        <div className="percentage-bar">
-          <div 
-            className="percentage-fill" 
-            style={{ width: `${attendance.attendancePercentage}%` }}
-          ></div>
-        </div>
-        <div className="percentage-value">{attendance.attendancePercentage}%</div>
       </div>
     </div>
   );

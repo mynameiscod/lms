@@ -53,6 +53,10 @@ const LeadsPage: React.FC = () => {
   const [totalLeads, setTotalLeads] = useState(0);
   const [todayFollowUps, setTodayFollowUps] = useState(0);
 
+  // Board stage visibility — default first 5
+  const [visibleStageIds, setVisibleStageIds] = useState<Set<string>>(new Set());
+  const [stagesInitialized, setStagesInitialized] = useState(false);
+
   // Form config
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [configSources, setConfigSources] = useState<string[]>(SOURCES);
@@ -90,9 +94,17 @@ const LeadsPage: React.FC = () => {
         userApi.getUsers(),
         leadFormConfigApi.getConfig()
       ]);
-      setStages(stagesRes.data || []);
+      const loadedStages = stagesRes.data || [];
+      setStages(loadedStages);
       setLeads(leadsRes.data?.leads || []);
       setTotalPages(leadsRes.data?.totalPages || 1);
+
+      // Initialize visible stages to first 5 on first load
+      if (!stagesInitialized && loadedStages.length > 0) {
+        const defaultVisible = loadedStages.slice(0, 5).map((s: Stage) => s._id);
+        setVisibleStageIds(new Set(defaultVisible));
+        setStagesInitialized(true);
+      }
 
       // Form config
       if (configRes.data) {
@@ -256,6 +268,21 @@ const LeadsPage: React.FC = () => {
     }
   };
 
+  const toggleStageVisibility = (stageId: string) => {
+    setVisibleStageIds(prev => {
+      const next = new Set(prev);
+      if (next.has(stageId)) {
+        if (next.size <= 1) return prev; // keep at least 1 visible
+        next.delete(stageId);
+      } else {
+        next.add(stageId);
+      }
+      return next;
+    });
+  };
+
+  const visibleStages = stages.filter(s => visibleStageIds.has(s._id));
+
   const getStage = (lead: Lead): Stage | null => {
     if (typeof lead.stageId === 'object') return lead.stageId as Stage;
     return stages.find(s => s._id === lead.stageId) || null;
@@ -340,45 +367,71 @@ const LeadsPage: React.FC = () => {
         </div>
       ) : view === 'kanban' ? (
         /* Kanban View */
-        <div className="kanban-board">
-          {stages.map(stage => {
-            const stageLeads = leads.filter(l => getStage(l)?._id === stage._id);
-            return (
-              <div className="kanban-column" key={stage._id}>
-                <div className="kanban-column-header">
-                  <span className="kanban-column-dot" style={{ backgroundColor: stage.color }} />
-                  <span className="kanban-column-name">{stage.name}</span>
-                  <span className="kanban-column-count">{stageLeads.length}</span>
-                </div>
-                <div className="kanban-cards">
-                  {stageLeads.map(lead => (
-                    <div className="kanban-card" key={lead._id} onClick={() => navigate(`/leads/${lead._id}`)}>
-                      <div className="kanban-card-name">{lead.name}</div>
-                      {lead.phone && <div className="kanban-card-info">{lead.phone}</div>}
-                      {lead.email && <div className="kanban-card-info">{lead.email}</div>}
-                      <div className="kanban-card-meta">
-                        <span className="kanban-card-source">{lead.source.replace('_', ' ')}</span>
-                        {lead.nextFollowUp && (
-                          <span className={`kanban-card-followup ${isOverdue(lead.nextFollowUp) ? 'overdue' : ''}`}>
-                            {isOverdue(lead.nextFollowUp) ? 'Overdue' : formatDate(lead.nextFollowUp)}
-                          </span>
-                        )}
+        <>
+          {/* Stage Picker */}
+          <div className="stage-picker">
+            <span className="stage-picker-label">Columns:</span>
+            <div className="stage-picker-chips">
+              {stages.map(stage => {
+                const active = visibleStageIds.has(stage._id);
+                const count = leads.filter(l => getStage(l)?._id === stage._id).length;
+                return (
+                  <button
+                    key={stage._id}
+                    className={`stage-chip ${active ? 'active' : ''}`}
+                    onClick={() => toggleStageVisibility(stage._id)}
+                    style={active ? { borderColor: stage.color, background: stage.color + '14' } : {}}
+                  >
+                    <span className="stage-chip-dot" style={{ backgroundColor: stage.color }} />
+                    {stage.name}
+                    <span className="stage-chip-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div className="kanban-board" style={{ '--kanban-cols': visibleStages.length } as React.CSSProperties}>
+            {visibleStages.map(stage => {
+              const stageLeads = leads.filter(l => getStage(l)?._id === stage._id);
+              return (
+                <div className="kanban-column" key={stage._id}>
+                  <div className="kanban-column-header">
+                    <span className="kanban-column-dot" style={{ backgroundColor: stage.color }} />
+                    <span className="kanban-column-name">{stage.name}</span>
+                    <span className="kanban-column-count">{stageLeads.length}</span>
+                  </div>
+                  <div className="kanban-cards">
+                    {stageLeads.length === 0 ? (
+                      <div className="kanban-empty">No leads</div>
+                    ) : stageLeads.map(lead => (
+                      <div className="kanban-card" key={lead._id} onClick={() => navigate(`/leads/${lead._id}`)}>
+                        <div className="kanban-card-name">{lead.name}</div>
+                        {lead.phone && <div className="kanban-card-info">{lead.phone}</div>}
+                        {lead.email && <div className="kanban-card-info">{lead.email}</div>}
+                        <div className="kanban-card-meta">
+                          <span className="kanban-card-source">{lead.source.replace('_', ' ')}</span>
+                          {lead.nextFollowUp && (
+                            <span className={`kanban-card-followup ${isOverdue(lead.nextFollowUp) ? 'overdue' : ''}`}>
+                              {isOverdue(lead.nextFollowUp) ? 'Overdue' : formatDate(lead.nextFollowUp)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="kanban-card-stage-select" onClick={e => e.stopPropagation()}>
+                          <select
+                            value={stage._id}
+                            onChange={e => handleStageChange(lead._id, e.target.value)}
+                          >
+                            {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                          </select>
+                        </div>
                       </div>
-                      <div className="kanban-card-stage-select" onClick={e => e.stopPropagation()}>
-                        <select
-                          value={stage._id}
-                          onChange={e => handleStageChange(lead._id, e.target.value)}
-                        >
-                          {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       ) : (
         /* Table View */
         <>

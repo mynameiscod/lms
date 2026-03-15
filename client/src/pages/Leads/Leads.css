@@ -109,24 +109,99 @@
   color: #1f2937;
 }
 
+/* Stage Picker */
+.stage-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.stage-picker-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.stage-picker-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.stage-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 20px;
+  background: white;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.stage-chip:hover {
+  border-color: #9ca3af;
+  background: #f9fafb;
+}
+
+.stage-chip.active {
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.stage-chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.stage-chip-count {
+  background: #e5e7eb;
+  color: #374151;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 8px;
+  min-width: 18px;
+  text-align: center;
+}
+
+.stage-chip.active .stage-chip-count {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 /* Kanban Board */
 .kanban-board {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  padding-bottom: 12px;
+  display: grid;
+  grid-template-columns: repeat(var(--kanban-cols, 5), 1fr);
+  gap: 12px;
   min-height: 400px;
 }
 
 .kanban-column {
-  min-width: 260px;
-  max-width: 300px;
-  flex-shrink: 0;
+  min-width: 0;
   background: #f3f4f6;
   border-radius: 12px;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 300px);
+  max-height: calc(100vh - 340px);
+}
+
+.kanban-empty {
+  text-align: center;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  padding: 24px 8px;
 }
 
 .kanban-column-header {

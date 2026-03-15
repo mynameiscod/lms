@@ -61,7 +61,17 @@ import StudentFeaturesPage from './pages/StudentFeatures';
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
+  requiredPermissions?: string[];
 }
+
+// Map roles to the permissions they imply, so custom role users can access routes
+const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
+  'SUPER_ADMIN': ['manage_tenant_users', 'manage_roles', 'create_courses', 'manage_tenant', 'view_reports', 'manage_assignments', 'create_quiz', 'mark_attendance', 'manage_interviews'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'create_courses', 'manage_tenant', 'view_reports', 'manage_assignments', 'create_quiz', 'mark_attendance', 'manage_interviews'],
+  'INSTRUCTOR': ['create_courses', 'edit_courses', 'view_reports', 'manage_assignments', 'create_quiz', 'create_question', 'mark_attendance', 'manage_interviews'],
+  'ATTENDANCE_ADMIN': ['mark_attendance', 'view_attendance', 'view_reports'],
+  'STUDENT': ['enroll_courses', 'view_courses', 'submit_assignments', 'view_quiz', 'take_interviews'],
+};
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
@@ -76,6 +86,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   }
 
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {
+    // If user has permissions (custom role), check if they have any permission
+    // that would be associated with the required roles
+    if (user.permissions && user.permissions.length > 0) {
+      const impliedPermissions = requiredRoles.flatMap(r => ROLE_TO_PERMISSIONS[r] || []);
+      const hasAccess = impliedPermissions.some(p => user.permissions!.includes(p));
+      if (hasAccess) {
+        return <>{children}</>;
+      }
+    }
     return <Navigate to="/dashboard" />;
   }
 

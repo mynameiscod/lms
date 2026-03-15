@@ -96,6 +96,13 @@ const DashboardPage: React.FC = () => {
     attendancePercentage: 0,
   });
 
+  // Determine if user should see admin dashboard
+  const adminPermissions = ['manage_tenant_users', 'view_analytics', 'view_reports', 'create_courses', 'edit_courses', 'manage_tenant'];
+  const isAdminUser = user ? (
+    ['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR'].includes(user.role) ||
+    (user.permissions && user.permissions.length > 0 && adminPermissions.some(p => user.permissions!.includes(p)))
+  ) : false;
+
   // Get greeting based on time of day
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -194,7 +201,7 @@ const DashboardPage: React.FC = () => {
     const loadDashboard = async () => {
       setLoading(true);
       
-      if (user?.role === 'STUDENT') {
+      if (user?.role === 'STUDENT' && !isAdminUser) {
         await Promise.all([fetchStudentDashboard(), fetchAttendance()]);
       } else {
         await fetchAdminStats();
@@ -249,7 +256,7 @@ const DashboardPage: React.FC = () => {
   }
 
   // Admin Dashboard
-  const isAdmin = user.role === 'TENANT_ADMIN' || user.role === 'SUPER_ADMIN';
+  const isAdmin = isAdminUser;
 
   if (isAdmin) {
     return (

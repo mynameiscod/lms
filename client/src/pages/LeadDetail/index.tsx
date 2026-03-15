@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi } from '../../api';
+import { leadApi, leadStageApi, leadFormConfigApi } from '../../api';
 import './LeadDetail.css';
 
 interface Stage {
@@ -37,6 +37,14 @@ interface Lead {
   createdBy?: { firstName: string; lastName: string };
   createdAt: string;
   updatedAt: string;
+  customFields?: Record<string, any>;
+}
+
+interface CustomFieldConfig {
+  fieldKey: string;
+  label: string;
+  type: string;
+  isBuiltIn: boolean;
 }
 
 const ACTIVITY_ICONS: Record<string, string> = {
@@ -68,6 +76,7 @@ const LeadDetail: React.FC = () => {
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [customFieldConfigs, setCustomFieldConfigs] = useState<CustomFieldConfig[]>([]);
 
   // Activity form
   const [activityType, setActivityType] = useState('note');
@@ -97,12 +106,20 @@ const LeadDetail: React.FC = () => {
     if (!leadId) return;
     try {
       setLoading(true);
-      const [leadRes, stagesRes] = await Promise.all([
+      const [leadRes, stagesRes, configRes] = await Promise.all([
         leadApi.getLeadById(leadId),
-        leadStageApi.getStages()
+        leadStageApi.getStages(),
+        leadFormConfigApi.getConfig()
       ]);
       setLead(leadRes.data);
       setStages(stagesRes.data || []);
+      if (configRes.data?.fields) {
+        setCustomFieldConfigs(
+          configRes.data.fields
+            .filter((f: any) => !f.isBuiltIn && f.enabled)
+            .map((f: any) => ({ fieldKey: f.fieldKey, label: f.label, type: f.type, isBuiltIn: f.isBuiltIn }))
+        );
+      }
     } catch (error: any) {
       showAlert('error', error.message || 'Failed to load lead');
     } finally {
@@ -313,6 +330,19 @@ const LeadDetail: React.FC = () => {
                   <span className="info-value">{lead.notes}</span>
                 </div>
               )}
+              {/* Custom Fields */}
+              {customFieldConfigs.length > 0 && lead.customFields && customFieldConfigs.map(cf => {
+                const val = lead.customFields?.[cf.fieldKey];
+                if (val === undefined || val === '' || val === null) return null;
+                return (
+                  <div className="info-item" key={cf.fieldKey}>
+                    <span className="info-label">{cf.label}</span>
+                    <span className="info-value">
+                      {cf.type === 'checkbox' ? (val ? 'Yes' : 'No') : String(val)}
+                    </span>
+                  </div>
+                );
+              })}
               {/* Interest Concerns */}
               <div className="info-item info-item-full">
                 <span className="info-label">

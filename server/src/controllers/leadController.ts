@@ -70,7 +70,7 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiRe
 // Create a new lead
 export const createLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes } = req.body;
+    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, customFields } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({ success: false, message: 'Name and phone are required' });
@@ -96,6 +96,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       assignedTo,
       nextFollowUp,
       notes: notes || '',
+      customFields: customFields || {},
       tenantId: req.tenantId,
       createdBy: req.user!.id,
       activities: [{
@@ -121,7 +122,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason } = req.body;
+    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields } = req.body;
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId },
@@ -135,7 +136,8 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(nextFollowUp !== undefined && { nextFollowUp: nextFollowUp || null }),
         ...(notes !== undefined && { notes }),
         ...(interestConcerns !== undefined && { interestConcerns }),
-        ...(notInterestedReason !== undefined && { notInterestedReason })
+        ...(notInterestedReason !== undefined && { notInterestedReason }),
+        ...(customFields !== undefined && { customFields })
       },
       { new: true, runValidators: true }
     )

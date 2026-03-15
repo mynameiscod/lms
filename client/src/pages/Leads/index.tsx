@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, userApi } from '../../api';
+import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
 import './Leads.css';
 
 interface Stage {
@@ -27,6 +27,19 @@ interface Lead {
 
 const SOURCES = ['website', 'walkin', 'referral', 'social_media', 'google_ads', 'whatsapp', 'phone', 'other'];
 
+interface FormField {
+  _id?: string;
+  fieldKey: string;
+  label: string;
+  type: string;
+  required: boolean;
+  enabled: boolean;
+  isBuiltIn: boolean;
+  options?: string[];
+  placeholder?: string;
+  order: number;
+}
+
 const LeadsPage: React.FC = () => {
   const navigate = useNavigate();
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -40,6 +53,10 @@ const LeadsPage: React.FC = () => {
   const [totalLeads, setTotalLeads] = useState(0);
   const [todayFollowUps, setTodayFollowUps] = useState(0);
 
+  // Form config
+  const [formFields, setFormFields] = useState<FormField[]>([]);
+  const [configSources, setConfigSources] = useState<string[]>(SOURCES);
+
   // Filters
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('');
@@ -48,7 +65,7 @@ const LeadsPage: React.FC = () => {
   // Create/Edit Modal
   const [showModal, setShowModal] = useState(false);
   const [editingLead, setEditingLead] = useState<Lead | null>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Record<string, any>>({
     name: '', email: '', phone: '', courseInterest: '', source: 'other',
     stageId: '', assignedTo: '', nextFollowUp: '', notes: ''
   });
@@ -67,14 +84,26 @@ const LeadsPage: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [stagesRes, leadsRes, usersRes] = await Promise.all([
+      const [stagesRes, leadsRes, usersRes, configRes] = await Promise.all([
         leadStageApi.getStages(),
         leadApi.getLeads({ search, stageId: filterStage, source: filterSource, page, limit: 100 }),
-        userApi.getUsers()
+        userApi.getUsers(),
+        leadFormConfigApi.getConfig()
       ]);
       setStages(stagesRes.data || []);
       setLeads(leadsRes.data?.leads || []);
       setTotalPages(leadsRes.data?.totalPages || 1);
+
+      // Form config
+      if (configRes.data) {
+        const enabledFields = (configRes.data.fields || [])
+          .filter((f: FormField) => f.enabled)
+          .sort((a: FormField, b: FormField) => a.order - b.order);
+        setFormFields(enabledFields);
+        if (configRes.data.sources?.length > 0) {
+          setConfigSources(configRes.data.sources);
+        }
+      }
 
       // Load analytics for stats
       try {
@@ -99,17 +128,24 @@ const LeadsPage: React.FC = () => {
 
   const handleOpenCreate = () => {
     setEditingLead(null);
-    setFormData({
-      name: '', email: '', phone: '', courseInterest: '', source: 'other',
+    const initial: Record<string, any> = {
+      name: '', email: '', phone: '', courseInterest: '', source: configSources[0] || 'other',
       stageId: stages[0]?._id || '', assignedTo: '', nextFollowUp: '', notes: ''
+    };
+    // Initialize custom fields
+    formFields.forEach(f => {
+      if (!f.isBuiltIn && !(f.fieldKey in initial)) {
+        initial[f.fieldKey] = f.type === 'checkbox' ? false : '';
+      }
     });
+    setFormData(initial);
     setShowModal(true);
   };
 
   const handleOpenEdit = (lead: Lead) => {
     setEditingLead(lead);
     const stage = typeof lead.stageId === 'object' ? lead.stageId._id : lead.stageId;
-    setFormData({
+    const data: Record<string, any> = {
       name: lead.name,
       email: lead.email || '',
       phone: lead.phone,
@@ -119,22 +155,50 @@ const LeadsPage: React.FC = () => {
       assignedTo: lead.assignedTo?._id || '',
       nextFollowUp: lead.nextFollowUp ? lead.nextFollowUp.split('T')[0] : '',
       notes: lead.notes || ''
+    };
+    // Load custom field values
+    const customFields = (lead as any).customFields || {};
+    formFields.forEach(f => {
+      if (!f.isBuiltIn) {
+        data[f.fieldKey] = customFields[f.fieldKey] ?? (f.type === 'checkbox' ? false : '');
+      }
     });
+    setFormData(data);
     setShowModal(true);
   };
 
   const handleSave = async () => {
-    if (!formData.name.trim() || !formData.phone.trim()) {
-      showAlertMsg('error', 'Name and phone are required');
-      return;
+    // Validate required fields
+    for (const field of formFields) {
+      if (field.required && field.enabled) {
+        const val = formData[field.fieldKey];
+        if (!val || (typeof val === 'string' && !val.trim())) {
+          showAlertMsg('error', `${field.label} is required`);
+          return;
+        }
+      }
     }
     try {
-      const payload = {
-        ...formData,
-        courseInterest: formData.courseInterest.split(',').map(s => s.trim()).filter(Boolean),
-        assignedTo: formData.assignedTo || undefined,
-        nextFollowUp: formData.nextFollowUp || undefined
-      };
+      // Separate built-in vs custom fields
+      const builtInKeys = ['name', 'email', 'phone', 'courseInterest', 'source', 'stageId', 'assignedTo', 'nextFollowUp', 'notes'];
+      const customFields: Record<string, any> = {};
+      formFields.forEach(f => {
+        if (!f.isBuiltIn && formData[f.fieldKey] !== undefined) {
+          customFields[f.fieldKey] = formData[f.fieldKey];
+        }
+      });
+
+      const payload: any = {};
+      builtInKeys.forEach(key => {
+        if (formData[key] !== undefined) payload[key] = formData[key];
+      });
+      payload.courseInterest = (formData.courseInterest || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+      payload.assignedTo = formData.assignedTo || undefined;
+      payload.nextFollowUp = formData.nextFollowUp || undefined;
+      if (Object.keys(customFields).length > 0) {
+        payload.customFields = customFields;
+      }
+
       if (editingLead) {
         await leadApi.updateLead(editingLead._id, payload);
         showAlertMsg('success', 'Lead updated');
@@ -262,7 +326,7 @@ const LeadsPage: React.FC = () => {
         </select>
         <select value={filterSource} onChange={e => setFilterSource(e.target.value)}>
           <option value="">All Sources</option>
-          {SOURCES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
+          {configSources.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
       </div>
 
@@ -387,56 +451,86 @@ const LeadsPage: React.FC = () => {
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h2>{editingLead ? 'Edit Lead' : 'Add New Lead'}</h2>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Name *</label>
-                <input type="text" value={formData.name} onChange={e => setFormData(p => ({ ...p, name: e.target.value }))} placeholder="Full name" autoFocus />
-              </div>
-              <div className="form-group">
-                <label>Phone *</label>
-                <input type="tel" value={formData.phone} onChange={e => setFormData(p => ({ ...p, phone: e.target.value }))} placeholder="Phone number" />
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Email</label>
-                <input type="email" value={formData.email} onChange={e => setFormData(p => ({ ...p, email: e.target.value }))} placeholder="Email address" />
-              </div>
-              <div className="form-group">
-                <label>Source</label>
-                <select value={formData.source} onChange={e => setFormData(p => ({ ...p, source: e.target.value }))}>
-                  {SOURCES.map(s => <option key={s} value={s}>{s.replace('_', ' ')}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Stage</label>
-                <select value={formData.stageId} onChange={e => setFormData(p => ({ ...p, stageId: e.target.value }))}>
-                  {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Assigned To</label>
-                <select value={formData.assignedTo} onChange={e => setFormData(p => ({ ...p, assignedTo: e.target.value }))}>
-                  <option value="">Unassigned</option>
-                  {staff.map(u => <option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
-                </select>
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Course Interest (comma separated)</label>
-              <input type="text" value={formData.courseInterest} onChange={e => setFormData(p => ({ ...p, courseInterest: e.target.value }))} placeholder="e.g., Java Full Stack, Python" />
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Next Follow-up</label>
-                <input type="date" value={formData.nextFollowUp} onChange={e => setFormData(p => ({ ...p, nextFollowUp: e.target.value }))} />
-              </div>
-            </div>
-            <div className="form-group">
-              <label>Notes</label>
-              <textarea value={formData.notes} onChange={e => setFormData(p => ({ ...p, notes: e.target.value }))} placeholder="Additional notes..." />
+            <div className="dynamic-form">
+              {formFields.map(field => {
+                // Built-in fields with special rendering
+                if (field.fieldKey === 'source') {
+                  return (
+                    <div className="form-group" key={field.fieldKey}>
+                      <label>{field.label}{field.required ? ' *' : ''}</label>
+                      <select value={formData.source || ''} onChange={e => setFormData(p => ({ ...p, source: e.target.value }))}>
+                        {configSources.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
+                      </select>
+                    </div>
+                  );
+                }
+                if (field.fieldKey === 'stageId') {
+                  return (
+                    <div className="form-group" key={field.fieldKey}>
+                      <label>{field.label}{field.required ? ' *' : ''}</label>
+                      <select value={formData.stageId || ''} onChange={e => setFormData(p => ({ ...p, stageId: e.target.value }))}>
+                        {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  );
+                }
+                if (field.fieldKey === 'assignedTo') {
+                  return (
+                    <div className="form-group" key={field.fieldKey}>
+                      <label>{field.label}{field.required ? ' *' : ''}</label>
+                      <select value={formData.assignedTo || ''} onChange={e => setFormData(p => ({ ...p, assignedTo: e.target.value }))}>
+                        <option value="">Unassigned</option>
+                        {staff.map(u => <option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
+                      </select>
+                    </div>
+                  );
+                }
+                // Generic field rendering
+                const val = formData[field.fieldKey] ?? '';
+                const onChange = (v: any) => setFormData(p => ({ ...p, [field.fieldKey]: v }));
+
+                if (field.type === 'textarea') {
+                  return (
+                    <div className="form-group" key={field.fieldKey}>
+                      <label>{field.label}{field.required ? ' *' : ''}</label>
+                      <textarea value={val} onChange={e => onChange(e.target.value)} placeholder={field.placeholder || ''} />
+                    </div>
+                  );
+                }
+                if (field.type === 'select' && field.options && field.options.length > 0) {
+                  return (
+                    <div className="form-group" key={field.fieldKey}>
+                      <label>{field.label}{field.required ? ' *' : ''}</label>
+                      <select value={val} onChange={e => onChange(e.target.value)}>
+                        <option value="">-- Select --</option>
+                        {field.options.map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    </div>
+                  );
+                }
+                if (field.type === 'checkbox') {
+                  return (
+                    <div className="form-group form-group-checkbox" key={field.fieldKey}>
+                      <label>
+                        <input type="checkbox" checked={!!val} onChange={e => onChange(e.target.checked)} />
+                        {' '}{field.label}
+                      </label>
+                    </div>
+                  );
+                }
+                // text, email, tel, number, date
+                return (
+                  <div className="form-group" key={field.fieldKey}>
+                    <label>{field.label}{field.required ? ' *' : ''}</label>
+                    <input
+                      type={field.type}
+                      value={val}
+                      onChange={e => onChange(e.target.value)}
+                      placeholder={field.placeholder || ''}
+                    />
+                  </div>
+                );
+              })}
             </div>
             <div className="modal-actions">
               <button className="btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

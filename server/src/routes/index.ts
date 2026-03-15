@@ -24,6 +24,7 @@ import topicRoutes from './topicRoutes';
 import subTopicRoutes from './subTopicRoutes';
 import leadRoutes from './leadRoutes';
 import leadStageRoutes from './leadStageRoutes';
+import leadFormConfigRoutes from './leadFormConfigRoutes';
 
 const router = express.Router();
 
@@ -52,5 +53,6 @@ router.use('/topics', topicRoutes);
 router.use('/sub-topics', subTopicRoutes);
 router.use('/leads', leadRoutes);
 router.use('/lead-stages', leadStageRoutes);
+router.use('/lead-form-config', leadFormConfigRoutes);
 
 export default router;

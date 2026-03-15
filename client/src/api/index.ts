@@ -1683,3 +1683,27 @@ export const leadApi = {
     return authenticatedFetch(`${API_BASE_URL}/leads/analytics`);
   }
 };
+
+// Lead Form Config API
+export const leadFormConfigApi = {
+  getConfig: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config`);
+  },
+  updateConfig: async (data: { fields: any[]; sources?: string[] }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  addCustomField: async (data: { label: string; type: string; required?: boolean; options?: string[]; placeholder?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config/fields`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  deleteCustomField: async (fieldKey: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config/fields/${fieldKey}`, {
+      method: 'DELETE'
+    });
+  }
+};

@@ -24,6 +24,7 @@ export interface ILead extends Document {
   notes: string;
   notInterestedReason?: string;
   interestConcerns: string[];
+  customFields?: Map<string, any>;
   convertedStudentId?: mongoose.Types.ObjectId;
   activities: ILeadActivity[];
   tenantId: mongoose.Types.ObjectId;
@@ -116,6 +117,11 @@ const LeadSchema: Schema = new Schema(
       type: String,
       enum: ['only_online', 'placements', 'check_with_parents', 'fee_issue', 'timing_issue', 'other']
     }],
+    customFields: {
+      type: Map,
+      of: Schema.Types.Mixed,
+      default: new Map()
+    },
     convertedStudentId: {
       type: mongoose.Types.ObjectId,
       ref: 'User'

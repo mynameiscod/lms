@@ -5,23 +5,38 @@ import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import bcryptjs from 'bcryptjs';
 
+// Build common filter from query params
+const buildLeadFilter = (query: any, tenantId: string) => {
+  const { stageId, source, assignedTo, search, dateFrom, dateTo } = query;
+  const filter: any = { tenantId };
+  if (stageId) filter.stageId = stageId;
+  if (source) filter.source = source;
+  if (assignedTo) filter.assignedTo = assignedTo;
+  if (search) {
+    const searchRegex = new RegExp(String(search), 'i');
+    filter.$or = [
+      { name: searchRegex },
+      { email: searchRegex },
+      { phone: searchRegex }
+    ];
+  }
+  if (dateFrom || dateTo) {
+    filter.createdAt = {};
+    if (dateFrom) filter.createdAt.$gte = new Date(String(dateFrom));
+    if (dateTo) {
+      const endDate = new Date(String(dateTo));
+      endDate.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = endDate;
+    }
+  }
+  return filter;
+};
+
 // Get all leads for tenant with filters
 export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { stageId, source, assignedTo, search, page = '1', limit = '50' } = req.query;
-
-    const filter: any = { tenantId: req.tenantId };
-    if (stageId) filter.stageId = stageId;
-    if (source) filter.source = source;
-    if (assignedTo) filter.assignedTo = assignedTo;
-    if (search) {
-      const searchRegex = new RegExp(String(search), 'i');
-      filter.$or = [
-        { name: searchRegex },
-        { email: searchRegex },
-        { phone: searchRegex }
-      ];
-    }
+    const { page = '1', limit = '50' } = req.query;
+    const filter = buildLeadFilter(req.query, req.tenantId!);
 
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
@@ -47,6 +62,167 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
     res.status(500).json({ success: false, message: 'Failed to fetch leads', error: error.message });
   }
 };
+
+// Export leads as CSV
+export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const filter = buildLeadFilter(req.query, req.tenantId!);
+
+    const leads = await Lead.find(filter)
+      .populate('stageId', 'name')
+      .populate('assignedTo', 'firstName lastName')
+      .populate('createdBy', 'firstName lastName')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // Build CSV
+    const headers = ['Name', 'Email', 'Phone', 'Source', 'Course Interest', 'Stage', 'Assigned To', 'Next Follow-up', 'Notes', 'Created At'];
+    const escapeCSV = (val: string) => {
+      if (!val) return '';
+      const s = String(val);
+      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
+        return '"' + s.replace(/"/g, '""') + '"';
+      }
+      return s;
+    };
+
+    const rows = leads.map((lead: any) => [
+      escapeCSV(lead.name),
+      escapeCSV(lead.email || ''),
+      escapeCSV(lead.phone),
+      escapeCSV(lead.source),
+      escapeCSV((lead.courseInterest || []).join('; ')),
+      escapeCSV(lead.stageId?.name || ''),
+      escapeCSV(lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : ''),
+      escapeCSV(lead.nextFollowUp ? new Date(lead.nextFollowUp).toISOString().split('T')[0] : ''),
+      escapeCSV(lead.notes || ''),
+      escapeCSV(new Date(lead.createdAt).toISOString().split('T')[0])
+    ].join(','));
+
+    const csv = [headers.join(','), ...rows].join('\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=leads_export.csv');
+    res.send(csv);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to export leads', error: error.message });
+  }
+};
+
+// Import leads from CSV
+export const importLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { csvData } = req.body;
+    if (!csvData || typeof csvData !== 'string') {
+      return res.status(400).json({ success: false, message: 'CSV data is required' });
+    }
+
+    // Parse CSV
+    const lines = csvData.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length < 2) {
+      return res.status(400).json({ success: false, message: 'CSV must have a header row and at least one data row' });
+    }
+
+    // Parse header
+    const headerLine = lines[0];
+    const headers = parseCSVLine(headerLine).map(h => h.toLowerCase().trim());
+
+    // Map header names to field keys
+    const fieldMap: Record<string, string> = {
+      'name': 'name', 'email': 'email', 'phone': 'phone',
+      'source': 'source', 'course interest': 'courseInterest',
+      'notes': 'notes', 'next follow-up': 'nextFollowUp', 'next followup': 'nextFollowUp'
+    };
+
+    // Get first stage for default
+    const firstStage = await LeadStage.findOne({ tenantId: req.tenantId, isActive: true }).sort({ order: 1 });
+    if (!firstStage) {
+      return res.status(400).json({ success: false, message: 'No lead stages configured' });
+    }
+
+    let imported = 0;
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (let i = 1; i < lines.length; i++) {
+      try {
+        const values = parseCSVLine(lines[i]);
+        const row: Record<string, string> = {};
+        headers.forEach((h, idx) => {
+          const key = fieldMap[h];
+          if (key && idx < values.length) {
+            row[key] = values[idx].trim();
+          }
+        });
+
+        if (!row.name || !row.phone) {
+          skipped++;
+          errors.push(`Row ${i + 1}: Missing name or phone`);
+          continue;
+        }
+
+        await Lead.create({
+          name: row.name,
+          email: row.email || undefined,
+          phone: row.phone,
+          source: row.source || 'other',
+          courseInterest: row.courseInterest ? row.courseInterest.split(';').map(s => s.trim()).filter(Boolean) : [],
+          notes: row.notes || '',
+          nextFollowUp: row.nextFollowUp || undefined,
+          stageId: firstStage._id,
+          tenantId: req.tenantId,
+          createdBy: req.user!.id,
+          activities: [{ type: 'created', description: 'Imported from CSV', createdBy: req.user!.id, createdAt: new Date() }]
+        });
+        imported++;
+      } catch (rowErr: any) {
+        skipped++;
+        errors.push(`Row ${i + 1}: ${rowErr.message}`);
+      }
+    }
+
+    res.json({
+      success: true,
+      message: `Imported ${imported} leads${skipped > 0 ? `, skipped ${skipped}` : ''}`,
+      data: { imported, skipped, errors: errors.slice(0, 10) }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to import leads', error: error.message });
+  }
+};
+
+// Helper to parse a CSV line respecting quoted fields
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        current += ch;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ',') {
+        result.push(current);
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+  }
+  result.push(current);
+  return result;
+}
 
 // Get a single lead by ID
 export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {

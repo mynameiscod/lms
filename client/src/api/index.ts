@@ -1630,7 +1630,7 @@ export const leadStageApi = {
 
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number }) => {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string }) => {
     const params = new URLSearchParams();
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
@@ -1638,6 +1638,8 @@ export const leadApi = {
     if (filters?.search) params.append('search', filters.search);
     if (filters?.page) params.append('page', String(filters.page));
     if (filters?.limit) params.append('limit', String(filters.limit));
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
     const q = params.toString();
     return authenticatedFetch(`${API_BASE_URL}/leads${q ? `?${q}` : ''}`);
   },
@@ -1681,6 +1683,22 @@ export const leadApi = {
   },
   getAnalytics: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/analytics`);
+  },
+  exportLeads: (filters?: { stageId?: string; source?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
+    const params = new URLSearchParams();
+    if (filters?.stageId) params.append('stageId', filters.stageId);
+    if (filters?.source) params.append('source', filters.source);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    const q = params.toString();
+    return `${API_BASE_URL}/leads/export${q ? `?${q}` : ''}`;
+  },
+  importLeads: async (csvData: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/import`, {
+      method: 'POST',
+      body: JSON.stringify({ csvData })
+    });
   }
 };
 

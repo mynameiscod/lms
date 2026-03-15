@@ -8,7 +8,9 @@ import {
   addLeadActivity,
   deleteLead,
   getLeadAnalytics,
-  convertToStudent
+  convertToStudent,
+  exportLeads,
+  importLeads
 } from '../controllers/leadController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -18,6 +20,10 @@ const router = express.Router();
 
 // Analytics
 router.get('/analytics', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getLeadAnalytics);
+
+// Export / Import
+router.get('/export', authMiddleware, tenantResolver, roleGuard(['manage_leads']), exportLeads);
+router.post('/import', authMiddleware, tenantResolver, roleGuard(['manage_leads']), importLeads);
 
 // CRUD
 router.get('/', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getLeads);

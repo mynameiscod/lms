@@ -65,6 +65,14 @@ const LeadsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('');
   const [filterSource, setFilterSource] = useState('');
+  const [dateRange, setDateRange] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+
+  // Import modal
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
 
   // Create/Edit Modal
   const [showModal, setShowModal] = useState(false);
@@ -85,12 +93,35 @@ const LeadsPage: React.FC = () => {
     setTimeout(() => setAlert(null), 3000);
   };
 
+  // Compute actual date range from preset
+  const getDateFilters = useCallback(() => {
+    const now = new Date();
+    if (dateRange === 'today') {
+      const d = now.toISOString().split('T')[0];
+      return { dateFrom: d, dateTo: d };
+    }
+    if (dateRange === 'week') {
+      const start = new Date(now);
+      start.setDate(now.getDate() - now.getDay());
+      return { dateFrom: start.toISOString().split('T')[0], dateTo: now.toISOString().split('T')[0] };
+    }
+    if (dateRange === 'month') {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { dateFrom: start.toISOString().split('T')[0], dateTo: now.toISOString().split('T')[0] };
+    }
+    if (dateRange === 'custom' && dateFrom) {
+      return { dateFrom, dateTo: dateTo || undefined };
+    }
+    return {};
+  }, [dateRange, dateFrom, dateTo]);
+
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
+      const dateFilt = getDateFilters();
       const [stagesRes, leadsRes, usersRes, configRes] = await Promise.all([
         leadStageApi.getStages(),
-        leadApi.getLeads({ search, stageId: filterStage, source: filterSource, page, limit: 100 }),
+        leadApi.getLeads({ search, stageId: filterStage, source: filterSource, page, limit: 100, ...dateFilt }),
         userApi.getUsers(),
         leadFormConfigApi.getConfig()
       ]);
@@ -132,7 +163,7 @@ const LeadsPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [search, filterStage, filterSource, page]);
+  }, [search, filterStage, filterSource, page, getDateFilters]);
 
   useEffect(() => {
     loadData();
@@ -268,6 +299,48 @@ const LeadsPage: React.FC = () => {
     }
   };
 
+  const handleExport = async () => {
+    try {
+      const dateFilt = getDateFilters();
+      const url = leadApi.exportLeads({ stageId: filterStage, source: filterSource, search, ...dateFilt });
+      const token = localStorage.getItem('token');
+      const tenantId = localStorage.getItem('tenantId');
+      const resp = await fetch(url, {
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...(tenantId && { 'X-Tenant-Id': tenantId })
+        }
+      });
+      if (!resp.ok) throw new Error('Export failed');
+      const blob = await resp.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `leads_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      showAlertMsg('success', 'Leads exported successfully');
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Export failed');
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    try {
+      setImporting(true);
+      const text = await importFile.text();
+      const res = await leadApi.importLeads(text);
+      showAlertMsg('success', res.message || `Imported ${res.data?.imported || 0} leads`);
+      setShowImportModal(false);
+      setImportFile(null);
+      loadData();
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Import failed');
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const toggleStageVisibility = (stageId: string) => {
     setVisibleStageIds(prev => {
       const next = new Set(prev);
@@ -312,6 +385,8 @@ const LeadsPage: React.FC = () => {
             <button className={view === 'kanban' ? 'active' : ''} onClick={() => setView('kanban')}>Board</button>
             <button className={view === 'table' ? 'active' : ''} onClick={() => setView('table')}>Table</button>
           </div>
+          <button className="btn-secondary" onClick={() => setShowImportModal(true)}>📥 Import</button>
+          <button className="btn-secondary" onClick={handleExport}>📤 Export</button>
           <button className="btn-primary" onClick={handleOpenCreate}>+ Add Lead</button>
         </div>
       </div>
@@ -355,6 +430,29 @@ const LeadsPage: React.FC = () => {
           <option value="">All Sources</option>
           {configSources.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
         </select>
+      </div>
+
+      {/* Date Filter */}
+      <div className="leads-date-filter">
+        <span className="date-filter-label">Date:</span>
+        <div className="date-filter-presets">
+          {([['all', 'All Time'], ['today', 'Today'], ['week', 'This Week'], ['month', 'This Month'], ['custom', 'Custom']] as const).map(([key, label]) => (
+            <button
+              key={key}
+              className={`date-preset-btn ${dateRange === key ? 'active' : ''}`}
+              onClick={() => { setDateRange(key); if (key !== 'custom') { setDateFrom(''); setDateTo(''); } }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {dateRange === 'custom' && (
+          <div className="date-custom-range">
+            <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} placeholder="From" />
+            <span>to</span>
+            <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} placeholder="To" />
+          </div>
+        )}
       </div>
 
       {stages.length === 0 ? (
@@ -614,6 +712,42 @@ const LeadsPage: React.FC = () => {
               <button className="btn-secondary" onClick={() => setShowReasonModal(false)}>Cancel</button>
               <button className="btn-danger" style={{ padding: '8px 18px', fontSize: '0.85rem' }} onClick={handleConfirmNotInterested} disabled={!notInterestedReason.trim()}>
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Import CSV Modal */}
+      {showImportModal && (
+        <div className="modal-overlay" onClick={() => setShowImportModal(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <h2>📥 Import Leads from CSV</h2>
+            <p style={{ color: '#6b7280', fontSize: '0.85rem', margin: '0 0 8px' }}>
+              Upload a CSV file with headers: <strong>Name, Email, Phone, Source, Course Interest, Notes</strong>
+            </p>
+            <p style={{ color: '#9ca3af', fontSize: '0.78rem', margin: '0 0 16px' }}>
+              Name and Phone are required. Leads will be assigned to the first stage.
+            </p>
+            <div className="import-dropzone">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={e => setImportFile(e.target.files?.[0] || null)}
+                id="csv-import-input"
+              />
+              <label htmlFor="csv-import-input" className="import-dropzone-label">
+                {importFile ? (
+                  <><span className="import-file-icon">📄</span> {importFile.name}</>
+                ) : (
+                  <><span className="import-file-icon">📁</span> Click to select CSV file</>
+                )}
+              </label>
+            </div>
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => { setShowImportModal(false); setImportFile(null); }}>Cancel</button>
+              <button className="btn-primary" onClick={handleImport} disabled={!importFile || importing}>
+                {importing ? 'Importing...' : 'Import'}
               </button>
             </div>
           </div>

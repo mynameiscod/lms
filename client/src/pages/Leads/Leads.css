@@ -79,6 +79,113 @@
   width: 220px;
 }
 
+/* Date Filter */
+.leads-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.date-filter-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.date-filter-presets {
+  display: flex;
+  gap: 4px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.date-preset-btn {
+  padding: 6px 14px;
+  border: none;
+  background: white;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.date-preset-btn:not(:last-child) {
+  border-right: 1px solid #e5e7eb;
+}
+
+.date-preset-btn:hover {
+  background: #f3f4f6;
+}
+
+.date-preset-btn.active {
+  background: #005897;
+  color: white;
+}
+
+.date-custom-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.date-custom-range input {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  outline: none;
+}
+
+.date-custom-range input:focus {
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0,88,151,0.1);
+}
+
+.date-custom-range span {
+  font-size: 0.82rem;
+  color: #9ca3af;
+}
+
+/* Import Dropzone */
+.import-dropzone {
+  margin-bottom: 16px;
+}
+
+.import-dropzone input[type="file"] {
+  display: none;
+}
+
+.import-dropzone-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px 20px;
+  border: 2px dashed #d1d5db;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: #6b7280;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.import-dropzone-label:hover {
+  border-color: #005897;
+  background: #f0f7ff;
+  color: #005897;
+}
+
+.import-file-icon {
+  font-size: 1.4rem;
+}
+
 /* Stats Bar */
 .leads-stats {
   display: flex;

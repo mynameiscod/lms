@@ -93,10 +93,33 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
       customRoleId || undefined
     );
 
+    // Generate reset token for password setup
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+    await userService.setResetToken(user._id.toString(), resetToken, resetTokenExpires);
+
+    // Generate setup link and send welcome email
+    const setupLink = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/setup-password?token=${resetToken}&email=${email}`;
+    let emailSent = false;
+    let emailError = null;
+    try {
+      await emailService.sendWelcomeEmail(email, firstName, setupLink);
+      emailSent = true;
+      console.log(`   ✅ Welcome email sent to ${email}`);
+    } catch (err: any) {
+      console.log(`   ❌ Email sending failed for ${email}: ${err.message}`);
+      emailError = err.message;
+    }
+
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
-      data: user
+      message: emailSent
+        ? 'User created successfully. Welcome email sent.'
+        : 'User created but email could not be sent.',
+      data: user,
+      emailSent,
+      emailError,
+      setupLink: !emailSent ? setupLink : undefined
     });
   } catch (error: any) {
     res.status(400).json({

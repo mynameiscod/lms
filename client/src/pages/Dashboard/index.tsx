@@ -97,10 +97,12 @@ const DashboardPage: React.FC = () => {
   });
 
   // Determine if user should see admin dashboard
-  const adminPermissions = ['manage_tenant_users', 'view_analytics', 'view_reports', 'create_courses', 'edit_courses', 'manage_tenant'];
+  // Any non-STUDENT role (TENANT_ADMIN, SUPER_ADMIN, INSTRUCTOR, STAFF, ATTENDANCE_ADMIN, etc.)
+  // should see admin dashboard. Also STUDENT with admin permissions should see admin dashboard.
   const isAdminUser = user ? (
-    ['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR'].includes(user.role) ||
-    (user.permissions && user.permissions.length > 0 && adminPermissions.some(p => user.permissions!.includes(p)))
+    user.role !== 'STUDENT' ||
+    (user.permissions && user.permissions.length > 0 && 
+      ['manage_tenant_users', 'view_analytics', 'view_reports', 'create_courses', 'edit_courses', 'manage_tenant', 'mark_attendance', 'create_quiz', 'manage_assignments', 'manage_interviews'].some(p => user.permissions!.includes(p)))
   ) : false;
 
   // Get greeting based on time of day

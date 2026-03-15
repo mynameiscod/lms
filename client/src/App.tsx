@@ -64,13 +64,15 @@ interface ProtectedRouteProps {
   requiredPermissions?: string[];
 }
 
-// Map roles to the permissions they imply, so custom role users can access routes
+// Map each route-level role to the key permissions that define it
+// Used to grant custom role users access to routes they have permissions for
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
-  'SUPER_ADMIN': ['manage_tenant_users', 'manage_roles', 'create_courses', 'manage_tenant', 'view_reports', 'manage_assignments', 'create_quiz', 'mark_attendance', 'manage_interviews'],
-  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'create_courses', 'manage_tenant', 'view_reports', 'manage_assignments', 'create_quiz', 'mark_attendance', 'manage_interviews'],
-  'INSTRUCTOR': ['create_courses', 'edit_courses', 'view_reports', 'manage_assignments', 'create_quiz', 'create_question', 'mark_attendance', 'manage_interviews'],
-  'ATTENDANCE_ADMIN': ['mark_attendance', 'view_attendance', 'view_reports'],
-  'STUDENT': ['enroll_courses', 'view_courses', 'submit_assignments', 'view_quiz', 'take_interviews'],
+  'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings'],
+  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments'],
+  'ATTENDANCE_ADMIN': ['mark_attendance'],
+  'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses'],
+  'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews'],
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -292,7 +294,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/attendance"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <AttendancePage />
             </Layout>
@@ -316,7 +318,7 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/attendance-reports"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
               <AttendanceReportsPage />
             </Layout>

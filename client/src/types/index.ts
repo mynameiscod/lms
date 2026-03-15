@@ -11,6 +11,7 @@ export interface User {
   isActive: boolean;
   profilePicture?: string;
   createdAt?: string;
+  permissions?: string[];
   // Profile fields
   phone?: string;
   bio?: string;

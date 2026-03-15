@@ -11,6 +11,7 @@ interface MenuItem {
   icon?: string;
   submenu?: MenuItem[];
   featureKey?: keyof StudentFeatures;
+  permissions?: string[]; // If set, user needs at least one of these permissions
 }
 
 const Sidebar: React.FC = () => {
@@ -34,22 +35,23 @@ const Sidebar: React.FC = () => {
   };
 
   const menuItems: MenuItem[] = [
-    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂', featureKey: 'dashboard' },
-    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: '📚', featureKey: 'myCourse' },
-    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '▦' },
-    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '⚡' },
-    { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⊕' },
-    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⚙' },
-    { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '▤' },
+    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
+    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: '📚', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '▦', permissions: ['view_courses'] },
+    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '⚡', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⊕', permissions: ['manage_tenant_users'] },
+    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⚙', permissions: ['manage_roles'] },
+    { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '▤', permissions: ['manage_tenant_courses'] },
     {
       label: 'Attendance',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],
       icon: '☑',
       featureKey: 'attendance',
+      permissions: ['mark_attendance', 'view_attendance'],
       submenu: [
-        { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'] },
-        { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'] },
-        { label: 'Reports', path: '/attendance-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'] },
+        { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], permissions: ['mark_attendance'] },
+        { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], permissions: ['view_attendance'] },
+        { label: 'Reports', path: '/attendance-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports'] },
       ]
     },
     {
@@ -57,11 +59,12 @@ const Sidebar: React.FC = () => {
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: '✎',
       featureKey: 'quizzes',
+      permissions: ['create_quiz', 'edit_quiz', 'view_quiz'],
       submenu: [
-        { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'] },
-        { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
-        { label: 'Question Bank', path: '/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
-        { label: 'Quiz Reports', path: '/quiz-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
+        { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'], permissions: ['view_quiz'] },
+        { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['create_quiz', 'edit_quiz'] },
+        { label: 'Question Bank', path: '/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['create_question', 'edit_question'] },
+        { label: 'Quiz Reports', path: '/quiz-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports'] },
       ]
     },
     {
@@ -69,29 +72,41 @@ const Sidebar: React.FC = () => {
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: '📝',
       featureKey: 'assignments',
+      permissions: ['manage_assignments', 'submit_assignments', 'view_grades'],
       submenu: [
-        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'] },
-        { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
-        { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
+        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], permissions: ['submit_assignments', 'view_grades'] },
+        { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_assignments'] },
+        { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports', 'grade_assignments'] },
       ]
     },
-    { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊' },
-    { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🎛' },
-    { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '💼' },
+    { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊', permissions: ['view_reports'] },
+    { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🎛', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+    { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '💼', permissions: ['manage_interviews'] },
     {
       label: 'Mock Interviews',
       roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: '🎯',
       featureKey: 'mockInterviews',
+      permissions: ['manage_interviews', 'take_interviews'],
       submenu: [
-        { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
-        { label: 'Assign to Students', path: '/mock-interviews/assign', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'] },
+        { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['take_interviews'] },
+        { label: 'Assign to Students', path: '/mock-interviews/assign', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_interviews'] },
       ]
     },
   ];
 
   const hasAccessToMenu = (item: MenuItem): boolean => {
-    if (!user?.role || !item.roles.includes(user.role)) return false;
+    if (!user) return false;
+
+    // If user has permissions array (custom role or resolved permissions), use permission-based access
+    if (user.permissions && user.permissions.length > 0 && item.permissions) {
+      const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
+      if (!hasPermission) return false;
+    } else {
+      // Fallback to role-based access for users without permissions array
+      if (!user.role || !item.roles.includes(user.role)) return false;
+    }
+
     // For students, check if the feature is enabled by admin
     if (user.role === 'STUDENT' && item.featureKey && !isFeatureEnabled(item.featureKey)) {
       return false;

@@ -100,7 +100,7 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
 export const ALL_PERMISSIONS = Object.values(PERMISSION_GROUPS)
   .flatMap(group => group.permissions.map(p => p.key));
 
-const ROLE_PERMISSIONS: Record<string, string[]> = {
+export const ROLE_PERMISSIONS: Record<string, string[]> = {
   SUPER_ADMIN: ALL_PERMISSIONS, // Super admin gets everything
   TENANT_ADMIN: [
     // Users & Roles

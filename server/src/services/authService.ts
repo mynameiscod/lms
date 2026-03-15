@@ -2,6 +2,8 @@ import jwt from 'jsonwebtoken';
 import mongoose from 'mongoose';
 import User, { IUser } from '../models/User';
 import Tenant from '../models/Tenant';
+import Role from '../models/Role';
+import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 
 export class AuthService {
   async register(
@@ -109,6 +111,19 @@ export class AuthService {
       { expiresIn } as any
     );
 
+    // Resolve effective permissions
+    let permissions: string[] = [];
+    if (user.customRoleId) {
+      try {
+        const customRole = await Role.findById(user.customRoleId);
+        permissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
+      } catch {
+        permissions = ROLE_PERMISSIONS[user.role] || [];
+      }
+    } else {
+      permissions = ROLE_PERMISSIONS[user.role] || [];
+    }
+
     return { 
       token, 
       user: {
@@ -119,7 +134,8 @@ export class AuthService {
         role: user.role,
         tenantId: user.tenantId,
         customRoleId: user.customRoleId || null,
-        isActive: user.isActive
+        isActive: user.isActive,
+        permissions
       },
       tenant 
     };

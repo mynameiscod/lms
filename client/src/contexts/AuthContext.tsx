@@ -68,6 +68,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             
             // Use fresh data from API, update localStorage
             const freshUser = userData.data;
+            
+            // Fetch effective permissions
+            try {
+              const permResponse = await fetch(`${API_URL}/users/me/permissions`, {
+                method: 'GET',
+                headers: {
+                  'Authorization': `Bearer ${savedToken}`,
+                  'X-Tenant-Id': freshUser.tenantId,
+                  'Content-Type': 'application/json'
+                }
+              });
+              if (permResponse.ok) {
+                const permData = await permResponse.json();
+                freshUser.permissions = permData.data?.permissions || [];
+              }
+            } catch (permError) {
+              console.error('Failed to fetch permissions:', permError);
+            }
+
             localStorage.setItem('user', JSON.stringify(freshUser));
             setUser(freshUser);
             setToken(savedToken);

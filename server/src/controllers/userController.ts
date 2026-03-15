@@ -7,6 +7,8 @@ import Batch from '../models/Batch';
 import Enrollment from '../models/Enrollment';
 import Course from '../models/Course';
 import User from '../models/User';
+import Role from '../models/Role';
+import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 
 const userService = new UserService();
@@ -440,6 +442,27 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
       message: error.message,
       error: error.message
     });
+  }
+};
+
+export const getMyPermissions = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const user = await User.findById(req.user.id).select('role customRoleId');
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    let permissions: string[] = [];
+    if (user.customRoleId) {
+      const customRole = await Role.findById(user.customRoleId);
+      permissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[user.role] || []);
+    } else {
+      permissions = ROLE_PERMISSIONS[user.role] || [];
+    }
+
+    res.json({ success: true, data: { permissions } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 

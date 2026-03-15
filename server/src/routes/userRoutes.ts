@@ -11,7 +11,8 @@ import {
   setupPassword,
   updateProfile,
   bulkUploadStudents,
-  downloadBulkTemplate
+  downloadBulkTemplate,
+  getMyPermissions
 } from '../controllers/userController';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { authMiddleware } from '../middleware/auth';
@@ -26,6 +27,9 @@ router.post('/setup-password', setupPassword);
 // Apply auth and tenant middleware to all other routes
 router.use(authMiddleware);
 router.use(tenantMiddleware);
+
+// Get current user's effective permissions
+router.get('/me/permissions', getMyPermissions);
 
 // Create a new user (requires manage_tenant_users permission)
 router.post('/', roleGuard(['manage_tenant_users']), createUser);

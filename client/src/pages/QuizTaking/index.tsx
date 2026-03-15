@@ -121,18 +121,22 @@ const QuizTakingPage: React.FC = () => {
 
       // Request camera/microphone BEFORE starting attempt (to avoid wasting attempts)
       if (quiz?.enableCamera || quiz?.enableMicrophone) {
-        try {
-          const constraints: MediaStreamConstraints = {
-            video: quiz.enableCamera ? { width: 320, height: 240, facingMode: 'user' } : false,
-            audio: quiz.enableMicrophone ? true : false,
-          };
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
-          mediaStreamRef.current = stream;
-        } catch (mediaErr: any) {
-          const device = quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone';
-          setError(`Could not access ${device}. Please grant permission in your browser and try again.`);
-          setStartingQuiz(false);
-          return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+          // mediaDevices not available (HTTP or unsupported browser) — warn but continue
+          setMediaError('Proctoring unavailable: site must be served over HTTPS for camera/microphone access. Quiz will proceed without proctoring.');
+        } else {
+          try {
+            const constraints: MediaStreamConstraints = {
+              video: quiz.enableCamera ? { width: 320, height: 240, facingMode: 'user' } : false,
+              audio: quiz.enableMicrophone ? true : false,
+            };
+            const stream = await navigator.mediaDevices.getUserMedia(constraints);
+            mediaStreamRef.current = stream;
+          } catch (mediaErr: any) {
+            // Permission denied or blocked — warn but allow quiz to continue
+            const device = quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone';
+            setMediaError(`Could not access ${device}. The quiz will proceed without proctoring. If you're in incognito mode, try a normal browser window.`);
+          }
         }
       }
 
@@ -473,7 +477,7 @@ const QuizTakingPage: React.FC = () => {
       )}
 
       {/* Media Error */}
-      {mediaError && <Alert type="error" message={mediaError} onClose={() => setMediaError('')} />}
+      {mediaError && <Alert type="warning" message={mediaError} onClose={() => setMediaError('')} />}
 
       {/* Tab Switch Warning Modal */}
       <Modal

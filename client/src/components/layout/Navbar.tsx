@@ -36,11 +36,16 @@ const Navbar: React.FC = () => {
                       className="user-avatar-img"
                     />
                   ) : (
-                    <span className="user-avatar">👤</span>
+                    <span className="user-avatar">
+                      {(user.firstName?.[0] || '').toUpperCase()}{(user.lastName?.[0] || '').toUpperCase()}
+                    </span>
                   )}
-                  <span className="user-name">
-                    {user.firstName} {user.lastName}
-                  </span>
+                  <div className="user-meta">
+                    <span className="user-name">
+                      {user.firstName} {user.lastName}
+                    </span>
+                    <span className="user-role">{user.role === 'STUDENT' ? 'Student' : user.role === 'ADMIN' ? 'Admin' : user.role === 'INSTRUCTOR' ? 'Instructor' : user.role}</span>
+                  </div>
                 </div>
               </Link>
               <Button variant="danger" onClick={handleLogout}>

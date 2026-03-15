@@ -166,7 +166,8 @@ const DashboardPage: React.FC = () => {
     if (!user?._id || user?.role !== 'STUDENT') return;
     
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const now = selectedDate;
+      const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
       const [summaryRes, todayRes] = await Promise.all([
         attendanceApi.getStudentAttendanceSummary(user._id, user.batchId),
         attendanceApi.getStudentAttendance(user._id, dateStr, dateStr)

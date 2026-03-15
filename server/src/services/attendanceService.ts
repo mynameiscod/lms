@@ -28,12 +28,17 @@ class AttendanceService {
     }
 
     // Check if attendance record already exists for this date
+    const dayStart = new Date(date);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(date);
+    dayEnd.setHours(23, 59, 59, 999);
+
     const existingAttendance = await Attendance.findOne({
       studentId,
       batchId,
       date: {
-        $gte: new Date(date.setHours(0, 0, 0, 0)),
-        $lt: new Date(date.setHours(23, 59, 59, 999))
+        $gte: dayStart,
+        $lt: dayEnd
       },
       tenantId
     });
@@ -57,7 +62,7 @@ class AttendanceService {
       attendance = new Attendance({
         studentId,
         batchId,
-        date: new Date(date.setHours(0, 0, 0, 0)),
+        date: dayStart,
         inTime,
         outTime,
         status,
@@ -82,7 +87,7 @@ class AttendanceService {
           student.email,
           studentName,
           status,
-          new Date(date.setHours(0, 0, 0, 0)),
+          dayStart,
           batch.name,
           remarks
         );

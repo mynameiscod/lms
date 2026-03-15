@@ -32,6 +32,7 @@ import QuestionManagementPage from './pages/QuestionManagement';
 import QuizzesPage from './pages/Quizzes';
 import QuizTakingPage from './pages/QuizTaking';
 import QuizResultsPage from './pages/QuizResults';
+import QuizResultsAdminPage from './pages/QuizResultsAdmin';
 import QuestionBuilder from './pages/QuestionBuilder';
 import StudentProfilePage from './pages/StudentProfile';
 import OAuthCallbackPage from './pages/OAuthCallback';
@@ -343,6 +344,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <QuizManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/quiz-results"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <QuizResultsAdminPage />
             </Layout>
           </ProtectedRoute>
         }

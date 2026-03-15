@@ -7,9 +7,9 @@
 /* Header */
 .results-header {
   position: relative;
-  padding: 60px 30px 40px;
+  padding: 24px 30px;
   color: white;
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
 }
 
 .gradient-bg {
@@ -30,8 +30,8 @@
 }
 
 .results-header h1 {
-  margin: 0 0 10px 0;
-  font-size: 2.5rem;
+  margin: 0 0 4px 0;
+  font-size: 1.6rem;
   font-weight: 700;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
@@ -52,28 +52,28 @@
 /* Score Card */
 .score-card {
   background: white;
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-  margin-bottom: 40px;
-  display: grid;
-  grid-template-columns: 200px 1fr;
-  gap: 60px;
+  border-radius: 12px;
+  padding: 24px 30px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  margin-bottom: 24px;
+  display: flex;
   align-items: center;
+  gap: 30px;
 }
 
 .score-card.passed {
-  border-top: 6px solid #4caf50;
+  border-top: 4px solid #4caf50;
 }
 
 .score-card.failed {
-  border-top: 6px solid #f44336;
+  border-top: 4px solid #f44336;
 }
 
 .score-circle {
   position: relative;
-  width: 200px;
-  height: 200px;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
 }
 
 .progress-ring {
@@ -114,7 +114,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  font-size: 2.5rem;
+  font-size: 1.6rem;
   font-weight: 700;
   color: #333;
   transition: color 0.3s ease;
@@ -133,40 +133,44 @@
 }
 
 .score-stats h2 {
-  margin: 0 0 8px 0;
-  font-size: 1.8rem;
+  margin: 0 0 4px 0;
+  font-size: 1.3rem;
   color: #333;
 }
 
 .score-stats .status {
-  margin: 0 0 30px 0;
-  font-size: 1.1rem;
+  margin: 0 0 16px 0;
+  font-size: 0.95rem;
   color: #666;
 }
 
 .stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 25px;
-  margin-bottom: 30px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
 }
 
 .stat-item {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  background: #f8f9fa;
+  padding: 10px 16px;
+  border-radius: 8px;
+  min-width: 120px;
 }
 
 .stat-item .label {
   color: #999;
-  font-size: 0.85rem;
+  font-size: 0.75rem;
   font-weight: 500;
-  text-transform: capitalize;
+  text-transform: uppercase;
 }
 
 .stat-item .value {
   color: #333;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   font-weight: 700;
 }
 
@@ -184,14 +188,14 @@
 /* Detailed Results */
 .detailed-results {
   background: white;
-  border-radius: 16px;
-  padding: 40px;
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .detailed-results h3 {
-  margin: 0 0 30px 0;
-  font-size: 1.3rem;
+  margin: 0 0 20px 0;
+  font-size: 1.2rem;
   color: #333;
   font-weight: 600;
 }
@@ -223,13 +227,13 @@
 
 .review-item:hover {
   background: #f3f4f6;
-  border-color: #6366f1;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+  border-color: #005897;
+  box-shadow: 0 2px 8px rgba(0, 88, 151, 0.1);
 }
 
 .review-item.active {
-  background: #6366f1;
-  border-color: #6366f1;
+  background: #005897;
+  border-color: #005897;
   color: white;
 }
 
@@ -321,7 +325,7 @@
 
 .detail-type {
   padding: 6px 12px;
-  background: #6366f1;
+  background: #005897;
   color: white;
   border-radius: 20px;
   font-size: 0.75rem;

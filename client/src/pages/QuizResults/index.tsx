@@ -84,7 +84,7 @@ const QuizResultsPage: React.FC = () => {
       <div className="results-header">
         <div className="gradient-bg"></div>
         <div className="results-content">
-          <h1>📊 Quiz Results</h1>
+          <h1>Quiz Results</h1>
           <p className="quiz-name">{result.quiz.title}</p>
         </div>
       </div>

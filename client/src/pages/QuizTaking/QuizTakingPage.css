@@ -6,12 +6,19 @@
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', sans-serif;
 }
 
+.quiz-taking-page.no-copy-paste {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
 /* Header */
 .quiz-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px 30px;
+  padding: 12px 30px;
   background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -38,14 +45,16 @@
 
 .quiz-title h1 {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 600;
+  color: white;
 }
 
 .quiz-title .question-count {
-  margin: 5px 0 0 0;
-  font-size: 0.9rem;
+  margin: 2px 0 0 0;
+  font-size: 0.85rem;
   opacity: 0.9;
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .quiz-timer {

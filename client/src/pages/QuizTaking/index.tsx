@@ -30,28 +30,31 @@ const QuizTakingPage: React.FC = () => {
   const [mediaError, setMediaError] = useState('');
 
   const handleTabSwitch = useCallback(() => {
-    if (document.hidden || document.visibilityState === 'hidden') {
+    setTabSwitchCount(prev => {
+      const newCount = prev + 1;
+      // Auto-submit if tab switches exceed warning count limit
+      if (quiz?.tabSwitchWarnings && quiz?.warningCount && newCount >= quiz.warningCount) {
+        submitQuizRef.current();
+      }
+      return newCount;
+    });
+    if (quiz?.tabSwitchWarnings) {
+      setShowTabWarnModal(true);
+    }
+  }, [quiz?.tabSwitchWarnings, quiz?.warningCount]);
+
+  const handleVisibilityChange = useCallback(() => {
+    if (document.hidden && quiz?.tabSwitchWarnings) {
       setTabSwitchCount(prev => {
         const newCount = prev + 1;
-        // Auto-submit if tab switches exceed warning count limit
-        if (quiz?.tabSwitchWarnings && quiz?.warningCount && newCount >= quiz.warningCount) {
+        if (quiz?.warningCount && newCount >= quiz.warningCount) {
           submitQuizRef.current();
         }
         return newCount;
       });
-      if (quiz?.tabSwitchWarnings) {
-        setShowTabWarnModal(true);
-      }
-    }
-  }, [quiz?.tabSwitchWarnings, quiz?.warningCount]);
-
-  const handleWindowFocus = useCallback(() => {
-    // Detect when window loses focus
-    if (document.visibilityState === 'hidden' && quiz?.tabSwitchWarnings) {
-      setTabSwitchCount(prev => prev + 1);
       setShowTabWarnModal(true);
     }
-  }, [quiz?.tabSwitchWarnings]);
+  }, [quiz?.tabSwitchWarnings, quiz?.warningCount]);
 
   const handleFullscreenChange = useCallback(() => {
     // Re-enforce fullscreen if user exits it
@@ -63,9 +66,8 @@ const QuizTakingPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setupEventListeners = useCallback(() => {
     // Tab switch detection
-    document.addEventListener('visibilitychange', handleTabSwitch);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('blur', handleTabSwitch);
-    window.addEventListener('focus', handleWindowFocus);
     // Fullscreen detection
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     
@@ -76,13 +78,12 @@ const QuizTakingPage: React.FC = () => {
       document.addEventListener('cut', preventCopyPasteRef.current);
       document.addEventListener('contextmenu', preventCopyPasteRef.current);
     }
-  }, [handleTabSwitch, handleWindowFocus, handleFullscreenChange, quiz?.canCopyPaste]);
+  }, [handleTabSwitch, handleVisibilityChange, handleFullscreenChange, quiz?.canCopyPaste]);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const cleanupEventListeners = useCallback(() => {
-    document.removeEventListener('visibilitychange', handleTabSwitch);
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
     window.removeEventListener('blur', handleTabSwitch);
-    window.removeEventListener('focus', handleWindowFocus);
     document.removeEventListener('fullscreenchange', handleFullscreenChange);
     
     // Remove copy/paste prevention
@@ -90,7 +91,7 @@ const QuizTakingPage: React.FC = () => {
     document.removeEventListener('paste', preventCopyPasteRef.current);
     document.removeEventListener('cut', preventCopyPasteRef.current);
     document.removeEventListener('contextmenu', preventCopyPasteRef.current);
-  }, [handleTabSwitch, handleWindowFocus, handleFullscreenChange]);
+  }, [handleTabSwitch, handleVisibilityChange, handleFullscreenChange]);
 
   const loadQuiz = useCallback(async () => {
     try {
@@ -143,9 +144,6 @@ const QuizTakingPage: React.FC = () => {
           };
           const stream = await navigator.mediaDevices.getUserMedia(constraints);
           mediaStreamRef.current = stream;
-          if (videoRef.current && quiz.enableCamera) {
-            videoRef.current.srcObject = stream;
-          }
         } catch (mediaErr: any) {
           setMediaError(`Could not access ${quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone'}. Please grant permission and try again.`);
           return;
@@ -163,6 +161,13 @@ const QuizTakingPage: React.FC = () => {
       setStartingQuiz(false);
     }
   }, [quizId, quiz, setupEventListeners]);
+
+  // Attach camera stream to video element when it mounts
+  useEffect(() => {
+    if (videoRef.current && mediaStreamRef.current) {
+      videoRef.current.srcObject = mediaStreamRef.current;
+    }
+  }, [showInstructions]);
 
   useEffect(() => {
     loadQuiz();
@@ -373,11 +378,7 @@ const QuizTakingPage: React.FC = () => {
           <div className="instructions-section">
             <h2>📋 Instructions</h2>
             {quiz.instructions ? (
-              <div className="custom-instructions">
-                {quiz.instructions.split('\n').map((line, index) => (
-                  <p key={index}>{line}</p>
-                ))}
-              </div>
+              <div className="custom-instructions" dangerouslySetInnerHTML={{ __html: quiz.instructions }} />
             ) : (
               <ul className="default-instructions">
                 <li>Read each question carefully before answering.</li>
@@ -435,7 +436,7 @@ const QuizTakingPage: React.FC = () => {
   const timeCritical = timeLeft < 60; // Less than 1 minute
 
   return (
-    <div ref={fullScreenRef} className="quiz-taking-page">
+    <div ref={fullScreenRef} className={`quiz-taking-page${!quiz.canCopyPaste ? ' no-copy-paste' : ''}`}>
       {/* Camera Proctoring Preview */}
       {quiz.enableCamera && !showInstructions && (
         <div className="proctoring-preview">
@@ -480,7 +481,7 @@ const QuizTakingPage: React.FC = () => {
       <Modal
         isOpen={showSubmitConfirmModal}
         onClose={() => setShowSubmitConfirmModal(false)}
-        title="🔒 Submit Quiz?"
+        title="Submit Quiz?"
         maxWidth="500px"
       >
         <div className="confirm-content">

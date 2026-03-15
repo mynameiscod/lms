@@ -42,8 +42,9 @@ const TimeSpentCard: React.FC = () => {
   useEffect(() => {
     if (!user?._id) return;
 
-    // Get today's date
-    const today = new Date().toISOString().split('T')[0];
+    // Get today's date (local timezone)
+    const now = new Date();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const totalTimeKey = `total_active_time_${user._id}_${today}`;
 
     // Get total active time from previous sessions today

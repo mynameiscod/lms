@@ -5,6 +5,13 @@ import { Attendance, AttendanceSummary, Batch } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import './MyAttendancePage.css';
 
+const getLocalDateString = (date: Date = new Date()): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 const MyAttendancePage: React.FC = () => {
   const { user } = useAuth();
   const [currentBatch, setCurrentBatch] = useState<Batch | null>(null);
@@ -12,8 +19,8 @@ const MyAttendancePage: React.FC = () => {
   const [summary, setSummary] = useState<AttendanceSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [startDate, setStartDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
-  const [endDate, setEndDate] = useState<string>(() => new Date().toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState<string>(() => getLocalDateString());
+  const [endDate, setEndDate] = useState<string>(() => getLocalDateString());
 
   // Get date constraints
   const getMinDate = () => {
@@ -30,13 +37,13 @@ const MyAttendancePage: React.FC = () => {
   };
 
   const getFromDateMax = () => {
-    return new Date().toISOString().split('T')[0];
+    return getLocalDateString();
   };
 
   const getToDateMax = () => {
-    if (!currentBatch) return new Date().toISOString().split('T')[0];
-    const today = new Date().toISOString().split('T')[0];
-    const batchEnd = currentBatch.endDate ? new Date(currentBatch.endDate).toISOString().split('T')[0] : today;
+    if (!currentBatch) return getLocalDateString();
+    const today = getLocalDateString();
+    const batchEnd = currentBatch.endDate ? getLocalDateString(new Date(currentBatch.endDate)) : today;
     // Return whichever is earlier - today or batch end date
     return batchEnd < today ? batchEnd : today;
   };

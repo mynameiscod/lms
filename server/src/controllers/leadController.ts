@@ -501,6 +501,135 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
   }
 };
 
+// Manager Board — per-employee lead stats
+export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    // Get all stages
+    const stages = await LeadStage.find({ tenantId: req.tenantId, isActive: true }).sort({ order: 1 }).lean();
+
+    // Get staff who can have leads assigned
+    const staffUsers = await User.find({
+      tenantId: req.tenantId,
+      role: { $in: ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'] },
+      isActive: true
+    }).select('firstName lastName email role').lean();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // Aggregate leads per assignee per stage
+    const leadsByAssignee = await Lead.aggregate([
+      { $match: { tenantId: req.tenantId as any } },
+      {
+        $group: {
+          _id: { assignedTo: '$assignedTo', stageId: '$stageId' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Count today's follow-ups per assignee
+    const followUpsByAssignee = await Lead.aggregate([
+      {
+        $match: {
+          tenantId: req.tenantId as any,
+          nextFollowUp: { $gte: today, $lte: todayEnd }
+        }
+      },
+      { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+    ]);
+
+    // Count overdue follow-ups per assignee
+    const overdueByAssignee = await Lead.aggregate([
+      {
+        $match: {
+          tenantId: req.tenantId as any,
+          nextFollowUp: { $lt: today, $ne: null }
+        }
+      },
+      { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+    ]);
+
+    // Build per-employee data
+    const stageMap = stages.reduce((acc: any, s: any) => {
+      acc[s._id.toString()] = { name: s.name, color: s.color, order: s.order };
+      return acc;
+    }, {});
+
+    const followUpMap: Record<string, number> = {};
+    followUpsByAssignee.forEach((f: any) => { followUpMap[String(f._id || 'unassigned')] = f.count; });
+
+    const overdueMap: Record<string, number> = {};
+    overdueByAssignee.forEach((o: any) => { overdueMap[String(o._id || 'unassigned')] = o.count; });
+
+    // Group counts by assignee
+    const assigneeData: Record<string, { total: number; stages: Record<string, number> }> = {};
+    leadsByAssignee.forEach((item: any) => {
+      const aId = String(item._id.assignedTo || 'unassigned');
+      const sId = String(item._id.stageId);
+      if (!assigneeData[aId]) assigneeData[aId] = { total: 0, stages: {} };
+      assigneeData[aId].total += item.count;
+      assigneeData[aId].stages[sId] = item.count;
+    });
+
+    // Build final response
+    const employees = staffUsers.map((user: any) => {
+      const uid = user._id.toString();
+      const data = assigneeData[uid] || { total: 0, stages: {} };
+      return {
+        _id: uid,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        totalLeads: data.total,
+        todayFollowUps: followUpMap[uid] || 0,
+        overdueFollowUps: overdueMap[uid] || 0,
+        stageBreakdown: stages.map((s: any) => ({
+          stageId: s._id.toString(),
+          name: s.name,
+          color: s.color,
+          count: data.stages[s._id.toString()] || 0
+        }))
+      };
+    });
+
+    // Add unassigned bucket
+    const unassignedData = assigneeData['unassigned'] || { total: 0, stages: {} };
+    if (unassignedData.total > 0) {
+      employees.push({
+        _id: 'unassigned',
+        firstName: 'Unassigned',
+        lastName: '',
+        email: '',
+        role: '',
+        totalLeads: unassignedData.total,
+        todayFollowUps: followUpMap['unassigned'] || 0,
+        overdueFollowUps: overdueMap['unassigned'] || 0,
+        stageBreakdown: stages.map((s: any) => ({
+          stageId: s._id.toString(),
+          name: s.name,
+          color: s.color,
+          count: unassignedData.stages[s._id.toString()] || 0
+        }))
+      });
+    }
+
+    // Sort: most leads first
+    employees.sort((a: any, b: any) => b.totalLeads - a.totalLeads);
+
+    res.json({
+      success: true,
+      message: 'Manager board data fetched',
+      data: { employees, stages }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch manager board', error: error.message });
+  }
+};
+
 // Convert lead to student
 export const convertToStudent = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {

@@ -62,6 +62,7 @@ import LeadsPage from './pages/Leads';
 import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
 import LeadFormSettingsPage from './pages/LeadFormSettings';
+import LeadManagerBoardPage from './pages/LeadManagerBoard';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -621,6 +622,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadFormSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-manager-board"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadManagerBoardPage />
             </Layout>
           </ProtectedRoute>
         }

@@ -10,7 +10,8 @@ import {
   getLeadAnalytics,
   convertToStudent,
   exportLeads,
-  importLeads
+  importLeads,
+  getManagerBoard
 } from '../controllers/leadController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -20,6 +21,7 @@ const router = express.Router();
 
 // Analytics
 router.get('/analytics', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getLeadAnalytics);
+router.get('/manager-board', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getManagerBoard);
 
 // Export / Import
 router.get('/export', authMiddleware, tenantResolver, roleGuard(['manage_leads']), exportLeads);

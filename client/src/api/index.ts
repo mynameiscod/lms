@@ -1684,6 +1684,9 @@ export const leadApi = {
   getAnalytics: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/analytics`);
   },
+  getManagerBoard: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/manager-board`);
+  },
   exportLeads: (filters?: { stageId?: string; source?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
     const params = new URLSearchParams();
     if (filters?.stageId) params.append('stageId', filters.stageId);

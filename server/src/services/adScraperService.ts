@@ -76,13 +76,11 @@ export async function fetchCompetitorAds(competitorName: string): Promise<Scrape
  */
 async function autoScroll(page: Page, rounds: number = 3): Promise<void> {
   for (let i = 0; i < rounds; i++) {
-    await page.evaluate(() => {
-      window.scrollBy(0, window.innerHeight * 2);
-    });
+    await page.evaluate('window.scrollBy(0, window.innerHeight * 2)');
     await page.waitForTimeout(2000);
   }
   // Scroll back to top
-  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.evaluate('window.scrollTo(0, 0)');
   await page.waitForTimeout(1000);
 }
 
@@ -167,17 +165,17 @@ async function extractAdsFallback(page: Page, competitorName: string): Promise<S
     // Get all visible text blocks that look like ads
     const textBlocks = await page.evaluate(() => {
       const blocks: { text: string; link: string; img: string }[] = [];
-      const allDivs = document.querySelectorAll('div');
+      const allDivs = (globalThis as any).document.querySelectorAll('div');
 
-      for (const div of allDivs) {
-        const text = div.textContent?.trim() || '';
+      for (const div of (Array.from(allDivs) as any[])) {
+        const text = (div as any).textContent?.trim() || '';
         // Look for divs with substantial text that could be ad content
         if (text.length > 50 && text.length < 2000) {
-          const link = div.querySelector('a[href*="http"]')?.getAttribute('href') || '';
-          const img = div.querySelector('img[src*="http"]')?.getAttribute('src') || '';
+          const link = (div as any).querySelector('a[href*="http"]')?.getAttribute('href') || '';
+          const img = (div as any).querySelector('img[src*="http"]')?.getAttribute('src') || '';
 
           // Avoid duplicates and navigation elements  
-          const isNav = div.closest('nav, header, footer');
+          const isNav = (div as any).closest('nav, header, footer');
           if (!isNav && (link || img)) {
             blocks.push({ text: text.substring(0, 500), link, img });
           }

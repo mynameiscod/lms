@@ -406,3 +406,286 @@ function extractCTA(text: string): string {
 function cleanText(text: string): string {
   return text.replace(/\s+/g, ' ').trim();
 }
+
+// ===================== GOOGLE ADS TRANSPARENCY CENTER =====================
+
+/**
+ * Fetch competitor ads from Google Ads Transparency Center.
+ * URL: https://adstransparency.google.com
+ */
+export async function fetchGoogleAds(competitorName: string): Promise<ScrapedAd[]> {
+  let browser: Browser | null = null;
+
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
+    });
+
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport: { width: 1366, height: 768 },
+      locale: 'en-US',
+    });
+
+    const page = await context.newPage();
+    const searchUrl = `https://adstransparency.google.com/?search_text=${encodeURIComponent(competitorName)}&region=IN`;
+
+    console.log(`[GoogleAdScraper] Navigating to: ${searchUrl}`);
+    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 45000 });
+    await page.waitForTimeout(5000);
+
+    // Click on the first advertiser result if present
+    try {
+      const advertiserLink = await page.$('a[href*="advertiser"], creative-preview, .advertiser-name, [data-advertiser-id]');
+      if (advertiserLink) {
+        await advertiserLink.click();
+        await page.waitForTimeout(4000);
+      }
+    } catch { /* continue */ }
+
+    // Scroll to load more ads
+    await autoScroll(page, 4);
+
+    // Extract ads from Google Transparency Center
+    const ads: ScrapedAd[] = [];
+    const adData = await page.evaluate(() => {
+      const results: { text: string; link: string; img: string; format: string }[] = [];
+      // Google Transparency shows ad creatives in card-like containers
+      const cards = (globalThis as any).document.querySelectorAll(
+        'creative-preview, [class*="creative"], [class*="ad-card"], [class*="ad-preview"], [role="listitem"]'
+      );
+
+      for (const card of Array.from(cards).slice(0, 25) as any[]) {
+        const text = (card.textContent || '').trim();
+        if (text.length < 20) continue;
+
+        const img = card.querySelector('img[src*="http"]')?.getAttribute('src') || '';
+        const link = card.querySelector('a[href*="http"]')?.getAttribute('href') || '';
+        const format = card.querySelector('video') ? 'video' : 'image';
+
+        results.push({ text: text.substring(0, 800), link, img, format });
+      }
+
+      // Also try general text blocks as fallback
+      if (results.length === 0) {
+        const containers = (globalThis as any).document.querySelectorAll('div');
+        for (const div of Array.from(containers) as any[]) {
+          const text = (div.textContent || '').trim();
+          if (text.length < 50 || text.length > 2000) continue;
+          const childDivs = div.querySelectorAll('div');
+          if (childDivs.length > 20) continue;
+
+          const img = div.querySelector('img[src*="http"]')?.getAttribute('src') || '';
+          const link = div.querySelector('a[href*="http"]')?.getAttribute('href') || '';
+          if (!img && !link) continue;
+
+          // Ad-like markers for Google
+          const hasMarker = /ad|creative|sponsored|promoted/i.test(div.className || '') ||
+            text.length > 80;
+          if (hasMarker) {
+            results.push({ text: text.substring(0, 800), link, img, format: 'text' });
+          }
+        }
+      }
+
+      // Deduplicate
+      const unique: typeof results = [];
+      for (const r of results) {
+        const isDupe = unique.some(u => u.text.substring(0, 60) === r.text.substring(0, 60));
+        if (!isDupe) unique.push(r);
+      }
+      return unique.slice(0, 20);
+    });
+
+    for (const item of adData) {
+      const lines = item.text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 5);
+      if (lines.length === 0) continue;
+
+      ads.push({
+        competitorName,
+        headline: cleanText(lines[0].substring(0, 150)),
+        primaryText: cleanText(lines.slice(1, 5).join(' ').substring(0, 500)),
+        cta: extractCTA(item.text),
+        mediaUrl: item.img,
+        landingPage: item.link,
+        platform: 'Google Ads',
+        startedRunning: '',
+        estimatedReach: '',
+      });
+    }
+
+    console.log(`[GoogleAdScraper] Extracted ${ads.length} ads for "${competitorName}"`);
+    await browser.close();
+    return ads;
+  } catch (error: any) {
+    console.error(`[GoogleAdScraper] Error: ${error.message}`);
+    if (browser) await browser.close();
+    return [];
+  }
+}
+
+// ===================== LINKEDIN AD LIBRARY =====================
+
+/**
+ * Fetch competitor ads from LinkedIn Ad Library.
+ * URL: https://www.linkedin.com/ad-library/
+ */
+export async function fetchLinkedInAds(competitorName: string): Promise<ScrapedAd[]> {
+  let browser: Browser | null = null;
+
+  try {
+    browser = await chromium.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-blink-features=AutomationControlled'],
+    });
+
+    const context = await browser.newContext({
+      userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      viewport: { width: 1366, height: 768 },
+      locale: 'en-US',
+    });
+
+    const page = await context.newPage();
+    const searchUrl = `https://www.linkedin.com/ad-library/?q=${encodeURIComponent(competitorName)}`;
+
+    console.log(`[LinkedInAdScraper] Navigating to: ${searchUrl}`);
+    await page.goto(searchUrl, { waitUntil: 'networkidle', timeout: 45000 });
+    await page.waitForTimeout(5000);
+
+    // LinkedIn may show a search box — type and search
+    try {
+      const searchInput = await page.$('input[type="text"], input[placeholder*="Search"], input[aria-label*="Search"]');
+      if (searchInput) {
+        await searchInput.fill(competitorName);
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(5000);
+      }
+    } catch { /* continue */ }
+
+    // Click on advertiser if results show
+    try {
+      const firstResult = await page.$('a[href*="ad-library"], button:has-text("View ads"), [data-test-id*="advertiser"]');
+      if (firstResult) {
+        await firstResult.click();
+        await page.waitForTimeout(4000);
+      }
+    } catch { /* continue */ }
+
+    await autoScroll(page, 4);
+
+    // Extract ads
+    const ads: ScrapedAd[] = [];
+    const adData = await page.evaluate(() => {
+      const results: { text: string; link: string; img: string }[] = [];
+
+      // LinkedIn ad library shows ads in card/list format
+      const cards = (globalThis as any).document.querySelectorAll(
+        '[class*="ad-card"], [class*="ad-library"], [class*="feed-item"], article, [data-test-id*="ad"]'
+      );
+
+      for (const card of Array.from(cards).slice(0, 25) as any[]) {
+        const text = (card.textContent || '').trim();
+        if (text.length < 30) continue;
+
+        const img = card.querySelector('img[src*="http"]')?.getAttribute('src') || '';
+        const link = card.querySelector('a[href*="http"]')?.getAttribute('href') || '';
+
+        results.push({ text: text.substring(0, 800), link, img });
+      }
+
+      // Fallback: general containers
+      if (results.length === 0) {
+        const divs = (globalThis as any).document.querySelectorAll('div');
+        for (const div of Array.from(divs) as any[]) {
+          const text = (div.textContent || '').trim();
+          if (text.length < 50 || text.length > 2000) continue;
+          const childDivs = div.querySelectorAll('div');
+          if (childDivs.length > 25) continue;
+
+          const img = div.querySelector('img[src*="http"]')?.getAttribute('src') || '';
+          const link = div.querySelector('a[href*="http"]')?.getAttribute('href') || '';
+          if (!img && !link) continue;
+
+          const hasAdContent = /sponsored|promoted|ad library|advertiser/i.test(text) ||
+            /Learn More|Sign Up|Apply|Download|Get Started/i.test(text);
+          if (hasAdContent) {
+            results.push({ text: text.substring(0, 800), link, img });
+          }
+        }
+      }
+
+      const unique: typeof results = [];
+      for (const r of results) {
+        const isDupe = unique.some(u => u.text.substring(0, 60) === r.text.substring(0, 60));
+        if (!isDupe) unique.push(r);
+      }
+      return unique.slice(0, 20);
+    });
+
+    for (const item of adData) {
+      const lines = item.text.split('\n').map((l: string) => l.trim()).filter((l: string) => l.length > 5);
+      if (lines.length === 0) continue;
+
+      ads.push({
+        competitorName,
+        headline: cleanText(lines[0].substring(0, 150)),
+        primaryText: cleanText(lines.slice(1, 5).join(' ').substring(0, 500)),
+        cta: extractCTA(item.text),
+        mediaUrl: item.img,
+        landingPage: item.link,
+        platform: 'LinkedIn',
+        startedRunning: '',
+        estimatedReach: '',
+      });
+    }
+
+    console.log(`[LinkedInAdScraper] Extracted ${ads.length} ads for "${competitorName}"`);
+    await browser.close();
+    return ads;
+  } catch (error: any) {
+    console.error(`[LinkedInAdScraper] Error: ${error.message}`);
+    if (browser) await browser.close();
+    return [];
+  }
+}
+
+// ===================== MULTI-PLATFORM DISPATCHER =====================
+
+export type ScrapePlatform = 'meta' | 'google' | 'linkedin' | 'all';
+
+/**
+ * Fetch competitor ads from one or more platforms.
+ */
+export async function fetchAdsFromPlatforms(
+  competitorName: string,
+  platforms: ScrapePlatform[] = ['meta']
+): Promise<ScrapedAd[]> {
+  const allAds: ScrapedAd[] = [];
+
+  // If 'all', expand to all platforms
+  const targets = platforms.includes('all') ? ['meta', 'google', 'linkedin'] as ScrapePlatform[] : platforms;
+
+  for (const platform of targets) {
+    try {
+      let ads: ScrapedAd[] = [];
+      switch (platform) {
+        case 'meta':
+          ads = await fetchCompetitorAds(competitorName);
+          break;
+        case 'google':
+          ads = await fetchGoogleAds(competitorName);
+          break;
+        case 'linkedin':
+          ads = await fetchLinkedInAds(competitorName);
+          break;
+      }
+      allAds.push(...ads);
+      console.log(`[MultiScraper] ${platform}: ${ads.length} ads`);
+    } catch (error: any) {
+      console.error(`[MultiScraper] ${platform} failed: ${error.message}`);
+    }
+  }
+
+  return allAds;
+}

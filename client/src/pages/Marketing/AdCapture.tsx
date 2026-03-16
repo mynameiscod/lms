@@ -16,6 +16,7 @@ const AdCapture: React.FC = () => {
   const [analysisSummary, setAnalysisSummary] = useState<CompetitorAnalysisSummary | null>(null);
   const [fetching, setFetching] = useState(false);
   const [fetchInput, setFetchInput] = useState('');
+  const [fetchPlatforms, setFetchPlatforms] = useState<string[]>(['meta']);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [form, setForm] = useState({
@@ -59,9 +60,10 @@ const AdCapture: React.FC = () => {
 
   const handleFetchAds = async () => {
     if (!fetchInput.trim()) { setError('Enter a competitor name to fetch ads'); return; }
+    if (fetchPlatforms.length === 0) { setError('Select at least one platform'); return; }
     setFetching(true); setError(''); setSuccess('');
     try {
-      const res = await marketingAPI.fetchAds(fetchInput.trim());
+      const res = await marketingAPI.fetchAds(fetchInput.trim(), fetchPlatforms);
       setSuccess(res.message);
       setFetchInput('');
       loadCompetitors();
@@ -69,6 +71,12 @@ const AdCapture: React.FC = () => {
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to fetch ads. Try adding ads manually.');
     } finally { setFetching(false); }
+  };
+
+  const toggleFetchPlatform = (platform: string) => {
+    setFetchPlatforms(prev =>
+      prev.includes(platform) ? prev.filter(p => p !== platform) : [...prev, platform]
+    );
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -327,15 +335,28 @@ const AdCapture: React.FC = () => {
 
       {/* Auto-Fetch Section */}
       <div className="marketing-form-card fetch-section">
-        <h3>🔍 Auto-Fetch Competitor Ads from Meta Ads Library</h3>
-        <p style={{ color: '#64748b', fontSize: 14, marginBottom: 16 }}>Enter a competitor name (e.g., Scaler, NxtWave, PW Skills, Intellipaat) to automatically scrape their ads.</p>
+        <h3>🔍 Auto-Fetch Competitor Ads</h3>
+        <p style={{ color: '#64748b', fontSize: 14, marginBottom: 12 }}>Enter a competitor name and select platforms to scrape ads from.</p>
+        <div className="fetch-platform-row">
+          {[
+            { key: 'meta', label: '📱 Meta Ads', desc: 'Facebook & Instagram' },
+            { key: 'google', label: '🔍 Google Ads', desc: 'Google Transparency' },
+            { key: 'linkedin', label: '💼 LinkedIn', desc: 'LinkedIn Ad Library' },
+          ].map(p => (
+            <label key={p.key} className={`fetch-platform-chip ${fetchPlatforms.includes(p.key) ? 'active' : ''}`}>
+              <input type="checkbox" checked={fetchPlatforms.includes(p.key)} onChange={() => toggleFetchPlatform(p.key)} />
+              <span className="chip-label">{p.label}</span>
+              <span className="chip-desc">{p.desc}</span>
+            </label>
+          ))}
+        </div>
         <div className="fetch-row">
           <input type="text" value={fetchInput} onChange={e => setFetchInput(e.target.value)} placeholder="Enter competitor name... (e.g., Scaler)" className="fetch-input" disabled={fetching} onKeyDown={e => e.key === 'Enter' && handleFetchAds()} />
-          <button className="btn btn-accent fetch-btn" onClick={handleFetchAds} disabled={fetching || !fetchInput.trim()}>
+          <button className="btn btn-accent fetch-btn" onClick={handleFetchAds} disabled={fetching || !fetchInput.trim() || fetchPlatforms.length === 0}>
             {fetching ? '🔄 Fetching...' : '🚀 Fetch Ads'}
           </button>
         </div>
-        {fetching && <p className="fetch-status">⏳ Scraping Meta Ads Library... This may take 15-30 seconds.</p>}
+        {fetching && <p className="fetch-status">⏳ Scraping {fetchPlatforms.length > 1 ? 'multiple platforms' : fetchPlatforms[0] === 'meta' ? 'Meta Ads Library' : fetchPlatforms[0] === 'google' ? 'Google Ads' : 'LinkedIn'}... This may take 15-60 seconds.</p>}
       </div>
 
       {/* Manual Capture Form (on list page) */}

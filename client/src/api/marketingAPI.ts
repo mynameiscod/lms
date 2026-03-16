@@ -138,8 +138,8 @@ export const marketingAPI = {
   },
 
   // Ads
-  fetchAds: async (competitorName: string): Promise<{ success: boolean; message: string; data: any }> => {
-    const res = await api.post('/marketing/ads/fetch', { competitorName });
+  fetchAds: async (competitorName: string, platforms?: string[]): Promise<{ success: boolean; message: string; data: any }> => {
+    const res = await api.post('/marketing/ads/fetch', { competitorName, platforms: platforms || ['meta'] });
     return res.data;
   },
   getAds: async (): Promise<{ success: boolean; data: CompetitorAd[] }> => {

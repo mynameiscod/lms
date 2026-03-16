@@ -891,6 +891,59 @@
   color: #94a3b8;
 }
 
+/* ===== FETCH PLATFORM SELECTOR ===== */
+.fetch-platform-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.fetch-platform-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fff;
+  min-width: 140px;
+  text-align: center;
+}
+
+.fetch-platform-chip input[type="checkbox"] {
+  display: none;
+}
+
+.fetch-platform-chip:hover {
+  border-color: #005897;
+  background: #f0f7ff;
+}
+
+.fetch-platform-chip.active {
+  border-color: #005897;
+  background: linear-gradient(135deg, #f0f7ff, #e0efff);
+  box-shadow: 0 2px 8px rgba(0,88,151,0.12);
+}
+
+.chip-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a2e;
+}
+
+.chip-desc {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.fetch-platform-chip.active .chip-label {
+  color: #005897;
+}
+
 /* ===== COMPETITOR CARD GRID (Ad Capture List View) ===== */
 .competitor-card-grid {
   display: grid;

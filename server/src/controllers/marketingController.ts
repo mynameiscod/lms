@@ -6,7 +6,7 @@ import CompetitorAd from '../models/CompetitorAd';
 import AdInsight from '../models/AdInsight';
 import GeneratedMarketingContent from '../models/GeneratedMarketingContent';
 import { analyzeAd, generateContent } from '../services/marketingIntelligenceService';
-import { fetchCompetitorAds } from '../services/adScraperService';
+import { fetchCompetitorAds, fetchAdsFromPlatforms, ScrapePlatform } from '../services/adScraperService';
 
 // ===================== COMPETITORS =====================
 
@@ -164,10 +164,17 @@ export const analyzeCompetitor = async (req: AuthenticatedRequest, res: Response
 
 export const fetchAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { competitorName } = req.body;
+    const { competitorName, platforms } = req.body;
     if (!competitorName || typeof competitorName !== 'string') {
       return res.status(400).json({ success: false, message: 'Competitor name is required' });
     }
+
+    // Validate platforms
+    const validPlatforms: ScrapePlatform[] = ['meta', 'google', 'linkedin', 'all'];
+    const selectedPlatforms: ScrapePlatform[] = Array.isArray(platforms)
+      ? platforms.filter((p: string) => validPlatforms.includes(p as ScrapePlatform))
+      : ['meta'];
+    if (selectedPlatforms.length === 0) selectedPlatforms.push('meta');
 
     // 1. Find or create competitor
     let competitor = await Competitor.findOne({
@@ -185,13 +192,14 @@ export const fetchAds = async (req: AuthenticatedRequest, res: Response<ApiRespo
       });
     }
 
-    // 2. Scrape ads from Meta Ads Library
-    const scrapedAds = await fetchCompetitorAds(competitorName);
+    // 2. Scrape ads from selected platforms
+    const platformLabel = selectedPlatforms.includes('all') ? 'all platforms' : selectedPlatforms.join(', ');
+    const scrapedAds = await fetchAdsFromPlatforms(competitorName, selectedPlatforms);
 
     if (scrapedAds.length === 0) {
       return res.json({
         success: true,
-        message: `No ads found for "${competitorName}". Meta may be blocking automated access. Try adding ads manually.`,
+        message: `No ads found for "${competitorName}" on ${platformLabel}. Platforms may be blocking automated access. Try adding ads manually.`,
         data: { competitor, ads: [], insights: [], scrapedCount: 0 },
       });
     }

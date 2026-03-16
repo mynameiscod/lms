@@ -21,7 +21,7 @@ const CompetitorAdSchema: Schema = new Schema(
   {
     tenantId: { type: mongoose.Types.ObjectId, ref: 'Tenant', required: true },
     competitorId: { type: mongoose.Types.ObjectId, ref: 'Competitor', required: true },
-    platform: { type: String, required: true, enum: ['Facebook', 'Instagram', 'LinkedIn', 'Google Ads', 'YouTube', 'Twitter', 'WhatsApp', 'Other'] },
+    platform: { type: String, required: true, enum: ['Facebook', 'Instagram', 'LinkedIn', 'Google Ads', 'YouTube', 'Twitter', 'WhatsApp', 'Meta Ads', 'Other'] },
     headline: { type: String, required: true, trim: true },
     primaryText: { type: String, default: '' },
     cta: { type: String, default: '' },

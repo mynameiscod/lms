@@ -10,6 +10,9 @@ export interface ICompetitorAd extends Document {
   landingPageUrl: string;
   mediaUrl: string;
   notes: string;
+  startedRunning: string;
+  estimatedReach: string;
+  estimatedCpl: string;
   isAnalyzed: boolean;
   analyzedAt: Date | null;
   capturedBy: mongoose.Types.ObjectId;
@@ -28,6 +31,9 @@ const CompetitorAdSchema: Schema = new Schema(
     landingPageUrl: { type: String, default: '' },
     mediaUrl: { type: String, default: '' },
     notes: { type: String, default: '' },
+    startedRunning: { type: String, default: '' },
+    estimatedReach: { type: String, default: '' },
+    estimatedCpl: { type: String, default: '' },
     isAnalyzed: { type: Boolean, default: false },
     analyzedAt: { type: Date, default: null },
     capturedBy: { type: mongoose.Types.ObjectId, ref: 'User' },

@@ -463,7 +463,24 @@
   background: #fef3c7;
   color: #92400e;
   font-weight: 500;
+}
+
+.ad-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 12px;
+  align-items: center;
+}
+
+.ad-meta-tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 8px;
+  background: #e0f2fe;
+  color: #0369a1;
+  font-weight: 500;
 }
 
 .ad-card-actions {

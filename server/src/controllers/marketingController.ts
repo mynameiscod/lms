@@ -59,6 +59,8 @@ export const fetchAds = async (req: AuthenticatedRequest, res: Response<ApiRespo
         cta: scraped.cta,
         landingPageUrl: scraped.landingPage,
         mediaUrl: scraped.mediaUrl,
+        startedRunning: scraped.startedRunning || '',
+        estimatedReach: scraped.estimatedReach || '',
         capturedBy: req.user!.id,
         capturedAt: new Date(),
       });

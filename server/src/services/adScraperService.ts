@@ -14,6 +14,8 @@ export interface ScrapedAd {
   mediaUrl: string;
   landingPage: string;
   platform: string;
+  startedRunning: string;
+  estimatedReach: string;
 }
 
 /**
@@ -237,13 +239,22 @@ async function extractDataFromContainer(container: any, competitorName: string):
         }
       }
 
+      // Extract "Started running on" date
+      const dateMatch = allText.match(/Started running on\s+([A-Za-z0-9, ]+)/i);
+      const startedRunning = dateMatch ? dateMatch[1].trim() : '';
+
+      // Extract reach/impressions info
+      const reachMatch = allText.match(/(\d[\d,.KMkm]+)\s*(impressions|people reached|reach)/i)
+        || allText.match(/reach[:\s]*(\d[\d,.KMkm]*)/i);
+      const estimatedReach = reachMatch ? reachMatch[1].trim() : '';
+
       // Split text into lines for headline/body identification
       const lines = allText
         .split('\n')
         .map((l: string) => l.trim())
         .filter((l: string) => l.length > 3 && !l.match(/^(Started running|Ad Library|See ad details)/i));
 
-      return { allText: allText.substring(0, 1000), lines, mediaUrl, landingPage, cta };
+      return { allText: allText.substring(0, 1000), lines, mediaUrl, landingPage, cta, startedRunning, estimatedReach };
     });
 
     if (!data || !data.lines || data.lines.length === 0) return null;
@@ -276,6 +287,8 @@ async function extractDataFromContainer(container: any, competitorName: string):
       mediaUrl: data.mediaUrl || '',
       landingPage: data.landingPage || '',
       platform: 'Meta Ads',
+      startedRunning: data.startedRunning || '',
+      estimatedReach: data.estimatedReach || '',
     };
   } catch {
     return null;
@@ -290,7 +303,7 @@ async function extractAdsFallback(page: Page, competitorName: string): Promise<S
 
   try {
     const textBlocks = await page.evaluate(() => {
-      const blocks: { text: string; link: string; img: string }[] = [];
+      const blocks: { text: string; link: string; img: string; startedRunning: string; estimatedReach: string }[] = [];
       const allDivs = (globalThis as any).document.querySelectorAll('div');
 
       for (const div of (Array.from(allDivs) as any[])) {
@@ -313,7 +326,17 @@ async function extractAdsFallback(page: Page, competitorName: string): Promise<S
           /Learn More|Sign Up|Apply Now|Book Now|Enroll|Download|Get Started|Shop Now/i.test(text);
 
         if (hasAdMarker) {
-          blocks.push({ text: text.substring(0, 800), link, img });
+          // Extract date and reach from block text
+          const dm = text.match(/Started running on\s+([A-Za-z0-9, ]+)/i);
+          const rm = text.match(/(\d[\d,.KMkm]+)\s*(impressions|people reached|reach)/i)
+            || text.match(/reach[:\s]*(\d[\d,.KMkm]*)/i);
+          blocks.push({
+            text: text.substring(0, 800),
+            link,
+            img,
+            startedRunning: dm ? dm[1].trim() : '',
+            estimatedReach: rm ? rm[1].trim() : '',
+          });
         }
       }
 
@@ -347,6 +370,8 @@ async function extractAdsFallback(page: Page, competitorName: string): Promise<S
         mediaUrl: block.img,
         landingPage: block.link,
         platform: 'Meta Ads',
+        startedRunning: block.startedRunning || '',
+        estimatedReach: block.estimatedReach || '',
       });
     }
   } catch (error: any) {

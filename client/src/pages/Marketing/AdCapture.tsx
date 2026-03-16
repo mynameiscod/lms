@@ -217,7 +217,12 @@ const AdCapture: React.FC = () => {
               </div>
               <h3 className="ad-headline">{ad.headline}</h3>
               {ad.primaryText && <p className="ad-text">{ad.primaryText.length > 150 ? ad.primaryText.substring(0, 150) + '...' : ad.primaryText}</p>}
-              {ad.cta && <span className="ad-cta-tag">CTA: {ad.cta}</span>}
+              <div className="ad-meta-row">
+                {ad.cta && <span className="ad-cta-tag">CTA: {ad.cta}</span>}
+                {ad.startedRunning && <span className="ad-meta-tag">📅 {ad.startedRunning}</span>}
+                {ad.estimatedReach && <span className="ad-meta-tag">📊 Reach: {ad.estimatedReach}</span>}
+                {ad.estimatedCpl && <span className="ad-meta-tag">💰 CPL: {ad.estimatedCpl}</span>}
+              </div>
               <div className="ad-card-actions">
                 {ad.isAnalyzed ? (
                   <span className="analyzed-badge">✅ Analyzed</span>

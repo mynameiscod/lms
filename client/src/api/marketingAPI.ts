@@ -34,6 +34,9 @@ export interface CompetitorAd {
   landingPageUrl: string;
   mediaUrl: string;
   notes: string;
+  startedRunning: string;
+  estimatedReach: string;
+  estimatedCpl: string;
   isAnalyzed: boolean;
   analyzedAt: string | null;
   createdAt: string;

@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import Competitor from '../models/Competitor';
 import CompetitorAd from '../models/CompetitorAd';
@@ -14,8 +15,9 @@ import { fetchCompetitorAds } from '../services/adScraperService';
 export const getCompetitorsWithAdCounts = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const competitors = await Competitor.find({ tenantId: req.tenantId }).lean();
+    const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
     const adCounts = await CompetitorAd.aggregate([
-      { $match: { tenantId: req.tenantId } },
+      { $match: { tenantId: tenantOid } },
       { $group: { _id: '$competitorId', count: { $sum: 1 }, analyzedCount: { $sum: { $cond: ['$isAnalyzed', 1, 0] } } } },
     ]);
 
@@ -528,7 +530,7 @@ export const getDashboardStats = async (req: AuthenticatedRequest, res: Response
         .lean(),
       AdInsight.find({ tenantId }).lean(),
       CompetitorAd.aggregate([
-        { $match: { tenantId: { $exists: true } } },
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId as string) } },
         { $group: { _id: '$platform', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
       ]),

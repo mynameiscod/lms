@@ -45,7 +45,7 @@ export const getCompetitorsWithAdCounts = async (req: AuthenticatedRequest, res:
 
 export const getAdsByCompetitor = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { competitorId } = req.params;
+    const competitorId = req.params.id;
     const ads = await CompetitorAd.find({ tenantId: req.tenantId, competitorId })
       .populate('competitorId', 'name')
       .sort({ createdAt: -1 });
@@ -59,7 +59,7 @@ export const getAdsByCompetitor = async (req: AuthenticatedRequest, res: Respons
 
 export const analyzeCompetitor = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { competitorId } = req.params;
+    const competitorId = req.params.id;
     const competitor = await Competitor.findOne({ _id: competitorId, tenantId: req.tenantId });
     if (!competitor) {
       return res.status(404).json({ success: false, message: 'Competitor not found' });

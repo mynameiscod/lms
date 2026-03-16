@@ -20,7 +20,8 @@ const Sidebar: React.FC = () => {
     attendance: false,
     quizzes: false,
     assignments: false,
-    leads: false
+    leads: false,
+    marketing: false
   });
   const location = useLocation();
   const { user } = useAuth();
@@ -104,6 +105,18 @@ const Sidebar: React.FC = () => {
         { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
         { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
         { label: 'Form Settings', path: '/lead-form-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
+      ]
+    },
+    {
+      label: 'Marketing',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
+      icon: '📊',
+      permissions: ['manage_marketing'],
+      submenu: [
+        { label: 'Dashboard', path: '/marketing', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Competitors', path: '/marketing/competitors', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Ad Capture', path: '/marketing/ads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Insights', path: '/marketing/insights', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
       ]
     },
   ];

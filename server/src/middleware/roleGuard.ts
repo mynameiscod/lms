@@ -101,6 +101,12 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_leads', label: 'View Leads' },
     ]
   },
+  marketing: {
+    label: 'Marketing Intelligence',
+    permissions: [
+      { key: 'manage_marketing', label: 'Marketing Intelligence Dashboard' },
+    ]
+  },
 };
 
 // Flatten all permission keys
@@ -134,8 +140,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_tenant', 'manage_tenant_settings',
     // Leads
     'manage_leads', 'view_leads',
+    // Marketing
+    'manage_marketing',
   ],
-  INSTRUCTOR: [
     // Courses
     'create_courses', 'edit_courses', 'manage_own_courses', 'view_courses',
     'create_lessons', 'manage_enrollments', 'enroll_courses',

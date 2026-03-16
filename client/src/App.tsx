@@ -63,6 +63,7 @@ import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
 import LeadFormSettingsPage from './pages/LeadFormSettings';
 import LeadManagerBoardPage from './pages/LeadManagerBoard';
+import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator } from './pages/Marketing';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -74,7 +75,7 @@ interface ProtectedRouteProps {
 // Used to grant custom role users access to routes they have permissions for
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
-  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
   'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'manage_leads'],
@@ -632,6 +633,58 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadManagerBoardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Marketing Intelligence */}
+      <Route
+        path="/marketing"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <MarketingDashboard />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketing/competitors"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <CompetitorManagement />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketing/ads"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <AdCapture />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketing/insights"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <InsightsFeed />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketing/generate/:insightId"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <ContentGenerator />
             </Layout>
           </ProtectedRoute>
         }

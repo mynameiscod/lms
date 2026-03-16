@@ -2,13 +2,16 @@ import { Router } from 'express';
 import {
   createCompetitor,
   getCompetitors,
+  getCompetitorsWithAdCounts,
   updateCompetitor,
   deleteCompetitor,
   fetchAds,
   createAd,
   getAds,
+  getAdsByCompetitor,
   deleteAd,
   analyzeAdEndpoint,
+  analyzeCompetitor,
   getInsights,
   getInsightById,
   generateContentEndpoint,
@@ -31,6 +34,9 @@ router.get('/dashboard', roleGuard(['manage_marketing']), getDashboardStats);
 // Competitors CRUD
 router.post('/competitors', roleGuard(['manage_marketing']), createCompetitor);
 router.get('/competitors', roleGuard(['manage_marketing']), getCompetitors);
+router.get('/competitors/with-counts', roleGuard(['manage_marketing']), getCompetitorsWithAdCounts);
+router.get('/competitors/:id/ads', roleGuard(['manage_marketing']), getAdsByCompetitor);
+router.post('/competitors/:id/analyze', roleGuard(['manage_marketing']), analyzeCompetitor);
 router.put('/competitors/:id', roleGuard(['manage_marketing']), updateCompetitor);
 router.delete('/competitors/:id', roleGuard(['manage_marketing']), deleteCompetitor);
 

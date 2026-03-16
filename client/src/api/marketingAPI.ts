@@ -24,6 +24,25 @@ export interface Competitor {
   createdAt: string;
 }
 
+export interface CompetitorWithCounts extends Competitor {
+  adCount: number;
+  analyzedCount: number;
+}
+
+export interface CompetitorAnalysisSummary {
+  competitorName: string;
+  totalAds: number;
+  avgStrengthScore: number;
+  topHooks: { name: string; count: number }[];
+  topPainPoints: { name: string; count: number }[];
+  topAudiences: { name: string; count: number }[];
+  topCTAs: { name: string; count: number }[];
+  topTones: { name: string; count: number }[];
+  commonWeaknesses: string[];
+  suggestedAngles: string[];
+  marketingIdeas: { type: string; content: string }[];
+}
+
 export interface CompetitorAd {
   _id: string;
   competitorId: Competitor | string;
@@ -101,6 +120,10 @@ export const marketingAPI = {
     const res = await api.get('/marketing/competitors');
     return res.data;
   },
+  getCompetitorsWithCounts: async (): Promise<{ success: boolean; data: CompetitorWithCounts[] }> => {
+    const res = await api.get('/marketing/competitors/with-counts');
+    return res.data;
+  },
   createCompetitor: async (data: Partial<Competitor>): Promise<{ success: boolean; data: Competitor }> => {
     const res = await api.post('/marketing/competitors', data);
     return res.data;
@@ -123,6 +146,10 @@ export const marketingAPI = {
     const res = await api.get('/marketing/ads');
     return res.data;
   },
+  getAdsByCompetitor: async (competitorId: string): Promise<{ success: boolean; data: CompetitorAd[] }> => {
+    const res = await api.get(`/marketing/competitors/${competitorId}/ads`);
+    return res.data;
+  },
   createAd: async (data: Partial<CompetitorAd>): Promise<{ success: boolean; data: CompetitorAd }> => {
     const res = await api.post('/marketing/ads', data);
     return res.data;
@@ -135,6 +162,10 @@ export const marketingAPI = {
   // Analysis
   analyzeAd: async (adId: string): Promise<{ success: boolean; data: AdInsight }> => {
     const res = await api.post(`/marketing/ads/${adId}/analyze`);
+    return res.data;
+  },
+  analyzeCompetitor: async (competitorId: string): Promise<{ success: boolean; data: CompetitorAnalysisSummary }> => {
+    const res = await api.post(`/marketing/competitors/${competitorId}/analyze`);
     return res.data;
   },
 

@@ -9,6 +9,155 @@ import { fetchCompetitorAds } from '../services/adScraperService';
 
 // ===================== COMPETITORS =====================
 
+// ===================== COMPETITORS WITH AD COUNTS =====================
+
+export const getCompetitorsWithAdCounts = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const competitors = await Competitor.find({ tenantId: req.tenantId }).lean();
+    const adCounts = await CompetitorAd.aggregate([
+      { $match: { tenantId: req.tenantId } },
+      { $group: { _id: '$competitorId', count: { $sum: 1 }, analyzedCount: { $sum: { $cond: ['$isAnalyzed', 1, 0] } } } },
+    ]);
+
+    const countMap: Record<string, { count: number; analyzedCount: number }> = {};
+    adCounts.forEach((c: any) => {
+      countMap[c._id.toString()] = { count: c.count, analyzedCount: c.analyzedCount };
+    });
+
+    const result = competitors.map((comp: any) => ({
+      ...comp,
+      adCount: countMap[comp._id.toString()]?.count || 0,
+      analyzedCount: countMap[comp._id.toString()]?.analyzedCount || 0,
+    }));
+
+    // Sort by ad count descending
+    result.sort((a: any, b: any) => b.adCount - a.adCount);
+
+    res.json({ success: true, message: 'Competitors with ad counts', data: result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== ADS BY COMPETITOR =====================
+
+export const getAdsByCompetitor = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { competitorId } = req.params;
+    const ads = await CompetitorAd.find({ tenantId: req.tenantId, competitorId })
+      .populate('competitorId', 'name')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, message: 'Ads fetched', data: ads });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== ANALYZE ALL ADS OF A COMPETITOR =====================
+
+export const analyzeCompetitor = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { competitorId } = req.params;
+    const competitor = await Competitor.findOne({ _id: competitorId, tenantId: req.tenantId });
+    if (!competitor) {
+      return res.status(404).json({ success: false, message: 'Competitor not found' });
+    }
+
+    const ads = await CompetitorAd.find({ tenantId: req.tenantId, competitorId });
+    if (ads.length === 0) {
+      return res.status(400).json({ success: false, message: 'No ads for this competitor to analyze' });
+    }
+
+    // Analyze each ad and collect all insights
+    const allAnalyses = [];
+    for (const ad of ads) {
+      const analysis = analyzeAd({
+        headline: ad.headline,
+        primaryText: ad.primaryText,
+        cta: ad.cta,
+        platform: ad.platform,
+        competitorName: competitor.name,
+      });
+
+      // Upsert insight for each ad
+      await AdInsight.findOneAndUpdate(
+        { adId: ad._id, tenantId: req.tenantId },
+        { $set: { tenantId: req.tenantId, adId: ad._id, competitorId: competitor._id, ...analysis } },
+        { upsert: true, new: true }
+      );
+
+      ad.isAnalyzed = true;
+      ad.analyzedAt = new Date();
+      await ad.save();
+
+      allAnalyses.push(analysis);
+    }
+
+    // Build combined summary from all analyses
+    const hookFreq: Record<string, number> = {};
+    const painFreq: Record<string, number> = {};
+    const audienceFreq: Record<string, number> = {};
+    const ctaFreq: Record<string, number> = {};
+    const toneFreq: Record<string, number> = {};
+    const allWeaknesses: string[] = [];
+    const allAngles: string[] = [];
+    let totalStrength = 0;
+
+    for (const a of allAnalyses) {
+      hookFreq[a.hookType] = (hookFreq[a.hookType] || 0) + 1;
+      painFreq[a.painPoint] = (painFreq[a.painPoint] || 0) + 1;
+      audienceFreq[a.targetAudience] = (audienceFreq[a.targetAudience] || 0) + 1;
+      ctaFreq[a.ctaType] = (ctaFreq[a.ctaType] || 0) + 1;
+      toneFreq[a.tone] = (toneFreq[a.tone] || 0) + 1;
+      allWeaknesses.push(...a.weaknesses);
+      allAngles.push(a.suggestedAngleForCodeBegun);
+      totalStrength += a.strengthScore;
+    }
+
+    const topOf = (freq: Record<string, number>) =>
+      Object.entries(freq).sort((a, b) => b[1] - a[1]).map(([name, count]) => ({ name, count }));
+
+    // Generate combined marketing ideas
+    const sampleInsight = allAnalyses[0];
+    const marketingIdeas = ['instagram_reel', 'ad_copy', 'linkedin_post', 'whatsapp_message'].map(type => ({
+      type,
+      content: generateContent({
+        type: type as any,
+        insight: {
+          hookType: topOf(hookFreq)[0]?.name || sampleInsight.hookType,
+          painPoint: topOf(painFreq)[0]?.name || sampleInsight.painPoint,
+          targetAudience: topOf(audienceFreq)[0]?.name || sampleInsight.targetAudience,
+          emotionalTrigger: sampleInsight.emotionalTrigger,
+          offerType: sampleInsight.offerType,
+          ctaType: topOf(ctaFreq)[0]?.name || sampleInsight.ctaType,
+          tone: topOf(toneFreq)[0]?.name || sampleInsight.tone,
+          suggestedAngleForCodeBegun: allAngles[0],
+          competitorName: competitor.name,
+          headline: ads[0].headline,
+        },
+      }),
+    }));
+
+    const summary = {
+      competitorName: competitor.name,
+      totalAds: ads.length,
+      avgStrengthScore: Math.round((totalStrength / allAnalyses.length) * 10) / 10,
+      topHooks: topOf(hookFreq).slice(0, 3),
+      topPainPoints: topOf(painFreq).slice(0, 3),
+      topAudiences: topOf(audienceFreq).slice(0, 3),
+      topCTAs: topOf(ctaFreq).slice(0, 3),
+      topTones: topOf(toneFreq).slice(0, 3),
+      commonWeaknesses: [...new Set(allWeaknesses)].slice(0, 5),
+      suggestedAngles: allAngles.slice(0, 3),
+      marketingIdeas,
+    };
+
+    res.json({ success: true, message: `Analyzed ${ads.length} ads for ${competitor.name}`, data: summary });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ===================== FETCH ADS (SCRAPE + STORE + ANALYZE) =====================
 
 export const fetchAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {

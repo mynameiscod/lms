@@ -30,7 +30,8 @@ const CompetitorAdSchema: Schema = new Schema(
     notes: { type: String, default: '' },
     isAnalyzed: { type: Boolean, default: false },
     analyzedAt: { type: Date, default: null },
-    capturedBy: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
+    capturedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+    capturedAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );

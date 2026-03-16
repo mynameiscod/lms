@@ -143,6 +143,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Marketing
     'manage_marketing',
   ],
+  INSTRUCTOR: [
     // Courses
     'create_courses', 'edit_courses', 'manage_own_courses', 'view_courses',
     'create_lessons', 'manage_enrollments', 'enroll_courses',

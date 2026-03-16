@@ -63,7 +63,7 @@ import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
 import LeadFormSettingsPage from './pages/LeadFormSettings';
 import LeadManagerBoardPage from './pages/LeadManagerBoard';
-import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator } from './pages/Marketing';
+import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas } from './pages/Marketing';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -685,6 +685,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <ContentGenerator />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/marketing/ideas"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <MarketingIdeas />
             </Layout>
           </ProtectedRoute>
         }

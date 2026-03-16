@@ -923,3 +923,103 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ----- FETCH SECTION (AdCapture auto-fetch) ----- */
+.fetch-section {
+  background: linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.fetch-section h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e40af;
+  margin: 0 0 12px 0;
+}
+
+.fetch-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.fetch-input {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #93c5fd;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  max-width: 400px;
+}
+
+.fetch-input:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.fetch-btn {
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  background: #005897;
+  color: #fff;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.fetch-btn:hover {
+  background: #004775;
+}
+
+.fetch-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.fetch-status {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #dbeafe;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1e40af;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ----- STRENGTH SCORE BAR (InsightsFeed) ----- */
+.strength-score-bar {
+  background: #e2e8f0;
+  border-radius: 8px;
+  height: 24px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
+}
+
+.score-fill {
+  height: 100%;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #ef4444 0%, #f59e0b 40%, #22c55e 80%);
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.score-text {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: #334155;
+}

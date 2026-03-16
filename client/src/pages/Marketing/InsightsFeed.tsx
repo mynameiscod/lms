@@ -67,14 +67,17 @@ const InsightsFeed: React.FC = () => {
                 </div>
 
                 <div className="insight-positioning">
-                  <strong>📍 Suggested CodeBegun Positioning:</strong>
-                  <p>{insight.suggestedPositioning}</p>
+                  <strong>📍 Suggested CodeBegun Angle:</strong>
+                  <p>{insight.suggestedAngleForCodeBegun}</p>
                 </div>
 
                 <div className="insight-quality">
                   <div className="quality-section strengths">
-                    <strong>💪 Strengths:</strong>
-                    <ul>{insight.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+                    <strong>💪 Strength Score:</strong>
+                    <div className="strength-score-bar">
+                      <div className="score-fill" style={{ width: `${(insight.strengthScore || 0) * 10}%` }}></div>
+                      <span className="score-text">{insight.strengthScore}/10</span>
+                    </div>
                   </div>
                   <div className="quality-section weaknesses">
                     <strong>⚠️ Weaknesses:</strong>

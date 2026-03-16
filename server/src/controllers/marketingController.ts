@@ -3,9 +3,105 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import Competitor from '../models/Competitor';
 import CompetitorAd from '../models/CompetitorAd';
 import AdInsight from '../models/AdInsight';
+import GeneratedMarketingContent from '../models/GeneratedMarketingContent';
 import { analyzeAd, generateContent } from '../services/marketingIntelligenceService';
+import { fetchCompetitorAds } from '../services/adScraperService';
 
 // ===================== COMPETITORS =====================
+
+// ===================== FETCH ADS (SCRAPE + STORE + ANALYZE) =====================
+
+export const fetchAds = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { competitorName } = req.body;
+    if (!competitorName || typeof competitorName !== 'string') {
+      return res.status(400).json({ success: false, message: 'Competitor name is required' });
+    }
+
+    // 1. Find or create competitor
+    let competitor = await Competitor.findOne({
+      tenantId: req.tenantId,
+      name: { $regex: new RegExp(`^${competitorName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') },
+    });
+
+    if (!competitor) {
+      competitor = await Competitor.create({
+        tenantId: req.tenantId,
+        name: competitorName,
+        platforms: ['Facebook'],
+        status: 'active',
+        createdBy: req.user!.id,
+      });
+    }
+
+    // 2. Scrape ads from Meta Ads Library
+    const scrapedAds = await fetchCompetitorAds(competitorName);
+
+    if (scrapedAds.length === 0) {
+      return res.json({
+        success: true,
+        message: `No ads found for "${competitorName}". Meta may be blocking automated access. Try adding ads manually.`,
+        data: { competitor, ads: [], insights: [], scrapedCount: 0 },
+      });
+    }
+
+    // 3. Store ads in database
+    const storedAds = [];
+    const insights = [];
+
+    for (const scraped of scrapedAds) {
+      const ad = await CompetitorAd.create({
+        tenantId: req.tenantId,
+        competitorId: competitor._id,
+        platform: scraped.platform || 'Facebook',
+        headline: scraped.headline,
+        primaryText: scraped.primaryText,
+        cta: scraped.cta,
+        landingPageUrl: scraped.landingPage,
+        mediaUrl: scraped.mediaUrl,
+        capturedBy: req.user!.id,
+        capturedAt: new Date(),
+      });
+      storedAds.push(ad);
+
+      // 4. Analyze each ad
+      const analysis = analyzeAd({
+        headline: scraped.headline,
+        primaryText: scraped.primaryText,
+        cta: scraped.cta,
+        platform: scraped.platform,
+        competitorName,
+      });
+
+      const insight = await AdInsight.findOneAndUpdate(
+        { adId: ad._id, tenantId: req.tenantId },
+        {
+          $set: {
+            tenantId: req.tenantId,
+            adId: ad._id,
+            competitorId: competitor._id,
+            ...analysis,
+          },
+        },
+        { upsert: true, new: true }
+      );
+      insights.push(insight);
+
+      // Mark ad as analyzed
+      ad.isAnalyzed = true;
+      ad.analyzedAt = new Date();
+      await ad.save();
+    }
+
+    res.json({
+      success: true,
+      message: `Fetched ${storedAds.length} ads for "${competitorName}"`,
+      data: { competitor, ads: storedAds, insights, scrapedCount: storedAds.length },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 export const createCompetitor = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
@@ -221,7 +317,7 @@ export const generateContentEndpoint = async (req: AuthenticatedRequest, res: Re
         offerType: insight.offerType,
         ctaType: insight.ctaType,
         tone: insight.tone,
-        suggestedPositioning: insight.suggestedPositioning,
+        suggestedAngleForCodeBegun: insight.suggestedAngleForCodeBegun,
         competitorName: (insight.competitorId as any)?.name || 'Competitor',
         headline: (insight.adId as any)?.headline || '',
       },
@@ -235,7 +331,30 @@ export const generateContentEndpoint = async (req: AuthenticatedRequest, res: Re
     });
     await insight.save();
 
+    // Also save to standalone GeneratedMarketingContent collection
+    await GeneratedMarketingContent.create({
+      tenantId: req.tenantId,
+      type,
+      content,
+      relatedInsight: insightId,
+      languageStyle: insight.tone || 'professional',
+      createdBy: req.user!.id,
+    });
+
     res.json({ success: true, message: 'Content generated', data: { type, content } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== GENERATED CONTENT =====================
+
+export const getGeneratedContent = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const content = await GeneratedMarketingContent.find({ tenantId: req.tenantId })
+      .populate('relatedInsight', 'hookType painPoint targetAudience')
+      .sort({ createdAt: -1 });
+    res.json({ success: true, message: 'Generated content fetched', data: content });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

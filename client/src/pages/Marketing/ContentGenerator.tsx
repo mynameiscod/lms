@@ -97,7 +97,7 @@ const ContentGenerator: React.FC = () => {
           <span>🎣 {insight.hookType}</span>
           <span>🎯 {insight.targetAudience}</span>
         </div>
-        <p className="positioning-text">📍 {insight.suggestedPositioning}</p>
+        <p className="positioning-text">📍 {insight.suggestedAngleForCodeBegun}</p>
       </div>
 
       {/* Generate Buttons */}

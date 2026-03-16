@@ -117,6 +117,7 @@ const Sidebar: React.FC = () => {
         { label: 'Competitors', path: '/marketing/competitors', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
         { label: 'Ad Capture', path: '/marketing/ads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
         { label: 'Insights', path: '/marketing/insights', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Marketing Ideas', path: '/marketing/ideas', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
       ]
     },
   ];

@@ -57,10 +57,19 @@ export interface AdInsight {
   offerType: string;
   ctaType: string;
   tone: string;
-  strengths: string[];
+  strengthScore: number;
   weaknesses: string[];
-  suggestedPositioning: string;
+  suggestedAngleForCodeBegun: string;
   generatedContent: GeneratedContent[];
+  createdAt: string;
+}
+
+export interface GeneratedMarketingContent {
+  _id: string;
+  type: 'instagram_reel' | 'ad_copy' | 'linkedin_post' | 'whatsapp_message';
+  content: string;
+  relatedInsight: AdInsight | string;
+  languageStyle: string;
   createdAt: string;
 }
 
@@ -103,6 +112,10 @@ export const marketingAPI = {
   },
 
   // Ads
+  fetchAds: async (competitorName: string): Promise<{ success: boolean; message: string; data: any }> => {
+    const res = await api.post('/marketing/ads/fetch', { competitorName });
+    return res.data;
+  },
   getAds: async (): Promise<{ success: boolean; data: CompetitorAd[] }> => {
     const res = await api.get('/marketing/ads');
     return res.data;
@@ -135,6 +148,12 @@ export const marketingAPI = {
   // Content Generation
   generateContent: async (insightId: string, type: string): Promise<{ success: boolean; data: { type: string; content: string } }> => {
     const res = await api.post(`/marketing/insights/${insightId}/generate`, { type });
+    return res.data;
+  },
+
+  // Generated Content
+  getGeneratedContent: async (): Promise<{ success: boolean; data: GeneratedMarketingContent[] }> => {
+    const res = await api.get('/marketing/content');
     return res.data;
   },
 };

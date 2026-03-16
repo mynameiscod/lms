@@ -17,9 +17,9 @@ export interface IAdInsight extends Document {
   offerType: string;
   ctaType: string;
   tone: string;
-  strengths: string[];
+  strengthScore: number;
   weaknesses: string[];
-  suggestedPositioning: string;
+  suggestedAngleForCodeBegun: string;
   generatedContent: IGeneratedContent[];
   createdAt: Date;
   updatedAt: Date;
@@ -46,9 +46,9 @@ const AdInsightSchema: Schema = new Schema(
     offerType: { type: String, default: '' },
     ctaType: { type: String, default: '' },
     tone: { type: String, default: '' },
-    strengths: [{ type: String }],
+    strengthScore: { type: Number, default: 0, min: 0, max: 10 },
     weaknesses: [{ type: String }],
-    suggestedPositioning: { type: String, default: '' },
+    suggestedAngleForCodeBegun: { type: String, default: '' },
     generatedContent: [GeneratedContentSchema],
   },
   { timestamps: true }

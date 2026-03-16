@@ -20,9 +20,9 @@ interface AnalysisResult {
   offerType: string;
   ctaType: string;
   tone: string;
-  strengths: string[];
+  strengthScore: number;
   weaknesses: string[];
-  suggestedPositioning: string;
+  suggestedAngleForCodeBegun: string;
 }
 
 interface ContentRequest {
@@ -35,7 +35,7 @@ interface ContentRequest {
     offerType: string;
     ctaType: string;
     tone: string;
-    suggestedPositioning: string;
+    suggestedAngleForCodeBegun: string;
     competitorName: string;
     headline: string;
   };
@@ -179,16 +179,7 @@ export function analyzeAd(ad: AdData): AnalysisResult {
     offerType: pickRandom(OFFER_TYPES),
     ctaType,
     tone,
-    strengths: pickMultiple([
-      'Strong emotional appeal',
-      'Clear value proposition',
-      'Specific target audience',
-      'Effective use of urgency',
-      'Good social proof',
-      'Compelling offer',
-      'Clean visual design',
-      'Strong brand recall',
-    ], 3),
+    strengthScore: calculateStrengthScore(ad),
     weaknesses: pickMultiple([
       'No clear differentiator from others',
       'Generic messaging',
@@ -199,8 +190,20 @@ export function analyzeAd(ad: AdData): AnalysisResult {
       'No specific outcomes mentioned',
       'Lacks trust signals',
     ], 2),
-    suggestedPositioning: generatePositioning(ad),
+    suggestedAngleForCodeBegun: generatePositioning(ad),
   };
+}
+
+function calculateStrengthScore(ad: AdData): number {
+  let score = 5; // base score
+  const h = ad.headline.toLowerCase();
+  const t = ad.primaryText.toLowerCase();
+  if (h.length > 10) score += 1; // has a real headline
+  if (t.length > 50) score += 1; // has substantial text
+  if (ad.cta) score += 1; // has a CTA
+  if (h.match(/\d/)) score += 0.5; // uses numbers/stats
+  if (t.includes('guarantee') || t.includes('free') || t.includes('offer')) score += 0.5; // has offer language
+  return Math.min(10, Math.round(score));
 }
 
 function generatePositioning(ad: AdData): string {
@@ -256,7 +259,7 @@ Our students work on actual client projects, not toy apps."
 "That's why our students get placed at top companies within 3 months of completing the course."
 
 📌 CTA (35-45 seconds):
-"${insight.suggestedPositioning.split('.')[0]}. 
+"${insight.suggestedAngleForCodeBegun.split('.')[0]}. 
 Link in bio for a FREE demo class. Only 5 spots left for this batch! 🔥"
 
 ━━━━━━━━━━━━━━━━━━━━━━━━
@@ -295,7 +298,7 @@ At CodeBegun, we built a program that fixes this:
 ✅ Dedicated placement support
 ✅ Small batches for personalized attention
 
-💡 ${insight.suggestedPositioning.split('.')[0]}.
+💡 ${insight.suggestedAngleForCodeBegun.split('.')[0]}.
 
 🎯 What our students say:
 "I went from zero coding knowledge to getting placed at an MNC in just 4 months!" — Recent Graduate
@@ -335,7 +338,7 @@ The result?
 → Students placed at top MNCs
 → Career transformations in 3-6 months
 
-${insight.suggestedPositioning.split('.')[0]}.
+${insight.suggestedAngleForCodeBegun.split('.')[0]}.
 
 If you're a ${insight.targetAudience.toLowerCase()}, here's your chance.
 

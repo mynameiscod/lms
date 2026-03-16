@@ -9,6 +9,8 @@ const AdCapture: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [analyzing, setAnalyzing] = useState<string | null>(null);
+  const [fetching, setFetching] = useState(false);
+  const [fetchInput, setFetchInput] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [form, setForm] = useState({
@@ -17,10 +19,11 @@ const AdCapture: React.FC = () => {
   });
 
   useEffect(() => {
-    Promise.all([fetchAds(), fetchCompetitors()]);
+    Promise.all([loadAds(), fetchCompetitors()]);
+  // eslint-disable-next-line
   }, []);
 
-  const fetchAds = async () => {
+  const loadAds = async () => {
     try {
       const res = await marketingAPI.getAds();
       if (res.success) setAds(res.data);
@@ -33,6 +36,29 @@ const AdCapture: React.FC = () => {
       const res = await marketingAPI.getCompetitors();
       if (res.success) setCompetitors(res.data);
     } catch (err) { console.error(err); }
+  };
+
+  // ===== AUTO-FETCH from Meta Ads Library =====
+  const handleFetchAds = async () => {
+    if (!fetchInput.trim()) {
+      setError('Enter a competitor name to fetch ads');
+      return;
+    }
+    setFetching(true);
+    setError('');
+    setSuccess('');
+    try {
+      const res = await marketingAPI.fetchAds(fetchInput.trim());
+      setSuccess(res.message);
+      setFetchInput('');
+      loadAds();
+      fetchCompetitors();
+      setTimeout(() => setSuccess(''), 5000);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to fetch ads. Try adding ads manually.');
+    } finally {
+      setFetching(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,7 +74,7 @@ const AdCapture: React.FC = () => {
       setSuccess('Ad captured successfully!');
       setShowForm(false);
       setForm({ competitorId: '', platform: '', headline: '', primaryText: '', cta: '', landingPageUrl: '', mediaUrl: '', notes: '' });
-      fetchAds();
+      loadAds();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to capture ad');
@@ -62,7 +88,7 @@ const AdCapture: React.FC = () => {
     try {
       await marketingAPI.analyzeAd(adId);
       setSuccess('Ad analyzed successfully! Check Insights page.');
-      fetchAds();
+      loadAds();
       setTimeout(() => setSuccess(''), 3000);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Analysis failed');
@@ -75,7 +101,7 @@ const AdCapture: React.FC = () => {
     if (!window.confirm('Delete this ad?')) return;
     try {
       await marketingAPI.deleteAd(id);
-      fetchAds();
+      loadAds();
     } catch (err) { console.error(err); }
   };
 
@@ -86,12 +112,37 @@ const AdCapture: React.FC = () => {
   return (
     <div className="marketing-page">
       <div className="marketing-header">
-        <h1>📢 Ad Capture</h1>
-        <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ Capture Ad</button>
+        <h1>📢 Competitor Ads</h1>
+        <button className="btn btn-primary" onClick={() => setShowForm(true)}>+ Manual Capture</button>
       </div>
 
       {error && <div className="alert alert-error">❌ {error}</div>}
       {success && <div className="alert alert-success">✅ {success}</div>}
+
+      {/* Auto-Fetch Section */}
+      <div className="marketing-form-card fetch-section">
+        <h3>🔍 Auto-Fetch Competitor Ads from Meta Ads Library</h3>
+        <p style={{color: '#64748b', fontSize: 14, marginBottom: 16}}>Enter a competitor name (e.g., Scaler, NxtWave, PW Skills, Intellipaat) to automatically scrape their ads from Meta Ads Library.</p>
+        <div className="fetch-row">
+          <input
+            type="text"
+            value={fetchInput}
+            onChange={e => setFetchInput(e.target.value)}
+            placeholder="Enter competitor name... (e.g., Scaler)"
+            className="fetch-input"
+            disabled={fetching}
+            onKeyDown={e => e.key === 'Enter' && handleFetchAds()}
+          />
+          <button
+            className="btn btn-accent fetch-btn"
+            onClick={handleFetchAds}
+            disabled={fetching || !fetchInput.trim()}
+          >
+            {fetching ? '🔄 Fetching...' : '🚀 Fetch Ads'}
+          </button>
+        </div>
+        {fetching && <p className="fetch-status">⏳ Scraping Meta Ads Library... This may take 15-30 seconds.</p>}
+      </div>
 
       {showForm && (
         <div className="marketing-form-card">

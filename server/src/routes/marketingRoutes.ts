@@ -4,6 +4,7 @@ import {
   getCompetitors,
   updateCompetitor,
   deleteCompetitor,
+  fetchAds,
   createAd,
   getAds,
   deleteAd,
@@ -11,6 +12,7 @@ import {
   getInsights,
   getInsightById,
   generateContentEndpoint,
+  getGeneratedContent,
   getDashboardStats,
 } from '../controllers/marketingController';
 import { authMiddleware } from '../middleware/auth';
@@ -32,6 +34,9 @@ router.get('/competitors', roleGuard(['manage_marketing']), getCompetitors);
 router.put('/competitors/:id', roleGuard(['manage_marketing']), updateCompetitor);
 router.delete('/competitors/:id', roleGuard(['manage_marketing']), deleteCompetitor);
 
+// Fetch ads (scrape + store + analyze)
+router.post('/ads/fetch', roleGuard(['manage_marketing']), fetchAds);
+
 // Ads
 router.post('/ads', roleGuard(['manage_marketing']), createAd);
 router.get('/ads', roleGuard(['manage_marketing']), getAds);
@@ -46,5 +51,8 @@ router.get('/insights/:id', roleGuard(['manage_marketing']), getInsightById);
 
 // Content Generation
 router.post('/insights/:insightId/generate', roleGuard(['manage_marketing']), generateContentEndpoint);
+
+// Generated Content
+router.get('/content', roleGuard(['manage_marketing']), getGeneratedContent);
 
 export default router;

@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { marketingAPI, DashboardStats, CompetitorAd } from '../../api/marketingAPI';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend } from 'chart.js';
+import { Bar, Doughnut } from 'react-chartjs-2';
+import { marketingAPI, DashboardStats } from '../../api/marketingAPI';
 import './Marketing.css';
+
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
 const COLORS = ['#005897', '#0088cc', '#00b4d8', '#48cae4', '#90e0ef', '#ade8f4', '#caf0f8', '#e0f7ff'];
 
@@ -43,6 +46,68 @@ const MarketingDashboard: React.FC = () => {
     );
   }
 
+  const hookChartData = {
+    labels: stats.topHooks.slice(0, 6).map(h => h.name),
+    datasets: [{
+      label: 'Count',
+      data: stats.topHooks.slice(0, 6).map(h => h.count),
+      backgroundColor: '#005897',
+      borderRadius: 4,
+    }]
+  };
+
+  const platformChartData = {
+    labels: stats.adsByPlatform.map(p => p.name),
+    datasets: [{
+      data: stats.adsByPlatform.map(p => p.count),
+      backgroundColor: COLORS.slice(0, stats.adsByPlatform.length),
+      borderWidth: 2,
+      borderColor: '#fff',
+    }]
+  };
+
+  const ctaChartData = {
+    labels: stats.topCTAs.slice(0, 6).map(c => c.name),
+    datasets: [{
+      label: 'Count',
+      data: stats.topCTAs.slice(0, 6).map(c => c.count),
+      backgroundColor: '#00b4d8',
+      borderRadius: 4,
+    }]
+  };
+
+  const painPointChartData = {
+    labels: stats.topPainPoints.slice(0, 6).map(p => p.name),
+    datasets: [{
+      label: 'Count',
+      data: stats.topPainPoints.slice(0, 6).map(p => p.count),
+      backgroundColor: '#48cae4',
+      borderRadius: 4,
+    }]
+  };
+
+  const barOptions: any = {
+    indexAxis: 'y' as const,
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { x: { beginAtZero: true, ticks: { stepSize: 1 } } },
+  };
+
+  const verticalBarOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } },
+  };
+
+  const doughnutOptions: any = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { position: 'bottom' } },
+    cutout: '55%',
+  };
+
   return (
     <div className="marketing-page">
       <div className="marketing-header">
@@ -50,7 +115,6 @@ const MarketingDashboard: React.FC = () => {
         <p className="marketing-subtitle">Analyze competitor marketing & generate better content for CodeBegun</p>
       </div>
 
-      {/* Stat Cards */}
       <div className="stat-cards">
         <div className="stat-card">
           <div className="stat-icon">🏢</div>
@@ -82,83 +146,44 @@ const MarketingDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Charts Row */}
       <div className="charts-grid">
-        {/* Hook Patterns */}
         <div className="chart-card">
           <h3>🎣 Most Common Hooks</h3>
           {stats.topHooks.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={stats.topHooks.slice(0, 6)} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis dataKey="name" type="category" width={180} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#005897" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ height: 280 }}><Bar data={hookChartData} options={barOptions} /></div>
           ) : (
             <p className="chart-empty">No hook data yet. Analyze some ads first.</p>
           )}
         </div>
 
-        {/* Platform Distribution */}
         <div className="chart-card">
           <h3>📱 Ads by Platform</h3>
           {stats.adsByPlatform.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <PieChart>
-                <Pie data={stats.adsByPlatform} cx="50%" cy="50%" innerRadius={60} outerRadius={100} paddingAngle={3} dataKey="count" label={({ name, value }: any) => `${name}: ${value}`}>
-                  {stats.adsByPlatform.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ height: 280 }}><Doughnut data={platformChartData} options={doughnutOptions} /></div>
           ) : (
             <p className="chart-empty">No platform data yet.</p>
           )}
         </div>
 
-        {/* Top CTAs */}
         <div className="chart-card">
           <h3>🎯 Most Common CTAs</h3>
           {stats.topCTAs.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={stats.topCTAs.slice(0, 6)}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} angle={-20} textAnchor="end" height={60} />
-                <YAxis allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#00b4d8" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ height: 280 }}><Bar data={ctaChartData} options={verticalBarOptions} /></div>
           ) : (
             <p className="chart-empty">No CTA data yet.</p>
           )}
         </div>
 
-        {/* Top Pain Points */}
         <div className="chart-card">
           <h3>💢 Top Pain Points Targeted</h3>
           {stats.topPainPoints.length > 0 ? (
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={stats.topPainPoints.slice(0, 6)} layout="vertical" margin={{ left: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" allowDecimals={false} />
-                <YAxis dataKey="name" type="category" width={200} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#48cae4" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            <div style={{ height: 280 }}><Bar data={painPointChartData} options={barOptions} /></div>
           ) : (
             <p className="chart-empty">No pain point data yet.</p>
           )}
         </div>
       </div>
 
-      {/* Recent Activity */}
       <div className="recent-activity">
         <h3>🕐 Recent Competitor Activity</h3>
         {stats.recentAds.length > 0 ? (

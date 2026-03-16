@@ -6,7 +6,7 @@ import CompetitorAd from '../models/CompetitorAd';
 import AdInsight from '../models/AdInsight';
 import GeneratedMarketingContent from '../models/GeneratedMarketingContent';
 import { analyzeAd, generateContent } from '../services/marketingIntelligenceService';
-import { fetchCompetitorAds, fetchAdsFromPlatforms, ScrapePlatform } from '../services/adScraperService';
+import { fetchCompetitorAds, fetchAdsFromPlatforms, ScrapePlatform, ScrapeResult } from '../services/adScraperService';
 
 // ===================== COMPETITORS =====================
 
@@ -194,13 +194,16 @@ export const fetchAds = async (req: AuthenticatedRequest, res: Response<ApiRespo
 
     // 2. Scrape ads from selected platforms
     const platformLabel = selectedPlatforms.includes('all') ? 'all platforms' : selectedPlatforms.join(', ');
-    const scrapedAds = await fetchAdsFromPlatforms(competitorName, selectedPlatforms);
+    const { ads: scrapedAds, errors: scrapeErrors } = await fetchAdsFromPlatforms(competitorName, selectedPlatforms);
 
     if (scrapedAds.length === 0) {
+      const errorDetail = scrapeErrors.length > 0
+        ? `Scraper errors: ${scrapeErrors.join('; ')}` 
+        : 'Platforms may be blocking automated access.';
       return res.json({
         success: true,
-        message: `No ads found for "${competitorName}" on ${platformLabel}. Platforms may be blocking automated access. Try adding ads manually.`,
-        data: { competitor, ads: [], insights: [], scrapedCount: 0 },
+        message: `No ads found for "${competitorName}" on ${platformLabel}. ${errorDetail} Try adding ads manually.`,
+        data: { competitor, ads: [], insights: [], scrapedCount: 0, scrapeErrors },
       });
     }
 

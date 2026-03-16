@@ -85,7 +85,7 @@ export async function fetchCompetitorAds(competitorName: string): Promise<Scrape
     if (browser) {
       await browser.close();
     }
-    return [];
+    throw error;
   }
 }
 
@@ -521,7 +521,7 @@ export async function fetchGoogleAds(competitorName: string): Promise<ScrapedAd[
   } catch (error: any) {
     console.error(`[GoogleAdScraper] Error: ${error.message}`);
     if (browser) await browser.close();
-    return [];
+    throw error;
   }
 }
 
@@ -646,7 +646,7 @@ export async function fetchLinkedInAds(competitorName: string): Promise<ScrapedA
   } catch (error: any) {
     console.error(`[LinkedInAdScraper] Error: ${error.message}`);
     if (browser) await browser.close();
-    return [];
+    throw error;
   }
 }
 
@@ -654,14 +654,20 @@ export async function fetchLinkedInAds(competitorName: string): Promise<ScrapedA
 
 export type ScrapePlatform = 'meta' | 'google' | 'linkedin' | 'all';
 
+export interface ScrapeResult {
+  ads: ScrapedAd[];
+  errors: string[];
+}
+
 /**
  * Fetch competitor ads from one or more platforms.
  */
 export async function fetchAdsFromPlatforms(
   competitorName: string,
   platforms: ScrapePlatform[] = ['meta']
-): Promise<ScrapedAd[]> {
+): Promise<ScrapeResult> {
   const allAds: ScrapedAd[] = [];
+  const errors: string[] = [];
 
   // If 'all', expand to all platforms
   const targets = platforms.includes('all') ? ['meta', 'google', 'linkedin'] as ScrapePlatform[] : platforms;
@@ -683,9 +689,11 @@ export async function fetchAdsFromPlatforms(
       allAds.push(...ads);
       console.log(`[MultiScraper] ${platform}: ${ads.length} ads`);
     } catch (error: any) {
-      console.error(`[MultiScraper] ${platform} failed: ${error.message}`);
+      const msg = `${platform}: ${error.message}`;
+      console.error(`[MultiScraper] ${msg}`);
+      errors.push(msg);
     }
   }
 
-  return allAds;
+  return { ads: allAds, errors };
 }

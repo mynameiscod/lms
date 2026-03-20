@@ -388,8 +388,3 @@
   .submenu { display: none; }
   .logo-container { justify-content: center; }
 }
-
-  .sidebar-toggle {
-    left: 0;
-  }
-}

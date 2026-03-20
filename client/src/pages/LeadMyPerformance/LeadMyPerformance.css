@@ -1,34 +1,56 @@
 .perf-page { padding: 24px; max-width: 1200px; margin: 0 auto; }
-.perf-page h2 { margin-bottom: 20px; }
-.perf-loading, .perf-error { padding: 40px; text-align: center; }
-.perf-error { color: #e53e3e; }
+.perf-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+.perf-header h2 { margin: 0 0 4px; font-size: 1.5rem; font-weight: 700; color: #1e293b; }
+.perf-subtitle { margin: 0; font-size: 0.875rem; color: #64748b; }
+.perf-loading { padding: 60px; text-align: center; color: #64748b; font-size: 1rem; }
+.perf-error-container { padding: 60px; text-align: center; }
+.perf-error-icon { font-size: 2rem; margin-bottom: 12px; }
+.perf-error { color: #e53e3e; font-size: 1rem; margin-bottom: 16px; }
+.perf-retry-btn { padding: 8px 20px; background: #3182ce; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 0.875rem; }
 
 .perf-stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
-.perf-stat-card { background: #fff; border-radius: 8px; padding: 20px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 4px; }
-.perf-stat-value { font-size: 2rem; font-weight: 700; color: #2d3748; }
-.perf-stat-label { font-size: 0.85rem; color: #718096; }
+.perf-stat-card { background: #fff; border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; display: flex; flex-direction: column; align-items: center; gap: 4px; position: relative; transition: box-shadow 0.2s; }
+.perf-stat-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+.perf-stat-icon { font-size: 1.5rem; margin-bottom: 4px; }
+.perf-stat-value { font-size: 2.25rem; font-weight: 700; color: #2d3748; line-height: 1; }
+.perf-stat-label { font-size: 0.8rem; color: #718096; font-weight: 500; }
+.perf-stat-badge { font-size: 0.65rem; font-weight: 600; padding: 2px 8px; border-radius: 9999px; margin-top: 4px; }
+.perf-stat-badge.warn { background: #fef3c7; color: #92400e; }
+.perf-stat-badge.danger { background: #fee2e2; color: #991b1b; }
 .perf-stat-card.highlight-warn .perf-stat-value { color: #d69e2e; }
 .perf-stat-card.highlight-danger .perf-stat-value { color: #e53e3e; }
+.perf-stat-card.highlight-success .perf-stat-value { color: #38a169; }
 
-.perf-section { background: #fff; border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 16px; }
-.perf-section h3 { margin-bottom: 12px; font-size: 1rem; color: #4a5568; }
+.perf-section { background: #fff; border-radius: 12px; padding: 20px 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; margin-bottom: 16px; }
+.perf-section h3 { margin: 0 0 16px; font-size: 0.95rem; font-weight: 600; color: #374151; }
 
-.perf-activity-summary { display: flex; gap: 24px; }
-.perf-activity-period { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.perf-activity-count { font-size: 1.5rem; font-weight: 700; color: #3182ce; }
+.perf-activity-summary { display: flex; align-items: center; gap: 0; }
+.perf-activity-period { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.perf-activity-count { font-size: 2rem; font-weight: 700; color: #3182ce; }
+.perf-activity-label { font-size: 0.8rem; color: #718096; font-weight: 500; }
+.perf-activity-divider { width: 1px; height: 48px; background: #e2e8f0; }
+.perf-activity-bar-container { margin-top: 16px; }
+.perf-activity-bar { height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 6px; }
+.perf-activity-fill { height: 100%; background: linear-gradient(90deg, #4299e1, #667eea); border-radius: 4px; transition: width 0.6s ease; }
+.perf-activity-bar-label { font-size: 0.75rem; color: #718096; }
 
 .perf-two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 768px) { .perf-two-col { grid-template-columns: 1fr; } }
 
-.perf-stage-list { display: flex; flex-direction: column; gap: 8px; }
-.perf-stage-item { display: flex; align-items: center; gap: 8px; }
-.perf-stage-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-.perf-stage-name { flex: 1; }
-.perf-stage-count { font-weight: 600; color: #2d3748; }
+.perf-stage-list { display: flex; flex-direction: column; gap: 10px; }
+.perf-stage-item { display: flex; align-items: center; gap: 10px; }
+.perf-stage-info { display: flex; align-items: center; gap: 6px; min-width: 120px; }
+.perf-stage-dot { width: 10px; height: 10px; border-radius: 50%; background: #667eea; flex-shrink: 0; }
+.perf-stage-name { font-size: 0.85rem; color: #4a5568; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.perf-stage-bar-wrap { flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
+.perf-stage-bar-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); border-radius: 4px; transition: width 0.6s ease; min-width: 4px; }
+.perf-stage-count { font-weight: 700; color: #2d3748; font-size: 0.9rem; min-width: 24px; text-align: right; }
 
-.perf-recent-list { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; }
-.perf-recent-item { display: flex; flex-direction: column; gap: 2px; padding: 8px; background: #f7fafc; border-radius: 6px; }
-.perf-recent-type { font-size: 0.75rem; font-weight: 600; color: #3182ce; text-transform: uppercase; }
-.perf-recent-desc { font-size: 0.85rem; color: #4a5568; }
-.perf-recent-time { font-size: 0.75rem; color: #a0aec0; }
-.perf-empty { color: #a0aec0; font-style: italic; }
+.perf-recent-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; }
+.perf-recent-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+.perf-recent-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+.perf-recent-content { flex: 1; min-width: 0; }
+.perf-recent-type { display: block; font-size: 0.7rem; font-weight: 700; color: #3182ce; text-transform: uppercase; letter-spacing: 0.05em; }
+.perf-recent-desc { display: block; font-size: 0.82rem; color: #4a5568; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.perf-recent-time { font-size: 0.72rem; color: #a0aec0; white-space: nowrap; flex-shrink: 0; }
+.perf-empty { color: #a0aec0; font-style: italic; font-size: 0.875rem; }

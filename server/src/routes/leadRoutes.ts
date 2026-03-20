@@ -1,4 +1,7 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import {
   getLeads,
   getLeadById,
@@ -19,6 +22,32 @@ import {
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
+
+// Ensure recordings directory exists
+const recordingsDir = 'uploads/recordings';
+if (!fs.existsSync(recordingsDir)) {
+  fs.mkdirSync(recordingsDir, { recursive: true });
+}
+
+// Multer config: accept audio files only, max 50 MB
+const recordingStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, recordingsDir),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    cb(null, `recording-${unique}${path.extname(file.originalname)}`);
+  }
+});
+const uploadRecording = multer({
+  storage: recordingStorage,
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('audio/') || ['video/mp4', 'video/webm', 'video/ogg'].includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio/video files are allowed for call recordings'));
+    }
+  },
+  limits: { fileSize: 50 * 1024 * 1024 }
+});
 
 const router = express.Router();
 
@@ -48,7 +77,7 @@ router.patch('/:leadId/quick-update', authMiddleware, tenantResolver, roleGuard(
 router.patch('/:leadId/stage', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads']), changeLeadStage);
 
 // Activities (anyone who can view or edit can add activities)
-router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), addLeadActivity);
+router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), uploadRecording.single('recording'), addLeadActivity);
 
 // Convert to student (need convert_leads or manage_leads)
 router.post('/:leadId/convert', authMiddleware, tenantResolver, roleGuard(['convert_leads', 'manage_leads']), convertToStudent);

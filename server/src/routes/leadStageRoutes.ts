@@ -13,8 +13,8 @@ import { roleGuard } from '../middleware/roleGuard';
 
 const router = express.Router();
 
-// Get all stages
-router.get('/', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getLeadStages);
+// Get all stages — allow anyone with lead access to read stages
+router.get('/', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_leads', 'create_leads', 'edit_leads']), getLeadStages);
 
 // Initialize default stages
 router.post('/initialize', authMiddleware, tenantResolver, roleGuard(['manage_leads']), initializeDefaultStages);

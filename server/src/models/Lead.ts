@@ -7,6 +7,7 @@ export interface ILeadActivity {
   type: 'note' | 'call' | 'email' | 'whatsapp' | 'status_change' | 'assignment' | 'created';
   description: string;
   callOutcome?: CallOutcome;
+  recordingUrl?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   metadata?: Record<string, any>;
@@ -57,6 +58,10 @@ const LeadActivitySchema: Schema = new Schema(
     callOutcome: {
       type: String,
       enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected']
+    },
+    recordingUrl: {
+      type: String,
+      trim: true
     },
     metadata: {
       type: Schema.Types.Mixed

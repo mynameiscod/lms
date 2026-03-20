@@ -63,11 +63,13 @@ const LeadFormSettings: React.FC = () => {
     loadConfig();
   }, [loadConfig]);
 
+  // Name, phone, email are always protected defaults — cannot be deleted or disabled
+  const CORE_FIELDS = ['name', 'phone', 'email'];
+
   const handleToggleEnabled = (fieldKey: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        // Prevent disabling name and phone
-        if (f.fieldKey === 'name' || f.fieldKey === 'phone') return f;
+        if (CORE_FIELDS.includes(f.fieldKey)) return f;
         return { ...f, enabled: !f.enabled };
       }
       return f;
@@ -77,8 +79,7 @@ const LeadFormSettings: React.FC = () => {
   const handleToggleRequired = (fieldKey: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        // Prevent making name/phone optional
-        if ((f.fieldKey === 'name' || f.fieldKey === 'phone') && f.required) return f;
+        if (CORE_FIELDS.includes(f.fieldKey) && f.required) return f;
         return { ...f, required: !f.required };
       }
       return f;
@@ -145,6 +146,25 @@ const LeadFormSettings: React.FC = () => {
     }
   };
 
+  // Handles deletion of any non-core field (built-in non-core or custom)
+  const handleDeleteField = async (field: FormField) => {
+    if (CORE_FIELDS.includes(field.fieldKey)) return;
+    if (field.isBuiltIn) {
+      if (!window.confirm(`Remove "${field.label}" from the form? You can restore it by re-initializing defaults.`)) return;
+      const updated = fields.filter(f => f.fieldKey !== field.fieldKey).map((f, i) => ({ ...f, order: i }));
+      setFields(updated);
+      try {
+        await leadFormConfigApi.updateConfig({ fields: updated, sources });
+        showAlertMsg('success', `"${field.label}" removed from form.`);
+      } catch (error: any) {
+        showAlertMsg('error', error.message || 'Failed to save');
+        loadConfig();
+      }
+    } else {
+      await handleDeleteCustomField(field.fieldKey);
+    }
+  };
+
   const handleAddSource = async () => {
     const val = newSource.trim().toLowerCase().replace(/\s+/g, '_');
     if (!val) return;
@@ -202,7 +222,7 @@ const LeadFormSettings: React.FC = () => {
       {/* Fields Configuration */}
       <div className="settings-section">
         <h2>Form Fields</h2>
-        <p className="section-desc">Enable/disable fields, set required, and reorder. Name and Phone are always required.</p>
+        <p className="section-desc">Enable/disable fields, set required, and reorder. <strong>Name, Email and Phone</strong> are always required defaults and cannot be removed.</p>
 
         <div className="fields-table">
           <div className="fields-table-header">
@@ -213,8 +233,10 @@ const LeadFormSettings: React.FC = () => {
             <span className="ft-col ft-required">Required</span>
             <span className="ft-col ft-actions">Actions</span>
           </div>
-          {fields.map((field, idx) => (
-            <div className={`fields-table-row ${!field.enabled ? 'disabled-row' : ''}`} key={field.fieldKey}>
+          {fields.map((field, idx) => {
+            const isCore = CORE_FIELDS.includes(field.fieldKey);
+            return (
+            <div className={`fields-table-row ${!field.enabled ? 'disabled-row' : ''} ${isCore ? 'core-row' : ''}`} key={field.fieldKey}>
               <span className="ft-col ft-order">
                 <button className="move-btn" onClick={() => handleMoveField(idx, 'up')} disabled={idx === 0}>▲</button>
                 <button className="move-btn" onClick={() => handleMoveField(idx, 'down')} disabled={idx === fields.length - 1}>▼</button>
@@ -223,7 +245,10 @@ const LeadFormSettings: React.FC = () => {
                 {field.isBuiltIn ? (
                   <span className="field-label-text">
                     {field.label}
-                    <span className="badge built-in">Built-in</span>
+                    {isCore
+                      ? <span className="badge core">Default</span>
+                      : <span className="badge built-in">Built-in</span>
+                    }
                   </span>
                 ) : (
                   <input
@@ -243,7 +268,7 @@ const LeadFormSettings: React.FC = () => {
                     type="checkbox"
                     checked={field.enabled}
                     onChange={() => handleToggleEnabled(field.fieldKey)}
-                    disabled={field.fieldKey === 'name' || field.fieldKey === 'phone'}
+                    disabled={isCore}
                   />
                   <span className="toggle-slider" />
                 </label>
@@ -254,20 +279,26 @@ const LeadFormSettings: React.FC = () => {
                     type="checkbox"
                     checked={field.required}
                     onChange={() => handleToggleRequired(field.fieldKey)}
-                    disabled={(field.fieldKey === 'name' || field.fieldKey === 'phone')}
+                    disabled={isCore && field.required}
                   />
                   <span className="toggle-slider" />
                 </label>
               </span>
               <span className="ft-col ft-actions">
-                {!field.isBuiltIn && (
-                  <button className="delete-field-btn" onClick={() => handleDeleteCustomField(field.fieldKey)} title="Delete field">
+                {!isCore && (
+                  <button
+                    className="delete-field-btn"
+                    onClick={() => handleDeleteField(field)}
+                    title={field.isBuiltIn ? 'Remove from form' : 'Delete custom field'}
+                  >
                     🗑️
                   </button>
                 )}
+                {isCore && <span className="core-lock" title="Required default field">🔒</span>}
               </span>
             </div>
-          ))}
+          );
+          })}
         </div>
       </div>
 

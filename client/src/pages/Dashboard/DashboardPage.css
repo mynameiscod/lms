@@ -269,6 +269,91 @@
   }
 }
 
+/* ==================== Follow-up Reminder Widget ==================== */
+.followup-reminder-section {
+  margin-top: 24px;
+  background: white;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 20px 24px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.followup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.followup-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.btn-link-sm {
+  background: none;
+  border: none;
+  color: #005897;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 0;
+  text-decoration: none;
+}
+
+.btn-link-sm:hover { text-decoration: underline; }
+
+.followup-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 12px;
+}
+
+.followup-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.followup-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+
+.followup-card-icon { font-size: 1.5rem; flex-shrink: 0; }
+.followup-card-info { display: flex; flex-direction: column; gap: 2px; }
+.followup-card-value { font-size: 1.5rem; font-weight: 700; line-height: 1; color: #1e293b; }
+.followup-card-label { font-size: 0.75rem; color: #64748b; font-weight: 500; }
+
+.followup-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+}
+
+.followup-badge.warn { background: #fef3c7; color: #92400e; }
+.followup-badge.danger { background: #fee2e2; color: #991b1b; }
+
+.followup-assigned { background: #f0f9ff; border-color: #bae6fd; }
+.followup-today { background: #fffbeb; border-color: #fde68a; }
+.followup-overdue { background: #fff5f5; border-color: #fed7d7; }
+.followup-overdue .followup-card-value { color: #e53e3e; }
+.followup-done { background: #f0fdf4; border-color: #bbf7d0; }
+.followup-done .followup-card-value { color: #16a34a; }
+.followup-action { background: #f8fafc; border-color: #e2e8f0; }
+
 /* Animations */
 @keyframes fadeIn {
   from {

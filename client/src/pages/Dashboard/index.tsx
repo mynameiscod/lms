@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { Spinner } from '../../components/common';
-import { attendanceApi, dashboardApi } from '../../api';
+import { attendanceApi, dashboardApi, leadApi } from '../../api';
 import AttendanceCard from '../../components/dashboard/AttendanceCard';
 import './DashboardPage.css';
 
@@ -95,6 +95,10 @@ const DashboardPage: React.FC = () => {
     attendancePercentage: 0,
   });
 
+  // Lead follow-up notifications for staff/admin users
+  const [leadPerf, setLeadPerf] = useState<{ todayFollowUps: number; overdueFollowUps: number; totalAssigned: number } | null>(null);
+  const hasLeadPermission = user?.permissions?.some((p: string) => ['view_leads', 'manage_leads', 'create_leads'].includes(p)) ?? false;
+
   // Determine if user should see admin dashboard
   // Any non-STUDENT role (TENANT_ADMIN, SUPER_ADMIN, INSTRUCTOR, STAFF, ATTENDANCE_ADMIN, etc.)
   // should see admin dashboard. Also STUDENT with admin permissions should see admin dashboard.
@@ -149,6 +153,22 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  // Fetch lead follow-up stats for users with lead access
+  const fetchLeadFollowUps = async () => {
+    try {
+      const res = await leadApi.getMyPerformance();
+      if (res.success && res.data) {
+        setLeadPerf({
+          todayFollowUps: res.data.todayFollowUps || 0,
+          overdueFollowUps: res.data.overdueFollowUps || 0,
+          totalAssigned: res.data.totalAssigned || 0,
+        });
+      }
+    } catch {
+      // Lead permissions not available for this user - silently ignore
+    }
+  };
+
   // Fetch student dashboard data
   const fetchStudentDashboard = async () => {
     try {
@@ -197,7 +217,10 @@ const DashboardPage: React.FC = () => {
       if (user?.role === 'STUDENT' && !isAdminUser) {
         await Promise.all([fetchStudentDashboard(), fetchAttendance()]);
       } else {
-        await fetchAdminStats();
+        await Promise.all([
+          fetchAdminStats(),
+          ...(hasLeadPermission ? [fetchLeadFollowUps()] : [])
+        ]);
       }
       
       setLoading(false);
@@ -294,6 +317,7 @@ const DashboardPage: React.FC = () => {
                 <a href="/admin/content" className="action-link">📄 Manage Content</a>
                 <a href="/users" className="action-link">👥 Manage Users</a>
                 <a href="/courses" className="action-link">📚 Manage Courses</a>
+                {hasLeadPermission && <a href="/leads" className="action-link">🎯 Manage Leads</a>}
               </div>
             </div>
 
@@ -306,6 +330,54 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Follow-up Reminders Widget — only for users with lead access */}
+          {hasLeadPermission && leadPerf && (
+            <div className="followup-reminder-section">
+              <div className="followup-header">
+                <h2>🔔 Follow-up Reminders</h2>
+                <button className="btn-link-sm" onClick={() => navigate('/leads')}>View All Leads →</button>
+              </div>
+              <div className="followup-cards">
+                <div className="followup-card followup-assigned" onClick={() => navigate('/leads')}>
+                  <div className="followup-card-icon">👥</div>
+                  <div className="followup-card-info">
+                    <span className="followup-card-value">{leadPerf.totalAssigned}</span>
+                    <span className="followup-card-label">Total Assigned</span>
+                  </div>
+                </div>
+                <div
+                  className={`followup-card ${leadPerf.todayFollowUps > 0 ? 'followup-today' : 'followup-done'}`}
+                  onClick={() => navigate('/leads')}
+                >
+                  <div className="followup-card-icon">{leadPerf.todayFollowUps > 0 ? '📅' : '✅'}</div>
+                  <div className="followup-card-info">
+                    <span className="followup-card-value">{leadPerf.todayFollowUps}</span>
+                    <span className="followup-card-label">Today's Follow-ups</span>
+                  </div>
+                  {leadPerf.todayFollowUps > 0 && <span className="followup-badge warn">{leadPerf.todayFollowUps} due</span>}
+                </div>
+                <div
+                  className={`followup-card ${leadPerf.overdueFollowUps > 0 ? 'followup-overdue' : 'followup-done'}`}
+                  onClick={() => navigate('/leads')}
+                >
+                  <div className="followup-card-icon">{leadPerf.overdueFollowUps > 0 ? '⚠️' : '✅'}</div>
+                  <div className="followup-card-info">
+                    <span className="followup-card-value">{leadPerf.overdueFollowUps}</span>
+                    <span className="followup-card-label">Overdue Follow-ups</span>
+                  </div>
+                  {leadPerf.overdueFollowUps > 0 && <span className="followup-badge danger">Needs attention</span>}
+                </div>
+                <div className="followup-card followup-action" onClick={() => navigate('/my-performance')}>
+                  <div className="followup-card-icon">📊</div>
+                  <div className="followup-card-info">
+                    <span className="followup-card-value" style={{ fontSize: '1rem', fontWeight: 700 }}>Track</span>
+                    <span className="followup-card-label">My Performance</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

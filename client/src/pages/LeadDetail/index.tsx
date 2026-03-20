@@ -15,6 +15,7 @@ interface Activity {
   type: string;
   description: string;
   callOutcome?: string;
+  recordingUrl?: string;
   createdBy: { firstName: string; lastName: string } | string;
   createdAt: string;
 }
@@ -82,6 +83,8 @@ const LeadDetail: React.FC = () => {
   const [activityType, setActivityType] = useState('note');
   const [activityDesc, setActivityDesc] = useState('');
   const [callOutcome, setCallOutcome] = useState('');
+  const [recordingFile, setRecordingFile] = useState<File | null>(null);
+  const [uploadingActivity, setUploadingActivity] = useState(false);
 
   // Not Interested reason modal
   const [showReasonModal, setShowReasonModal] = useState(false);
@@ -169,16 +172,20 @@ const LeadDetail: React.FC = () => {
       return;
     }
     try {
+      setUploadingActivity(true);
       const data: any = { type: activityType, description: activityDesc };
       if (activityType === 'call' && callOutcome) {
         data.callOutcome = callOutcome;
       }
-      await leadApi.addActivity(lead._id, data);
+      await leadApi.addActivity(lead._id, data, recordingFile || undefined);
       setActivityDesc('');
       setCallOutcome('');
+      setRecordingFile(null);
       loadData();
     } catch (error: any) {
       showAlert('error', error.message || 'Failed to add activity');
+    } finally {
+      setUploadingActivity(false);
     }
   };
 
@@ -411,12 +418,32 @@ const LeadDetail: React.FC = () => {
                 </select>
               )}
             </div>
+            {activityType === 'call' && (
+              <div className="recording-upload">
+                <label className="recording-label">
+                  🎙️ Attach Call Recording (optional)
+                  <input
+                    type="file"
+                    accept="audio/*,video/mp4,video/webm,video/ogg"
+                    className="recording-input"
+                    onChange={e => setRecordingFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+                {recordingFile && (
+                  <span className="recording-selected">📎 {recordingFile.name}
+                    <button className="recording-clear" onClick={() => setRecordingFile(null)}>✕</button>
+                  </span>
+                )}
+              </div>
+            )}
             <textarea
               placeholder="Add a note, log a call..."
               value={activityDesc}
               onChange={e => setActivityDesc(e.target.value)}
             />
-            <button onClick={handleAddActivity}>Add Activity</button>
+            <button onClick={handleAddActivity} disabled={uploadingActivity}>
+              {uploadingActivity ? 'Saving...' : 'Add Activity'}
+            </button>
           </div>
 
           <div className="activity-timeline">
@@ -434,6 +461,12 @@ const LeadDetail: React.FC = () => {
                       </span>
                     )}
                   </div>
+                  {activity.recordingUrl && (
+                    <div className="activity-recording">
+                      <span className="recording-icon">🎙️</span>
+                      <audio controls src={activity.recordingUrl} className="activity-audio" />
+                    </div>
+                  )}
                   <div className="activity-meta">
                     <span>
                       {typeof activity.createdBy === 'object'

@@ -140,6 +140,21 @@
   color: #1d4ed8;
 }
 
+.badge.core {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.core-row {
+  background: #f9fafb;
+}
+
+.core-lock {
+  font-size: 0.9rem;
+  opacity: 0.5;
+  cursor: default;
+}
+
 .type-badge {
   padding: 3px 10px;
   background: #f3f4f6;

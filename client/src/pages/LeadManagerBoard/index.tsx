@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { leadApi, leadStageApi } from '../../api';
+import { useAuth } from '../../contexts/AuthContext';
 import './LeadManagerBoard.css';
 
 interface StageBreakdown {
@@ -40,8 +41,18 @@ interface Lead {
   createdAt: string;
 }
 
+const STAT_OPTIONS = [
+  { key: 'totalLeads', label: 'Total Leads', icon: '🎯' },
+  { key: 'teamMembers', label: 'Team Members', icon: '👥' },
+  { key: 'todayFollowUps', label: "Today's Follow-ups", icon: '📅' },
+  { key: 'overdue', label: 'Overdue', icon: '⚠️' },
+];
+
+const STATS_CONFIG_KEY = 'lead_board_stats_config';
+
 const LeadManagerBoardPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -56,6 +67,17 @@ const LeadManagerBoardPage: React.FC = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [assignLeadId, setAssignLeadId] = useState('');
   const [assignToUser, setAssignToUser] = useState('');
+
+  // Configurable stats
+  const [showStatsConfig, setShowStatsConfig] = useState(false);
+  const [visibleStats, setVisibleStats] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem(`${STATS_CONFIG_KEY}_${user?._id || 'default'}`);
+      return saved ? JSON.parse(saved) : STAT_OPTIONS.map(s => s.key);
+    } catch {
+      return STAT_OPTIONS.map(s => s.key);
+    }
+  });
 
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
@@ -135,6 +157,21 @@ const LeadManagerBoardPage: React.FC = () => {
   const totalFollowUps = employees.reduce((s, e) => s + e.todayFollowUps, 0);
   const totalOverdue = employees.reduce((s, e) => s + e.overdueFollowUps, 0);
 
+  const toggleStat = (key: string) => {
+    setVisibleStats(prev => {
+      const updated = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
+      localStorage.setItem(`${STATS_CONFIG_KEY}_${user?._id || 'default'}`, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const statValues: Record<string, { value: number | string; label: string; icon: string; cls?: string }> = {
+    totalLeads:    { value: totalAll, label: 'Total Leads', icon: '🎯' },
+    teamMembers:   { value: employees.filter(e => e._id !== 'unassigned').length, label: 'Team Members', icon: '👥' },
+    todayFollowUps:{ value: totalFollowUps, label: "Today's Follow-ups", icon: '📅', cls: 'mb-stat-warning' },
+    overdue:       { value: totalOverdue, label: 'Overdue', icon: '⚠️', cls: 'mb-stat-danger' },
+  };
+
   if (loading) {
     return <div className="manager-board"><div className="loading-spinner">Loading manager board...</div></div>;
   }
@@ -142,30 +179,49 @@ const LeadManagerBoardPage: React.FC = () => {
   return (
     <div className="manager-board">
       <div className="manager-board-header">
-        <h1>Lead Manager Board</h1>
-        <button className="btn-secondary" onClick={() => navigate('/leads')}>← All Leads</button>
+        <div className="mb-header-left">
+          <h1>Lead Manager Board</h1>
+          <span className="mb-team-count">{employees.filter(e => e._id !== 'unassigned').length} team members</span>
+        </div>
+        <div className="mb-header-actions">
+          <button className="btn-icon" title="Configure stats" onClick={() => setShowStatsConfig(v => !v)}>⚙️ Stats</button>
+          <button className="btn-secondary" onClick={() => navigate('/leads')}>← All Leads</button>
+        </div>
       </div>
+
+      {/* Stats Config Panel */}
+      {showStatsConfig && (
+        <div className="mb-stats-config">
+          <div className="mb-stats-config-title">Configure visible stats:</div>
+          <div className="mb-stats-config-options">
+            {STAT_OPTIONS.map(opt => (
+              <label key={opt.key} className={`mb-stats-option ${visibleStats.includes(opt.key) ? 'active' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={visibleStats.includes(opt.key)}
+                  onChange={() => toggleStat(opt.key)}
+                />
+                <span>{opt.icon} {opt.label}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       {alert && <div className={`alert alert-${alert.type}`}>{alert.message}</div>}
 
       {/* Summary Stats */}
       <div className="mb-summary-stats">
-        <div className="mb-stat-card">
-          <div className="mb-stat-value">{totalAll}</div>
-          <div className="mb-stat-label">Total Leads</div>
-        </div>
-        <div className="mb-stat-card">
-          <div className="mb-stat-value">{employees.filter(e => e._id !== 'unassigned').length}</div>
-          <div className="mb-stat-label">Team Members</div>
-        </div>
-        <div className="mb-stat-card mb-stat-warning">
-          <div className="mb-stat-value">{totalFollowUps}</div>
-          <div className="mb-stat-label">Today's Follow-ups</div>
-        </div>
-        <div className="mb-stat-card mb-stat-danger">
-          <div className="mb-stat-value">{totalOverdue}</div>
-          <div className="mb-stat-label">Overdue</div>
-        </div>
+        {STAT_OPTIONS.filter(opt => visibleStats.includes(opt.key)).map(opt => {
+          const s = statValues[opt.key];
+          return (
+            <div key={opt.key} className={`mb-stat-card ${s.cls || ''}`}>
+              <div className="mb-stat-icon">{opt.icon}</div>
+              <div className="mb-stat-value">{s.value}</div>
+              <div className="mb-stat-label">{s.label}</div>
+            </div>
+          );
+        })}
       </div>
 
       {/* Employee Cards */}

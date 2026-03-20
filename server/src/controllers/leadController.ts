@@ -481,6 +481,10 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
     if (type === 'call' && callOutcome) {
       activityData.callOutcome = callOutcome;
     }
+    // Attach uploaded recording URL if a file was provided
+    if (req.file) {
+      activityData.recordingUrl = `/uploads/recordings/${req.file.filename}`;
+    }
 
     const scopeFilter = await buildLeadScopeFilter(req);
     const lead = await Lead.findOneAndUpdate(
@@ -586,9 +590,10 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
     const scope = await resolveLeadScope(req);
 
     // Get staff who can have leads assigned — scoped by manager view
+    // Only show users who have lead-related roles (excludes INSTRUCTOR who has no lead permissions)
     let staffFilter: any = {
       tenantId: req.tenantId,
-      role: { $in: ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'] },
+      role: { $in: ['TENANT_ADMIN', 'STAFF'] },
       isActive: true
     };
     if (scope === 'TEAM') {

@@ -54,6 +54,7 @@ const UsersPage: React.FC = () => {
     customRoleId: ''
   });
   const [creatingUser, setCreatingUser] = useState(false);
+  const [createModalError, setCreateModalError] = useState('');
 
   // Modal state for edit role
   const [isRoleModalOpen, setIsRoleModalOpen] = useState(false);
@@ -168,6 +169,7 @@ const UsersPage: React.FC = () => {
 
   const closeCreateModal = () => {
     setIsCreateModalOpen(false);
+    setCreateModalError('');
     setCreateFormData({
       email: '',
       firstName: '',
@@ -247,7 +249,7 @@ const UsersPage: React.FC = () => {
 
     try {
       setCreatingUser(true);
-      setError('');
+      setCreateModalError('');
 
       // Generate a temporary password for non-student users
       const tempPassword = Math.random().toString(36).slice(-12);
@@ -266,7 +268,7 @@ const UsersPage: React.FC = () => {
       closeCreateModal();
       fetchData();
     } catch (err: any) {
-      setError(err.message || 'Failed to create user');
+      setCreateModalError(err.message || 'Failed to create user');
     } finally {
       setCreatingUser(false);
     }
@@ -796,6 +798,7 @@ const UsersPage: React.FC = () => {
         size="medium"
       >
         <form onSubmit={handleCreateUser} className="create-user-form">
+          {createModalError && <Alert type="error" message={createModalError} onClose={() => setCreateModalError('')} />}
           <div className="create-info">
             <p className="info-text">
               ℹ️ Create staff, instructors, or administrators. No email will be sent.

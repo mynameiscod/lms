@@ -83,7 +83,7 @@ const UserSchema: Schema = new Schema(
     leadDataScope: {
       type: String,
       enum: ['ALL', 'TEAM', 'OWN'],
-      default: null
+      default: undefined
     },
     dashboardWidgets: {
       type: [String],

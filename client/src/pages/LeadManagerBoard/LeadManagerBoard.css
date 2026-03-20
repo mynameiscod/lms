@@ -13,6 +13,12 @@
   gap: 12px;
 }
 
+.mb-header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
 .manager-board-header h1 {
   font-size: 1.6rem;
   font-weight: 700;
@@ -20,21 +26,109 @@
   margin: 0;
 }
 
+.mb-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mb-team-count {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.btn-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.btn-icon:hover { background: #f9fafb; border-color: #005897; color: #005897; }
+
+/* Stats Config Panel */
+.mb-stats-config {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.mb-stats-config-title {
+  font-size: 0.85rem;
+  color: #6b7280;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mb-stats-config-options {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mb-stats-option {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  background: #f9fafb;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.mb-stats-option input { display: none; }
+
+.mb-stats-option.active {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1d4ed8;
+}
+
+.mb-stats-option:hover { border-color: #9ca3af; background: #f3f4f6; }
+
 /* Summary Stats */
 .mb-summary-stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
   margin-bottom: 28px;
 }
 
 .mb-stat-card {
+  flex: 1;
+  min-width: 150px;
   background: white;
   border: 1px solid #e5e7eb;
   border-radius: 12px;
   padding: 18px 20px;
   text-align: center;
+  transition: box-shadow 0.2s;
 }
+
+.mb-stat-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+
+.mb-stat-icon { font-size: 1.3rem; margin-bottom: 4px; }
 
 .mb-stat-value {
   font-size: 1.8rem;

@@ -1676,7 +1676,32 @@ export const leadApi = {
       body: JSON.stringify({ stageId, notInterestedReason })
     });
   },
-  addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string }) => {
+  addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string }, recordingFile?: File) => {
+    if (recordingFile) {
+      // Use FormData so the audio file can be sent as multipart
+      const formData = new FormData();
+      formData.append('type', data.type);
+      formData.append('description', data.description);
+      if (data.callOutcome) formData.append('callOutcome', data.callOutcome);
+      formData.append('recording', recordingFile);
+
+      const token = localStorage.getItem('token');
+      const tenantId = localStorage.getItem('tenantId');
+      const res = await fetch(`${API_BASE_URL}/leads/${leadId}/activities`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(tenantId ? { 'X-Tenant-Id': tenantId } : {})
+          // Note: do NOT set Content-Type — browser sets it automatically with multipart boundary
+        },
+        body: formData
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Upload failed' }));
+        throw new Error(err.message || 'Failed to add activity');
+      }
+      return res.json();
+    }
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/activities`, {
       method: 'POST',
       body: JSON.stringify(data)

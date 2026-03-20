@@ -119,11 +119,11 @@ const LeadsPage: React.FC = () => {
     try {
       setLoading(true);
       const dateFilt = getDateFilters();
-      const [stagesRes, leadsRes, usersRes, configRes] = await Promise.all([
+
+      // Core requests — stages and leads must succeed
+      const [stagesRes, leadsRes] = await Promise.all([
         leadStageApi.getStages(),
         leadApi.getLeads({ search, stageId: filterStage, source: filterSource, page, limit: 100, ...dateFilt }),
-        userApi.getUsers(),
-        leadFormConfigApi.getConfig()
       ]);
       const loadedStages = stagesRes.data || [];
       setStages(loadedStages);
@@ -137,27 +137,34 @@ const LeadsPage: React.FC = () => {
         setStagesInitialized(true);
       }
 
-      // Form config
-      if (configRes.data) {
-        const enabledFields = (configRes.data.fields || [])
-          .filter((f: FormField) => f.enabled)
-          .sort((a: FormField, b: FormField) => a.order - b.order);
-        setFormFields(enabledFields);
-        if (configRes.data.sources?.length > 0) {
-          setConfigSources(configRes.data.sources);
+      // Non-critical: form config (may 403 for restricted custom roles — use defaults silently)
+      try {
+        const configRes = await leadFormConfigApi.getConfig();
+        if (configRes.data) {
+          const enabledFields = (configRes.data.fields || [])
+            .filter((f: FormField) => f.enabled)
+            .sort((a: FormField, b: FormField) => a.order - b.order);
+          setFormFields(enabledFields);
+          if (configRes.data.sources?.length > 0) {
+            setConfigSources(configRes.data.sources);
+          }
         }
-      }
+      } catch { /* use default form fields */ }
 
-      // Load analytics for stats
+      // Non-critical: user list for assignee filter/dropdown
+      try {
+        const usersRes = await userApi.getUsers();
+        const users = usersRes.data || [];
+        setStaff(users.filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role)));
+      } catch { /* telecallers may not see the user list */ }
+
+      // Non-critical: analytics stats
       try {
         const analyticsRes = await leadApi.getAnalytics();
         setTotalLeads(analyticsRes.data?.totalLeads || 0);
         setTodayFollowUps(analyticsRes.data?.todayFollowUps || 0);
       } catch { /* ignore */ }
 
-      // Filter staff/instructors/admins
-      const users = usersRes.data || [];
-      setStaff(users.filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role)));
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to load data');
     } finally {

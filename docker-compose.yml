@@ -29,6 +29,8 @@ services:
       NODE_ENV: production
       # Production URL for email links
       FRONTEND_URL: http://187.124.97.56:3000
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       - mongodb
     networks:
@@ -52,6 +54,7 @@ services:
 
 volumes:
   mongodb_data:
+  uploads_data:
 
 networks:
   lms-network:

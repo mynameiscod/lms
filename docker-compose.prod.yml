@@ -23,9 +23,12 @@ services:
       EMAIL_USER: ${EMAIL_USER}
       EMAIL_PASSWORD: ${EMAIL_PASSWORD}
       FRONTEND_URL: ${FRONTEND_URL}
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       - mongodb
     restart: always
 
 volumes:
   mongodb_data:
+  uploads_data:

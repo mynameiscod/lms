@@ -424,7 +424,7 @@ const LeadDetail: React.FC = () => {
                   🎙️ Attach Call Recording (optional)
                   <input
                     type="file"
-                    accept="audio/*,video/mp4,video/webm,video/ogg"
+                    accept="audio/*,video/mp4,video/webm,video/ogg,.m4a,.amr,.3gp,.3gpp,.opus,.flac,.wma"
                     className="recording-input"
                     onChange={e => setRecordingFile(e.target.files?.[0] || null)}
                   />

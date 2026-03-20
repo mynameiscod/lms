@@ -24,6 +24,27 @@
   min-width: 60px;
 }
 
+/* Left side wrapper: hamburger + logo */
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Hamburger - only shown on mobile */
+.navbar-hamburger {
+  display: none;
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #374151;
+  padding: 4px 6px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.navbar-hamburger:hover { background: #f3f4f6; }
+
 .navbar-user {
   display: flex;
   align-items: center;
@@ -116,11 +137,14 @@
 
 @media (max-width: 768px) {
   .navbar-container {
-    padding: 0 16px;
+    padding: 0 14px;
   }
-
+  .navbar-hamburger {
+    display: block;
+  }
   .user-info {
-    padding-right: 10px;
+    padding-right: 8px;
+    padding-left: 8px;
   }
 
   .user-meta {

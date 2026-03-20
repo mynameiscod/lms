@@ -604,3 +604,45 @@
 }
 
 .btn-secondary:hover { background: #f3f4f6; }
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .lead-detail-header {
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 14px 16px;
+  }
+
+  .lead-detail-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .lead-detail-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .lead-detail-actions button {
+    flex: 1 1 auto;
+    min-width: 100px;
+    font-size: 0.8rem;
+    padding: 8px 10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .info-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .lead-info-card {
+    padding: 16px;
+  }
+
+  .lead-detail-body {
+    padding: 12px 10px;
+    gap: 12px;
+  }
+}

@@ -311,6 +311,8 @@
   border-top: 1px solid #e5e7eb;
   padding: 16px 20px;
   background: #f9fafb;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .mb-leads-loading {
@@ -523,6 +525,35 @@
 
 /* Responsive */
 @media (max-width: 768px) {
+  .manager-board {
+    padding: 12px 10px;
+  }
+
+  .manager-board-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .mb-header-actions {
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mb-header-actions button {
+    flex: 1 1 auto;
+    min-width: 100px;
+    font-size: 0.8rem;
+  }
+
+  .mb-stats-config {
+    width: 100%;
+  }
+
+  .mb-stats-config-options {
+    flex-wrap: wrap;
+  }
+
   .mb-emp-header {
     flex-direction: column;
     align-items: flex-start;
@@ -532,10 +563,12 @@
     width: 100%;
     justify-content: space-between;
     margin-top: 8px;
+    flex-wrap: wrap;
   }
 
   .mb-leads-table {
     font-size: 0.78rem;
+    min-width: 500px;
   }
 
   .mb-leads-table th,

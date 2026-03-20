@@ -14,7 +14,7 @@ interface MenuItem {
   permissions?: string[]; // If set, user needs at least one of these permissions
 }
 
-const Sidebar: React.FC = () => {
+const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
   const [isOpen, setIsOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
@@ -168,8 +168,7 @@ const Sidebar: React.FC = () => {
                 <li key={subitem.path}>
                   <Link
                     to={subitem.path!}
-                    className={`sidebar-link submenu-link ${isActive(subitem.path) ? 'active' : ''}`}
-                  >
+                    className={`sidebar-link submenu-link ${isActive(subitem.path) ? 'active' : ''}`}                    onClick={onMobileClose}                  >
                     <span className="sidebar-label">{subitem.label}</span>
                   </Link>
                 </li>
@@ -185,6 +184,7 @@ const Sidebar: React.FC = () => {
         <Link
           to={item.path!}
           className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
+          onClick={onMobileClose}
         >
           <span className="menu-icon">{item.icon}</span>
           <span className="sidebar-label">{item.label}</span>
@@ -194,7 +194,7 @@ const Sidebar: React.FC = () => {
   };
 
   return (
-    <aside className={`sidebar ${isOpen ? 'open' : 'closed'}`}>
+    <aside className={`sidebar ${isOpen ? 'open' : 'closed'} ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Sidebar Header - Clickable to Toggle */}
       <div 
         className="sidebar-header" 

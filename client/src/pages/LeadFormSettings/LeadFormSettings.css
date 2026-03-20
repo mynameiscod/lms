@@ -424,13 +424,23 @@
 }
 
 @media (max-width: 768px) {
+  .lead-form-settings {
+    padding: 12px 10px;
+  }
+
   .settings-header {
     flex-direction: column;
+  }
+
+  .fields-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
 
   .fields-table-header,
   .fields-table-row {
     font-size: 0.78rem;
+    min-width: 500px;
   }
 
   .ft-type { width: 80px; }

@@ -729,3 +729,157 @@
   accent-color: #4f46e5;
   cursor: pointer;
 }
+
+/* ===== Mobile Responsive ===== */
+@media (max-width: 768px) {
+  .leads-page {
+    padding: 12px 10px;
+  }
+
+  .leads-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .leads-header h1 {
+    font-size: 1.3rem;
+  }
+
+  .leads-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .leads-header-actions button,
+  .leads-header-actions a {
+    flex: 1 1 auto;
+    min-width: 110px;
+    font-size: 0.8rem;
+    padding: 8px 10px;
+    text-align: center;
+  }
+
+  /* Filters */
+  .leads-filters {
+    gap: 8px;
+  }
+
+  .leads-filters input {
+    width: 100%;
+  }
+
+  .leads-filters input,
+  .leads-filters select {
+    font-size: 0.82rem;
+  }
+
+  /* Date filter */
+  .leads-date-filter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .date-filter-presets {
+    flex-wrap: wrap;
+    overflow: visible;
+    border-radius: 8px;
+    width: 100%;
+  }
+
+  .date-preset-btn {
+    flex: 1 1 auto;
+    font-size: 0.73rem;
+    padding: 6px 6px;
+    white-space: nowrap;
+  }
+
+  .date-custom-range {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .date-custom-range input {
+    flex: 1;
+    min-width: 120px;
+  }
+
+  /* Stats bar */
+  .leads-stats {
+    gap: 8px;
+  }
+
+  .stat-card {
+    min-width: 0;
+    padding: 10px 14px;
+    flex: 1 1 calc(50% - 8px);
+  }
+
+  .stat-card .stat-value {
+    font-size: 1.2rem;
+  }
+
+  /* Kanban: horizontal scroll through all columns */
+  .kanban-board {
+    grid-template-columns: repeat(var(--kanban-cols, 5), 270px);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 12px;
+    scroll-snap-type: x mandatory;
+  }
+
+  .kanban-column {
+    scroll-snap-align: start;
+    min-width: 260px;
+  }
+
+  /* Lead list table */
+  .leads-table-container,
+  .leads-list-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Modal - slide up from bottom */
+  .modal-overlay {
+    align-items: flex-end;
+  }
+
+  .modal-content {
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
+    border-radius: 14px 14px 0 0;
+    padding: 20px 16px;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .dynamic-form {
+    grid-template-columns: 1fr;
+    max-height: 55vh;
+  }
+}
+
+@media (max-width: 480px) {
+  .leads-page {
+    padding: 8px 6px;
+  }
+
+  .stat-card {
+    flex: 1 1 100%;
+  }
+
+  .leads-header h1 {
+    font-size: 1.1rem;
+  }
+
+  .date-preset-btn {
+    font-size: 0.68rem;
+    padding: 5px 5px;
+  }
+}

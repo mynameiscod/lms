@@ -4,7 +4,11 @@ import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../common';
 import './Navbar.css';
 
-const Navbar: React.FC = () => {
+interface NavbarProps {
+  onHamburgerClick?: () => void;
+}
+
+const Navbar: React.FC<NavbarProps> = ({ onHamburgerClick }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -16,12 +20,19 @@ const Navbar: React.FC = () => {
   return (
     <nav className="navbar">
       <div className="navbar-container">
-        <div className="navbar-logo">
-          <img 
-            src="/assets/logo.png" 
-            alt="Logo" 
-            style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
-          />
+        <div className="navbar-left">
+          {onHamburgerClick && (
+            <button className="navbar-hamburger" onClick={onHamburgerClick} aria-label="Toggle menu">
+              &#9776;
+            </button>
+          )}
+          <div className="navbar-logo">
+            <img 
+              src="/assets/logo.png" 
+              alt="Logo" 
+              style={{ height: '40px', width: 'auto', objectFit: 'contain' }}
+            />
+          </div>
         </div>
 
         <div className="navbar-user">

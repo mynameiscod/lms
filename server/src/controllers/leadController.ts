@@ -514,8 +514,9 @@ export const deleteLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     if (!result) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
-    await auditLog(req, 'DELETE', `Lead deleted: ${result.name}`, result._id);
-    emitLeadEvent(req, 'lead_deleted', { _id: result._id });
+    const deletedLead = result as any;
+    await auditLog(req, 'DELETE', `Lead deleted: ${deletedLead.name}`, deletedLead._id);
+    emitLeadEvent(req, 'lead_deleted', { _id: deletedLead._id });
     res.json({ success: true, message: 'Lead deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to delete lead', error: error.message });

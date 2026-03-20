@@ -66,10 +66,10 @@ router.put('/:leadId', authMiddleware, tenantResolver, roleGuard(['edit_leads', 
 router.delete('/:leadId', authMiddleware, tenantResolver, roleGuard(['delete_leads', 'manage_leads']), deleteLead);
 
 // Quick update (telecaller-friendly single endpoint)
-router.patch('/:leadId/quick-update', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads']), quickUpdateLead);
+router.patch('/:leadId/quick-update', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads', 'create_leads']), quickUpdateLead);
 
-// Stage change (need edit permission)
-router.patch('/:leadId/stage', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads']), changeLeadStage);
+// Stage change (need edit permission or create_leads for telecallers)
+router.patch('/:leadId/stage', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads', 'create_leads']), changeLeadStage);
 
 // Activities (anyone who can view or edit can add activities)
 router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), uploadRecording.single('recording'), addLeadActivity);

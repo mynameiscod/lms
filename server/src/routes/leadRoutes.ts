@@ -37,20 +37,10 @@ const recordingStorage = multer.diskStorage({
     cb(null, `recording-${unique}${path.extname(file.originalname)}`);
   }
 });
-// Multer config: accept all audio/video types including phone formats, max 100 MB
-const AUDIO_EXTENSIONS = new Set(['.mp3','.wav','.ogg','.m4a','.aac','.amr','.flac','.opus','.wma','.3gp','.3gpp','.mp4','.webm','.mkv']);
+// Multer config for call recordings — no file-type filter so all phone
+// audio formats work (iOS/Android send various MIME types). Limit 100 MB.
 const uploadRecording = multer({
   storage: recordingStorage,
-  fileFilter: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const isAudioMime = file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/');
-    // Accept by MIME type OR by extension (covers application/octet-stream from phones)
-    if (isAudioMime || AUDIO_EXTENSIONS.has(ext)) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only audio/video files are allowed for call recordings'));
-    }
-  },
   limits: { fileSize: 100 * 1024 * 1024 } // 100 MB
 });
 

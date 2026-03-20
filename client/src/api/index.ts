@@ -1709,6 +1709,23 @@ export const leadApi = {
       method: 'POST',
       body: JSON.stringify({ csvData })
     });
+  },
+  getAuditLogs: async (filters?: { leadId?: string; page?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.leadId) params.append('leadId', filters.leadId);
+    if (filters?.page) params.append('page', String(filters.page));
+    if (filters?.limit) params.append('limit', String(filters.limit));
+    const q = params.toString();
+    return authenticatedFetch(`${API_BASE_URL}/leads/audit-logs${q ? `?${q}` : ''}`);
+  },
+  getMyPerformance: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/my-performance`);
+  },
+  quickUpdate: async (leadId: string, data: { stageId?: string; nextFollowUp?: string; activityType?: string; activityDescription?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/quick-update`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    });
   }
 };
 

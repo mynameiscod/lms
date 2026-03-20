@@ -99,12 +99,14 @@ const Sidebar: React.FC = () => {
       label: 'Leads',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
       icon: '🎯',
-      permissions: ['manage_leads', 'view_leads'],
+      permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads'],
       submenu: [
         { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_leads'] },
-        { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
-        { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
+        { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], permissions: ['view_leads', 'edit_leads', 'create_leads'] },
+        { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_lead_analytics'] },
+        { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads', 'manage_lead_stages'] },
         { label: 'Form Settings', path: '/lead-form-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
+        { label: 'Audit Logs', path: '/lead-audit-logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
       ]
     },
     {

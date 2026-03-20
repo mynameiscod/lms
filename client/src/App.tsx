@@ -63,6 +63,8 @@ import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
 import LeadFormSettingsPage from './pages/LeadFormSettings';
 import LeadManagerBoardPage from './pages/LeadManagerBoard';
+import LeadMyPerformancePage from './pages/LeadMyPerformance';
+import LeadAuditLogsPage from './pages/LeadAuditLogs';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas } from './pages/Marketing';
 
 interface ProtectedRouteProps {
@@ -75,10 +77,10 @@ interface ProtectedRouteProps {
 // Used to grant custom role users access to routes they have permissions for
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
-  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads', 'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads'],
   'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
-  'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'manage_leads'],
+  'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'view_leads', 'create_leads', 'edit_leads', 'assign_leads', 'view_lead_analytics', 'export_leads', 'convert_leads'],
   'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews'],
 };
 
@@ -630,9 +632,29 @@ const AppRoutes: React.FC = () => {
       <Route
         path="/lead-manager-board"
         element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <LeadManagerBoardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-my-performance"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadMyPerformancePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-audit-logs"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadAuditLogsPage />
             </Layout>
           </ProtectedRoute>
         }

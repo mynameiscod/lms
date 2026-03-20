@@ -1,0 +1,20 @@
+.audit-page { padding: 24px; max-width: 1200px; margin: 0 auto; }
+.audit-page h2 { margin-bottom: 16px; }
+.audit-loading, .audit-empty { padding: 40px; text-align: center; color: #718096; }
+
+.audit-filters { margin-bottom: 16px; }
+.audit-filter-input { padding: 8px 12px; border: 1px solid #e2e8f0; border-radius: 6px; width: 300px; font-size: 0.9rem; }
+
+.audit-table-wrap { overflow-x: auto; }
+.audit-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+.audit-table th { background: #f7fafc; text-align: left; padding: 10px 14px; font-size: 0.8rem; text-transform: uppercase; color: #718096; border-bottom: 1px solid #e2e8f0; }
+.audit-table td { padding: 10px 14px; border-bottom: 1px solid #edf2f7; font-size: 0.85rem; }
+.audit-time { white-space: nowrap; color: #718096; }
+.audit-details { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.audit-ip { font-family: monospace; font-size: 0.8rem; color: #a0aec0; }
+
+.audit-action-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; color: #fff; font-size: 0.75rem; font-weight: 600; }
+
+.audit-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
+.audit-pagination button { padding: 6px 14px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; cursor: pointer; }
+.audit-pagination button:disabled { opacity: 0.5; cursor: not-allowed; }

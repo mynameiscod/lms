@@ -11,6 +11,9 @@ export interface IUser extends Document {
   batchId?: mongoose.Types.ObjectId;
   batchJoinedDate?: Date;
   customRoleId?: mongoose.Types.ObjectId;
+  managerId?: mongoose.Types.ObjectId;
+  leadDataScope?: 'ALL' | 'TEAM' | 'OWN';
+  dashboardWidgets?: string[];
   isActive: boolean;
   profileComplete: boolean;
   phone?: string;
@@ -70,6 +73,20 @@ const UserSchema: Schema = new Schema(
     customRoleId: {
       type: mongoose.Types.ObjectId,
       ref: 'Role',
+      default: null
+    },
+    managerId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    leadDataScope: {
+      type: String,
+      enum: ['ALL', 'TEAM', 'OWN'],
+      default: null
+    },
+    dashboardWidgets: {
+      type: [String],
       default: null
     },
     isActive: { 

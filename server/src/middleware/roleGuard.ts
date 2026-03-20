@@ -97,8 +97,16 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
   leads: {
     label: 'Lead Management',
     permissions: [
-      { key: 'manage_leads', label: 'Manage Leads (Create, Edit, Delete, Stages)' },
+      { key: 'manage_leads', label: 'Full Lead Management (Admin)' },
       { key: 'view_leads', label: 'View Leads' },
+      { key: 'create_leads', label: 'Create Leads' },
+      { key: 'edit_leads', label: 'Edit Leads' },
+      { key: 'delete_leads', label: 'Delete Leads' },
+      { key: 'assign_leads', label: 'Assign Leads to Users' },
+      { key: 'export_leads', label: 'Export / Import Leads' },
+      { key: 'view_lead_analytics', label: 'View Lead Analytics & Reports' },
+      { key: 'manage_lead_stages', label: 'Manage Lead Stages & Form Config' },
+      { key: 'convert_leads', label: 'Convert Leads to Students' },
     ]
   },
   marketing: {
@@ -138,8 +146,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_reports', 'view_analytics', 'view_tenant_analytics',
     // Admin
     'manage_tenant', 'manage_tenant_settings',
-    // Leads
-    'manage_leads', 'view_leads',
+    // Leads (full access)
+    'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
+    'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads',
     // Marketing
     'manage_marketing',
   ],
@@ -163,6 +172,17 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',
+  ],
+  STAFF: [
+    // Attendance
+    'mark_attendance', 'view_attendance', 'view_reports',
+    // Users (limited)
+    'manage_tenant_users', 'view_enrolled_students',
+    // Courses (limited)
+    'create_courses', 'view_courses',
+    // Leads — Manager level: view all team leads, assign, analytics
+    'view_leads', 'create_leads', 'edit_leads', 'assign_leads',
+    'view_lead_analytics', 'export_leads', 'convert_leads',
   ],
   STUDENT: [
     'enroll_courses', 'view_courses', 'view_public_courses', 'access_resources',

@@ -3,17 +3,53 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
+import AuditLog from '../models/AuditLog';
 import bcryptjs from 'bcryptjs';
+import { buildLeadScopeFilter, resolveLeadScope } from '../middleware/leadScope';
 
-// Build common filter from query params
-const buildLeadFilter = (query: any, tenantId: string) => {
+// Helper to create audit log entries
+const auditLog = async (
+  req: AuthenticatedRequest,
+  action: string,
+  details: string,
+  targetId?: any,
+  metadata?: Record<string, any>
+) => {
+  try {
+    await AuditLog.create({
+      tenantId: req.tenantId,
+      userId: req.user!.id,
+      action,
+      module: 'LEAD',
+      targetType: 'Lead',
+      targetId,
+      details,
+      metadata,
+      ipAddress: req.ip || req.headers['x-forwarded-for']
+    });
+  } catch (err) {
+    console.error('[AuditLog] Failed to write:', err);
+  }
+};
+
+// Helper to emit real-time events
+const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
+  const io = req.app.get('io');
+  if (io && req.tenantId) {
+    io.to(`tenant_${req.tenantId}`).emit(event, data);
+  }
+};
+
+// Build common filter from query params, merged with scope filter
+const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
   const { stageId, source, assignedTo, search, dateFrom, dateTo } = query;
-  const filter: any = { tenantId };
+  const filter: any = { tenantId, ...scopeFilter };
   if (stageId) filter.stageId = stageId;
   if (source) filter.source = source;
+  // Only allow assignedTo filter if scope allows it (admin/manager filtering down)
   if (assignedTo) filter.assignedTo = assignedTo;
   if (search) {
-    const searchRegex = new RegExp(String(search), 'i');
+    const searchRegex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
     filter.$or = [
       { name: searchRegex },
       { email: searchRegex },
@@ -32,11 +68,12 @@ const buildLeadFilter = (query: any, tenantId: string) => {
   return filter;
 };
 
-// Get all leads for tenant with filters
+// Get all leads for tenant with filters + data scope
 export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { page = '1', limit = '50' } = req.query;
-    const filter = buildLeadFilter(req.query, req.tenantId!);
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const filter = buildLeadFilter(req.query, req.tenantId!, scopeFilter);
 
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
@@ -53,20 +90,23 @@ export const getLeads = async (req: AuthenticatedRequest, res: Response<ApiRespo
       Lead.countDocuments(filter)
     ]);
 
+    const scope = await resolveLeadScope(req);
+
     res.json({
       success: true,
       message: 'Leads fetched',
-      data: { leads, total, page: pageNum, totalPages: Math.ceil(total / limitNum) }
+      data: { leads, total, page: pageNum, totalPages: Math.ceil(total / limitNum), scope }
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch leads', error: error.message });
   }
 };
 
-// Export leads as CSV
+// Export leads as CSV (scope-filtered)
 export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const filter = buildLeadFilter(req.query, req.tenantId!);
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const filter = buildLeadFilter(req.query, req.tenantId!, scopeFilter);
 
     const leads = await Lead.find(filter)
       .populate('stageId', 'name')
@@ -224,10 +264,11 @@ function parseCSVLine(line: string): string[] {
   return result;
 }
 
-// Get a single lead by ID
+// Get a single lead by ID (scope-enforced)
 export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const lead = await Lead.findOne({ _id: req.params.leadId, tenantId: req.tenantId })
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const lead = await Lead.findOne({ _id: req.params.leadId, tenantId: req.tenantId, ...scopeFilter })
       .populate('stageId', 'name color order')
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName')
@@ -288,20 +329,40 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName');
 
+    // Audit log
+    await auditLog(req, 'CREATE', `Lead created: ${name}`, lead._id, { name, phone, source });
+
+    // Real-time notification
+    emitLeadEvent(req, 'lead_created', populated);
+
+    // Notify assigned user if different from creator
+    if (assignedTo && String(assignedTo) !== String(req.user!.id)) {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`tenant_${req.tenantId}`).emit('lead_assigned', {
+          leadId: lead._id,
+          leadName: name,
+          assignedTo,
+          assignedBy: req.user!.id
+        });
+      }
+    }
+
     res.status(201).json({ success: true, message: 'Lead created', data: populated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to create lead', error: error.message });
   }
 };
 
-// Update a lead
+// Update a lead (scope-enforced)
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
     const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields } = req.body;
 
+    const scopeFilter = await buildLeadScopeFilter(req);
     const lead = await Lead.findOneAndUpdate(
-      { _id: leadId, tenantId: req.tenantId },
+      { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
       {
         ...(name && { name }),
         ...(email !== undefined && { email }),
@@ -325,13 +386,16 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
+    await auditLog(req, 'UPDATE', `Lead updated: ${lead.name}`, lead._id);
+    emitLeadEvent(req, 'lead_updated', lead);
+
     res.json({ success: true, message: 'Lead updated', data: lead });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to update lead', error: error.message });
   }
 };
 
-// Change lead stage
+// Change lead stage (scope-enforced)
 export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
@@ -352,7 +416,8 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       return res.status(400).json({ success: false, message: 'Reason is required when marking lead as Not Interested' });
     }
 
-    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId }).populate('stageId', 'name');
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).populate('stageId', 'name');
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
@@ -377,6 +442,9 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       .populate('stageId', 'name color order')
       .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName');
+
+    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved from "${oldStageName}" to "${newStage.name}"`, lead._id, { from: oldStageName, to: newStage.name });
+    emitLeadEvent(req, 'lead_stage_changed', populated);
 
     res.json({ success: true, message: 'Lead stage updated', data: populated });
   } catch (error: any) {
@@ -414,8 +482,9 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       activityData.callOutcome = callOutcome;
     }
 
+    const scopeFilter = await buildLeadScopeFilter(req);
     const lead = await Lead.findOneAndUpdate(
-      { _id: leadId, tenantId: req.tenantId },
+      { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
       {
         $push: {
           activities: activityData
@@ -437,34 +506,40 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
   }
 };
 
-// Delete a lead
+// Delete a lead (scope-enforced)
 export const deleteLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const result = await Lead.findOneAndDelete({ _id: req.params.leadId, tenantId: req.tenantId });
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const result = await Lead.findOneAndDelete({ _id: req.params.leadId, tenantId: req.tenantId, ...scopeFilter });
     if (!result) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
+    await auditLog(req, 'DELETE', `Lead deleted: ${result.name}`, result._id);
+    emitLeadEvent(req, 'lead_deleted', { _id: result._id });
     res.json({ success: true, message: 'Lead deleted' });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to delete lead', error: error.message });
   }
 };
 
-// Get lead analytics/summary
+// Get lead analytics/summary (scope-filtered)
 export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
+
     const [stageStats, sourceStats, totalLeads, todayFollowUps] = await Promise.all([
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any } },
+        { $match: baseMatch },
         { $group: { _id: '$stageId', count: { $sum: 1 } } }
       ]),
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any } },
+        { $match: baseMatch },
         { $group: { _id: '$source', count: { $sum: 1 } } }
       ]),
-      Lead.countDocuments({ tenantId: req.tenantId }),
+      Lead.countDocuments(baseMatch),
       Lead.countDocuments({
-        tenantId: req.tenantId,
+        ...baseMatch,
         nextFollowUp: {
           $gte: new Date(new Date().setHours(0, 0, 0, 0)),
           $lte: new Date(new Date().setHours(23, 59, 59, 999))
@@ -501,18 +576,34 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
   }
 };
 
-// Manager Board — per-employee lead stats
+// Manager Board — per-employee lead stats (scope-filtered)
 export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     // Get all stages
     const stages = await LeadStage.find({ tenantId: req.tenantId, isActive: true }).sort({ order: 1 }).lean();
 
-    // Get staff who can have leads assigned
-    const staffUsers = await User.find({
+    const scope = await resolveLeadScope(req);
+
+    // Get staff who can have leads assigned — scoped by manager view
+    let staffFilter: any = {
       tenantId: req.tenantId,
       role: { $in: ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'] },
       isActive: true
-    }).select('firstName lastName email role').lean();
+    };
+    if (scope === 'TEAM') {
+      // Manager sees only their direct reports + themselves
+      staffFilter.$or = [
+        { managerId: req.user!.id },
+        { _id: req.user!.id }
+      ];
+    } else if (scope === 'OWN') {
+      staffFilter._id = req.user!.id;
+    }
+
+    const staffUsers = await User.find(staffFilter).select('firstName lastName email role').lean();
+
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -521,7 +612,7 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
 
     // Aggregate leads per assignee per stage
     const leadsByAssignee = await Lead.aggregate([
-      { $match: { tenantId: req.tenantId as any } },
+      { $match: baseMatch },
       {
         $group: {
           _id: { assignedTo: '$assignedTo', stageId: '$stageId' },
@@ -534,7 +625,7 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
     const followUpsByAssignee = await Lead.aggregate([
       {
         $match: {
-          tenantId: req.tenantId as any,
+          ...baseMatch,
           nextFollowUp: { $gte: today, $lte: todayEnd }
         }
       },
@@ -545,7 +636,7 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
     const overdueByAssignee = await Lead.aggregate([
       {
         $match: {
-          tenantId: req.tenantId as any,
+          ...baseMatch,
           nextFollowUp: { $lt: today, $ne: null }
         }
       },
@@ -705,7 +796,193 @@ export const convertToStudent = async (req: AuthenticatedRequest, res: Response<
       .populate('createdBy', 'firstName lastName');
 
     res.json({ success: true, message: 'Lead converted to student successfully', data: { lead: populated, student } });
+
+    await auditLog(req, 'CONVERT', `Lead "${lead.name}" converted to student ${student.email}`, lead._id, { studentId: student._id });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to convert lead', error: error.message });
+  }
+};
+
+// ===================== AUDIT LOGS =====================
+
+export const getLeadAuditLogs = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { page = '1', limit = '50', leadId } = req.query;
+    const pageNum = parseInt(page as string, 10);
+    const limitNum = parseInt(limit as string, 10);
+
+    const filter: any = { tenantId: req.tenantId, module: 'LEAD' };
+    if (leadId) filter.targetId = leadId;
+
+    const [logs, total] = await Promise.all([
+      AuditLog.find(filter)
+        .populate('userId', 'firstName lastName email')
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+      AuditLog.countDocuments(filter)
+    ]);
+
+    res.json({
+      success: true,
+      message: 'Audit logs fetched',
+      data: { logs, total, page: pageNum, totalPages: Math.ceil(total / limitNum) }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch audit logs', error: error.message });
+  }
+};
+
+// ===================== TELECALLER PERFORMANCE =====================
+
+export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const userId = req.user!.id;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    // This week (Monday start)
+    const weekStart = new Date(today);
+    weekStart.setDate(today.getDate() - today.getDay() + 1);
+    if (today.getDay() === 0) weekStart.setDate(weekStart.getDate() - 7);
+
+    // This month
+    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    const [
+      totalAssigned,
+      todayFollowUps,
+      overdueFollowUps,
+      todayActivities,
+      weekActivities,
+      monthActivities,
+      stageBreakdown,
+      recentActivities
+    ] = await Promise.all([
+      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId }),
+      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $gte: today, $lte: todayEnd } }),
+      Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $lt: today, $ne: null } }),
+      // Count activities added today by this user
+      Lead.aggregate([
+        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $unwind: '$activities' },
+        { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
+        { $count: 'count' }
+      ]),
+      Lead.aggregate([
+        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $unwind: '$activities' },
+        { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: weekStart } } },
+        { $count: 'count' }
+      ]),
+      Lead.aggregate([
+        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $unwind: '$activities' },
+        { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: monthStart } } },
+        { $count: 'count' }
+      ]),
+      Lead.aggregate([
+        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $group: { _id: '$stageId', count: { $sum: 1 } } }
+      ]),
+      // Last 10 activities by this user
+      Lead.aggregate([
+        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $unwind: '$activities' },
+        { $match: { 'activities.createdBy': userId as any } },
+        { $sort: { 'activities.createdAt': -1 } },
+        { $limit: 10 },
+        { $project: { leadName: '$name', leadId: '$_id', activity: '$activities' } }
+      ])
+    ]);
+
+    // Map stage names
+    const stages = await LeadStage.find({ tenantId: req.tenantId }).lean();
+    const stageMap: Record<string, string> = {};
+    stages.forEach((s: any) => { stageMap[s._id.toString()] = s.name; });
+
+    res.json({
+      success: true,
+      message: 'Performance data fetched',
+      data: {
+        totalAssigned,
+        todayFollowUps,
+        overdueFollowUps,
+        todayActivities: todayActivities[0]?.count || 0,
+        weekActivities: weekActivities[0]?.count || 0,
+        monthActivities: monthActivities[0]?.count || 0,
+        stageBreakdown: stageBreakdown.map((s: any) => ({
+          stageId: s._id,
+          name: stageMap[s._id?.toString()] || 'Unknown',
+          count: s.count
+        })),
+        recentActivities
+      }
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch performance data', error: error.message });
+  }
+};
+
+// ===================== QUICK STATUS UPDATE (Telecaller) =====================
+
+export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { leadId } = req.params;
+    const { stageId, nextFollowUp, activityType, activityDescription, callOutcome } = req.body;
+
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter });
+    if (!lead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    // Update stage if provided
+    if (stageId && String(stageId) !== String(lead.stageId)) {
+      const newStage = await LeadStage.findOne({ _id: stageId, tenantId: req.tenantId });
+      if (newStage) {
+        const oldStage = await LeadStage.findById(lead.stageId);
+        lead.stageId = newStage._id;
+        lead.activities.push({
+          type: 'status_change',
+          description: `Stage changed from "${oldStage?.name || 'Unknown'}" to "${newStage.name}"`,
+          createdBy: req.user!.id as any,
+          createdAt: new Date(),
+          metadata: { from: oldStage?.name, to: newStage.name }
+        });
+      }
+    }
+
+    // Update follow-up
+    if (nextFollowUp !== undefined) {
+      lead.nextFollowUp = nextFollowUp ? new Date(nextFollowUp) : undefined;
+    }
+
+    // Add activity if provided
+    if (activityType && activityDescription) {
+      const activityData: any = {
+        type: activityType,
+        description: activityDescription,
+        createdBy: req.user!.id,
+        createdAt: new Date()
+      };
+      if (activityType === 'call' && callOutcome) {
+        activityData.callOutcome = callOutcome;
+      }
+      lead.activities.push(activityData);
+    }
+
+    await lead.save();
+
+    const populated = await Lead.findById(lead._id)
+      .populate('stageId', 'name color order')
+      .populate('assignedTo', 'firstName lastName email');
+
+    emitLeadEvent(req, 'lead_updated', populated);
+    res.json({ success: true, message: 'Lead updated', data: populated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update lead', error: error.message });
   }
 };

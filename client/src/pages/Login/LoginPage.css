@@ -395,79 +395,96 @@
 @media (max-width: 768px) {
   .login-container {
     flex-direction: column;
+    height: auto;
+    min-height: 100dvh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    max-height: none;
+  }
+
+  /* Show login form FIRST on mobile */
+  .login-right {
+    order: -1;
+    flex: none;
+    padding: 40px 24px 32px;
+    min-height: auto;
+    overflow: visible;
   }
 
   .login-left {
-    padding: 40px 20px;
-    min-height: 50vh;
+    flex: none;
+    min-height: auto;
+    padding: 24px 24px 32px;
   }
 
   .logo-section {
-    margin-bottom: 30px;
+    margin-bottom: 12px;
   }
 
-  .main-tagline {
-    font-size: 28px;
-    margin-bottom: 30px;
-  }
-
-  .features-grid {
-    grid-template-columns: 1fr;
-    width: 100%;
-    max-width: 300px;
-    gap: 12px;
-  }
-
-  .feature-card {
-    padding: 20px 15px;
-  }
-
-  .login-right {
-    padding: 30px 20px;
-    min-height: 50vh;
+  /* Hide feature cards on mobile to save space */
+  .branding-content {
+    display: none;
   }
 
   .login-form-wrapper {
     max-width: 100%;
   }
 
+  .form-header {
+    margin-bottom: 28px;
+  }
+
   .form-header h2 {
-    font-size: 24px;
+    font-size: 26px;
   }
 }
 
 @media (max-width: 480px) {
+  .login-right {
+    padding: 32px 20px 28px;
+  }
+
   .login-left {
-    padding: 30px 15px;
+    padding: 20px;
   }
 
   .logo {
-    padding-bottom: 15px;
+    padding-bottom: 12px;
   }
 
   .logo-image {
-    max-width: 200px;
+    max-width: 160px;
   }
 
-  .main-tagline {
-    font-size: 24px;
-    margin-bottom: 25px;
+  .logo-tagline {
+    font-size: 9px;
+    letter-spacing: 1px;
   }
 
-  .login-right {
-    padding: 20px 15px;
+  .form-header {
+    margin-bottom: 24px;
   }
 
   .form-header h2 {
-    font-size: 20px;
+    font-size: 22px;
   }
 
   .form-header p {
-    font-size: 12px;
+    font-size: 13px;
   }
 
-  .features-grid {
-    max-width: 100%;
+  .login-form {
+    gap: 20px;
+  }
+
+  .form-input {
+    height: 48px;
+    font-size: 16px; /* prevents iOS auto-zoom */
+  }
+
+  .continue-button {
+    padding: 14px 16px;
+    font-size: 16px;
   }
 }
 

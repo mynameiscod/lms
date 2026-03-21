@@ -316,6 +316,37 @@
 .csa-select:focus { outline: none; border-color: #4f46e5; }
 .csa-select-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
 .csa-hint { font-size: 0.75rem; color: #6b7280; margin: 0; }
+.csa-optional { font-size: 0.72rem; color: #9ca3af; font-weight: 400; margin-left: 4px; }
+
+/* Batch multi-select list */
+.csa-batch-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 0.5rem;
+  background: #fafafa;
+}
+.csa-batch-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: #374151;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 4px;
+  padding: 0.3rem 0.6rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.csa-batch-item:hover { background: #f0f4ff; border-color: #a5b4fc; }
+.csa-batch-item input[type="checkbox"] { cursor: pointer; accent-color: #4f46e5; }
 .csa-error {
   background: #fee2e2;
   color: #991b1b;

@@ -45,7 +45,7 @@ const SubmissionGradeSchema = new Schema<ISubmissionGrade>({
 
 const CodeSnippetSubmissionSchema = new Schema<ICodeSnippetSubmission>({
   assessmentId: { type: Schema.Types.ObjectId, required: true, ref: 'CodeSnippetAssessment', index: true },
-  studentId: { type: Schema.Types.ObjectId, required: true, index: true },
+  studentId: { type: Schema.Types.ObjectId, required: true, ref: 'User', index: true },
   tenantId: { type: Schema.Types.ObjectId, required: true, index: true },
   answers: { type: [SubmissionAnswerSchema], default: [] },
   status: { type: String, enum: ['submitted', 'grading', 'graded'], default: 'submitted' },

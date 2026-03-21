@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { codeSnippetApi } from '../../api/codeSnippetApi';
+import { batchApi, courseApi, subjectApi, chapterApi, topicApi } from '../../api';
 import './AdminCodeSnippets.css';
 
 const LANGUAGES = [
@@ -52,9 +53,19 @@ const emptyForm = () => ({
   codeSnippet: '',
   questions: [emptyQuestion()],
   batchIds: [] as string[],
+  courseId: '',
+  subjectId: '',
+  chapterId: '',
+  topicId: '',
   dueDate: '',
   status: 'draft' as 'draft' | 'published',
 });
+
+interface Batch { _id: string; name: string; }
+interface Course { _id: string; name: string; }
+interface Subject { _id: string; name: string; }
+interface Chapter { _id: string; name: string; }
+interface Topic { _id: string; name: string; }
 
 export default function AdminCodeSnippets() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
@@ -67,6 +78,14 @@ export default function AdminCodeSnippets() {
   const [error, setError] = useState('');
   const [preview, setPreview] = useState(false);
   const [filterStatus, setFilterStatus] = useState('');
+
+  // Settings tab data
+  const [batches, setBatches] = useState<Batch[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
+  const [settingsLoading, setSettingsLoading] = useState(false);
 
   const loadAssessments = useCallback(async () => {
     try {
@@ -84,34 +103,93 @@ export default function AdminCodeSnippets() {
 
   useEffect(() => { loadAssessments(); }, [loadAssessments]);
 
+  const loadSettingsData = useCallback(async () => {
+    setSettingsLoading(true);
+    try {
+      const [batchRes, courseRes] = await Promise.all([
+        batchApi.getBatches(),
+        courseApi.getCourses({ isActive: true }),
+      ]);
+      setBatches(batchRes.data || []);
+      setCourses(courseRes.data || courseRes || []);
+    } catch {
+      // silent — settings data is optional
+    } finally {
+      setSettingsLoading(false);
+    }
+  }, []);
+
+  const loadSubjects = useCallback(async (courseId: string) => {
+    if (!courseId) { setSubjects([]); setChapters([]); setTopics([]); return; }
+    try {
+      const res = await subjectApi.getSubjectsByCourse(courseId);
+      setSubjects(res.data || res || []);
+      setChapters([]);
+      setTopics([]);
+    } catch { setSubjects([]); }
+  }, []);
+
+  const loadChapters = useCallback(async (subjectId: string) => {
+    if (!subjectId) { setChapters([]); setTopics([]); return; }
+    try {
+      const res = await chapterApi.getChaptersBySubject(subjectId);
+      setChapters(res.data || res || []);
+      setTopics([]);
+    } catch { setChapters([]); }
+  }, []);
+
+  const loadTopics = useCallback(async (chapterId: string) => {
+    if (!chapterId) { setTopics([]); return; }
+    try {
+      const res = await topicApi.getTopicsByChapter(chapterId);
+      setTopics(res.data || res || []);
+    } catch { setTopics([]); }
+  }, []);
+
   const openCreate = () => {
     setForm(emptyForm());
     setEditId(null);
     setActiveTab('basics');
     setError('');
     setPreview(false);
+    setSubjects([]);
+    setChapters([]);
+    setTopics([]);
     setShowModal(true);
+    loadSettingsData();
   };
 
   const openEdit = async (id: string) => {
     try {
       const res = await codeSnippetApi.getById(id);
-      const a: Assessment = res.data.data;
-      setForm({
+      const a: any = res.data.data;
+      const newForm = {
         title: a.title,
         description: a.description || '',
         language: a.language,
         codeSnippet: a.codeSnippet,
         questions: a.questions.length ? a.questions : [emptyQuestion()],
         batchIds: a.batchIds || [],
+        courseId: a.courseId || '',
+        subjectId: a.subjectId || '',
+        chapterId: a.chapterId || '',
+        topicId: a.topicId || '',
         dueDate: a.dueDate ? a.dueDate.slice(0, 10) : '',
         status: a.status,
-      });
+      };
+      setForm(newForm);
       setEditId(id);
       setActiveTab('basics');
       setError('');
       setPreview(false);
+      setSubjects([]);
+      setChapters([]);
+      setTopics([]);
       setShowModal(true);
+      await loadSettingsData();
+      if (a.courseId) await loadSubjects(a.courseId);
+      if (a.subjectId) await loadChapters(a.subjectId);
+      if (a.chapterId) await loadTopics(a.chapterId);
     } catch {
       alert('Failed to load assessment');
     }
@@ -481,8 +559,11 @@ export default function AdminCodeSnippets() {
               {/* ── Tab: Settings ── */}
               {activeTab === 'settings' && (
                 <div className="csa-tab-content">
+                  {settingsLoading && <div className="csa-hint">Loading options…</div>}
+
+                  {/* Due Date */}
                   <div className="csa-field">
-                    <label>Due Date (optional)</label>
+                    <label>Due Date <span className="csa-optional">(optional)</span></label>
                     <input
                       type="date"
                       className="csa-input"
@@ -490,21 +571,99 @@ export default function AdminCodeSnippets() {
                       onChange={(e) => setForm((f) => ({ ...f, dueDate: e.target.value }))}
                     />
                   </div>
+
+                  {/* Batch multi-select */}
                   <div className="csa-field">
-                    <label>Assign to Batches</label>
-                    <p className="csa-hint">Enter batch IDs separated by commas (leave empty to assign to all batches)</p>
-                    <input
-                      className="csa-input"
-                      placeholder="e.g. batch001, batch002"
-                      value={form.batchIds.join(', ')}
-                      onChange={(e) =>
-                        setForm((f) => ({
-                          ...f,
-                          batchIds: e.target.value.split(',').map((s) => s.trim()).filter(Boolean),
-                        }))
-                      }
-                    />
+                    <label>Assign to Batches <span className="csa-optional">(leave empty = all batches)</span></label>
+                    {batches.length === 0 && !settingsLoading ? (
+                      <p className="csa-hint">No batches found.</p>
+                    ) : (
+                      <div className="csa-batch-list">
+                        {batches.map((b) => (
+                          <label key={b._id} className="csa-batch-item">
+                            <input
+                              type="checkbox"
+                              checked={form.batchIds.includes(b._id)}
+                              onChange={(e) => {
+                                const ids = form.batchIds;
+                                setForm((f) => ({
+                                  ...f,
+                                  batchIds: e.target.checked
+                                    ? [...ids, b._id]
+                                    : ids.filter((id) => id !== b._id),
+                                }));
+                              }}
+                            />
+                            <span>{b.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
                   </div>
+
+                  {/* Course → Subject → Chapter → Topic */}
+                  <div className="csa-field">
+                    <label>Course <span className="csa-optional">(optional)</span></label>
+                    <select
+                      className="csa-select"
+                      value={form.courseId}
+                      onChange={(e) => {
+                        setForm((f) => ({ ...f, courseId: e.target.value, subjectId: '', chapterId: '', topicId: '' }));
+                        loadSubjects(e.target.value);
+                      }}
+                    >
+                      <option value="">— Select a course —</option>
+                      {courses.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                    </select>
+                  </div>
+
+                  {form.courseId && (
+                    <div className="csa-field">
+                      <label>Subject <span className="csa-optional">(optional)</span></label>
+                      <select
+                        className="csa-select"
+                        value={form.subjectId}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, subjectId: e.target.value, chapterId: '', topicId: '' }));
+                          loadChapters(e.target.value);
+                        }}
+                      >
+                        <option value="">— Select a subject —</option>
+                        {subjects.map((s) => <option key={s._id} value={s._id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {form.subjectId && (
+                    <div className="csa-field">
+                      <label>Chapter <span className="csa-optional">(optional)</span></label>
+                      <select
+                        className="csa-select"
+                        value={form.chapterId}
+                        onChange={(e) => {
+                          setForm((f) => ({ ...f, chapterId: e.target.value, topicId: '' }));
+                          loadTopics(e.target.value);
+                        }}
+                      >
+                        <option value="">— Select a chapter —</option>
+                        {chapters.map((c) => <option key={c._id} value={c._id}>{c.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {form.chapterId && (
+                    <div className="csa-field">
+                      <label>Topic <span className="csa-optional">(optional)</span></label>
+                      <select
+                        className="csa-select"
+                        value={form.topicId}
+                        onChange={(e) => setForm((f) => ({ ...f, topicId: e.target.value }))}
+                      >
+                        <option value="">— Select a topic —</option>
+                        {topics.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

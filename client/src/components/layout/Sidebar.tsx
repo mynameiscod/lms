@@ -127,13 +127,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const hasAccessToMenu = (item: MenuItem): boolean => {
     if (!user) return false;
 
-    // If user has permissions array (custom role or resolved permissions), use permission-based access
+    // Role is always a hard gate — user's role must be in the item's allowed roles
+    if (!user.role || !item.roles.includes(user.role)) return false;
+
+    // If user has a permissions array (custom role), also verify at least one permission matches
     if (user.permissions && user.permissions.length > 0 && item.permissions) {
       const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
       if (!hasPermission) return false;
-    } else {
-      // Fallback to role-based access for users without permissions array
-      if (!user.role || !item.roles.includes(user.role)) return false;
     }
 
     // For students, check if the feature is enabled by admin

@@ -6,6 +6,7 @@
 export interface EmailTemplateData {
   studentName: string;
   setupLink: string;
+  mobileNumber?: string;
 }
 
 /**
@@ -14,7 +15,8 @@ export interface EmailTemplateData {
  */
 export function getStudentWelcomeEmailHtml({
   studentName,
-  setupLink
+  setupLink,
+  mobileNumber
 }: EmailTemplateData): string {
   return `<!DOCTYPE html>
 <html lang="en">
@@ -71,13 +73,23 @@ export function getStudentWelcomeEmailHtml({
                     <tr>
                         <td style="padding: 40px 30px;">
                             <!-- Greeting -->
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 10px 0;">
                                 <tr>
                                     <td style="font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 0;">
                                         Hi ${studentName},
                                     </td>
                                 </tr>
                             </table>
+
+                            ${mobileNumber ? `
+                            <!-- Mobile Number -->
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 20px 0;">
+                                <tr>
+                                    <td style="font-size: 14px; color: #555; margin: 0;">
+                                        <span style="font-weight: 600; color: #374151;">📱 Mobile:</span> ${mobileNumber}
+                                    </td>
+                                </tr>
+                            </table>` : ''}
 
                             <!-- Welcome Message -->
                             <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 30px 0;">
@@ -89,9 +101,9 @@ export function getStudentWelcomeEmailHtml({
                             </table>
 
                             <!-- What You Can Do -->
-                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 30px 0; background-color: #f8f9fb; padding: 20px; border-radius: 8px; border-collapse: collapse;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 30px 0; border-radius: 8px; border-collapse: collapse;">
                                 <tr>
-                                    <td style="padding: 0;">
+                                    <td style="background-color: #f8f9fb; padding: 20px; border-radius: 8px;">
                                         <p style="margin: 0 0 15px 0; font-size: 14px; font-weight: 600; color: #517ff4; text-transform: uppercase; letter-spacing: 0.5px;">What You Get at CodeBegun</p>
                                         
                                         <!-- Feature 1 -->
@@ -196,19 +208,10 @@ export function getStudentWelcomeEmailHtml({
                                         </table>
 
                                         <!-- Step 3 -->
-                                        <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 12px 0;">
-                                            <tr>
-                                                <td style="font-size: 14px; color: #555; padding: 0;">
-                                                    <span style="font-weight: 600; color: #517ff4;">3.</span> Explore available courses and start learning
-                                                </td>
-                                            </tr>
-                                        </table>
-
-                                        <!-- Step 4 -->
                                         <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0;">
                                             <tr>
                                                 <td style="font-size: 14px; color: #555; padding: 0;">
-                                                    <span style="font-weight: 600; color: #517ff4;">4.</span> Connect with mentors and get personalized guidance
+                                                    <span style="font-weight: 600; color: #517ff4;">3.</span> Connect with mentors and get personalized guidance
                                                 </td>
                                             </tr>
                                         </table>
@@ -220,7 +223,7 @@ export function getStudentWelcomeEmailHtml({
                             <table width="100%" cellpadding="0" cellspacing="0" style="margin: 0 0 30px 0; padding-top: 20px; border-top: 1px solid #e8e8e8;">
                                 <tr>
                                     <td style="font-size: 14px; color: #555; margin: 0; line-height: 1.7;">
-                                        If you have any questions or need assistance, feel free to reply to this email or reach out to our support team at <a href="mailto:infocodebegun@gmail.com" style="color: #517ff4; text-decoration: none; font-weight: 500;">infocodebegun@gmail.com</a>
+                                        If you have any questions or need assistance, feel free to reply to this email or reach out to our support team at <a href="mailto:info@codebegun.com" style="color: #517ff4; text-decoration: none; font-weight: 500;">info@codebegun.com</a>
                                     </td>
                                 </tr>
                             </table>
@@ -295,8 +298,8 @@ export function getStudentWelcomeEmailHtml({
                                 <tr>
                                     <td style="color: rgba(255, 255, 255, 0.9); text-align: center; margin: 0; padding: 0 0 15px 0;">
                                         <p style="margin: 0; font-size: 12px;">
-                                            <a href="mailto:infocodebegun@gmail.com" style="color: rgba(255, 255, 255, 0.95); text-decoration: none; font-weight: 500;">
-                                                infocodebegun@gmail.com
+                                            <a href="mailto:info@codebegun.com" style="color: rgba(255, 255, 255, 0.95); text-decoration: none; font-weight: 500;">
+                                                info@codebegun.com
                                             </a>
                                         </p>
                                     </td>
@@ -327,12 +330,13 @@ export function getStudentWelcomeEmailHtml({
  */
 export function getStudentWelcomeEmailPlainText({
   studentName,
-  setupLink
+  setupLink,
+  mobileNumber
 }: EmailTemplateData): string {
   return `WELCOME TO CODEBEGUN
 
 Hi ${studentName},
-
+${mobileNumber ? `\nMobile: ${mobileNumber}\n` : ''}
 Welcome to CodeBegun! We're excited to have you join our learning community. Whether you're looking to master new skills, build your portfolio, or prepare for your dream role, you're in the right place.
 
 WHAT YOU GET AT CODEBEGUN:
@@ -352,12 +356,11 @@ WHAT HAPPENS NEXT?
 
 1. Click the button above to set your password
 2. Complete your profile with your details
-3. Explore available courses and start learning
-4. Connect with mentors and get personalized guidance
+3. Connect with mentors and get personalized guidance
 
 SUPPORT:
 
-If you have any questions or need assistance, feel free to reply to this email or reach out to our support team at infocodebegun@gmail.com
+If you have any questions or need assistance, feel free to reply to this email or reach out to our support team at info@codebegun.com
 
 STAY CONNECTED:
 
@@ -372,7 +375,7 @@ CodeBegun
 Savas Tech Solution Pvt Ltd
 Plot No.4, Flat No.102, SM Reddy Complex
 Madhapur, Hyderabad, Telangana 500081
-infocodebegun@gmail.com
+info@codebegun.com
 
 © ${new Date().getFullYear()} CodeBegun. All rights reserved.
 If you did not request this account, ignore this email.`;

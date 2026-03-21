@@ -94,6 +94,7 @@ const LeadsPage: React.FC = () => {
 
   const [openMenuId, setOpenMenuId] = useState<string|null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -174,6 +175,7 @@ const LeadsPage: React.FC = () => {
       showAlertMsg('error',error.message||'Failed to load data');
     } finally {
       setLoading(false);
+      isFirstLoad.current = false;
     }
   },[search,filterStage,filterSource,filterAssignee,activeStageFilter,page,getDateFilters]);
 
@@ -362,7 +364,7 @@ const LeadsPage: React.FC = () => {
   if(filterAssignee){const u=staff.find(x=>x._id===filterAssignee);if(u)activeFilters.push({label:`Assigned: ${u.firstName} ${u.lastName}`,onRemove:()=>setFilterAssignee('')});}
   if(dateRange!=='all')activeFilters.push({label:`Date: ${dateRange}`,onRemove:()=>{setDateRange('all');setDateFrom('');setDateTo('');}});
 
-  if (loading) {
+  if (loading && isFirstLoad.current) {
     return (
       <div className="crm-page">
         <div className="crm-loading">

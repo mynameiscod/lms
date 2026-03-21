@@ -290,7 +290,7 @@ export const activateUser = async (req: AuthenticatedRequest, res: Response) => 
 
 export const inviteStudent = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { email, firstName, lastName, batchId, role, customRoleId } = req.body;
+    const { email, firstName, lastName, batchId, role, customRoleId, mobileNumber } = req.body;
 
     console.log('\n👤 [INVITE STUDENT] Received invitation request');
     console.log('   Email:', email);
@@ -397,7 +397,7 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
     let emailSent = false;
     let emailError = null;
     try {
-      await emailService.sendWelcomeEmail(email, firstName, setupLink);
+      await emailService.sendWelcomeEmail(email, firstName, setupLink, mobileNumber);
       emailSent = true;
       console.log('   ✅ Welcome email sent successfully');
     } catch (err: any) {

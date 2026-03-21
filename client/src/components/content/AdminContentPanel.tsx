@@ -9,6 +9,7 @@ import './AdminContentPanel.css';
 const AdminContentPanel: React.FC = () => {
   const [alert, setAlert] = useState<{ message: string; type: AlertType } | null>(null);
   const [editingContent, setEditingContent] = useState<any>(null);
+  const [showFormModal, setShowFormModal] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const socket = useSocket();
 
@@ -58,6 +59,7 @@ const AdminContentPanel: React.FC = () => {
       showAlert(message, 'success');
       triggerTableRefresh();
       setEditingContent(null);
+      setShowFormModal(false);
     },
     [showAlert, triggerTableRefresh]
   );
@@ -71,12 +73,12 @@ const AdminContentPanel: React.FC = () => {
 
   const handleEdit = useCallback((content: any) => {
     setEditingContent(content);
-    // Scroll to form
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowFormModal(true);
   }, []);
 
   const handleCancel = useCallback(() => {
     setEditingContent(null);
+    setShowFormModal(false);
   }, []);
 
   const handleDeleteSuccess = useCallback(
@@ -90,90 +92,64 @@ const AdminContentPanel: React.FC = () => {
   return (
     <div className="admin-content-panel">
       <div className="panel-header">
-        <h1>📚 Content Management</h1>
-        <p className="header-subtitle">
-          Create and manage announcements, notes, assignments, cheatsheets, and code snippets
-        </p>
-        {socket.isConnected && (
-          <div className="connection-status online">
-            <span className="status-dot"></span>
-            Real-time updates enabled
+        <div className="panel-header-top">
+          <div>
+            <h1>📚 Content Management</h1>
+            <p className="header-subtitle">
+              Create and manage announcements, notes, assignments, cheatsheets, and code snippets
+            </p>
           </div>
-        )}
-        {!socket.isConnected && (
-          <div className="connection-status offline">
-            <span className="status-dot"></span>
-            Connecting...
+          <div className="panel-header-right">
+            {socket.isConnected ? (
+              <div className="connection-status online">
+                <span className="status-dot"></span>
+                Live
+              </div>
+            ) : (
+              <div className="connection-status offline">
+                <span className="status-dot"></span>
+                Offline
+              </div>
+            )}
+            <button className="acp-create-btn" onClick={() => { setEditingContent(null); setShowFormModal(true); }}>
+              + New Content
+            </button>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Alert Section */}
       {alert && <Alert message={alert.message} type={alert.type} />}
 
-      {/* Main Content Area */}
-      <div className="panel-content">
-        {/* Form Section */}
-        <section className="form-section">
-          <ContentForm
-            onSuccess={handleFormSuccess}
-            onError={handleFormError}
-            onShowAlert={showAlert}
-            editingContent={editingContent}
-            onCancel={handleCancel}
-          />
-        </section>
-
-        {/* Table Section */}
-        <section className="table-section">
-          <ContentTable
-            onEdit={handleEdit}
-            onDeleteSuccess={handleDeleteSuccess}
-            onError={handleFormError}
-            refreshTrigger={refreshTrigger}
-          />
-        </section>
-      </div>
-
-      {/* Statistics */}
-      <div className="panel-footer">
-        <div className="stats">
-          <div className="stat-item">
-            <span className="stat-icon">📢</span>
-            <div className="stat-info">
-              <p className="stat-label">Announcements</p>
-              <p className="stat-value">—</p>
+      {/* Form Modal */}
+      {showFormModal && (
+        <div className="acp-modal-overlay" onClick={(e) => { if (e.target === e.currentTarget) handleCancel(); }}>
+          <div className="acp-modal">
+            <div className="acp-modal-header">
+              <h2>{editingContent ? '✏️ Edit Content' : '➕ New Content'}</h2>
+              <button className="acp-modal-close" onClick={handleCancel}>✕</button>
             </div>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">📝</span>
-            <div className="stat-info">
-              <p className="stat-label">Notes</p>
-              <p className="stat-value">—</p>
-            </div>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">✓</span>
-            <div className="stat-info">
-              <p className="stat-label">Assignments</p>
-              <p className="stat-value">—</p>
-            </div>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">⚡</span>
-            <div className="stat-info">
-              <p className="stat-label">Cheatsheets</p>
-              <p className="stat-value">—</p>
-            </div>
-          </div>
-          <div className="stat-item">
-            <span className="stat-icon">💻</span>
-            <div className="stat-info">
-              <p className="stat-label">Snippets</p>
-              <p className="stat-value">—</p>
+            <div className="acp-modal-body">
+              <ContentForm
+                onSuccess={handleFormSuccess}
+                onError={handleFormError}
+                onShowAlert={showAlert}
+                editingContent={editingContent}
+                onCancel={handleCancel}
+              />
             </div>
           </div>
         </div>
+      )}
+
+      {/* Full-width Table */}
+      <div className="panel-content">
+        <ContentTable
+          onEdit={handleEdit}
+          onDeleteSuccess={handleDeleteSuccess}
+          onError={handleFormError}
+          refreshTrigger={refreshTrigger}
+        />
       </div>
     </div>
   );

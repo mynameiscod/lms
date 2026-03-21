@@ -35,6 +35,7 @@ const UsersPage: React.FC = () => {
     email: '',
     firstName: '',
     lastName: '',
+    mobileNumber: '',
     batchId: '',
     role: 'STUDENT',
     customRoleId: ''
@@ -154,6 +155,7 @@ const UsersPage: React.FC = () => {
       email: '',
       firstName: '',
       lastName: '',
+      mobileNumber: '',
       batchId: '',
       role: 'STUDENT',
       customRoleId: ''
@@ -216,7 +218,8 @@ const UsersPage: React.FC = () => {
         inviteFormData.lastName,
         inviteFormData.batchId || undefined,
         inviteFormData.role || undefined,
-        inviteFormData.customRoleId || undefined
+        inviteFormData.customRoleId || undefined,
+        inviteFormData.mobileNumber || undefined
       );
 
       // Check if email was sent successfully
@@ -694,6 +697,15 @@ const UsersPage: React.FC = () => {
                 required
               />
 
+              <Input
+                type="tel"
+                name="mobileNumber"
+                label="Mobile Number (Optional)"
+                placeholder="+91 9876543210"
+                value={inviteFormData.mobileNumber}
+                onChange={handleInviteFormChange}
+              />
+
               <div className="form-group">
                 <label htmlFor="batch">Batch (Optional)</label>
                 <select
@@ -772,7 +784,7 @@ const UsersPage: React.FC = () => {
                 onClick={() => {
                   setInviteSuccess('');
                   setInviteWarning(null);
-                  setInviteFormData({ email: '', firstName: '', lastName: '', batchId: '', role: 'STUDENT', customRoleId: '' });
+                  setInviteFormData({ email: '', firstName: '', lastName: '', mobileNumber: '', batchId: '', role: 'STUDENT', customRoleId: '' });
                 }}
                 className="btn-secondary"
               >

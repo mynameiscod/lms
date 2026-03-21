@@ -609,11 +609,12 @@ export const userApi = {
     return response.json();
   },
 
-  inviteStudent: async (email: string, firstName: string, lastName: string, batchId?: string, role?: string, customRoleId?: string) => {
+  inviteStudent: async (email: string, firstName: string, lastName: string, batchId?: string, role?: string, customRoleId?: string, mobileNumber?: string) => {
     const body: any = { email, firstName, lastName };
     if (batchId) body.batchId = batchId;
     if (role) body.role = role;
     if (customRoleId) body.customRoleId = customRoleId;
+    if (mobileNumber) body.mobileNumber = mobileNumber;
     const response = await fetch(`${API_BASE_URL}/users/invite/student`, {
       method: 'POST',
       headers: getAuthHeaders(),

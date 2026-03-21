@@ -95,7 +95,8 @@ export class EmailService {
   async sendWelcomeEmail(
     email: string,
     firstName: string,
-    setupLink: string
+    setupLink: string,
+    mobileNumber?: string
   ): Promise<void> {
     console.log('\n📧 [EMAIL SERVICE] Welcome Email Request');
     console.log('   Recipient:', email);
@@ -105,12 +106,14 @@ export class EmailService {
     // Generate HTML and plain text versions
     const htmlContent = getStudentWelcomeEmailHtml({
       studentName: firstName,
-      setupLink: setupLink
+      setupLink: setupLink,
+      mobileNumber
     });
 
     const plainTextContent = getStudentWelcomeEmailPlainText({
       studentName: firstName,
-      setupLink: setupLink
+      setupLink: setupLink,
+      mobileNumber
     });
 
     try {

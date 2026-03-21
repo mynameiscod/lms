@@ -77,27 +77,108 @@
   }
 }
 
-/* Panel Content */
+/* Panel Header */
+.panel-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.panel-header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.acp-create-btn {
+  background: #005897;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.acp-create-btn:hover {
+  background: #003d6b;
+  box-shadow: 0 2px 8px rgba(0, 88, 151, 0.3);
+}
+
+/* Panel Content — full width table */
 .panel-content {
-  display: grid;
-  grid-template-columns: 1fr 1.2fr;
-  gap: 2rem;
+  display: block;
   margin-bottom: 2rem;
 }
 
-.form-section {
-  min-height: 600px;
+/* Modal overlay */
+.acp-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
 }
 
-.table-section {
-  min-height: 600px;
+.acp-modal {
+  background: white;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
-/* Panel Footer - Statistics */
-.panel-footer {
-  background-color: white;
-  border-radius: 8px;
-  padding: 2rem;
+.acp-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
+}
+
+.acp-modal-header h2 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.acp-modal-close {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px 8px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: all 0.15s;
+}
+
+.acp-modal-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.acp-modal-body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 0;
+}
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
 }
 

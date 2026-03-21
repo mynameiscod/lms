@@ -20,6 +20,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     attendance: false,
     quizzes: false,
     assignments: false,
+    'code snippets': false,
     leads: false,
     marketing: false
   });
@@ -79,6 +80,18 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], permissions: ['submit_assignments', 'view_grades'] },
         { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_assignments'] },
         { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports', 'grade_assignments'] },
+      ]
+    },
+    {
+      label: 'Code Snippets',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      icon: '⌥',
+      featureKey: 'codingSnippets',
+      permissions: ['manage_snippets', 'grade_snippets', 'view_snippets'],
+      submenu: [
+        { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], permissions: ['view_snippets'] },
+        { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_snippets'] },
+        { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_snippets', 'grade_snippets'] },
       ]
     },
     { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊', permissions: ['view_reports'] },

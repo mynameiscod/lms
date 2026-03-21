@@ -9,6 +9,7 @@ export interface StudentFeatures {
   quizzes: boolean;
   assignments: boolean;
   mockInterviews: boolean;
+  codingSnippets: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -17,7 +18,8 @@ const DEFAULT_FEATURES: StudentFeatures = {
   attendance: true,
   quizzes: true,
   assignments: true,
-  mockInterviews: true
+  mockInterviews: true,
+  codingSnippets: true,
 };
 
 interface StudentFeaturesContextType {

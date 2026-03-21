@@ -1,0 +1,213 @@
+.gs-page {
+  padding: 2rem;
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+.gs-page-header { margin-bottom: 1.5rem; }
+.gs-page-header h1 { font-size: 1.5rem; font-weight: 700; color: #111827; margin: 0 0 0.25rem; }
+.gs-page-header p { color: #6b7280; font-size: 0.875rem; margin: 0; }
+
+/* Assessment selector */
+.gs-selector { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: 0.35rem; max-width: 600px; }
+.gs-label { font-size: 0.8rem; font-weight: 600; color: #374151; }
+.gs-select {
+  border: 1px solid #d1d5db; border-radius: 6px;
+  padding: 0.6rem 0.75rem; font-size: 0.875rem; color: #111827;
+  background: #fff; cursor: pointer; width: 100%;
+}
+.gs-select:focus { outline: none; border-color: #4f46e5; }
+
+.gs-loading-sm { font-size: 0.8rem; color: #6b7280; padding: 0.5rem 0; }
+.gs-empty-sm { font-size: 0.8rem; color: #9ca3af; padding: 1rem; text-align: center; }
+
+/* Body layout */
+.gs-body {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 1.25rem;
+  align-items: flex-start;
+}
+
+/* Left panel */
+.gs-panel-left {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+  position: sticky;
+  top: 1rem;
+}
+.gs-panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+.gs-panel-title { font-size: 0.8rem; font-weight: 600; color: #374151; }
+.gs-pending-badge {
+  background: #fef3c7; color: #92400e;
+  font-size: 0.68rem; font-weight: 600;
+  padding: 0.15rem 0.5rem; border-radius: 9999px;
+}
+
+.gs-sub-list { list-style: none; padding: 0; margin: 0; max-height: 70vh; overflow-y: auto; }
+.gs-sub-item {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.gs-sub-item:hover { background: #f9fafb; }
+.gs-sub-item--active { background: #eef2ff; border-left: 3px solid #4f46e5; }
+.gs-sub-name { font-size: 0.85rem; font-weight: 500; color: #111827; }
+.gs-sub-meta { display: flex; align-items: center; justify-content: space-between; margin-top: 0.2rem; font-size: 0.72rem; color: #6b7280; }
+.gs-sub-score { font-size: 0.75rem; font-weight: 600; color: #16a34a; margin-top: 0.2rem; }
+
+.gs-status {
+  font-size: 0.65rem; font-weight: 600;
+  padding: 0.15rem 0.45rem; border-radius: 9999px;
+  text-transform: uppercase;
+}
+.gs-status--submitted { background: #fef3c7; color: #92400e; }
+.gs-status--grading  { background: #e0f2fe; color: #075985; }
+.gs-status--graded   { background: #dcfce7; color: #166534; }
+
+/* Right panel */
+.gs-panel-right {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.gs-select-hint {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 4rem 2rem; color: #9ca3af; font-size: 0.875rem; text-align: center;
+}
+.gs-select-hint-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+
+/* Grading form */
+.gs-grading-form { padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; }
+
+.gs-grade-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: 1rem; border-bottom: 1px solid #f3f4f6;
+}
+.gs-grade-title { font-size: 1.125rem; font-weight: 700; color: #111827; margin: 0 0 0.25rem; }
+.gs-grade-email { font-size: 0.8rem; color: #6b7280; margin: 0; }
+.gs-total-score { display: flex; align-items: baseline; gap: 0.2rem; }
+.gs-total-num { font-size: 2rem; font-weight: 700; color: #4f46e5; }
+.gs-total-denom { font-size: 1rem; color: #6b7280; }
+
+/* Code block */
+.gs-code-block { border: 1px solid #334155; border-radius: 8px; overflow: hidden; }
+.gs-code-bar {
+  background: #1e2030; padding: 0.5rem 1rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.gs-lang-badge {
+  background: #ede9fe; color: #6d28d9;
+  font-size: 0.7rem; font-weight: 600;
+  padding: 0.2rem 0.6rem; border-radius: 9999px;
+}
+.gs-code-label { font-size: 0.72rem; color: #94a3b8; }
+.gs-code {
+  font-family: 'Fira Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.82rem; background: #1e1e2e; color: #cdd6f4;
+  padding: 1rem; margin: 0; overflow-x: auto; line-height: 1.6;
+  white-space: pre; max-height: 280px;
+}
+
+/* Question card */
+.gs-q-card {
+  border: 1px solid #e5e7eb; border-radius: 8px;
+  padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem;
+  background: #fafafa;
+}
+.gs-q-header { display: flex; gap: 0.6rem; align-items: flex-start; }
+.gs-q-num {
+  background: #4f46e5; color: #fff;
+  font-size: 0.7rem; font-weight: 700;
+  padding: 0.2rem 0.5rem; border-radius: 4px;
+  min-width: 28px; text-align: center; flex-shrink: 0;
+  margin-top: 2px;
+}
+.gs-q-info { display: flex; flex-direction: column; gap: 0.25rem; flex: 1; }
+.gs-q-text { font-size: 0.875rem; font-weight: 500; color: #111827; }
+.gs-q-type { font-size: 0.68rem; color: #6b7280; text-transform: capitalize; }
+
+/* Student answers */
+.gs-answer-label { font-size: 0.72rem; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 0.3rem; }
+.gs-student-answer, .gs-explanation { background: #fff; border: 1px solid #f3f4f6; border-radius: 6px; padding: 0.625rem 0.75rem; }
+.gs-answer-text, .gs-explanation-text { font-size: 0.85rem; color: #374151; margin: 0; line-height: 1.5; }
+.gs-no-answer { font-size: 0.8rem; color: #9ca3af; font-style: italic; margin: 0; }
+.gs-answer-options { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.gs-selected-opt {
+  background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe;
+  font-size: 0.78rem; padding: 0.2rem 0.6rem; border-radius: 4px;
+}
+
+/* Grade row */
+.gs-grade-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+.gs-small-label { font-size: 0.72rem; font-weight: 600; color: #374151; display: block; margin-bottom: 0.3rem; }
+.gs-marks-row { display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; }
+.gs-marks-input {
+  border: 1px solid #d1d5db; border-radius: 4px;
+  padding: 0.35rem 0.5rem; font-size: 0.875rem;
+  width: 58px; text-align: center; font-weight: 600;
+}
+.gs-marks-max { font-size: 0.8rem; color: #6b7280; }
+.gs-marks-btns { display: flex; gap: 0.25rem; }
+.gs-mark-btn {
+  border: 1px solid; border-radius: 4px;
+  padding: 0.2rem 0.45rem; font-size: 0.7rem; font-weight: 700; cursor: pointer;
+  line-height: 1;
+}
+.gs-mark-full { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.gs-mark-full:hover { background: #bbf7d0; }
+.gs-mark-zero { background: #fee2e2; color: #991b1b; border-color: #fecaca; }
+.gs-mark-zero:hover { background: #fecaca; }
+.gs-marks-bar-wrap { flex: 1; background: #e5e7eb; border-radius: 9999px; height: 5px; min-width: 60px; }
+.gs-marks-bar-fill { background: #4f46e5; border-radius: 9999px; height: 100%; transition: width 0.2s; }
+
+.gs-feedback-input {
+  border: 1px solid #d1d5db; border-radius: 6px;
+  padding: 0.5rem 0.625rem; font-size: 0.8rem;
+  width: 100%; box-sizing: border-box; resize: vertical;
+  color: #374151;
+}
+.gs-feedback-input:focus { outline: none; border-color: #4f46e5; box-shadow: 0 0 0 3px rgba(79,70,229,0.08); }
+
+.gs-grade-feedback { display: flex; flex-direction: column; gap: 0.3rem; }
+
+/* Overall feedback */
+.gs-overall { display: flex; flex-direction: column; gap: 0.3rem; }
+
+/* Save bar */
+.gs-save-bar {
+  display: flex; align-items: center; justify-content: flex-end; gap: 1rem;
+  padding-top: 1rem; border-top: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+.gs-saved-msg { font-size: 0.8rem; color: #16a34a; font-weight: 600; }
+.gs-save-summary { font-size: 0.8rem; color: #374151; }
+
+.gs-btn-primary {
+  background: #4f46e5; color: #fff;
+  border: none; padding: 0.6rem 1.5rem;
+  border-radius: 6px; font-size: 0.875rem; font-weight: 600;
+  cursor: pointer; transition: background 0.15s;
+}
+.gs-btn-primary:hover { background: #4338ca; }
+.gs-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .gs-body { grid-template-columns: 1fr; }
+  .gs-panel-left { position: static; }
+  .gs-grade-row { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 640px) {
+  .gs-page { padding: 1rem; }
+}

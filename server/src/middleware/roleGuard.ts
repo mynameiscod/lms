@@ -115,6 +115,14 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_marketing', label: 'Marketing Intelligence Dashboard' },
     ]
   },
+  codingSnippets: {
+    label: 'Coding Snippet Assessments',
+    permissions: [
+      { key: 'manage_snippets', label: 'Create & Manage Snippet Assessments' },
+      { key: 'grade_snippets', label: 'Grade Snippet Submissions' },
+      { key: 'view_snippets', label: 'View & Submit Snippet Assessments' },
+    ]
+  },
 };
 
 // Flatten all permission keys
@@ -151,6 +159,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads',
     // Marketing
     'manage_marketing',
+    // Coding Snippets
+    'manage_snippets', 'grade_snippets', 'view_snippets',
   ],
   INSTRUCTOR: [
     // Courses
@@ -169,6 +179,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_interviews', 'take_interviews',
     // Reports
     'view_reports',
+    // Coding Snippets
+    'manage_snippets', 'grade_snippets', 'view_snippets',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',
@@ -188,6 +200,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'enroll_courses', 'view_courses', 'view_public_courses', 'access_resources',
     'submit_assignments', 'view_grades', 'view_attendance', 'view_quiz',
     'take_interviews',
+    // Coding Snippets
+    'view_snippets',
   ],
   GUEST: ['view_public_courses'],
 };

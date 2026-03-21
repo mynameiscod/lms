@@ -66,6 +66,7 @@ import LeadManagerBoardPage from './pages/LeadManagerBoard';
 import LeadMyPerformancePage from './pages/LeadMyPerformance';
 import LeadAuditLogsPage from './pages/LeadAuditLogs';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas } from './pages/Marketing';
+import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -78,10 +79,10 @@ interface ProtectedRouteProps {
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
   'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads', 'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads'],
-  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments'],
+  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
   'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'view_leads', 'create_leads', 'edit_leads', 'assign_leads', 'view_lead_analytics', 'export_leads', 'convert_leads'],
-  'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews'],
+  'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets'],
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -718,6 +719,50 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <MarketingIdeas />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Code Snippet Assessment Routes */}
+      <Route
+        path="/admin/coding-snippets"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <AdminCodeSnippets />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/coding-snippets/:id/submissions"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <GradeSubmissions />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/coding-snippets/grade"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <GradeSubmissions />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/coding-snippets"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <FeatureRoute feature="codingSnippets">
+              <Layout>
+                <StudentCodeSnippets />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />

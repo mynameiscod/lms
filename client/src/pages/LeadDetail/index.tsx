@@ -98,6 +98,10 @@ const LeadDetail: React.FC = () => {
   const [editingConcerns, setEditingConcerns] = useState(false);
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
 
+  const [editingNotes, setEditingNotes] = useState(false);
+  const [notesText, setNotesText] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+
   const [showConvertModal, setShowConvertModal] = useState(false);
   const [convertPassword, setConvertPassword] = useState('Welcome@123');
   const [converting, setConverting] = useState(false);
@@ -158,7 +162,7 @@ const LeadDetail: React.FC = () => {
       if(activityType==='call'&&callOutcome)data.callOutcome=callOutcome;
       await leadApi.addActivity(lead._id,data,recordingFile||undefined);
       setActivityDesc('');setCallOutcome('');setRecordingFile(null);
-      loadData();
+      await loadData();
     }catch(error:any){showAlertMsg('error',error.message||'Failed to add activity');}
     finally{setUploadingActivity(false);}
   };
@@ -189,6 +193,19 @@ const LeadDetail: React.FC = () => {
       setEditingConcerns(false);loadData();
       showAlertMsg('success','Concerns updated');
     }catch(error:any){showAlertMsg('error',error.message||'Failed to update concerns');}
+  };
+
+  const handleSaveNotes = async () => {
+    if(!lead)return;
+    try{
+      setSavingNotes(true);
+      // Use quickUpdate so telecallers (create_leads/view_leads) can also save notes
+      await leadApi.quickUpdate(lead._id,{notes:notesText});
+      setEditingNotes(false);
+      await loadData();
+      showAlertMsg('success','Notes saved');
+    }catch(error:any){showAlertMsg('error',error.message||'Failed to save notes');}
+    finally{setSavingNotes(false);}
   };
 
   const toggleConcern = (value:string) =>
@@ -361,12 +378,39 @@ const LeadDetail: React.FC = () => {
                     </div>
                   ) : <span className="ld-info-value muted">Not set</span>}
                 </div>
-                {lead.notes&&(
-                  <div className="ld-info-item full">
+                {/* Notes — editable inline */}
+                <div className="ld-info-item full">
+                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
                     <span className="ld-info-label">Notes</span>
-                    <span className="ld-info-value" style={{whiteSpace:'pre-wrap'}}>{lead.notes}</span>
+                    {!editingNotes&&(
+                      <button className="ld-concerns-edit-btn"
+                        onClick={()=>{setNotesText(lead.notes||'');setEditingNotes(true);}}>
+                        Edit
+                      </button>
+                    )}
                   </div>
-                )}
+                  {editingNotes ? (
+                    <div>
+                      <textarea
+                        value={notesText}
+                        onChange={e=>setNotesText(e.target.value)}
+                        placeholder="Add notes about this lead..."
+                        rows={4}
+                        style={{width:'100%',resize:'vertical',padding:'8px',borderRadius:6,border:'1px solid #d1d5db',fontFamily:'inherit',fontSize:'0.88rem'}}
+                        autoFocus/>
+                      <div style={{display:'flex',gap:8,marginTop:6}}>
+                        <button className="ld-btn ld-btn-primary" onClick={handleSaveNotes} disabled={savingNotes}>
+                          {savingNotes?'Saving...':'Save Notes'}
+                        </button>
+                        <button className="ld-btn ld-btn-secondary" onClick={()=>setEditingNotes(false)}>Cancel</button>
+                      </div>
+                    </div>
+                  ) : lead.notes ? (
+                    <span className="ld-info-value" style={{whiteSpace:'pre-wrap'}}>{lead.notes}</span>
+                  ) : (
+                    <span className="ld-info-value muted" style={{fontSize:'0.86rem'}}>No notes yet — click Edit to add</span>
+                  )}
+                </div>
                 {/* Custom Fields */}
                 {customFieldConfigs.length>0&&lead.customFields&&customFieldConfigs.map(cf=>{
                   const val=lead.customFields?.[cf.fieldKey];

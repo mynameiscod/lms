@@ -5,6 +5,7 @@ import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import AuditLog from '../models/AuditLog';
 import bcryptjs from 'bcryptjs';
+import XLSX from 'xlsx';
 import { buildLeadScopeFilter, resolveLeadScope } from '../middleware/leadScope';
 
 // Helper to create audit log entries
@@ -53,7 +54,8 @@ const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<strin
     filter.$or = [
       { name: searchRegex },
       { email: searchRegex },
-      { phone: searchRegex }
+      { phone: searchRegex },
+      { courseInterest: searchRegex }
     ];
   }
   if (dateFrom || dateTo) {
@@ -115,35 +117,36 @@ export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Build CSV
-    const headers = ['Name', 'Email', 'Phone', 'Source', 'Course Interest', 'Stage', 'Assigned To', 'Next Follow-up', 'Notes', 'Created At'];
-    const escapeCSV = (val: string) => {
-      if (!val) return '';
-      const s = String(val);
-      if (s.includes(',') || s.includes('"') || s.includes('\n')) {
-        return '"' + s.replace(/"/g, '""') + '"';
-      }
-      return s;
-    };
+    const headers = ['Name', 'Email', 'Phone', 'Source', 'Course Interest', 'Stage', 'Assigned To', 'Demo Schedule / Next Follow-up', 'Notes', 'Created At'];
 
     const rows = leads.map((lead: any) => [
-      escapeCSV(lead.name),
-      escapeCSV(lead.email || ''),
-      escapeCSV(lead.phone),
-      escapeCSV(lead.source),
-      escapeCSV((lead.courseInterest || []).join('; ')),
-      escapeCSV(lead.stageId?.name || ''),
-      escapeCSV(lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : ''),
-      escapeCSV(lead.nextFollowUp ? new Date(lead.nextFollowUp).toISOString().split('T')[0] : ''),
-      escapeCSV(lead.notes || ''),
-      escapeCSV(new Date(lead.createdAt).toISOString().split('T')[0])
-    ].join(','));
+      lead.name || '',
+      lead.email || '',
+      lead.phone || '',
+      lead.source || '',
+      (lead.courseInterest || []).join('; '),
+      lead.stageId?.name || '',
+      lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : '',
+      lead.nextFollowUp ? new Date(lead.nextFollowUp).toISOString().split('T')[0] : '',
+      lead.notes || '',
+      new Date(lead.createdAt).toISOString().split('T')[0]
+    ]);
 
-    const csv = [headers.join(','), ...rows].join('\n');
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
 
-    res.setHeader('Content-Type', 'text/csv');
-    res.setHeader('Content-Disposition', 'attachment; filename=leads_export.csv');
-    res.send(csv);
+    // Auto-width columns
+    const colWidths = headers.map((h, i) => ({
+      wch: Math.max(h.length, ...rows.map(r => String(r[i] || '').length), 10)
+    }));
+    ws['!cols'] = colWidths;
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=leads_export.xlsx');
+    res.end(buf);
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to export leads', error: error.message });
   }
@@ -361,6 +364,18 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
+
+    // Fetch the current lead first so we can detect assignedTo changes
+    const currentLead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter })
+      .populate('assignedTo', 'firstName lastName');
+
+    if (!currentLead) {
+      return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    const oldAssignedToId = currentLead.assignedTo ? String((currentLead.assignedTo as any)._id) : null;
+    const newAssignedToId = assignedTo !== undefined ? (assignedTo || null) : oldAssignedToId;
+
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
       {
@@ -384,6 +399,30 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    // If assignedTo changed, record it as an activity in the timeline
+    if (assignedTo !== undefined && String(newAssignedToId || '') !== String(oldAssignedToId || '')) {
+      let assigneeLabel = 'Unassigned';
+      if (newAssignedToId) {
+        const newUser = await User.findById(newAssignedToId).select('firstName lastName');
+        if (newUser) assigneeLabel = `${(newUser as any).firstName} ${(newUser as any).lastName}`;
+      }
+      const actorUser = await User.findById(req.user!.id).select('firstName lastName');
+      const actorName = actorUser ? `${(actorUser as any).firstName} ${(actorUser as any).lastName}` : 'Someone';
+      await Lead.findByIdAndUpdate(leadId, {
+        $push: {
+          activities: {
+            type: 'assignment',
+            description: newAssignedToId
+              ? `Lead assigned to ${assigneeLabel} by ${actorName}`
+              : `Lead unassigned by ${actorName}`,
+            createdBy: req.user!.id,
+            createdAt: new Date(),
+            metadata: { from: oldAssignedToId, to: newAssignedToId }
+          }
+        }
+      });
     }
 
     await auditLog(req, 'UPDATE', `Lead updated: ${lead.name}`, lead._id);
@@ -937,7 +976,7 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
 export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { stageId, nextFollowUp, activityType, activityDescription, callOutcome } = req.body;
+    const { stageId, nextFollowUp, activityType, activityDescription, callOutcome, notes } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
     const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter });
@@ -964,6 +1003,11 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
     // Update follow-up
     if (nextFollowUp !== undefined) {
       lead.nextFollowUp = nextFollowUp ? new Date(nextFollowUp) : undefined;
+    }
+
+    // Update notes (telecaller-friendly)
+    if (notes !== undefined) {
+      (lead as any).notes = notes;
     }
 
     // Add activity if provided

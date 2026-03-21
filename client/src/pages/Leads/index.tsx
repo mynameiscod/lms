@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
 import './Leads.css';
 
@@ -42,6 +43,7 @@ const initials = (name: string) => name.split(' ').map(n=>n[0]).join('').toUpper
 
 const LeadsPage: React.FC = () => {
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
@@ -67,6 +69,10 @@ const LeadsPage: React.FC = () => {
   const [dateRange, setDateRange] = useState<'all'|'today'|'week'|'month'|'custom'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+
+  const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
+  const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File|null>(null);
@@ -124,7 +130,7 @@ const LeadsPage: React.FC = () => {
       const stageFilter = activeStageFilter || filterStage;
       const [stagesRes,leadsRes] = await Promise.all([
         leadStageApi.getStages(),
-        leadApi.getLeads({search,stageId:stageFilter,source:filterSource,page,limit:100,...dateFilt}),
+        leadApi.getLeads({search,stageId:stageFilter,source:filterSource,assignedTo:filterAssignee,page,limit:100,...dateFilt}),
       ]);
       const loadedStages = stagesRes.data||[];
       setStages(loadedStages);
@@ -233,15 +239,15 @@ const LeadsPage: React.FC = () => {
   const handleExport = async () => {
     try{
       const dateFilt=getDateFilters();
-      const url=leadApi.exportLeads({stageId:filterStage,source:filterSource,search,...dateFilt});
+      const url=leadApi.exportLeads({stageId:filterStage,source:filterSource,assignedTo:filterAssignee,search,...dateFilt});
       const token=localStorage.getItem('token');const tenantId=localStorage.getItem('tenantId');
       const resp=await fetch(url,{headers:{...(token&&{'Authorization':`Bearer ${token}`}),...(tenantId&&{'X-Tenant-Id':tenantId})}});
       if(!resp.ok)throw new Error('Export failed');
       const blob=await resp.blob();const a=document.createElement('a');
       a.href=URL.createObjectURL(blob);
-      a.download=`leads_export_${new Date().toISOString().split('T')[0]}.csv`;
+      a.download=`leads_export_${new Date().toISOString().split('T')[0]}.xlsx`;
       a.click();URL.revokeObjectURL(a.href);
-      showAlertMsg('success','Leads exported');
+      showAlertMsg('success','Leads exported to Excel');
     } catch(error:any){showAlertMsg('error',error.message||'Export failed');}
   };
 
@@ -255,6 +261,48 @@ const LeadsPage: React.FC = () => {
       setShowImportModal(false);setImportFile(null);loadData();
     } catch(error:any){showAlertMsg('error',error.message||'Import failed');}
     finally{setImporting(false);}
+  };
+
+  const handleMyLeads = () => {
+    if(currentUser && filterAssignee !== currentUser._id) {
+      setFilterAssignee(currentUser._id);
+    } else {
+      setFilterAssignee('');
+    }
+    setPage(1);
+  };
+
+  const toggleSelectLead = (id: string) => {
+    setSelectedLeads(prev => {
+      const next = new Set(prev);
+      if(next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if(selectedLeads.size === leads.length) {
+      setSelectedLeads(new Set());
+    } else {
+      setSelectedLeads(new Set(leads.map(l => l._id)));
+    }
+  };
+
+  const handleBulkWhatsApp = () => {
+    if(selectedLeads.size === 0) return;
+    setWhatsAppMessage('');
+    setShowWhatsAppModal(true);
+  };
+
+  const handleSendWhatsApp = () => {
+    const selectedLeadDetails = leads.filter(l => selectedLeads.has(l._id));
+    selectedLeadDetails.forEach(lead => {
+      const phone = lead.phone.replace(/\D/g,'');
+      const msg = encodeURIComponent(whatsAppMessage || `Hi ${lead.name},`);
+      window.open(`https://wa.me/${phone}?text=${msg}`, '_blank');
+    });
+    setShowWhatsAppModal(false);
+    setSelectedLeads(new Set());
   };
 
   const toggleStageVisibility = (stageId:string) => {
@@ -310,6 +358,12 @@ const LeadsPage: React.FC = () => {
             <button className={view==='table'?'active':''} onClick={()=>setView('table')}>&#8862; Table</button>
             <button className={view==='kanban'?'active':''} onClick={()=>setView('kanban')}>&#8942; Board</button>
           </div>
+          <button
+            className={`crm-btn crm-btn-secondary${currentUser&&filterAssignee===currentUser._id?' active':''}`}
+            onClick={handleMyLeads}
+            title={currentUser&&filterAssignee===currentUser._id?'Show all leads':'Show only my leads'}>
+            &#128100; My Leads
+          </button>
           <button className="crm-btn crm-btn-secondary" onClick={()=>setShowImportModal(true)}>&#8679; Import</button>
           <button className="crm-btn crm-btn-secondary" onClick={handleExport}>&#8681; Export</button>
           <button className="crm-btn crm-btn-primary" onClick={handleOpenCreate}>+ New Lead</button>
@@ -523,10 +577,27 @@ const LeadsPage: React.FC = () => {
         <>
           <div className="crm-table-wrap">
             <div ref={menuRef}>
+              {selectedLeads.size>0&&(
+                <div className="crm-bulk-bar">
+                  <span className="crm-bulk-count">{selectedLeads.size} lead{selectedLeads.size!==1?'s':''} selected</span>
+                  <button className="crm-btn crm-btn-whatsapp" onClick={handleBulkWhatsApp}>
+                    &#128172; Send WhatsApp
+                  </button>
+                  <button className="crm-btn crm-btn-secondary crm-btn-sm" onClick={()=>setSelectedLeads(new Set())}>
+                    &#10005; Clear
+                  </button>
+                </div>
+              )}
               <div className="crm-table-scroll">
                 <table className="crm-table">
                   <thead>
                     <tr>
+                      <th style={{width:40}}>
+                        <input type="checkbox"
+                          checked={leads.length>0&&selectedLeads.size===leads.length}
+                          onChange={toggleSelectAll}
+                          title="Select all"/>
+                      </th>
                       <th>Lead</th>
                       <th>Stage</th>
                       <th>Source</th>
@@ -538,7 +609,7 @@ const LeadsPage: React.FC = () => {
                   </thead>
                   <tbody>
                     {leads.length===0 ? (
-                      <tr><td colSpan={7}>
+                      <tr><td colSpan={8}>
                         <div className="crm-empty" style={{padding:'50px 0'}}>
                           <div className="crm-empty-icon">&#128269;</div>
                           <h3>No leads found</h3>
@@ -553,8 +624,14 @@ const LeadsPage: React.FC = () => {
                         ?(fuState==='overdue'?'&#9888; Overdue':fuState==='today'?'Today':formatShort(lead.nextFollowUp))
                         :'Not set';
                       const fuClass=!lead.nextFollowUp?'none':fuState==='overdue'?'overdue':fuState==='today'?'today':'ok';
+                      const isSelected=selectedLeads.has(lead._id);
                       return (
-                        <tr key={lead._id} onClick={()=>navigate(`/leads/${lead._id}`)}>
+                        <tr key={lead._id} className={isSelected?'crm-row-selected':''} onClick={()=>navigate(`/leads/${lead._id}`)}>
+                          <td onClick={e=>e.stopPropagation()} style={{width:40}}>
+                            <input type="checkbox" checked={isSelected}
+                              onChange={()=>toggleSelectLead(lead._id)}
+                              onClick={e=>e.stopPropagation()}/>
+                          </td>
                           <td>
                             <div className="crm-lead-cell">
                               <div className="crm-lead-avatar">{initials(lead.name)}</div>
@@ -812,6 +889,47 @@ const LeadsPage: React.FC = () => {
               <button className="crm-btn crm-btn-secondary" onClick={()=>{setShowImportModal(false);setImportFile(null);}}>Cancel</button>
               <button className="crm-btn crm-btn-primary" onClick={handleImport}
                 disabled={!importFile||importing}>{importing?'Importing...':'Import Leads'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWhatsAppModal&&(
+        <div className="crm-modal-overlay" onClick={()=>setShowWhatsAppModal(false)}>
+          <div className="crm-modal crm-modal-sm" onClick={e=>e.stopPropagation()}>
+            <div className="crm-modal-header">
+              <h2 className="crm-modal-title">&#128172; Bulk WhatsApp</h2>
+              <button className="crm-modal-close" onClick={()=>setShowWhatsAppModal(false)}>&#10005;</button>
+            </div>
+            <p className="crm-modal-subtitle">
+              Sending to <strong>{selectedLeads.size}</strong> lead{selectedLeads.size!==1?'s':''}.
+              Each lead will open in a new WhatsApp tab.
+            </p>
+            <div className="crm-form-group">
+              <label>Message Template</label>
+              <textarea
+                value={whatsAppMessage}
+                onChange={e=>setWhatsAppMessage(e.target.value)}
+                placeholder={`Hi [Lead Name], we wanted to follow up about your interest in our demo...`}
+                rows={5}/>
+              <span style={{fontSize:'0.78rem',color:'#6b7280',marginTop:4,display:'block'}}>
+                Tip: Start each message with the lead's name for a personal touch.
+              </span>
+            </div>
+            <div className="crm-wa-preview">
+              {leads.filter(l=>selectedLeads.has(l._id)).slice(0,3).map(l=>(
+                <div key={l._id} className="crm-wa-chip">
+                  <span className="crm-assignee-avatar" style={{width:22,height:22,fontSize:'0.65rem'}}>{initials(l.name)}</span>
+                  {l.name} · {l.phone}
+                </div>
+              ))}
+              {selectedLeads.size>3&&<span style={{fontSize:'0.8rem',color:'#6b7280'}}>+{selectedLeads.size-3} more</span>}
+            </div>
+            <div className="crm-modal-actions">
+              <button className="crm-btn crm-btn-secondary" onClick={()=>setShowWhatsAppModal(false)}>Cancel</button>
+              <button className="crm-btn crm-btn-whatsapp" onClick={handleSendWhatsApp}>
+                &#128172; Open WhatsApp ({selectedLeads.size})
+              </button>
             </div>
           </div>
         </div>

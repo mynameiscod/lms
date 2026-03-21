@@ -1719,10 +1719,11 @@ export const leadApi = {
   getManagerBoard: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/manager-board`);
   },
-  exportLeads: (filters?: { stageId?: string; source?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
+  exportLeads: (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; dateFrom?: string; dateTo?: string }) => {
     const params = new URLSearchParams();
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
+    if (filters?.assignedTo) params.append('assignedTo', filters.assignedTo);
     if (filters?.search) params.append('search', filters.search);
     if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) params.append('dateTo', filters.dateTo);
@@ -1746,7 +1747,7 @@ export const leadApi = {
   getMyPerformance: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/my-performance`);
   },
-  quickUpdate: async (leadId: string, data: { stageId?: string; nextFollowUp?: string; activityType?: string; activityDescription?: string }) => {
+  quickUpdate: async (leadId: string, data: { stageId?: string; nextFollowUp?: string; activityType?: string; activityDescription?: string; notes?: string }) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/quick-update`, {
       method: 'PATCH',
       body: JSON.stringify(data)

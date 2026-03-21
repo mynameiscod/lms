@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, leadFormConfigApi } from '../../api';
 import './LeadDetail.css';
 
@@ -77,6 +78,7 @@ const isOverdue = (date?: string) =>
 const LeadDetail: React.FC = () => {
   const { leadId } = useParams<{ leadId: string }>();
   const navigate = useNavigate();
+  const { user: currentUser } = useAuth();
   const [lead, setLead] = useState<Lead|null>(null);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -271,9 +273,13 @@ const LeadDetail: React.FC = () => {
           {lead.convertedStudentId&&(
             <span className="ld-converted-badge">&#10003; Converted</span>
           )}
-          <button className="ld-btn ld-btn-danger" onClick={handleDelete}>
-            &#128465; <span>Delete</span>
-          </button>
+          {(currentUser?.role==='TENANT_ADMIN'||currentUser?.role==='SUPER_ADMIN'||
+            (currentUser?.permissions||[]).includes('delete_leads')||
+            (currentUser?.permissions||[]).includes('manage_leads'))&&(
+            <button className="ld-btn ld-btn-danger" onClick={handleDelete}>
+              &#128465; <span>Delete</span>
+            </button>
+          )}
         </div>
       </div>
 

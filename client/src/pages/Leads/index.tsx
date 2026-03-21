@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
 import './Leads.css';
@@ -43,6 +43,7 @@ const initials = (name: string) => name.split(' ').map(n=>n[0]).join('').toUpper
 
 const LeadsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user: currentUser } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
@@ -62,6 +63,7 @@ const LeadsPage: React.FC = () => {
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [configSources, setConfigSources] = useState<string[]>(SOURCES);
 
+  const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
   const [filterStage, setFilterStage] = useState('');
   const [filterSource, setFilterSource] = useState('');
@@ -102,6 +104,15 @@ const LeadsPage: React.FC = () => {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Debounce search input — only fire API call 400ms after user stops typing
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const showAlertMsg = (type: 'success'|'error', message: string) => {
     setAlert({type,message});
@@ -167,6 +178,17 @@ const LeadsPage: React.FC = () => {
   },[search,filterStage,filterSource,filterAssignee,activeStageFilter,page,getDateFilters]);
 
   useEffect(()=>{loadData();},[loadData]);
+
+  // Open edit modal when navigating back from LeadDetail with edit state
+  useEffect(() => {
+    const editId = (location.state as any)?.edit;
+    if (!editId || loading || leads.length === 0) return;
+    const found = leads.find(l => l._id === editId);
+    if (!found) return;
+    navigate(location.pathname, { replace: true, state: {} });
+    handleOpenEdit(found);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leads, loading]);
 
   const handleOpenCreate = () => {
     setEditingLead(null);
@@ -314,6 +336,11 @@ const LeadsPage: React.FC = () => {
     });
   };
 
+  const canDelete = currentUser?.role === 'TENANT_ADMIN' ||
+    currentUser?.role === 'SUPER_ADMIN' ||
+    (currentUser?.permissions || []).includes('delete_leads') ||
+    (currentUser?.permissions || []).includes('manage_leads');
+
   const visibleStages = stages.filter(s=>visibleStageIds.has(s._id));
 
   const getStage = (lead:Lead):Stage|null => {
@@ -411,7 +438,7 @@ const LeadsPage: React.FC = () => {
             <span className="crm-search-icon">&#128269;</span>
             <input className="crm-search-input" type="text"
               placeholder="Search name, email, phone..."
-              value={search} onChange={e=>setSearch(e.target.value)}/>
+              value={searchInput} onChange={e=>setSearchInput(e.target.value)}/>
           </div>
           <select className="crm-filter-select" value={filterStage} onChange={e=>{setFilterStage(e.target.value);setActiveStageFilter('');}}>
             <option value="">All Stages</option>
@@ -684,11 +711,13 @@ const LeadsPage: React.FC = () => {
                                   onClick={()=>{handleOpenEdit(lead);setOpenMenuId(null);}}>
                                   &#9998; Edit Lead
                                 </button>
+                                {canDelete&&(<>
                                 <div className="crm-row-menu-divider"/>
                                 <button className="crm-row-menu-item danger"
                                   onClick={()=>{handleDelete(lead);setOpenMenuId(null);}}>
                                   &#128465; Delete
                                 </button>
+                                </>)}
                               </div>
                             )}
                           </td>

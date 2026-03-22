@@ -3,12 +3,15 @@
 }
 
 .reports-header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
-  padding: 30px;
-  border-radius: 10px;
-  margin-bottom: 30px;
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+  padding: 32px 36px;
+  border-radius: 12px;
+  margin-bottom: 28px;
+  box-shadow: 0 6px 24px rgba(0, 88, 151, 0.28);
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .header-text h1 {
@@ -76,14 +79,14 @@
 }
 
 .quiz-select:hover {
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.12);
 }
 
 .quiz-select:focus {
   outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.2);
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0, 88, 151, 0.18);
 }
 
 .view-tabs {
@@ -105,16 +108,16 @@
 }
 
 .tab-btn:hover {
-  border-color: #667eea;
-  color: #667eea;
-  background: #f0f4ff;
+  border-color: #005897;
+  color: #005897;
+  background: #e0f2fe;
 }
 
 .tab-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   border-color: transparent;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 4px 10px rgba(0, 88, 151, 0.25);
 }
 
 .export-btn {
@@ -166,7 +169,7 @@
   margin: 0 0 15px 0;
   font-size: 1.3em;
   color: #333;
-  border-bottom: 3px solid #667eea;
+  border-bottom: 3px solid #005897;
   padding-bottom: 12px;
   font-weight: 600;
 }
@@ -178,34 +181,37 @@
 }
 
 .stat-item {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  padding: 20px;
-  border-radius: 8px;
-  color: white;
+  background: white;
+  border: 1.5px solid #e2e8f0;
+  padding: 22px 20px;
+  border-radius: 12px;
+  color: #1e293b;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(102, 126, 234, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
 }
 
 .stat-item:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 88, 151, 0.15);
+  border-color: #005897;
 }
 
 .stat-label {
   display: block;
-  font-size: 0.85em;
-  opacity: 0.95;
+  font-size: 0.8em;
+  color: #94a3b8;
   margin-bottom: 8px;
-  text-transform: capitalize;
+  text-transform: uppercase;
   font-weight: 700;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.8px;
 }
 
 .stat-value {
   display: block;
   font-size: 2em;
-  font-weight: 700;
+  font-weight: 800;
+  color: #005897;
 }
 
 /* Table Section */
@@ -509,7 +515,7 @@
   margin: 0 0 20px 0;
   font-size: 1.3em;
   color: #333;
-  border-bottom: 3px solid #667eea;
+  border-bottom: 3px solid #005897;
   padding-bottom: 12px;
   font-weight: 600;
 }
@@ -522,10 +528,10 @@
 
 .performer-card {
   background: white;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border-left: 4px solid #667eea;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  border-left: 4px solid #005897;
   transition: all 0.3s ease;
   position: relative;
 }
@@ -560,7 +566,7 @@
   font-weight: 700;
   font-size: 1.1em;
   color: white;
-  background: #667eea;
+  background: #005897;
 }
 
 .performer-card.rank-1 .rank-badge {
@@ -616,7 +622,7 @@
 
 .perf-value {
   font-weight: 700;
-  color: #667eea;
+  color: #005897;
 }
 
 /* Responsive */

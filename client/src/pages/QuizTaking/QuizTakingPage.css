@@ -784,6 +784,29 @@
   text-align: center;
 }
 
+.instructions-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  opacity: 0.95;
+}
+
+.instructions-logo-img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1);
+}
+
+.instructions-brand-name {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+}
+
 .instructions-header h1 {
   margin: 0 0 12px 0;
   font-size: 2rem;

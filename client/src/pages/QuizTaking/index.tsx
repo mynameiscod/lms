@@ -387,6 +387,15 @@ const QuizTakingPage: React.FC = () => {
             <Alert type="error" message={error} onClose={() => setError('')} />
           )}
           <div className="instructions-header">
+            <div className="instructions-brand">
+              <img
+                src="/assets/logo.png"
+                alt="CodeBegun"
+                className="instructions-logo-img"
+                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+              />
+              <span className="instructions-brand-name">CodeBegun</span>
+            </div>
             <h1>{quiz.title}</h1>
             {quiz.description && <p className="quiz-description">{quiz.description}</p>}
           </div>

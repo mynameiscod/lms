@@ -84,6 +84,15 @@ const QuizResultsPage: React.FC = () => {
       <div className="results-header">
         <div className="gradient-bg"></div>
         <div className="results-content">
+          <div className="results-brand-row">
+            <img
+              src="/assets/logo.png"
+              alt="CodeBegun"
+              className="results-logo-img"
+              onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
+            />
+            <span className="results-brand-name">CodeBegun</span>
+          </div>
           <h1>Quiz Results</h1>
           <p className="quiz-name">{result.quiz.title}</p>
         </div>

@@ -640,37 +640,41 @@ const DashboardPage: React.FC = () => {
           <div className="summary-stats horizontal">
             {isFeatureEnabled('assignments') && (
             <div className="summary-item">
-              <span className="summary-icon">✏️</span>
+              <div className="summary-icon-box s-green">✏️</div>
               <div className="summary-info">
                 <span className="summary-label">Assignments</span>
-                <span className="summary-value">{data?.stats.completedAssignments || 0} / {data?.stats.totalAssignments || 0}</span>
+                <span className="summary-value">{data?.stats.completedAssignments || 0}<span className="summary-total"> / {data?.stats.totalAssignments || 0}</span></span>
+                <div className="summary-bar"><div className="summary-bar-fill s-green" style={{ width: `${data?.stats.totalAssignments ? Math.round(((data.stats.completedAssignments || 0) / data.stats.totalAssignments) * 100) : 0}%` }} /></div>
               </div>
             </div>
             )}
             {isFeatureEnabled('quizzes') && (
             <div className="summary-item">
-              <span className="summary-icon">📝</span>
+              <div className="summary-icon-box s-blue">📝</div>
               <div className="summary-info">
                 <span className="summary-label">Quizzes</span>
-                <span className="summary-value">{data?.stats.completedQuizzes || 0} / {data?.stats.totalQuizzes || 0}</span>
+                <span className="summary-value">{data?.stats.completedQuizzes || 0}<span className="summary-total"> / {data?.stats.totalQuizzes || 0}</span></span>
+                <div className="summary-bar"><div className="summary-bar-fill s-blue" style={{ width: `${data?.stats.totalQuizzes ? Math.round(((data.stats.completedQuizzes || 0) / data.stats.totalQuizzes) * 100) : 0}%` }} /></div>
               </div>
             </div>
             )}
             {isFeatureEnabled('myCourse') && (
             <div className="summary-item">
-              <span className="summary-icon">📖</span>
+              <div className="summary-icon-box s-purple">📖</div>
               <div className="summary-info">
                 <span className="summary-label">Chapters</span>
-                <span className="summary-value">{data?.courseProgress.completed || 0} / {data?.courseProgress.total || 0}</span>
+                <span className="summary-value">{data?.courseProgress.completed || 0}<span className="summary-total"> / {data?.courseProgress.total || 0}</span></span>
+                <div className="summary-bar"><div className="summary-bar-fill s-purple" style={{ width: `${data?.courseProgress.total ? Math.round(((data.courseProgress.completed || 0) / data.courseProgress.total) * 100) : 0}%` }} /></div>
               </div>
             </div>
             )}
             {isFeatureEnabled('codingSnippets') && (
             <div className="summary-item">
-              <span className="summary-icon">💻</span>
+              <div className="summary-icon-box s-orange">💻</div>
               <div className="summary-info">
                 <span className="summary-label">Code Snippets</span>
-                <span className="summary-value">{data?.stats.completedSnippets || 0} / {data?.stats.totalSnippets || 0}</span>
+                <span className="summary-value">{data?.stats.completedSnippets || 0}<span className="summary-total"> / {data?.stats.totalSnippets || 0}</span></span>
+                <div className="summary-bar"><div className="summary-bar-fill s-orange" style={{ width: `${data?.stats.totalSnippets ? Math.round(((data.stats.completedSnippets || 0) / data.stats.totalSnippets) * 100) : 0}%` }} /></div>
               </div>
             </div>
             )}

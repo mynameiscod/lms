@@ -750,25 +750,48 @@
 
 .summary-stats.horizontal {
   flex-direction: row;
-  gap: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .summary-stats.horizontal .summary-item {
   flex: 1;
+  min-width: 140px;
 }
 
 .summary-item {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  background: white;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  text-align: left;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.summary-item:hover {
+  border-color: #005897;
+  box-shadow: 0 4px 12px rgba(0, 88, 151, 0.10);
+}
+
+.summary-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 16px;
-  background: #f8fafc;
-  border-radius: 8px;
-  border: 1px solid #e2e8f0;
-  text-align: center;
+  font-size: 20px;
+  flex-shrink: 0;
 }
+
+.summary-icon-box.s-green  { background: linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%); }
+.summary-icon-box.s-blue   { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
+.summary-icon-box.s-purple { background: linear-gradient(135deg, #f3e8ff 0%, #e9d5ff 100%); }
+.summary-icon-box.s-orange { background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%); }
 
 .summary-icon {
   font-size: 24px;
@@ -778,23 +801,50 @@
 .summary-info {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
 }
 
 .summary-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
 .summary-value {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #1e293b;
+  line-height: 1.2;
 }
+
+.summary-total {
+  font-size: 13px;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.summary-bar {
+  height: 4px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  margin-top: 5px;
+  overflow: hidden;
+}
+
+.summary-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
+}
+
+.summary-bar-fill.s-green  { background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%); }
+.summary-bar-fill.s-blue   { background: linear-gradient(90deg, #3b82f6 0%, #005897 100%); }
+.summary-bar-fill.s-purple { background: linear-gradient(90deg, #a855f7 0%, #7c3aed 100%); }
+.summary-bar-fill.s-orange { background: linear-gradient(90deg, #f97316 0%, #ea580c 100%); }
 
 /* Responsive Design for Dashboard V2 */
 @media (max-width: 1024px) {

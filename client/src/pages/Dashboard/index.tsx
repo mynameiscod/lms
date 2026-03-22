@@ -617,7 +617,7 @@ const DashboardPage: React.FC = () => {
               <span>Quizzes</span>
             </button>
             )}
-            {isFeatureEnabled('codeSnippets') && (
+            {isFeatureEnabled('codingSnippets') && (
             <button className="quick-action-btn" onClick={() => navigate('/code-snippets')}>
               <span className="action-icon">💻</span>
               <span>Code Snippets</span>
@@ -665,7 +665,7 @@ const DashboardPage: React.FC = () => {
               </div>
             </div>
             )}
-            {isFeatureEnabled('codeSnippets') && (
+            {isFeatureEnabled('codingSnippets') && (
             <div className="summary-item">
               <span className="summary-icon">💻</span>
               <div className="summary-info">

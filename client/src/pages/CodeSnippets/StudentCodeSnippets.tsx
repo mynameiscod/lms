@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { codeSnippetApi } from '../../api/codeSnippetApi';
+import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './StudentCodeSnippets.css';
 
 const LANG_LABELS: Record<string, string> = {
@@ -17,7 +18,7 @@ interface SnippetQuestion {
   options: SnippetOption[];
   marks: number;
 }
-interface Submission { status: string; totalMarksAwarded: number; answers: any[]; grades: any[]; overallFeedback: string; }
+interface Submission { status: string; totalMarksAwarded: number; answers: any[]; grades: any[]; overallFeedback: string; shareToken?: string; }
 interface Assessment {
   _id: string;
   title: string;
@@ -150,6 +151,21 @@ export default function StudentCodeSnippets() {
         {sub.overallFeedback && (
           <div className="scs-overall-feedback">
             <strong>Instructor Feedback:</strong> {sub.overallFeedback}
+          </div>
+        )}
+
+        {sub.shareToken && (
+          <div style={{ marginBottom: '20px' }}>
+            <ShareOnLinkedIn
+              shareToken={sub.shareToken}
+              title={viewResult.title}
+              type="snippet"
+              percentage={
+                viewResult.totalMarks > 0
+                  ? Math.round((sub.totalMarksAwarded / viewResult.totalMarks) * 100)
+                  : undefined
+              }
+            />
           </div>
         )}
 

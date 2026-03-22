@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import User from '../models/User';
+import crypto from 'crypto';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -210,6 +211,7 @@ class CodeSnippetController {
         answers,
         status: 'submitted',
         submittedAt: new Date(),
+        shareToken: crypto.randomUUID(),
       });
 
       res.status(201).json({ success: true, data: submission, message: 'Assessment submitted successfully' });

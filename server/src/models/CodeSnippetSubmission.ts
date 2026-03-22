@@ -26,6 +26,7 @@ export interface ICodeSnippetSubmission extends Document {
   gradedBy?: Types.ObjectId;
   gradedAt?: Date;
   submittedAt: Date;
+  shareToken?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -55,6 +56,7 @@ const CodeSnippetSubmissionSchema = new Schema<ICodeSnippetSubmission>({
   gradedBy: { type: Schema.Types.ObjectId },
   gradedAt: { type: Date },
   submittedAt: { type: Date, default: Date.now },
+  shareToken: { type: String, sparse: true, index: true },
 }, { timestamps: true });
 
 // One submission per student per assessment

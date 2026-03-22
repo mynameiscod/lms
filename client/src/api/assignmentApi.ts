@@ -223,6 +223,7 @@ export interface Submission {
   isPassing?: boolean;
   feedback?: string;
   rubricScores?: RubricScore[];
+  shareToken?: string;
   createdAt: string;
   updatedAt: string;
 }

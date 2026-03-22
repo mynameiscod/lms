@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { quizApi } from '../../api';
 import { Button, Spinner, Alert } from '../../components/common';
+import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './QuizResultsPage.css';
 
 interface QuizResult {
@@ -17,6 +18,7 @@ interface QuizResult {
   questionsAnswered: number;
   totalQuestions: number;
   submittedAt: string;
+  shareToken?: string;
 }
 
 interface QuestionResult {
@@ -244,6 +246,14 @@ const QuizResultsPage: React.FC = () => {
         <Button className="btn-secondary" onClick={() => window.print()}>
           🖨️ Print Results
         </Button>
+        {result.shareToken && (
+          <ShareOnLinkedIn
+            shareToken={result.shareToken}
+            title={result.quizTitle}
+            type="quiz"
+            percentage={Math.round(result.percentage)}
+          />
+        )}
       </div>
     </div>
   );

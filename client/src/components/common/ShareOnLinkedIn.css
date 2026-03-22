@@ -1,0 +1,44 @@
+.linkedin-share {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.linkedin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: background 0.2s, transform 0.1s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.linkedin-btn:hover {
+  transform: translateY(-1px);
+}
+
+.linkedin-btn--post {
+  background: #0a66c2;
+  color: #fff;
+}
+
+.linkedin-btn--post:hover {
+  background: #004182;
+}
+
+.linkedin-btn--profile {
+  background: #fff;
+  color: #0a66c2;
+  border: 2px solid #0a66c2;
+}
+
+.linkedin-btn--profile:hover {
+  background: #e8f0fe;
+}

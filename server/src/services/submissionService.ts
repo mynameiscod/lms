@@ -12,6 +12,7 @@ import Assignment, {
 import assignmentService from './assignmentService';
 import codeRunnerService from './codeRunnerService';
 import { Types } from 'mongoose';
+import crypto from 'crypto';
 
 interface StartSubmissionInput {
   tenant: Types.ObjectId;
@@ -362,6 +363,7 @@ class SubmissionService {
     submission.timeSpent = submission.startedAt 
       ? Math.floor((Date.now() - submission.startedAt.getTime()) / 1000)
       : 0;
+    submission.shareToken = crypto.randomUUID();
 
     await submission.save();
 
@@ -445,6 +447,7 @@ class SubmissionService {
     submission.timeSpent = submission.startedAt 
       ? Math.floor((Date.now() - submission.startedAt.getTime()) / 1000)
       : 0;
+    submission.shareToken = crypto.randomUUID();
 
     await submission.save();
     await assignmentService.updateStats(assignment._id, tenant);
@@ -484,6 +487,7 @@ class SubmissionService {
     submission.timeSpent = submission.startedAt 
       ? Math.floor((Date.now() - submission.startedAt.getTime()) / 1000)
       : 0;
+    submission.shareToken = crypto.randomUUID();
 
     await submission.save();
     return submission;

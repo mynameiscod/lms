@@ -8,6 +8,7 @@ import {
   SubmissionStatus,
   AssignmentType
 } from '../../api/assignmentApi';
+import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './assignments.css';
 
 const AssignmentResult: React.FC = () => {
@@ -523,6 +524,7 @@ const AssignmentResult: React.FC = () => {
         display: 'flex', 
         justifyContent: 'center', 
         gap: '12px',
+        flexWrap: 'wrap',
         marginTop: '24px'
       }}>
         <button 
@@ -531,6 +533,14 @@ const AssignmentResult: React.FC = () => {
         >
           ← Back to Assignments
         </button>
+        {submission?.shareToken && (
+          <ShareOnLinkedIn
+            shareToken={submission.shareToken}
+            title={assignment?.title || 'Assignment'}
+            type="assignment"
+            percentage={submission.percentage}
+          />
+        )}
       </div>
     </div>
   );

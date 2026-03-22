@@ -67,6 +67,7 @@ import LeadMyPerformancePage from './pages/LeadMyPerformance';
 import LeadAuditLogsPage from './pages/LeadAuditLogs';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
+import CertificatePage from './pages/Certificate/CertificatePage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -132,6 +133,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/create-organization" element={<CreateOrganizationPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/certificate/:type/:token" element={<CertificatePage />} />
 
       <Route
         path="/dashboard"

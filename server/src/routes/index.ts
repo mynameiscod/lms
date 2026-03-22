@@ -27,6 +27,7 @@ import leadStageRoutes from './leadStageRoutes';
 import leadFormConfigRoutes from './leadFormConfigRoutes';
 import marketingRoutes from './marketingRoutes';
 import codeSnippetRoutes from './codeSnippetRoutes';
+import shareRoutes from './shareRoutes';
 
 const router = express.Router();
 
@@ -58,5 +59,6 @@ router.use('/lead-stages', leadStageRoutes);
 router.use('/lead-form-config', leadFormConfigRoutes);
 router.use('/marketing', marketingRoutes);
 router.use('/code-snippets', codeSnippetRoutes);
+router.use('/share', shareRoutes);
 
 export default router;

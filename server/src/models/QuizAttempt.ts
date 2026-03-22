@@ -32,6 +32,7 @@ export interface IQuizAttempt extends Document {
   tabSwitchWarnings: number;
   isFullScreenMaintained: boolean;
   answers: IAnswerData[];
+  shareToken?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -59,7 +60,8 @@ const quizAttemptSchema = new Schema<IQuizAttempt>(
     tabSwitchCount: { type: Number, default: 0 },
     tabSwitchWarnings: { type: Number, default: 0 },
     isFullScreenMaintained: { type: Boolean, default: true },
-    answers: [{ type: Schema.Types.Mixed }]
+    answers: [{ type: Schema.Types.Mixed }],
+    shareToken: { type: String, sparse: true, index: true }
   },
   { timestamps: true }
 );

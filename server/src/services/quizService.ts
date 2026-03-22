@@ -4,6 +4,7 @@ import QuizAttempt from '../models/QuizAttempt';
 import QuizSubmission from '../models/QuizSubmission';
 import Batch from '../models/Batch';
 import User from '../models/User';
+import crypto from 'crypto';
 
 export class QuizService {
   // Create a new quiz
@@ -405,6 +406,7 @@ export class QuizService {
     attempt.passed = passed;
     attempt.questionsAnswered = answers.length;
     attempt.timeSpent = timeSpent;
+    attempt.shareToken = crypto.randomUUID();
 
     return attempt.save();
   }

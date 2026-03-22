@@ -108,6 +108,7 @@ export interface ISubmission extends Document {
   // Metadata
   ipAddress?: string;
   userAgent?: string;
+  shareToken?: string;
   
   createdAt: Date;
   updatedAt: Date;
@@ -207,7 +208,8 @@ const SubmissionSchema = new Schema<ISubmission>({
   
   // Metadata
   ipAddress: { type: String },
-  userAgent: { type: String }
+  userAgent: { type: String },
+  shareToken: { type: String, sparse: true, index: true }
 }, {
   timestamps: true
 });

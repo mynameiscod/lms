@@ -42,8 +42,9 @@ export function getStudentWelcomeEmailHtml({
                                         <!-- Logo/Brand -->
                                         <table cellpadding="0" cellspacing="0" style="margin: 0 auto; margin-bottom: 20px;">
                                             <tr>
-                                                <td style="font-size: 28px; font-weight: bold; color: white; text-align: center;">
-                                                    <span style="font-size: 32px; margin-right: 8px;">🚀</span>CodeBegun
+                                                <td style="text-align: center;">
+                                                    <img src="https://platform.codebegun.com/assets/logo.png" alt="CodeBegun" style="height: 48px; width: auto; object-fit: contain; display: block; margin: 0 auto 8px auto;" />
+                                                    <span style="font-size: 22px; font-weight: bold; color: white; display: block;">CodeBegun</span>
                                                 </td>
                                             </tr>
                                         </table>
@@ -296,12 +297,36 @@ export function getStudentWelcomeEmailHtml({
 
                                 <!-- Support Email -->
                                 <tr>
-                                    <td style="color: rgba(255, 255, 255, 0.9); text-align: center; margin: 0; padding: 0 0 15px 0;">
+                                    <td style="color: rgba(255, 255, 255, 0.9); text-align: center; margin: 0; padding: 0 0 10px 0;">
                                         <p style="margin: 0; font-size: 12px;">
                                             <a href="mailto:info@codebegun.com" style="color: rgba(255, 255, 255, 0.95); text-decoration: none; font-weight: 500;">
                                                 info@codebegun.com
                                             </a>
                                         </p>
+                                    </td>
+                                </tr>
+
+                                <!-- Phone Numbers -->
+                                <tr>
+                                    <td style="color: rgba(255, 255, 255, 0.9); text-align: center; margin: 0; padding: 0 0 15px 0;">
+                                        <p style="margin: 0; font-size: 12px;">📞 +91-6301099587 &nbsp;|&nbsp; +91-9063906358</p>
+                                    </td>
+                                </tr>
+
+                                <!-- Social Links -->
+                                <tr>
+                                    <td style="text-align: center; margin: 0; padding: 0 0 15px 0;">
+                                        <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                            <tr>
+                                                <td style="padding: 0 8px;"><a href="https://www.linkedin.com/company/codbegun" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">LinkedIn</a></td>
+                                                <td style="color: rgba(255,255,255,0.4); font-size: 12px;">|</td>
+                                                <td style="padding: 0 8px;"><a href="https://www.instagram.com/codebegun" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">Instagram</a></td>
+                                                <td style="color: rgba(255,255,255,0.4); font-size: 12px;">|</td>
+                                                <td style="padding: 0 8px;"><a href="https://www.youtube.com/@codebegun" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">YouTube</a></td>
+                                                <td style="color: rgba(255,255,255,0.4); font-size: 12px;">|</td>
+                                                <td style="padding: 0 8px;"><a href="https://codebegun.com" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">Website</a></td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
 
@@ -376,6 +401,12 @@ Savas Tech Solution Pvt Ltd
 Plot No.4, Flat No.102, SM Reddy Complex
 Madhapur, Hyderabad, Telangana 500081
 info@codebegun.com
+Phone: +91-6301099587 | +91-9063906358
+
+LinkedIn: https://www.linkedin.com/company/codbegun
+Instagram: https://www.instagram.com/codebegun
+YouTube: https://www.youtube.com/@codebegun
+Website: https://codebegun.com
 
 © ${new Date().getFullYear()} CodeBegun. All rights reserved.
 If you did not request this account, ignore this email.`;
@@ -512,11 +543,29 @@ export function getPasswordResetEmailHtml({
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td style="color: rgba(255, 255, 255, 0.85); text-align: center; margin: 0; padding: 0 0 12px 0;">
+                                    <td style="color: rgba(255, 255, 255, 0.85); text-align: center; margin: 0; padding: 0 0 10px 0;">
                                         <p style="margin: 0; font-size: 11px; line-height: 1.5;">
                                             Plot No.4, Flat No.102, SM Reddy Complex<br>
                                             Madhapur, Hyderabad, Telangana 500081
                                         </p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="color: rgba(255,255,255,0.9); text-align: center; margin: 0; padding: 0 0 10px 0;">
+                                        <p style="margin:0; font-size:12px;">📞 +91-6301099587 &nbsp;|&nbsp; +91-9063906358</p>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="text-align: center; padding: 0 0 12px 0;">
+                                        <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                            <tr>
+                                                <td style="padding: 0 8px;"><a href="https://www.linkedin.com/company/codbegun" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">LinkedIn</a></td>
+                                                <td style="color: rgba(255,255,255,0.4); font-size: 12px;">|</td>
+                                                <td style="padding: 0 8px;"><a href="https://www.instagram.com/codebegun" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">Instagram</a></td>
+                                                <td style="color: rgba(255,255,255,0.4); font-size: 12px;">|</td>
+                                                <td style="padding: 0 8px;"><a href="https://codebegun.com" style="color: rgba(255,255,255,0.9); text-decoration: none; font-size: 12px;">Website</a></td>
+                                            </tr>
+                                        </table>
                                     </td>
                                 </tr>
                                 <tr>
@@ -576,6 +625,7 @@ CodeBegun
 Savas Tech Solution Pvt Ltd
 Plot No.4, Flat No.102, SM Reddy Complex
 Madhapur, Hyderabad, Telangana 500081
+Phone: +91-6301099587 | +91-9063906358
 
 © ${new Date().getFullYear()} CodeBegun. All rights reserved.`;
 }

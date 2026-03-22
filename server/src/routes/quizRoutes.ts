@@ -1,10 +1,26 @@
 import { Router } from 'express';
+import * as fs from 'fs';
+import multer from 'multer';
 import * as quizController from '../controllers/quizController';
 import * as questionController from '../controllers/questionController';
 import * as quizReportController from '../controllers/quizReportController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
+
+// Ensure recordings directory exists
+const recordingsDir = 'uploads/quiz-recordings';
+if (!fs.existsSync(recordingsDir)) {
+  fs.mkdirSync(recordingsDir, { recursive: true });
+}
+
+const recordingUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, recordingsDir),
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+  }),
+  limits: { fileSize: 500 * 1024 * 1024 } // 500 MB max
+});
 
 const router = Router();
 
@@ -61,6 +77,8 @@ router.post('/:quizId/start', quizController.startQuizAttempt);
 router.get('/:quizId/questions', quizController.getQuizQuestions);
 
 router.post('/:quizId/attempt/:attemptId/submit', quizController.submitQuizAttempt);
+
+router.post('/:quizId/attempt/:attemptId/recording', recordingUpload.single('recording'), quizController.uploadAttemptRecording);
 
 router.get('/attempt/:attemptId/results', quizController.getQuizResults);
 router.get('/attempt/:attemptId/student-results', quizController.getStudentAttemptResults);

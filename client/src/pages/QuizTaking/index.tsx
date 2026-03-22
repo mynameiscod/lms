@@ -27,7 +27,18 @@ const QuizTakingPage: React.FC = () => {
   const submitQuizRef = useRef<() => void>(() => {});
   const videoRef = useRef<HTMLVideoElement>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
   const [mediaError, setMediaError] = useState('');
+  // Stable mutable refs for use inside event callbacks (avoid stale closure / re-registration bugs)
+  const quizRef = useRef<Quiz | null>(null);
+  const tabSwitchCountRef = useRef(0);
+  const attemptRef = useRef<any>(null);
+
+  // Keep refs in sync with state
+  useEffect(() => { quizRef.current = quiz; }, [quiz]);
+  useEffect(() => { tabSwitchCountRef.current = tabSwitchCount; }, [tabSwitchCount]);
+  useEffect(() => { attemptRef.current = attempt; }, [attempt]);
 
   const handleTabSwitch = useCallback(() => {
     setTabSwitchCount(prev => {
@@ -58,10 +69,11 @@ const QuizTakingPage: React.FC = () => {
 
   const handleFullscreenChange = useCallback(() => {
     // Re-enforce fullscreen if user exits it during quiz
-    if (quiz?.requireFullScreen && !document.fullscreenElement && attempt) {
+    // Use ref to avoid stale closure — deps on `attempt` would cause listeners to be re-registered
+    if (quizRef.current?.requireFullScreen && !document.fullscreenElement && attemptRef.current) {
       requestFullscreen();
     }
-  }, [quiz?.requireFullScreen, attempt]);
+  }, []); // stable — reads from refs
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const setupEventListeners = useCallback(() => {
@@ -132,6 +144,17 @@ const QuizTakingPage: React.FC = () => {
             };
             const stream = await navigator.mediaDevices.getUserMedia(constraints);
             mediaStreamRef.current = stream;
+            // Start recording
+            try {
+              const recorder = new MediaRecorder(stream);
+              recorder.ondataavailable = (e) => {
+                if (e.data.size > 0) recordingChunksRef.current.push(e.data);
+              };
+              recorder.start(1000); // collect 1-second chunks
+              mediaRecorderRef.current = recorder;
+            } catch (recErr) {
+              console.warn('MediaRecorder not supported:', recErr);
+            }
           } catch (mediaErr: any) {
             // Permission denied or blocked — warn but allow quiz to continue
             const device = quiz.enableCamera && quiz.enableMicrophone ? 'camera and microphone' : quiz.enableCamera ? 'camera' : 'microphone';
@@ -276,6 +299,23 @@ const QuizTakingPage: React.FC = () => {
 
       await quizApi.submitAttempt(quizId, attempt._id, submissions);
 
+      // Stop recording and save blob to server
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+        await new Promise<void>((resolve) => {
+          mediaRecorderRef.current!.onstop = () => {
+            if (recordingChunksRef.current.length > 0) {
+              const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
+              const formData = new FormData();
+              formData.append('recording', blob, `quiz_${quizId}_${attempt._id}.webm`);
+              quizApi.uploadRecording(quizId, attempt._id, formData).catch(err =>
+                console.warn('Failed to upload recording:', err)
+              );
+            }
+            resolve();
+          };
+          mediaRecorderRef.current!.stop();
+        });
+      }
       // Stop media stream on submit
       if (mediaStreamRef.current) {
         mediaStreamRef.current.getTracks().forEach(track => track.stop());
@@ -520,9 +560,19 @@ const QuizTakingPage: React.FC = () => {
 
       {/* Header */}
       <div className={`quiz-header ${timeWarning ? 'warning' : ''} ${timeCritical ? 'critical' : ''}`}>
+        <div className="quiz-header-logo">
+          <img src="/assets/logo.png" alt="Codebegun" />
+        </div>
+
         <div className="quiz-title">
           <h1>{quiz.title}</h1>
-          <p className="question-count">Question {currentQuestionIndex + 1} of {questions.length}</p>
+          <p className="question-count">
+            Question {currentQuestionIndex + 1} of {questions.length}
+            {' '}•{' '}
+            {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+            {' '}
+            {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
 
         <div className="quiz-timer">

@@ -10,6 +10,8 @@ import Enrollment from '../models/Enrollment';
 import StudentProgress from '../models/StudentProgress';
 import User from '../models/User';
 import Content from '../models/Content';
+import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
+import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -97,8 +99,8 @@ class DashboardController {
 
       // Get upcoming quizzes
       const upcomingQuizzes = await Quiz.find({
-        tenant: tenantObjectId,
-        status: 'published',
+        tenantId: tenantObjectId,
+        isActive: true,
         $or: [
           { endDate: { $gte: now } },
           { endDate: { $exists: false } }
@@ -147,6 +149,47 @@ class DashboardController {
       const quizTitles = await Quiz.find({ _id: { $in: quizIds } }).select('title').lean();
       const quizTitleMap = new Map(quizTitles.map(q => [q._id.toString(), q.title]));
 
+      // Get recent snippet submissions
+      const recentSnippetSubmissions = await CodeSnippetSubmission.find({
+        studentId: userObjectId,
+        tenantId: tenantObjectId,
+        status: { $in: ['submitted', 'grading', 'graded'] }
+      })
+        .select('assessmentId submittedAt totalMarksAwarded status')
+        .sort({ submittedAt: -1 })
+        .limit(5)
+        .lean();
+
+      // Fetch snippet titles
+      const snippetAssessmentIds = recentSnippetSubmissions.map(s => s.assessmentId);
+      const snippetTitles = await CodeSnippetAssessment.find({ _id: { $in: snippetAssessmentIds } }).select('title').lean();
+      const snippetTitleMap = new Map(snippetTitles.map(s => [s._id.toString(), s.title]));
+
+      // Upcoming code snippets
+      const upcomingSnippets = await CodeSnippetAssessment.find({
+        tenantId: tenantObjectId,
+        status: 'published',
+        $or: [
+          { dueDate: { $gte: now } },
+          { dueDate: { $exists: false } }
+        ]
+      })
+        .select('title language totalMarks dueDate')
+        .sort({ dueDate: 1 })
+        .limit(5)
+        .lean();
+
+      const attemptedSnippetIds = await CodeSnippetSubmission.find({
+        studentId: userObjectId,
+        tenantId: tenantObjectId
+      }).distinct('assessmentId');
+
+      const snippetsWithStatus = upcomingSnippets.map(s => ({
+        ...s,
+        isAttempted: attemptedSnippetIds.some((id: any) => id.toString() === s._id.toString()),
+        daysUntilDue: s.dueDate ? Math.ceil((new Date(s.dueDate).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null
+      }));
+
       // Combine and sort recent activity
       const recentActivity = [
         ...recentSubmissions.map((s: any) => ({
@@ -164,6 +207,14 @@ class DashboardController {
           status: a.status,
           score: a.obtainedMarks,
           icon: '📝'
+        })),
+        ...recentSnippetSubmissions.map((s: any) => ({
+          type: 'snippet',
+          title: snippetTitleMap.get(s.assessmentId?.toString()) || 'Code Snippet',
+          timestamp: s.submittedAt,
+          status: s.status,
+          score: s.totalMarksAwarded,
+          icon: '💻'
         }))
       ].sort((a, b) => new Date(b.timestamp || 0).getTime() - new Date(a.timestamp || 0).getTime()).slice(0, 5);
 
@@ -175,12 +226,13 @@ class DashboardController {
 
       const completedAssignments = await Submission.countDocuments({
         student: userObjectId,
+        tenant: tenantObjectId,
         status: { $in: ['submitted', 'graded'] }
       });
 
       const totalQuizzes = await Quiz.countDocuments({
-        tenant: tenantObjectId,
-        status: 'published'
+        tenantId: tenantObjectId,
+        isActive: true
       });
 
       const completedQuizzes = await QuizAttempt.countDocuments({
@@ -188,9 +240,20 @@ class DashboardController {
         status: { $in: ['submitted', 'grading'] }
       });
 
+      const totalSnippets = await CodeSnippetAssessment.countDocuments({
+        tenantId: tenantObjectId,
+        status: 'published'
+      });
+
+      const completedSnippets = await CodeSnippetSubmission.countDocuments({
+        studentId: userObjectId,
+        tenantId: tenantObjectId
+      });
+
       // Get pending items count
       const pendingAssignments = assignmentsWithStatus.filter(a => !a.isSubmitted).length;
       const pendingQuizzes = quizzesWithStatus.filter(q => !q.isAttempted).length;
+      const pendingSnippets = snippetsWithStatus.filter(s => !s.isAttempted).length;
 
       res.json({
         success: true,
@@ -199,7 +262,8 @@ class DashboardController {
           courseProgress,
           upcomingDeadlines: {
             assignments: assignmentsWithStatus.filter(a => !a.isSubmitted),
-            quizzes: quizzesWithStatus.filter(q => !q.isAttempted)
+            quizzes: quizzesWithStatus.filter(q => !q.isAttempted),
+            snippets: snippetsWithStatus.filter(s => !s.isAttempted)
           },
           recentActivity,
           stats: {
@@ -209,6 +273,9 @@ class DashboardController {
             totalQuizzes,
             completedQuizzes,
             pendingQuizzes,
+            totalSnippets,
+            completedSnippets,
+            pendingSnippets,
             courseProgress: courseProgress.percentage
           }
         }

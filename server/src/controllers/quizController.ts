@@ -592,3 +592,16 @@ export const getAvailableQuestions = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// Save proctoring recording for a quiz attempt
+export const uploadAttemptRecording = async (req: Request, res: Response) => {
+  try {
+    const file = (req as any).file;
+    if (!file) {
+      return res.status(400).json({ success: false, message: 'No recording file provided' });
+    }
+    res.json({ success: true, message: 'Recording saved', path: file.path });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -1137,6 +1137,25 @@ export const quizApi = {
     );
   },
 
+  uploadRecording: async (quizId: string, attemptId: string, formData: FormData) => {
+    const token = localStorage.getItem('token');
+    const tenantId = localStorage.getItem('tenantId');
+    const res = await fetch(`${API_BASE_URL}/quizzes/${quizId}/attempt/${attemptId}/recording`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...(tenantId ? { 'X-Tenant-Id': tenantId } : {})
+        // Note: do NOT set Content-Type — browser sets multipart boundary automatically
+      },
+      body: formData
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ message: 'Upload failed' }));
+      throw new Error(err.message || 'Failed to upload recording');
+    }
+    return res.json();
+  },
+
   updateQuestion: async (quizId: string, questionId: string, updateData: any) => {
     // Map frontend field names to backend field names
     const mappedData = {

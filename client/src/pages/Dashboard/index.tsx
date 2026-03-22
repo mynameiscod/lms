@@ -39,6 +39,15 @@ interface DashboardData {
       isAttempted: boolean;
       daysUntilEnd: number | null;
     }>;
+    snippets: Array<{
+      _id: string;
+      title: string;
+      language: string;
+      totalMarks: number;
+      dueDate: string | null;
+      isAttempted: boolean;
+      daysUntilDue: number | null;
+    }>;
   };
   recentActivity: Array<{
     type: string;
@@ -55,6 +64,9 @@ interface DashboardData {
     totalQuizzes: number;
     completedQuizzes: number;
     pendingQuizzes: number;
+    totalSnippets: number;
+    completedSnippets: number;
+    pendingSnippets: number;
     courseProgress: number;
   };
 }
@@ -515,6 +527,24 @@ const DashboardPage: React.FC = () => {
                       )}
                     </div>
                   ))}
+                  {data?.upcomingDeadlines.snippets?.map((s) => (
+                    <div 
+                      key={s._id} 
+                      className="deadline-item"
+                      onClick={() => navigate(`/code-snippets/${s._id}`)}
+                    >
+                      <div className="deadline-icon quiz">💻</div>
+                      <div className="deadline-info">
+                        <span className="deadline-title">{s.title}</span>
+                        <span className="deadline-meta">{s.language} • {s.totalMarks} marks</span>
+                      </div>
+                      {s.dueDate && s.daysUntilDue !== null && (
+                        <div className={`deadline-due ${s.daysUntilDue <= 2 ? 'urgent' : ''}`}>
+                          {formatDate(s.dueDate)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -539,7 +569,7 @@ const DashboardPage: React.FC = () => {
                       <div className="activity-info">
                         <span className="activity-title">{activity.title}</span>
                         <span className="activity-meta">
-                          {activity.type === 'assignment' ? 'Assignment' : 'Quiz'}
+                          {activity.type === 'assignment' ? 'Assignment' : activity.type === 'snippet' ? 'Code Snippet' : 'Quiz'}
                           {activity.score !== undefined && ` • Score: ${activity.score}`}
                         </span>
                       </div>
@@ -587,6 +617,12 @@ const DashboardPage: React.FC = () => {
               <span>Quizzes</span>
             </button>
             )}
+            {isFeatureEnabled('codeSnippets') && (
+            <button className="quick-action-btn" onClick={() => navigate('/code-snippets')}>
+              <span className="action-icon">💻</span>
+              <span>Code Snippets</span>
+            </button>
+            )}
             {isFeatureEnabled('attendance') && (
             <button className="quick-action-btn" onClick={() => navigate('/my-attendance')}>
               <span className="action-icon">☑</span>
@@ -626,6 +662,15 @@ const DashboardPage: React.FC = () => {
               <div className="summary-info">
                 <span className="summary-label">Chapters</span>
                 <span className="summary-value">{data?.courseProgress.completed || 0} / {data?.courseProgress.total || 0}</span>
+              </div>
+            </div>
+            )}
+            {isFeatureEnabled('codeSnippets') && (
+            <div className="summary-item">
+              <span className="summary-icon">💻</span>
+              <div className="summary-info">
+                <span className="summary-label">Code Snippets</span>
+                <span className="summary-value">{data?.stats.completedSnippets || 0} / {data?.stats.totalSnippets || 0}</span>
               </div>
             </div>
             )}

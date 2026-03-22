@@ -52,6 +52,7 @@ interface QuizFormData {
   canCopyPaste: boolean;
   requireFullScreen: boolean;
   tabSwitchWarnings: boolean;
+  warningCount: number;
   enableCamera: boolean;
   enableMicrophone: boolean;
 }
@@ -136,6 +137,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     canCopyPaste: initialData?.canCopyPaste || false,
     requireFullScreen: initialData?.requireFullScreen || false,
     tabSwitchWarnings: initialData?.tabSwitchWarnings !== false,
+    warningCount: (initialData as any)?.warningCount || 3,
     enableCamera: (initialData as any)?.enableCamera || false,
     enableMicrophone: (initialData as any)?.enableMicrophone || false
   });
@@ -684,6 +686,21 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                 <span>Tab Switch Warnings</span>
                 <small>Warn students about switching tabs</small>
               </label>
+
+              {formData.tabSwitchWarnings && (
+                <div className="form-group" style={{ marginLeft: '24px', marginTop: '-8px' }}>
+                  <label style={{ fontSize: '0.85rem', color: '#555' }}>Auto-submit after how many tab switches? (0 = warn only, no auto-submit)</label>
+                  <Input
+                    type="number"
+                    name="warningCount"
+                    value={String(formData.warningCount)}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="20"
+                    placeholder="e.g. 3"
+                  />
+                </div>
+              )}
 
               <label className="checkbox-label">
                 <input

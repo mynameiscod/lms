@@ -15,14 +15,28 @@
 
 /* Header */
 .quiz-header {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
   align-items: center;
-  padding: 12px 30px;
+  gap: 16px;
+  padding: 10px 24px;
   background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+}
+
+.quiz-header-logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.quiz-header-logo img {
+  height: 36px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(0) invert(1); /* make logo white if needed */
 }
 
 .quiz-header.warning {

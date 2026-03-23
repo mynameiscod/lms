@@ -78,203 +78,232 @@ const AttendanceReportsPage: React.FC = () => {
     a.click();
   };
 
+  const selectedBatch = batches.find(b => b._id === selectedBatchId);
+  const avgAttendance = reportData.length
+    ? Math.round(reportData.reduce((sum, s) => sum + s.percentage, 0) / reportData.length)
+    : 0;
+  const excellentCount = reportData.filter(s => s.percentage >= 75).length;
+  const atRiskCount = reportData.filter(s => s.percentage < 45).length;
+
   if (loading) return <Spinner fullScreen />;
 
   return (
-    <div className="attendance-reports-page">
-      <h2 style={{ color: '#005897', marginBottom: '10px' }}>Attendance Reports</h2>
+    <div className="ar-page">
+      <h3 className="ar-title">Attendance Reports</h3>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      {/* Select Batch - Top */}
-      <div className="filter-group" style={{ marginBottom: '16px' }}>
-        <label>Select Batch *</label>
-        <select
-          value={selectedBatchId}
-          onChange={(e) => handleBatchSelect(e.target.value)}
-          className="batch-select"
-          required
-        >
-          <option value="">-- Select a Batch --</option>
-          {batches.map(batch => (
-            <option key={batch._id} value={batch._id}>
-              {batch.name} ({batch.enrolledCount} students)
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {/* Report Type Tabs + Export */}
-      <div className="report-type-section" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div className="view-tabs">
-          <button
-            className={`tab-btn ${viewType === 'batch' ? 'active' : ''}`}
-            onClick={() => setViewType('batch')}
-          >
-            Batch Summary
-          </button>
-          <button
-            className={`tab-btn ${viewType === 'student' ? 'active' : ''}`}
-            onClick={() => setViewType('student')}
-          >
-            Student Details
-          </button>
+      {/* ── Row 1: Batch Selector Card ── */}
+      <div className="ar-selector-card">
+        <div className="ar-selector-inner">
+          <div className="ar-selector-label">
+            <span className="ar-selector-icon">📅</span>
+            <div>
+              <div className="ar-selector-heading">Select Batch</div>
+              <div className="ar-selector-hint">Choose a batch to view attendance reports</div>
+            </div>
+          </div>
+          <div className="ar-selector-right">
+            <select
+              value={selectedBatchId}
+              onChange={(e) => handleBatchSelect(e.target.value)}
+              className="ar-batch-select"
+            >
+              <option value="">— Choose a batch —</option>
+              {batches.map(batch => (
+                <option key={batch._id} value={batch._id}>
+                  {batch.name} ({batch.enrolledCount} students)
+                </option>
+              ))}
+            </select>
+            {selectedBatchId && (
+              <button className="ar-export-btn" onClick={exportToCSV}>
+                📥 Export CSV
+              </button>
+            )}
+          </div>
         </div>
-        {selectedBatchId && (
-          <button className="export-btn" onClick={exportToCSV}>
-            Export to CSV
-          </button>
+        {selectedBatch && (
+          <div className="ar-selected-info">
+            <span className="ar-selected-badge">✓ {selectedBatch.name}</span>
+            <span className="ar-selected-meta">{selectedBatch.enrolledCount} students enrolled</span>
+          </div>
         )}
       </div>
 
-      <div className="reports-container">
+      {/* ── Row 2: Stat Cards (shown when data loaded) ── */}
+      {selectedBatchId && reportData.length > 0 && (
+        <div className="ar-stat-cards">
+          <div className="ar-stat-card blue">
+            <div className="ar-stat-icon">👥</div>
+            <div className="ar-stat-value">{reportData.length}</div>
+            <div className="ar-stat-label">Total Students</div>
+          </div>
+          <div className={`ar-stat-card ${avgAttendance >= 75 ? 'green' : avgAttendance >= 60 ? 'orange' : 'red'}`}>
+            <div className="ar-stat-icon">📊</div>
+            <div className="ar-stat-value">{avgAttendance}%</div>
+            <div className="ar-stat-label">Avg Attendance</div>
+          </div>
+          <div className="ar-stat-card green">
+            <div className="ar-stat-icon">✅</div>
+            <div className="ar-stat-value">{excellentCount}</div>
+            <div className="ar-stat-label">Excellent (75%+)</div>
+          </div>
+          <div className="ar-stat-card red">
+            <div className="ar-stat-icon">⚠️</div>
+            <div className="ar-stat-value">{atRiskCount}</div>
+            <div className="ar-stat-label">At Risk (&lt;45%)</div>
+          </div>
+        </div>
+      )}
 
-        {/* Reports Content */}
-        {selectedBatchId ? (
-          <div className="reports-content">
-            {reportData.length === 0 ? (
-              <div className="no-data">
-                <p>No attendance data available for this batch</p>
+      {/* ── Row 3: View Tab Navigation ── */}
+      {selectedBatchId && reportData.length > 0 && (
+        <div className="ar-tab-nav">
+          <button
+            className={`ar-tab ${viewType === 'batch' ? 'active' : ''}`}
+            onClick={() => setViewType('batch')}
+          >
+            <span className="ar-tab-icon">📈</span>
+            Batch Summary
+            {viewType === 'batch' && <span className="ar-tab-bar" />}
+          </button>
+          <button
+            className={`ar-tab ${viewType === 'student' ? 'active' : ''}`}
+            onClick={() => setViewType('student')}
+          >
+            <span className="ar-tab-icon">🎓</span>
+            Student Details
+            {viewType === 'student' && <span className="ar-tab-bar" />}
+          </button>
+        </div>
+      )}
+
+      {/* ── Row 4: Content Panel ── */}
+      <div className="ar-content-panel">
+        {!selectedBatchId ? (
+          <div className="ar-empty">
+            <div className="ar-empty-icon">📅</div>
+            <p>Select a batch above to view attendance reports</p>
+          </div>
+        ) : reportData.length === 0 ? (
+          <div className="ar-empty">
+            <div className="ar-empty-icon">📭</div>
+            <p>No attendance data available for this batch</p>
+          </div>
+        ) : viewType === 'batch' ? (
+          /* ── Batch Summary: Distribution Bands ── */
+          <div className="ar-distribution-section">
+            <div className="ar-section-header">
+              <h4>Attendance Distribution</h4>
+              <span className="ar-section-sub">{reportData.length} students total</span>
+            </div>
+            <div className="ar-dist-grid">
+              <div className="ar-dist-card excellent">
+                <div className="ar-dist-top">
+                  <span className="ar-dist-band">Excellent</span>
+                  <span className="ar-dist-range">75% and above</span>
+                </div>
+                <div className="ar-dist-count">{excellentCount}</div>
+                <div className="ar-dist-pct">
+                  {reportData.length > 0 ? Math.round((excellentCount / reportData.length) * 100) : 0}% of batch
+                </div>
+                <div className="ar-dist-bar">
+                  <div className="ar-dist-fill" style={{ width: `${reportData.length > 0 ? Math.round((excellentCount / reportData.length) * 100) : 0}%` }} />
+                </div>
               </div>
-            ) : (
-              <>
-                {/* Summary Stats */}
-                <div className="stats-section">
-                  <h3>Batch Overview</h3>
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <span className="stat-label">Total Students</span>
-                      <span className="stat-value">{reportData.length}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Avg Attendance</span>
-                      <span className="stat-value">
-                        {Math.round(
-                          reportData.reduce((sum, s) => sum + s.percentage, 0) / reportData.length
-                        )}%
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Excellent (75%+)</span>
-                      <span className="stat-value">
-                        {reportData.filter(s => s.percentage >= 75).length}
-                      </span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Poor (&lt;45%)</span>
-                      <span className="stat-value">
-                        {reportData.filter(s => s.percentage < 45).length}
-                      </span>
-                    </div>
-                  </div>
+              <div className="ar-dist-card good">
+                <div className="ar-dist-top">
+                  <span className="ar-dist-band">Good</span>
+                  <span className="ar-dist-range">60 – 74%</span>
                 </div>
-
-                {/* Student Details Table */}
-                <div className="table-section">
-                  <h3>Student Attendance Details</h3>
-                  <div className="table-wrapper">
-                    <table className="reports-table">
-                      <thead>
-                        <tr>
-                          <th>Student Name</th>
-                          <th>Email</th>
-                          <th>Total Days</th>
-                          <th>Present</th>
-                          <th>Absent</th>
-                          <th>Leave</th>
-                          <th>Attendance %</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reportData.map((student, idx) => (
-                          <tr key={student.studentId} className={`row-${idx % 2}`}>
-                            <td className="student-name">
-                              <span className="student-index">{idx + 1}</span>
-                              {student.studentName}
-                            </td>
-                            <td className="student-email">{student.studentEmail}</td>
-                            <td className="value-cell">{student.total}</td>
-                            <td className="value-cell present">{student.present}</td>
-                            <td className="value-cell absent">{student.absent}</td>
-                            <td className="value-cell leave">{student.leave}</td>
-                            <td className="percentage-cell">
-                              <div className="percentage-bar">
-                                <div
-                                  className={`percentage-fill ${getAttendancePercentageColor(student.percentage)}`}
-                                  style={{ width: `${student.percentage}%` }}
-                                />
-                              </div>
-                              <span className={`percentage-value ${getAttendancePercentageColor(student.percentage)}`}>
-                                {student.percentage}%
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                <div className="ar-dist-count">
+                  {reportData.filter(s => s.percentage >= 60 && s.percentage < 75).length}
                 </div>
-
-                {/* Attendance Distribution Chart */}
-                <div className="chart-section">
-                  <h3>Attendance Distribution</h3>
-                  <div className="distribution-grid">
-                    <div className="distribution-item excellent">
-                      <span className="dist-label">Excellent (75%+)</span>
-                      <span className="dist-count">
-                        {reportData.filter(s => s.percentage >= 75).length}
-                      </span>
-                      <span className="dist-percentage">
-                        {Math.round(
-                          (reportData.filter(s => s.percentage >= 75).length / reportData.length) * 100
-                        )}%
-                      </span>
-                    </div>
-                    <div className="distribution-item good">
-                      <span className="dist-label">Good (60-74%)</span>
-                      <span className="dist-count">
-                        {reportData.filter(s => s.percentage >= 60 && s.percentage < 75).length}
-                      </span>
-                      <span className="dist-percentage">
-                        {Math.round(
-                          (reportData.filter(s => s.percentage >= 60 && s.percentage < 75).length /
-                            reportData.length) *
-                            100
-                        )}%
-                      </span>
-                    </div>
-                    <div className="distribution-item average">
-                      <span className="dist-label">Average (45-59%)</span>
-                      <span className="dist-count">
-                        {reportData.filter(s => s.percentage >= 45 && s.percentage < 60).length}
-                      </span>
-                      <span className="dist-percentage">
-                        {Math.round(
-                          (reportData.filter(s => s.percentage >= 45 && s.percentage < 60).length /
-                            reportData.length) *
-                            100
-                        )}%
-                      </span>
-                    </div>
-                    <div className="distribution-item poor">
-                      <span className="dist-label">Poor (&lt;45%)</span>
-                      <span className="dist-count">
-                        {reportData.filter(s => s.percentage < 45).length}
-                      </span>
-                      <span className="dist-percentage">
-                        {Math.round(
-                          (reportData.filter(s => s.percentage < 45).length / reportData.length) * 100
-                        )}%
-                      </span>
-                    </div>
-                  </div>
+                <div className="ar-dist-pct">
+                  {Math.round((reportData.filter(s => s.percentage >= 60 && s.percentage < 75).length / reportData.length) * 100)}% of batch
                 </div>
-              </>
-            )}
+                <div className="ar-dist-bar">
+                  <div className="ar-dist-fill" style={{ width: `${Math.round((reportData.filter(s => s.percentage >= 60 && s.percentage < 75).length / reportData.length) * 100)}%` }} />
+                </div>
+              </div>
+              <div className="ar-dist-card average">
+                <div className="ar-dist-top">
+                  <span className="ar-dist-band">Average</span>
+                  <span className="ar-dist-range">45 – 59%</span>
+                </div>
+                <div className="ar-dist-count">
+                  {reportData.filter(s => s.percentage >= 45 && s.percentage < 60).length}
+                </div>
+                <div className="ar-dist-pct">
+                  {Math.round((reportData.filter(s => s.percentage >= 45 && s.percentage < 60).length / reportData.length) * 100)}% of batch
+                </div>
+                <div className="ar-dist-bar">
+                  <div className="ar-dist-fill" style={{ width: `${Math.round((reportData.filter(s => s.percentage >= 45 && s.percentage < 60).length / reportData.length) * 100)}%` }} />
+                </div>
+              </div>
+              <div className="ar-dist-card poor">
+                <div className="ar-dist-top">
+                  <span className="ar-dist-band">At Risk</span>
+                  <span className="ar-dist-range">Below 45%</span>
+                </div>
+                <div className="ar-dist-count">{atRiskCount}</div>
+                <div className="ar-dist-pct">
+                  {reportData.length > 0 ? Math.round((atRiskCount / reportData.length) * 100) : 0}% of batch
+                </div>
+                <div className="ar-dist-bar">
+                  <div className="ar-dist-fill" style={{ width: `${reportData.length > 0 ? Math.round((atRiskCount / reportData.length) * 100) : 0}%` }} />
+                </div>
+              </div>
+            </div>
           </div>
         ) : (
-          <div className="no-batch-selected">
-            <p>Select a batch to view attendance reports</p>
+          /* ── Student Details: Table ── */
+          <div className="ar-table-section">
+            <div className="ar-section-header">
+              <h4>Student Attendance Details</h4>
+              <span className="ar-section-sub">{reportData.length} students</span>
+            </div>
+            <div className="ar-table-wrap">
+              <table className="ar-table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Student</th>
+                    <th>Email</th>
+                    <th>Total</th>
+                    <th>Present</th>
+                    <th>Absent</th>
+                    <th>Leave</th>
+                    <th>Attendance</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {reportData.map((student, idx) => (
+                    <tr key={student.studentId}>
+                      <td className="ar-idx">{idx + 1}</td>
+                      <td className="ar-name">{student.studentName}</td>
+                      <td className="ar-email">{student.studentEmail}</td>
+                      <td className="ar-num">{student.total}</td>
+                      <td className="ar-num ar-present">{student.present}</td>
+                      <td className="ar-num ar-absent">{student.absent}</td>
+                      <td className="ar-num ar-leave">{student.leave}</td>
+                      <td className="ar-pct-cell">
+                        <div className="ar-pct-bar">
+                          <div
+                            className={`ar-pct-fill ${getAttendancePercentageColor(student.percentage)}`}
+                            style={{ width: `${student.percentage}%` }}
+                          />
+                        </div>
+                        <span className={`ar-pct-val ${getAttendancePercentageColor(student.percentage)}`}>
+                          {student.percentage}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </div>

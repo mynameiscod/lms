@@ -1,6 +1,462 @@
-.attendance-reports-page {
-  padding: 20px;
+/* ══════════════════════════════════════════
+   Attendance Reports — Full Redesign
+══════════════════════════════════════════ */
+
+.ar-page {
+  padding: 24px;
+  max-width: 1400px;
 }
+
+.ar-title {
+  color: #005897;
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #005897;
+}
+
+/* ── Selector Card ── */
+.ar-selector-card {
+  background: #fff;
+  border: 1px solid #dde4f0;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 10px rgba(0,88,151,0.08);
+}
+
+.ar-selector-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ar-selector-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.ar-selector-icon { font-size: 2rem; line-height: 1; }
+
+.ar-selector-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2340;
+}
+
+.ar-selector-hint {
+  font-size: 0.78rem;
+  color: #7a8aaa;
+  margin-top: 2px;
+}
+
+.ar-selector-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 280px;
+}
+
+.ar-batch-select {
+  flex: 1;
+  padding: 12px 16px;
+  border: 2px solid #dde4f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  background: #f7f9fc;
+  color: #1a2340;
+  cursor: pointer;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.ar-batch-select:hover,
+.ar-batch-select:focus {
+  border-color: #005897;
+  box-shadow: 0 0 0 3px rgba(0,88,151,0.12);
+  outline: none;
+  background: #fff;
+}
+
+.ar-export-btn {
+  padding: 11px 18px;
+  background: #005897;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.ar-export-btn:hover {
+  background: #004478;
+  transform: translateY(-1px);
+}
+
+.ar-selected-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #eef2f9;
+  flex-wrap: wrap;
+}
+
+.ar-selected-badge {
+  background: #e3f0fb;
+  color: #005897;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.ar-selected-meta {
+  font-size: 0.82rem;
+  color: #6b7ca4;
+}
+
+/* ── Stat Cards Row ── */
+.ar-stat-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.ar-stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px 18px;
+  border: 1px solid #e5eaf5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  text-align: center;
+}
+
+.ar-stat-card.blue  { border-top: 4px solid #005897; }
+.ar-stat-card.green { border-top: 4px solid #27ae60; }
+.ar-stat-card.orange{ border-top: 4px solid #f39c12; }
+.ar-stat-card.red   { border-top: 4px solid #e74c3c; }
+
+.ar-stat-icon { font-size: 1.6rem; }
+
+.ar-stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1a2340;
+  line-height: 1;
+}
+
+.ar-stat-card.blue  .ar-stat-value { color: #005897; }
+.ar-stat-card.green .ar-stat-value { color: #27ae60; }
+.ar-stat-card.orange .ar-stat-value { color: #f39c12; }
+.ar-stat-card.red   .ar-stat-value { color: #e74c3c; }
+
+.ar-stat-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #7a8aaa;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Tab Navigation ── */
+.ar-tab-nav {
+  display: flex;
+  gap: 0;
+  background: #f0f4fa;
+  border-radius: 10px;
+  padding: 4px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.ar-tab {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 24px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #7a8aaa;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.ar-tab:hover { color: #005897; background: rgba(0,88,151,0.06); }
+
+.ar-tab.active {
+  background: #fff;
+  color: #005897;
+  box-shadow: 0 2px 8px rgba(0,88,151,0.14);
+}
+
+.ar-tab-icon { font-size: 1rem; }
+
+.ar-tab-bar {
+  position: absolute;
+  bottom: 2px;
+  left: 20%;
+  right: 20%;
+  height: 3px;
+  background: #005897;
+  border-radius: 2px;
+}
+
+/* ── Content Panel ── */
+.ar-content-panel {
+  background: #fff;
+  border: 1px solid #e5eaf5;
+  border-radius: 12px;
+  padding: 28px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+  min-height: 280px;
+}
+
+/* Empty state */
+.ar-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: #a0aabf;
+  gap: 10px;
+}
+
+.ar-empty-icon { font-size: 3rem; opacity: 0.4; }
+.ar-empty p { margin: 0; font-size: 1rem; }
+
+/* ── Section header shared ── */
+.ar-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #005897;
+}
+
+.ar-section-header h4 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #005897;
+}
+
+.ar-section-sub {
+  font-size: 0.82rem;
+  color: #7a8aaa;
+}
+
+/* ── Distribution Cards ── */
+.ar-dist-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.ar-dist-card {
+  border-radius: 12px;
+  padding: 22px 18px 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.ar-dist-card.excellent { background: #e8f8ef; border: 1px solid #a3e6be; }
+.ar-dist-card.good      { background: #fff8e1; border: 1px solid #ffe082; }
+.ar-dist-card.average   { background: #fff3e0; border: 1px solid #ffcc80; }
+.ar-dist-card.poor      { background: #ffecea; border: 1px solid #ffaaa5; }
+
+.ar-dist-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.ar-dist-band {
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.ar-dist-card.excellent .ar-dist-band { color: #1b7a3e; }
+.ar-dist-card.good      .ar-dist-band { color: #8b6914; }
+.ar-dist-card.average   .ar-dist-band { color: #b45309; }
+.ar-dist-card.poor      .ar-dist-band { color: #b91c1c; }
+
+.ar-dist-range {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: rgba(255,255,255,0.7);
+  padding: 2px 8px;
+  border-radius: 20px;
+}
+
+.ar-dist-count {
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.ar-dist-card.excellent .ar-dist-count { color: #1b7a3e; }
+.ar-dist-card.good      .ar-dist-count { color: #8b6914; }
+.ar-dist-card.average   .ar-dist-count { color: #b45309; }
+.ar-dist-card.poor      .ar-dist-count { color: #b91c1c; }
+
+.ar-dist-pct {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  margin-bottom: 12px;
+}
+
+.ar-dist-bar {
+  height: 6px;
+  background: rgba(0,0,0,0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ar-dist-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+
+.ar-dist-card.excellent .ar-dist-fill { background: #27ae60; }
+.ar-dist-card.good      .ar-dist-fill { background: #f39c12; }
+.ar-dist-card.average   .ar-dist-fill { background: #e67e22; }
+.ar-dist-card.poor      .ar-dist-fill { background: #e74c3c; }
+
+/* ── Student Table ── */
+.ar-table-wrap {
+  overflow-x: auto;
+  border-radius: 8px;
+  border: 1px solid #e5eaf5;
+}
+
+.ar-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+  font-size: 0.9rem;
+}
+
+.ar-table thead th {
+  background: #f7f9fc;
+  color: #4a5568;
+  padding: 12px 14px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid #e5eaf5;
+  white-space: nowrap;
+}
+
+.ar-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f0f4fa;
+  vertical-align: middle;
+}
+
+.ar-table tbody tr:last-child td { border-bottom: none; }
+.ar-table tbody tr:hover { background: #f7f9fc; }
+
+.ar-idx {
+  width: 36px;
+  height: 36px;
+  background: #005897;
+  color: white;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 36px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+}
+
+.ar-name  { font-weight: 700; color: #1a2340; white-space: nowrap; }
+.ar-email { color: #6b7ca4; font-size: 0.85rem; }
+.ar-num   { text-align: center; font-weight: 700; color: #374151; }
+.ar-present { color: #1b7a3e !important; }
+.ar-absent  { color: #b91c1c !important; }
+.ar-leave   { color: #8b6914 !important; }
+
+.ar-pct-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 140px;
+}
+
+.ar-pct-bar {
+  flex: 1;
+  height: 8px;
+  background: #e5eaf5;
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 60px;
+}
+
+.ar-pct-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.ar-pct-fill.excellent { background: linear-gradient(90deg, #2ecc71, #27ae60); }
+.ar-pct-fill.good      { background: linear-gradient(90deg, #f39c12, #d68910); }
+.ar-pct-fill.average   { background: linear-gradient(90deg, #e67e22, #d35400); }
+.ar-pct-fill.poor      { background: linear-gradient(90deg, #e74c3c, #c0392b); }
+
+.ar-pct-val {
+  font-weight: 700;
+  font-size: 0.85rem;
+  min-width: 42px;
+  text-align: right;
+}
+
+.ar-pct-val.excellent { color: #1b7a3e; }
+.ar-pct-val.good      { color: #8b6914; }
+.ar-pct-val.average   { color: #b45309; }
+.ar-pct-val.poor      { color: #b91c1c; }
+
+/* ── Responsive ── */
+@media (max-width: 1024px) {
+  .ar-stat-cards  { grid-template-columns: repeat(2, 1fr); }
+  .ar-dist-grid   { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 600px) {
+  .ar-page { padding: 14px; }
+  .ar-stat-cards { grid-template-columns: repeat(2, 1fr); }
+  .ar-dist-grid  { grid-template-columns: 1fr 1fr; }
+  .ar-selector-inner { flex-direction: column; align-items: stretch; }
+  .ar-selector-right { flex-direction: column; }
+}
+
+/* ─── Legacy class names kept for any other references ─── */
+.attendance-reports-page { padding: 20px; }
 
 .reports-container {
   background: white;

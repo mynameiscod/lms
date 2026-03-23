@@ -21,6 +21,12 @@ class CodeSnippetController {
       const { questions = [], ...rest } = req.body;
       const totalMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 0), 0);
 
+      // Strip empty-string values for optional ObjectId fields to avoid BSONError
+      const objectIdFields = ['courseId', 'subjectId', 'chapterId', 'topicId'];
+      for (const field of objectIdFields) {
+        if (rest[field] === '' || rest[field] === null) delete rest[field];
+      }
+
       const assessment = await CodeSnippetAssessment.create({
         ...rest,
         questions,
@@ -82,6 +88,13 @@ class CodeSnippetController {
 
       const { questions, ...rest } = req.body;
       const updateData: any = { ...rest, updatedBy: userId };
+
+      // Strip empty-string values for optional ObjectId fields to avoid BSONError
+      const objectIdFields = ['courseId', 'subjectId', 'chapterId', 'topicId'];
+      for (const field of objectIdFields) {
+        if (updateData[field] === '' || updateData[field] === null) delete updateData[field];
+      }
+
       if (questions !== undefined) {
         updateData.questions = questions;
         updateData.totalMarks = questions.reduce((sum: number, q: any) => sum + (Number(q.marks) || 0), 0);

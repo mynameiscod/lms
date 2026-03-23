@@ -103,7 +103,7 @@ router.get(
   '/admin/all',
   authMiddleware,
   tenantResolver,
-  roleGuard(['admin', 'instructor']),
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
   getAllProfiles
 );
 
@@ -112,7 +112,7 @@ router.get(
   '/admin/stats',
   authMiddleware,
   tenantResolver,
-  roleGuard(['admin']),
+  roleGuard(['view_reports', 'view_analytics', 'manage_tenant']),
   getProfileStats
 );
 
@@ -121,7 +121,7 @@ router.get(
   '/admin/:userId',
   authMiddleware,
   tenantResolver,
-  roleGuard(['admin', 'instructor']),
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
   getProfileByUserId
 );
 
@@ -130,7 +130,7 @@ router.delete(
   '/admin/:profileId',
   authMiddleware,
   tenantResolver,
-  roleGuard(['admin']),
+  roleGuard(['manage_tenant', 'manage_tenant_users']),
   deleteProfile
 );
 

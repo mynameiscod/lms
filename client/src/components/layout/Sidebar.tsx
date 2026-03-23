@@ -140,8 +140,16 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const hasAccessToMenu = (item: MenuItem): boolean => {
     if (!user) return false;
 
-    // Role is always a hard gate — user's role must be in the item's allowed roles
-    if (!user.role || !item.roles.includes(user.role)) return false;
+    const roleAllowed = !!(user.role && item.roles.includes(user.role));
+
+    // STAFF users with custom permissions can access menu items based on permissions alone,
+    // regardless of whether their role is listed in the item's roles array.
+    if (!roleAllowed && user.role === 'STAFF' && user.permissions && user.permissions.length > 0 && item.permissions) {
+      return item.permissions.some(p => user.permissions!.includes(p));
+    }
+
+    // For all other roles: role is always a hard gate
+    if (!roleAllowed) return false;
 
     // If user has a permissions array (custom role), also verify at least one permission matches
     if (user.permissions && user.permissions.length > 0 && item.permissions) {

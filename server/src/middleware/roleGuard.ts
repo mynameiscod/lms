@@ -218,11 +218,14 @@ export const roleGuard = (requiredPermissions: string[]) => {
     const userRole = req.user.role;
     let userPermissions: string[];
 
-    // If user has a custom role assigned, use that role's permissions
+    // If user has a custom role assigned, merge base role permissions + custom role permissions
+    // (custom roles extend base permissions, never fully replace them)
     if (req.user.customRoleId) {
       try {
         const customRole = await Role.findById(req.user.customRoleId);
-        userPermissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[userRole] || []);
+        const basePermissions = ROLE_PERMISSIONS[userRole] || [];
+        const customPermissions = customRole ? customRole.permissions : [];
+        userPermissions = [...new Set([...basePermissions, ...customPermissions])];
       } catch {
         userPermissions = ROLE_PERMISSIONS[userRole] || [];
       }

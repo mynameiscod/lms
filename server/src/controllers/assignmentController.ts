@@ -424,22 +424,40 @@ class AssignmentController {
 
       for (const assignmentData of assignments) {
         try {
-          // Normalize type and difficulty to lowercase
-          const normalizedType = (assignmentData.type || '').toString().toLowerCase().trim();
+          // Normalize type — default to 'coding' if missing or not a valid enum value
+          const validAssignmentTypes = ['coding', 'project', 'mcq', 'theory', 'sql', 'file_upload', 'web'];
+          const rawType = (assignmentData.type || '').toString().toLowerCase().trim();
+          const normalizedType = validAssignmentTypes.includes(rawType) ? rawType : 'coding';
+
           const normalizedDifficulty = (assignmentData.difficulty || 'medium').toString().toLowerCase().trim();
-          
+
+          // Parse totalPoints safely
+          const totalPoints = assignmentData.totalPoints ? parseInt(assignmentData.totalPoints) || undefined : undefined;
+
+          // Parse maxAttempts safely ('unlimited' → undefined so schema default applies)
+          const rawMaxAttempts = assignmentData.maxAttempts;
+          const maxAttempts = rawMaxAttempts && rawMaxAttempts !== 'unlimited'
+            ? parseInt(rawMaxAttempts) || undefined
+            : undefined;
+
+          // Map timeLimitMinutes CSV column → timeLimit schema field
+          const timeLimit = assignmentData.timeLimitMinutes ? parseInt(assignmentData.timeLimitMinutes) || undefined : undefined;
+
           // Parse topics and allowedLanguages if they're strings
-          const processedData = {
+          const processedData: any = {
             ...assignmentData,
             tenant: tenantId,
             createdBy: userId,
             type: normalizedType,
             difficulty: normalizedDifficulty,
-            topics: typeof assignmentData.topics === 'string' 
-              ? assignmentData.topics.split(',').map((t: string) => t.trim())
+            ...(totalPoints !== undefined && { totalPoints }),
+            ...(maxAttempts !== undefined && { maxAttempts }),
+            ...(timeLimit !== undefined && { timeLimit }),
+            topics: typeof assignmentData.topics === 'string'
+              ? assignmentData.topics.split(',').map((t: string) => t.trim()).filter(Boolean)
               : assignmentData.topics || [],
             allowedLanguages: typeof assignmentData.allowedLanguages === 'string'
-              ? assignmentData.allowedLanguages.split(',').map((l: string) => l.trim().toLowerCase())
+              ? assignmentData.allowedLanguages.split(',').map((l: string) => l.trim().toLowerCase()).filter(Boolean)
               : assignmentData.allowedLanguages || ['javascript', 'python', 'java'],
             status: 'draft',
             showSyntaxErrors: assignmentData.showSyntaxErrors === 'true' || assignmentData.showSyntaxErrors === true,
@@ -448,16 +466,17 @@ class AssignmentController {
             enablePlagiarismCheck: assignmentData.enablePlagiarismCheck === 'true' || assignmentData.enablePlagiarismCheck === true,
           };
 
-          // Handle test cases for coding assignments
+          // Handle test cases for coding/sql assignments
           if (normalizedType === 'coding' || normalizedType === 'sql') {
             const testCases: any[] = [];
             for (let i = 1; i <= 10; i++) {
-              const input = assignmentData[`tc${i}_input`];
               const expected = assignmentData[`tc${i}_expected`];
-              if (input !== undefined && expected !== undefined) {
+              // Only add test case when expectedOutput is a non-empty string
+              if (expected !== undefined && String(expected).trim() !== '') {
+                const input = assignmentData[`tc${i}_input`];
                 testCases.push({
-                  input: String(input),
-                  expectedOutput: String(expected),
+                  input: input !== undefined ? String(input) : '',
+                  expectedOutput: String(expected).trim(),
                   isHidden: assignmentData[`tc${i}_hidden`] === 'true' || assignmentData[`tc${i}_hidden`] === true,
                   weight: parseInt(assignmentData[`tc${i}_weight`]) || 10,
                   description: `Test case ${i}`
@@ -474,20 +493,6 @@ class AssignmentController {
             processedData.mcqQuestions = assignmentData.questions;
             processedData.shuffleQuestions = assignmentData.shuffleQuestions === 'true' || assignmentData.shuffleQuestions === true;
             processedData.shuffleOptions = assignmentData.shuffleOptions === 'true' || assignmentData.shuffleOptions === true;
-          }
-
-          // Handle settings
-          if (assignmentData.timeLimitMinutes) {
-            processedData.settings = {
-              ...processedData.settings,
-              timeLimitMinutes: parseInt(assignmentData.timeLimitMinutes)
-            };
-          }
-          if (assignmentData.maxAttempts && assignmentData.maxAttempts !== 'unlimited') {
-            processedData.settings = {
-              ...processedData.settings,
-              maxAttempts: parseInt(assignmentData.maxAttempts)
-            };
           }
 
           const assignment = await assignmentService.create(processedData);

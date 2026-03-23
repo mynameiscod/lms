@@ -200,69 +200,117 @@ const QuizReportsPage: React.FC = () => {
 
   if (loading) return <Spinner fullScreen />;
 
+  // Tab card definitions with dynamic metrics
+  const tabCards = [
+    {
+      key: 'overview' as const,
+      icon: '📊',
+      label: 'Overview',
+      metric: metrics
+        ? `${metrics.totalAttempts} attempts · ${Math.round(metrics.averageScore)}% avg`
+        : 'Select a quiz',
+      subMetric: metrics ? `${Math.round(metrics.passRate)}% pass rate` : '',
+    },
+    {
+      key: 'distribution' as const,
+      icon: '📈',
+      label: 'Distribution',
+      metric: distributionStats
+        ? `${distributionStats.completionRate}% completion`
+        : 'Select a quiz',
+      subMetric: distributionStats
+        ? `${distributionStats.completed} / ${distributionStats.totalSentTo} completed`
+        : '',
+    },
+    {
+      key: 'students' as const,
+      icon: '🎓',
+      label: 'Students',
+      metric: studentPerformances.length > 0
+        ? `${studentPerformances.length} students`
+        : 'Select a quiz',
+      subMetric: studentPerformances.length > 0
+        ? `${studentPerformances.filter(s => s.passed).length} passed`
+        : '',
+    },
+    {
+      key: 'performers' as const,
+      icon: '🏆',
+      label: 'Top Performers',
+      metric: topPerformers.length > 0
+        ? topPerformers[0]?.studentName || 'No data'
+        : 'Select a quiz',
+      subMetric: topPerformers.length > 0
+        ? `${topPerformers[0]?.percentage ?? 0}% top score`
+        : '',
+    },
+  ];
+
+  const selectedQuiz = quizzes.find(q => q._id === selectedQuizId);
+
   return (
     <div className="quiz-reports-page">
-      <h3 style={{ color: '#005897', marginBottom: '20px', borderBottom: '2px solid #005897', paddingBottom: '10px' }}>Quiz Reports</h3>
+      <h3 className="qr-page-title">Quiz Reports</h3>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
-      <div className="reports-container">
-        {/* Filters and Controls */}
-        <div className="filters-section">
-          <div className="filter-group">
-            <label>Select Quiz *</label>
+      {/* Row 1: Quiz Selector Card */}
+      <div className="qr-selector-card">
+        <div className="qr-selector-inner">
+          <div className="qr-selector-label">
+            <span className="qr-selector-icon">📋</span>
+            <div>
+              <div className="qr-selector-heading">Select Quiz</div>
+              <div className="qr-selector-hint">Choose a quiz to view detailed reports</div>
+            </div>
+          </div>
+          <div className="qr-selector-right">
             <select
               value={selectedQuizId}
               onChange={(e) => handleQuizSelect(e.target.value)}
-              className="quiz-select"
-              required
+              className="qr-quiz-select"
             >
-              <option value="">-- Select a Quiz --</option>
+              <option value="">— Choose a quiz —</option>
               {quizzes.map(quiz => (
                 <option key={quiz._id} value={quiz._id}>
                   {quiz.title} ({quiz.completedAttempts || 0} completed, {quiz.totalAttempts} total)
                 </option>
               ))}
             </select>
+            {selectedQuizId && (
+              <button className="qr-export-btn" onClick={exportToCSV} title="Export to CSV">
+                📥 Export CSV
+              </button>
+            )}
           </div>
-
-          <div className="filter-group">
-            <label>Report View</label>
-            <div className="view-tabs">
-              <button
-                className={`tab-btn ${viewType === 'overview' ? 'active' : ''}`}
-                onClick={() => setViewType('overview')}
-              >
-                Overview
-              </button>
-              <button
-                className={`tab-btn ${viewType === 'distribution' ? 'active' : ''}`}
-                onClick={() => setViewType('distribution')}
-              >
-                Distribution
-              </button>
-              <button
-                className={`tab-btn ${viewType === 'students' ? 'active' : ''}`}
-                onClick={() => setViewType('students')}
-              >
-                Student Details
-              </button>
-              <button
-                className={`tab-btn ${viewType === 'performers' ? 'active' : ''}`}
-                onClick={() => setViewType('performers')}
-              >
-                Top Performers
-              </button>
-            </div>
-          </div>
-
-          {selectedQuizId && (
-            <button className="export-btn" onClick={exportToCSV}>
-              📥 Export to CSV
-            </button>
-          )}
         </div>
+        {selectedQuiz && (
+          <div className="qr-selected-info">
+            <span className="qr-selected-badge">✓ {selectedQuiz.title}</span>
+            <span className="qr-selected-meta">{selectedQuiz.totalAttempts} total attempts · {Math.round(selectedQuiz.averageScore || 0)}% avg score</span>
+          </div>
+        )}
+      </div>
 
+      {/* Row 2: Tab Summary Cards */}
+      <div className="qr-tab-cards-row">
+        {tabCards.map(card => (
+          <button
+            key={card.key}
+            className={`qr-tab-card ${viewType === card.key ? 'active' : ''} ${!selectedQuizId ? 'disabled' : ''}`}
+            onClick={() => selectedQuizId && setViewType(card.key)}
+          >
+            <div className="qr-tab-icon">{card.icon}</div>
+            <div className="qr-tab-label">{card.label}</div>
+            <div className="qr-tab-metric">{card.metric}</div>
+            {card.subMetric && <div className="qr-tab-sub">{card.subMetric}</div>}
+            {viewType === card.key && <div className="qr-tab-active-bar" />}
+          </button>
+        ))}
+      </div>
+
+      {/* Row 3: Content Panel */}
+      <div className="qr-content-panel">
         {/* Reports Content */}
         {dataLoading ? (
           <div className="loading-content">
@@ -616,8 +664,9 @@ const QuizReportsPage: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="no-quiz-selected">
-            <p>👈 Select a quiz to view reports</p>
+          <div className="qr-no-quiz">
+            <div className="qr-no-quiz-icon">📋</div>
+            <p>Select a quiz above to view detailed reports</p>
           </div>
         )}
       </div>

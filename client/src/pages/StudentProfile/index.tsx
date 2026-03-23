@@ -412,20 +412,74 @@ const StudentProfilePage: React.FC = () => {
 
   return (
     <div className="student-profile-page">
-      {/* Progress Bar Only */}
-      <div className="progress-header">
-        <div className="progress-container">
-          <div className="progress-bar">
-            <div 
-              className="progress-fill" 
-              style={{ width: `${profile.profileCompletionPercentage || 0}%` }}
-            ></div>
+      {/* Score Banner */}
+      {(() => {
+        const pct = profile.profileCompletionPercentage || 0;
+        const r = 44;
+        const circ = 2 * Math.PI * r;
+        const offset = circ - (pct / 100) * circ;
+        const scoreColor = pct >= 80 ? '#22c55e' : pct >= 60 ? '#f59e0b' : pct >= 30 ? '#f97316' : '#ef4444';
+        const scoreLabel = pct >= 80 ? 'Excellent' : pct >= 60 ? 'Good' : pct >= 30 ? 'Basic' : 'Incomplete';
+        const hasResume = !!(profile.professionalProfiles?.resumeUrl || resume);
+        const hasLinkedIn = !!profile.professionalProfiles?.linkedInUrl;
+        const hasPhoto = !!(profilePhotoPreview || profile.personalInfo?.profilePhoto);
+        return (
+          <div className="score-banner">
+            <div className="score-ring-wrap">
+              <svg width="110" height="110" viewBox="0 0 110 110">
+                <circle cx="55" cy="55" r={r} fill="none" stroke="#e2e8f0" strokeWidth="10" />
+                <circle
+                  cx="55" cy="55" r={r} fill="none"
+                  stroke={scoreColor} strokeWidth="10"
+                  strokeLinecap="round"
+                  strokeDasharray={circ}
+                  strokeDashoffset={offset}
+                  transform="rotate(-90 55 55)"
+                  style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+                />
+              </svg>
+              <div className="score-ring-label">
+                <span className="score-pct" style={{ color: scoreColor }}>{pct}%</span>
+                <span className="score-level" style={{ color: scoreColor }}>{scoreLabel}</span>
+              </div>
+            </div>
+            <div className="score-details">
+              <h2 className="score-title">Profile Completion Score</h2>
+              <p className="score-subtitle">Complete your profile to get noticed by recruiters</p>
+              <div className="score-checklist">
+                <div className={`score-check ${profile.personalInfo?.firstName ? 'done' : ''}`}>
+                  {profile.personalInfo?.firstName ? '✅' : '⬜'} Personal Info
+                </div>
+                <div className={`score-check ${profile.education?.highestQualification ? 'done' : ''}`}>
+                  {profile.education?.highestQualification ? '✅' : '⬜'} Education Details
+                </div>
+                <div className={`score-check ${hasResume ? 'done' : ''}`}>
+                  {hasResume ? '✅' : '⬜'} Resume Uploaded
+                </div>
+                <div className={`score-check ${hasLinkedIn ? 'done' : ''}`}>
+                  {hasLinkedIn ? '✅' : '⬜'} LinkedIn Profile
+                </div>
+                <div className={`score-check ${profile.courseInterest?.interestedCourse ? 'done' : ''}`}>
+                  {profile.courseInterest?.interestedCourse ? '✅' : '⬜'} Course Interest
+                </div>
+                <div className={`score-check ${hasPhoto ? 'done' : ''}`}>
+                  {hasPhoto ? '✅' : '⬜'} Profile Photo
+                </div>
+              </div>
+            </div>
+            <div className="score-recruiter-status">
+              <div className={`recruiter-badge ${pct >= 80 ? 'visible' : 'hidden'}`}>
+                {pct >= 80 ? '🔍 Visible to Recruiters' : '🔒 Not yet visible to Recruiters'}
+              </div>
+              <p className="recruiter-hint">
+                {pct >= 80
+                  ? 'Your profile is complete and visible to admin/recruiters'
+                  : `Complete ${80 - pct}% more to become visible to recruiters`}
+              </p>
+            </div>
           </div>
-          <span className="progress-text">
-            Profile Completion: {profile.profileCompletionPercentage || 0}%
-          </span>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Step Indicators */}
       <div className="step-indicators">

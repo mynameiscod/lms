@@ -321,41 +321,49 @@ const QuizReportsPage: React.FC = () => {
             {viewType === 'overview' && (
               metrics ? (
               <>
-                {/* Summary Stats */}
+                {/* Summary Stats — horizontal row */}
                 <div className="stats-section">
-                  <h3 style={{ color: '#005897', borderBottom: '2px solid #005897', paddingBottom: '8px' }}>Quiz Overview</h3>
-                  <div className="stats-grid">
-                    <div className="stat-item">
-                      <span className="stat-label">Total Attempts</span>
-                      <span className="stat-value">{metrics.totalAttempts}</span>
+                  <h3 style={{ color: '#005897', borderBottom: '2px solid #005897', paddingBottom: '8px', marginBottom: '16px' }}>Quiz Overview</h3>
+                  <div className="qr-stats-row">
+                    <div className="qr-stat-card">
+                      <span className="qr-stat-icon">🎯</span>
+                      <span className="qr-stat-val">{metrics.totalAttempts}</span>
+                      <span className="qr-stat-lbl">Total Attempts</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Average Score</span>
-                      <span className="stat-value">{Math.round(metrics.averageScore * 100) / 100}%</span>
+                    <div className="qr-stat-card">
+                      <span className="qr-stat-icon">📊</span>
+                      <span className="qr-stat-val">{Math.round(metrics.averageScore * 100) / 100}%</span>
+                      <span className="qr-stat-lbl">Avg Score</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Pass Rate</span>
-                      <span className="stat-value">{Math.round(metrics.passRate * 100) / 100}%</span>
+                    <div className="qr-stat-card qr-stat-green">
+                      <span className="qr-stat-icon">✅</span>
+                      <span className="qr-stat-val">{Math.round(metrics.passRate * 100) / 100}%</span>
+                      <span className="qr-stat-lbl">Pass Rate</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Highest Score</span>
-                      <span className="stat-value">{Math.round(metrics.highestScore * 100) / 100}%</span>
+                    <div className="qr-stat-card qr-stat-green">
+                      <span className="qr-stat-icon">⬆️</span>
+                      <span className="qr-stat-val">{Math.round(metrics.highestScore * 100) / 100}%</span>
+                      <span className="qr-stat-lbl">Highest</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Lowest Score</span>
-                      <span className="stat-value">{Math.round(metrics.lowestScore * 100) / 100}%</span>
+                    <div className="qr-stat-card qr-stat-red">
+                      <span className="qr-stat-icon">⬇️</span>
+                      <span className="qr-stat-val">{Math.round(metrics.lowestScore * 100) / 100}%</span>
+                      <span className="qr-stat-lbl">Lowest</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Median Score</span>
-                      <span className="stat-value">{Math.round(metrics.medianScore * 100) / 100}%</span>
+                    <div className="qr-stat-card">
+                      <span className="qr-stat-icon">〰️</span>
+                      <span className="qr-stat-val">{Math.round(metrics.medianScore * 100) / 100}%</span>
+                      <span className="qr-stat-lbl">Median</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Std. Deviation</span>
-                      <span className="stat-value">{Math.round(metrics.standardDeviation * 100) / 100}%</span>
+                    <div className="qr-stat-card qr-stat-orange">
+                      <span className="qr-stat-icon">📉</span>
+                      <span className="qr-stat-val">{Math.round(metrics.standardDeviation * 100) / 100}%</span>
+                      <span className="qr-stat-lbl">Std. Deviation</span>
                     </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Avg Time Spent</span>
-                      <span className="stat-value">{Math.round(metrics.averageTimeSpent / 60)} min</span>
+                    <div className="qr-stat-card qr-stat-orange">
+                      <span className="qr-stat-icon">⏱️</span>
+                      <span className="qr-stat-val">{Math.round(metrics.averageTimeSpent / 60)} min</span>
+                      <span className="qr-stat-lbl">Avg Time</span>
                     </div>
                   </div>
                 </div>

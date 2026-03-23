@@ -403,6 +403,64 @@
   margin-bottom: 30px;
 }
 
+/* ── Horizontal stats row (Overview tab) ── */
+.qr-stats-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.qr-stat-card {
+  flex: 1;
+  min-width: 100px;
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px 12px 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+  border-top: 3px solid #005897;
+}
+
+.qr-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(0,88,151,0.13);
+  border-color: #005897;
+}
+
+.qr-stat-card.qr-stat-green { border-top-color: #27ae60; }
+.qr-stat-card.qr-stat-red   { border-top-color: #e74c3c; }
+.qr-stat-card.qr-stat-orange{ border-top-color: #f39c12; }
+
+.qr-stat-icon { font-size: 1.2rem; line-height: 1; }
+
+.qr-stat-val {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #005897;
+  line-height: 1;
+}
+
+.qr-stat-card.qr-stat-green  .qr-stat-val { color: #27ae60; }
+.qr-stat-card.qr-stat-red    .qr-stat-val { color: #e74c3c; }
+.qr-stat-card.qr-stat-orange .qr-stat-val { color: #f39c12; }
+
+.qr-stat-lbl {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
 .stats-section h2 {
   margin: 0 0 15px 0;
   font-size: 1.3em;

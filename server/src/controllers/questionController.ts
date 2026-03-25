@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import questionService from '../services/questionService';
 import quizService from '../services/quizService';
 import Quiz from '../models/Quiz';
+import { generateQuestionsWithAI } from '../services/aiService';
 
 export const createQuestion = async (req: Request, res: Response) => {
   try {
@@ -256,6 +257,41 @@ export const deleteQuestionBankQuestion = async (req: Request, res: Response) =>
     res.json({ message: 'Question deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Generate questions using AI (GPT-4o-mini)
+export const generateAIQuestions = async (req: Request, res: Response) => {
+  try {
+    const { topic, type, difficulty, count } = req.body;
+
+    if (!topic || !type || !difficulty || !count) {
+      return res.status(400).json({ message: 'topic, type, difficulty, and count are required' });
+    }
+
+    const validTypes = ['mcq_single', 'mcq_multiple', 'short_answer'];
+    const validDifficulties = ['easy', 'medium', 'hard', 'mixed'];
+
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({ message: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
+    }
+    if (!validDifficulties.includes(difficulty)) {
+      return res.status(400).json({ message: `Invalid difficulty. Must be one of: ${validDifficulties.join(', ')}` });
+    }
+
+    const countNum = Math.min(Math.max(parseInt(count) || 5, 1), 20);
+
+    const questions = await generateQuestionsWithAI({ topic, type, difficulty, count: countNum });
+    res.json({ questions });
+  } catch (error: any) {
+    console.error('AI generation error:', error);
+    if (error.status === 401) {
+      return res.status(503).json({ message: 'Invalid OpenAI API key. Please check OPENAI_API_KEY in server .env' });
+    }
+    if (error.message?.includes('OPENAI_API_KEY')) {
+      return res.status(503).json({ message: error.message });
+    }
+    res.status(500).json({ message: error.message || 'Failed to generate questions' });
   }
 };
 

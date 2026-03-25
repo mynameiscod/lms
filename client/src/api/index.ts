@@ -1279,6 +1279,14 @@ export const quizApi = {
     });
   },
 
+  // Generate questions using AI
+  generateAIQuestions: async (params: { topic: string; type: string; difficulty: string; count: number }) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/generate`, {
+      method: 'POST',
+      body: JSON.stringify(params)
+    });
+  },
+
   // Mark a question as duplicate
   markAsDuplicate: async (questionId: string, duplicateOfId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/questions/bank/${questionId}/mark-duplicate`, {

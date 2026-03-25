@@ -71,6 +71,18 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     description: ''
   });
 
+  // AI Generate state
+  const [aiForm, setAiForm] = useState({
+    topic: '',
+    type: 'mcq_single',
+    difficulty: 'medium',
+    count: 10
+  });
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiSaving, setAiSaving] = useState(false);
+  const [generatedQuestions, setGeneratedQuestions] = useState<any[]>([]);
+  const [selectedGenerated, setSelectedGenerated] = useState<Set<number>>(new Set());
+
   // Fetch all questions and statistics
   const fetchQuestionBank = useCallback(async () => {
     try {
@@ -737,17 +749,271 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
         {/* AI Generate Tab */}
         {activeTab === 'ai' && (
           <div className="qb-ai-tab">
-            <div className="qb-ai-content">
-              <h3>🤖 Generate Questions with AI</h3>
-              <p className="qb-coming-soon">AI question generation feature coming soon!</p>
-              <p>Generate questions based on:</p>
-              <ul>
-                <li>✅ Topic/Subject</li>
-                <li>✅ Number of questions</li>
-                <li>✅ Difficulty level(s)</li>
-                <li>✅ Question types</li>
-              </ul>
-            </div>
+            {/* Generation Form */}
+            {generatedQuestions.length === 0 ? (
+              <div className="qb-ai-form-wrapper">
+                <div className="qb-ai-hero">
+                  <div className="qb-ai-hero-icon">🤖</div>
+                  <h3>Generate Questions with AI</h3>
+                  <p>Powered by GPT-4o-mini — describe your topic and get ready-to-use questions in seconds.</p>
+                </div>
+
+                <form
+                  className="qb-ai-form"
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    if (!aiForm.topic.trim()) return;
+                    try {
+                      setAiGenerating(true);
+                      setError('');
+                      const res = await quizApi.generateAIQuestions({
+                        topic: aiForm.topic.trim(),
+                        type: aiForm.type,
+                        difficulty: aiForm.difficulty,
+                        count: aiForm.count
+                      });
+                      setGeneratedQuestions(res.questions || []);
+                      setSelectedGenerated(new Set((res.questions || []).map((_: any, i: number) => i)));
+                    } catch (err: any) {
+                      setError(err.message || 'Failed to generate questions');
+                    } finally {
+                      setAiGenerating(false);
+                    }
+                  }}
+                >
+                  <div className="qb-ai-form-row">
+                    <div className="qb-ai-form-group full-width">
+                      <label>Topic / Subject *</label>
+                      <input
+                        type="text"
+                        className="qb-ai-input"
+                        placeholder="e.g. Java Arrays, SQL Joins, Python OOP, Data Structures"
+                        value={aiForm.topic}
+                        onChange={(e) => setAiForm({ ...aiForm, topic: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="qb-ai-form-row">
+                    <div className="qb-ai-form-group">
+                      <label>Question Type</label>
+                      <select
+                        className="qb-ai-select"
+                        value={aiForm.type}
+                        onChange={(e) => setAiForm({ ...aiForm, type: e.target.value })}
+                      >
+                        <option value="mcq_single">MCQ — Single Answer</option>
+                        <option value="mcq_multiple">MCQ — Multiple Answers</option>
+                        <option value="short_answer">Short Answer</option>
+                      </select>
+                    </div>
+
+                    <div className="qb-ai-form-group">
+                      <label>Difficulty</label>
+                      <select
+                        className="qb-ai-select"
+                        value={aiForm.difficulty}
+                        onChange={(e) => setAiForm({ ...aiForm, difficulty: e.target.value })}
+                      >
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                        <option value="mixed">Mixed (Easy + Medium + Hard)</option>
+                      </select>
+                    </div>
+
+                    <div className="qb-ai-form-group">
+                      <label>Number of Questions</label>
+                      <select
+                        className="qb-ai-select"
+                        value={aiForm.count}
+                        onChange={(e) => setAiForm({ ...aiForm, count: parseInt(e.target.value) })}
+                      >
+                        {[5, 10, 15, 20].map(n => (
+                          <option key={n} value={n}>{n} questions</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="qb-ai-generate-btn-row">
+                    <button type="submit" className="qb-ai-generate-btn" disabled={aiGenerating || !aiForm.topic.trim()}>
+                      {aiGenerating ? (
+                        <><span className="qb-ai-spinner"></span> Generating {aiForm.count} questions…</>
+                      ) : (
+                        <> ✨ Generate {aiForm.count} Questions</>
+                      )}
+                    </button>
+                    <p className="qb-ai-cost-note">~₹0.01 per generation • GPT-4o-mini</p>
+                  </div>
+                </form>
+              </div>
+            ) : (
+              /* Preview Panel */
+              <div className="qb-ai-preview">
+                <div className="qb-ai-preview-header">
+                  <div>
+                    <h3>✨ {generatedQuestions.length} Questions Generated</h3>
+                    <p>Topic: <strong>{aiForm.topic}</strong> · Review, edit inline, and save selected questions to the bank.</p>
+                  </div>
+                  <div className="qb-ai-preview-actions">
+                    <button
+                      className="qb-ai-btn-secondary"
+                      onClick={() => {
+                        setGeneratedQuestions([]);
+                        setSelectedGenerated(new Set());
+                        setError('');
+                      }}
+                    >
+                      ← Generate Again
+                    </button>
+                    <button
+                      className="qb-ai-btn-secondary"
+                      onClick={() => {
+                        if (selectedGenerated.size === generatedQuestions.length) {
+                          setSelectedGenerated(new Set());
+                        } else {
+                          setSelectedGenerated(new Set(generatedQuestions.map((_: any, i: number) => i)));
+                        }
+                      }}
+                    >
+                      {selectedGenerated.size === generatedQuestions.length ? 'Deselect All' : 'Select All'}
+                    </button>
+                    <button
+                      className="qb-ai-save-btn"
+                      disabled={aiSaving || selectedGenerated.size === 0}
+                      onClick={async () => {
+                        try {
+                          setAiSaving(true);
+                          setError('');
+                          const toSave = generatedQuestions.filter((_: any, i: number) => selectedGenerated.has(i));
+                          let saved = 0;
+                          const errors: string[] = [];
+                          for (const q of toSave) {
+                            try {
+                              const payload: any = {
+                                question: q.question,
+                                type: q.type,
+                                difficultyLevel: q.difficultyLevel,
+                                marks: q.marks,
+                                tags: q.tags || [],
+                                source: 'ai',
+                                explanation: q.explanation || ''
+                              };
+                              if (q.type === 'short_answer') {
+                                payload.correctAnswerText = q.correctAnswerText || '';
+                              } else {
+                                payload.options = (q.options || []).map((opt: any) => ({
+                                  text: typeof opt === 'string' ? opt : opt.text,
+                                  isCorrect: typeof opt === 'object' ? opt.isCorrect : false
+                                }));
+                                const correctIdx = (q.options || []).findIndex((o: any) =>
+                                  typeof o === 'object' ? o.isCorrect : false
+                                );
+                                payload.correctAnswers = [Math.max(0, correctIdx).toString()];
+                              }
+                              await quizApi.createQuestionBankQuestion(payload);
+                              saved++;
+                            } catch (err: any) {
+                              errors.push(err.message || 'Failed to save a question');
+                            }
+                          }
+                          await fetchQuestionBank();
+                          setSuccessMessage(`${saved} question${saved !== 1 ? 's' : ''} saved to Question Bank!`);
+                          if (errors.length) setError(errors.join('\n'));
+                          setGeneratedQuestions([]);
+                          setSelectedGenerated(new Set());
+                          setActiveTab('view');
+                          setTimeout(() => setSuccessMessage(''), 5000);
+                        } catch (err: any) {
+                          setError(err.message || 'Failed to save questions');
+                        } finally {
+                          setAiSaving(false);
+                        }
+                      }}
+                    >
+                      {aiSaving ? 'Saving…' : `💾 Save ${selectedGenerated.size} to Bank`}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="qb-ai-cards">
+                  {generatedQuestions.map((q: any, idx: number) => (
+                    <div
+                      key={idx}
+                      className={`qb-ai-card ${selectedGenerated.has(idx) ? 'selected' : 'deselected'}`}
+                      onClick={() => {
+                        const next = new Set(selectedGenerated);
+                        if (next.has(idx)) next.delete(idx); else next.add(idx);
+                        setSelectedGenerated(next);
+                      }}
+                    >
+                      <div className="qb-ai-card-check">
+                        <input
+                          type="checkbox"
+                          checked={selectedGenerated.has(idx)}
+                          onChange={() => {}}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </div>
+
+                      <div className="qb-ai-card-body">
+                        <div className="qb-ai-card-meta">
+                          <span className={`qb-ai-badge diff-${q.difficultyLevel}`}>{q.difficultyLevel}</span>
+                          <span className="qb-ai-badge">{q.type.replace('_', ' ')}</span>
+                          <span className="qb-ai-badge">{q.marks}pt</span>
+                          <span className="qb-ai-badge ai-badge">🤖 AI</span>
+                        </div>
+
+                        <p className="qb-ai-card-question">
+                          <strong>Q{idx + 1}.</strong> {q.question}
+                        </p>
+
+                        {q.options && q.options.length > 0 && (
+                          <div className="qb-ai-card-options">
+                            {q.options.map((opt: any, oi: number) => (
+                              <div
+                                key={oi}
+                                className={`qb-ai-option ${
+                                  (typeof opt === 'object' ? opt.isCorrect : false) ? 'correct' : ''
+                                }`}
+                              >
+                                <span className="opt-label">{String.fromCharCode(65 + oi)}.</span>
+                                <span>{typeof opt === 'string' ? opt : opt.text}</span>
+                                {(typeof opt === 'object' ? opt.isCorrect : false) && (
+                                  <span className="opt-tick">✓</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {q.correctAnswerText && (
+                          <div className="qb-ai-answer">
+                            <strong>Answer:</strong> {q.correctAnswerText}
+                          </div>
+                        )}
+
+                        {q.explanation && (
+                          <div className="qb-ai-explanation">
+                            <strong>Explanation:</strong> {q.explanation}
+                          </div>
+                        )}
+
+                        {q.tags && q.tags.length > 0 && (
+                          <div className="qb-ai-card-tags">
+                            {q.tags.map((tag: string) => (
+                              <span key={tag} className="qb-tag">{tag}</span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

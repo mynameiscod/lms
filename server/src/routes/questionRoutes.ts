@@ -55,6 +55,13 @@ router.get(
   questionController.getQuestionBankStats
 );
 
+// Generate questions using AI — must be before /bank/:questionId
+router.post(
+  '/bank/generate',
+  roleGuard(['create_question']),
+  questionController.generateAIQuestions
+);
+
 // Update a question in Question Bank
 router.put(
   '/bank/:questionId',

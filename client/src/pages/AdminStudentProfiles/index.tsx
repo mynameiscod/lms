@@ -90,6 +90,7 @@ const AdminStudentProfilesPage: React.FC = () => {
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [detailProfile, setDetailProfile] = useState<ProfileSummary | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -135,7 +136,10 @@ const AdminStudentProfilesPage: React.FC = () => {
       const res = await studentProfileAPI.getAllProfiles(params);
       const data = res.data || res;
       setProfiles(Array.isArray(data) ? data : (data.profiles || []));
-      setTotalPages(data.totalPages || 1);
+      // Server returns data.pagination.pages and data.pagination.total
+      const pagination = data.pagination || {};
+      setTotalPages(pagination.pages || data.totalPages || 1);
+      setTotalCount(pagination.total || data.total || 0);
       setPage(pg);
     } catch (e: any) {
       setError(e.message || 'Failed to load profiles');
@@ -170,7 +174,7 @@ const AdminStudentProfilesPage: React.FC = () => {
     });
   };
 
-  if (!loading && profiles.length === 0 && !error && !search && !filterCourse && !filterExp && !filterStatus && filterComplete === 'all') {
+  if (!loading && profiles.length === 0 && !error && !search && !filterCourse && !filterExp && !filterStatus && !filterBatch && filterComplete === 'all' && totalCount === 0) {
     return (
       <div className="asp-page">
         <div className="asp-header">
@@ -369,11 +373,33 @@ const AdminStudentProfilesPage: React.FC = () => {
           </div>
 
           {/* Pagination */}
-          {totalPages > 1 && (
+          {(totalPages > 1 || totalCount > 0) && (
             <div className="asp-pagination">
-              <button disabled={page <= 1} onClick={() => fetchProfiles(page - 1)} className="asp-page-btn">‹ Prev</button>
-              <span className="asp-page-info">Page {page} of {totalPages}</span>
-              <button disabled={page >= totalPages} onClick={() => fetchProfiles(page + 1)} className="asp-page-btn">Next ›</button>
+              <span className="asp-page-count">
+                {totalCount > 0 && (
+                  <>Showing {Math.min((page - 1) * 12 + 1, totalCount)}–{Math.min(page * 12, totalCount)} of <strong>{totalCount}</strong> profiles</>
+                )}
+              </span>
+              <div className="asp-page-controls">
+                <button disabled={page <= 1} onClick={() => fetchProfiles(page - 1)} className="asp-page-btn">‹ Prev</button>
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                  .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                    if (idx > 0 && p - (arr[idx - 1] as number) > 1) acc.push('...');
+                    acc.push(p);
+                    return acc;
+                  }, [])
+                  .map((p, i) =>
+                    p === '...'
+                      ? <span key={`ellipsis-${i}`} className="asp-page-ellipsis">…</span>
+                      : <button
+                          key={p}
+                          onClick={() => fetchProfiles(p as number)}
+                          className={`asp-page-btn ${page === p ? 'active' : ''}`}
+                        >{p}</button>
+                  )}
+                <button disabled={page >= totalPages} onClick={() => fetchProfiles(page + 1)} className="asp-page-btn">Next ›</button>
+              </div>
             </div>
           )}
         </>

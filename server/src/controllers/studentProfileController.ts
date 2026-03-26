@@ -420,30 +420,45 @@ export const getProfileStats = async (req: AuthRequest, res: Response) => {
     const [
       totalProfiles,
       completeProfiles,
+      profilesWithResume,
+      avgCompletionResult,
       courseInterestStats,
       experienceLevelStats,
       learningModeStats,
     ] = await Promise.all([
       StudentProfile.countDocuments({ tenantId }),
       StudentProfile.countDocuments({ tenantId, isProfileComplete: true }),
+      StudentProfile.countDocuments({ tenantId, 'professionalProfiles.resumeUrl': { $exists: true, $ne: '' } }),
       StudentProfile.aggregate([
-        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId as string) } },
+        { $group: { _id: null, avg: { $avg: '$profileCompletionPercentage' } } },
+      ]),
+      StudentProfile.aggregate([
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId as string) } },
         { $group: { _id: '$courseInterest.interestedCourse', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
       ]),
       StudentProfile.aggregate([
-        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId as string) } },
         { $group: { _id: '$technicalBackground.experienceLevel', count: { $sum: 1 } } },
       ]),
       StudentProfile.aggregate([
-        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId as string) } },
         { $group: { _id: '$courseInterest.preferredLearningMode', count: { $sum: 1 } } },
       ]),
     ]);
 
+    const averageCompletion = Math.round(avgCompletionResult[0]?.avg || 0);
+
     res.json({
       success: true,
       data: {
+        // Short names used by admin UI
+        total: totalProfiles,
+        complete: completeProfiles,
+        withResume: profilesWithResume,
+        averageCompletion,
+        // Verbose names for backwards compat
         totalProfiles,
         completeProfiles,
         incompleteProfiles: totalProfiles - completeProfiles,

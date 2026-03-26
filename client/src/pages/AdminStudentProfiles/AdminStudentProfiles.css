@@ -374,24 +374,50 @@
 .asp-pagination {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 16px;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
   margin-top: 28px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.asp-page-count {
+  font-size: 0.88rem;
+  color: #64748b;
+}
+
+.asp-page-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
 }
 
 .asp-page-btn {
-  padding: 8px 20px;
-  border: 1.5px solid #005897;
+  padding: 7px 14px;
+  border: 1.5px solid #e2e8f0;
   border-radius: 8px;
   background: white;
-  color: #005897;
+  color: #374151;
   font-weight: 600;
+  font-size: 0.88rem;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
+  min-width: 38px;
 }
 
-.asp-page-btn:hover:not(:disabled) { background: #005897; color: white; }
+.asp-page-btn:hover:not(:disabled) { background: #005897; color: white; border-color: #005897; }
 .asp-page-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.asp-page-btn.active { background: #005897; color: white; border-color: #005897; }
+
+.asp-page-ellipsis {
+  padding: 7px 4px;
+  color: #94a3b8;
+  font-size: 0.88rem;
+}
 
 .asp-page-info {
   font-size: 0.9rem;

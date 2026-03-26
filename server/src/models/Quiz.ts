@@ -10,6 +10,7 @@ export interface IQuiz extends Document {
   courseId?: mongoose.Types.ObjectId; // Optional course reference
   subjectId?: mongoose.Types.ObjectId; // Optional subject reference
   chapterId?: mongoose.Types.ObjectId; // Optional chapter reference
+  topicId?: mongoose.Types.ObjectId;   // Optional topic reference (for mastery tracking)
   startDate: Date;
   endDate: Date;
   startTime: string; // HH:mm format
@@ -60,6 +61,7 @@ const quizSchema = new Schema<IQuiz>(
     courseId: { type: Schema.Types.ObjectId, ref: 'Course' },
     subjectId: { type: Schema.Types.ObjectId, ref: 'Subject' },
     chapterId: { type: Schema.Types.ObjectId, ref: 'Chapter' },
+    topicId:   { type: Schema.Types.ObjectId, ref: 'Topic' },
     startDate: { type: Date, required: true },
     endDate: { type: Date, required: true },
     startTime: { type: String, required: true },

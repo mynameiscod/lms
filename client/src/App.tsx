@@ -70,6 +70,9 @@ import LeadAuditLogsPage from './pages/LeadAuditLogs';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
+import AdminTopicMasteryPage from './pages/AdminTopicMastery';
+import TopicHubPage from './pages/TopicHub';
+import AdminLearningRequestsPage from './pages/AdminLearningRequests';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -789,6 +792,40 @@ const AppRoutes: React.FC = () => {
                 <StudentCodeSnippets />
               </Layout>
             </FeatureRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Topic Mastery & Learning Hub */}
+      <Route
+        path="/admin/topic-mastery"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <AdminTopicMasteryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/topic-hub"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <FeatureRoute feature="myCourse">
+              <Layout>
+                <TopicHubPage />
+              </Layout>
+            </FeatureRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/learning-requests"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
+            <Layout>
+              <AdminLearningRequestsPage />
+            </Layout>
           </ProtectedRoute>
         }
       />

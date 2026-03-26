@@ -40,6 +40,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const menuItems: MenuItem[] = [
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
     { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: '📚', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: '🧠', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '▦', permissions: ['view_courses'] },
     { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '⚡', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⊕', permissions: ['manage_tenant_users'] },
@@ -96,6 +97,16 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     },
     { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊', permissions: ['view_reports'] },
     { label: 'Student Profiles', path: '/admin/student-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: '👤', permissions: ['view_reports'] },
+    {
+      label: 'Learning Hub',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
+      icon: '🧩',
+      permissions: ['view_reports', 'manage_tenant_users'],
+      submenu: [
+        { label: 'Topic Mastery Heatmap', path: '/admin/topic-mastery', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], permissions: ['view_reports'] },
+        { label: 'Learning Requests', path: '/admin/learning-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], permissions: ['view_reports', 'manage_tenant_users'] },
+      ]
+    },
     { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🎛', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '💼', permissions: ['manage_interviews'] },
     {

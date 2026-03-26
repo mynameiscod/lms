@@ -28,6 +28,8 @@ import leadFormConfigRoutes from './leadFormConfigRoutes';
 import marketingRoutes from './marketingRoutes';
 import codeSnippetRoutes from './codeSnippetRoutes';
 import shareRoutes from './shareRoutes';
+import topicMasteryRoutes from './topicMasteryRoutes';
+import learningRequestRoutes from './learningRequestRoutes';
 
 const router = express.Router();
 
@@ -60,5 +62,7 @@ router.use('/lead-form-config', leadFormConfigRoutes);
 router.use('/marketing', marketingRoutes);
 router.use('/code-snippets', codeSnippetRoutes);
 router.use('/share', shareRoutes);
+router.use('/topic-mastery', topicMasteryRoutes);
+router.use('/learning-requests', learningRequestRoutes);
 
 export default router;

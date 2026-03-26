@@ -1328,11 +1328,16 @@ export const quizApi = {
   },
 
   // Get available questions from Question Bank for linking to a quiz
-  getAvailableQuestions: async (quizId: string, filters?: { difficulty?: string; type?: string; tags?: string[] }) => {
+  getAvailableQuestions: async (quizId: string, filters?: { difficulty?: string; type?: string; tags?: string[]; source?: string; subject?: string; topic?: string; dateFrom?: string; dateTo?: string }) => {
     const params = new URLSearchParams();
     if (filters?.difficulty) params.append('difficulty', filters.difficulty);
     if (filters?.type) params.append('type', filters.type);
     if (filters?.tags?.length) params.append('tags', filters.tags.join(','));
+    if (filters?.source) params.append('source', filters.source);
+    if (filters?.subject) params.append('subject', filters.subject);
+    if (filters?.topic) params.append('topic', filters.topic);
+    if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
+    if (filters?.dateTo) params.append('dateTo', filters.dateTo);
 
     const queryString = params.toString();
     const url = `${API_BASE_URL}/quizzes/${quizId}/available-questions${queryString ? `?${queryString}` : ''}`;

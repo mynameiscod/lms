@@ -318,6 +318,7 @@ export const studentProfileAPI = {
     currentStatus?: string;
     isComplete?: boolean;
     search?: string;
+    batchId?: string;
   }) => {
     const queryParams = new URLSearchParams();
     if (params?.page) queryParams.append('page', String(params.page));
@@ -327,6 +328,7 @@ export const studentProfileAPI = {
     if (params?.currentStatus) queryParams.append('currentStatus', params.currentStatus);
     if (params?.isComplete !== undefined) queryParams.append('isComplete', String(params.isComplete));
     if (params?.search) queryParams.append('search', params.search);
+    if (params?.batchId) queryParams.append('batchId', params.batchId);
 
     const response = await axios.get(`${API_BASE_URL}/admin/all?${queryParams}`, {
       headers: getAuthHeaders(),
@@ -353,6 +355,14 @@ export const studentProfileAPI = {
   // Admin: Delete profile
   deleteProfile: async (profileId: string) => {
     const response = await axios.delete(`${API_BASE_URL}/admin/${profileId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
+  // Admin: Get student activity (attendance, quizzes, assignments, code snippets)
+  getStudentActivity: async (userId: string) => {
+    const response = await axios.get(`${API_BASE_URL}/admin/${userId}/activity`, {
       headers: getAuthHeaders(),
     });
     return response.data;

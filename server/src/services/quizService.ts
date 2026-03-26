@@ -646,8 +646,20 @@ export class QuizService {
     if (filters?.difficulty) query.difficultyLevel = filters.difficulty;
     if (filters?.type) query.type = filters.type;
     if (filters?.tags && filters.tags.length > 0) query.tags = { $in: filters.tags };
+    if (filters?.source) query.source = filters.source;
+    if (filters?.subject) query.subject = { $regex: filters.subject, $options: 'i' };
+    if (filters?.topic) query.topic = { $regex: filters.topic, $options: 'i' };
+    if (filters?.dateFrom || filters?.dateTo) {
+      query.createdAt = {};
+      if (filters.dateFrom) query.createdAt.$gte = new Date(filters.dateFrom as string);
+      if (filters.dateTo) {
+        const to = new Date(filters.dateTo as string);
+        to.setDate(to.getDate() + 1);
+        query.createdAt.$lte = to;
+      }
+    }
 
-    return Question.find(query).select('_id question type marks difficultyLevel tags usageCount');
+    return Question.find(query).select('_id question type marks difficultyLevel tags subject topic source usageCount createdAt');
   }
 }
 

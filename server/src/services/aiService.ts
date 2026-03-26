@@ -118,18 +118,52 @@ export async function generateQuestionsWithAI(
   }
 
   // Sanitize: ensure required fields and trim results to requested count
-  return questions.slice(0, params.count).map((q) => ({
-    question: String(q.question || '').trim(),
-    type: q.type || params.type,
-    difficultyLevel: ['easy', 'medium', 'hard'].includes(q.difficultyLevel)
-      ? q.difficultyLevel
-      : params.difficulty === 'mixed'
-      ? 'medium'
-      : (params.difficulty as 'easy' | 'medium' | 'hard'),
-    marks: typeof q.marks === 'number' && q.marks > 0 ? q.marks : 1,
-    options: Array.isArray(q.options) ? q.options : undefined,
-    correctAnswerText: q.correctAnswerText ? String(q.correctAnswerText) : undefined,
-    explanation: q.explanation ? String(q.explanation) : undefined,
-    tags: Array.isArray(q.tags) ? q.tags.map(String) : []
-  }));
+  return questions.slice(0, params.count).map((q) => {
+    const qType: 'mcq_single' | 'mcq_multiple' | 'short_answer' = q.type || params.type;
+
+    // Sanitize options and guarantee correct isCorrect placement
+    let sanitizedOptions: { text: string; isCorrect: boolean }[] | undefined;
+    if (Array.isArray(q.options) && q.options.length > 0) {
+      sanitizedOptions = q.options.map((o: any) => ({
+        text: String(o.text || o || '').trim(),
+        isCorrect: o.isCorrect === true,
+      }));
+
+      if (qType === 'mcq_single') {
+        // Ensure exactly one correct answer
+        const firstCorrectIdx = sanitizedOptions.findIndex((o) => o.isCorrect);
+        if (firstCorrectIdx < 0) {
+          // GPT failed to mark any option — fallback: mark first option correct
+          sanitizedOptions[0] = { ...sanitizedOptions[0], isCorrect: true };
+        } else {
+          // Clear all other correct flags so only one remains
+          sanitizedOptions = sanitizedOptions.map((o, i) => ({
+            ...o,
+            isCorrect: i === firstCorrectIdx,
+          }));
+        }
+      } else if (qType === 'mcq_multiple') {
+        // Ensure at least one correct answer
+        const hasCorrect = sanitizedOptions.some((o) => o.isCorrect);
+        if (!hasCorrect && sanitizedOptions.length > 0) {
+          sanitizedOptions[0] = { ...sanitizedOptions[0], isCorrect: true };
+        }
+      }
+    }
+
+    return {
+      question: String(q.question || '').trim(),
+      type: qType,
+      difficultyLevel: ['easy', 'medium', 'hard'].includes(q.difficultyLevel)
+        ? q.difficultyLevel
+        : params.difficulty === 'mixed'
+        ? 'medium'
+        : (params.difficulty as 'easy' | 'medium' | 'hard'),
+      marks: typeof q.marks === 'number' && q.marks > 0 ? q.marks : 1,
+      options: sanitizedOptions,
+      correctAnswerText: q.correctAnswerText ? String(q.correctAnswerText) : undefined,
+      explanation: q.explanation ? String(q.explanation) : undefined,
+      tags: Array.isArray(q.tags) ? q.tags.map(String) : [],
+    };
+  });
 }

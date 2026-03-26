@@ -9,6 +9,7 @@ import {
   getAllProfiles,
   deleteProfile,
   getProfileStats,
+  getStudentActivity,
 } from '../controllers/studentProfileController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
@@ -114,6 +115,15 @@ router.get(
   tenantResolver,
   roleGuard(['view_reports', 'view_analytics', 'manage_tenant']),
   getProfileStats
+);
+
+// Get student activity overview for a user (admin)
+router.get(
+  '/admin/:userId/activity',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
+  getStudentActivity
 );
 
 // Get profile by user ID (admin)

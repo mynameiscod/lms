@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { studentProfileAPI, INTERESTED_COURSES } from '../../api/studentProfileAPI';
+import { batchApi } from '../../api';
 import { Spinner, Alert } from '../../components/common';
 import './AdminStudentProfiles.css';
 
@@ -74,6 +76,7 @@ const ring = (pct: number, size = 52) => {
 };
 
 const AdminStudentProfilesPage: React.FC = () => {
+  const navigate = useNavigate();
   const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, complete: 0, withResume: 0, averageCompletion: 0 });
   const [loading, setLoading] = useState(true);
@@ -83,6 +86,8 @@ const AdminStudentProfilesPage: React.FC = () => {
   const [filterExp, setFilterExp] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
   const [filterComplete, setFilterComplete] = useState<'all' | 'complete' | 'incomplete'>('all');
+  const [filterBatch, setFilterBatch] = useState('');
+  const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -92,13 +97,16 @@ const AdminStudentProfilesPage: React.FC = () => {
 
   useEffect(() => {
     fetchStats();
+    batchApi.getBatches().then((res: any) => {
+      setBatches(res.data || []);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
     clearTimeout(searchTimeout.current);
     searchTimeout.current = setTimeout(() => fetchProfiles(1), 400);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, filterCourse, filterExp, filterStatus, filterComplete]);
+  }, [search, filterCourse, filterExp, filterStatus, filterComplete, filterBatch]);
 
   const fetchStats = async () => {
     try {
@@ -121,6 +129,7 @@ const AdminStudentProfilesPage: React.FC = () => {
       if (filterCourse) params.interestedCourse = filterCourse;
       if (filterExp) params.experienceLevel = filterExp;
       if (filterStatus) params.currentStatus = filterStatus;
+      if (filterBatch) params.batchId = filterBatch;
       if (filterComplete === 'complete') params.isComplete = true;
       if (filterComplete === 'incomplete') params.isComplete = false;
       const res = await studentProfileAPI.getAllProfiles(params);
@@ -149,13 +158,8 @@ const AdminStudentProfilesPage: React.FC = () => {
   const selectedProfiles = profiles.filter(p => selectedIds.has(p._id));
   const selectedWithResume = selectedProfiles.filter(p => p.professionalProfiles?.resumeUrl);
 
-  const handleViewProfile = async (p: ProfileSummary) => {
-    try {
-      const res = await studentProfileAPI.getProfileByUserId(p.userId || p._id);
-      setDetailProfile(res.data || res || p);
-    } catch {
-      setDetailProfile(p);
-    }
+  const handleViewProfile = (p: ProfileSummary) => {
+    navigate(`/admin/student-profiles/${p.userId || p._id}`);
   };
 
   const openAllResumes = () => {
@@ -265,6 +269,10 @@ const AdminStudentProfilesPage: React.FC = () => {
           <option value="">All Status</option>
           {CURRENT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
         </select>
+        <select className="asp-select" value={filterBatch} onChange={e => setFilterBatch(e.target.value)}>
+          <option value="">All Batches</option>
+          {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+        </select>
         <select className="asp-select" value={filterComplete} onChange={e => setFilterComplete(e.target.value as any)}>
           <option value="all">All Completion</option>
           <option value="complete">Complete (&ge;80%)</option>
@@ -371,143 +379,7 @@ const AdminStudentProfilesPage: React.FC = () => {
         </>
       )}
 
-      {/* Profile Detail Modal */}
-      {detailProfile && (
-        <div className="asp-modal-overlay" onClick={() => setDetailProfile(null)}>
-          <div className="asp-modal" onClick={e => e.stopPropagation()}>
-            <button className="asp-modal-close" onClick={() => setDetailProfile(null)}>✕</button>
-
-            {/* Modal Header */}
-            <div className="asp-modal-header">
-              {detailProfile.personalInfo.profilePhoto ? (
-                <img src={detailProfile.personalInfo.profilePhoto} alt="" className="asp-modal-photo" />
-              ) : (
-                <div className="asp-modal-avatar" style={{ background: avatarColor(detailProfile.personalInfo.firstName) }}>
-                  {initials(detailProfile)}
-                </div>
-              )}
-              <div className="asp-modal-identity">
-                <h2>{detailProfile.personalInfo.firstName} {detailProfile.personalInfo.middleName || ''} {detailProfile.personalInfo.surname}</h2>
-                <p>{detailProfile.personalInfo.email}</p>
-                {detailProfile.personalInfo.mobileNumber && <p>📞 {detailProfile.personalInfo.mobileNumber}</p>}
-                {detailProfile.personalInfo.city && <p>📍 {detailProfile.personalInfo.city}, {detailProfile.personalInfo.state}</p>}
-              </div>
-              {(() => {
-                const pct = detailProfile.profileCompletionPercentage;
-                const rg = ring(pct, 80);
-                return (
-                  <div className="asp-modal-ring">
-                    <svg width={rg.size} height={rg.size}>
-                      <circle cx={rg.cx} cy={rg.cy} r={rg.r} fill="none" stroke="#e2e8f0" strokeWidth="7" />
-                      <circle cx={rg.cx} cy={rg.cy} r={rg.r} fill="none" stroke={rg.color} strokeWidth="7"
-                        strokeLinecap="round" strokeDasharray={rg.circ} strokeDashoffset={rg.offset}
-                        transform={`rotate(-90 ${rg.cx} ${rg.cy})`} />
-                    </svg>
-                    <div className="asp-modal-ring-label">
-                      <span style={{ color: rg.color, fontSize: '1.2rem', fontWeight: 800 }}>{pct}%</span>
-                      <span style={{ fontSize: '0.7rem', color: '#64748b' }}>Complete</span>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Modal Body */}
-            <div className="asp-modal-body">
-              {/* Education */}
-              {detailProfile.education && (
-                <div className="asp-modal-section">
-                  <h3>🎓 Education</h3>
-                  <div className="asp-modal-grid">
-                    {detailProfile.education.highestQualification && <div><label>Qualification</label><span>{detailProfile.education.highestQualification}</span></div>}
-                    {detailProfile.education.degree?.name && <div><label>Degree</label><span>{detailProfile.education.degree.name} — {detailProfile.education.degree.branch}</span></div>}
-                    {detailProfile.education.degree?.college && <div><label>College</label><span>{detailProfile.education.degree.college}</span></div>}
-                    {detailProfile.education.degree?.percentage !== undefined && <div><label>Degree %</label><span>{detailProfile.education.degree.percentage}%</span></div>}
-                    {detailProfile.education.degree?.graduationYear && <div><label>Graduation Year</label><span>{detailProfile.education.degree.graduationYear}</span></div>}
-                    {detailProfile.education.intermediate?.percentage !== undefined && <div><label>Intermediate %</label><span>{detailProfile.education.intermediate.percentage}%</span></div>}
-                    {detailProfile.education.tenthClass?.percentage !== undefined && <div><label>10th %</label><span>{detailProfile.education.tenthClass.percentage}%</span></div>}
-                    {detailProfile.education.currentStatus && <div><label>Current Status</label><span>{detailProfile.education.currentStatus}</span></div>}
-                  </div>
-                </div>
-              )}
-
-              {/* Technical */}
-              {detailProfile.technicalBackground && (
-                <div className="asp-modal-section">
-                  <h3>💻 Technical Background</h3>
-                  <div className="asp-modal-grid">
-                    {detailProfile.technicalBackground.experienceLevel && <div><label>Experience</label><span>{detailProfile.technicalBackground.experienceLevel}</span></div>}
-                    {detailProfile.technicalBackground.programmingLanguages?.length ? (
-                      <div className="full"><label>Languages</label>
-                        <div className="asp-tags">
-                          {detailProfile.technicalBackground.programmingLanguages.map(l => <span key={l} className="asp-tag">{l}</span>)}
-                        </div>
-                      </div>
-                    ) : null}
-                    {detailProfile.technicalBackground.technologies?.length ? (
-                      <div className="full"><label>Technologies</label>
-                        <div className="asp-tags">
-                          {detailProfile.technicalBackground.technologies.map(t => <span key={t} className="asp-tag blue">{t}</span>)}
-                        </div>
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              )}
-
-              {/* Course Interest */}
-              {detailProfile.courseInterest?.interestedCourse && (
-                <div className="asp-modal-section">
-                  <h3>📚 Course Interest</h3>
-                  <div className="asp-modal-grid">
-                    <div><label>Interested Course</label><span>{detailProfile.courseInterest.interestedCourse}</span></div>
-                    {detailProfile.courseInterest.preferredLearningMode && <div><label>Learning Mode</label><span>{detailProfile.courseInterest.preferredLearningMode}</span></div>}
-                  </div>
-                </div>
-              )}
-
-              {/* Professional Links */}
-              {detailProfile.professionalProfiles && (
-                <div className="asp-modal-section">
-                  <h3>🔗 Professional Profiles</h3>
-                  <div className="asp-modal-links">
-                    {detailProfile.professionalProfiles.resumeUrl && (
-                      <a href={detailProfile.professionalProfiles.resumeUrl} target="_blank" rel="noopener noreferrer" className="asp-link-btn resume">
-                        📄 Download Resume
-                      </a>
-                    )}
-                    {detailProfile.professionalProfiles.linkedInUrl && (
-                      <a href={detailProfile.professionalProfiles.linkedInUrl} target="_blank" rel="noopener noreferrer" className="asp-link-btn linkedin">
-                        🔗 LinkedIn
-                      </a>
-                    )}
-                    {detailProfile.professionalProfiles.githubUrl && (
-                      <a href={detailProfile.professionalProfiles.githubUrl} target="_blank" rel="noopener noreferrer" className="asp-link-btn github">
-                        🐙 GitHub
-                      </a>
-                    )}
-                    {detailProfile.professionalProfiles.portfolioUrl && (
-                      <a href={detailProfile.professionalProfiles.portfolioUrl} target="_blank" rel="noopener noreferrer" className="asp-link-btn portfolio">
-                        🌐 Portfolio
-                      </a>
-                    )}
-                    {!detailProfile.professionalProfiles.resumeUrl && !detailProfile.professionalProfiles.linkedInUrl && !detailProfile.professionalProfiles.githubUrl && (
-                      <p style={{ color: '#94a3b8', fontSize: '0.9rem' }}>No professional links provided</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {detailProfile.additionalInfo?.careerGoal && (
-                <div className="asp-modal-section">
-                  <h3>🎯 Career Goal</h3>
-                  <p className="asp-career-goal">{detailProfile.additionalInfo.careerGoal}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Profile Detail is now a dedicated page — see /admin/student-profiles/:userId */}
 
       {/* Email / Contact Modal */}
       {showEmailModal && (

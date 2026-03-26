@@ -15,6 +15,9 @@ interface Question {
   marks: number;
   tags?: string[];
   usageCount: number;
+  subject?: string;
+  topic?: string;
+  source?: string;
 }
 
 interface QuestionSelectorProps {
@@ -38,7 +41,12 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
   const [filters, setFilters] = useState({
     search: '',
     difficulty: '',
-    tags: [] as string[]
+    tags: [] as string[],
+    source: '',
+    subject: '',
+    topic: '',
+    dateFrom: '',
+    dateTo: ''
   });
 
   const [stats, setStats] = useState({
@@ -56,7 +64,12 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
         quizApi.getAvailableQuestions(quizId, {
           difficulty: filters.difficulty || undefined,
           type: undefined,
-          tags: filters.tags.length > 0 ? filters.tags : undefined
+          tags: filters.tags.length > 0 ? filters.tags : undefined,
+          source: filters.source || undefined,
+          subject: filters.subject || undefined,
+          topic: filters.topic || undefined,
+          dateFrom: filters.dateFrom || undefined,
+          dateTo: filters.dateTo || undefined
         })
       ]);
 
@@ -194,6 +207,48 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
           <option value="hard">Hard</option>
         </select>
 
+        <select
+          value={filters.source}
+          onChange={(e) => setFilters({ ...filters, source: e.target.value })}
+          className="qs-select"
+        >
+          <option value="">All Sources</option>
+          <option value="manual">Manual</option>
+          <option value="csv">CSV Import</option>
+          <option value="ai">AI Generated</option>
+        </select>
+
+        <Input
+          type="text"
+          placeholder="Filter by subject..."
+          value={filters.subject}
+          onChange={(e) => setFilters({ ...filters, subject: e.target.value })}
+          className="qs-search"
+        />
+
+        <Input
+          type="text"
+          placeholder="Filter by topic..."
+          value={filters.topic}
+          onChange={(e) => setFilters({ ...filters, topic: e.target.value })}
+          className="qs-search"
+        />
+
+        <div className="qs-date-range">
+          <Input
+            type="date"
+            placeholder="From date"
+            value={filters.dateFrom}
+            onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+          />
+          <Input
+            type="date"
+            placeholder="To date"
+            value={filters.dateTo}
+            onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+          />
+        </div>
+
         <Button
           onClick={handleSelectAll}
           variant="secondary"
@@ -228,6 +283,9 @@ const QuestionSelector: React.FC<QuestionSelectorProps> = ({
                     </span>
                     <span className="qs-badge">{question.marks}pts</span>
                     <span className="qs-badge-secondary">Used: {question.usageCount}x</span>
+                    {question.subject && <span className="qs-badge-secondary">📚 {question.subject}</span>}
+                    {question.topic && <span className="qs-badge-secondary">🏷️ {question.topic}</span>}
+                    {question.source && <span className="qs-badge-secondary">{question.source}</span>}
                   </div>
                   {question.tags && question.tags.length > 0 && (
                     <div className="qs-tags">

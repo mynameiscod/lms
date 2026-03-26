@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { codeSnippetApi } from '../../api/codeSnippetApi';
-import { batchApi, courseApi, subjectApi, chapterApi, topicApi } from '../../api';
+import { batchApi, courseApi, subjectApi, chapterApi, topicApi, quizApi } from '../../api';
 import './AdminCodeSnippets.css';
 
 const LANGUAGES = [
@@ -86,6 +86,11 @@ export default function AdminCodeSnippets() {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [settingsLoading, setSettingsLoading] = useState(false);
+
+  // AI generation for questions
+  const [aiSnippet, setAiSnippet] = useState({ topic: '', difficulty: 'medium', count: 3 });
+  const [aiSnippetLoading, setAiSnippetLoading] = useState(false);
+  const [aiSnippetError, setAiSnippetError] = useState('');
 
   const loadAssessments = useCallback(async () => {
     try {
@@ -254,6 +259,35 @@ export default function AdminCodeSnippets() {
 
   const removeQuestion = (idx: number) =>
     setForm((f) => ({ ...f, questions: f.questions.filter((_, i) => i !== idx) }));
+
+  const generateAISnippetQuestions = async () => {
+    if (!aiSnippet.topic.trim()) return;
+    try {
+      setAiSnippetLoading(true);
+      setAiSnippetError('');
+      const res = await quizApi.generateAIQuestions({
+        topic: aiSnippet.topic,
+        type: 'mcq_single',
+        difficulty: aiSnippet.difficulty,
+        count: aiSnippet.count
+      });
+      const generated: any[] = res.questions || res.data?.questions || [];
+      const mapped: SnippetQuestion[] = generated.map((q: any) => ({
+        question: q.question || '',
+        type: 'mcq_single' as QuestionType,
+        marks: q.marks || 1,
+        options: (q.options || []).map((o: any) => ({
+          text: typeof o === 'string' ? o : o.text || '',
+          isCorrect: typeof o === 'object' ? Boolean(o.isCorrect) : false
+        }))
+      }));
+      setForm((f) => ({ ...f, questions: [...f.questions, ...mapped] }));
+    } catch (err: any) {
+      setAiSnippetError(err.message || 'AI generation failed');
+    } finally {
+      setAiSnippetLoading(false);
+    }
+  };
 
   const updateOption = (qIdx: number, oIdx: number, patch: Partial<SnippetOption>) => {
     setForm((f) => {
@@ -553,6 +587,53 @@ export default function AdminCodeSnippets() {
                     </div>
                   ))}
                   <button className="csa-btn-outline csa-btn-block" onClick={addQuestion}>+ Add Another Question</button>
+
+                  {/* AI Generate Questions */}
+                  <div style={{ marginTop: '20px', padding: '18px 20px', background: '#f0f7ff', borderRadius: '12px', border: '1.5px solid #bfdbfe' }}>
+                    <div style={{ fontWeight: 700, color: '#005897', marginBottom: '12px', fontSize: '0.95rem' }}>✨ AI Generate Questions</div>
+                    {aiSnippetError && <p style={{ color: '#ef4444', fontSize: '0.85rem', marginBottom: '8px' }}>{aiSnippetError}</p>}
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 2, minWidth: '160px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>Topic / Language</label>
+                        <input
+                          className="csa-input"
+                          placeholder="e.g. JavaScript Closures, Python Lists..."
+                          value={aiSnippet.topic}
+                          onChange={e => setAiSnippet(a => ({ ...a, topic: e.target.value }))}
+                        />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '120px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>Difficulty</label>
+                        <select
+                          className="csa-select"
+                          value={aiSnippet.difficulty}
+                          onChange={e => setAiSnippet(a => ({ ...a, difficulty: e.target.value }))}
+                        >
+                          <option value="easy">Easy</option>
+                          <option value="medium">Medium</option>
+                          <option value="hard">Hard</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '70px' }}>
+                        <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#64748b' }}>Count</label>
+                        <input
+                          type="number"
+                          className="csa-input"
+                          min={1}
+                          max={10}
+                          value={aiSnippet.count}
+                          onChange={e => setAiSnippet(a => ({ ...a, count: Math.min(10, Math.max(1, Number(e.target.value))) }))}
+                        />
+                      </div>
+                      <button
+                        className="csa-btn-primary"
+                        onClick={generateAISnippetQuestions}
+                        disabled={aiSnippetLoading || !aiSnippet.topic.trim()}
+                      >
+                        {aiSnippetLoading ? 'Generating…' : '✨ Generate'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 

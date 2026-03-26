@@ -12,7 +12,7 @@ import {
   RubricItem,
   MCQQuestion
 } from '../../api/assignmentApi';
-import { courseApi, subjectApi, chapterApi } from '../../api';
+import { courseApi, subjectApi, chapterApi, quizApi } from '../../api';
 import './assignments.css';
 
 type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'settings';
@@ -58,6 +58,11 @@ const AdminAssignmentForm: React.FC = () => {
 
   // MCQ
   const [mcqQuestions, setMcqQuestions] = useState<MCQQuestion[]>([]);
+
+  // AI generation for MCQ
+  const [aiMcq, setAiMcq] = useState({ topic: '', difficulty: 'medium', count: 5 });
+  const [aiMcqLoading, setAiMcqLoading] = useState(false);
+  const [aiMcqError, setAiMcqError] = useState('');
   const [shuffleQuestions, setShuffleQuestions] = useState(true);
   const [shuffleOptions, setShuffleOptions] = useState(true);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
@@ -369,6 +374,36 @@ const AdminAssignmentForm: React.FC = () => {
 
   const removeStarterCode = (lang: ProgrammingLanguage) => {
     setStarterCode(starterCode.filter(s => s.language !== lang));
+  };
+
+  // AI helper for MCQ
+  const generateAIMCQQuestions = async () => {
+    if (!aiMcq.topic.trim()) return;
+    try {
+      setAiMcqLoading(true);
+      setAiMcqError('');
+      const res = await quizApi.generateAIQuestions({
+        topic: aiMcq.topic,
+        type: 'mcq_single',
+        difficulty: aiMcq.difficulty,
+        count: aiMcq.count
+      });
+      const generated: any[] = res.questions || res.data?.questions || [];
+      const mapped: MCQQuestion[] = generated.map((q: any) => ({
+        question: q.question || '',
+        points: q.marks || 10,
+        explanation: q.explanation || '',
+        options: (q.options || []).map((o: any) => ({
+          text: typeof o === 'string' ? o : o.text || '',
+          isCorrect: typeof o === 'object' ? Boolean(o.isCorrect) : false
+        }))
+      }));
+      setMcqQuestions(prev => [...prev, ...mapped]);
+    } catch (err: any) {
+      setAiMcqError(err.message || 'AI generation failed');
+    } finally {
+      setAiMcqLoading(false);
+    }
   };
 
   // MCQ helpers
@@ -965,6 +1000,56 @@ const AdminAssignmentForm: React.FC = () => {
             <button type="button" className="btn btn-secondary" onClick={addMCQQuestion}>
               <i className="bi bi-plus"></i> Add Question
             </button>
+
+            {/* AI Generate MCQ */}
+            <div className="ai-generate-section" style={{ marginTop: '24px', padding: '20px', background: '#f0f7ff', borderRadius: '12px', border: '1.5px solid #bfdbfe' }}>
+              <h4 style={{ margin: '0 0 12px', color: '#005897', fontSize: '1rem' }}>✨ AI Generate Questions</h4>
+              {aiMcqError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: '8px' }}>{aiMcqError}</p>}
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                <div className="form-group" style={{ flex: 2, minWidth: '180px', marginBottom: 0 }}>
+                  <label className="form-label">Topic / Subject</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder="e.g. Java Loops, React Hooks..."
+                    value={aiMcq.topic}
+                    onChange={e => setAiMcq({ ...aiMcq, topic: e.target.value })}
+                  />
+                </div>
+                <div className="form-group" style={{ minWidth: '140px', marginBottom: 0 }}>
+                  <label className="form-label">Difficulty</label>
+                  <select
+                    className="form-control"
+                    value={aiMcq.difficulty}
+                    onChange={e => setAiMcq({ ...aiMcq, difficulty: e.target.value })}
+                  >
+                    <option value="easy">Easy</option>
+                    <option value="medium">Medium</option>
+                    <option value="hard">Hard</option>
+                  </select>
+                </div>
+                <div className="form-group" style={{ width: '80px', marginBottom: 0 }}>
+                  <label className="form-label">Count</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    min={1}
+                    max={20}
+                    value={aiMcq.count}
+                    onChange={e => setAiMcq({ ...aiMcq, count: Math.min(20, Math.max(1, Number(e.target.value))) })}
+                  />
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={generateAIMCQQuestions}
+                  disabled={aiMcqLoading || !aiMcq.topic.trim()}
+                  style={{ marginBottom: 0 }}
+                >
+                  {aiMcqLoading ? 'Generating...' : '✨ Generate'}
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

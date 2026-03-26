@@ -28,6 +28,8 @@ export interface IQuestion extends Document {
   difficultyLevel: 'easy' | 'medium' | 'hard';
   explanation?: string;
   tags?: string[];
+  subject?: string; // Subject name (e.g. Java, Python, DBMS)
+  topic?: string;   // Topic within the subject
   source: 'manual' | 'csv' | 'ai'; // Where the question came from
   usageCount: number; // How many quizzes use this question
   usedInQuizzes?: string[]; // References to quizzes using this question
@@ -73,6 +75,8 @@ const questionSchema = new Schema<IQuestion>(
     },
     explanation: { type: String },
     tags: [{ type: String }],
+    subject: { type: String, trim: true },
+    topic: { type: String, trim: true },
     source: {
       type: String,
       enum: ['manual', 'csv', 'ai'],
@@ -91,6 +95,7 @@ const questionSchema = new Schema<IQuestion>(
 // Indexes for performance
 questionSchema.index({ tenantId: 1, createdBy: 1 });
 questionSchema.index({ tenantId: 1, tags: 1 });
+questionSchema.index({ tenantId: 1, subject: 1, topic: 1 });
 questionSchema.index({ question: 'text' }); // Full-text search
 
 export default mongoose.model<IQuestion>('Question', questionSchema);

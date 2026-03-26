@@ -2,6 +2,10 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import StudentProfile from '../models/StudentProfile';
 import User from '../models/User';
+import QuizAttempt from '../models/QuizAttempt';
+import Submission from '../models/Submission';
+import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
+import Attendance from '../models/Attendance';
 import { AuthRequest } from '../types/express';
 
 // GET - Get current user's student profile
@@ -297,7 +301,8 @@ export const getAllProfiles = async (req: AuthRequest, res: Response) => {
       experienceLevel,
       currentStatus,
       isComplete,
-      search 
+      search,
+      batchId
     } = req.query;
 
     const query: any = { tenantId };
@@ -324,6 +329,13 @@ export const getAllProfiles = async (req: AuthRequest, res: Response) => {
         { 'personalInfo.surname': { $regex: search, $options: 'i' } },
         { 'personalInfo.email': { $regex: search, $options: 'i' } },
       ];
+    }
+
+    // Batch filter: find users in the given batch, then filter profiles by userId
+    if (batchId && mongoose.Types.ObjectId.isValid(batchId as string)) {
+      const batchUsers = await User.find({ batchId: new mongoose.Types.ObjectId(batchId as string), tenantId }).select('_id');
+      const batchUserIds = batchUsers.map((u) => u._id);
+      query.userId = { $in: batchUserIds };
     }
 
     const pageNum = parseInt(page as string, 10);
@@ -446,6 +458,70 @@ export const getProfileStats = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: 'Failed to fetch statistics',
+      error: (error as Error).message,
+    });
+  }
+};
+
+// GET - Student activity overview for admin (attendance, quizzes, assignments, code snippets)
+export const getStudentActivity = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const tenantId = req.user?.tenantId;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+
+    const userObjId = new mongoose.Types.ObjectId(userId);
+    const tenantStr = tenantId as string;
+    const tenantObjId = mongoose.Types.ObjectId.isValid(tenantStr) ? new mongoose.Types.ObjectId(tenantStr) : null;
+
+    const [attendanceRecords, quizAttempts, assignmentSubmissions, snippetSubmissions] = await Promise.all([
+      Attendance.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) })
+        .sort({ date: -1 })
+        .limit(60)
+        .lean(),
+      QuizAttempt.find({ studentId: userId, tenantId: tenantStr })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean(),
+      Submission.find({ student: userObjId, ...(tenantObjId ? { tenant: tenantObjId } : {}) })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .populate('assignment', 'title type totalPoints')
+        .lean(),
+      CodeSnippetSubmission.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .populate('assessmentId', 'title language totalMarks')
+        .lean(),
+    ]);
+
+    // Compute attendance summary
+    const present = attendanceRecords.filter((a: any) => a.status === 'present').length;
+    const absent = attendanceRecords.filter((a: any) => a.status === 'absent').length;
+    const late = attendanceRecords.filter((a: any) => a.status === 'late').length;
+    const totalDays = present + absent + late;
+    const attendancePercentage = totalDays > 0 ? Math.round(((present + late) / totalDays) * 100) : 0;
+
+    res.json({
+      success: true,
+      data: {
+        attendance: {
+          summary: { present, absent, late, totalDays, percentage: attendancePercentage },
+          recent: attendanceRecords.slice(0, 15),
+        },
+        quizAttempts,
+        assignmentSubmissions,
+        snippetSubmissions,
+      },
+    });
+  } catch (error) {
+    console.error('Get student activity error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch student activity',
       error: (error as Error).message,
     });
   }

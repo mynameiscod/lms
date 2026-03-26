@@ -68,12 +68,15 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     marks: 1,
     difficulty: 'medium',
     tags: '',
-    description: ''
+    description: '',
+    subject: '',
+    topic: ''
   });
 
   // AI Generate state
   const [aiForm, setAiForm] = useState({
     topic: '',
+    subject: '',
     type: 'mcq_single',
     difficulty: 'medium',
     count: 10
@@ -151,6 +154,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
         difficultyLevel: manualForm.difficulty,
         tags: manualForm.tags ? manualForm.tags.split(',').map(t => t.trim()) : [],
         description: manualForm.description,
+        subject: manualForm.subject || undefined,
+        topic: manualForm.topic || undefined,
         source: 'manual',
         options: manualForm.type.startsWith('mcq')
           ? manualForm.options.filter(o => o.trim() !== '')
@@ -175,7 +180,9 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
         marks: 1,
         difficulty: 'medium',
         tags: '',
-        description: ''
+        description: '',
+        subject: '',
+        topic: ''
       });
 
       setTimeout(() => setSuccessMessage(''), 3000);
@@ -696,6 +703,29 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
               />
             </div>
 
+            <div className="qb-form-row">
+              <div className="qb-form-group">
+                <label>Subject <span style={{ color: '#ef4444' }}>*</span></label>
+                <Input
+                  type="text"
+                  value={manualForm.subject}
+                  onChange={(e) => setManualForm({ ...manualForm, subject: e.target.value })}
+                  placeholder="e.g. Java, Python, DBMS"
+                  required
+                />
+              </div>
+              <div className="qb-form-group">
+                <label>Topic <span style={{ color: '#ef4444' }}>*</span></label>
+                <Input
+                  type="text"
+                  value={manualForm.topic}
+                  onChange={(e) => setManualForm({ ...manualForm, topic: e.target.value })}
+                  placeholder="e.g. Arrays, Joins, Inheritance"
+                  required
+                />
+              </div>
+            </div>
+
             <div className="qb-form-group">
               <label>Description (optional)</label>
               <textarea
@@ -762,12 +792,15 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                   className="qb-ai-form"
                   onSubmit={async (e) => {
                     e.preventDefault();
-                    if (!aiForm.topic.trim()) return;
+                    if (!aiForm.subject.trim()) return;
                     try {
                       setAiGenerating(true);
                       setError('');
+                      const topicStr = aiForm.topic.trim()
+                        ? `${aiForm.subject.trim()} — ${aiForm.topic.trim()}`
+                        : aiForm.subject.trim();
                       const res = await quizApi.generateAIQuestions({
-                        topic: aiForm.topic.trim(),
+                        topic: topicStr,
                         type: aiForm.type,
                         difficulty: aiForm.difficulty,
                         count: aiForm.count
@@ -783,7 +816,21 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                 >
                   <div className="qb-ai-form-row">
                     <div className="qb-ai-form-group full-width">
-                      <label>Topic / Subject *</label>
+                      <label>Subject <span style={{ color: '#ef4444' }}>*</span></label>
+                      <input
+                        type="text"
+                        className="qb-ai-input"
+                        placeholder="e.g. Java, Python, DBMS, Data Structures"
+                        value={aiForm.subject}
+                        onChange={(e) => setAiForm({ ...aiForm, subject: e.target.value })}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="qb-ai-form-row">
+                    <div className="qb-ai-form-group full-width">
+                      <label>Topic / Subtopic *</label>
                       <input
                         type="text"
                         className="qb-ai-input"
@@ -838,7 +885,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                   </div>
 
                   <div className="qb-ai-generate-btn-row">
-                    <button type="submit" className="qb-ai-generate-btn" disabled={aiGenerating || !aiForm.topic.trim()}>
+                    <button type="submit" className="qb-ai-generate-btn" disabled={aiGenerating || !aiForm.subject.trim()}>
                       {aiGenerating ? (
                         <><span className="qb-ai-spinner"></span> Generating {aiForm.count} questions…</>
                       ) : (
@@ -855,7 +902,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                 <div className="qb-ai-preview-header">
                   <div>
                     <h3>✨ {generatedQuestions.length} Questions Generated</h3>
-                    <p>Topic: <strong>{aiForm.topic}</strong> · Review, edit inline, and save selected questions to the bank.</p>
+                    <p>Subject: <strong>{aiForm.subject}</strong>{aiForm.topic ? ` · Topic: ${aiForm.topic}` : ''} · Review, edit inline, and save selected questions to the bank.</p>
                   </div>
                   <div className="qb-ai-preview-actions">
                     <button
@@ -898,6 +945,8 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                                 difficultyLevel: q.difficultyLevel,
                                 marks: q.marks,
                                 tags: q.tags || [],
+                                subject: aiForm.subject || undefined,
+                                topic: aiForm.topic || undefined,
                                 source: 'ai',
                                 explanation: q.explanation || ''
                               };
@@ -911,7 +960,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                                 const correctIdx = (q.options || []).findIndex((o: any) =>
                                   typeof o === 'object' ? o.isCorrect : false
                                 );
-                                payload.correctAnswers = [Math.max(0, correctIdx).toString()];
+                                payload.correctAnswers = [(correctIdx >= 0 ? correctIdx : 0).toString()];
                               }
                               await quizApi.createQuestionBankQuestion(payload);
                               saved++;

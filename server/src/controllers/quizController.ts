@@ -579,12 +579,17 @@ export const removeQuestionsFromQuiz = async (req: Request, res: Response) => {
 export const getAvailableQuestions = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
-    const { difficulty, type, tags } = req.query;
+    const { difficulty, type, tags, source, subject, topic, dateFrom, dateTo } = req.query;
 
     const filters: any = {};
     if (difficulty) filters.difficulty = difficulty;
     if (type) filters.type = type;
     if (tags) filters.tags = (tags as string).split(',');
+    if (source) filters.source = source;
+    if (subject) filters.subject = subject;
+    if (topic) filters.topic = topic;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
 
     const questions = await quizService.getAvailableQuestingsForQuiz(tenantId, filters);
     res.json(questions);

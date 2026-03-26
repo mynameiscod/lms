@@ -26,6 +26,7 @@ class CodeSnippetController {
       for (const field of objectIdFields) {
         if (rest[field] === '' || rest[field] === null) delete rest[field];
       }
+      if (rest.dueDate === '' || rest.dueDate === null) delete rest.dueDate;
 
       const assessment = await CodeSnippetAssessment.create({
         ...rest,
@@ -94,6 +95,8 @@ class CodeSnippetController {
       for (const field of objectIdFields) {
         if (updateData[field] === '' || updateData[field] === null) delete updateData[field];
       }
+      // Strip empty dueDate to avoid Mongoose CastError ('' cannot be cast to Date)
+      if (updateData.dueDate === '' || updateData.dueDate === null) delete updateData.dueDate;
 
       if (questions !== undefined) {
         updateData.questions = questions;

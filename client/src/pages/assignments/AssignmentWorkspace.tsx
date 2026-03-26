@@ -40,59 +40,80 @@ const AssignmentWorkspace: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [showInstructionsPage, setShowInstructionsPage] = useState(true);
+  const [starting, setStarting] = useState(false);
 
   // Timer for timed assignments
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
 
-  // Load assignment and start/continue submission
+  // Initialize workspace state from a submission object
+  const initWorkspaceFromSubmission = useCallback((sub: Submission, asgn: Assignment) => {
+    setSubmission(sub);
+    if (sub.code) {
+      setCode(sub.code);
+      setSelectedLanguage(sub.language || ProgrammingLanguage.JAVASCRIPT);
+    } else if (asgn.starterCode.length > 0) {
+      const defaultLang = asgn.allowedLanguages[0];
+      const starter = asgn.starterCode.find(s => s.language === defaultLang);
+      setCode(starter?.code || '');
+      setSelectedLanguage(defaultLang);
+    }
+    if (sub.theoryAnswer) setTheoryAnswer(sub.theoryAnswer);
+    if (sub.mcqAnswers) {
+      const answers: Record<number, number> = {};
+      sub.mcqAnswers.forEach(a => { answers[a.questionIndex] = a.selectedOption; });
+      setMcqAnswers(answers);
+    }
+    if (sub.testResults) setTestResults(sub.testResults);
+    if (asgn.settings?.timeLimitMinutes && sub.startedAt) {
+      const started = new Date(sub.startedAt).getTime();
+      const limit = asgn.settings.timeLimitMinutes * 60 * 1000;
+      const remaining = Math.max(0, limit - (Date.now() - started));
+      setTimeRemaining(remaining);
+    }
+  }, []);
+
+  // Load assignment details + check for an existing in-progress submission (for resume)
   const loadAssignment = useCallback(async () => {
     if (!assignmentId) return;
-
     try {
       setLoading(true);
       const assignmentRes = await assignmentApi.getById(assignmentId);
-      setAssignment(assignmentRes.data.data);
-      
-      // Start or continue submission
-      const submissionRes = await submissionApi.startSubmission(assignmentId);
-      const sub = submissionRes.data.data;
-      setSubmission(sub);
-      
-      // Set initial code/answers from submission or starter code
-      if (sub.code) {
-        setCode(sub.code);
-        setSelectedLanguage(sub.language || ProgrammingLanguage.JAVASCRIPT);
-      } else if (assignmentRes.data.data.starterCode.length > 0) {
-        const defaultLang = assignmentRes.data.data.allowedLanguages[0];
-        const starter = assignmentRes.data.data.starterCode.find(s => s.language === defaultLang);
-        setCode(starter?.code || '');
-        setSelectedLanguage(defaultLang);
-      }
-      
-      if (sub.theoryAnswer) setTheoryAnswer(sub.theoryAnswer);
-      if (sub.mcqAnswers) {
-        const answers: Record<number, number> = {};
-        sub.mcqAnswers.forEach(a => {
-          answers[a.questionIndex] = a.selectedOption;
-        });
-        setMcqAnswers(answers);
-      }
-      if (sub.testResults) setTestResults(sub.testResults);
-      
-      // Setup timer for timed assignments
-      if (assignmentRes.data.data.settings?.timeLimitMinutes && sub.startedAt) {
-        const started = new Date(sub.startedAt).getTime();
-        const limit = assignmentRes.data.data.settings.timeLimitMinutes * 60 * 1000;
-        const elapsed = Date.now() - started;
-        const remaining = Math.max(0, limit - elapsed);
-        setTimeRemaining(remaining);
+      const asgn = assignmentRes.data.data;
+      setAssignment(asgn);
+
+      // Check if student already has an in-progress or submitted submission
+      try {
+        const existingRes = await submissionApi.getMySubmission(assignmentId);
+        const existing = existingRes.data.data;
+        if (existing && (existing.status === SubmissionStatus.IN_PROGRESS || existing.status === SubmissionStatus.SUBMITTED || existing.status === SubmissionStatus.GRADED)) {
+          initWorkspaceFromSubmission(existing, asgn);
+          setShowInstructionsPage(false); // Resume directly — no need to show instructions again
+        }
+      } catch {
+        // No existing submission → show instructions page (expected for new attempt)
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to load assignment');
     } finally {
       setLoading(false);
     }
-  }, [assignmentId]);
+  }, [assignmentId, initWorkspaceFromSubmission]);
+
+  // Called when student clicks "Start Assignment"
+  const handleStartAssignment = async () => {
+    if (!assignment || !assignmentId) return;
+    try {
+      setStarting(true);
+      const submissionRes = await submissionApi.startSubmission(assignmentId);
+      const sub = submissionRes.data.data;
+      initWorkspaceFromSubmission(sub, assignment);
+      setShowInstructionsPage(false);
+    } catch (err: any) {
+      setError(err.response?.data?.message || 'Failed to start assignment');
+    } finally {
+      setStarting(false);
+    }
+  };
 
   useEffect(() => {
     loadAssignment();
@@ -253,7 +274,7 @@ const AssignmentWorkspace: React.FC = () => {
     );
   }
 
-  if (!assignment || !submission) {
+  if (!assignment) {
     return (
       <div className="assignment-page">
         <div className="alert alert-error">Assignment not found</div>
@@ -342,9 +363,10 @@ const AssignmentWorkspace: React.FC = () => {
           <div className="instructions-actions">
             <button 
               className="btn btn-primary btn-lg"
-              onClick={() => setShowInstructionsPage(false)}
+              onClick={handleStartAssignment}
+              disabled={starting}
             >
-              ▶️ Start Assignment
+              {starting ? '⏳ Starting…' : '▶️ Start Assignment'}
             </button>
           </div>
         </div>

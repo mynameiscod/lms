@@ -5,6 +5,7 @@ import Subject from '../models/Subject';
 import Quiz from '../models/Quiz';
 import QuizAttempt from '../models/QuizAttempt';
 import Enrollment from '../models/Enrollment';
+import Attendance from '../models/Attendance';
 import User from '../models/User';
 import { InterviewQuestion, StudentQuestionProgress } from '../models/InterviewQuestion';
 
@@ -67,7 +68,13 @@ export const getHeatmap = async (req: AuthRequest, res: Response) => {
 
     // 2. Get enrolled students (filtered by batch if provided)
     const enrollmentQuery: any = { tenantId: tenantOid, status: 'enrolled' };
-    if (batchId) enrollmentQuery.batchId = new Types.ObjectId(batchId);
+    if (batchId) {
+      const batchStudentIds = await Attendance.distinct('studentId', {
+        tenantId: tenantOid,
+        batchId: new Types.ObjectId(batchId)
+      });
+      enrollmentQuery.userId = { $in: batchStudentIds };
+    }
 
     const enrollments = await Enrollment.find(enrollmentQuery)
       .populate({ path: 'userId', select: 'firstName lastName email' })
@@ -79,8 +86,7 @@ export const getHeatmap = async (req: AuthRequest, res: Response) => {
         const u = e.userId as any;
         return {
           _id: u._id.toString(),
-          name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email,
-          batchId: e.batchId?.toString()
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email
         };
       });
 
@@ -326,7 +332,7 @@ export const getStudentMastery = async (req: AuthRequest, res: Response) => {
       success: true,
       data: {
         studentId,
-        enrollment: { courseId: enrollment.courseId, batchId: enrollment.batchId },
+        enrollment: { courseId: enrollment.courseId },
         topics: topicsWithMastery,
         summary: {
           totalTopics: topicsWithMastery.length,

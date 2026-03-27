@@ -1,11 +1,11 @@
 import React from 'react';
-import { AdminContentPanel } from '../../components/content';
+import { ContentManagementLayout } from '../../components/content';
 import './AdminContentPage.css';
 
 const AdminContentPage: React.FC = () => {
   return (
     <div className="admin-content-page">
-      <AdminContentPanel />
+      <ContentManagementLayout />
     </div>
   );
 };

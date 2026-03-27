@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IContent extends Document {
-  type: 'announcement' | 'note' | 'assignment' | 'cheatsheet' | 'snippet';
+  type: 'announcement' | 'note' | 'assignment' | 'cheatsheet' | 'snippet' | 'video' | 'audio' | 'pdf' | 'image' | 'document';
   title: string;
   description: string;
   content: string;
@@ -17,9 +17,10 @@ export interface IContent extends Document {
     courseName: string;
   };
   
-  // Chapter-level association (optional)
+  // Organization hierarchy (optional)
   subjectId?: Schema.Types.ObjectId;
   chapterId?: Schema.Types.ObjectId;
+  topicId?: Schema.Types.ObjectId;
   
   tenant: Schema.Types.ObjectId;
   
@@ -59,7 +60,7 @@ const ContentSchema = new Schema<IContent>(
   {
     type: {
       type: String,
-      enum: ['announcement', 'note', 'assignment', 'cheatsheet', 'snippet'],
+      enum: ['announcement', 'note', 'assignment', 'cheatsheet', 'snippet', 'video', 'audio', 'pdf', 'image', 'document'],
       required: true,
       index: true,
     },
@@ -96,6 +97,14 @@ const ContentSchema = new Schema<IContent>(
     subjectId: {
       type: Schema.Types.ObjectId,
       ref: 'Subject',
+    },
+    chapterId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Chapter',
+    },
+    topicId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Topic',
     },
     chapterId: {
       type: Schema.Types.ObjectId,

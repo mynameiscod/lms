@@ -14,7 +14,7 @@ export interface ContentAttachment {
 
 export interface ContentData {
   _id?: string;
-  type: 'announcement' | 'note' | 'assignment' | 'cheatsheet' | 'snippet';
+  type: 'announcement' | 'note' | 'assignment' | 'cheatsheet' | 'snippet' | 'video' | 'audio' | 'pdf' | 'image' | 'document';
   title: string;
   description: string;
   content: string;
@@ -22,6 +22,7 @@ export interface ContentData {
   courseName?: string;
   subjectId?: string;
   chapterId?: string;
+  topicId?: string;
   tags?: string[];
   isPublished: boolean;
   visibility: 'all_students' | 'specific_batch' | 'enrolled_only';
@@ -61,6 +62,7 @@ export const contentAPI = {
     formData.append('courseName', data.courseName || '');
     if (data.subjectId) formData.append('subjectId', data.subjectId);
     if (data.chapterId) formData.append('chapterId', data.chapterId);
+    if (data.topicId) formData.append('topicId', data.topicId);
     formData.append('isPublished', String(data.isPublished));
     formData.append('visibility', data.visibility);
     

@@ -3,6 +3,7 @@ import Card from '../common/Card';
 import Button from '../common/Button';
 import Spinner from '../common/Spinner';
 import contentAPI, { ContentResponse } from '../../api/contentAPI';
+import { ContentFilter } from './ContentManagementLayout';
 import './ContentTable.css';
 
 export interface ContentTableProps {
@@ -11,6 +12,7 @@ export interface ContentTableProps {
   onDeleteSuccess?: (message: string) => void;
   onError?: (message: string) => void;
   refreshTrigger?: number;
+  filters?: ContentFilter;
 }
 
 const ContentTable: React.FC<ContentTableProps> = ({
@@ -19,22 +21,36 @@ const ContentTable: React.FC<ContentTableProps> = ({
   onDeleteSuccess,
   onError,
   refreshTrigger = 0,
+  filters = {},
 }) => {
   const [contents, setContents] = useState<ContentResponse[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [typeFilter, setTypeFilter] = useState('');
-  const [publishedFilter, setPublishedFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'title' | 'viewCount'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   const loadContent = useCallback(async () => {
     setLoading(true);
     try {
-      const filterParams: any = {};
-      if (typeFilter) filterParams.type = typeFilter;
-      if (publishedFilter) filterParams.isPublished = publishedFilter === 'true';
+      const filterParams: any = {
+        page,
+        limit: 12,
+        sortBy,
+        sortOrder
+      };
+      
+      // Apply filters from props
+      if (filters.type && filters.type !== 'all') filterParams.type = filters.type;
+      if (filters.subjectId) filterParams.subjectId = filters.subjectId;
+      if (filters.chapterId) filterParams.chapterId = filters.chapterId;
+      if (filters.topicId) filterParams.topicId = filters.topicId;
+      if (filters.visibility && filters.visibility !== 'all') filterParams.visibility = filters.visibility;
+      if (filters.isPublished !== undefined) filterParams.isPublished = filters.isPublished;
+      if (searchTerm.trim()) filterParams.search = searchTerm.trim();
 
-      const response = await contentAPI.getAllContent(page, 10, filterParams);
+      const response = await contentAPI.getAllContent(filterParams.page, filterParams.limit, filterParams);
       setContents(response.content || []);
       setTotalPages(response.totalPages || 1);
     } catch (error: any) {
@@ -44,13 +60,12 @@ const ContentTable: React.FC<ContentTableProps> = ({
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, typeFilter, publishedFilter]);
+  }, [page, filters, searchTerm, sortBy, sortOrder, onError]);
 
   useEffect(() => {
     loadContent();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, typeFilter, publishedFilter, refreshTrigger]);
+  }, [loadContent, refreshTrigger]);
 
   const handleDelete = async (contentId: string) => {
     if (!window.confirm('Are you sure you want to delete this content?')) {
@@ -107,18 +122,23 @@ const ContentTable: React.FC<ContentTableProps> = ({
           <label htmlFor="typeFilter">Type</label>
           <select
             id="typeFilter"
-            value={typeFilter}
+            value={filters.type || 'all'}
             onChange={(e) => {
-              setTypeFilter(e.target.value);
-              setPage(1);
+              // This will be handled by the parent component
+              console.log('Type filter changed:', e.target.value);
             }}
           >
             <option value="">All Types</option>
             <option value="announcement">📢 Announcement</option>
             <option value="note">📝 Note</option>
-            <option value="assignment">✓ Assignment</option>
-            <option value="cheatsheet">⚡ Cheatsheet</option>
-            <option value="snippet">💻 Snippet</option>
+            <option value="video">🎥 Video</option>
+            <option value="audio">🎵 Audio</option>
+            <option value="pdf">📄 PDF</option>
+            <option value="image">🖼️ Image</option>
+            <option value="document">📋 Document</option>
+            <option value="assignment">📋 Assignment</option>
+            <option value="snippet">💻 Code Snippet</option>
+            <option value="cheatsheet">📊 Cheatsheet</option>
           </select>
         </div>
 
@@ -126,10 +146,10 @@ const ContentTable: React.FC<ContentTableProps> = ({
           <label htmlFor="publishedFilter">Status</label>
           <select
             id="publishedFilter"
-            value={publishedFilter}
+            value={filters.isPublished === undefined ? 'all' : filters.isPublished ? 'published' : 'draft'}
             onChange={(e) => {
-              setPublishedFilter(e.target.value);
-              setPage(1);
+              // This will be handled by the parent component
+              console.log('Published filter changed:', e.target.value);
             }}
           >
             <option value="">All</option>

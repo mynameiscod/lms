@@ -8,7 +8,7 @@ import { AuthRequest } from '../types/express';
 // CREATE - Admin creates new content
 export const createContent = async (req: AuthRequest, res: Response) => {
   try {
-    const { type, title, description, content, courseId, courseName, subjectId, chapterId, dueDate, priority, tags, visibility, code, language } = req.body;
+    const { type, title, description, content, courseId, courseName, subjectId, chapterId, topicId, dueDate, priority, tags, visibility, code, language } = req.body;
     const userId = req.user?.id;  // Use 'id' not '_id' from JWT
     const tenantId = req.user?.tenantId;
 
@@ -72,6 +72,7 @@ export const createContent = async (req: AuthRequest, res: Response) => {
       },
       subjectId: subjectId ? new mongoose.Types.ObjectId(subjectId) : undefined,
       chapterId: chapterId ? new mongoose.Types.ObjectId(chapterId) : undefined,
+      topicId: topicId ? new mongoose.Types.ObjectId(topicId) : undefined,
       tenant: tenantId,
       tags: tags || [],
       visibility: visibility || 'enrolled_only',

@@ -5,7 +5,8 @@ import Card from '../common/Card';
 import Spinner from '../common/Spinner';
 import { type AlertType } from '../common';
 import contentAPI, { ContentData } from '../../api/contentAPI';
-import { courseApi, subjectApi, chapterApi } from '../../api';
+import { courseApi, subjectApi, chapterApi, topicApi } from '../../api';
+import { ContentType } from './ContentManagementLayout';
 import './ContentForm.css';
 
 interface Course {
@@ -25,12 +26,18 @@ interface Chapter {
   title: string;
 }
 
+interface Topic {
+  _id: string;
+  title: string;
+}
+
 export interface ContentFormProps {
   onSuccess?: (message: string) => void;
   onError?: (message: string) => void;
   onShowAlert?: (message: string, type: AlertType) => void;
   editingContent?: any;
   onCancel?: () => void;
+  defaultType?: ContentType;
 }
 
 const ContentForm: React.FC<ContentFormProps> = ({
@@ -39,10 +46,11 @@ const ContentForm: React.FC<ContentFormProps> = ({
   onShowAlert,
   editingContent,
   onCancel,
+  defaultType = 'announcement'
 }) => {
   const [formData, setFormData] = useState<ContentData & { files?: File[] }>(
     editingContent || {
-      type: 'announcement',
+      type: defaultType as 'announcement' | 'note' | 'assignment' | 'cheatsheet' | 'snippet',
       title: '',
       description: '',
       content: '',
@@ -59,17 +67,35 @@ const ContentForm: React.FC<ContentFormProps> = ({
   const [tagInput, setTagInput] = useState('');
   const [dragOver, setDragOver] = useState(false);
   
-  // State for course/subject/chapter dropdowns (for notes and cheatsheets)
+  // State for course/subject/chapter/topic dropdowns
   const [courses, setCourses] = useState<Course[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [topics, setTopics] = useState<Topic[]>([]);
   
-  // Check if content type requires chapter selection
-  const requiresChapter = formData.type === 'note' || formData.type === 'cheatsheet';
+  // Content type configurations
+  const CONTENT_TYPE_CONFIG = {
+    announcement: { requiresOrganization: false, allowFiles: true, allowCode: false },
+    note: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    video: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    audio: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    pdf: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    image: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    document: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    assignment: { requiresOrganization: true, allowFiles: true, allowCode: false },
+    snippet: { requiresOrganization: true, allowFiles: false, allowCode: true },
+    cheatsheet: { requiresOrganization: true, allowFiles: true, allowCode: false },
+  };
   
-  // Fetch courses when type requires chapter selection
+  const currentConfig = CONTENT_TYPE_CONFIG[formData.type as keyof typeof CONTENT_TYPE_CONFIG] || 
+                       CONTENT_TYPE_CONFIG.announcement;
+  
+  // Check if content type requires organization (subject/chapter/topic)
+  const requiresOrganization = currentConfig.requiresOrganization;
+  
+  // Fetch courses when type requires organization
   useEffect(() => {
-    if (requiresChapter) {
+    if (requiresOrganization) {
       const fetchCourses = async () => {
         try {
           const res = await courseApi.getCourses();
@@ -91,11 +117,11 @@ const ContentForm: React.FC<ContentFormProps> = ({
       };
       fetchCourses();
     }
-  }, [requiresChapter]);
+  }, [requiresOrganization]);
   
-  // Fetch subjects when course changes (for notes/cheatsheets)
+  // Fetch subjects when course changes
   useEffect(() => {
-    if (requiresChapter && formData.courseId) {
+    if (requiresOrganization && formData.courseId) {
       const fetchSubjects = async () => {
         try {
           const res = await subjectApi.getSubjects({ courseId: formData.courseId });
@@ -118,11 +144,11 @@ const ContentForm: React.FC<ContentFormProps> = ({
       setSubjects([]);
       setFormData(prev => ({ ...prev, subjectId: undefined, chapterId: undefined }));
     }
-  }, [requiresChapter, formData.courseId]);
+  }, [requiresOrganization, formData.courseId]);
   
   // Fetch chapters when subject changes
   useEffect(() => {
-    if (requiresChapter && formData.subjectId) {
+    if (requiresOrganization && formData.subjectId) {
       const fetchChapters = async () => {
         try {
           const res = await chapterApi.getChapters({ subjectId: formData.subjectId });
@@ -145,7 +171,34 @@ const ContentForm: React.FC<ContentFormProps> = ({
       setChapters([]);
       setFormData(prev => ({ ...prev, chapterId: undefined }));
     }
-  }, [requiresChapter, formData.subjectId]);
+  }, [requiresOrganization, formData.subjectId]);
+
+  // Fetch topics when chapter changes
+  useEffect(() => {
+    if (requiresOrganization && formData.chapterId) {
+      const fetchTopics = async () => {
+        try {
+          const res = await topicApi.getTopicsByChapter(formData.chapterId);
+          // Handle various response formats
+          let topicList: Topic[] = [];
+          if (Array.isArray(res)) {
+            topicList = res;
+          } else if (Array.isArray(res?.data)) {
+            topicList = res.data;
+          } else if (Array.isArray(res?.topics)) {
+            topicList = res.topics;
+          }
+          setTopics(topicList);
+        } catch (err) {
+          console.error('Failed to fetch topics:', err);
+        }
+      };
+      fetchTopics();
+    } else {
+      setTopics([]);
+      setFormData(prev => ({ ...prev, topicId: undefined }));
+    }
+  }, [requiresOrganization, formData.chapterId]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
@@ -295,9 +348,14 @@ const ContentForm: React.FC<ContentFormProps> = ({
           >
             <option value="announcement">📢 Announcement</option>
             <option value="note">📝 Note</option>
-            <option value="assignment">✓ Assignment</option>
-            <option value="cheatsheet">⚡ Cheatsheet</option>
-            <option value="snippet">💻 Snippet</option>
+            <option value="video">🎥 Video</option>
+            <option value="audio">🎵 Audio</option>
+            <option value="pdf">📄 PDF</option>
+            <option value="image">🖼️ Image</option>
+            <option value="document">📋 Document</option>
+            <option value="assignment">📋 Assignment</option>
+            <option value="snippet">💻 Code Snippet</option>
+            <option value="cheatsheet">📊 Cheatsheet</option>
           </select>
         </div>
 
@@ -332,8 +390,8 @@ const ContentForm: React.FC<ContentFormProps> = ({
 
         {/* Course ID */}
         <div className="form-group">
-          <label htmlFor="courseId">Course {requiresChapter ? '' : 'ID '}*</label>
-          {requiresChapter ? (
+          <label htmlFor="courseId">Course {requiresOrganization ? '' : 'ID '}*</label>
+          {requiresOrganization ? (
             <select
               id="courseId"
               name="courseId"
@@ -364,7 +422,7 @@ const ContentForm: React.FC<ContentFormProps> = ({
         </div>
         
         {/* Subject Selection (for notes and cheatsheets only) */}
-        {requiresChapter && (
+        {requiresOrganization && (
           <div className="form-group">
             <label htmlFor="subjectId">Subject *</label>
             <select
@@ -385,8 +443,8 @@ const ContentForm: React.FC<ContentFormProps> = ({
           </div>
         )}
         
-        {/* Chapter Selection (for notes and cheatsheets only) */}
-        {requiresChapter && (
+        {/* Chapter Selection (for organized content only) */}
+        {requiresOrganization && (
           <div className="form-group">
             <label htmlFor="chapterId">Chapter *</label>
             <select
@@ -401,6 +459,27 @@ const ContentForm: React.FC<ContentFormProps> = ({
               {chapters.map((chapter) => (
                 <option key={chapter._id} value={chapter._id}>
                   {chapter.title}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+        
+        {/* Topic Selection (optional) */}
+        {requiresOrganization && formData.chapterId && (
+          <div className="form-group">
+            <label htmlFor="topicId">Topic (Optional)</label>
+            <select
+              id="topicId"
+              name="topicId"
+              value={formData.topicId || ''}
+              onChange={handleInputChange}
+              disabled={loading || !formData.chapterId}
+            >
+              <option value="">Select a topic (optional)</option>
+              {topics.map((topic) => (
+                <option key={topic._id} value={topic._id}>
+                  {topic.title}
                 </option>
               ))}
             </select>

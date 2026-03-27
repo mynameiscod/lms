@@ -137,9 +137,9 @@ const TopicHub: React.FC = () => {
       .catch(console.error);
   }, []);
 
-  const handleUpdateIqStatus = useCallback(async (questionId: string, status: string) => {
+  const handleUpdateIqStatus = useCallback(async (questionId: string, status: 'not_reviewed' | 'reviewing' | 'understood' | 'confident') => {
     try {
-      await interviewQuestionApi.updateStudentProgress(questionId, { status });
+      await interviewQuestionApi.updateStudentProgress(questionId, { status, chapterId: selectedTopic?.chapterId! });
       setIqProgress(prev => ({ ...prev, [questionId]: status }));
       // Optimistically update mastery UI
       if (selectedTopic && (status === 'understood' || status === 'confident')) {
@@ -444,7 +444,7 @@ const TopicHub: React.FC = () => {
                                     className="th-status-select"
                                     style={{ color: STATUS_COLORS[status] }}
                                     value={status}
-                                    onChange={e => { e.stopPropagation(); handleUpdateIqStatus(q._id, e.target.value); }}
+                                    onChange={e => { e.stopPropagation(); handleUpdateIqStatus(q._id, e.target.value as 'not_reviewed' | 'reviewing' | 'understood' | 'confident'); }}
                                     onClick={e => e.stopPropagation()}
                                   >
                                     {Object.entries(STATUS_LABELS).map(([val, label]) => (
@@ -484,7 +484,7 @@ const TopicHub: React.FC = () => {
                                         key={val}
                                         className={`th-status-btn ${status === val ? 'th-status-active' : ''}`}
                                         style={status === val ? { borderColor: STATUS_COLORS[val], color: STATUS_COLORS[val], background: STATUS_COLORS[val] + '15' } : {}}
-                                        onClick={() => handleUpdateIqStatus(q._id, val)}
+                                        onClick={() => handleUpdateIqStatus(q._id, val as 'not_reviewed' | 'reviewing' | 'understood' | 'confident')}
                                       >
                                         {label}
                                       </button>

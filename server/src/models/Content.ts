@@ -106,10 +106,6 @@ const ContentSchema = new Schema<IContent>(
       type: Schema.Types.ObjectId,
       ref: 'Topic',
     },
-    chapterId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Chapter',
-    },
     tenant: {
       type: Schema.Types.ObjectId,
       ref: 'Tenant',

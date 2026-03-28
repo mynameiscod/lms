@@ -127,7 +127,7 @@ jobs:
       github.event_name == 'push'
     environment:
       name: development
-      url: http://${{ secrets.DEV_HOST }}:5000
+      url: http://${{ secrets.DEV_HOST }}:5001
     
     outputs:
       deploy_success: ${{ steps.health.outputs.success }}
@@ -151,15 +151,16 @@ jobs:
           DB_BACKUP_DIR="/root/lms-backups/database"
           mkdir -p "$DB_BACKUP_DIR"
           
-          if docker ps | grep -q "lms-mongodb"; then
+          # Use DEV container name
+          if docker ps | grep -q "lms-dev-mongodb"; then
             echo "📦 Backing up DEV database..."
-            docker exec lms-mongodb mongodump \
-              --uri="mongodb://admin:password123@localhost:27017/lms-saas?authSource=admin" \
+            docker exec lms-dev-mongodb mongodump \
+              --uri="mongodb://admin:devpassword123@localhost:27017/lms-saas-dev?authSource=admin" \
               --out="/data/backup_$TIMESTAMP" \
               --gzip 2>/dev/null || true
             
-            docker cp lms-mongodb:/data/backup_$TIMESTAMP "$DB_BACKUP_DIR/dev_backup_$TIMESTAMP" 2>/dev/null || true
-            docker exec lms-mongodb rm -rf "/data/backup_$TIMESTAMP" 2>/dev/null || true
+            docker cp lms-dev-mongodb:/data/backup_$TIMESTAMP "$DB_BACKUP_DIR/dev_backup_$TIMESTAMP" 2>/dev/null || true
+            docker exec lms-dev-mongodb rm -rf "/data/backup_$TIMESTAMP" 2>/dev/null || true
             
             if [ -d "$DB_BACKUP_DIR/dev_backup_$TIMESTAMP" ]; then
               cd "$DB_BACKUP_DIR"
@@ -202,12 +203,12 @@ jobs:
             cp "/tmp/.env.dev.safe" "server/.env"
           fi
           
-          # Build and deploy
-          docker-compose down --timeout 30 2>/dev/null || true
-          docker-compose build --no-cache
-          docker-compose up -d
+          # Build and deploy using DEV compose file
+          docker-compose -f docker-compose.dev.yml down --timeout 30 2>/dev/null || true
+          docker-compose -f docker-compose.dev.yml build --no-cache
+          docker-compose -f docker-compose.dev.yml up -d
           
-          echo "✅ DEV deployment complete"
+          echo "✅ DEV deployment complete (port 5001)"
           
           DEPLOY
 
@@ -221,7 +222,7 @@ jobs:
           RETRY=0
           
           while [ $RETRY -lt $MAX_RETRIES ]; do
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${{ secrets.DEV_HOST }}:5000/api/health" 2>/dev/null || echo "000")
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${{ secrets.DEV_HOST }}:5001/api/health" 2>/dev/null || echo "000")
             
             if [ "$HTTP_STATUS" = "200" ]; then
               echo "success=true" >> $GITHUB_OUTPUT

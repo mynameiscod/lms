@@ -164,7 +164,8 @@ const LeadsPage: React.FC = () => {
       try {
         const usersRes=await userApi.getUsers();
         const users=usersRes.data||[];
-        setStaff(users.filter((u:any)=>['TENANT_ADMIN','INSTRUCTOR','STAFF'].includes(u.role)));
+        // Include users with TENANT_ADMIN/INSTRUCTOR/STAFF roles OR users with custom roles (customRoleId)
+        setStaff(users.filter((u:any)=>['TENANT_ADMIN','INSTRUCTOR','STAFF'].includes(u.role) || u.customRoleId));
       } catch {}
       try {
         const analyticsRes=await leadApi.getAnalytics();

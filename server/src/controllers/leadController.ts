@@ -4,6 +4,7 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
+import Role from '../models/Role';
 import AuditLog from '../models/AuditLog';
 import bcryptjs from 'bcryptjs';
 import XLSX from 'xlsx';
@@ -670,24 +671,40 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
 
     const scope = await resolveLeadScope(req);
 
-    // Get staff who can have leads assigned — scoped by manager view
-    // Only show users who have lead-related roles (excludes INSTRUCTOR who has no lead permissions)
+    // Get custom roles that have lead-related permissions
+    const leadPermissions = ['view_leads', 'create_leads', 'edit_leads', 'manage_leads', 'assign_leads'];
+    const rolesWithLeadPerms = await Role.find({
+      tenantId: req.tenantId,
+      permissions: { $in: leadPermissions }
+    }).select('_id').lean();
+    const roleIds = rolesWithLeadPerms.map(r => r._id);
+
+    // Get staff who can have leads assigned — includes:
+    // 1. Users with TENANT_ADMIN, INSTRUCTOR, or STAFF roles
+    // 2. Users with custom roles that have lead permissions
     let staffFilter: any = {
       tenantId: req.tenantId,
-      role: { $in: ['TENANT_ADMIN', 'STAFF'] },
-      isActive: true
+      isActive: true,
+      $or: [
+        { role: { $in: ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'] } },
+        { customRoleId: { $in: roleIds } }
+      ]
     };
     if (scope === 'TEAM') {
       // Manager sees only their direct reports + themselves
-      staffFilter.$or = [
-        { managerId: req.user!.id },
-        { _id: req.user!.id }
-      ];
+      staffFilter = {
+        ...staffFilter,
+        $and: [
+          { $or: staffFilter.$or },
+          { $or: [{ managerId: req.user!.id }, { _id: req.user!.id }] }
+        ]
+      };
+      delete staffFilter.$or;
     } else if (scope === 'OWN') {
       staffFilter._id = req.user!.id;
     }
 
-    const staffUsers = await User.find(staffFilter).select('firstName lastName email role').lean();
+    const staffUsers = await User.find(staffFilter).select('firstName lastName email role customRoleId').lean();
 
     const scopeFilter = await buildLeadScopeFilter(req);
     const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };

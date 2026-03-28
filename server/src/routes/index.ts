@@ -32,6 +32,9 @@ import topicMasteryRoutes from './topicMasteryRoutes';
 import learningRequestRoutes from './learningRequestRoutes';
 import adCampaignRoutes from './adCampaignRoutes';
 import leadStageHistoryRoutes from './leadStageHistoryRoutes';
+import whatsappRoutes from './whatsappRoutes';
+import followUpRoutes from './followUpRoutes';
+import seatReservationRoutes from './seatReservationRoutes';
 
 const router = express.Router();
 
@@ -68,5 +71,8 @@ router.use('/topic-mastery', topicMasteryRoutes);
 router.use('/learning-requests', learningRequestRoutes);
 router.use('/campaigns', adCampaignRoutes);
 router.use('/stage-history', leadStageHistoryRoutes);
+router.use('/whatsapp', whatsappRoutes);
+router.use('/follow-ups', followUpRoutes);
+router.use('/seat-reservations', seatReservationRoutes);
 
 export default router;

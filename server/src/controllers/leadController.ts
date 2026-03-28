@@ -1,4 +1,5 @@
 import { Response } from 'express';
+import mongoose from 'mongoose';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
@@ -7,6 +8,8 @@ import AuditLog from '../models/AuditLog';
 import bcryptjs from 'bcryptjs';
 import XLSX from 'xlsx';
 import { buildLeadScopeFilter, resolveLeadScope } from '../middleware/leadScope';
+import { initializeLeadStageHistory, recordStageTransition } from './leadStageHistoryController';
+import { linkLeadToCampaign } from './adCampaignController';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -290,7 +293,7 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiRe
 // Create a new lead
 export const createLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, customFields } = req.body;
+    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, customFields, utmParams, campaignId } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({ success: false, message: 'Name and phone are required' });
@@ -298,12 +301,17 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 
     // If no stageId provided, use the first stage (lowest order)
     let resolvedStageId = stageId;
+    let resolvedStageName = '';
     if (!resolvedStageId) {
       const firstStage = await LeadStage.findOne({ tenantId: req.tenantId, isActive: true }).sort({ order: 1 });
       if (!firstStage) {
         return res.status(400).json({ success: false, message: 'No lead stages configured. Please set up lead stages first.' });
       }
       resolvedStageId = firstStage._id;
+      resolvedStageName = firstStage.name;
+    } else {
+      const stage = await LeadStage.findById(resolvedStageId);
+      resolvedStageName = stage?.name || 'Unknown';
     }
 
     const lead = await Lead.create({
@@ -317,6 +325,8 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       nextFollowUp,
       notes: notes || '',
       customFields: customFields || {},
+      campaignId: campaignId || undefined,
+      utmParams: utmParams || undefined,
       tenantId: req.tenantId,
       createdBy: req.user!.id,
       activities: [{
@@ -327,13 +337,32 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       }]
     });
 
+    // Initialize stage history for time tracking
+    await initializeLeadStageHistory(
+      lead._id as mongoose.Types.ObjectId,
+      resolvedStageId,
+      resolvedStageName,
+      req.user!.id as unknown as mongoose.Types.ObjectId,
+      req.tenantId as unknown as mongoose.Types.ObjectId
+    );
+
+    // Auto-link to campaign based on UTM params
+    if (utmParams && (utmParams.source || utmParams.campaign)) {
+      await linkLeadToCampaign(
+        lead._id as mongoose.Types.ObjectId,
+        utmParams,
+        req.tenantId as unknown as mongoose.Types.ObjectId
+      );
+    }
+
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')
       .populate('assignedTo', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName');
+      .populate('createdBy', 'firstName lastName')
+      .populate('campaignId', 'name platform');
 
     // Audit log
-    await auditLog(req, 'CREATE', `Lead created: ${name}`, lead._id, { name, phone, source });
+    await auditLog(req, 'CREATE', `Lead created: ${name}`, lead._id, { name, phone, source, utmParams });
 
     // Real-time notification
     emitLeadEvent(req, 'lead_created', populated);
@@ -461,6 +490,7 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
+    const oldStageId = (lead.stageId as any)?._id;
     const oldStageName = (lead.stageId as any)?.name || 'Unknown';
     lead.stageId = newStage._id;
     
@@ -476,6 +506,16 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       metadata: { from: oldStageName, to: newStage.name }
     });
     await lead.save();
+
+    // Record stage transition for time tracking
+    await recordStageTransition(
+      lead._id as mongoose.Types.ObjectId,
+      oldStageId,
+      newStage._id,
+      newStage.name,
+      req.user!.id as unknown as mongoose.Types.ObjectId,
+      req.tenantId as unknown as mongoose.Types.ObjectId
+    );
 
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')
@@ -495,7 +535,7 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
 export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { type, description, callOutcome } = req.body;
+    const { type, description, callOutcome, callDuration, callStatus } = req.body;
 
     if (!type || !description) {
       return res.status(400).json({ success: false, message: 'Activity type and description are required' });
@@ -517,8 +557,10 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       createdBy: req.user!.id,
       createdAt: new Date()
     };
-    if (type === 'call' && callOutcome) {
-      activityData.callOutcome = callOutcome;
+    if (type === 'call') {
+      if (callOutcome) activityData.callOutcome = callOutcome;
+      if (callDuration !== undefined) activityData.callDuration = callDuration;
+      if (callStatus) activityData.callStatus = callStatus;
     }
     // Attach uploaded recording URL if a file was provided
     if (req.file) {

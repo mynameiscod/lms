@@ -1,12 +1,23 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected';
+export type CallStatus = 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
 export type InterestConcern = 'only_online' | 'placements' | 'check_with_parents' | 'fee_issue' | 'timing_issue' | 'other';
+
+export interface IUtmParams {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+  content?: string;
+  term?: string;
+}
 
 export interface ILeadActivity {
   type: 'note' | 'call' | 'email' | 'whatsapp' | 'status_change' | 'assignment' | 'created';
   description: string;
   callOutcome?: CallOutcome;
+  callStatus?: CallStatus;
+  callDuration?: number;  // Duration in seconds
   recordingUrl?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -28,6 +39,11 @@ export interface ILead extends Document {
   customFields?: Map<string, any>;
   convertedStudentId?: mongoose.Types.ObjectId;
   activities: ILeadActivity[];
+  
+  // Campaign tracking fields
+  campaignId?: mongoose.Types.ObjectId;
+  utmParams?: IUtmParams;
+  
   tenantId: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -58,6 +74,14 @@ const LeadActivitySchema: Schema = new Schema(
     callOutcome: {
       type: String,
       enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected']
+    },
+    callStatus: {
+      type: String,
+      enum: ['scheduled', 'completed', 'missed', 'rescheduled', 'cancelled']
+    },
+    callDuration: {
+      type: Number,
+      min: 0
     },
     recordingUrl: {
       type: String,
@@ -132,6 +156,20 @@ const LeadSchema: Schema = new Schema(
       ref: 'User'
     },
     activities: [LeadActivitySchema],
+    
+    // Campaign tracking
+    campaignId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'AdCampaign'
+    },
+    utmParams: {
+      source: { type: String, trim: true, lowercase: true },
+      medium: { type: String, trim: true, lowercase: true },
+      campaign: { type: String, trim: true, lowercase: true },
+      content: { type: String, trim: true, lowercase: true },
+      term: { type: String, trim: true, lowercase: true }
+    },
+    
     tenantId: {
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',
@@ -151,5 +189,7 @@ LeadSchema.index({ tenantId: 1, assignedTo: 1 });
 LeadSchema.index({ tenantId: 1, nextFollowUp: 1 });
 LeadSchema.index({ tenantId: 1, source: 1 });
 LeadSchema.index({ tenantId: 1, createdAt: -1 });
+LeadSchema.index({ tenantId: 1, campaignId: 1 });
+LeadSchema.index({ 'utmParams.source': 1, 'utmParams.campaign': 1 });
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

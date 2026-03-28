@@ -30,6 +30,8 @@ import codeSnippetRoutes from './codeSnippetRoutes';
 import shareRoutes from './shareRoutes';
 import topicMasteryRoutes from './topicMasteryRoutes';
 import learningRequestRoutes from './learningRequestRoutes';
+import adCampaignRoutes from './adCampaignRoutes';
+import leadStageHistoryRoutes from './leadStageHistoryRoutes';
 
 const router = express.Router();
 
@@ -64,5 +66,7 @@ router.use('/code-snippets', codeSnippetRoutes);
 router.use('/share', shareRoutes);
 router.use('/topic-mastery', topicMasteryRoutes);
 router.use('/learning-requests', learningRequestRoutes);
+router.use('/campaigns', adCampaignRoutes);
+router.use('/stage-history', leadStageHistoryRoutes);
 
 export default router;

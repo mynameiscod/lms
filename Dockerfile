@@ -5,15 +5,17 @@ WORKDIR /app/client
 # Copy package.json first for better caching
 COPY client/package*.json ./
 
-# Clear cache and install dependencies
+# Clear cache and install dependencies with ajv fix
 RUN npm cache clean --force && \
     rm -rf node_modules package-lock.json && \
-    npm install --legacy-peer-deps
+    npm install --legacy-peer-deps && \
+    npm install ajv@^8.12.0 ajv-keywords@^5.1.0 --save-dev --legacy-peer-deps
 
 # Copy all client source files
 COPY client ./
 
-# Build the React app
+# Build the React app with increased memory
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run build
 
 # Verify build output exists

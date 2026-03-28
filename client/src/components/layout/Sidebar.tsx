@@ -141,6 +141,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       permissions: ['manage_marketing'],
       submenu: [
         { label: 'Dashboard', path: '/marketing', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Campaigns', path: '/campaigns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Stage Analytics', path: '/stage-analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
         { label: 'Competitors', path: '/marketing/competitors', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
         { label: 'Ad Capture', path: '/marketing/ads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
         { label: 'Insights', path: '/marketing/insights', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },

@@ -87,12 +87,42 @@ jobs:
           set -e
           APP_DIR="/root/lms"
           BACKUP_DIR="/root/lms-backups"
+          DB_BACKUP_DIR="/root/lms-backups/database"
           TIMESTAMP=$(date +%Y%m%d_%H%M%S)
           
           echo "📦 Creating backup..."
           mkdir -p "$BACKUP_DIR/backup_$TIMESTAMP"
+          mkdir -p "$DB_BACKUP_DIR"
           
-          # CRITICAL: Backup .env file
+          # ===========================================
+          # CRITICAL: Backup DATABASE first!
+          # ===========================================
+          echo "🗄️ Backing up MongoDB database..."
+          if docker ps | grep -q "lms-mongodb"; then
+            docker exec lms-mongodb mongodump \
+              --uri="mongodb://admin:password123@localhost:27017/lms-saas?authSource=admin" \
+              --out="/data/backup_$TIMESTAMP" \
+              --gzip 2>/dev/null || echo "Warning: DB backup failed"
+            
+            docker cp lms-mongodb:/data/backup_$TIMESTAMP "$DB_BACKUP_DIR/mongodb_backup_$TIMESTAMP" 2>/dev/null || true
+            docker exec lms-mongodb rm -rf "/data/backup_$TIMESTAMP" 2>/dev/null || true
+            
+            if [ -d "$DB_BACKUP_DIR/mongodb_backup_$TIMESTAMP" ]; then
+              cd "$DB_BACKUP_DIR"
+              tar -czf "mongodb_backup_$TIMESTAMP.tar.gz" "mongodb_backup_$TIMESTAMP"
+              rm -rf "mongodb_backup_$TIMESTAMP"
+              echo "$TIMESTAMP" > "$DB_BACKUP_DIR/latest"
+              echo "✅ Database backup: mongodb_backup_$TIMESTAMP.tar.gz"
+              # Keep only last 10 backups
+              ls -t *.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+            fi
+          else
+            echo "⚠️ MongoDB not running, skipping DB backup"
+          fi
+          
+          # ===========================================
+          # Backup .env file
+          # ===========================================
           if [ -f "$APP_DIR/server/.env" ]; then
             cp "$APP_DIR/server/.env" "$BACKUP_DIR/backup_$TIMESTAMP/.env"
             cp "$APP_DIR/server/.env" "/tmp/.env.safe"

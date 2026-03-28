@@ -63,10 +63,56 @@ pre_deployment_checks() {
 }
 
 # ============================================
-# STEP 2: Backup current deployment
+# STEP 2: Backup DATABASE (Critical!)
+# ============================================
+backup_database() {
+    log "📦 Backing up MongoDB database..."
+    
+    MONGO_CONTAINER="lms-mongodb"
+    DB_BACKUP_DIR="/root/lms-backups/database"
+    TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+    
+    mkdir -p "$DB_BACKUP_DIR"
+    
+    # Check if MongoDB is running
+    if docker ps | grep -q "$MONGO_CONTAINER"; then
+        # Run backup
+        docker exec "$MONGO_CONTAINER" mongodump \
+            --uri="mongodb://admin:password123@localhost:27017/lms-saas?authSource=admin" \
+            --out="/data/backup_$TIMESTAMP" \
+            --gzip 2>/dev/null || {
+                warn "Database backup failed, but continuing deployment..."
+                return 0
+            }
+        
+        # Copy backup from container
+        docker cp "$MONGO_CONTAINER:/data/backup_$TIMESTAMP" "$DB_BACKUP_DIR/mongodb_backup_$TIMESTAMP" 2>/dev/null || true
+        
+        # Cleanup inside container
+        docker exec "$MONGO_CONTAINER" rm -rf "/data/backup_$TIMESTAMP" 2>/dev/null || true
+        
+        # Compress backup
+        cd "$DB_BACKUP_DIR"
+        if [ -d "mongodb_backup_$TIMESTAMP" ]; then
+            tar -czf "mongodb_backup_$TIMESTAMP.tar.gz" "mongodb_backup_$TIMESTAMP" 2>/dev/null
+            rm -rf "mongodb_backup_$TIMESTAMP"
+            
+            # Keep only last 10 backups
+            ls -t *.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+            
+            echo "$TIMESTAMP" > "$DB_BACKUP_DIR/latest"
+            success "Database backed up: mongodb_backup_$TIMESTAMP.tar.gz"
+        fi
+    else
+        warn "MongoDB not running, skipping database backup"
+    fi
+}
+
+# ============================================
+# STEP 3: Backup current deployment
 # ============================================
 create_backup() {
-    log "Creating backup..."
+    log "Creating deployment backup..."
     
     TIMESTAMP=$(date +%Y%m%d_%H%M%S)
     BACKUP_PATH="$BACKUP_DIR/backup_$TIMESTAMP"
@@ -240,6 +286,9 @@ main() {
     
     # Run steps
     pre_deployment_checks
+    
+    # CRITICAL: Backup database FIRST!
+    backup_database
     
     BACKUP_PATH=$(create_backup)
     

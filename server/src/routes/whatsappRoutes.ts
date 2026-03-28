@@ -1,5 +1,7 @@
 import express from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { tenantResolver } from '../middleware/tenantResolver';
+import { roleGuard } from '../middleware/roleGuard';
 import {
   verifyWebhook,
   handleWebhook,
@@ -23,24 +25,27 @@ router.post('/webhook', handleWebhook);
 // Mark cold leads (cron job or manual trigger)
 router.post(
   '/mark-cold',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads']),
   markColdLeads
 );
 
 // Send manual WhatsApp message
 router.post(
   '/send',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads', 'edit_leads']),
   sendManualMessage
 );
 
 // Send bulk messages to cold leads
 router.post(
   '/bulk-cold-leads',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads']),
   sendBulkColdLeadMessages
 );
 

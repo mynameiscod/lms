@@ -1,5 +1,7 @@
 import express from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { tenantResolver } from '../middleware/tenantResolver';
+import { roleGuard } from '../middleware/roleGuard';
 import {
   createReservation,
   addPayment,
@@ -14,12 +16,15 @@ import {
 
 const router = express.Router();
 
+const leadPermissions = ['manage_leads', 'view_leads', 'edit_leads'];
+
 // ===================== STATS =====================
 
 router.get(
   '/stats',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads']),
   getReservationStats
 );
 
@@ -28,32 +33,36 @@ router.get(
 // Get all reservations
 router.get(
   '/',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getReservations
 );
 
 // Create reservation
 router.post(
   '/',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   createReservation
 );
 
 // Get lead's reservation
 router.get(
   '/lead/:leadId',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getLeadReservation
 );
 
 // Get reservation by ID
 router.get(
   '/:id',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getReservationById
 );
 
@@ -62,16 +71,18 @@ router.get(
 // Add payment
 router.post(
   '/:id/payment',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   addPayment
 );
 
 // Send receipt email
 router.post(
   '/:id/send-receipt',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   sendReceiptEmail
 );
 
@@ -80,8 +91,9 @@ router.post(
 // Convert to student
 router.post(
   '/:id/convert-to-student',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads', 'manage_tenant_users']),
   convertToStudent
 );
 
@@ -90,8 +102,9 @@ router.post(
 // Cancel reservation
 router.put(
   '/:id/cancel',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads']),
   cancelReservation
 );
 

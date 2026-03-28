@@ -1,5 +1,7 @@
 import express from 'express';
-import { authenticate, authorize } from '../middleware/auth';
+import { authMiddleware } from '../middleware/auth';
+import { tenantResolver } from '../middleware/tenantResolver';
+import { roleGuard } from '../middleware/roleGuard';
 import {
   createFollowUp,
   getMyFollowUps,
@@ -16,37 +18,43 @@ import {
 
 const router = express.Router();
 
+const leadPermissions = ['manage_leads', 'view_leads', 'edit_leads'];
+
 // ===================== MY FOLLOW-UPS =====================
 
 // Get my follow-ups
 router.get(
   '/my',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getMyFollowUps
 );
 
 // Get today's follow-ups (dashboard)
 router.get(
   '/today',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getTodayFollowUps
 );
 
 // Get overdue follow-ups
 router.get(
   '/overdue',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getOverdueFollowUps
 );
 
 // Get calendar view
 router.get(
   '/calendar',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getFollowUpCalendar
 );
 
@@ -55,56 +63,63 @@ router.get(
 // Create follow-up
 router.post(
   '/',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   createFollowUp
 );
 
 // Quick schedule (call again, tomorrow, etc)
 router.post(
   '/quick',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   quickSchedule
 );
 
 // Get lead's follow-ups
 router.get(
   '/lead/:leadId',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   getLeadFollowUps
 );
 
 // Complete follow-up
 router.put(
   '/:id/complete',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   completeFollowUp
 );
 
 // Reschedule follow-up
 router.put(
   '/:id/reschedule',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   rescheduleFollowUp
 );
 
 // Mark as missed
 router.put(
   '/:id/missed',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
   markAsMissed
 );
 
 // Delete follow-up
 router.delete(
   '/:id',
-  authenticate,
-  authorize('SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'),
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads']),
   deleteFollowUp
 );
 

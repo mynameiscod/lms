@@ -50,9 +50,6 @@ RUN npm install --production
 # Copy backend compiled JS from build stage
 COPY --from=backend-build /app/dist ./dist
 
-# Copy environment file
-COPY server/.env ./ 2>/dev/null || echo "No .env file found"
-
 # Copy built frontend from build stage
 COPY --from=client-build /app/client/build ./client/build
 

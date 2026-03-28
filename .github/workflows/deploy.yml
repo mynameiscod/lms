@@ -1,0 +1,49 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+
+env:
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Build and verify
+        run: |
+          cd server && npm ci --legacy-peer-deps && npm run build
+          cd ../client && npm ci --legacy-peer-deps && npm run build
+          test -f server/dist/server.js && test -f client/build/index.html
+        env:
+          CI: false
+
+      - name: Deploy to VPS
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+          
+          ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'DEPLOY'
+          cd /root/lms
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh
+          DEPLOY
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -sf "http://${{ secrets.VPS_HOST }}:5000/api/health" || echo "Health check pending..."

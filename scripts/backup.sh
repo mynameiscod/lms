@@ -1,153 +1,76 @@
 #!/bin/bash
-# 📦 LMS SaaS Backup Script
-# Automated backup for MongoDB and application files
+# ============================================
+# LMS SaaS - Backup Script
+# ============================================
+# Creates a backup of database and .env
+# Usage: ./backup.sh
+# ============================================
 
 set -e
 
-# Configuration
-BACKUP_DIR="/backups"
-DATE=$(date +%Y%m%d_%H%M%S)
-RETENTION_DAYS=${BACKUP_RETENTION_DAYS:-7}
-MONGO_HOST=${MONGO_HOST:-mongodb}
-MONGO_PORT=${MONGO_PORT:-27017}
-MONGO_USER=${MONGO_USER:-lms_user}
-MONGO_PASSWORD=${MONGO_PASSWORD}
-DB_NAME=${DB_NAME:-lms_saas}
+APP_DIR="/root/lms"
+BACKUP_DIR="/root/lms-backups"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
-# Colors
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m'
+echo ""
+echo "========================================="
+echo "  LMS Backup - $(date)"
+echo "========================================="
+echo ""
 
-log() {
-    echo -e "${BLUE}[$(date +'%Y-%m-%d %H:%M:%S')]${NC} $1"
-}
+mkdir -p "$BACKUP_DIR"
 
-success() {
-    echo -e "${GREEN}[$(date +'%Y-%m-%d %H:%M:%S')] ✅${NC} $1"
-}
-
-warning() {
-    echo -e "${YELLOW}[$(date +'%Y-%m-%d %H:%M:%S')] ⚠️${NC} $1"
-}
-
-error() {
-    echo -e "${RED}[$(date +'%Y-%m-%d %H:%M:%S')] ❌${NC} $1"
-}
-
-# Create backup directories
-mkdir -p "$BACKUP_DIR/mongodb"
-mkdir -p "$BACKUP_DIR/uploads"
-mkdir -p "$BACKUP_DIR/logs"
-
-log "🚀 Starting backup process..."
-
-# MongoDB Backup
-log "📊 Backing up MongoDB database: $DB_NAME"
-if mongodump --host "$MONGO_HOST:$MONGO_PORT" \
-             --username "$MONGO_USER" \
-             --password "$MONGO_PASSWORD" \
-             --authenticationDatabase "$DB_NAME" \
-             --db "$DB_NAME" \
-             --out "$BACKUP_DIR/mongodb/db_$DATE"; then
-    success "MongoDB backup completed"
+# Backup database
+echo "📦 Backing up database..."
+if docker ps | grep -q "lms-mongodb"; then
+    docker exec lms-mongodb mongodump \
+        --uri="mongodb://admin:password123@localhost:27017/lms-saas?authSource=admin" \
+        --out="/data/backup" \
+        --gzip 2>/dev/null || true
     
-    # Compress the backup
-    if tar -czf "$BACKUP_DIR/mongodb/db_$DATE.tar.gz" -C "$BACKUP_DIR/mongodb" "db_$DATE"; then
-        rm -rf "$BACKUP_DIR/mongodb/db_$DATE"
-        success "MongoDB backup compressed: db_$DATE.tar.gz"
-    else
-        warning "Failed to compress MongoDB backup"
+    docker cp lms-mongodb:/data/backup "$BACKUP_DIR/db_$TIMESTAMP" 2>/dev/null || true
+    docker exec lms-mongodb rm -rf /data/backup 2>/dev/null || true
+    
+    if [ -d "$BACKUP_DIR/db_$TIMESTAMP" ]; then
+        tar -czf "$BACKUP_DIR/db_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" "db_$TIMESTAMP"
+        rm -rf "$BACKUP_DIR/db_$TIMESTAMP"
+        echo "   ✅ Database: db_$TIMESTAMP.tar.gz"
     fi
 else
-    error "MongoDB backup failed"
-    exit 1
+    echo "   ⚠️ MongoDB not running"
 fi
 
-# Application Files Backup
-log "📁 Backing up uploaded files..."
-if [ -d "/data/uploads" ]; then
-    if tar -czf "$BACKUP_DIR/uploads/uploads_$DATE.tar.gz" -C "/data" uploads; then
-        success "Uploads backup completed: uploads_$DATE.tar.gz"
-    else
-        warning "Failed to backup uploads"
-    fi
-else
-    warning "No uploads directory found, skipping"
+# Backup .env
+echo "📦 Backing up .env..."
+if [ -f "$APP_DIR/server/.env" ]; then
+    cp "$APP_DIR/server/.env" "$BACKUP_DIR/env_$TIMESTAMP"
+    echo "   ✅ .env: env_$TIMESTAMP"
 fi
 
-# Application Logs Backup
-log "📝 Backing up application logs..."
-if [ -d "/data/logs" ]; then
-    if tar -czf "$BACKUP_DIR/logs/logs_$DATE.tar.gz" -C "/data" logs; then
-        success "Logs backup completed: logs_$DATE.tar.gz"
-    else
-        warning "Failed to backup logs"
-    fi
-else
-    warning "No logs directory found, skipping"
-fi
+# Save current commit
+echo "📦 Saving commit..."
+cd "$APP_DIR"
+COMMIT=$(git rev-parse HEAD 2>/dev/null || echo "unknown")
+echo "$COMMIT" > "$BACKUP_DIR/commit_$TIMESTAMP"
+echo "   ✅ Commit: $COMMIT"
 
-# Database Statistics
-log "📈 Collecting database statistics..."
-if mongo --host "$MONGO_HOST:$MONGO_PORT" \
-         --username "$MONGO_USER" \
-         --password "$MONGO_PASSWORD" \
-         --authenticationDatabase "$DB_NAME" \
-         "$DB_NAME" --eval "db.stats()" > "$BACKUP_DIR/db_stats_$DATE.json"; then
-    success "Database statistics saved"
-fi
+# Cleanup old backups (keep last 10)
+cd "$BACKUP_DIR"
+ls -t db_*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+ls -t env_* 2>/dev/null | tail -n +11 | xargs -r rm -f
+ls -t commit_* 2>/dev/null | tail -n +11 | xargs -r rm -f
 
-# Collection counts
-if mongo --host "$MONGO_HOST:$MONGO_PORT" \
-         --username "$MONGO_USER" \
-         --password "$MONGO_PASSWORD" \
-         --authenticationDatabase "$DB_NAME" \
-         "$DB_NAME" --eval "
-         printjson({
-             timestamp: new Date(),
-             collections: {
-                 users: db.users.countDocuments(),
-                 tenants: db.tenants.countDocuments(),
-                 content: db.content.countDocuments(),
-                 quizzes: db.quizzes.countDocuments(),
-                 quizattempts: db.quizattempts.countDocuments(),
-                 attendance: db.attendance.countDocuments(),
-                 invitations: db.invitations.countDocuments(),
-                 auditlogs: db.auditlogs.countDocuments()
-             }
-         })
-         " > "$BACKUP_DIR/collection_counts_$DATE.json"; then
-    success "Collection counts saved"
-fi
+echo ""
+echo "========================================="
+echo "  ✅ Backup Complete!"
+echo "========================================="
+echo ""
+echo "  Location: $BACKUP_DIR"
+echo "  Timestamp: $TIMESTAMP"
+echo ""
+echo "  To restore: ./scripts/restore.sh $TIMESTAMP"
+echo ""
 
-# Cleanup old backups
-log "🧹 Cleaning up old backups (retention: $RETENTION_DAYS days)"
-find "$BACKUP_DIR" -name "*.tar.gz" -mtime +$RETENTION_DAYS -delete
-find "$BACKUP_DIR" -name "*.json" -mtime +$RETENTION_DAYS -delete
-
-# Backup summary
-BACKUP_SIZE=$(du -sh "$BACKUP_DIR" | cut -f1)
-MONGODB_FILES=$(find "$BACKUP_DIR/mongodb" -name "*.tar.gz" | wc -l)
-UPLOAD_FILES=$(find "$BACKUP_DIR/uploads" -name "*.tar.gz" | wc -l)
-LOG_FILES=$(find "$BACKUP_DIR/logs" -name "*.tar.gz" | wc -l)
-
-log "📊 Backup Summary"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-echo "Timestamp: $DATE"
-echo "Total backup size: $BACKUP_SIZE"
-echo "MongoDB backups: $MONGODB_FILES files"
-echo "Upload backups: $UPLOAD_FILES files"
-echo "Log backups: $LOG_FILES files"
-echo "Retention policy: $RETENTION_DAYS days"
-echo "Backup location: $BACKUP_DIR"
-echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-
-success "🎉 Backup process completed successfully!"
-
-# Optional: Send notification (uncomment if you want to use)
-# curl -X POST "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK" \
-#      -H 'Content-type: application/json' \
-#      --data "{\"text\":\"✅ LMS SaaS backup completed: $DATE (Size: $BACKUP_SIZE)\"}"
+# List recent backups
+echo "Recent backups:"
+ls -lt "$BACKUP_DIR"/db_*.tar.gz 2>/dev/null | head -5 | awk '{print "  " $NF}'

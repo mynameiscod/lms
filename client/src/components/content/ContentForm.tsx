@@ -40,6 +40,58 @@ export interface ContentFormProps {
   defaultType?: ContentType;
 }
 
+// Content type configurations with better UX
+const CONTENT_TYPES = [
+  {
+    key: 'announcement',
+    title: '📢 Announcement',
+    description: 'Share important updates and news',
+    icon: '📢',
+    requiresOrganization: false,
+    allowFiles: true
+  },
+  {
+    key: 'note',
+    title: '📝 Study Note',
+    description: 'Create educational content for students',
+    icon: '📝',
+    requiresOrganization: true,
+    allowFiles: true
+  },
+  {
+    key: 'assignment',
+    title: '📋 Assignment',
+    description: 'Create tasks and homework',
+    icon: '📋',
+    requiresOrganization: true,
+    allowFiles: true
+  },
+  {
+    key: 'video',
+    title: '🎥 Video Content',
+    description: 'Upload and share video lessons',
+    icon: '🎥',
+    requiresOrganization: true,
+    allowFiles: true
+  },
+  {
+    key: 'document',
+    title: '📄 Document',
+    description: 'Share PDFs, presentations, and docs',
+    icon: '📄',
+    requiresOrganization: true,
+    allowFiles: true
+  },
+  {
+    key: 'snippet',
+    title: '💻 Code Snippet',
+    description: 'Share code examples and solutions',
+    icon: '💻',
+    requiresOrganization: true,
+    allowFiles: false
+  }
+];
+
 const ContentForm: React.FC<ContentFormProps> = ({
   onSuccess,
   onError,
@@ -48,6 +100,12 @@ const ContentForm: React.FC<ContentFormProps> = ({
   onCancel,
   defaultType = 'announcement'
 }) => {
+  // Wizard steps
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedContentType, setSelectedContentType] = useState(
+    editingContent ? editingContent.type : defaultType
+  );
+
   const [formData, setFormData] = useState<ContentData & { files?: File[] }>(
     editingContent || {
       type: defaultType as 'announcement' | 'note' | 'assignment' | 'cheatsheet' | 'snippet',
@@ -72,26 +130,10 @@ const ContentForm: React.FC<ContentFormProps> = ({
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [topics, setTopics] = useState<Topic[]>([]);
-  
-  // Content type configurations
-  const CONTENT_TYPE_CONFIG = {
-    announcement: { requiresOrganization: false, allowFiles: true, allowCode: false },
-    note: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    video: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    audio: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    pdf: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    image: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    document: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    assignment: { requiresOrganization: true, allowFiles: true, allowCode: false },
-    snippet: { requiresOrganization: true, allowFiles: false, allowCode: true },
-    cheatsheet: { requiresOrganization: true, allowFiles: true, allowCode: false },
-  };
-  
-  const currentConfig = CONTENT_TYPE_CONFIG[formData.type as keyof typeof CONTENT_TYPE_CONFIG] || 
-                       CONTENT_TYPE_CONFIG.announcement;
-  
-  // Check if content type requires organization (subject/chapter/topic)
-  const requiresOrganization = currentConfig.requiresOrganization;
+
+  // Get current content type config  
+  const currentTypeConfig = CONTENT_TYPES.find(type => type.key === selectedContentType) || CONTENT_TYPES[0];
+  const requiresOrganization = currentTypeConfig.requiresOrganization;
   
   // Fetch courses when type requires organization
   useEffect(() => {
@@ -331,162 +373,92 @@ const ContentForm: React.FC<ContentFormProps> = ({
     }
   };
 
-  return (
-    <Card className="content-form-card">
-      <h2>{editingContent ? 'Edit Content' : 'Create New Content'}</h2>
+  // Wizard navigation functions
+  const nextStep = () => {
+    if (currentStep === 1 && !selectedContentType) return;
+    if (currentStep === 2 && (!formData.title.trim() || !formData.content.trim())) return;
+    if (currentStep === 3 && requiresOrganization && (!formData.courseId || !formData.subjectId)) return;
+    
+    setCurrentStep(prev => Math.min(prev + 1, 4));
+  };
 
-      <form onSubmit={handleSubmit} className="content-form">
-        {/* Type Selection */}
-        <div className="form-group">
-          <label htmlFor="type">Content Type *</label>
-          <select
-            id="type"
-            name="type"
-            value={formData.type}
-            onChange={handleInputChange}
-            disabled={loading}
-          >
-            <option value="announcement">📢 Announcement</option>
-            <option value="note">📝 Note</option>
-            <option value="video">🎥 Video</option>
-            <option value="audio">🎵 Audio</option>
-            <option value="pdf">📄 PDF</option>
-            <option value="image">🖼️ Image</option>
-            <option value="document">📋 Document</option>
-            <option value="assignment">📋 Assignment</option>
-            <option value="snippet">💻 Code Snippet</option>
-            <option value="cheatsheet">📊 Cheatsheet</option>
-          </select>
+  const prevStep = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
+  const renderStepIndicator = () => (
+    <div className="progress-steps">
+      <div className={`step ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
+        <span className="step-icon">1</span>
+        <span>Choose Type</span>
+      </div>
+      <div className={`step ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
+        <span className="step-icon">2</span>
+        <span>Basic Info</span>
+      </div>
+      <div className={`step ${currentStep >= 3 ? 'active' : ''} ${currentStep > 3 ? 'completed' : ''}`}>
+        <span className="step-icon">3</span>
+        <span>Organization</span>
+      </div>
+      <div className={`step ${currentStep >= 4 ? 'active' : ''}`}>
+        <span className="step-icon">4</span>
+        <span>Publish</span>
+      </div>
+    </div>
+  );
+
+  const renderContentTypeSelection = () => (
+    <div className="content-type-grid">
+      {CONTENT_TYPES.map((type) => (
+        <div
+          key={type.key}
+          className={`content-type-card ${selectedContentType === type.key ? 'selected' : ''}`}
+          onClick={() => {
+            setSelectedContentType(type.key as ContentType);
+            setFormData(prev => ({ ...prev, type: type.key } as any));
+          }}
+        >
+          <div className="content-type-icon">{type.icon}</div>
+          <div className="content-type-title">{type.title}</div>
+          <div className="content-type-desc">{type.description}</div>
         </div>
+      ))}
+    </div>
+  );
 
-        {/* Title */}
-        <div className="form-group">
-          <label htmlFor="title">Title *</label>
-          <Input
-            id="title"
-            type="text"
-            name="title"
-            value={formData.title}
-            onChange={handleInputChange}
-            placeholder="Enter content title"
-            disabled={loading}
-            required
-          />
-        </div>
-
-        {/* Description */}
-        <div className="form-group">
-          <label htmlFor="description">Description</label>
-          <Input
-            id="description"
-            type="text"
-            name="description"
-            value={formData.description}
-            onChange={handleInputChange}
-            placeholder="Brief description of the content"
-            disabled={loading}
-          />
-        </div>
-
-        {/* Course ID */}
-        <div className="form-group">
-          <label htmlFor="courseId">Course {requiresOrganization ? '' : 'ID '}*</label>
-          {requiresOrganization ? (
-            <select
-              id="courseId"
-              name="courseId"
-              value={formData.courseId || ''}
-              onChange={handleInputChange}
-              disabled={loading}
-              required
-            >
-              <option value="">Select a course</option>
-              {courses.map((course) => (
-                <option key={course._id} value={course._id}>
-                  {course.title} ({course.code})
-                </option>
-              ))}
-            </select>
-          ) : (
-            <Input
-              id="courseId"
+  const renderBasicInfo = () => (
+    <div className="form-content">
+      <div className="form-section">
+        <h3 className="section-title">📝 Basic Information</h3>
+        <div className="form-grid">
+          <div className="form-group">
+            <label htmlFor="title">Content Title *</label>
+            <input
+              id="title"
               type="text"
-              name="courseId"
-              value={formData.courseId || ''}
+              name="title"
+              value={formData.title}
               onChange={handleInputChange}
-              placeholder="Enter the course ID or name"
+              placeholder={`Enter ${currentTypeConfig.title.toLowerCase()} title...`}
               disabled={loading}
               required
             />
-          )}
+          </div>
+          
+          <div className="form-group">
+            <label htmlFor="description">Short Description</label>
+            <input
+              id="description"
+              type="text"
+              name="description"
+              value={formData.description}
+              onChange={handleInputChange}
+              placeholder="Brief description for the content..."
+              disabled={loading}
+            />
+          </div>
         </div>
         
-        {/* Subject Selection (for notes and cheatsheets only) */}
-        {requiresOrganization && (
-          <div className="form-group">
-            <label htmlFor="subjectId">Subject *</label>
-            <select
-              id="subjectId"
-              name="subjectId"
-              value={formData.subjectId || ''}
-              onChange={handleInputChange}
-              disabled={loading || !formData.courseId}
-              required
-            >
-              <option value="">Select a subject</option>
-              {subjects.map((subject) => (
-                <option key={subject._id} value={subject._id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        {/* Chapter Selection (for organized content only) */}
-        {requiresOrganization && (
-          <div className="form-group">
-            <label htmlFor="chapterId">Chapter *</label>
-            <select
-              id="chapterId"
-              name="chapterId"
-              value={formData.chapterId || ''}
-              onChange={handleInputChange}
-              disabled={loading || !formData.subjectId}
-              required
-            >
-              <option value="">Select a chapter</option>
-              {chapters.map((chapter) => (
-                <option key={chapter._id} value={chapter._id}>
-                  {chapter.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-        
-        {/* Topic Selection (optional) */}
-        {requiresOrganization && formData.chapterId && (
-          <div className="form-group">
-            <label htmlFor="topicId">Topic (Optional)</label>
-            <select
-              id="topicId"
-              name="topicId"
-              value={formData.topicId || ''}
-              onChange={handleInputChange}
-              disabled={loading || !formData.chapterId}
-            >
-              <option value="">Select a topic (optional)</option>
-              {topics.map((topic) => (
-                <option key={topic._id} value={topic._id}>
-                  {topic.title}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Main Content */}
         <div className="form-group">
           <label htmlFor="content">Content *</label>
           <textarea
@@ -494,36 +466,39 @@ const ContentForm: React.FC<ContentFormProps> = ({
             name="content"
             value={formData.content}
             onChange={handleInputChange}
-            placeholder="Enter your content here..."
-            rows={8}
+            placeholder={`Write your ${currentTypeConfig.title.toLowerCase()} content here...`}
             disabled={loading}
             required
           />
         </div>
 
-        {/* Conditional: Code Editor for Snippets */}
-        {formData.type === 'snippet' && (
-          <>
-            <div className="form-group">
-              <label htmlFor="language">Programming Language</label>
-              <Input
-                id="language"
-                type="text"
-                name="language"
-                value={formData.language || ''}
-                onChange={handleInputChange}
-                placeholder="e.g., JavaScript, Python, Java"
-                disabled={loading}
-              />
-            </div>
-          </>
+        {/* Special fields for specific types */}
+        {selectedContentType === 'snippet' && (
+          <div className="form-group">
+            <label htmlFor="language">Programming Language</label>
+            <select
+              id="language"
+              name="language"
+              value={formData.language || ''}
+              onChange={handleInputChange}
+              disabled={loading}
+            >
+              <option value="">Select Language</option>
+              <option value="javascript">JavaScript</option>
+              <option value="python">Python</option>
+              <option value="java">Java</option>
+              <option value="cpp">C++</option>
+              <option value="html">HTML</option>
+              <option value="css">CSS</option>
+              <option value="sql">SQL</option>
+            </select>
+          </div>
         )}
 
-        {/* Conditional: Due Date for Assignments */}
-        {formData.type === 'assignment' && (
+        {selectedContentType === 'assignment' && (
           <div className="form-group">
             <label htmlFor="dueDate">Due Date</label>
-            <Input
+            <input
               id="dueDate"
               type="datetime-local"
               name="dueDate"
@@ -534,12 +509,24 @@ const ContentForm: React.FC<ContentFormProps> = ({
           </div>
         )}
 
-        {/* Tags */}
         <div className="form-group">
-          <label htmlFor="tagInput">Tags</label>
-          <div className="tag-input-container">
-            <Input
-              id="tagInput"
+          <label htmlFor="tagInput">Tags (Optional)</label>
+          <div className="tags-input-container">
+            <div className="tags-display">
+              {formData.tags?.map((tag) => (
+                <span key={tag} className="tag">
+                  {tag}
+                  <span 
+                    className="tag-remove" 
+                    onClick={() => handleRemoveTag(tag)}
+                  >
+                    ×
+                  </span>
+                </span>
+              ))}
+            </div>
+            <input
+              className="tag-input"
               type="text"
               value={tagInput}
               onChange={(e) => setTagInput(e.target.value)}
@@ -549,75 +536,135 @@ const ContentForm: React.FC<ContentFormProps> = ({
                   handleAddTag();
                 }
               }}
-              placeholder="Add a tag and press Enter"
+              placeholder="Add tags (press Enter)"
               disabled={loading}
             />
-            <Button
-              onClick={() => handleAddTag()}
-              disabled={loading}
-              type="button"
-            >
-              Add Tag
-            </Button>
-          </div>
-          <div className="tags-list">
-            {formData.tags?.map((tag) => (
-              <span key={tag} className="tag">
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  disabled={loading}
-                >
-                  ×
-                </button>
-              </span>
-            ))}
           </div>
         </div>
+      </div>
+    </div>
+  );
 
-        {/* File Upload */}
-        <div className="form-group">
-          <label>Attachments (Max 5 files, 50MB each)</label>
-          <div
-            className={`file-drop-zone ${dragOver ? 'drag-over' : ''}`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <input
-              type="file"
-              id="fileInput"
-              multiple
-              onChange={handleFileChange}
-              disabled={loading}
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.xls,.xlsx"
-              style={{ display: 'none' }}
-            />
-            <label htmlFor="fileInput" className="file-input-label">
-              {dragOver ? '📥 Drop files here' : '📤 Drag files here or click to select'}
-            </label>
-          </div>
-          <div className="files-list">
-            {formData.files?.map((file, index) => (
-              <div key={index} className="file-item">
-                <span>📎 {file.name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveFile(index)}
-                  disabled={loading}
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
+  const renderOrganization = () => (
+    <div className="form-content">
+      {requiresOrganization ? (
+        <div className="organization-section">
+          <h3 className="section-title">🏫 Course Organization</h3>
+          <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
+            Help students find your content by organizing it properly within the course structure.
+          </p>
+          
+          <div className="form-grid two-columns">
+            <div className="form-group">
+              <label htmlFor="courseId">Course *</label>
+              <select
+                id="courseId"
+                name="courseId"
+                value={formData.courseId || ''}
+                onChange={handleInputChange}
+                disabled={loading}
+                required
+              >
+                <option value="">Select Course</option>
+                {courses.map((course) => (
+                  <option key={course._id} value={course._id}>
+                    {course.title} ({course.code})
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="subjectId">Subject *</label>
+              <select
+                id="subjectId"
+                name="subjectId"
+                value={formData.subjectId || ''}
+                onChange={handleInputChange}
+                disabled={loading || !formData.courseId}
+                required
+              >
+                <option value="">Select Subject</option>
+                {subjects.map((subject) => (
+                  <option key={subject._id} value={subject._id}>
+                    {subject.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="chapterId">Chapter *</label>
+              <select
+                id="chapterId"
+                name="chapterId"
+                value={formData.chapterId || ''}
+                onChange={handleInputChange}
+                disabled={loading || !formData.subjectId}
+                required
+              >
+                <option value="">Select Chapter</option>
+                {chapters.map((chapter) => (
+                  <option key={chapter._id} value={chapter._id}>
+                    {chapter.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="topicId">Topic (Optional)</label>
+              <select
+                id="topicId"
+                name="topicId"
+                value={formData.topicId || ''}
+                onChange={handleInputChange}
+                disabled={loading || !formData.chapterId}
+              >
+                <option value="">Select Topic</option>
+                {topics.map((topic) => (
+                  <option key={topic._id} value={topic._id}>
+                    {topic.title}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="form-content">
+          <div className="form-section">
+            <h3 className="section-title">🏫 Course Association</h3>
+            <p style={{ color: '#64748b', marginBottom: '1.5rem' }}>
+              General announcements can be associated with a course or left open to all students.
+            </p>
+            
+            <div className="form-group">
+              <label htmlFor="courseId">Course (Optional)</label>
+              <input
+                id="courseId"
+                type="text"
+                name="courseId"
+                value={formData.courseId || ''}
+                onChange={handleInputChange}
+                placeholder="Enter course ID or name (optional)"
+                disabled={loading}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
-        {/* Visibility & Publishing */}
-        <div className="form-row">
+  const renderPublishSettings = () => (
+    <div className="form-content">
+      <div className="form-section">
+        <h3 className="section-title">⚙️ Publishing Settings</h3>
+        
+        <div className="form-grid two-columns">
           <div className="form-group">
-            <label htmlFor="visibility">Visibility</label>
+            <label htmlFor="visibility">Who can see this?</label>
             <select
               id="visibility"
               name="visibility"
@@ -625,33 +672,14 @@ const ContentForm: React.FC<ContentFormProps> = ({
               onChange={handleInputChange}
               disabled={loading}
             >
-              <option value="enrolled_only">👥 Enrolled Only</option>
+              <option value="enrolled_only">👥 Enrolled Students Only</option>
               <option value="all_students">🌍 All Students</option>
               <option value="specific_batch">🎓 Specific Batch</option>
             </select>
-            
-            {/* Batch Selector - Show when "Specific Batch" is selected */}
-            {formData.visibility === 'specific_batch' && (
-              <div className="batch-selector-group active">
-                <label htmlFor="batchId" style={{ display: 'block', marginTop: '8px' }}>
-                  Select Batch *
-                </label>
-                <Input
-                  id="batchId"
-                  type="text"
-                  name="batchId"
-                  value={formData.batchId || ''}
-                  onChange={handleInputChange}
-                  placeholder="Enter batch ID or select from list"
-                  disabled={loading}
-                  required={formData.visibility === 'specific_batch'}
-                />
-              </div>
-            )}
           </div>
 
-          <div className="form-group checkbox-group">
-            <label>
+          <div className="form-group">
+            <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
               <input
                 type="checkbox"
                 name="isPublished"
@@ -659,33 +687,147 @@ const ContentForm: React.FC<ContentFormProps> = ({
                 onChange={handleInputChange}
                 disabled={loading}
               />
-              <span>Publish Now</span>
+              <span>Publish immediately</span>
             </label>
+            <small style={{ color: '#64748b', marginTop: '0.25rem', display: 'block' }}>
+              {formData.isPublished 
+                ? 'Content will be visible to students right away' 
+                : 'Save as draft - you can publish later'
+              }
+            </small>
           </div>
         </div>
 
-        {/* Submit Buttons */}
-        <div className="form-actions">
-          <Button
-            type="submit"
-            disabled={loading}
-            className="btn-primary"
-          >
-            {loading ? <Spinner /> : editingContent ? 'Update Content' : 'Create Content'}
-          </Button>
-          {onCancel && (
-            <Button
-              type="button"
-              onClick={onCancel}
-              disabled={loading}
-              className="btn-secondary"
+        {currentTypeConfig.allowFiles && (
+          <div className="form-section">
+            <h3 className="section-title">📎 File Attachments</h3>
+            <div
+              className={`file-upload-zone ${dragOver ? 'drag-over' : ''}`}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              onClick={() => document.getElementById('fileInput')?.click()}
             >
-              Cancel
-            </Button>
-          )}
+              <input
+                type="file"
+                id="fileInput"
+                className="file-input"
+                multiple
+                onChange={handleFileChange}
+                disabled={loading}
+                accept=".pdf,.doc,.docx,.jpg,.jpeg,.png,.gif,.txt,.xls,.xlsx,.mp4,.mp3"
+              />
+              <div className="upload-icon">☁️</div>
+              <div className="upload-text">
+                {dragOver ? 'Drop files here!' : 'Drag & drop files or click to browse'}
+              </div>
+              <div className="upload-hint">
+                Support: Images, Documents, Videos, Audio (Max 50MB each)
+              </div>
+            </div>
+
+            {formData.files && formData.files.length > 0 && (
+              <div style={{ marginTop: '1rem' }}>
+                <h4 style={{ color: '#374151', fontSize: '0.9rem', marginBottom: '0.5rem' }}>
+                  Attached Files ({formData.files.length})
+                </h4>
+                {formData.files.map((file, index) => (
+                  <div key={index} style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'space-between',
+                    padding: '0.5rem',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '6px',
+                    marginBottom: '0.25rem'
+                  }}>
+                    <span style={{ fontSize: '0.9rem' }}>📎 {file.name}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveFile(index)}
+                      disabled={loading}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#dc2626',
+                        cursor: 'pointer',
+                        padding: '0.25rem'
+                      }}
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="content-form-container">
+      <div className="content-form-wrapper">
+        <div className="form-header">
+          <h1>{editingContent ? 'Edit Content' : 'Create New Content'}</h1>
+          <p>Share knowledge and engage with your students</p>
         </div>
-      </form>
-    </Card>
+
+        {renderStepIndicator()}
+
+        <form onSubmit={handleSubmit}>
+          {currentStep === 1 && renderContentTypeSelection()}
+          {currentStep === 2 && renderBasicInfo()}
+          {currentStep === 3 && renderOrganization()}
+          {currentStep === 4 && renderPublishSettings()}
+
+          <div className="form-actions">
+            {currentStep > 1 && (
+              <button
+                type="button"
+                onClick={prevStep}
+                disabled={loading}
+                className="btn btn-secondary"
+              >
+                ← Previous
+              </button>
+            )}
+            
+            {onCancel && (
+              <button
+                type="button"
+                onClick={onCancel}
+                disabled={loading}
+                className="btn btn-secondary"
+              >
+                Cancel
+              </button>
+            )}
+
+            {currentStep < 4 ? (
+              <button
+                type="button"
+                onClick={nextStep}
+                disabled={loading || (currentStep === 1 && !selectedContentType)}
+                className="btn btn-primary"
+              >
+                Continue →
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary"
+              >
+                {loading ? '⏳ Saving...' : editingContent ? '✅ Update Content' : '✅ Create Content'}
+              </button>
+            )}
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

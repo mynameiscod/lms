@@ -59,26 +59,27 @@ const ContentTable: React.FC<ContentTableProps> = ({
 
   const loadContent = useCallback(async () => {
     setLoading(true);
-    try {
-      const filterParams: any = {
-        page,
-        limit: 12,
-        sortBy,
-        sortOrder
-      };
-      
-      // Apply filters from props
-      if (filters.type && filters.type !== 'all') filterParams.type = filters.type;
-      if (filters.subjectId) filterParams.subjectId = filters.subjectId;
-      if (filters.chapterId) filterParams.chapterId = filters.chapterId;
-      if (filters.topicId) filterParams.topicId = filters.topicId;
-      if (filters.visibility && filters.visibility !== 'all') {
-        if (filters.visibility === 'public') filterParams.visibility = 'all_students';
-        else if (filters.visibility === 'subject-based') filterParams.visibility = 'enrolled_only';
-      }
-      if (filters.isPublished !== undefined) filterParams.isPublished = filters.isPublished;
-      if (searchTerm.trim()) filterParams.search = searchTerm.trim();
+    
+    const filterParams: any = {
+      page,
+      limit: 12,
+      sortBy,
+      sortOrder
+    };
+    
+    // Apply filters from props
+    if (filters.type && filters.type !== 'all') filterParams.type = filters.type;
+    if (filters.subjectId) filterParams.subjectId = filters.subjectId;
+    if (filters.chapterId) filterParams.chapterId = filters.chapterId;
+    if (filters.topicId) filterParams.topicId = filters.topicId;
+    if (filters.visibility && filters.visibility !== 'all') {
+      if (filters.visibility === 'public') filterParams.visibility = 'all_students';
+      else if (filters.visibility === 'subject-based') filterParams.visibility = 'enrolled_only';
+    }
+    if (filters.isPublished !== undefined) filterParams.isPublished = filters.isPublished;
+    if (searchTerm.trim()) filterParams.search = searchTerm.trim();
 
+    try {
       const response = await contentAPI.getAllContent(filterParams.page, filterParams.limit, filterParams);
       setContents(response.content || []);
       setTotalPages(response.totalPages || 1);
@@ -87,6 +88,10 @@ const ContentTable: React.FC<ContentTableProps> = ({
       const errorMessage = error.response?.data?.message || 'Failed to load content';
       if (onError) onError(errorMessage);
       console.error('Error loading content:', error);
+      console.error('Filter params:', filterParams);
+      setContents([]);
+      setTotalPages(1);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
@@ -215,18 +220,33 @@ const ContentTable: React.FC<ContentTableProps> = ({
         </div>
       </div>
 
-      {contents.length === 0 ? (
+      {loading ? (
+        <div className="content-loading">
+          <div className="loading-spinner"></div>
+          <p>Loading content...</p>
+        </div>
+      ) : contents.length === 0 ? (
         <div className="content-empty">
+          <div className="empty-icon">📄</div>
           <h3>No content found</h3>
           <p>
-            {Object.keys(filters).length > 0 
-              ? 'No content matches your current filters.' 
-              : 'No content has been created yet.'
+            {Object.keys(filters).some(key => filters[key as keyof typeof filters] && filters[key as keyof typeof filters] !== 'all')
+              ? 'No content matches your current filters. Try adjusting your search criteria.' 
+              : 'No content has been created yet. Click "Create New Content" to get started!'
             }
           </p>
-          <button onClick={() => window.location.reload()}>
-            Refresh
-          </button>
+          <div className="empty-actions">
+            <button className="btn-refresh" onClick={loadContent}>
+              🔄 Refresh
+            </button>
+            {Object.keys(filters).some(key => filters[key as keyof typeof filters] && filters[key as keyof typeof filters] !== 'all') && (
+              <button className="btn-clear-filters" onClick={() => {
+                setSearchTerm('');
+              }}>
+                🗑️ Clear Search
+              </button>
+            )}
+          </div>
         </div>
       ) : (
         <>

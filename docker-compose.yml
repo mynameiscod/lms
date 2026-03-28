@@ -16,11 +16,12 @@ services:
 
   server:
     build:
-      context: ./server
+      context: .
       dockerfile: Dockerfile
     container_name: lms-server
     ports:
       - "5000:5000"
+      - "3000:3000"
     env_file:
       - ./server/.env
     environment:
@@ -28,26 +29,11 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
       NODE_ENV: production
       # Production URL for email links
-      FRONTEND_URL: http://187.124.97.56:3000
+      FRONTEND_URL: http://187.124.97.56:5000
     volumes:
       - uploads_data:/app/uploads
     depends_on:
       - mongodb
-    networks:
-      - lms-network
-    restart: unless-stopped
-
-  client:
-    build:
-      context: ./client
-      dockerfile: Dockerfile
-    container_name: lms-client
-    ports:
-      - "3000:3000"
-    environment:
-      REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:5000/api/v1}
-    depends_on:
-      - server
     networks:
       - lms-network
     restart: unless-stopped

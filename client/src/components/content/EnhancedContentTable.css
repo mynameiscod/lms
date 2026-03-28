@@ -440,6 +440,23 @@
   to { transform: rotate(360deg); }
 }
 
+/* Loading State */
+.content-loading {
+  text-align: center;
+  padding: 4rem 2rem;
+  color: #6b7280;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f4f6;
+  border-top: 3px solid #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
 /* Empty State */
 .content-empty {
   text-align: center;
@@ -447,29 +464,62 @@
   color: #6b7280;
 }
 
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+  opacity: 0.7;
+}
+
 .content-empty h3 {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   color: #374151;
-  margin-bottom: 0.5rem;
+  margin-bottom: 1rem;
+  font-weight: 600;
 }
 
 .content-empty p {
   margin-bottom: 2rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
-.content-empty button {
+.empty-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.btn-refresh,
+.btn-clear-filters {
   background: #667eea;
   color: white;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.2s ease;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
-.content-empty button:hover {
+.btn-refresh:hover {
   background: #5a67d8;
+  transform: translateY(-1px);
+}
+
+.btn-clear-filters {
+  background: #6b7280;
+}
+
+.btn-clear-filters:hover {
+  background: #4b5563;
+  transform: translateY(-1px);
 }
 
 /* Responsive Design */

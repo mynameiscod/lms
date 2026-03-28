@@ -1,31 +1,69 @@
 # Multi-stage build for React frontend
 FROM node:18-alpine AS client-build
 WORKDIR /app/client
+
+# Copy package.json first for better caching
 COPY client/package*.json ./
-RUN npm cache clean --force && rm -rf node_modules package-lock.json && npm install --legacy-peer-deps && npm install ajv
+
+# Clear cache and install dependencies
+RUN npm cache clean --force && \
+    rm -rf node_modules package-lock.json && \
+    npm install --legacy-peer-deps
+
+# Copy all client source files
 COPY client ./
+
+# Build the React app
 RUN npm run build
+
+# Verify build output exists
+RUN ls -la build/ && \
+    test -f build/index.html || (echo "❌ Build failed - no index.html found!" && exit 1)
 
 # Backend build stage - compile TypeScript
 FROM node:18-alpine AS backend-build
 WORKDIR /app
+
+# Copy package.json and tsconfig first
 COPY server/package*.json ./
 COPY server/tsconfig.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code and build
 COPY server/src ./src
-RUN npm install && npm run build
+RUN npm run build
+
+# Verify backend build output
+RUN ls -la dist/ && \
+    test -f dist/server.js || (echo "❌ Backend build failed - no server.js found!" && exit 1)
 
 # Final production image
 FROM node:18-alpine
 WORKDIR /app
 
-# Copy backend compiled JS from build stage
-COPY --from=backend-build /app/dist ./dist
+# Install production dependencies first
 COPY server/package*.json ./
-COPY server/.env ./
 RUN npm install --production
 
-# Copy built frontend
+# Copy backend compiled JS from build stage
+COPY --from=backend-build /app/dist ./dist
+
+# Copy environment file
+COPY server/.env ./ 2>/dev/null || echo "No .env file found"
+
+# Copy built frontend from build stage
 COPY --from=client-build /app/client/build ./client/build
+
+# Verify all files are in place
+RUN echo "📦 Verifying production build..." && \
+    ls -la && \
+    ls -la client/ && \
+    ls -la client/build/ && \
+    test -f client/build/index.html && \
+    test -f dist/server.js && \
+    echo "✅ All files verified successfully!"
 
 # Expose ports
 EXPOSE 5000 3000

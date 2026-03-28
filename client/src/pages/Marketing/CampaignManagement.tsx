@@ -77,9 +77,9 @@ const CampaignManagement: React.FC = () => {
     e.preventDefault();
     try {
       if (editingCampaign) {
-        await updateCampaign(editingCampaign._id, formData);
+        await updateCampaign(editingCampaign._id, formData as Partial<AdCampaign>);
       } else {
-        await createCampaign(formData);
+        await createCampaign(formData as Partial<AdCampaign>);
       }
       setShowForm(false);
       setEditingCampaign(null);

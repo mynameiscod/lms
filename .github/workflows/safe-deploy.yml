@@ -1,0 +1,220 @@
+name: Safe Deploy to VPS (with Rollback)
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      deploy_type:
+        description: 'Deployment type'
+        required: true
+        default: 'normal'
+        type: choice
+        options:
+          - normal
+          - force
+          - rollback
+
+env:
+  VPS_HOST: ${{ secrets.VPS_HOST }}
+  VPS_USER: ${{ secrets.VPS_USER }}
+  VPS_APP_PATH: /root/lms
+
+jobs:
+  # ==========================================
+  # JOB 1: Build & Test (Always runs first)
+  # ==========================================
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🟢 Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: |
+          cd server && npm ci --legacy-peer-deps
+          cd ../client && npm ci --legacy-peer-deps
+
+      - name: 🔨 Build server
+        run: |
+          cd server
+          npm run build
+
+      - name: 🔨 Build client
+        run: |
+          cd client
+          npm run build
+        env:
+          CI: false  # Treat warnings as warnings, not errors
+
+      - name: ✅ Verify builds
+        run: |
+          test -f server/dist/server.js || (echo "Server build failed" && exit 1)
+          test -f client/build/index.html || (echo "Client build failed" && exit 1)
+          echo "✅ All builds verified!"
+
+  # ==========================================
+  # JOB 2: Deploy to VPS (Only on success)
+  # ==========================================
+  deploy:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' || github.event.inputs.deploy_type != 'rollback'
+    
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: 🚀 Deploy to VPS
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'DEPLOY'
+          
+          set -e
+          APP_DIR="/root/lms"
+          BACKUP_DIR="/root/lms-backups"
+          TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+          
+          echo "📦 Creating backup..."
+          mkdir -p "$BACKUP_DIR/backup_$TIMESTAMP"
+          
+          # CRITICAL: Backup .env file
+          if [ -f "$APP_DIR/server/.env" ]; then
+            cp "$APP_DIR/server/.env" "$BACKUP_DIR/backup_$TIMESTAMP/.env"
+            cp "$APP_DIR/server/.env" "/tmp/.env.safe"
+          fi
+          
+          echo "📥 Pulling latest code..."
+          cd $APP_DIR
+          git stash 2>/dev/null || true
+          git pull origin master
+          
+          # CRITICAL: Restore .env file
+          if [ -f "/tmp/.env.safe" ]; then
+            cp "/tmp/.env.safe" "$APP_DIR/server/.env"
+            echo "✅ .env file preserved!"
+          fi
+          
+          echo "🏗️ Building containers..."
+          docker-compose build --no-cache
+          
+          echo "🔄 Restarting services..."
+          docker-compose down --timeout 30
+          docker-compose up -d
+          
+          echo "⏳ Waiting for services to start..."
+          sleep 20
+          
+          echo "🔍 Health check..."
+          RETRY=0
+          MAX_RETRY=10
+          while [ $RETRY -lt $MAX_RETRY ]; do
+            if curl -sf http://localhost:5000/api/health > /dev/null 2>&1; then
+              echo "✅ Health check passed!"
+              exit 0
+            fi
+            RETRY=$((RETRY + 1))
+            echo "Attempt $RETRY/$MAX_RETRY..."
+            sleep 5
+          done
+          
+          echo "❌ Health check failed, rolling back..."
+          if [ -f "$BACKUP_DIR/backup_$TIMESTAMP/.env" ]; then
+            cp "$BACKUP_DIR/backup_$TIMESTAMP/.env" "$APP_DIR/server/.env"
+          fi
+          git reset --hard HEAD~1
+          docker-compose build
+          docker-compose up -d
+          exit 1
+          
+          DEPLOY
+
+      - name: 📊 Post-deployment verification
+        run: |
+          sleep 10
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://${{ secrets.VPS_HOST }}:5000" || echo "000")
+          if [ "$HTTP_STATUS" = "200" ]; then
+            echo "✅ Deployment verified! Site is live."
+          else
+            echo "⚠️ Warning: Site returned HTTP $HTTP_STATUS"
+          fi
+
+  # ==========================================
+  # JOB 3: Rollback (Manual trigger only)
+  # ==========================================
+  rollback:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.deploy_type == 'rollback'
+    
+    steps:
+      - name: 🔐 Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: ⏪ Rollback to previous version
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'ROLLBACK'
+          
+          set -e
+          APP_DIR="/root/lms"
+          BACKUP_DIR="/root/lms-backups"
+          
+          echo "🔍 Finding latest backup..."
+          LATEST_BACKUP=$(ls -dt $BACKUP_DIR/backup_* 2>/dev/null | head -1)
+          
+          if [ -z "$LATEST_BACKUP" ]; then
+            echo "❌ No backup found!"
+            exit 1
+          fi
+          
+          echo "📦 Restoring from: $LATEST_BACKUP"
+          
+          # Restore .env
+          if [ -f "$LATEST_BACKUP/.env" ]; then
+            cp "$LATEST_BACKUP/.env" "$APP_DIR/server/.env"
+          fi
+          
+          cd $APP_DIR
+          git reset --hard HEAD~1
+          
+          docker-compose build
+          docker-compose down
+          docker-compose up -d
+          
+          echo "✅ Rollback complete!"
+          
+          ROLLBACK
+
+  # ==========================================
+  # JOB 4: Notify on completion
+  # ==========================================
+  notify:
+    needs: [build-and-test, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: 📧 Send notification
+        run: |
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "✅ Deployment successful!"
+          else
+            echo "❌ Deployment failed!"
+          fi

@@ -1,0 +1,202 @@
+# ============================================
+# LMS SaaS - Scalable Production Configuration
+# ============================================
+# Designed for 1M+ users with high availability
+# 
+# Usage:
+#   docker-compose -f docker-compose.scalable.yml up -d
+#
+# ============================================
+
+services:
+  # ===========================================
+  # NGINX Load Balancer
+  # ===========================================
+  nginx:
+    image: nginx:alpine
+    container_name: lms-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.scalable.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    depends_on:
+      - server-1
+      - server-2
+      - server-3
+    networks:
+      - lms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "nginx", "-t"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ===========================================
+  # Backend Servers (3 replicas for load balancing)
+  # ===========================================
+  server-1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms-server-1
+    env_file:
+      - ./server/.env
+    environment:
+      SERVER_ID: server-1
+      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD:-password123}@mongodb-primary:27017/lms-saas?authSource=admin&replicaSet=rs0
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  server-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms-server-2
+    env_file:
+      - ./server/.env
+    environment:
+      SERVER_ID: server-2
+      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD:-password123}@mongodb-primary:27017/lms-saas?authSource=admin&replicaSet=rs0
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  server-3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: lms-server-3
+    env_file:
+      - ./server/.env
+    environment:
+      SERVER_ID: server-3
+      MONGODB_URI: mongodb://admin:${MONGO_PASSWORD:-password123}@mongodb-primary:27017/lms-saas?authSource=admin&replicaSet=rs0
+      REDIS_URL: redis://redis:6379
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - lms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ===========================================
+  # MongoDB Primary (for scaling, use replica set)
+  # ===========================================
+  mongodb-primary:
+    image: mongo:7
+    container_name: lms-mongodb-primary
+    command: ["--replSet", "rs0", "--bind_ip_all"]
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-password123}
+      MONGO_INITDB_DATABASE: lms-saas
+    volumes:
+      - mongodb_primary_data:/data/db
+      - ./scripts/mongo-init-replica.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+    networks:
+      - lms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ===========================================
+  # Redis (Session store & Cache)
+  # ===========================================
+  redis:
+    image: redis:7-alpine
+    container_name: lms-redis
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - lms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===========================================
+  # MongoDB Express (Admin UI - Optional)
+  # ===========================================
+  mongo-express:
+    image: mongo-express
+    container_name: lms-mongo-express
+    ports:
+      - "8081:8081"
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: admin
+      ME_CONFIG_MONGODB_ADMINPASSWORD: ${MONGO_PASSWORD:-password123}
+      ME_CONFIG_MONGODB_URL: mongodb://admin:${MONGO_PASSWORD:-password123}@mongodb-primary:27017/
+      ME_CONFIG_BASICAUTH_USERNAME: admin
+      ME_CONFIG_BASICAUTH_PASSWORD: ${MONGO_EXPRESS_PASSWORD:-admin123}
+    depends_on:
+      mongodb-primary:
+        condition: service_healthy
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+volumes:
+  mongodb_primary_data:
+    driver: local
+  redis_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  lms-network:
+    driver: bridge

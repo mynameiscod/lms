@@ -693,8 +693,8 @@ const LeadDetail: React.FC = () => {
                     <span className="ld-ai-metric">
                       Seriousness: <strong>{lead.aiSummary.seriousnessScore}/10</strong>
                     </span>
-                    <span className="ld-ai-metric" style={{ color: getConversionProbabilityColor(lead.aiSummary.conversionProbability) }}>
-                      Conversion: <strong>{lead.aiSummary.conversionProbability.toUpperCase()}</strong>
+                    <span className="ld-ai-metric" style={{ color: getConversionProbabilityColor(lead.aiSummary.conversionProbability || 'medium') }}>
+                      Conversion: <strong>{(lead.aiSummary.conversionProbability || 'medium').toUpperCase()}</strong>
                     </span>
                   </div>
                   <div className="ld-ai-generated-at">

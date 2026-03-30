@@ -67,6 +67,9 @@ import LeadFormSettingsPage from './pages/LeadFormSettings';
 import LeadManagerBoardPage from './pages/LeadManagerBoard';
 import LeadMyPerformancePage from './pages/LeadMyPerformance';
 import LeadAuditLogsPage from './pages/LeadAuditLogs';
+import TelecallerConsolePage from './pages/TelecallerConsole';
+import LeadPrioritySettingsPage from './pages/LeadPrioritySettings';
+import SalesContentLibraryPage from './pages/SalesContentLibrary';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas, CampaignManagement, StageAnalytics } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
@@ -685,6 +688,36 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadAuditLogsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/telecaller-console"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <TelecallerConsolePage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-priority-settings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadPrioritySettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/sales-content"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <SalesContentLibraryPage />
             </Layout>
           </ProtectedRoute>
         }

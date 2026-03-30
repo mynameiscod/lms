@@ -1670,7 +1670,7 @@ export const leadStageApi = {
 
 // Lead API
 export const leadApi = {
-  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string }) => {
+  getLeads: async (filters?: { stageId?: string; source?: string; assignedTo?: string; search?: string; page?: number; limit?: number; dateFrom?: string; dateTo?: string; priority?: string }) => {
     const params = new URLSearchParams();
     if (filters?.stageId) params.append('stageId', filters.stageId);
     if (filters?.source) params.append('source', filters.source);
@@ -1680,6 +1680,7 @@ export const leadApi = {
     if (filters?.limit) params.append('limit', String(filters.limit));
     if (filters?.dateFrom) params.append('dateFrom', filters.dateFrom);
     if (filters?.dateTo) params.append('dateTo', filters.dateTo);
+    if (filters?.priority) params.append('priority', filters.priority);
     const q = params.toString();
     return authenticatedFetch(`${API_BASE_URL}/leads${q ? `?${q}` : ''}`);
   },
@@ -1808,6 +1809,279 @@ export const leadFormConfigApi = {
   deleteCustomField: async (fieldKey: string) => {
     return authenticatedFetch(`${API_BASE_URL}/lead-form-config/fields/${fieldKey}`, {
       method: 'DELETE'
+    });
+  }
+};
+
+// Lead Priority API
+export const leadPriorityApi = {
+  getConfig: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/config`);
+  },
+  updateConfig: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/config`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  addRule: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/rules`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  updateRule: async (ruleId: string, data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/rules/${ruleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  deleteRule: async (ruleId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/rules/${ruleId}`, {
+      method: 'DELETE'
+    });
+  },
+  updateThresholds: async (data: { hot: number; warm: number }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/thresholds`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  calculateScore: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/leads/${leadId}/score`);
+  },
+  getScoreBreakdown: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/leads/${leadId}/breakdown`);
+  },
+  bulkRecalculate: async (leadIds?: string[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/recalculate`, {
+      method: 'POST',
+      body: JSON.stringify({ leadIds })
+    });
+  },
+  resetToDefaults: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-priority/reset`, {
+      method: 'POST'
+    });
+  }
+};
+
+// Qualification API
+export const qualificationApi = {
+  getConfig: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/config`);
+  },
+  updateConfig: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/config`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  addQuestion: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/questions`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  updateQuestion: async (questionId: string, data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  deleteQuestion: async (questionId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/questions/${questionId}`, {
+      method: 'DELETE'
+    });
+  },
+  reorderQuestions: async (questionOrder: Array<{ id: string; order: number }>) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/questions/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ questionOrder })
+    });
+  },
+  getQuestionsForStage: async (stageId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/stage/${stageId}`);
+  },
+  saveLeadAnswers: async (leadId: string, data: { answers: any[]; progress: number }) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/leads/${leadId}/answers`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  getLeadAnswers: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/leads/${leadId}/answers`);
+  },
+  resetToDefaults: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/qualification/reset`, {
+      method: 'POST'
+    });
+  }
+};
+
+// Sales Content API
+export const salesContentApi = {
+  getAll: async (filters?: { category?: string; tag?: string; search?: string; activeOnly?: boolean }) => {
+    const params = new URLSearchParams();
+    if (filters?.category) params.append('category', filters.category);
+    if (filters?.tag) params.append('tag', filters.tag);
+    if (filters?.search) params.append('search', filters.search);
+    if (filters?.activeOnly) params.append('activeOnly', 'true');
+    const q = params.toString();
+    return authenticatedFetch(`${API_BASE_URL}/sales-content${q ? `?${q}` : ''}`);
+  },
+  getById: async (id: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/${id}`);
+  },
+  create: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  update: async (id: string, data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  delete: async (id: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/${id}`, {
+      method: 'DELETE'
+    });
+  },
+  shareWithLead: async (id: string, data: { leadId: string; channel: string; message?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/${id}/share`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  trackView: async (id: string, shareId?: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/${id}/view`, {
+      method: 'POST',
+      body: JSON.stringify({ shareId })
+    });
+  },
+  trackDownload: async (id: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/${id}/download`, {
+      method: 'POST'
+    });
+  },
+  reorder: async (contentOrder: Array<{ id: string; order: number }>) => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ contentOrder })
+    });
+  },
+  getCategories: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/categories`);
+  },
+  getByCategory: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/by-category`);
+  },
+  getFeatured: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/featured`);
+  },
+  getAnalytics: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/sales-content/analytics`);
+  }
+};
+
+// Lead AI API
+export const leadAIApi = {
+  checkStatus: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/status`);
+  },
+  generateSummary: async (leadId: string, force?: boolean) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/leads/${leadId}/generate${force ? '?force=true' : ''}`, {
+      method: 'POST'
+    });
+  },
+  getSummary: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/leads/${leadId}/summary`);
+  },
+  getQuickInsights: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/leads/${leadId}/insights`);
+  },
+  getNextBestAction: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/leads/${leadId}/next-action`);
+  },
+  getLeadsNeedingSummary: async (limit?: number) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/pending${limit ? `?limit=${limit}` : ''}`);
+  },
+  bulkGenerateSummaries: async (leadIds: string[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-ai/bulk-generate`, {
+      method: 'POST',
+      body: JSON.stringify({ leadIds })
+    });
+  }
+};
+
+// Lost Reason API
+export const lostReasonApi = {
+  getConfig: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/config`);
+  },
+  updateConfig: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/config`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  addReason: async (data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/reasons`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  updateReason: async (reasonId: string, data: any) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/reasons/${reasonId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+  deleteReason: async (reasonId: string, hardDelete?: boolean) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/reasons/${reasonId}${hardDelete ? '?hardDelete=true' : ''}`, {
+      method: 'DELETE'
+    });
+  },
+  reorderReasons: async (reasonOrder: Array<{ id: string; order: number }>) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/reasons/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ reasonOrder })
+    });
+  },
+  getCategories: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/categories`);
+  },
+  getActiveReasons: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/active`);
+  },
+  markLeadAsLost: async (leadId: string, data: { reasonId?: string; reason: string; detail?: string; reEngagementDate?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/leads/${leadId}/mark-lost`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  getAnalytics: async (dateRange?: { startDate?: string; endDate?: string }) => {
+    const params = new URLSearchParams();
+    if (dateRange?.startDate) params.append('startDate', dateRange.startDate);
+    if (dateRange?.endDate) params.append('endDate', dateRange.endDate);
+    const q = params.toString();
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/analytics${q ? `?${q}` : ''}`);
+  },
+  getReEngagementLeads: async (upcomingDays?: number) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/reengagement${upcomingDays ? `?upcoming=${upcomingDays}` : ''}`);
+  },
+  reEngageLead: async (leadId: string, data: { newStage?: string; note?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/leads/${leadId}/reengage`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+  resetToDefaults: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lost-reasons/reset`, {
+      method: 'POST'
     });
   }
 };

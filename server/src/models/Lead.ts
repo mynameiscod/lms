@@ -3,6 +3,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected';
 export type CallStatus = 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
 export type InterestConcern = 'only_online' | 'placements' | 'check_with_parents' | 'fee_issue' | 'timing_issue' | 'other';
+export type LeadPriority = 'hot' | 'warm' | 'cold';
+export type LeadEligibility = 'eligible' | 'not_eligible' | 'needs_review';
+export type WhatsAppStatus = 'not_sent' | 'sent' | 'delivered' | 'read' | 'replied';
+export type WhatsAppEngagementStatus = 'not_initiated' | 'initiated' | 'in_progress' | 'completed' | 'no_response';
+export type TrainingMode = 'online' | 'offline' | 'hybrid' | 'undecided';
+export type LeadUrgency = 'immediate' | 'soon' | 'exploring';
+export type LeadAffordability = 'ready' | 'needs_emi' | 'budget_concern' | 'unknown';
 
 export interface IUtmParams {
   source?: string;
@@ -10,6 +17,92 @@ export interface IUtmParams {
   campaign?: string;
   content?: string;
   term?: string;
+}
+
+export interface ISourceDetails {
+  platform: 'meta' | 'google' | 'linkedin' | 'website' | 'manual' | 'whatsapp';
+  campaignId?: mongoose.Types.ObjectId;
+  campaignName?: string;
+  adSetId?: string;
+  adSetName?: string;
+  adId?: string;
+  adName?: string;
+  formId?: string;
+  landingPage?: string;
+  referrerUrl?: string;
+}
+
+export interface ICostData {
+  costPerLead?: number;
+  campaignSpend?: number;
+  visible: boolean;
+}
+
+export interface IWhatsAppEngagement {
+  status: WhatsAppEngagementStatus;
+  initiatedAt?: Date;
+  lastMessageSentAt?: Date;
+  lastReplyAt?: Date;
+  questionsAsked: number;
+  questionsAnswered: number;
+  conversationSummary?: string;
+}
+
+export interface IAssignment {
+  assignedTo?: mongoose.Types.ObjectId;
+  assignedBy?: mongoose.Types.ObjectId;
+  assignedAt?: Date;
+  previousAssignees?: Array<{
+    userId: mongoose.Types.ObjectId;
+    from: Date;
+    to: Date;
+    reason?: string;
+  }>;
+}
+
+export interface ITelecallerMetrics {
+  firstViewedAt?: Date;
+  firstActionAt?: Date;
+  firstCallAt?: Date;
+  totalCalls: number;
+  totalActions: number;
+  lastActionAt?: Date;
+}
+
+export interface IQualificationAnswer {
+  questionId: string;
+  answer: any;
+  answeredBy: mongoose.Types.ObjectId;
+  answeredAt: Date;
+  skipped: boolean;
+}
+
+export interface IQualificationProgress {
+  total: number;
+  answered: number;
+  percentage: number;
+}
+
+export interface ILeadInterests {
+  courses: string[];
+  mode: TrainingMode;
+  location: string;
+  placement: boolean;
+  urgency: LeadUrgency;
+  affordability: LeadAffordability;
+  demoInterest: boolean;
+  campusVisitInterest: boolean;
+  technologies: string[];
+}
+
+export interface IAISummary {
+  generatedAt: Date;
+  summary: string;
+  keyInsights: string[];
+  suggestedNextAction: string;
+  seriousnessScore: number;
+  conversionProbability: 'high' | 'medium' | 'low';
+  generatedBy: string;
 }
 
 export interface ILeadActivity {
@@ -43,6 +136,45 @@ export interface ILead extends Document {
   // Campaign tracking fields
   campaignId?: mongoose.Types.ObjectId;
   utmParams?: IUtmParams;
+  
+  // NEW: Priority & Scoring
+  priority: LeadPriority;
+  score: number;
+  eligibility: LeadEligibility;
+  eligibilityReason?: string;
+  
+  // NEW: WhatsApp tracking
+  whatsappStatus: WhatsAppStatus;
+  whatsappRepliedAt?: Date;
+  firstResponseTime?: number;
+  whatsappEngagement?: IWhatsAppEngagement;
+  
+  // NEW: Enhanced source tracking
+  sourceDetails?: ISourceDetails;
+  costData?: ICostData;
+  
+  // NEW: Assignment tracking
+  assignment?: IAssignment;
+  
+  // NEW: Telecaller metrics
+  telecallerMetrics?: ITelecallerMetrics;
+  
+  // NEW: Qualification
+  qualificationAnswers?: Map<string, IQualificationAnswer>;
+  qualificationProgress?: IQualificationProgress;
+  
+  // NEW: Structured interests
+  interests?: ILeadInterests;
+  
+  // NEW: Lost reason
+  lostReason?: string;
+  lostReasonCategory?: string;
+  lostReasonDetail?: string;
+  lostAt?: Date;
+  reEngagementDate?: Date;
+  
+  // NEW: AI Summary
+  aiSummary?: IAISummary;
   
   tenantId: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
@@ -170,6 +302,166 @@ const LeadSchema: Schema = new Schema(
       term: { type: String, trim: true, lowercase: true }
     },
     
+    // NEW: Priority & Scoring
+    priority: {
+      type: String,
+      enum: ['hot', 'warm', 'cold'],
+      default: 'cold'
+    },
+    score: {
+      type: Number,
+      default: 0
+    },
+    eligibility: {
+      type: String,
+      enum: ['eligible', 'not_eligible', 'needs_review'],
+      default: 'needs_review'
+    },
+    eligibilityReason: {
+      type: String,
+      trim: true
+    },
+    
+    // NEW: WhatsApp tracking
+    whatsappStatus: {
+      type: String,
+      enum: ['not_sent', 'sent', 'delivered', 'read', 'replied'],
+      default: 'not_sent'
+    },
+    whatsappRepliedAt: {
+      type: Date
+    },
+    firstResponseTime: {
+      type: Number  // Minutes from lead creation to first reply
+    },
+    whatsappEngagement: {
+      status: {
+        type: String,
+        enum: ['not_initiated', 'initiated', 'in_progress', 'completed', 'no_response'],
+        default: 'not_initiated'
+      },
+      initiatedAt: Date,
+      lastMessageSentAt: Date,
+      lastReplyAt: Date,
+      questionsAsked: { type: Number, default: 0 },
+      questionsAnswered: { type: Number, default: 0 },
+      conversationSummary: { type: String, trim: true }
+    },
+    
+    // NEW: Enhanced source tracking
+    sourceDetails: {
+      platform: {
+        type: String,
+        enum: ['meta', 'google', 'linkedin', 'website', 'manual', 'whatsapp']
+      },
+      campaignId: { type: mongoose.Types.ObjectId, ref: 'AdCampaign' },
+      campaignName: { type: String, trim: true },
+      adSetId: { type: String, trim: true },
+      adSetName: { type: String, trim: true },
+      adId: { type: String, trim: true },
+      adName: { type: String, trim: true },
+      formId: { type: String, trim: true },
+      landingPage: { type: String, trim: true },
+      referrerUrl: { type: String, trim: true }
+    },
+    
+    // NEW: Cost tracking (admin visibility only)
+    costData: {
+      costPerLead: { type: Number },
+      campaignSpend: { type: Number },
+      visible: { type: Boolean, default: false }
+    },
+    
+    // NEW: Assignment tracking
+    assignment: {
+      assignedTo: { type: mongoose.Types.ObjectId, ref: 'User' },
+      assignedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+      assignedAt: { type: Date },
+      previousAssignees: [{
+        userId: { type: mongoose.Types.ObjectId, ref: 'User' },
+        from: { type: Date },
+        to: { type: Date },
+        reason: { type: String, trim: true }
+      }]
+    },
+    
+    // NEW: Telecaller metrics
+    telecallerMetrics: {
+      firstViewedAt: { type: Date },
+      firstActionAt: { type: Date },
+      firstCallAt: { type: Date },
+      totalCalls: { type: Number, default: 0 },
+      totalActions: { type: Number, default: 0 },
+      lastActionAt: { type: Date }
+    },
+    
+    // NEW: Qualification answers
+    qualificationAnswers: {
+      type: Map,
+      of: {
+        questionId: { type: String, required: true },
+        answer: { type: Schema.Types.Mixed },
+        answeredBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+        answeredAt: { type: Date },
+        skipped: { type: Boolean, default: false }
+      },
+      default: new Map()
+    },
+    qualificationProgress: {
+      total: { type: Number, default: 0 },
+      answered: { type: Number, default: 0 },
+      percentage: { type: Number, default: 0 }
+    },
+    
+    // NEW: Structured interests
+    interests: {
+      courses: [{ type: String, trim: true }],
+      mode: {
+        type: String,
+        enum: ['online', 'offline', 'hybrid', 'undecided'],
+        default: 'undecided'
+      },
+      location: { type: String, trim: true },
+      placement: { type: Boolean, default: false },
+      urgency: {
+        type: String,
+        enum: ['immediate', 'soon', 'exploring'],
+        default: 'exploring'
+      },
+      affordability: {
+        type: String,
+        enum: ['ready', 'needs_emi', 'budget_concern', 'unknown'],
+        default: 'unknown'
+      },
+      demoInterest: { type: Boolean, default: false },
+      campusVisitInterest: { type: Boolean, default: false },
+      technologies: [{ type: String, trim: true }]
+    },
+    
+    // NEW: Lost reason tracking
+    lostReason: { type: String, trim: true },
+    lostReasonCategory: {
+      type: String,
+      enum: ['financial', 'competitor', 'timing', 'quality', 'other']
+    },
+    lostReasonDetail: { type: String, trim: true },
+    lostAt: { type: Date },
+    reEngagementDate: { type: Date },
+    
+    // NEW: AI Summary
+    aiSummary: {
+      generatedAt: { type: Date },
+      summary: { type: String, trim: true },
+      keyInsights: [{ type: String, trim: true }],
+      suggestedNextAction: { type: String, trim: true },
+      seriousnessScore: { type: Number, min: 1, max: 10 },
+      conversionProbability: {
+        type: String,
+        enum: ['high', 'medium', 'low']
+      },
+      generatedBy: { type: String, trim: true }
+    },
+    
     tenantId: {
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',
@@ -191,5 +483,11 @@ LeadSchema.index({ tenantId: 1, source: 1 });
 LeadSchema.index({ tenantId: 1, createdAt: -1 });
 LeadSchema.index({ tenantId: 1, campaignId: 1 });
 LeadSchema.index({ 'utmParams.source': 1, 'utmParams.campaign': 1 });
+// NEW: Additional indexes for performance
+LeadSchema.index({ tenantId: 1, priority: 1 });
+LeadSchema.index({ tenantId: 1, score: -1 });
+LeadSchema.index({ tenantId: 1, whatsappStatus: 1 });
+LeadSchema.index({ tenantId: 1, 'assignment.assignedTo': 1 });
+LeadSchema.index({ tenantId: 1, 'telecallerMetrics.lastActionAt': -1 });
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

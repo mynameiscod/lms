@@ -5,12 +5,22 @@ import { leadApi, leadStageApi, userApi, leadFormConfigApi } from '../../api';
 import './Leads.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
+
+type LeadPriority = 'hot' | 'warm' | 'cold';
+const PRIORITY_COLORS: Record<LeadPriority, { bg: string; text: string; label: string }> = {
+  hot: { bg: '#fef2f2', text: '#dc2626', label: '🔥 Hot' },
+  warm: { bg: '#fffbeb', text: '#d97706', label: '☀️ Warm' },
+  cold: { bg: '#eff6ff', text: '#2563eb', label: '❄️ Cold' }
+};
+
 interface Lead {
   _id: string; name: string; email?: string; phone: string;
   courseInterest: string[]; source: string; stageId: Stage | string;
   assignedTo?: { _id: string; firstName: string; lastName: string; email: string } | null;
   nextFollowUp?: string; notes: string;
   createdBy?: { firstName: string; lastName: string }; createdAt: string;
+  priority?: LeadPriority;
+  score?: number;
 }
 interface FormField {
   _id?: string; fieldKey: string; label: string; type: string;
@@ -68,6 +78,7 @@ const LeadsPage: React.FC = () => {
   const [filterStage, setFilterStage] = useState('');
   const [filterSource, setFilterSource] = useState('');
   const [filterAssignee, setFilterAssignee] = useState('');
+  const [filterPriority, setFilterPriority] = useState<LeadPriority | ''>('');
   const [dateRange, setDateRange] = useState<'all'|'today'|'week'|'month'|'custom'>('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -142,7 +153,7 @@ const LeadsPage: React.FC = () => {
       const stageFilter = activeStageFilter || filterStage;
       const [stagesRes,leadsRes] = await Promise.all([
         leadStageApi.getStages(),
-        leadApi.getLeads({search,stageId:stageFilter,source:filterSource,assignedTo:filterAssignee,page,limit:100,...dateFilt}),
+        leadApi.getLeads({search,stageId:stageFilter,source:filterSource,assignedTo:filterAssignee,priority:filterPriority||undefined,page,limit:100,...dateFilt}),
       ]);
       const loadedStages = stagesRes.data||[];
       setStages(loadedStages);
@@ -178,7 +189,7 @@ const LeadsPage: React.FC = () => {
       setLoading(false);
       isFirstLoad.current = false;
     }
-  },[search,filterStage,filterSource,filterAssignee,activeStageFilter,page,getDateFilters]);
+  },[search,filterStage,filterSource,filterAssignee,filterPriority,activeStageFilter,page,getDateFilters]);
 
   useEffect(()=>{loadData();},[loadData]);
 
@@ -363,6 +374,7 @@ const LeadsPage: React.FC = () => {
   if(filterStage){const s=stages.find(x=>x._id===filterStage);if(s)activeFilters.push({label:`Stage: ${s.name}`,onRemove:()=>setFilterStage('')});}
   if(filterSource)activeFilters.push({label:`Source: ${SOURCE_LABELS[filterSource]||filterSource}`,onRemove:()=>setFilterSource('')});
   if(filterAssignee){const u=staff.find(x=>x._id===filterAssignee);if(u)activeFilters.push({label:`Assigned: ${u.firstName} ${u.lastName}`,onRemove:()=>setFilterAssignee('')});}
+  if(filterPriority)activeFilters.push({label:`Priority: ${PRIORITY_COLORS[filterPriority].label}`,onRemove:()=>setFilterPriority('')});
   if(dateRange!=='all')activeFilters.push({label:`Date: ${dateRange}`,onRemove:()=>{setDateRange('all');setDateFrom('');setDateTo('');}});
 
   if (loading && isFirstLoad.current) {
@@ -457,6 +469,12 @@ const LeadsPage: React.FC = () => {
               {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
             </select>
           )}
+          <select className="crm-filter-select" value={filterPriority} onChange={e=>setFilterPriority(e.target.value as LeadPriority | '')}>
+            <option value="">All Priorities</option>
+            <option value="hot">🔥 Hot</option>
+            <option value="warm">☀️ Warm</option>
+            <option value="cold">❄️ Cold</option>
+          </select>
         </div>
         <div className="crm-toolbar-row">
           <span className="crm-date-label">Date:</span>
@@ -485,7 +503,7 @@ const LeadsPage: React.FC = () => {
               </span>
             ))}
             <button className="crm-clear-filters"
-              onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');}}>
+              onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setFilterPriority('');setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');}}>
               Clear all
             </button>
           </div>
@@ -563,7 +581,17 @@ const LeadsPage: React.FC = () => {
                             onClick={()=>navigate(`/leads/${lead._id}`)}>
                             <div className="crm-kcard-top">
                               <div>
-                                <div className="crm-kcard-name">{lead.name}</div>
+                                <div className="crm-kcard-name">
+                                  {lead.name}
+                                  {lead.priority && (
+                                    <span className="crm-kcard-priority" style={{
+                                      backgroundColor: PRIORITY_COLORS[lead.priority].bg,
+                                      color: PRIORITY_COLORS[lead.priority].text
+                                    }}>
+                                      {lead.priority === 'hot' ? '🔥' : lead.priority === 'warm' ? '☀️' : '❄️'}
+                                    </span>
+                                  )}
+                                </div>
                                 <div className="crm-kcard-phone">&#128222; {lead.phone}</div>
                                 {lead.email&&<div className="crm-kcard-email">{lead.email}</div>}
                               </div>
@@ -629,6 +657,7 @@ const LeadsPage: React.FC = () => {
                           title="Select all"/>
                       </th>
                       <th>Lead</th>
+                      <th>Priority</th>
                       <th>Stage</th>
                       <th>Source</th>
                       <th>Assigned To</th>
@@ -639,7 +668,7 @@ const LeadsPage: React.FC = () => {
                   </thead>
                   <tbody>
                     {leads.length===0 ? (
-                      <tr><td colSpan={8}>
+                      <tr><td colSpan={9}>
                         <div className="crm-empty" style={{padding:'50px 0'}}>
                           <div className="crm-empty-icon">&#128269;</div>
                           <h3>No leads found</h3>
@@ -671,6 +700,19 @@ const LeadsPage: React.FC = () => {
                                 {lead.email&&<div className="crm-lead-info-email">{lead.email}</div>}
                               </div>
                             </div>
+                          </td>
+                          <td>
+                            {lead.priority ? (
+                              <span className="crm-priority-badge" style={{
+                                backgroundColor: PRIORITY_COLORS[lead.priority].bg,
+                                color: PRIORITY_COLORS[lead.priority].text
+                              }}>
+                                {PRIORITY_COLORS[lead.priority].label}
+                                {lead.score !== undefined && <span className="crm-priority-score"> ({lead.score})</span>}
+                              </span>
+                            ) : (
+                              <span className="crm-unassigned">—</span>
+                            )}
                           </td>
                           <td onClick={e=>e.stopPropagation()}>
                             {stage&&(

@@ -35,6 +35,11 @@ import leadStageHistoryRoutes from './leadStageHistoryRoutes';
 import whatsappRoutes from './whatsappRoutes';
 import followUpRoutes from './followUpRoutes';
 import seatReservationRoutes from './seatReservationRoutes';
+import leadPriorityRoutes from './leadPriorityRoutes';
+import qualificationRoutes from './qualificationRoutes';
+import salesContentRoutes from './salesContentRoutes';
+import leadAIRoutes from './leadAIRoutes';
+import lostReasonRoutes from './lostReasonRoutes';
 
 const router = express.Router();
 
@@ -74,5 +79,10 @@ router.use('/stage-history', leadStageHistoryRoutes);
 router.use('/whatsapp', whatsappRoutes);
 router.use('/follow-ups', followUpRoutes);
 router.use('/seat-reservations', seatReservationRoutes);
+router.use('/lead-priority', leadPriorityRoutes);
+router.use('/qualification', qualificationRoutes);
+router.use('/sales-content', salesContentRoutes);
+router.use('/lead-ai', leadAIRoutes);
+router.use('/lost-reasons', lostReasonRoutes);
 
 export default router;

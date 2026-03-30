@@ -675,6 +675,412 @@
 .ld-form-group textarea:focus { outline: none; border-color: var(--ld-blue); background: #fff; }
 .ld-form-group textarea { min-height: 90px; resize: vertical; }
 
+/* ═══════════════════════════════════════════════════
+   NEW CRM FEATURES STYLES
+═══════════════════════════════════════════════════ */
+
+/* ── Header Name Row with Badges ── */
+.ld-header-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.ld-priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.ld-score-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: white;
+}
+
+/* ── AI Summary Card ── */
+.ld-ai-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ld-ai-summary-text {
+  font-size: 0.88rem;
+  color: #374151;
+  line-height: 1.5;
+  padding: 10px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border-left: 3px solid #3b82f6;
+}
+
+.ld-ai-insights {
+  margin-top: 4px;
+}
+
+.ld-ai-insights-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.ld-ai-insights-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 0.84rem;
+  color: #4b5563;
+}
+
+.ld-ai-insights-list li {
+  margin-bottom: 4px;
+}
+
+.ld-ai-action {
+  background: #fef3c7;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border-left: 3px solid #f59e0b;
+}
+
+.ld-ai-action-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #92400e;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.ld-ai-action-text {
+  font-size: 0.86rem;
+  color: #78350f;
+}
+
+.ld-ai-metrics {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.ld-ai-metric {
+  font-size: 0.82rem;
+  color: #6b7280;
+}
+
+.ld-ai-metric strong {
+  color: inherit;
+}
+
+.ld-ai-generated-at {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.ld-ai-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 20px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.ld-ai-empty-icon {
+  font-size: 2rem;
+}
+
+.ld-ai-empty-text {
+  font-size: 0.84rem;
+}
+
+/* ── Qualification Card ── */
+.ld-qual-progress {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ld-blue);
+  background: #eff6ff;
+  padding: 4px 8px;
+  border-radius: 12px;
+}
+
+.ld-qual-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ld-qual-question {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--ld-border);
+}
+
+.ld-qual-question:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.ld-qual-question-text {
+  font-size: 0.84rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.ld-qual-required {
+  color: var(--ld-red);
+  margin-left: 2px;
+}
+
+.ld-qual-answer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ld-qual-boolean {
+  display: flex;
+  gap: 6px;
+}
+
+.ld-qual-bool-btn {
+  padding: 6px 16px;
+  border-radius: 6px;
+  border: 1.5px solid var(--ld-border);
+  background: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ld-qual-bool-btn:hover {
+  border-color: var(--ld-blue);
+  color: var(--ld-blue);
+}
+
+.ld-qual-bool-btn.active {
+  background: var(--ld-blue);
+  border-color: var(--ld-blue);
+  color: white;
+}
+
+.ld-qual-select,
+.ld-qual-input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1.5px solid var(--ld-border);
+  border-radius: 6px;
+  font-size: 0.84rem;
+  color: #374151;
+  font-family: inherit;
+  transition: border-color 0.15s;
+}
+
+.ld-qual-select:focus,
+.ld-qual-input:focus {
+  outline: none;
+  border-color: var(--ld-blue);
+}
+
+.ld-qual-check {
+  color: var(--ld-green);
+  font-weight: 700;
+}
+
+/* ── Content Quick Share ── */
+.ld-content-quick-share {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.ld-content-quick-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ld-border);
+  background: white;
+  font-size: 0.82rem;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: left;
+}
+
+.ld-content-quick-btn:hover {
+  border-color: var(--ld-blue);
+  background: #eff6ff;
+}
+
+.ld-content-quick-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ld-content-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.ld-content-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── WhatsApp Engagement Card ── */
+.ld-wa-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+}
+
+.ld-wa-not_initiated { background: #f3f4f6; color: #6b7280; }
+.ld-wa-initiated { background: #fef3c7; color: #92400e; }
+.ld-wa-in_progress { background: #d1fae5; color: #065f46; }
+.ld-wa-completed { background: #dbeafe; color: #1e40af; }
+.ld-wa-no_response { background: #fee2e2; color: #991b1b; }
+
+.ld-wa-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 12px;
+}
+
+.ld-wa-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ld-wa-stat-label {
+  font-size: 0.72rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.ld-wa-stat-value {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #374151;
+}
+
+.ld-wa-summary {
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ld-border);
+}
+
+.ld-wa-summary-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.ld-wa-summary-text {
+  font-size: 0.84rem;
+  color: #4b5563;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ── Content Modal ── */
+.ld-modal-lg {
+  max-width: 700px;
+  width: 95%;
+}
+
+.ld-content-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.ld-content-card {
+  display: flex;
+  gap: 12px;
+  padding: 14px;
+  border-radius: 10px;
+  border: 2px solid var(--ld-border);
+  cursor: pointer;
+  transition: all 0.15s;
+  background: white;
+}
+
+.ld-content-card:hover {
+  border-color: var(--ld-blue);
+  background: #f8faff;
+}
+
+.ld-content-card.selected {
+  border-color: var(--ld-blue);
+  background: #eff6ff;
+}
+
+.ld-content-card-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+}
+
+.ld-content-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.ld-content-card-title {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ld-content-card-type {
+  font-size: 0.75rem;
+  color: #6b7280;
+  text-transform: capitalize;
+}
+
+.ld-content-card-desc {
+  font-size: 0.78rem;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
 .ld-modal-footer {
   padding: 14px 22px 18px;
   display: flex;

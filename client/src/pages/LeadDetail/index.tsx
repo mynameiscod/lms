@@ -1,16 +1,68 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { leadApi, leadStageApi, leadFormConfigApi } from '../../api';
+import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi } from '../../api';
 import './LeadDetail.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
+
+// Priority types and colors
+type LeadPriority = 'hot' | 'warm' | 'cold';
+const PRIORITY_COLORS: Record<LeadPriority, { bg: string; text: string; label: string }> = {
+  hot: { bg: '#fef2f2', text: '#dc2626', label: '🔥 Hot' },
+  warm: { bg: '#fffbeb', text: '#d97706', label: '☀️ Warm' },
+  cold: { bg: '#eff6ff', text: '#2563eb', label: '❄️ Cold' }
+};
+
+interface AIInsight {
+  summary: string;
+  keyInsights: string[];
+  suggestedNextAction: string;
+  seriousnessScore: number;
+  conversionProbability: 'high' | 'medium' | 'low';
+  generatedAt: string;
+}
+
+interface QualificationQuestion {
+  _id: string;
+  question: string;
+  type: 'text' | 'select' | 'multi_select' | 'boolean' | 'number' | 'date';
+  options?: string[];
+  required: boolean;
+  order: number;
+}
+
+interface SalesContent {
+  _id: string;
+  title: string;
+  type: 'brochure' | 'video' | 'testimonial' | 'pricing' | 'case_study' | 'demo' | 'other';
+  category: string;
+  url?: string;
+  description?: string;
+}
 
 interface Activity {
   _id: string; type: string; description: string;
   callOutcome?: string; recordingUrl?: string;
   createdBy: { firstName: string; lastName: string } | string;
   createdAt: string;
+}
+
+interface WhatsAppEngagement {
+  status: string;
+  initiatedAt?: string;
+  lastMessageSentAt?: string;
+  lastReplyAt?: string;
+  questionsAsked: number;
+  questionsAnswered: number;
+  conversationSummary?: string;
+}
+
+interface QualificationAnswer {
+  questionId: string;
+  answer: any;
+  answeredAt: string;
+  skipped: boolean;
 }
 
 interface Lead {
@@ -23,6 +75,18 @@ interface Lead {
   createdBy?: { firstName: string; lastName: string };
   createdAt: string; updatedAt: string;
   customFields?: Record<string, any>;
+  // New CRM fields
+  priority?: LeadPriority;
+  score?: number;
+  eligibility?: string;
+  eligibilityReason?: string;
+  whatsappStatus?: string;
+  whatsappEngagement?: WhatsAppEngagement;
+  qualificationAnswers?: Record<string, QualificationAnswer>;
+  qualificationProgress?: { total: number; answered: number; percentage: number };
+  aiSummary?: AIInsight;
+  lostReason?: string;
+  lostReasonCategory?: string;
 }
 
 interface CustomFieldConfig { fieldKey: string; label: string; type: string; isBuiltIn: boolean; }
@@ -108,6 +172,16 @@ const LeadDetail: React.FC = () => {
   const [convertPassword, setConvertPassword] = useState('Welcome@123');
   const [converting, setConverting] = useState(false);
 
+  // New CRM feature states
+  const [aiLoading, setAiLoading] = useState(false);
+  const [qualificationQuestions, setQualificationQuestions] = useState<QualificationQuestion[]>([]);
+  const [qualificationAnswers, setQualificationAnswers] = useState<Record<string, any>>({});
+  const [savingQualification, setSavingQualification] = useState(false);
+  const [salesContent, setSalesContent] = useState<SalesContent[]>([]);
+  const [showContentModal, setShowContentModal] = useState(false);
+  const [selectedContent, setSelectedContent] = useState<SalesContent | null>(null);
+  const [sharingContent, setSharingContent] = useState(false);
+
   const showAlertMsg = (type:'success'|'error', message:string) => {
     setAlert({type,message});
     setTimeout(()=>setAlert(null),3000);
@@ -117,10 +191,12 @@ const LeadDetail: React.FC = () => {
     if (!leadId) return;
     try {
       setLoading(true);
-      const [leadRes,stagesRes,configRes] = await Promise.all([
+      const [leadRes,stagesRes,configRes,questionsRes,contentRes] = await Promise.all([
         leadApi.getLeadById(leadId),
         leadStageApi.getStages(),
-        leadFormConfigApi.getConfig()
+        leadFormConfigApi.getConfig(),
+        qualificationApi.getConfig().catch(() => ({ data: { questions: [] } })),
+        salesContentApi.getAll({ activeOnly: true }).catch(() => ({ data: [] }))
       ]);
       setLead(leadRes.data);
       setStages(stagesRes.data||[]);
@@ -131,6 +207,18 @@ const LeadDetail: React.FC = () => {
             .map((f:any)=>({fieldKey:f.fieldKey,label:f.label,type:f.type,isBuiltIn:f.isBuiltIn}))
         );
       }
+      // Load qualification questions
+      setQualificationQuestions(questionsRes.data?.questions || []);
+      // Pre-fill qualification answers from lead data
+      if (leadRes.data?.qualificationAnswers) {
+        const answers: Record<string, any> = {};
+        Object.entries(leadRes.data.qualificationAnswers).forEach(([key, val]: [string, any]) => {
+          answers[key] = val.answer;
+        });
+        setQualificationAnswers(answers);
+      }
+      // Load sales content
+      setSalesContent(contentRes.data || []);
     } catch(error:any){
       showAlertMsg('error',error.message||'Failed to load lead');
     } finally {
@@ -213,6 +301,63 @@ const LeadDetail: React.FC = () => {
   const toggleConcern = (value:string) =>
     setSelectedConcerns(prev=>prev.includes(value)?prev.filter(c=>c!==value):[...prev,value]);
 
+  // AI Summary handler
+  const handleGenerateAISummary = async () => {
+    if (!lead) return;
+    try {
+      setAiLoading(true);
+      await leadAIApi.generateSummary(lead._id);
+      await loadData();
+      showAlertMsg('success', 'AI summary generated');
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to generate AI summary');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  // Qualification answer handler
+  const handleSaveQualificationAnswer = async (questionId: string, answer: any) => {
+    if (!lead) return;
+    try {
+      setSavingQualification(true);
+      const currentAnswers = { ...qualificationAnswers, [questionId]: answer };
+      const answersArray = Object.entries(currentAnswers).map(([qId, ans]) => ({ questionId: qId, answer: ans }));
+      await qualificationApi.saveLeadAnswers(lead._id, { answers: answersArray, progress: Math.round((answersArray.length / qualificationQuestions.length) * 100) });
+      setQualificationAnswers(prev => ({ ...prev, [questionId]: answer }));
+      await loadData();
+      showAlertMsg('success', 'Answer saved');
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to save answer');
+    } finally {
+      setSavingQualification(false);
+    }
+  };
+
+  // Content sharing handler
+  const handleShareContent = async (content: SalesContent) => {
+    if (!lead) return;
+    try {
+      setSharingContent(true);
+      await salesContentApi.shareWithLead(content._id, { leadId: lead._id, channel: 'whatsapp' });
+      setShowContentModal(false);
+      showAlertMsg('success', `Shared "${content.title}" with lead`);
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to share content');
+    } finally {
+      setSharingContent(false);
+    }
+  };
+
+  const getConversionProbabilityColor = (prob: string) => {
+    switch (prob) {
+      case 'high': return '#16a34a';
+      case 'medium': return '#d97706';
+      case 'low': return '#dc2626';
+      default: return '#6b7280';
+    }
+  };
+
   if(loading){
     return (
       <div className="ld-page">
@@ -247,7 +392,22 @@ const LeadDetail: React.FC = () => {
           &#8592; Back
         </button>
         <div className="ld-header-name">
-          <h1>{lead.name}</h1>
+          <div className="ld-header-name-row">
+            <h1>{lead.name}</h1>
+            {lead.priority && (
+              <span className="ld-priority-badge" style={{
+                backgroundColor: PRIORITY_COLORS[lead.priority].bg,
+                color: PRIORITY_COLORS[lead.priority].text
+              }}>
+                {PRIORITY_COLORS[lead.priority].label}
+              </span>
+            )}
+            {lead.score !== undefined && (
+              <span className="ld-score-badge">
+                Score: {lead.score}
+              </span>
+            )}
+          </div>
           <div className="ld-header-name-sub">
             {lead.phone}{lead.email&&` · ${lead.email}`}
           </div>
@@ -472,6 +632,201 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* AI Summary Card */}
+          <div className="ld-card">
+            <div className="ld-card-header">
+              <div className="ld-card-title">
+                <span className="ld-card-title-icon">🤖</span> AI Insights
+              </div>
+              <button 
+                className="ld-concerns-edit-btn" 
+                onClick={handleGenerateAISummary}
+                disabled={aiLoading}
+              >
+                {aiLoading ? 'Generating...' : lead.aiSummary ? 'Refresh' : 'Generate'}
+              </button>
+            </div>
+            <div className="ld-card-body">
+              {lead.aiSummary ? (
+                <div className="ld-ai-summary">
+                  <div className="ld-ai-summary-text">{lead.aiSummary.summary}</div>
+                  {lead.aiSummary.keyInsights && lead.aiSummary.keyInsights.length > 0 && (
+                    <div className="ld-ai-insights">
+                      <span className="ld-ai-insights-label">Key Insights:</span>
+                      <ul className="ld-ai-insights-list">
+                        {lead.aiSummary.keyInsights.map((insight, i) => (
+                          <li key={i}>{insight}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  <div className="ld-ai-action">
+                    <span className="ld-ai-action-label">Next Action:</span>
+                    <span className="ld-ai-action-text">{lead.aiSummary.suggestedNextAction}</span>
+                  </div>
+                  <div className="ld-ai-metrics">
+                    <span className="ld-ai-metric">
+                      Seriousness: <strong>{lead.aiSummary.seriousnessScore}/10</strong>
+                    </span>
+                    <span className="ld-ai-metric" style={{ color: getConversionProbabilityColor(lead.aiSummary.conversionProbability) }}>
+                      Conversion: <strong>{lead.aiSummary.conversionProbability.toUpperCase()}</strong>
+                    </span>
+                  </div>
+                  <div className="ld-ai-generated-at">
+                    Generated: {formatDate(lead.aiSummary.generatedAt)}
+                  </div>
+                </div>
+              ) : (
+                <div className="ld-ai-empty">
+                  <span className="ld-ai-empty-icon">🧠</span>
+                  <span className="ld-ai-empty-text">Click "Generate" to get AI-powered insights about this lead</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Qualification Questions Card */}
+          {qualificationQuestions.length > 0 && (
+            <div className="ld-card">
+              <div className="ld-card-header">
+                <div className="ld-card-title">
+                  <span className="ld-card-title-icon">📋</span> Qualification
+                </div>
+                {lead.qualificationProgress && (
+                  <span className="ld-qual-progress">
+                    {lead.qualificationProgress.answered}/{lead.qualificationProgress.total}
+                    ({lead.qualificationProgress.percentage}%)
+                  </span>
+                )}
+              </div>
+              <div className="ld-card-body">
+                <div className="ld-qual-questions">
+                  {qualificationQuestions.slice(0, 5).map(q => (
+                    <div key={q._id} className="ld-qual-question">
+                      <div className="ld-qual-question-text">
+                        {q.question}
+                        {q.required && <span className="ld-qual-required">*</span>}
+                      </div>
+                      <div className="ld-qual-answer">
+                        {q.type === 'boolean' ? (
+                          <div className="ld-qual-boolean">
+                            <button 
+                              className={`ld-qual-bool-btn${qualificationAnswers[q._id] === true ? ' active' : ''}`}
+                              onClick={() => handleSaveQualificationAnswer(q._id, true)}
+                              disabled={savingQualification}
+                            >Yes</button>
+                            <button 
+                              className={`ld-qual-bool-btn${qualificationAnswers[q._id] === false ? ' active' : ''}`}
+                              onClick={() => handleSaveQualificationAnswer(q._id, false)}
+                              disabled={savingQualification}
+                            >No</button>
+                          </div>
+                        ) : q.type === 'select' && q.options ? (
+                          <select 
+                            value={qualificationAnswers[q._id] || ''}
+                            onChange={(e) => handleSaveQualificationAnswer(q._id, e.target.value)}
+                            disabled={savingQualification}
+                            className="ld-qual-select"
+                          >
+                            <option value="">Select...</option>
+                            {q.options.map(opt => (
+                              <option key={opt} value={opt}>{opt}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <input 
+                            type={q.type === 'number' ? 'number' : q.type === 'date' ? 'date' : 'text'}
+                            value={qualificationAnswers[q._id] || ''}
+                            onChange={(e) => setQualificationAnswers(prev => ({ ...prev, [q._id]: e.target.value }))}
+                            onBlur={(e) => e.target.value && handleSaveQualificationAnswer(q._id, e.target.value)}
+                            disabled={savingQualification}
+                            className="ld-qual-input"
+                            placeholder="Enter answer..."
+                          />
+                        )}
+                        {qualificationAnswers[q._id] !== undefined && (
+                          <span className="ld-qual-check">✓</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Content Library Quick Share Card */}
+          {salesContent.length > 0 && (
+            <div className="ld-card">
+              <div className="ld-card-header">
+                <div className="ld-card-title">
+                  <span className="ld-card-title-icon">📚</span> Share Content
+                </div>
+                <button className="ld-concerns-edit-btn" onClick={() => setShowContentModal(true)}>
+                  View All
+                </button>
+              </div>
+              <div className="ld-card-body">
+                <div className="ld-content-quick-share">
+                  {salesContent.slice(0, 4).map(content => (
+                    <button 
+                      key={content._id}
+                      className="ld-content-quick-btn"
+                      onClick={() => handleShareContent(content)}
+                      disabled={sharingContent}
+                    >
+                      <span className="ld-content-icon">
+                        {content.type === 'brochure' ? '📄' : 
+                         content.type === 'video' ? '🎬' : 
+                         content.type === 'testimonial' ? '⭐' : 
+                         content.type === 'pricing' ? '💰' : '📋'}
+                      </span>
+                      <span className="ld-content-name">{content.title}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* WhatsApp Engagement Card */}
+          {lead.whatsappEngagement && (
+            <div className="ld-card">
+              <div className="ld-card-header">
+                <div className="ld-card-title">
+                  <span className="ld-card-title-icon">💬</span> WhatsApp Engagement
+                </div>
+                <span className={`ld-wa-status ld-wa-${lead.whatsappEngagement.status}`}>
+                  {lead.whatsappEngagement.status.replace('_', ' ')}
+                </span>
+              </div>
+              <div className="ld-card-body">
+                <div className="ld-wa-stats">
+                  <div className="ld-wa-stat">
+                    <span className="ld-wa-stat-label">Questions Asked</span>
+                    <span className="ld-wa-stat-value">{lead.whatsappEngagement.questionsAsked}</span>
+                  </div>
+                  <div className="ld-wa-stat">
+                    <span className="ld-wa-stat-label">Questions Answered</span>
+                    <span className="ld-wa-stat-value">{lead.whatsappEngagement.questionsAnswered}</span>
+                  </div>
+                  {lead.whatsappEngagement.lastReplyAt && (
+                    <div className="ld-wa-stat">
+                      <span className="ld-wa-stat-label">Last Reply</span>
+                      <span className="ld-wa-stat-value">{formatDate(lead.whatsappEngagement.lastReplyAt)}</span>
+                    </div>
+                  )}
+                </div>
+                {lead.whatsappEngagement.conversationSummary && (
+                  <div className="ld-wa-summary">
+                    <span className="ld-wa-summary-label">Conversation Summary:</span>
+                    <p className="ld-wa-summary-text">{lead.whatsappEngagement.conversationSummary}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Not Interested Reason (conditional) */}
           {lead.notInterestedReason&&(
             <div className="ld-card">
@@ -657,6 +1012,55 @@ const LeadDetail: React.FC = () => {
               <button className="ld-btn ld-btn-secondary" onClick={()=>setShowConvertModal(false)}>Cancel</button>
               <button className="ld-btn ld-btn-convert" onClick={handleConvertToStudent} disabled={converting}>
                 {converting?'Converting...':'Convert to Student'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── CONTENT LIBRARY MODAL ── */}
+      {showContentModal && (
+        <div className="ld-modal-overlay" onClick={() => setShowContentModal(false)}>
+          <div className="ld-modal ld-modal-lg" onClick={e => e.stopPropagation()}>
+            <div className="ld-modal-header">
+              <h2 className="ld-modal-title">📚 Share Content with Lead</h2>
+              <button className="ld-modal-close" onClick={() => setShowContentModal(false)}>&#10005;</button>
+            </div>
+            <div className="ld-modal-body">
+              <div className="ld-content-grid">
+                {salesContent.map(content => (
+                  <div 
+                    key={content._id} 
+                    className={`ld-content-card${selectedContent?._id === content._id ? ' selected' : ''}`}
+                    onClick={() => setSelectedContent(content)}
+                  >
+                    <div className="ld-content-card-icon">
+                      {content.type === 'brochure' ? '📄' : 
+                       content.type === 'video' ? '🎬' : 
+                       content.type === 'testimonial' ? '⭐' : 
+                       content.type === 'pricing' ? '💰' : 
+                       content.type === 'case_study' ? '📊' : 
+                       content.type === 'demo' ? '🖥️' : '📋'}
+                    </div>
+                    <div className="ld-content-card-info">
+                      <div className="ld-content-card-title">{content.title}</div>
+                      <div className="ld-content-card-type">{content.type.replace('_', ' ')}</div>
+                      {content.description && (
+                        <div className="ld-content-card-desc">{content.description}</div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="ld-modal-footer">
+              <button className="ld-btn ld-btn-secondary" onClick={() => setShowContentModal(false)}>Cancel</button>
+              <button 
+                className="ld-btn ld-btn-primary" 
+                onClick={() => selectedContent && handleShareContent(selectedContent)}
+                disabled={!selectedContent || sharingContent}
+              >
+                {sharingContent ? 'Sharing...' : 'Share Selected Content'}
               </button>
             </div>
           </div>

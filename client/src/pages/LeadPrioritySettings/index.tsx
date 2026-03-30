@@ -56,20 +56,25 @@ interface PriorityConfig {
 }
 
 const FIELD_OPTIONS = [
-  { value: 'source', label: 'Lead Source' },
-  { value: 'courseInterest', label: 'Course Interest' },
-  { value: 'budget', label: 'Budget' },
-  { value: 'timeline', label: 'Timeline' },
-  { value: 'graduationYear', label: 'Graduation Year' },
-  { value: 'employmentStatus', label: 'Employment Status' },
-  { value: 'preferenceMode', label: 'Training Mode' },
-  { value: 'activities.length', label: 'Number of Activities' },
-  { value: 'whatsappEngagement.messagesSent', label: 'WhatsApp Messages Sent' },
-  { value: 'whatsappEngagement.messagesReceived', label: 'WhatsApp Messages Received' },
-  { value: 'noReplyHours', label: 'Hours Since Last Reply' },
-  { value: 'daysSinceCreated', label: 'Days Since Created' },
-  { value: 'daysSinceLastAction', label: 'Days Since Last Action' },
-  { value: 'qualificationProgress', label: 'Qualification Progress (%)' }
+  { value: 'whatsappStatus', label: '💬 WhatsApp Status (replied/read/delivered/sent)' },
+  { value: 'source', label: '📍 Lead Source' },
+  { value: 'courseInterest', label: '📚 Course Interest' },
+  { value: 'budget', label: '💰 Budget' },
+  { value: 'timeline', label: '⏰ Timeline/Urgency' },
+  { value: 'graduationYear', label: '🎓 Graduation Year' },
+  { value: 'employmentStatus', label: '💼 Employment Status' },
+  { value: 'preferenceMode', label: '🏫 Training Mode (Online/Offline/Hybrid)' },
+  { value: 'city', label: '🌆 City' },
+  { value: 'priority', label: '🔥 Current Priority' },
+  { value: 'stageId', label: '📊 Lead Stage' },
+  { value: 'activities.length', label: '📝 Number of Activities' },
+  { value: 'firstResponseTime', label: '⚡ First Response Time (minutes)' },
+  { value: 'whatsappEngagement.messagesSent', label: '📤 WhatsApp Messages Sent' },
+  { value: 'whatsappEngagement.messagesReceived', label: '📥 WhatsApp Messages Received' },
+  { value: 'noReplyHours', label: '⏳ Hours Since Last Reply' },
+  { value: 'daysSinceCreated', label: '📅 Days Since Created' },
+  { value: 'daysSinceLastAction', label: '🕐 Days Since Last Action' },
+  { value: 'qualificationProgress', label: '✅ Qualification Progress (%)' }
 ];
 
 const OPERATOR_OPTIONS = [
@@ -338,17 +343,125 @@ const LeadPrioritySettings: React.FC = () => {
         {activeTab === 'rules' && config && (
           <div className="lps-rules-section">
             <div className="lps-section-header">
-              <h2>Scoring Rules</h2>
+              <h2>Priority Rules</h2>
               <button className="lps-btn lps-btn-primary" onClick={handleAddRule}>
-                + Add Rule
+                + Add Custom Rule
               </button>
             </div>
             
             <div className="lps-rules-info">
               <p>
-                Rules are evaluated in order. Each matching rule adds or subtracts from the lead's score.
-                Leads are automatically categorized as Hot, Warm, or Cold based on their total score.
+                <strong>💡 Tip:</strong> You can either use score-based rules OR directly force a priority level.
+                Use "Force Priority" option when creating a rule to instantly mark leads as Hot/Warm/Cold when conditions match.
               </p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="lps-quick-actions" style={{
+              background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
+              padding: '16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              border: '1px solid #dee2e6'
+            }}>
+              <h4 style={{ margin: '0 0 12px 0', color: '#495057' }}>⚡ Quick Add Common Rules:</h4>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                <button 
+                  className="lps-btn lps-btn-outline"
+                  onClick={() => {
+                    setEditingRuleFlat({
+                      field: 'whatsappStatus',
+                      operator: 'equals',
+                      value: 'replied',
+                      scoreImpact: 0,
+                      setPriority: 'hot',
+                      category: 'engagement',
+                      description: 'WhatsApp replied = HOT lead',
+                      enabled: true
+                    });
+                    setShowRuleModal(true);
+                  }}
+                  style={{ background: '#dc3545', color: 'white', border: 'none' }}
+                >
+                  🔥 WhatsApp Replied → HOT
+                </button>
+                <button 
+                  className="lps-btn lps-btn-outline"
+                  onClick={() => {
+                    setEditingRuleFlat({
+                      field: 'source',
+                      operator: 'equals',
+                      value: 'walkin',
+                      scoreImpact: 0,
+                      setPriority: 'hot',
+                      category: 'source',
+                      description: 'Walk-in leads are always HOT',
+                      enabled: true
+                    });
+                    setShowRuleModal(true);
+                  }}
+                  style={{ background: '#dc3545', color: 'white', border: 'none' }}
+                >
+                  🔥 Walk-in → HOT
+                </button>
+                <button 
+                  className="lps-btn lps-btn-outline"
+                  onClick={() => {
+                    setEditingRuleFlat({
+                      field: 'source',
+                      operator: 'equals',
+                      value: 'referral',
+                      scoreImpact: 0,
+                      setPriority: 'hot',
+                      category: 'source',
+                      description: 'Referral leads are HOT',
+                      enabled: true
+                    });
+                    setShowRuleModal(true);
+                  }}
+                  style={{ background: '#dc3545', color: 'white', border: 'none' }}
+                >
+                  🔥 Referral → HOT
+                </button>
+                <button 
+                  className="lps-btn lps-btn-outline"
+                  onClick={() => {
+                    setEditingRuleFlat({
+                      field: 'noReplyHours',
+                      operator: 'greaterThan',
+                      value: '72',
+                      scoreImpact: 0,
+                      setPriority: 'cold',
+                      category: 'engagement',
+                      description: 'No reply for 72+ hours = COLD',
+                      enabled: true
+                    });
+                    setShowRuleModal(true);
+                  }}
+                  style={{ background: '#6c757d', color: 'white', border: 'none' }}
+                >
+                  ❄️ No Reply 72h → COLD
+                </button>
+                <button 
+                  className="lps-btn lps-btn-outline"
+                  onClick={() => {
+                    setEditingRuleFlat({
+                      field: 'timeline',
+                      operator: 'equals',
+                      value: 'Immediately',
+                      scoreImpact: 0,
+                      setPriority: 'hot',
+                      category: 'timing',
+                      description: 'Ready to join immediately = HOT',
+                      enabled: true
+                    });
+                    setShowRuleModal(true);
+                  }}
+                  style={{ background: '#dc3545', color: 'white', border: 'none' }}
+                >
+                  🔥 Immediate → HOT
+                </button>
+              </div>
             </div>
 
             <div className="lps-rules-list">

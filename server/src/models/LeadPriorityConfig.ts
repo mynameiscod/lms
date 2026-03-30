@@ -182,6 +182,7 @@ export const DEFAULT_PRIORITY_RULES: ILeadPriorityRule[] = [
     order: 1,
     condition: { field: 'whatsappStatus', operator: 'equals', value: 'replied' },
     scoreImpact: 30,
+    setPriority: 'hot',  // Auto-mark as HOT when WhatsApp replied
     category: 'engagement'
   },
   {

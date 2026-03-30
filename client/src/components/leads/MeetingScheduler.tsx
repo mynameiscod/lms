@@ -59,7 +59,7 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({
         : 'Payment Discussion';
       
       await leadApi.addActivity(lead._id, {
-        type: meetingType === 'campus_visit' ? 'one_on_one' : 'demo',
+        type: 'note',
         description: `${meetingTypeLabel} scheduled for ${scheduledFor.toLocaleDateString()} at ${scheduledFor.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}${notes ? ` - ${notes}` : ''}`
       });
 

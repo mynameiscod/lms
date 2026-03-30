@@ -762,7 +762,7 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Content Library Quick Share Card */
+          {/* Content Library Quick Share Card */}
           {salesContent.length > 0 && (
             <div className="ld-card">
               <div className="ld-card-header">

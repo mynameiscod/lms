@@ -207,8 +207,10 @@ const QualificationSettings: React.FC = () => {
         leadStageApi.getStages()
       ]);
       
-      if (configRes && configRes.questions) {
-        setConfig(configRes);
+      // Handle both wrapped { data: config } and direct config responses
+      const configData = configRes?.data || configRes;
+      if (configData && configData.questions) {
+        setConfig(configData);
       } else {
         // Initialize with defaults
         setConfig({
@@ -228,7 +230,7 @@ const QualificationSettings: React.FC = () => {
         });
       }
       
-      setStages(stagesRes || []);
+      setStages(stagesRes?.data || stagesRes || []);
     } catch (error: any) {
       console.error('Load error:', error);
       // Initialize with defaults on error

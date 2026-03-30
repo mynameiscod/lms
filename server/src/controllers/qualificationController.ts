@@ -40,7 +40,7 @@ export const getQuestionConfig = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    res.json(config);
+    res.json({ success: true, data: config });
   } catch (error) {
     console.error('Error getting question config:', error);
     res.status(500).json({ message: 'Failed to get question configuration' });
@@ -72,7 +72,7 @@ export const updateQuestionConfig = async (req: AuthRequest, res: Response) => {
       { new: true, upsert: true }
     );
 
-    res.json(config);
+    res.json({ success: true, data: config });
   } catch (error) {
     console.error('Error updating question config:', error);
     res.status(500).json({ message: 'Failed to update question configuration' });

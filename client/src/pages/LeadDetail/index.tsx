@@ -217,8 +217,10 @@ const LeadDetail: React.FC = () => {
             .map((f:any)=>({fieldKey:f.fieldKey,label:f.label,type:f.type,isBuiltIn:f.isBuiltIn}))
         );
       }
-      // Load qualification questions
-      setQualificationQuestions(questionsRes.data?.questions || []);
+      // Load qualification questions - extract from data.questions
+      const questions = questionsRes?.data?.questions || questionsRes?.questions || [];
+      console.log('[LeadDetail] Qualification questions loaded:', questions.length, questions);
+      setQualificationQuestions(questions);
       // Pre-fill qualification answers from lead data
       if (leadRes.data?.qualificationAnswers) {
         const answers: Record<string, any> = {};

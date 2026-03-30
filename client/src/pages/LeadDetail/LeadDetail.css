@@ -923,6 +923,17 @@
   border-radius: 12px;
 }
 
+/* Highlight the checklist card for BDM visibility */
+.ld-card-checklist {
+  border: 2px solid #dbeafe;
+  background: linear-gradient(to bottom, #f0f9ff, white);
+}
+
+.ld-card-checklist .ld-card-header {
+  background: #eff6ff;
+  border-bottom: 1px solid #dbeafe;
+}
+
 .ld-qual-checklist {
   display: flex;
   flex-direction: column;

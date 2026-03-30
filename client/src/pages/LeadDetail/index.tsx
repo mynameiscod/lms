@@ -619,6 +619,56 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
 
+          {/* Call Checklist Card - MOVED HERE for BDM visibility */}
+          <div className="ld-card ld-card-checklist">
+            <div className="ld-card-header">
+              <div className="ld-card-title">
+                <span className="ld-card-title-icon">📋</span> Call Checklist
+              </div>
+              {qualificationQuestions.length > 0 && (
+                <span className="ld-qual-progress-badge">
+                  {Object.keys(qualificationAnswers).filter(k => qualificationAnswers[k] === true).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} done
+                </span>
+              )}
+            </div>
+            <div className="ld-card-body">
+              {qualificationQuestions.length > 0 ? (
+                <>
+                  <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'12px'}}>
+                    ✓ Check the questions you've asked and got answers for:
+                  </p>
+                  <div className="ld-qual-checklist">
+                    {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
+                      const qId = q._id || q.id || `q${idx}`;
+                      const isChecked = qualificationAnswers[qId] === true;
+                      return (
+                        <label key={qId} className={`ld-qual-checkbox-item${isChecked ? ' checked' : ''}`}>
+                          <input 
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => handleSaveQualificationAnswer(qId, e.target.checked)}
+                            disabled={savingQualification}
+                          />
+                          <span className="ld-qual-checkbox-text">
+                            {q.question}
+                            {q.required && <span className="ld-qual-required">*</span>}
+                          </span>
+                          {isChecked && <span className="ld-qual-done-badge">✓</span>}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div style={{textAlign:'center',padding:'12px',color:'#6b7280'}}>
+                  <span style={{fontSize:'24px'}}>📝</span>
+                  <p style={{margin:'8px 0 0',fontSize:'13px'}}>No checklist questions configured yet.</p>
+                  <p style={{margin:'4px 0 0',fontSize:'12px',color:'#9ca3af'}}>Admin can add questions in Settings → Qualification Questions</p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Interest Concerns Card */}
           <div className="ld-card">
             <div className="ld-card-header">
@@ -712,47 +762,7 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Qualification Questions Card - Checkbox based */}
-          {qualificationQuestions.length > 0 && (
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <div className="ld-card-title">
-                  <span className="ld-card-title-icon">📋</span> Call Checklist
-                </div>
-                <span className="ld-qual-progress-badge">
-                  {Object.keys(qualificationAnswers).filter(k => qualificationAnswers[k] === true).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} done
-                </span>
-              </div>
-              <div className="ld-card-body">
-                <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'12px'}}>
-                  ✓ Check the questions you've asked and got answers for:
-                </p>
-                <div className="ld-qual-checklist">
-                  {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
-                    const qId = q._id || q.id || `q${idx}`;
-                    const isChecked = qualificationAnswers[qId] === true;
-                    return (
-                      <label key={qId} className={`ld-qual-checkbox-item${isChecked ? ' checked' : ''}`}>
-                        <input 
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={(e) => handleSaveQualificationAnswer(qId, e.target.checked)}
-                          disabled={savingQualification}
-                        />
-                        <span className="ld-qual-checkbox-text">
-                          {q.question}
-                          {q.required && <span className="ld-qual-required">*</span>}
-                        </span>
-                        {isChecked && <span className="ld-qual-done-badge">✓</span>}
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Content Library Quick Share Card */}
+          {/* Content Library Quick Share Card */
           {salesContent.length > 0 && (
             <div className="ld-card">
               <div className="ld-card-header">

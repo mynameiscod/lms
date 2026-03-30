@@ -128,6 +128,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       submenu: [
         { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_leads'] },
         { label: 'Telecaller Console', path: '/telecaller-console', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['view_leads', 'edit_leads', 'create_leads'] },
+        { label: 'Follow-up Calendar', path: '/follow-ups', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['view_leads', 'edit_leads'] },
+        { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads', 'view_lead_analytics'] },
         { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], permissions: ['view_leads', 'edit_leads', 'create_leads'] },
         { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['view_leads', 'create_leads'] },

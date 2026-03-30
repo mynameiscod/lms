@@ -70,6 +70,8 @@ import LeadAuditLogsPage from './pages/LeadAuditLogs';
 import TelecallerConsolePage from './pages/TelecallerConsole';
 import LeadPrioritySettingsPage from './pages/LeadPrioritySettings';
 import SalesContentLibraryPage from './pages/SalesContentLibrary';
+import LeadAnalyticsPage from './pages/LeadAnalytics';
+import FollowUpCalendarPage from './pages/FollowUpCalendar';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas, CampaignManagement, StageAnalytics } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
@@ -718,6 +720,26 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <SalesContentLibraryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/leads/analytics"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadAnalyticsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/follow-ups"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <FollowUpCalendarPage />
             </Layout>
           </ProtectedRoute>
         }

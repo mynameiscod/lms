@@ -2,6 +2,9 @@
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi } from '../../api';
+import MeetingScheduler from '../../components/leads/MeetingScheduler';
+import PaymentLinkModal from '../../components/leads/PaymentLinkModal';
+import LostReasonModal from '../../components/leads/LostReasonModal';
 import './LeadDetail.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
@@ -181,6 +184,11 @@ const LeadDetail: React.FC = () => {
   const [showContentModal, setShowContentModal] = useState(false);
   const [selectedContent, setSelectedContent] = useState<SalesContent | null>(null);
   const [sharingContent, setSharingContent] = useState(false);
+
+  // Enhanced CRM modal states
+  const [showMeetingScheduler, setShowMeetingScheduler] = useState(false);
+  const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
+  const [showLostReasonModal, setShowLostReasonModal] = useState(false);
 
   const showAlertMsg = (type:'success'|'error', message:string) => {
     setAlert({type,message});
@@ -424,6 +432,14 @@ const LeadDetail: React.FC = () => {
             onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>
             &#9998; <span>Edit</span>
           </button>
+          <button className="ld-btn ld-btn-primary"
+            onClick={()=>setShowMeetingScheduler(true)}>
+            &#128197; <span>Schedule</span>
+          </button>
+          <button className="ld-btn ld-btn-secondary"
+            onClick={()=>setShowPaymentLinkModal(true)}>
+            &#128176; <span>Payment</span>
+          </button>
           {!lead.convertedStudentId&&lead.email&&(
             <button className="ld-btn ld-btn-convert"
               onClick={()=>{setConvertPassword('Welcome@123');setShowConvertModal(true);}}>
@@ -432,6 +448,15 @@ const LeadDetail: React.FC = () => {
           )}
           {lead.convertedStudentId&&(
             <span className="ld-converted-badge">&#10003; Converted</span>
+          )}
+          {!lead.lostReason && !lead.convertedStudentId && (
+            <button className="ld-btn ld-btn-warning"
+              onClick={()=>setShowLostReasonModal(true)}>
+              &#10060; <span>Mark Lost</span>
+            </button>
+          )}
+          {lead.lostReason && (
+            <span className="ld-lost-badge" title={lead.lostReason}>Lost</span>
           )}
           {(currentUser?.role==='TENANT_ADMIN'||currentUser?.role==='SUPER_ADMIN'||
             (currentUser?.permissions||[]).includes('delete_leads')||
@@ -1065,6 +1090,45 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── MEETING SCHEDULER MODAL ── */}
+      {showMeetingScheduler && (
+        <MeetingScheduler
+          lead={{ _id: lead._id, name: lead.name, phone: lead.phone, email: lead.email }}
+          onClose={() => setShowMeetingScheduler(false)}
+          onScheduled={() => {
+            setShowMeetingScheduler(false);
+            showAlertMsg('success', 'Meeting scheduled successfully!');
+            loadData();
+          }}
+        />
+      )}
+
+      {/* ── PAYMENT LINK MODAL ── */}
+      {showPaymentLinkModal && (
+        <PaymentLinkModal
+          lead={{ _id: lead._id, name: lead.name, phone: lead.phone, email: lead.email, courseInterest: lead.courseInterest }}
+          onClose={() => setShowPaymentLinkModal(false)}
+          onSent={() => {
+            setShowPaymentLinkModal(false);
+            showAlertMsg('success', 'Payment link sent successfully!');
+            loadData();
+          }}
+        />
+      )}
+
+      {/* ── LOST REASON MODAL ── */}
+      {showLostReasonModal && (
+        <LostReasonModal
+          lead={{ _id: lead._id, name: lead.name }}
+          onClose={() => setShowLostReasonModal(false)}
+          onMarkedLost={() => {
+            setShowLostReasonModal(false);
+            showAlertMsg('success', 'Lead marked as lost');
+            loadData();
+          }}
+        />
       )}
     </div>
   );

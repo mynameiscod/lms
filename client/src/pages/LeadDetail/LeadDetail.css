@@ -113,11 +113,19 @@
 .ld-btn-danger:hover { background: #fee2e2; }
 .ld-btn-convert   { background: var(--ld-purple); color: #fff; }
 .ld-btn-convert:hover { background: #6d28d9; }
+.ld-btn-warning   { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+.ld-btn-warning:hover { background: #fde68a; }
 .ld-converted-badge {
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px; border-radius: 8px;
   background: #f0fdf4; color: var(--ld-green);
   border: 1.5px solid #bbf7d0; font-size: 0.82rem; font-weight: 600;
+}
+.ld-lost-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 8px;
+  background: #fef2f2; color: var(--ld-red);
+  border: 1.5px solid #fecaca; font-size: 0.82rem; font-weight: 600;
 }
 
 /* ── ALERT TOAST ── */

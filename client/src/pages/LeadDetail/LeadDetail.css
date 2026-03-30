@@ -913,6 +913,70 @@
   font-weight: 700;
 }
 
+/* ── Qualification Checklist (new checkbox-based) ── */
+.ld-qual-progress-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--ld-green);
+  background: #ecfdf5;
+  padding: 4px 10px;
+  border-radius: 12px;
+}
+
+.ld-qual-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ld-qual-checkbox-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid var(--ld-border);
+  background: white;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.ld-qual-checkbox-item:hover {
+  border-color: var(--ld-blue);
+  background: #f8fafc;
+}
+
+.ld-qual-checkbox-item.checked {
+  border-color: var(--ld-green);
+  background: #f0fdf4;
+}
+
+.ld-qual-checkbox-item input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  accent-color: var(--ld-green);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.ld-qual-checkbox-text {
+  flex: 1;
+  font-size: 0.86rem;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.ld-qual-done-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--ld-green);
+  background: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
 /* ── Content Quick Share ── */
 .ld-content-quick-share {
   display: grid;

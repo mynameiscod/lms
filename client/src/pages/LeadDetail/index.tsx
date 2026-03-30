@@ -27,12 +27,14 @@ interface AIInsight {
 }
 
 interface QualificationQuestion {
-  _id: string;
+  _id?: string;
+  id?: string;
   question: string;
-  type: 'text' | 'select' | 'multi_select' | 'boolean' | 'number' | 'date';
+  type?: 'text' | 'select' | 'multi_select' | 'boolean' | 'number' | 'date';
   options?: string[];
-  required: boolean;
-  order: number;
+  required?: boolean;
+  enabled?: boolean;
+  order?: number;
 }
 
 interface SalesContent {
@@ -710,71 +712,41 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Qualification Questions Card */}
+          {/* Qualification Questions Card - Checkbox based */}
           {qualificationQuestions.length > 0 && (
             <div className="ld-card">
               <div className="ld-card-header">
                 <div className="ld-card-title">
-                  <span className="ld-card-title-icon">📋</span> Qualification
+                  <span className="ld-card-title-icon">📋</span> Call Checklist
                 </div>
-                {lead.qualificationProgress && (
-                  <span className="ld-qual-progress">
-                    {lead.qualificationProgress.answered}/{lead.qualificationProgress.total}
-                    ({lead.qualificationProgress.percentage}%)
-                  </span>
-                )}
+                <span className="ld-qual-progress-badge">
+                  {Object.keys(qualificationAnswers).filter(k => qualificationAnswers[k] === true).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} done
+                </span>
               </div>
               <div className="ld-card-body">
-                <div className="ld-qual-questions">
-                  {qualificationQuestions.slice(0, 5).map(q => (
-                    <div key={q._id} className="ld-qual-question">
-                      <div className="ld-qual-question-text">
-                        {q.question}
-                        {q.required && <span className="ld-qual-required">*</span>}
-                      </div>
-                      <div className="ld-qual-answer">
-                        {q.type === 'boolean' ? (
-                          <div className="ld-qual-boolean">
-                            <button 
-                              className={`ld-qual-bool-btn${qualificationAnswers[q._id] === true ? ' active' : ''}`}
-                              onClick={() => handleSaveQualificationAnswer(q._id, true)}
-                              disabled={savingQualification}
-                            >Yes</button>
-                            <button 
-                              className={`ld-qual-bool-btn${qualificationAnswers[q._id] === false ? ' active' : ''}`}
-                              onClick={() => handleSaveQualificationAnswer(q._id, false)}
-                              disabled={savingQualification}
-                            >No</button>
-                          </div>
-                        ) : q.type === 'select' && q.options ? (
-                          <select 
-                            value={qualificationAnswers[q._id] || ''}
-                            onChange={(e) => handleSaveQualificationAnswer(q._id, e.target.value)}
-                            disabled={savingQualification}
-                            className="ld-qual-select"
-                          >
-                            <option value="">Select...</option>
-                            {q.options.map(opt => (
-                              <option key={opt} value={opt}>{opt}</option>
-                            ))}
-                          </select>
-                        ) : (
-                          <input 
-                            type={q.type === 'number' ? 'number' : q.type === 'date' ? 'date' : 'text'}
-                            value={qualificationAnswers[q._id] || ''}
-                            onChange={(e) => setQualificationAnswers(prev => ({ ...prev, [q._id]: e.target.value }))}
-                            onBlur={(e) => e.target.value && handleSaveQualificationAnswer(q._id, e.target.value)}
-                            disabled={savingQualification}
-                            className="ld-qual-input"
-                            placeholder="Enter answer..."
-                          />
-                        )}
-                        {qualificationAnswers[q._id] !== undefined && (
-                          <span className="ld-qual-check">✓</span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'12px'}}>
+                  ✓ Check the questions you've asked and got answers for:
+                </p>
+                <div className="ld-qual-checklist">
+                  {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
+                    const qId = q._id || q.id || `q${idx}`;
+                    const isChecked = qualificationAnswers[qId] === true;
+                    return (
+                      <label key={qId} className={`ld-qual-checkbox-item${isChecked ? ' checked' : ''}`}>
+                        <input 
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={(e) => handleSaveQualificationAnswer(qId, e.target.checked)}
+                          disabled={savingQualification}
+                        />
+                        <span className="ld-qual-checkbox-text">
+                          {q.question}
+                          {q.required && <span className="ld-qual-required">*</span>}
+                        </span>
+                        {isChecked && <span className="ld-qual-done-badge">✓</span>}
+                      </label>
+                    );
+                  })}
                 </div>
               </div>
             </div>

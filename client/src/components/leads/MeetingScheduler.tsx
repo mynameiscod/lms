@@ -58,15 +58,22 @@ const MeetingScheduler: React.FC<MeetingSchedulerProps> = ({
         : meetingType === 'trainer_call' ? 'Trainer Call'
         : 'Payment Discussion';
       
+      // Update the lead's next follow-up date to the meeting date
+      await leadApi.updateLead(lead._id, {
+        nextFollowUp: scheduledFor.toISOString()
+      });
+
+      // Log the activity
       await leadApi.addActivity(lead._id, {
         type: 'note',
-        description: `${meetingTypeLabel} scheduled for ${scheduledFor.toLocaleDateString()} at ${scheduledFor.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}${notes ? ` - ${notes}` : ''}`
+        description: `📅 ${meetingTypeLabel} scheduled for ${scheduledFor.toLocaleDateString()} at ${scheduledFor.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}${notes ? ` - ${notes}` : ''}`
       });
 
       showAlertMsg('success', 'Meeting scheduled successfully');
       onScheduled();
       onClose();
     } catch (error: any) {
+      console.error('Meeting schedule error:', error);
       showAlertMsg('error', error.message || 'Failed to schedule meeting');
     } finally {
       setSaving(false);

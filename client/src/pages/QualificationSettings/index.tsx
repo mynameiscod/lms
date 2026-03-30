@@ -204,7 +204,7 @@ const QualificationSettings: React.FC = () => {
       setLoading(true);
       const [configRes, stagesRes] = await Promise.all([
         qualificationApi.getConfig(),
-        leadStageApi.getAll()
+        leadStageApi.getStages()
       ]);
       
       if (configRes && configRes.questions) {

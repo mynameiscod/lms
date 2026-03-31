@@ -1381,24 +1381,48 @@
   min-height: 72px;
 }
 
-.crm-priority-select {
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
+/* Priority Field - Always at top of form */
+.crm-priority-field {
+  grid-column: 1 / -1;
+  background: linear-gradient(to right, #fef3c7, #fee2e2, #dbeafe);
+  padding: 16px !important;
+  border-radius: 12px;
+  margin-bottom: 8px;
+}
+
+.crm-priority-field label {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #374151;
+  margin-bottom: 10px;
+}
+
+.crm-priority-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.crm-priority-btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 2px solid;
+  font-size: 0.95rem;
+  font-weight: 700;
   cursor: pointer;
+  transition: all 0.2s ease;
+  background: #f3f4f6;
 }
 
-.crm-priority-select:hover {
+.crm-priority-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.crm-priority-btn.active {
   transform: scale(1.02);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-}
-
-.crm-priority-select option {
-  background: white;
-  color: #1f2937;
-  padding: 8px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
 }
 
 .crm-form-full { grid-column: 1 / -1; }

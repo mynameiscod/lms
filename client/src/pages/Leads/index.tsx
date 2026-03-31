@@ -852,6 +852,27 @@ const LeadsPage: React.FC = () => {
               <button className="crm-modal-close" onClick={()=>setShowModal(false)}>&#10005;</button>
             </div>
             <div className="crm-form-grid">
+              {/* Priority Field - Always visible at top */}
+              <div className="crm-form-group crm-priority-field">
+                <label>Lead Priority</label>
+                <div className="crm-priority-buttons">
+                  {(['hot','warm','cold'] as LeadPriority[]).map(p=>(
+                    <button
+                      key={p}
+                      type="button"
+                      className={`crm-priority-btn${formData.priority===p?' active':''}`}
+                      style={{
+                        backgroundColor: formData.priority===p ? PRIORITY_COLORS[p].bg : '#f3f4f6',
+                        color: formData.priority===p ? PRIORITY_COLORS[p].text : '#6b7280',
+                        borderColor: formData.priority===p ? PRIORITY_COLORS[p].text : '#d1d5db'
+                      }}
+                      onClick={()=>setFormData(prev=>({...prev,priority:p}))}
+                    >
+                      {PRIORITY_COLORS[p].label}
+                    </button>
+                  ))}
+                </div>
+              </div>
               {formFields.map(field=>{
                 if(field.fieldKey==='source'){return(
                   <div className="crm-form-group" key={field.fieldKey}>
@@ -870,33 +891,13 @@ const LeadsPage: React.FC = () => {
                   </div>
                 );}
                 if(field.fieldKey==='assignedTo'){return(
-                  <React.Fragment key={field.fieldKey}>
-                    {/* Priority Field */}
-                    <div className="crm-form-group">
-                      <label>Priority</label>
-                      <select 
-                        value={formData.priority||'cold'} 
-                        onChange={e=>setFormData(p=>({...p,priority:e.target.value}))}
-                        className="crm-priority-select"
-                        style={{
-                          backgroundColor: PRIORITY_COLORS[formData.priority as LeadPriority || 'cold'].bg,
-                          color: PRIORITY_COLORS[formData.priority as LeadPriority || 'cold'].text,
-                          fontWeight: 600
-                        }}
-                      >
-                        <option value="hot">🔥 Hot</option>
-                        <option value="warm">☀️ Warm</option>
-                        <option value="cold">❄️ Cold</option>
-                      </select>
-                    </div>
-                    <div className="crm-form-group">
-                      <label>{field.label}{field.required?' *':''}</label>
-                      <select value={formData.assignedTo||''} onChange={e=>setFormData(p=>({...p,assignedTo:e.target.value}))}>
-                        <option value="">Unassigned</option>
-                        {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
-                      </select>
-                    </div>
-                  </React.Fragment>
+                  <div className="crm-form-group" key={field.fieldKey}>
+                    <label>{field.label}{field.required?' *':''}</label>
+                    <select value={formData.assignedTo||''} onChange={e=>setFormData(p=>({...p,assignedTo:e.target.value}))}>
+                      <option value="">Unassigned</option>
+                      {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
+                    </select>
+                  </div>
                 );}
                 const val=formData[field.fieldKey]??'';
                 const onChange=(v:any)=>setFormData(p=>({...p,[field.fieldKey]:v}));

@@ -456,21 +456,21 @@ const LeadDetail: React.FC = () => {
       {/* ── HEADER ── */}
       <div className="ld-header">
         <button className="ld-back-btn" onClick={()=>navigate('/leads')}>
-          &#8592; Back
+          ← Back
         </button>
         <div className="ld-header-name">
           <div className="ld-header-name-row">
             <h1>{lead.name}</h1>
-            {/* Priority Selector - Admin/BDM can change */}
+            {/* Priority Selector - clickable buttons */}
             <div className="ld-priority-selector">
               {(['hot', 'warm', 'cold'] as LeadPriority[]).map(p => (
                 <button
                   key={p}
                   className={`ld-priority-btn${lead.priority === p ? ' active' : ''}`}
                   style={{
-                    backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
-                    color: lead.priority === p ? PRIORITY_COLORS[p].text : '#6b7280',
-                    borderColor: PRIORITY_COLORS[p].text
+                    backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'rgba(255,255,255,0.1)',
+                    color: lead.priority === p ? PRIORITY_COLORS[p].text : 'rgba(255,255,255,0.7)',
+                    borderColor: lead.priority === p ? PRIORITY_COLORS[p].text : 'transparent'
                   }}
                   onClick={() => handlePriorityChange(p)}
                   title={`Set as ${p.toUpperCase()}`}
@@ -479,24 +479,22 @@ const LeadDetail: React.FC = () => {
                 </button>
               ))}
             </div>
-            {lead.score !== undefined && (
-              <span className="ld-score-badge">
-                Score: {lead.score}
-              </span>
+            {lead.score !== undefined && lead.score > 0 && (
+              <span className="ld-score-badge">⭐ {lead.score}</span>
             )}
           </div>
           <div className="ld-header-name-sub">
-            {lead.phone}{lead.email&&` · ${lead.email}`}
+            📞 {lead.phone}{lead.email&&` · ✉️ ${lead.email}`}
             {lead.whatsappReplied && <span className="ld-wa-replied-badge">✅ WA Replied</span>}
           </div>
         </div>
         <div className="ld-header-actions">
           <a href={`tel:${lead.phone}`} className="ld-btn ld-btn-green">
-            &#128222; <span>Call</span>
+            📞 <span>Call</span>
           </a>
           <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank"
             rel="noopener noreferrer" className="ld-btn ld-btn-whatsapp">
-            &#128172; <span>WhatsApp</span>
+            💬 <span>WhatsApp</span>
           </a>
           {!lead.whatsappReplied && (
             <button className="ld-btn ld-btn-hot" onClick={handleWhatsAppReply} title="Mark that lead replied on WhatsApp">
@@ -505,15 +503,15 @@ const LeadDetail: React.FC = () => {
           )}
           <button className="ld-btn ld-btn-secondary"
             onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>
-            &#9998; <span>Edit</span>
+            ✏️ <span>Edit</span>
           </button>
           <button className="ld-btn ld-btn-primary"
             onClick={()=>setShowMeetingScheduler(true)}>
-            &#128197; <span>Schedule</span>
+            📅 <span>Schedule</span>
           </button>
           <button className="ld-btn ld-btn-secondary"
             onClick={()=>setShowPaymentLinkModal(true)}>
-            &#128176; <span>Payment</span>
+            💰 <span>Payment</span>
           </button>
           {!lead.convertedStudentId&&lead.email&&(
             <button className="ld-btn ld-btn-convert"

@@ -455,77 +455,52 @@ const LeadDetail: React.FC = () => {
     <div className="ld-page">
       {/* ── HEADER ── */}
       <div className="ld-header">
-        <button className="ld-back-btn" onClick={()=>navigate('/leads')}>
-          ← Back
-        </button>
-        <div className="ld-header-name">
-          <div className="ld-header-name-row">
+        <div className="ld-header-top">
+          <button className="ld-back-btn" onClick={()=>navigate('/leads')}>← Back</button>
+          <div className="ld-header-name">
             <h1>{lead.name}</h1>
-            {/* Priority Selector - clickable buttons */}
-            <div className="ld-priority-selector">
-              {(['hot', 'warm', 'cold'] as LeadPriority[]).map(p => (
-                <button
-                  key={p}
-                  className={`ld-priority-btn${lead.priority === p ? ' active' : ''}`}
-                  style={{
-                    backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
-                    color: lead.priority === p ? PRIORITY_COLORS[p].text : '#6b7280'
-                  }}
-                  onClick={() => handlePriorityChange(p)}
-                  title={`Set as ${p.toUpperCase()}`}
-                >
-                  {PRIORITY_COLORS[p].label}
-                </button>
-              ))}
+            <div className="ld-header-name-sub">
+              {lead.phone}{lead.email&&` · ${lead.email}`}
+              {lead.whatsappReplied && <span className="ld-wa-replied-badge">✓ WA Replied</span>}
             </div>
-            {lead.score !== undefined && lead.score > 0 && (
-              <span className="ld-score-badge">⭐ {lead.score}</span>
-            )}
           </div>
-          <div className="ld-header-name-sub">
-            {lead.phone}{lead.email&&` · ${lead.email}`}
-            {lead.whatsappReplied && <span className="ld-wa-replied-badge">✓ WA Replied</span>}
+          {/* Priority Selector */}
+          <div className="ld-priority-selector">
+            {(['hot', 'warm', 'cold'] as LeadPriority[]).map(p => (
+              <button
+                key={p}
+                className={`ld-priority-btn${lead.priority === p ? ' active' : ''}`}
+                style={{
+                  backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
+                  color: lead.priority === p ? PRIORITY_COLORS[p].text : '#6b7280'
+                }}
+                onClick={() => handlePriorityChange(p)}
+              >
+                {PRIORITY_COLORS[p].label}
+              </button>
+            ))}
           </div>
+          {lead.score !== undefined && lead.score > 0 && (
+            <span className="ld-score-badge">⭐ {lead.score}</span>
+          )}
         </div>
         <div className="ld-header-actions">
-          <a href={`tel:${lead.phone}`} className="ld-btn ld-btn-green">
-            <span>Call</span>
-          </a>
-          <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank"
-            rel="noopener noreferrer" className="ld-btn ld-btn-whatsapp">
-            <span>WhatsApp</span>
-          </a>
+          <a href={`tel:${lead.phone}`} className="ld-btn ld-btn-green">Call</a>
+          <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="ld-btn ld-btn-whatsapp">WhatsApp</a>
           {!lead.whatsappReplied && (
-            <button className="ld-btn ld-btn-hot" onClick={handleWhatsAppReply} title="Mark that lead replied on WhatsApp">
-              <span>WA Replied</span>
-            </button>
+            <button className="ld-btn ld-btn-hot" onClick={handleWhatsAppReply}>WA Replied</button>
           )}
-          <button className="ld-btn ld-btn-secondary"
-            onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>
-            <span>Edit</span>
-          </button>
-          <button className="ld-btn ld-btn-primary"
-            onClick={()=>setShowMeetingScheduler(true)}>
-            <span>Schedule</span>
-          </button>
-          <button className="ld-btn ld-btn-secondary"
-            onClick={()=>setShowPaymentLinkModal(true)}>
-            <span>Payment</span>
-          </button>
+          <button className="ld-btn ld-btn-secondary" onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>Edit</button>
+          <button className="ld-btn ld-btn-primary" onClick={()=>setShowMeetingScheduler(true)}>Schedule</button>
+          <button className="ld-btn ld-btn-secondary" onClick={()=>setShowPaymentLinkModal(true)}>Payment</button>
           {!lead.convertedStudentId&&lead.email&&(
-            <button className="ld-btn ld-btn-convert"
-              onClick={()=>{setConvertPassword('Welcome@123');setShowConvertModal(true);}}>
-              <span>Convert</span>
-            </button>
+            <button className="ld-btn ld-btn-convert" onClick={()=>{setConvertPassword('Welcome@123');setShowConvertModal(true);}}>Convert</button>
           )}
           {lead.convertedStudentId&&(
             <span className="ld-converted-badge">✓ Converted</span>
           )}
           {!lead.lostReason && !lead.convertedStudentId && (
-            <button className="ld-btn ld-btn-warning"
-              onClick={()=>setShowLostReasonModal(true)}>
-              <span>Mark Lost</span>
-            </button>
+            <button className="ld-btn ld-btn-warning" onClick={()=>setShowLostReasonModal(true)}>Mark Lost</button>
           )}
           {lead.lostReason && (
             <span className="ld-lost-badge" title={lead.lostReason}>Lost</span>
@@ -533,9 +508,7 @@ const LeadDetail: React.FC = () => {
           {(currentUser?.role==='TENANT_ADMIN'||currentUser?.role==='SUPER_ADMIN'||
             (currentUser?.permissions||[]).includes('delete_leads')||
             (currentUser?.permissions||[]).includes('manage_leads'))&&(
-            <button className="ld-btn ld-btn-danger" onClick={handleDelete}>
-              <span>Delete</span>
-            </button>
+            <button className="ld-btn ld-btn-danger" onClick={handleDelete}>Delete</button>
           )}
         </div>
       </div>

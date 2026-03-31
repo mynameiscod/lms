@@ -225,7 +225,15 @@ const LeadDetail: React.FC = () => {
       if (leadRes.data?.qualificationAnswers) {
         const answers: Record<string, any> = {};
         Object.entries(leadRes.data.qualificationAnswers).forEach(([key, val]: [string, any]) => {
-          answers[key] = val.answer;
+          // Handle different answer formats from backend
+          const answerValue = val?.answer;
+          if (typeof answerValue === 'object' && answerValue !== null) {
+            answers[key] = answerValue; // Already in { answered, answer } format
+          } else if (answerValue !== undefined && answerValue !== null && answerValue !== '') {
+            answers[key] = { answered: true, answer: String(answerValue) };
+          } else if (val === true) {
+            answers[key] = { answered: true, answer: '' };
+          }
         });
         setQualificationAnswers(answers);
       }
@@ -334,10 +342,19 @@ const LeadDetail: React.FC = () => {
     try {
       setSavingQualification(true);
       const currentAnswers = { ...qualificationAnswers, [questionId]: answer };
+      // Count only questions with actual answers for progress
+      const answeredCount = Object.values(currentAnswers).filter((ans: any) => {
+        if (typeof ans === 'object' && ans !== null) {
+          return ans.answered && ans.answer;
+        }
+        return ans && ans !== true;
+      }).length;
       const answersArray = Object.entries(currentAnswers).map(([qId, ans]) => ({ questionId: qId, answer: ans }));
-      await qualificationApi.saveLeadAnswers(lead._id, { answers: answersArray, progress: Math.round((answersArray.length / qualificationQuestions.length) * 100) });
+      const enabledQuestions = qualificationQuestions.filter(q => q.enabled !== false).length;
+      const progress = enabledQuestions > 0 ? Math.round((answeredCount / enabledQuestions) * 100) : 0;
+      await qualificationApi.saveLeadAnswers(lead._id, { answers: answersArray, progress });
       setQualificationAnswers(prev => ({ ...prev, [questionId]: answer }));
-      await loadData();
+      // Don't reload data - just update local state for better UX
       showAlertMsg('success', 'Answer saved');
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to save answer');
@@ -629,7 +646,10 @@ const LeadDetail: React.FC = () => {
               </div>
               {qualificationQuestions.length > 0 && (
                 <span className="ld-qual-progress-badge">
-                  {Object.keys(qualificationAnswers).filter(k => qualificationAnswers[k] === true).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} done
+                  {Object.keys(qualificationAnswers).filter(k => {
+                    const ans = qualificationAnswers[k];
+                    return ans && (typeof ans === 'object' ? ans.answered : ans);
+                  }).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} done
                 </span>
               )}
             </div>
@@ -637,26 +657,72 @@ const LeadDetail: React.FC = () => {
               {qualificationQuestions.length > 0 ? (
                 <>
                   <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'12px'}}>
-                    ✓ Check the questions you've asked and got answers for:
+                    Ask each question and record the lead's answer:
                   </p>
                   <div className="ld-qual-checklist">
                     {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
                       const qId = q._id || q.id || `q${idx}`;
-                      const isChecked = qualificationAnswers[qId] === true;
+                      const answerData = qualificationAnswers[qId];
+                      const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered : answerData === true);
+                      const answerText = typeof answerData === 'object' ? answerData.answer : (typeof answerData === 'string' ? answerData : '');
+                      
                       return (
-                        <label key={qId} className={`ld-qual-checkbox-item${isChecked ? ' checked' : ''}`}>
-                          <input 
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={(e) => handleSaveQualificationAnswer(qId, e.target.checked)}
-                            disabled={savingQualification}
-                          />
-                          <span className="ld-qual-checkbox-text">
-                            {q.question}
-                            {q.required && <span className="ld-qual-required">*</span>}
-                          </span>
-                          {isChecked && <span className="ld-qual-done-badge">✓</span>}
-                        </label>
+                        <div key={qId} className={`ld-qual-item${isAnswered ? ' answered' : ''}`}>
+                          <div className="ld-qual-question-row">
+                            <input 
+                              type="checkbox"
+                              checked={!!isAnswered}
+                              onChange={(e) => {
+                                const newVal = e.target.checked 
+                                  ? { answered: true, answer: answerText || '' }
+                                  : { answered: false, answer: '' };
+                                handleSaveQualificationAnswer(qId, newVal);
+                              }}
+                              disabled={savingQualification}
+                              className="ld-qual-checkbox"
+                            />
+                            <span className="ld-qual-question-text">
+                              {q.question}
+                              {q.required && <span className="ld-qual-required">*</span>}
+                            </span>
+                          </div>
+                          {/* Answer input - show when checkbox is checked or for recording answer */}
+                          <div className="ld-qual-answer-row">
+                            {q.options && q.options.length > 0 ? (
+                              <select
+                                value={answerText}
+                                onChange={(e) => handleSaveQualificationAnswer(qId, { answered: true, answer: e.target.value })}
+                                disabled={savingQualification}
+                                className="ld-qual-select"
+                              >
+                                <option value="">-- Select answer --</option>
+                                {q.options.map((opt, oi) => (
+                                  <option key={oi} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                placeholder="Enter lead's answer..."
+                                value={answerText}
+                                onChange={(e) => setQualificationAnswers(prev => ({
+                                  ...prev,
+                                  [qId]: { answered: !!e.target.value, answer: e.target.value }
+                                }))}
+                                onBlur={(e) => {
+                                  if (e.target.value) {
+                                    handleSaveQualificationAnswer(qId, { answered: true, answer: e.target.value });
+                                  }
+                                }}
+                                disabled={savingQualification}
+                                className="ld-qual-input"
+                              />
+                            )}
+                            {isAnswered && answerText && (
+                              <span className="ld-qual-answered-badge">✓</span>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>

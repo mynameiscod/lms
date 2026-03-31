@@ -127,6 +127,18 @@
   border-color: #005897;
 }
 
+.field-label-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.field-label-wrapper .label-input {
+  flex: 1;
+  min-width: 120px;
+}
+
 .badge {
   padding: 2px 8px;
   border-radius: 10px;

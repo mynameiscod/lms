@@ -222,7 +222,7 @@ const LeadFormSettings: React.FC = () => {
       {/* Fields Configuration */}
       <div className="settings-section">
         <h2>Form Fields</h2>
-        <p className="section-desc">Enable/disable fields, set required, and reorder. <strong>Name, Email and Phone</strong> are always required defaults and cannot be removed.</p>
+        <p className="section-desc">Edit labels, enable/disable fields, set required, and reorder. All field labels can be customized. <strong>Name, Email and Phone</strong> are core fields that cannot be removed.</p>
 
         <div className="fields-table">
           <div className="fields-table-header">
@@ -242,22 +242,19 @@ const LeadFormSettings: React.FC = () => {
                 <button className="move-btn" onClick={() => handleMoveField(idx, 'down')} disabled={idx === fields.length - 1}>▼</button>
               </span>
               <span className="ft-col ft-label">
-                {field.isBuiltIn ? (
-                  <span className="field-label-text">
-                    {field.label}
-                    {isCore
-                      ? <span className="badge core">Default</span>
-                      : <span className="badge built-in">Built-in</span>
-                    }
-                  </span>
-                ) : (
+                <div className="field-label-wrapper">
                   <input
                     type="text"
                     className="label-input"
                     value={field.label}
                     onChange={e => handleLabelChange(field.fieldKey, e.target.value)}
                   />
-                )}
+                  {field.isBuiltIn && (
+                    isCore
+                      ? <span className="badge core">Default</span>
+                      : <span className="badge built-in">Built-in</span>
+                  )}
+                </div>
               </span>
               <span className="ft-col ft-type">
                 <span className="type-badge">{FIELD_TYPES.find(t => t.value === field.type)?.label || field.type}</span>

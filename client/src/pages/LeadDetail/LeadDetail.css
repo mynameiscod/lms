@@ -30,7 +30,7 @@
 
 /* ── HEADER ── */
 .ld-header {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #1e293b 100%);
+  background: #ffffff;
   padding: 20px 32px;
   display: flex;
   align-items: center;
@@ -39,30 +39,29 @@
   position: sticky;
   top: 0;
   z-index: 40;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .ld-back-btn {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 16px;
-  border-radius: 10px;
-  border: 2px solid rgba(255,255,255,0.2);
-  background: rgba(255,255,255,0.1);
-  color: #ffffff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all .2s;
+  transition: all .15s;
   white-space: nowrap;
   flex-shrink: 0;
-  backdrop-filter: blur(8px);
 }
 .ld-back-btn:hover { 
-  background: rgba(255,255,255,0.2); 
-  border-color: rgba(255,255,255,0.4);
-  transform: translateX(-2px);
+  background: #f3f4f6;
+  border-color: #d1d5db;
 }
 
 .ld-header-name {
@@ -78,18 +77,18 @@
 }
 
 .ld-header-name h1 {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #ffffff;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #111827;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .ld-header-name-sub {
   font-size: 0.85rem;
-  color: rgba(255,255,255,0.7);
+  color: #6b7280;
   margin-top: 4px;
   display: flex;
   align-items: center;
@@ -99,52 +98,56 @@
 /* Priority Selector in header */
 .ld-priority-selector {
   display: flex;
-  gap: 8px;
-  background: rgba(0,0,0,0.2);
-  padding: 6px;
-  border-radius: 12px;
+  gap: 4px;
+  background: #f3f4f6;
+  padding: 4px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
 }
 
 .ld-priority-btn {
-  padding: 8px 16px;
-  border-radius: 8px;
-  border: 2px solid transparent;
-  font-size: 0.85rem;
-  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 7px;
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s ease;
-  background: rgba(255,255,255,0.1);
+  transition: all 0.15s ease;
+  background: transparent;
+  color: #6b7280;
 }
 
 .ld-priority-btn:hover {
-  transform: scale(1.05);
+  background: #e5e7eb;
 }
 
 .ld-priority-btn.active {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-  transform: scale(1.05);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  background: #fff;
 }
 
 .ld-score-badge {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
-  color: #1f2937;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 700;
+  background: #fef3c7;
+  color: #92400e;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 600;
   display: flex;
   align-items: center;
   gap: 4px;
+  border: 1px solid #fcd34d;
 }
 
 .ld-wa-replied-badge {
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  color: white;
+  background: #dcfce7;
+  color: #166534;
   padding: 4px 10px;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
   margin-left: 8px;
+  border: 1px solid #86efac;
 }
 
 .ld-header-actions {
@@ -160,44 +163,45 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 10px 18px;
-  border-radius: 10px;
-  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 0.82rem;
   font-weight: 600;
   cursor: pointer;
-  border: 2px solid transparent;
-  transition: all .2s;
+  border: 1px solid transparent;
+  transition: all .15s;
   white-space: nowrap;
   text-decoration: none;
 }
-.ld-btn-primary   { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
-.ld-btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); transform: translateY(-1px); }
-.ld-btn-green     { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }
-.ld-btn-green:hover { background: linear-gradient(135deg, #16a34a, #15803d); }
-.ld-btn-whatsapp  { background: linear-gradient(135deg, #25D366, #128C7E); color: #fff; }
-.ld-btn-whatsapp:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(37,211,102,0.4); }
-.ld-btn-secondary { background: rgba(255,255,255,0.15); color: #ffffff; border-color: rgba(255,255,255,0.3); backdrop-filter: blur(4px); }
-.ld-btn-secondary:hover { background: rgba(255,255,255,0.25); }
-.ld-btn-danger    { background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff; }
-.ld-btn-danger:hover { transform: translateY(-1px); }
-.ld-btn-convert   { background: linear-gradient(135deg, #8b5cf6, #7c3aed); color: #fff; box-shadow: 0 4px 12px rgba(124,58,237,0.3); }
-.ld-btn-convert:hover { transform: translateY(-1px); }
-.ld-btn-warning   { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: #1f2937; }
-.ld-btn-warning:hover { transform: translateY(-1px); }
-.ld-btn-hot       { background: linear-gradient(135deg, #f97316, #ea580c); color: #fff; box-shadow: 0 4px 12px rgba(234,88,12,0.3); }
-.ld-btn-hot:hover { transform: translateY(-1px); }
+.ld-btn-primary   { background: #2563eb; color: #fff; }
+.ld-btn-primary:hover { background: #1d4ed8; }
+.ld-btn-green     { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.ld-btn-green:hover { background: #dcfce7; }
+.ld-btn-whatsapp  { background: #f0fdf4; color: #16a34a; border-color: #86efac; }
+.ld-btn-whatsapp:hover { background: #dcfce7; }
+.ld-btn-secondary { background: #f9fafb; color: #374151; border-color: #e5e7eb; }
+.ld-btn-secondary:hover { background: #f3f4f6; border-color: #d1d5db; }
+.ld-btn-danger    { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
+.ld-btn-danger:hover { background: #fee2e2; }
+.ld-btn-convert   { background: #7c3aed; color: #fff; }
+.ld-btn-convert:hover { background: #6d28d9; }
+.ld-btn-warning   { background: #fffbeb; color: #b45309; border-color: #fcd34d; }
+.ld-btn-warning:hover { background: #fef3c7; }
+.ld-btn-hot       { background: #fff7ed; color: #ea580c; border-color: #fdba74; }
+.ld-btn-hot:hover { background: #ffedd5; }
 .ld-converted-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; border-radius: 10px;
-  background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff;
-  font-size: 0.85rem; font-weight: 700;
-  box-shadow: 0 4px 12px rgba(22,163,74,0.3);
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: 6px;
+  background: #dcfce7; color: #166534;
+  font-size: 0.82rem; font-weight: 600;
+  border: 1px solid #86efac;
 }
 .ld-lost-badge {
   display: inline-flex; align-items: center; gap: 5px;
-  padding: 8px 16px; border-radius: 10px;
-  background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff;
-  font-size: 0.85rem; font-weight: 700;
+  padding: 6px 12px; border-radius: 6px;
+  background: #fef2f2; color: #dc2626;
+  font-size: 0.82rem; font-weight: 600;
+  border: 1px solid #fecaca;
 }
 
 /* ── ALERT TOAST ── */
@@ -230,60 +234,55 @@
 
 /* ── CARDS ── */
 .ld-card {
-  background: var(--ld-card);
-  border-radius: var(--ld-radius);
-  box-shadow: var(--ld-shadow);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
   overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.04);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border: 1px solid #e5e7eb;
 }
 
 .ld-card:hover {
-  box-shadow: var(--ld-shadow-md);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
 }
 
 .ld-card-checklist {
-  border: 2px solid #dbeafe;
-  background: linear-gradient(to bottom right, #ffffff, #f0f9ff);
+  border: 1px solid #dbeafe;
+  background: #fafbff;
 }
 
 .ld-card-header {
-  padding: 16px 24px 14px;
-  border-bottom: 1px solid var(--ld-border);
+  padding: 14px 20px 12px;
+  border-bottom: 1px solid #f3f4f6;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: linear-gradient(to bottom, #fafafa, #ffffff);
+  background: #fafafa;
 }
 .ld-card-title {
-  font-size: 0.8rem;
-  font-weight: 800;
-  color: #1f2937;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #374151;
   text-transform: uppercase;
-  letter-spacing: .06em;
+  letter-spacing: .05em;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
-.ld-card-title-icon { font-size: 1.1rem; }
+.ld-card-title-icon { font-size: 0.95rem; }
 
-.ld-card-body { padding: 20px 24px; }
+.ld-card-body { padding: 16px 20px; }
 
 /* ── INFO GRID ── */
 .ld-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 18px 28px;
+  gap: 12px 20px;
 }
 
 .ld-info-item { 
   display: flex; 
   flex-direction: column; 
-  gap: 6px;
-  padding: 12px 16px;
-  background: #f9fafb;
-  border-radius: 12px;
-  border: 1px solid #f3f4f6;
+  gap: 4px;
 }
 .ld-info-item.full { grid-column: 1 / -1; }
 
@@ -340,36 +339,34 @@
 .ld-source-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 14px;
-  border-radius: 25px;
-  font-size: 0.8rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #f3f4f6, #e5e7eb);
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  background: #f3f4f6;
   color: #374151;
-  border: none;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  border: 1px solid #e5e7eb;
 }
-.ld-source-website     { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; }
-.ld-source-walkin      { background: linear-gradient(135deg, #ede9fe, #ddd6fe); color: #5b21b6; }
-.ld-source-referral    { background: linear-gradient(135deg, #fef3c7, #fde68a); color: #92400e; }
-.ld-source-social_media{ background: linear-gradient(135deg, #fce7f3, #fbcfe8); color: #9d174d; }
-.ld-source-google_ads  { background: linear-gradient(135deg, #ffedd5, #fed7aa); color: #c2410c; }
-.ld-source-whatsapp    { background: linear-gradient(135deg, #dcfce7, #bbf7d0); color: #166534; }
-.ld-source-phone       { background: linear-gradient(135deg, #dbeafe, #bfdbfe); color: #1e40af; }
-.ld-source-other       { background: linear-gradient(135deg, #f3f4f6, #e5e7eb); color: #4b5563; }
+.ld-source-website     { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.ld-source-walkin      { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.ld-source-referral    { background: #fefce8; color: #a16207; border-color: #fde047; }
+.ld-source-social_media{ background: #fdf2f8; color: #be185d; border-color: #fbcfe8; }
+.ld-source-google_ads  { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+.ld-source-whatsapp    { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
+.ld-source-phone       { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.ld-source-other       { background: #f3f4f6; color: #4b5563; border-color: #d1d5db; }
 
 /* ── COURSE TAGS ── */
-.ld-course-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.ld-course-tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .ld-course-tag {
-  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  background: #f0fdf4;
   color: #166534;
-  padding: 6px 14px;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 700;
-  border: none;
-  box-shadow: 0 2px 4px rgba(22,163,74,0.15);
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid #bbf7d0;
 }
 
 /* ── INTEREST CONCERNS ── */
@@ -1067,24 +1064,24 @@
 
 /* ── Qualification Checklist (new checkbox-based) ── */
 .ld-qual-progress-badge {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: #ffffff;
-  background: linear-gradient(135deg, #22c55e, #16a34a);
-  padding: 6px 14px;
-  border-radius: 20px;
-  box-shadow: 0 2px 6px rgba(22,163,74,0.3);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #166534;
+  background: #dcfce7;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #86efac;
 }
 
 /* Highlight the checklist card for BDM visibility */
 .ld-card-checklist {
-  border: 2px solid #dbeafe;
-  background: linear-gradient(to bottom, #f0f9ff, white);
+  border: 1px solid #dbeafe;
+  background: #fafbff;
 }
 
 .ld-card-checklist .ld-card-header {
-  background: linear-gradient(to right, #eff6ff, #dbeafe);
-  border-bottom: 1px solid #bfdbfe;
+  background: #f0f9ff;
+  border-bottom: 1px solid #dbeafe;
 }
 
 .ld-qual-checklist {

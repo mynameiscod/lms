@@ -468,9 +468,8 @@ const LeadDetail: React.FC = () => {
                   key={p}
                   className={`ld-priority-btn${lead.priority === p ? ' active' : ''}`}
                   style={{
-                    backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'rgba(255,255,255,0.1)',
-                    color: lead.priority === p ? PRIORITY_COLORS[p].text : 'rgba(255,255,255,0.7)',
-                    borderColor: lead.priority === p ? PRIORITY_COLORS[p].text : 'transparent'
+                    backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
+                    color: lead.priority === p ? PRIORITY_COLORS[p].text : '#6b7280'
                   }}
                   onClick={() => handlePriorityChange(p)}
                   title={`Set as ${p.toUpperCase()}`}
@@ -484,48 +483,48 @@ const LeadDetail: React.FC = () => {
             )}
           </div>
           <div className="ld-header-name-sub">
-            📞 {lead.phone}{lead.email&&` · ✉️ ${lead.email}`}
-            {lead.whatsappReplied && <span className="ld-wa-replied-badge">✅ WA Replied</span>}
+            {lead.phone}{lead.email&&` · ${lead.email}`}
+            {lead.whatsappReplied && <span className="ld-wa-replied-badge">✓ WA Replied</span>}
           </div>
         </div>
         <div className="ld-header-actions">
           <a href={`tel:${lead.phone}`} className="ld-btn ld-btn-green">
-            📞 <span>Call</span>
+            <span>Call</span>
           </a>
           <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank"
             rel="noopener noreferrer" className="ld-btn ld-btn-whatsapp">
-            💬 <span>WhatsApp</span>
+            <span>WhatsApp</span>
           </a>
           {!lead.whatsappReplied && (
             <button className="ld-btn ld-btn-hot" onClick={handleWhatsAppReply} title="Mark that lead replied on WhatsApp">
-              📱 <span>WA Replied</span>
+              <span>WA Replied</span>
             </button>
           )}
           <button className="ld-btn ld-btn-secondary"
             onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>
-            ✏️ <span>Edit</span>
+            <span>Edit</span>
           </button>
           <button className="ld-btn ld-btn-primary"
             onClick={()=>setShowMeetingScheduler(true)}>
-            📅 <span>Schedule</span>
+            <span>Schedule</span>
           </button>
           <button className="ld-btn ld-btn-secondary"
             onClick={()=>setShowPaymentLinkModal(true)}>
-            💰 <span>Payment</span>
+            <span>Payment</span>
           </button>
           {!lead.convertedStudentId&&lead.email&&(
             <button className="ld-btn ld-btn-convert"
               onClick={()=>{setConvertPassword('Welcome@123');setShowConvertModal(true);}}>
-              &#127891; <span>Convert</span>
+              <span>Convert</span>
             </button>
           )}
           {lead.convertedStudentId&&(
-            <span className="ld-converted-badge">&#10003; Converted</span>
+            <span className="ld-converted-badge">✓ Converted</span>
           )}
           {!lead.lostReason && !lead.convertedStudentId && (
             <button className="ld-btn ld-btn-warning"
               onClick={()=>setShowLostReasonModal(true)}>
-              &#10060; <span>Mark Lost</span>
+              <span>Mark Lost</span>
             </button>
           )}
           {lead.lostReason && (
@@ -535,7 +534,7 @@ const LeadDetail: React.FC = () => {
             (currentUser?.permissions||[]).includes('delete_leads')||
             (currentUser?.permissions||[]).includes('manage_leads'))&&(
             <button className="ld-btn ld-btn-danger" onClick={handleDelete}>
-              &#128465; <span>Delete</span>
+              <span>Delete</span>
             </button>
           )}
         </div>

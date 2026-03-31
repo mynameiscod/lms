@@ -208,7 +208,7 @@ const LeadsPage: React.FC = () => {
     setEditingLead(null);
     const initial:Record<string,any>={
       name:'',email:'',phone:'',courseInterest:'',source:configSources[0]||'other',
-      stageId:stages[0]?._id||'',assignedTo:'',nextFollowUp:'',notes:''
+      stageId:stages[0]?._id||'',assignedTo:'',nextFollowUp:'',notes:'',priority:'cold'
     };
     formFields.forEach(f=>{if(!f.isBuiltIn&&!(f.fieldKey in initial))initial[f.fieldKey]=f.type==='checkbox'?false:'';});
     setFormData(initial); setShowModal(true);
@@ -221,7 +221,8 @@ const LeadsPage: React.FC = () => {
       name:lead.name,email:lead.email||'',phone:lead.phone,
       courseInterest:lead.courseInterest?.join(', ')||'',
       source:lead.source,stageId:stage,assignedTo:lead.assignedTo?._id||'',
-      nextFollowUp:lead.nextFollowUp?lead.nextFollowUp.split('T')[0]:'',notes:lead.notes||''
+      nextFollowUp:lead.nextFollowUp?lead.nextFollowUp.split('T')[0]:'',notes:lead.notes||'',
+      priority:lead.priority||'cold'
     };
     const customs=(lead as any).customFields||{};
     formFields.forEach(f=>{if(!f.isBuiltIn)data[f.fieldKey]=customs[f.fieldKey]??(f.type==='checkbox'?false:'');});
@@ -236,7 +237,7 @@ const LeadsPage: React.FC = () => {
       }
     }
     try {
-      const builtInKeys=['name','email','phone','courseInterest','source','stageId','assignedTo','nextFollowUp','notes'];
+      const builtInKeys=['name','email','phone','courseInterest','source','stageId','assignedTo','nextFollowUp','notes','priority'];
       const customFields:Record<string,any>={};
       formFields.forEach(f=>{if(!f.isBuiltIn&&formData[f.fieldKey]!==undefined)customFields[f.fieldKey]=formData[f.fieldKey];});
       const payload:any={};
@@ -244,6 +245,7 @@ const LeadsPage: React.FC = () => {
       payload.courseInterest=(formData.courseInterest||'').split(',').map((s:string)=>s.trim()).filter(Boolean);
       payload.assignedTo=formData.assignedTo||undefined;
       payload.nextFollowUp=formData.nextFollowUp||undefined;
+      payload.priority=formData.priority||'cold';
       if(Object.keys(customFields).length>0)payload.customFields=customFields;
       if(editingLead){await leadApi.updateLead(editingLead._id,payload);showAlertMsg('success','Lead updated');}
       else{await leadApi.createLead(payload);showAlertMsg('success','Lead created');}
@@ -868,13 +870,33 @@ const LeadsPage: React.FC = () => {
                   </div>
                 );}
                 if(field.fieldKey==='assignedTo'){return(
-                  <div className="crm-form-group" key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <select value={formData.assignedTo||''} onChange={e=>setFormData(p=>({...p,assignedTo:e.target.value}))}>
-                      <option value="">Unassigned</option>
-                      {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
-                    </select>
-                  </div>
+                  <React.Fragment key={field.fieldKey}>
+                    {/* Priority Field */}
+                    <div className="crm-form-group">
+                      <label>Priority</label>
+                      <select 
+                        value={formData.priority||'cold'} 
+                        onChange={e=>setFormData(p=>({...p,priority:e.target.value}))}
+                        className="crm-priority-select"
+                        style={{
+                          backgroundColor: PRIORITY_COLORS[formData.priority as LeadPriority || 'cold'].bg,
+                          color: PRIORITY_COLORS[formData.priority as LeadPriority || 'cold'].text,
+                          fontWeight: 600
+                        }}
+                      >
+                        <option value="hot">🔥 Hot</option>
+                        <option value="warm">☀️ Warm</option>
+                        <option value="cold">❄️ Cold</option>
+                      </select>
+                    </div>
+                    <div className="crm-form-group">
+                      <label>{field.label}{field.required?' *':''}</label>
+                      <select value={formData.assignedTo||''} onChange={e=>setFormData(p=>({...p,assignedTo:e.target.value}))}>
+                        <option value="">Unassigned</option>
+                        {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
+                      </select>
+                    </div>
+                  </React.Fragment>
                 );}
                 const val=formData[field.fieldKey]??'';
                 const onChange=(v:any)=>setFormData(p=>({...p,[field.fieldKey]:v}));

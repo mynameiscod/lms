@@ -706,6 +706,56 @@
   letter-spacing: 0.02em;
 }
 
+/* Priority Selector - clickable buttons */
+.ld-priority-selector {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 8px;
+}
+
+.ld-priority-btn {
+  padding: 4px 10px;
+  border: 1.5px solid;
+  border-radius: 16px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: transparent;
+}
+
+.ld-priority-btn:hover {
+  transform: scale(1.05);
+  opacity: 0.9;
+}
+
+.ld-priority-btn.active {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+/* WhatsApp Replied Badge */
+.ld-wa-replied-badge {
+  margin-left: 10px;
+  padding: 2px 8px;
+  background: #dcfce7;
+  color: #16a34a;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* Hot Button Style */
+.ld-btn-hot {
+  background: linear-gradient(135deg, #ef4444 0%, #f97316 100%);
+  color: white;
+  border: none;
+}
+
+.ld-btn-hot:hover {
+  background: linear-gradient(135deg, #dc2626 0%, #ea580c 100%);
+  transform: translateY(-1px);
+}
+
 .ld-score-badge {
   display: inline-flex;
   align-items: center;

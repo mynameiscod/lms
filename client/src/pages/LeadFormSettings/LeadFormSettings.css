@@ -176,6 +176,24 @@
   font-weight: 600;
 }
 
+.type-select {
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  color: #374151;
+  cursor: pointer;
+  width: 100%;
+  max-width: 110px;
+}
+
+.type-select:focus {
+  outline: none;
+  border-color: #005897;
+  box-shadow: 0 0 0 2px rgba(0, 88, 151, 0.1);
+}
+
 .move-btn {
   padding: 2px 6px;
   border: 1px solid #d1d5db;

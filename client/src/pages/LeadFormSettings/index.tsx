@@ -79,8 +79,17 @@ const LeadFormSettings: React.FC = () => {
   const handleToggleRequired = (fieldKey: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        if (CORE_FIELDS.includes(f.fieldKey) && f.required) return f;
+        // Admin can now control required for ALL fields including core fields
         return { ...f, required: !f.required };
+      }
+      return f;
+    }));
+  };
+
+  const handleTypeChange = (fieldKey: string, newType: string) => {
+    setFields(prev => prev.map(f => {
+      if (f.fieldKey === fieldKey) {
+        return { ...f, type: newType };
       }
       return f;
     }));
@@ -222,7 +231,7 @@ const LeadFormSettings: React.FC = () => {
       {/* Fields Configuration */}
       <div className="settings-section">
         <h2>Form Fields</h2>
-        <p className="section-desc">Edit labels, enable/disable fields, set required, and reorder. All field labels can be customized. <strong>Name, Email and Phone</strong> are core fields that cannot be removed.</p>
+        <p className="section-desc">Edit labels, types, enable/disable, and set required for all fields. <strong>Name, Email and Phone</strong> cannot be removed but all other settings are customizable.</p>
 
         <div className="fields-table">
           <div className="fields-table-header">
@@ -257,7 +266,15 @@ const LeadFormSettings: React.FC = () => {
                 </div>
               </span>
               <span className="ft-col ft-type">
-                <span className="type-badge">{FIELD_TYPES.find(t => t.value === field.type)?.label || field.type}</span>
+                <select
+                  className="type-select"
+                  value={field.type}
+                  onChange={e => handleTypeChange(field.fieldKey, e.target.value)}
+                >
+                  {FIELD_TYPES.map(t => (
+                    <option key={t.value} value={t.value}>{t.label}</option>
+                  ))}
+                </select>
               </span>
               <span className="ft-col ft-enabled">
                 <label className="toggle-switch">
@@ -276,7 +293,6 @@ const LeadFormSettings: React.FC = () => {
                     type="checkbox"
                     checked={field.required}
                     onChange={() => handleToggleRequired(field.fieldKey)}
-                    disabled={isCore && field.required}
                   />
                   <span className="toggle-slider" />
                 </label>

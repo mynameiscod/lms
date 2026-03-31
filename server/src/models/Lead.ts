@@ -145,6 +145,7 @@ export interface ILead extends Document {
   
   // NEW: WhatsApp tracking
   whatsappStatus: WhatsAppStatus;
+  whatsappReplied?: boolean;
   whatsappRepliedAt?: Date;
   firstResponseTime?: number;
   whatsappEngagement?: IWhatsAppEngagement;
@@ -327,6 +328,10 @@ const LeadSchema: Schema = new Schema(
       type: String,
       enum: ['not_sent', 'sent', 'delivered', 'read', 'replied'],
       default: 'not_sent'
+    },
+    whatsappReplied: {
+      type: Boolean,
+      default: false
     },
     whatsappRepliedAt: {
       type: Date

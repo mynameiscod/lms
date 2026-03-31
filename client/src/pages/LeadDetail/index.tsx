@@ -86,6 +86,7 @@ interface Lead {
   eligibility?: string;
   eligibilityReason?: string;
   whatsappStatus?: string;
+  whatsappReplied?: boolean;
   whatsappEngagement?: WhatsAppEngagement;
   qualificationAnswers?: Record<string, QualificationAnswer>;
   qualificationProgress?: { total: number; answered: number; percentage: number };
@@ -387,6 +388,43 @@ const LeadDetail: React.FC = () => {
     }
   };
 
+  // Handler for updating lead priority
+  const handlePriorityChange = async (newPriority: LeadPriority) => {
+    if (!lead) return;
+    try {
+      await leadApi.updateLead(lead._id, { priority: newPriority });
+      loadData();
+      showAlertMsg('success', `Priority updated to ${newPriority.toUpperCase()}`);
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to update priority');
+    }
+  };
+
+  // Handler for marking WhatsApp reply received (makes lead HOT)
+  const handleWhatsAppReply = async () => {
+    if (!lead) return;
+    try {
+      // Mark that WhatsApp reply was received and set priority to hot
+      await leadApi.updateLead(lead._id, { 
+        whatsappReplied: true, 
+        priority: 'hot',
+        whatsappEngagement: {
+          ...lead.whatsappEngagement,
+          lastReplyAt: new Date().toISOString(),
+          status: 'replied'
+        }
+      });
+      await leadApi.addActivity(lead._id, {
+        type: 'whatsapp',
+        description: '📱 WhatsApp reply received from lead - Marked as HOT'
+      });
+      loadData();
+      showAlertMsg('success', 'WhatsApp reply recorded! Lead marked as HOT 🔥');
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to record WhatsApp reply');
+    }
+  };
+
   if(loading){
     return (
       <div className="ld-page">
@@ -423,14 +461,24 @@ const LeadDetail: React.FC = () => {
         <div className="ld-header-name">
           <div className="ld-header-name-row">
             <h1>{lead.name}</h1>
-            {lead.priority && (
-              <span className="ld-priority-badge" style={{
-                backgroundColor: PRIORITY_COLORS[lead.priority].bg,
-                color: PRIORITY_COLORS[lead.priority].text
-              }}>
-                {PRIORITY_COLORS[lead.priority].label}
-              </span>
-            )}
+            {/* Priority Selector - Admin/BDM can change */}
+            <div className="ld-priority-selector">
+              {(['hot', 'warm', 'cold'] as LeadPriority[]).map(p => (
+                <button
+                  key={p}
+                  className={`ld-priority-btn${lead.priority === p ? ' active' : ''}`}
+                  style={{
+                    backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
+                    color: lead.priority === p ? PRIORITY_COLORS[p].text : '#6b7280',
+                    borderColor: PRIORITY_COLORS[p].text
+                  }}
+                  onClick={() => handlePriorityChange(p)}
+                  title={`Set as ${p.toUpperCase()}`}
+                >
+                  {PRIORITY_COLORS[p].label}
+                </button>
+              ))}
+            </div>
             {lead.score !== undefined && (
               <span className="ld-score-badge">
                 Score: {lead.score}
@@ -439,6 +487,7 @@ const LeadDetail: React.FC = () => {
           </div>
           <div className="ld-header-name-sub">
             {lead.phone}{lead.email&&` · ${lead.email}`}
+            {lead.whatsappReplied && <span className="ld-wa-replied-badge">✅ WA Replied</span>}
           </div>
         </div>
         <div className="ld-header-actions">
@@ -449,6 +498,11 @@ const LeadDetail: React.FC = () => {
             rel="noopener noreferrer" className="ld-btn ld-btn-whatsapp">
             &#128172; <span>WhatsApp</span>
           </a>
+          {!lead.whatsappReplied && (
+            <button className="ld-btn ld-btn-hot" onClick={handleWhatsAppReply} title="Mark that lead replied on WhatsApp">
+              📱 <span>WA Replied</span>
+            </button>
+          )}
           <button className="ld-btn ld-btn-secondary"
             onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>
             &#9998; <span>Edit</span>

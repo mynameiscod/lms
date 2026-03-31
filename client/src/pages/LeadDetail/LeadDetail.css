@@ -170,9 +170,6 @@
   white-space: nowrap;
   text-decoration: none;
 }
-  white-space: nowrap;
-  text-decoration: none;
-}
 .ld-btn-primary   { background: linear-gradient(135deg, #3b82f6, #2563eb); color: #fff; box-shadow: 0 4px 12px rgba(37,99,235,0.3); }
 .ld-btn-primary:hover { background: linear-gradient(135deg, #2563eb, #1d4ed8); transform: translateY(-1px); }
 .ld-btn-green     { background: linear-gradient(135deg, #22c55e, #16a34a); color: #fff; }

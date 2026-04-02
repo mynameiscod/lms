@@ -183,6 +183,7 @@ const LeadDetail: React.FC = () => {
   const [qualificationQuestions, setQualificationQuestions] = useState<QualificationQuestion[]>([]);
   const [qualificationAnswers, setQualificationAnswers] = useState<Record<string, any>>({});
   const [savingQualification, setSavingQualification] = useState(false);
+  const [showAnsweredOnly, setShowAnsweredOnly] = useState(false);
   const [salesContent, setSalesContent] = useState<SalesContent[]>([]);
   const [showContentModal, setShowContentModal] = useState(false);
   const [selectedContent, setSelectedContent] = useState<SalesContent | null>(null);
@@ -359,6 +360,29 @@ const LeadDetail: React.FC = () => {
       showAlertMsg('success', 'Answer saved');
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to save answer');
+    } finally {
+      setSavingQualification(false);
+    }
+  };
+
+  // Submit all checklist answers at once
+  const handleSubmitAllAnswers = async () => {
+    if (!lead) return;
+    try {
+      setSavingQualification(true);
+      const answeredCount = Object.values(qualificationAnswers).filter((ans: any) => {
+        if (typeof ans === 'object' && ans !== null) {
+          return ans.answered && ans.answer;
+        }
+        return ans && ans !== true;
+      }).length;
+      const answersArray = Object.entries(qualificationAnswers).map(([qId, ans]) => ({ questionId: qId, answer: ans }));
+      const enabledQuestions = qualificationQuestions.filter(q => q.enabled !== false).length;
+      const progress = enabledQuestions > 0 ? Math.round((answeredCount / enabledQuestions) * 100) : 0;
+      await qualificationApi.saveLeadAnswers(lead._id, { answers: answersArray, progress });
+      showAlertMsg('success', `Saved ${answeredCount} answers successfully!`);
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to save answers');
     } finally {
       setSavingQualification(false);
     }
@@ -662,100 +686,142 @@ const LeadDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Call Checklist Card - MOVED HERE for BDM visibility */}
+          {/* Call Checklist Card - Improved with Submit and View Answers */}
           <div className="ld-card ld-card-checklist">
             <div className="ld-card-header">
               <div className="ld-card-title">
                 <span className="ld-card-title-icon">📋</span> Call Checklist
               </div>
-              {qualificationQuestions.length > 0 && (
-                <span className="ld-qual-progress-badge">
-                  {Object.keys(qualificationAnswers).filter(k => {
-                    const ans = qualificationAnswers[k];
-                    return ans && (typeof ans === 'object' ? ans.answered : ans);
-                  }).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} done
-                </span>
-              )}
+              <div className="ld-checklist-header-actions">
+                {qualificationQuestions.length > 0 && (
+                  <>
+                    <span className="ld-qual-progress-badge">
+                      {Object.keys(qualificationAnswers).filter(k => {
+                        const ans = qualificationAnswers[k];
+                        return ans && (typeof ans === 'object' ? ans.answered && ans.answer : ans);
+                      }).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} answered
+                    </span>
+                    <button 
+                      className="ld-checklist-view-toggle"
+                      onClick={() => setShowAnsweredOnly(!showAnsweredOnly)}
+                    >
+                      {showAnsweredOnly ? 'Show All' : 'View Answered'}
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
             <div className="ld-card-body">
               {qualificationQuestions.length > 0 ? (
                 <>
-                  <p style={{fontSize:'12px',color:'#6b7280',marginBottom:'12px'}}>
-                    Ask each question and record the lead's answer:
-                  </p>
-                  <div className="ld-qual-checklist">
-                    {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
-                      const qId = q._id || q.id || `q${idx}`;
-                      const answerData = qualificationAnswers[qId];
-                      const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered : answerData === true);
-                      const answerText = typeof answerData === 'object' ? answerData.answer : (typeof answerData === 'string' ? answerData : '');
-                      
-                      return (
-                        <div key={qId} className={`ld-qual-item${isAnswered ? ' answered' : ''}`}>
-                          <div className="ld-qual-question-row">
-                            <input 
-                              type="checkbox"
-                              checked={!!isAnswered}
-                              onChange={(e) => {
-                                const newVal = e.target.checked 
-                                  ? { answered: true, answer: answerText || '' }
-                                  : { answered: false, answer: '' };
-                                handleSaveQualificationAnswer(qId, newVal);
-                              }}
-                              disabled={savingQualification}
-                              className="ld-qual-checkbox"
-                            />
-                            <span className="ld-qual-question-text">
+                  {!showAnsweredOnly && (
+                    <p className="ld-checklist-hint">
+                      💡 Ask each question during the call and record answers below
+                    </p>
+                  )}
+                  
+                  {/* Answered Summary View */}
+                  {showAnsweredOnly ? (
+                    <div className="ld-answered-summary">
+                      {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
+                        const qId = q._id || q.id || `q${idx}`;
+                        const answerData = qualificationAnswers[qId];
+                        const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered && answerData.answer : false);
+                        const answerText = typeof answerData === 'object' ? answerData.answer : '';
+                        
+                        if (!isAnswered) return null;
+                        
+                        return (
+                          <div key={qId} className="ld-answered-item">
+                            <div className="ld-answered-question">
+                              <span className="ld-answered-check">✓</span>
                               {q.question}
-                              {q.required && <span className="ld-qual-required">*</span>}
-                            </span>
+                            </div>
+                            <div className="ld-answered-value">{answerText}</div>
                           </div>
-                          {/* Answer input - show when checkbox is checked or for recording answer */}
-                          <div className="ld-qual-answer-row">
-                            {q.options && q.options.length > 0 ? (
-                              <select
-                                value={answerText}
-                                onChange={(e) => handleSaveQualificationAnswer(qId, { answered: true, answer: e.target.value })}
-                                disabled={savingQualification}
-                                className="ld-qual-select"
-                              >
-                                <option value="">-- Select answer --</option>
-                                {q.options.map((opt, oi) => (
-                                  <option key={oi} value={opt}>{opt}</option>
-                                ))}
-                              </select>
-                            ) : (
-                              <input
-                                type="text"
-                                placeholder="Enter lead's answer..."
-                                value={answerText}
-                                onChange={(e) => setQualificationAnswers(prev => ({
-                                  ...prev,
-                                  [qId]: { answered: !!e.target.value, answer: e.target.value }
-                                }))}
-                                onBlur={(e) => {
-                                  if (e.target.value) {
-                                    handleSaveQualificationAnswer(qId, { answered: true, answer: e.target.value });
-                                  }
-                                }}
-                                disabled={savingQualification}
-                                className="ld-qual-input"
-                              />
-                            )}
-                            {isAnswered && answerText && (
-                              <span className="ld-qual-answered-badge">✓</span>
-                            )}
-                          </div>
+                        );
+                      })}
+                      {Object.keys(qualificationAnswers).filter(k => {
+                        const ans = qualificationAnswers[k];
+                        return ans && (typeof ans === 'object' ? ans.answered && ans.answer : false);
+                      }).length === 0 && (
+                        <div className="ld-no-answers">
+                          <span>📭</span>
+                          <p>No answers recorded yet</p>
                         </div>
-                      );
-                    })}
-                  </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* Edit Mode - Questions with inputs */
+                    <div className="ld-qual-checklist">
+                      {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
+                        const qId = q._id || q.id || `q${idx}`;
+                        const answerData = qualificationAnswers[qId];
+                        const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered && answerData.answer : false);
+                        const answerText = typeof answerData === 'object' ? answerData.answer : (typeof answerData === 'string' ? answerData : '');
+                        
+                        return (
+                          <div key={qId} className={`ld-qual-item${isAnswered ? ' answered' : ''}`}>
+                            <div className="ld-qual-question-row">
+                              <span className={`ld-qual-num${isAnswered ? ' done' : ''}`}>{idx + 1}</span>
+                              <span className="ld-qual-question-text">
+                                {q.question}
+                                {q.required && <span className="ld-qual-required">*</span>}
+                              </span>
+                            </div>
+                            <div className="ld-qual-answer-row">
+                              {q.options && q.options.length > 0 ? (
+                                <select
+                                  value={answerText}
+                                  onChange={(e) => setQualificationAnswers(prev => ({
+                                    ...prev,
+                                    [qId]: { answered: !!e.target.value, answer: e.target.value }
+                                  }))}
+                                  className="ld-qual-select"
+                                >
+                                  <option value="">-- Select answer --</option>
+                                  {q.options.map((opt, oi) => (
+                                    <option key={oi} value={opt}>{opt}</option>
+                                  ))}
+                                </select>
+                              ) : (
+                                <input
+                                  type="text"
+                                  placeholder="Enter lead's answer..."
+                                  value={answerText}
+                                  onChange={(e) => setQualificationAnswers(prev => ({
+                                    ...prev,
+                                    [qId]: { answered: !!e.target.value, answer: e.target.value }
+                                  }))}
+                                  className="ld-qual-input"
+                                />
+                              )}
+                              {isAnswered && <span className="ld-qual-answered-badge">✓</span>}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  
+                  {/* Submit Button */}
+                  {!showAnsweredOnly && (
+                    <div className="ld-checklist-footer">
+                      <button 
+                        className="ld-btn ld-btn-primary ld-btn-submit-checklist"
+                        onClick={handleSubmitAllAnswers}
+                        disabled={savingQualification}
+                      >
+                        {savingQualification ? '💾 Saving...' : '💾 Save All Answers'}
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
-                <div style={{textAlign:'center',padding:'12px',color:'#6b7280'}}>
-                  <span style={{fontSize:'24px'}}>📝</span>
-                  <p style={{margin:'8px 0 0',fontSize:'13px'}}>No checklist questions configured yet.</p>
-                  <p style={{margin:'4px 0 0',fontSize:'12px',color:'#9ca3af'}}>Admin can add questions in Settings → Qualification Questions</p>
+                <div className="ld-checklist-empty">
+                  <span>📝</span>
+                  <p>No checklist questions configured yet</p>
+                  <small>Admin can add questions in Settings → Qualification Questions</small>
                 </div>
               )}
             </div>

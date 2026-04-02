@@ -47,22 +47,22 @@ interface QualificationConfig {
 }
 
 const CATEGORIES = [
-  { value: 'personal', label: '👤 Personal Info', color: '#3b82f6' },
-  { value: 'education', label: '🎓 Education', color: '#8b5cf6' },
-  { value: 'career', label: '💼 Career Goals', color: '#10b981' },
-  { value: 'financial', label: '💰 Budget/Finance', color: '#f59e0b' },
-  { value: 'timeline', label: '⏰ Timeline', color: '#ef4444' },
-  { value: 'technical', label: '💻 Technical', color: '#6366f1' }
+  { value: 'personal', label: 'Personal Info', icon: 'fa-user', color: '#3b82f6' },
+  { value: 'education', label: 'Education', icon: 'fa-graduation-cap', color: '#8b5cf6' },
+  { value: 'career', label: 'Career Goals', icon: 'fa-briefcase', color: '#10b981' },
+  { value: 'financial', label: 'Budget/Finance', icon: 'fa-dollar-sign', color: '#f59e0b' },
+  { value: 'timeline', label: 'Timeline', icon: 'fa-clock', color: '#ef4444' },
+  { value: 'technical', label: 'Technical', icon: 'fa-laptop-code', color: '#6366f1' }
 ];
 
 const ANSWER_TYPES = [
-  { value: 'text', label: 'Text Input', icon: '📝' },
-  { value: 'select', label: 'Single Select', icon: '☑️' },
-  { value: 'multiselect', label: 'Multi Select', icon: '✅' },
-  { value: 'number', label: 'Number', icon: '🔢' },
-  { value: 'boolean', label: 'Yes/No', icon: '👍' },
-  { value: 'date', label: 'Date', icon: '📅' },
-  { value: 'rating', label: 'Rating (1-5)', icon: '⭐' }
+  { value: 'text', label: 'Text Input', icon: 'fa-font' },
+  { value: 'select', label: 'Single Select', icon: 'fa-circle-dot' },
+  { value: 'multiselect', label: 'Multi Select', icon: 'fa-square-check' },
+  { value: 'number', label: 'Number', icon: 'fa-hashtag' },
+  { value: 'boolean', label: 'Yes/No', icon: 'fa-toggle-on' },
+  { value: 'date', label: 'Date', icon: 'fa-calendar' },
+  { value: 'rating', label: 'Rating (1-5)', icon: 'fa-star' }
 ];
 
 const LEAD_FIELDS = [
@@ -380,92 +380,112 @@ const QualificationSettings: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="qs-loading">Loading configuration...</div>;
+    return (
+      <div className="d-flex justify-content-center align-items-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="qualification-settings">
+    <div className="container-fluid py-4 px-3 px-lg-4">
       {/* Alert */}
       {alert && (
-        <div className={`qs-alert qs-alert-${alert.type}`}>
+        <div className={`alert alert-${alert.type === 'success' ? 'success' : 'danger'} alert-dismissible fade show d-flex align-items-center`} role="alert">
+          <i className={`fa-solid ${alert.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
           {alert.message}
+          <button type="button" className="btn-close" onClick={() => setAlert(null)}></button>
         </div>
       )}
 
       {/* Header */}
-      <div className="qs-header">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
         <div>
-          <h1>🎯 Qualification Questions</h1>
-          <p className="qs-subtitle">Configure questions for BDMs to ask leads during calls</p>
+          <h1 className="h3 mb-1 fw-bold text-dark">
+            <i className="fa-solid fa-circle-question text-primary me-2"></i>
+            Qualification Questions
+          </h1>
+          <p className="text-muted mb-0 small">Configure questions for BDMs to ask leads during calls</p>
         </div>
-        <div className="qs-header-actions">
-          <button 
-            className="qs-btn qs-btn-outline"
-            onClick={handleResetToDefaults}
-            disabled={saving}
-          >
-            ↩️ Reset to Defaults
-          </button>
-        </div>
+        <button 
+          className="btn btn-outline-secondary"
+          onClick={handleResetToDefaults}
+          disabled={saving}
+        >
+          <i className="fa-solid fa-rotate-left me-2"></i>Reset to Defaults
+        </button>
       </div>
 
       {/* Tabs */}
-      <div className="qs-tabs">
-        <button 
-          className={`qs-tab ${activeTab === 'questions' ? 'active' : ''}`}
-          onClick={() => setActiveTab('questions')}
-        >
-          📝 Questions
-        </button>
-        <button 
-          className={`qs-tab ${activeTab === 'settings' ? 'active' : ''}`}
-          onClick={() => setActiveTab('settings')}
-        >
-          ⚙️ Settings
-        </button>
-        <button 
-          className={`qs-tab ${activeTab === 'preview' ? 'active' : ''}`}
-          onClick={() => setActiveTab('preview')}
-        >
-          👁️ Preview
-        </button>
-      </div>
+      <ul className="nav nav-tabs mb-4" role="tablist">
+        <li className="nav-item" role="presentation">
+          <button 
+            className={`nav-link ${activeTab === 'questions' ? 'active' : ''}`}
+            onClick={() => setActiveTab('questions')}
+          >
+            <i className="fa-solid fa-list-check me-2"></i>Questions
+          </button>
+        </li>
+        <li className="nav-item" role="presentation">
+          <button 
+            className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <i className="fa-solid fa-gear me-2"></i>Settings
+          </button>
+        </li>
+        <li className="nav-item" role="presentation">
+          <button 
+            className={`nav-link ${activeTab === 'preview' ? 'active' : ''}`}
+            onClick={() => setActiveTab('preview')}
+          >
+            <i className="fa-solid fa-eye me-2"></i>Preview
+          </button>
+        </li>
+      </ul>
 
       {/* Content */}
-      <div className="qs-content">
+      <div className="tab-content">
         {/* Questions Tab */}
         {activeTab === 'questions' && config && (
-          <div className="qs-questions-section">
-            <div className="qs-section-header">
-              <div className="qs-question-count">
+          <div className="tab-pane fade show active">
+            <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3 gap-2">
+              <span className="badge bg-light text-dark fs-6 fw-normal">
+                <i className="fa-solid fa-check-circle text-success me-1"></i>
                 {config.questions.filter(q => q.enabled).length} active questions
-              </div>
-              <button className="qs-btn qs-btn-primary" onClick={handleAddQuestion}>
-                + Add Question
+              </span>
+              <button className="btn btn-primary" onClick={handleAddQuestion}>
+                <i className="fa-solid fa-plus me-2"></i>Add Question
               </button>
             </div>
 
             {/* Category Filter */}
-            <div className="qs-categories">
+            <div className="d-flex flex-wrap gap-2 mb-4">
               {CATEGORIES.map(cat => (
                 <span 
                   key={cat.value} 
-                  className="qs-category-badge"
-                  style={{ background: cat.color }}
+                  className="badge rounded-pill"
+                  style={{ background: cat.color, padding: '8px 14px' }}
                 >
+                  <i className={`fa-solid ${cat.icon} me-1`}></i>
                   {cat.label}: {config.questions.filter(q => q.category === cat.value && q.enabled).length}
                 </span>
               ))}
             </div>
 
             {/* Questions List */}
-            <div className="qs-questions-list">
+            <div className="d-flex flex-column gap-3">
               {config.questions.length === 0 ? (
-                <div className="qs-empty">
-                  <p>No questions configured yet</p>
-                  <button className="qs-btn qs-btn-primary" onClick={handleAddQuestion}>
-                    Add Your First Question
-                  </button>
+                <div className="card border-dashed text-center py-5">
+                  <div className="card-body">
+                    <i className="fa-solid fa-inbox fa-3x text-muted mb-3"></i>
+                    <p className="text-muted mb-3">No questions configured yet</p>
+                    <button className="btn btn-primary" onClick={handleAddQuestion}>
+                      <i className="fa-solid fa-plus me-2"></i>Add Your First Question
+                    </button>
+                  </div>
                 </div>
               ) : (
                 config.questions
@@ -473,84 +493,109 @@ const QualificationSettings: React.FC = () => {
                   .map((q, index) => (
                   <div 
                     key={q.id} 
-                    className={`qs-question-card ${!q.enabled ? 'disabled' : ''}`}
+                    className={`card border ${!q.enabled ? 'bg-light opacity-50' : ''}`}
                   >
-                    <div className="qs-question-order">
-                      <button 
-                        className="qs-order-btn"
-                        onClick={() => moveQuestion(q.id, 'up')}
-                        disabled={index === 0}
-                      >▲</button>
-                      <span>{q.order}</span>
-                      <button 
-                        className="qs-order-btn"
-                        onClick={() => moveQuestion(q.id, 'down')}
-                        disabled={index === config.questions.length - 1}
-                      >▼</button>
-                    </div>
-                    
-                    <div className="qs-question-body">
-                      <div className="qs-question-header">
-                        <span 
-                          className="qs-category-tag"
-                          style={{ background: CATEGORIES.find(c => c.value === q.category)?.color }}
+                    <div className="card-body d-flex gap-3">
+                      {/* Order Controls */}
+                      <div className="d-flex flex-column align-items-center" style={{ minWidth: '45px' }}>
+                        <button 
+                          className="btn btn-sm btn-outline-secondary mb-1"
+                          onClick={() => moveQuestion(q.id, 'up')}
+                          disabled={index === 0}
+                          style={{ width: '32px', height: '28px', padding: 0 }}
                         >
-                          {CATEGORIES.find(c => c.value === q.category)?.label}
-                        </span>
-                        <span className="qs-answer-type">
-                          {ANSWER_TYPES.find(t => t.value === q.answerType)?.icon} {ANSWER_TYPES.find(t => t.value === q.answerType)?.label}
-                        </span>
-                        {q.required && <span className="qs-required-badge">Required</span>}
-                        {q.fieldToUpdate && (
-                          <span className="qs-field-badge">→ {q.fieldToUpdate}</span>
+                          <i className="fa-solid fa-chevron-up"></i>
+                        </button>
+                        <span className="fw-bold text-primary fs-5">{q.order}</span>
+                        <button 
+                          className="btn btn-sm btn-outline-secondary mt-1"
+                          onClick={() => moveQuestion(q.id, 'down')}
+                          disabled={index === config.questions.length - 1}
+                          style={{ width: '32px', height: '28px', padding: 0 }}
+                        >
+                          <i className="fa-solid fa-chevron-down"></i>
+                        </button>
+                      </div>
+                      
+                      {/* Question Body */}
+                      <div className="flex-grow-1">
+                        <div className="d-flex flex-wrap gap-2 mb-2">
+                          <span 
+                            className="badge"
+                            style={{ background: CATEGORIES.find(c => c.value === q.category)?.color }}
+                          >
+                            <i className={`fa-solid ${CATEGORIES.find(c => c.value === q.category)?.icon} me-1`}></i>
+                            {CATEGORIES.find(c => c.value === q.category)?.label}
+                          </span>
+                          <span className="badge bg-secondary">
+                            <i className={`fa-solid ${ANSWER_TYPES.find(t => t.value === q.answerType)?.icon} me-1`}></i>
+                            {ANSWER_TYPES.find(t => t.value === q.answerType)?.label}
+                          </span>
+                          {q.required && (
+                            <span className="badge bg-danger">
+                              <i className="fa-solid fa-asterisk me-1"></i>Required
+                            </span>
+                          )}
+                          {q.fieldToUpdate && (
+                            <span className="badge bg-info">
+                              <i className="fa-solid fa-arrow-right me-1"></i>{q.fieldToUpdate}
+                            </span>
+                          )}
+                        </div>
+                        
+                        <p className="fw-semibold mb-2 text-dark">{q.question}</p>
+                        
+                        {q.options && q.options.length > 0 && (
+                          <p className="small text-muted mb-2">
+                            <i className="fa-solid fa-list me-1"></i>
+                            Options: {q.options.join(' • ')}
+                          </p>
+                        )}
+                        
+                        {q.helpText && (
+                          <p className="small text-info mb-2">
+                            <i className="fa-solid fa-lightbulb me-1"></i>{q.helpText}
+                          </p>
+                        )}
+                        
+                        {q.scoreImpact && q.scoreImpact.length > 0 && (
+                          <div className="d-flex flex-wrap gap-1">
+                            {q.scoreImpact.map((si, i) => (
+                              <span key={i} className={`badge ${si.impact >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
+                                "{si.answerValue}": {si.impact > 0 ? '+' : ''}{si.impact}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
                       
-                      <div className="qs-question-text">{q.question}</div>
-                      
-                      {q.options && q.options.length > 0 && (
-                        <div className="qs-question-options">
-                          Options: {q.options.join(' • ')}
-                        </div>
-                      )}
-                      
-                      {q.helpText && (
-                        <div className="qs-question-help">💡 {q.helpText}</div>
-                      )}
-                      
-                      {q.scoreImpact && q.scoreImpact.length > 0 && (
-                        <div className="qs-score-impacts">
-                          {q.scoreImpact.map((si, i) => (
-                            <span key={i} className={`qs-score-impact ${si.impact >= 0 ? 'positive' : 'negative'}`}>
-                              "{si.answerValue}": {si.impact > 0 ? '+' : ''}{si.impact}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="qs-question-actions">
-                      <button 
-                        className={`qs-toggle-btn ${q.enabled ? 'active' : ''}`}
-                        onClick={() => handleToggleQuestion(q)}
-                        title={q.enabled ? 'Disable' : 'Enable'}
-                      >
-                        {q.enabled ? '✓' : '○'}
-                      </button>
-                      <button 
-                        className="qs-icon-btn"
-                        onClick={() => handleEditQuestion(q)}
-                        title="Edit"
-                      >
-                        ✏️
-                      </button>
-                      <button 
-                        className="qs-icon-btn danger"
-                        onClick={() => handleDeleteQuestion(q.id)}
-                        title="Delete"
-                      >
-                        🗑️
-                      </button>
+                      {/* Actions */}
+                      <div className="d-flex flex-column gap-2">
+                        <button 
+                          className={`btn btn-sm ${q.enabled ? 'btn-success' : 'btn-outline-secondary'}`}
+                          onClick={() => handleToggleQuestion(q)}
+                          title={q.enabled ? 'Disable' : 'Enable'}
+                          style={{ width: '38px', height: '38px' }}
+                        >
+                          <i className={`fa-solid ${q.enabled ? 'fa-check' : 'fa-circle'}`}></i>
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => handleEditQuestion(q)}
+                          title="Edit"
+                          style={{ width: '38px', height: '38px' }}
+                        >
+                          <i className="fa-solid fa-pen"></i>
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDeleteQuestion(q.id)}
+                          title="Delete"
+                          style={{ width: '38px', height: '38px' }}
+                        >
+                          <i className="fa-solid fa-trash"></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -561,248 +606,317 @@ const QualificationSettings: React.FC = () => {
 
         {/* Settings Tab */}
         {activeTab === 'settings' && config && (
-          <div className="qs-settings-section">
-            <div className="qs-settings-group">
-              <h3>📋 General Settings</h3>
-              
-              <label className="qs-toggle-setting">
-                <input
-                  type="checkbox"
-                  checked={config.settings?.showProgressBar || false}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    settings: { ...config.settings!, showProgressBar: e.target.checked }
-                  })}
-                />
-                <span className="qs-toggle-slider"></span>
-                <span>Show progress bar to BDMs</span>
-              </label>
-              
-              <label className="qs-toggle-setting">
-                <input
-                  type="checkbox"
-                  checked={config.settings?.allowSkip || false}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    settings: { ...config.settings!, allowSkip: e.target.checked }
-                  })}
-                />
-                <span className="qs-toggle-slider"></span>
-                <span>Allow skipping non-required questions</span>
-              </label>
-              
-              <label className="qs-toggle-setting">
-                <input
-                  type="checkbox"
-                  checked={config.settings?.randomizeOrder || false}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    settings: { ...config.settings!, randomizeOrder: e.target.checked }
-                  })}
-                />
-                <span className="qs-toggle-slider"></span>
-                <span>Randomize question order</span>
-              </label>
-            </div>
-
-            <div className="qs-settings-group">
-              <h3>💬 WhatsApp Auto-Qualification</h3>
-              <p className="qs-setting-desc">
-                Automatically ask qualification questions via WhatsApp when a lead replies
-              </p>
-              
-              <label className="qs-toggle-setting">
-                <input
-                  type="checkbox"
-                  checked={config.whatsappSettings?.enabled || false}
-                  onChange={(e) => setConfig({
-                    ...config,
-                    whatsappSettings: { ...config.whatsappSettings!, enabled: e.target.checked }
-                  })}
-                />
-                <span className="qs-toggle-slider"></span>
-                <span>Enable WhatsApp Auto-Qualification</span>
-              </label>
-              
-              {config.whatsappSettings?.enabled && (
-                <>
-                  <div className="qs-input-group">
-                    <label>Welcome Message</label>
-                    <textarea
-                      value={config.whatsappSettings?.welcomeMessage || ''}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        whatsappSettings: { ...config.whatsappSettings!, welcomeMessage: e.target.value }
-                      })}
-                      rows={3}
-                      placeholder="Use {name} for lead's name"
-                    />
+          <div className="tab-pane fade show active">
+            <div className="row g-4">
+              <div className="col-lg-6">
+                <div className="card h-100">
+                  <div className="card-header bg-white">
+                    <h5 className="card-title mb-0">
+                      <i className="fa-solid fa-sliders me-2 text-primary"></i>General Settings
+                    </h5>
                   </div>
-                  
-                  <div className="qs-input-group">
-                    <label>Completion Message</label>
-                    <textarea
-                      value={config.whatsappSettings?.completionMessage || ''}
-                      onChange={(e) => setConfig({
-                        ...config,
-                        whatsappSettings: { ...config.whatsappSettings!, completionMessage: e.target.value }
-                      })}
-                      rows={2}
-                    />
-                  </div>
-                  
-                  <div className="qs-input-row">
-                    <div className="qs-input-group">
-                      <label>Max Questions via WhatsApp</label>
+                  <div className="card-body">
+                    <div className="form-check form-switch mb-3">
                       <input
-                        type="number"
-                        value={config.whatsappSettings?.maxQuestions || 5}
+                        className="form-check-input"
+                        type="checkbox"
+                        id="showProgressBar"
+                        checked={config.settings?.showProgressBar || false}
                         onChange={(e) => setConfig({
                           ...config,
-                          whatsappSettings: { ...config.whatsappSettings!, maxQuestions: parseInt(e.target.value) || 5 }
+                          settings: { ...config.settings!, showProgressBar: e.target.checked }
                         })}
-                        min={1}
-                        max={10}
                       />
+                      <label className="form-check-label" htmlFor="showProgressBar">
+                        <i className="fa-solid fa-bars-progress me-2 text-muted"></i>
+                        Show progress bar to BDMs
+                      </label>
                     </div>
                     
-                    <div className="qs-input-group">
-                      <label>No Response Timeout (hours)</label>
+                    <div className="form-check form-switch mb-3">
                       <input
-                        type="number"
-                        value={config.whatsappSettings?.noResponseTimeoutHours || 24}
+                        className="form-check-input"
+                        type="checkbox"
+                        id="allowSkip"
+                        checked={config.settings?.allowSkip || false}
                         onChange={(e) => setConfig({
                           ...config,
-                          whatsappSettings: { ...config.whatsappSettings!, noResponseTimeoutHours: parseInt(e.target.value) || 24 }
+                          settings: { ...config.settings!, allowSkip: e.target.checked }
                         })}
-                        min={1}
-                        max={72}
                       />
+                      <label className="form-check-label" htmlFor="allowSkip">
+                        <i className="fa-solid fa-forward me-2 text-muted"></i>
+                        Allow skipping non-required questions
+                      </label>
+                    </div>
+                    
+                    <div className="form-check form-switch">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="randomizeOrder"
+                        checked={config.settings?.randomizeOrder || false}
+                        onChange={(e) => setConfig({
+                          ...config,
+                          settings: { ...config.settings!, randomizeOrder: e.target.checked }
+                        })}
+                      />
+                      <label className="form-check-label" htmlFor="randomizeOrder">
+                        <i className="fa-solid fa-shuffle me-2 text-muted"></i>
+                        Randomize question order
+                      </label>
                     </div>
                   </div>
-                </>
-              )}
+                </div>
+              </div>
+
+              <div className="col-lg-6">
+                <div className="card h-100">
+                  <div className="card-header bg-white">
+                    <h5 className="card-title mb-0">
+                      <i className="fa-brands fa-whatsapp me-2 text-success"></i>WhatsApp Auto-Qualification
+                    </h5>
+                  </div>
+                  <div className="card-body">
+                    <p className="text-muted small mb-3">
+                      Automatically ask qualification questions via WhatsApp when a lead replies
+                    </p>
+                    
+                    <div className="form-check form-switch mb-3">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        id="waEnabled"
+                        checked={config.whatsappSettings?.enabled || false}
+                        onChange={(e) => setConfig({
+                          ...config,
+                          whatsappSettings: { ...config.whatsappSettings!, enabled: e.target.checked }
+                        })}
+                      />
+                      <label className="form-check-label" htmlFor="waEnabled">
+                        Enable WhatsApp Auto-Qualification
+                      </label>
+                    </div>
+                    
+                    {config.whatsappSettings?.enabled && (
+                      <>
+                        <div className="mb-3">
+                          <label className="form-label small fw-semibold">
+                            <i className="fa-solid fa-message me-1"></i>Welcome Message
+                          </label>
+                          <textarea
+                            className="form-control"
+                            value={config.whatsappSettings?.welcomeMessage || ''}
+                            onChange={(e) => setConfig({
+                              ...config,
+                              whatsappSettings: { ...config.whatsappSettings!, welcomeMessage: e.target.value }
+                            })}
+                            rows={2}
+                            placeholder="Use {name} for lead's name"
+                          />
+                        </div>
+                        
+                        <div className="mb-3">
+                          <label className="form-label small fw-semibold">
+                            <i className="fa-solid fa-circle-check me-1"></i>Completion Message
+                          </label>
+                          <textarea
+                            className="form-control"
+                            value={config.whatsappSettings?.completionMessage || ''}
+                            onChange={(e) => setConfig({
+                              ...config,
+                              whatsappSettings: { ...config.whatsappSettings!, completionMessage: e.target.value }
+                            })}
+                            rows={2}
+                          />
+                        </div>
+                        
+                        <div className="row g-3">
+                          <div className="col-6">
+                            <label className="form-label small fw-semibold">
+                              <i className="fa-solid fa-list-ol me-1"></i>Max Questions
+                            </label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={config.whatsappSettings?.maxQuestions || 5}
+                              onChange={(e) => setConfig({
+                                ...config,
+                                whatsappSettings: { ...config.whatsappSettings!, maxQuestions: parseInt(e.target.value) || 5 }
+                              })}
+                              min={1}
+                              max={10}
+                            />
+                          </div>
+                          
+                          <div className="col-6">
+                            <label className="form-label small fw-semibold">
+                              <i className="fa-solid fa-clock me-1"></i>Timeout (hours)
+                            </label>
+                            <input
+                              type="number"
+                              className="form-control"
+                              value={config.whatsappSettings?.noResponseTimeoutHours || 24}
+                              onChange={(e) => setConfig({
+                                ...config,
+                                whatsappSettings: { ...config.whatsappSettings!, noResponseTimeoutHours: parseInt(e.target.value) || 24 }
+                              })}
+                              min={1}
+                              max={72}
+                            />
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
             
-            <button 
-              className="qs-btn qs-btn-primary"
-              onClick={handleSaveSettings}
-              disabled={saving}
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </button>
+            <div className="mt-4">
+              <button 
+                className="btn btn-primary"
+                onClick={handleSaveSettings}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <i className="fa-solid fa-check me-2"></i>Save Settings
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         )}
 
         {/* Preview Tab */}
         {activeTab === 'preview' && config && (
-          <div className="qs-preview-section">
-            <div className="qs-preview-toggle">
+          <div className="tab-pane fade show active">
+            <div className="btn-group mb-4" role="group">
               <button 
-                className={`qs-preview-btn ${previewMode === 'bdm' ? 'active' : ''}`}
+                className={`btn ${previewMode === 'bdm' ? 'btn-primary' : 'btn-outline-primary'}`}
                 onClick={() => setPreviewMode('bdm')}
               >
-                👨‍💼 BDM View
+                <i className="fa-solid fa-headset me-2"></i>BDM View
               </button>
               <button 
-                className={`qs-preview-btn ${previewMode === 'whatsapp' ? 'active' : ''}`}
+                className={`btn ${previewMode === 'whatsapp' ? 'btn-success' : 'btn-outline-success'}`}
                 onClick={() => setPreviewMode('whatsapp')}
               >
-                💬 WhatsApp View
+                <i className="fa-brands fa-whatsapp me-2"></i>WhatsApp View
               </button>
             </div>
 
             {previewMode === 'bdm' ? (
-              <div className="qs-preview-bdm">
-                <div className="qs-preview-card">
-                  <div className="qs-preview-header">
-                    <h3>Qualification Questions</h3>
-                    <div className="qs-preview-progress">
-                      <div className="qs-progress-bar">
-                        <div className="qs-progress-fill" style={{ width: '0%' }}></div>
-                      </div>
-                      <span>0 / {config.questions.filter(q => q.enabled).length} answered</span>
-                    </div>
+              <div className="card" style={{ maxWidth: '600px' }}>
+                <div className="card-header bg-primary text-white">
+                  <div className="d-flex justify-content-between align-items-center">
+                    <h5 className="mb-0">
+                      <i className="fa-solid fa-clipboard-question me-2"></i>
+                      Qualification Questions
+                    </h5>
+                    <span className="badge bg-white text-primary">
+                      0 / {config.questions.filter(q => q.enabled).length}
+                    </span>
                   </div>
-                  
-                  <div className="qs-preview-questions">
-                    {config.questions
-                      .filter(q => q.enabled)
-                      .sort((a, b) => a.order - b.order)
-                      .map((q, i) => (
-                      <div key={q.id} className="qs-preview-question">
-                        <div className="qs-preview-q-number">{i + 1}</div>
-                        <div className="qs-preview-q-content">
-                          <div className="qs-preview-q-text">
+                  <div className="progress mt-2" style={{ height: '4px' }}>
+                    <div className="progress-bar bg-white" style={{ width: '0%' }}></div>
+                  </div>
+                </div>
+                <div className="card-body" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                  {config.questions
+                    .filter(q => q.enabled)
+                    .sort((a, b) => a.order - b.order)
+                    .map((q, i) => (
+                    <div key={q.id} className="mb-4 pb-3 border-bottom">
+                      <div className="d-flex gap-3">
+                        <div className="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style={{ width: '28px', height: '28px', minWidth: '28px', fontSize: '12px', fontWeight: '600' }}>
+                          {i + 1}
+                        </div>
+                        <div className="flex-grow-1">
+                          <p className="mb-2 fw-semibold">
                             {q.question}
-                            {q.required && <span className="qs-required">*</span>}
-                          </div>
+                            {q.required && <span className="text-danger ms-1">*</span>}
+                          </p>
                           
                           {q.answerType === 'text' && (
-                            <input type="text" placeholder="Type answer..." disabled />
+                            <input type="text" className="form-control form-control-sm" placeholder="Type answer..." disabled />
                           )}
                           
                           {q.answerType === 'select' && (
-                            <div className="qs-preview-options">
+                            <div className="d-flex flex-wrap gap-2">
                               {q.options?.map((opt, j) => (
-                                <button key={j} className="qs-preview-option">{opt}</button>
+                                <button key={j} className="btn btn-outline-secondary btn-sm">{opt}</button>
                               ))}
                             </div>
                           )}
                           
                           {q.answerType === 'multiselect' && (
-                            <div className="qs-preview-options multi">
+                            <div className="d-flex flex-column gap-1">
                               {q.options?.map((opt, j) => (
-                                <label key={j} className="qs-preview-checkbox">
-                                  <input type="checkbox" disabled /> {opt}
-                                </label>
+                                <div key={j} className="form-check">
+                                  <input className="form-check-input" type="checkbox" disabled />
+                                  <label className="form-check-label small">{opt}</label>
+                                </div>
                               ))}
                             </div>
                           )}
                           
                           {q.answerType === 'boolean' && (
-                            <div className="qs-preview-options">
-                              <button className="qs-preview-option">Yes</button>
-                              <button className="qs-preview-option">No</button>
+                            <div className="d-flex gap-2">
+                              <button className="btn btn-outline-success btn-sm">
+                                <i className="fa-solid fa-check me-1"></i>Yes
+                              </button>
+                              <button className="btn btn-outline-danger btn-sm">
+                                <i className="fa-solid fa-xmark me-1"></i>No
+                              </button>
                             </div>
                           )}
                           
                           {q.answerType === 'number' && (
-                            <input type="number" placeholder="Enter number..." disabled />
+                            <input type="number" className="form-control form-control-sm" style={{ maxWidth: '150px' }} placeholder="Enter number..." disabled />
                           )}
                           
                           {q.answerType === 'date' && (
-                            <input type="date" disabled />
+                            <input type="date" className="form-control form-control-sm" style={{ maxWidth: '200px' }} disabled />
                           )}
                           
                           {q.answerType === 'rating' && (
-                            <div className="qs-preview-rating">
+                            <div className="d-flex gap-1">
                               {[1,2,3,4,5].map(n => (
-                                <button key={n} className="qs-rating-star">⭐</button>
+                                <button key={n} className="btn btn-outline-warning btn-sm" style={{ width: '36px' }}>
+                                  <i className="fa-solid fa-star"></i>
+                                </button>
                               ))}
                             </div>
                           )}
                         </div>
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : (
-              <div className="qs-preview-whatsapp">
-                <div className="qs-wa-phone">
-                  <div className="qs-wa-header">
-                    <div className="qs-wa-contact">
-                      <div className="qs-wa-avatar">CB</div>
-                      <div>
-                        <div className="qs-wa-name">CodeBegun</div>
-                        <div className="qs-wa-status">online</div>
-                      </div>
-                    </div>
+              <div className="card bg-dark" style={{ maxWidth: '380px', borderRadius: '24px' }}>
+                <div className="card-header bg-success text-white d-flex align-items-center gap-3" style={{ borderRadius: '24px 24px 0 0' }}>
+                  <div className="bg-white text-success rounded-circle d-flex align-items-center justify-content-center fw-bold" 
+                       style={{ width: '40px', height: '40px' }}>
+                    CB
                   </div>
-                  
-                  <div className="qs-wa-chat">
-                    <div className="qs-wa-msg sent">
+                  <div>
+                    <div className="fw-semibold">CodeBegun</div>
+                    <small className="opacity-75">online</small>
+                  </div>
+                </div>
+                <div className="card-body bg-light" style={{ maxHeight: '400px', overflowY: 'auto', backgroundImage: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23d1d5db" fill-opacity="0.4"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }}>
+                  <div className="d-flex flex-column gap-3 py-2">
+                    <div className="bg-white rounded-3 p-3 shadow-sm ms-0" style={{ maxWidth: '85%' }}>
                       {config.whatsappSettings?.welcomeMessage?.replace('{name}', 'John') || 'Hi! Let me ask you a few questions.'}
                     </div>
                     
@@ -811,23 +925,23 @@ const QualificationSettings: React.FC = () => {
                       .slice(0, config.whatsappSettings?.maxQuestions || 5)
                       .map((q, i) => (
                       <React.Fragment key={q.id}>
-                        <div className="qs-wa-msg sent">
-                          {i + 1}. {q.question}
+                        <div className="bg-white rounded-3 p-3 shadow-sm ms-0" style={{ maxWidth: '85%' }}>
+                          <strong>{i + 1}.</strong> {q.question}
                           {q.options && q.options.length > 0 && (
-                            <div className="qs-wa-options">
+                            <div className="mt-2 small text-muted">
                               {q.options.map((opt, j) => (
-                                <span key={j}>{j + 1}. {opt}</span>
+                                <div key={j}>{j + 1}. {opt}</div>
                               ))}
                             </div>
                           )}
                         </div>
-                        <div className="qs-wa-msg received">
-                          <span className="qs-wa-typing">Lead's response...</span>
+                        <div className="bg-success-subtle rounded-3 p-2 shadow-sm ms-auto text-muted small" style={{ maxWidth: '70%' }}>
+                          <i className="fa-solid fa-ellipsis fa-fade"></i> Lead's response...
                         </div>
                       </React.Fragment>
                     ))}
                     
-                    <div className="qs-wa-msg sent">
+                    <div className="bg-white rounded-3 p-3 shadow-sm ms-0" style={{ maxWidth: '85%' }}>
                       {config.whatsappSettings?.completionMessage || 'Thank you! A counselor will contact you soon.'}
                     </div>
                   </div>
@@ -840,145 +954,200 @@ const QualificationSettings: React.FC = () => {
 
       {/* Question Edit Modal */}
       {showQuestionModal && editingQuestion && (
-        <div className="qs-modal-overlay" onClick={() => setShowQuestionModal(false)}>
-          <div className="qs-modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{editingQuestion._id ? 'Edit Question' : 'Add New Question'}</h3>
-            
-            <div className="qs-form-row">
-              <label>Question Text <span className="required">*</span></label>
-              <textarea
-                value={editingQuestion.question}
-                onChange={(e) => setEditingQuestion({ ...editingQuestion, question: e.target.value })}
-                placeholder="Enter the question to ask the lead..."
-                rows={2}
-              />
-            </div>
-
-            <div className="qs-form-grid">
-              <div className="qs-form-row">
-                <label>Category</label>
-                <select
-                  value={editingQuestion.category}
-                  onChange={(e) => setEditingQuestion({ ...editingQuestion, category: e.target.value as any })}
-                >
-                  {CATEGORIES.map(cat => (
-                    <option key={cat.value} value={cat.value}>{cat.label}</option>
-                  ))}
-                </select>
+        <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  <i className={`fa-solid ${editingQuestion._id ? 'fa-pen' : 'fa-plus'} me-2 text-primary`}></i>
+                  {editingQuestion._id ? 'Edit Question' : 'Add New Question'}
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowQuestionModal(false)}></button>
               </div>
-
-              <div className="qs-form-row">
-                <label>Answer Type</label>
-                <select
-                  value={editingQuestion.answerType}
-                  onChange={(e) => setEditingQuestion({ 
-                    ...editingQuestion, 
-                    answerType: e.target.value as any,
-                    options: ['select', 'multiselect'].includes(e.target.value) ? editingQuestion.options || [] : undefined
-                  })}
-                >
-                  {ANSWER_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {['select', 'multiselect'].includes(editingQuestion.answerType) && (
-              <div className="qs-form-row">
-                <label>Options (one per line)</label>
-                <textarea
-                  value={(editingQuestion.options || []).join('\n')}
-                  onChange={(e) => setEditingQuestion({
-                    ...editingQuestion,
-                    options: e.target.value.split('\n').filter(o => o.trim())
-                  })}
-                  placeholder="Option 1&#10;Option 2&#10;Option 3"
-                  rows={4}
-                />
-              </div>
-            )}
-
-            <div className="qs-form-row">
-              <label>Auto-Update Lead Field</label>
-              <select
-                value={editingQuestion.fieldToUpdate || ''}
-                onChange={(e) => setEditingQuestion({ ...editingQuestion, fieldToUpdate: e.target.value || undefined })}
-              >
-                {LEAD_FIELDS.map(f => (
-                  <option key={f.value} value={f.value}>{f.label}</option>
-                ))}
-              </select>
-              <p className="qs-form-help">The lead's answer will automatically update this field</p>
-            </div>
-
-            <div className="qs-form-row">
-              <label>Help Text (for BDMs)</label>
-              <input
-                type="text"
-                value={editingQuestion.helpText || ''}
-                onChange={(e) => setEditingQuestion({ ...editingQuestion, helpText: e.target.value })}
-                placeholder="Tips for BDMs on how to ask this question..."
-              />
-            </div>
-
-            <div className="qs-form-row">
-              <label className="qs-checkbox-label">
-                <input
-                  type="checkbox"
-                  checked={editingQuestion.required}
-                  onChange={(e) => setEditingQuestion({ ...editingQuestion, required: e.target.checked })}
-                />
-                Required question (BDM must answer before moving lead)
-              </label>
-            </div>
-
-            {/* Score Impact Section */}
-            {['select', 'multiselect'].includes(editingQuestion.answerType) && editingQuestion.options && editingQuestion.options.length > 0 && (
-              <div className="qs-form-row">
-                <label>Score Impact (optional) - affects lead priority</label>
-                <div className="qs-score-inputs">
-                  {editingQuestion.options.map((opt, i) => (
-                    <div key={i} className="qs-score-input-row">
-                      <span className="qs-score-option">{opt}</span>
-                      <input
-                        type="number"
-                        placeholder="0"
-                        value={editingQuestion.scoreImpact?.find(si => si.answerValue === opt)?.impact || ''}
-                        onChange={(e) => {
-                          const impact = parseInt(e.target.value) || 0;
-                          const existing = editingQuestion.scoreImpact || [];
-                          const filtered = existing.filter(si => si.answerValue !== opt);
-                          if (impact !== 0) {
-                            filtered.push({ answerValue: opt, impact });
-                          }
-                          setEditingQuestion({ ...editingQuestion, scoreImpact: filtered });
-                        }}
-                      />
-                      <span className="qs-score-label">points</span>
-                    </div>
-                  ))}
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">
+                    Question Text <span className="text-danger">*</span>
+                  </label>
+                  <textarea
+                    className="form-control"
+                    value={editingQuestion.question}
+                    onChange={(e) => setEditingQuestion({ ...editingQuestion, question: e.target.value })}
+                    placeholder="Enter the question to ask the lead..."
+                    rows={2}
+                  />
                 </div>
-              </div>
-            )}
 
-            <div className="qs-modal-actions">
-              <button 
-                className="qs-btn qs-btn-secondary"
-                onClick={() => {
-                  setShowQuestionModal(false);
-                  setEditingQuestion(null);
-                }}
-              >
-                Cancel
-              </button>
-              <button 
-                className="qs-btn qs-btn-primary"
-                onClick={handleSaveQuestion}
-                disabled={saving || !editingQuestion.question.trim()}
-              >
-                {saving ? 'Saving...' : 'Save Question'}
-              </button>
+                <div className="row g-3 mb-3">
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold">
+                      <i className="fa-solid fa-tag me-1"></i>Category
+                    </label>
+                    <select
+                      className="form-select"
+                      value={editingQuestion.category}
+                      onChange={(e) => setEditingQuestion({ ...editingQuestion, category: e.target.value as any })}
+                    >
+                      {CATEGORIES.map(cat => (
+                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="col-md-6">
+                    <label className="form-label fw-semibold">
+                      <i className="fa-solid fa-keyboard me-1"></i>Answer Type
+                    </label>
+                    <select
+                      className="form-select"
+                      value={editingQuestion.answerType}
+                      onChange={(e) => setEditingQuestion({ 
+                        ...editingQuestion, 
+                        answerType: e.target.value as any,
+                        options: ['select', 'multiselect'].includes(e.target.value) ? editingQuestion.options || [] : undefined
+                      })}
+                    >
+                      {ANSWER_TYPES.map(t => (
+                        <option key={t.value} value={t.value}>{t.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {['select', 'multiselect'].includes(editingQuestion.answerType) && (
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">
+                      <i className="fa-solid fa-list me-1"></i>Options (one per line)
+                    </label>
+                    <textarea
+                      className="form-control"
+                      value={(editingQuestion.options || []).join('\n')}
+                      onChange={(e) => setEditingQuestion({
+                        ...editingQuestion,
+                        options: e.target.value.split('\n').filter(o => o.trim())
+                      })}
+                      placeholder="Option 1&#10;Option 2&#10;Option 3"
+                      rows={4}
+                    />
+                  </div>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">
+                    <i className="fa-solid fa-database me-1"></i>Auto-Update Lead Field
+                  </label>
+                  <select
+                    className="form-select"
+                    value={editingQuestion.fieldToUpdate || ''}
+                    onChange={(e) => setEditingQuestion({ ...editingQuestion, fieldToUpdate: e.target.value || undefined })}
+                  >
+                    {LEAD_FIELDS.map(f => (
+                      <option key={f.value} value={f.value}>{f.label}</option>
+                    ))}
+                  </select>
+                  <div className="form-text">The lead's answer will automatically update this field</div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">
+                    <i className="fa-solid fa-lightbulb me-1"></i>Help Text (for BDMs)
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={editingQuestion.helpText || ''}
+                    onChange={(e) => setEditingQuestion({ ...editingQuestion, helpText: e.target.value })}
+                    placeholder="Tips for BDMs on how to ask this question..."
+                  />
+                </div>
+
+                <div className="form-check mb-3">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    id="requiredCheck"
+                    checked={editingQuestion.required}
+                    onChange={(e) => setEditingQuestion({ ...editingQuestion, required: e.target.checked })}
+                  />
+                  <label className="form-check-label" htmlFor="requiredCheck">
+                    <i className="fa-solid fa-asterisk text-danger me-1"></i>
+                    Required question (BDM must answer before moving lead)
+                  </label>
+                </div>
+
+                {/* Score Impact Section */}
+                {['select', 'multiselect'].includes(editingQuestion.answerType) && editingQuestion.options && editingQuestion.options.length > 0 && (
+                  <div className="mb-3">
+                    <label className="form-label fw-semibold">
+                      <i className="fa-solid fa-chart-line me-1"></i>Score Impact (optional)
+                    </label>
+                    <p className="form-text mb-2">Affects lead priority scoring</p>
+                    <div className="table-responsive">
+                      <table className="table table-sm table-bordered">
+                        <thead className="table-light">
+                          <tr>
+                            <th>Option</th>
+                            <th style={{ width: '120px' }}>Points</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {editingQuestion.options.map((opt, i) => (
+                            <tr key={i}>
+                              <td className="align-middle">{opt}</td>
+                              <td>
+                                <input
+                                  type="number"
+                                  className="form-control form-control-sm"
+                                  placeholder="0"
+                                  value={editingQuestion.scoreImpact?.find(si => si.answerValue === opt)?.impact || ''}
+                                  onChange={(e) => {
+                                    const impact = parseInt(e.target.value) || 0;
+                                    const existing = editingQuestion.scoreImpact || [];
+                                    const filtered = existing.filter(si => si.answerValue !== opt);
+                                    if (impact !== 0) {
+                                      filtered.push({ answerValue: opt, impact });
+                                    }
+                                    setEditingQuestion({ ...editingQuestion, scoreImpact: filtered });
+                                  }}
+                                />
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => {
+                    setShowQuestionModal(false);
+                    setEditingQuestion(null);
+                  }}
+                >
+                  <i className="fa-solid fa-xmark me-2"></i>Cancel
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleSaveQuestion}
+                  disabled={saving || !editingQuestion.question.trim()}
+                >
+                  {saving ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-check me-2"></i>Save Question
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>

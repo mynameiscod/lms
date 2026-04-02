@@ -1660,3 +1660,55 @@
   align-items: center;
   flex-wrap: wrap;
 }
+
+/* ============================================================
+   BOOTSTRAP MODAL FORM OVERRIDES
+   Clean form styling without shadows
+   ============================================================ */
+
+.modal .form-control,
+.modal .form-select {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  background: #fff;
+}
+
+.modal .form-control:focus,
+.modal .form-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+.modal .form-control::placeholder {
+  color: #94a3b8;
+}
+
+.modal .form-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+.modal .form-check-input {
+  width: 18px;
+  height: 18px;
+  margin-top: 0;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+}
+
+.modal .form-check-input:checked {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.modal .form-check-label {
+  font-size: 0.9rem;
+  color: #475569;
+  margin-left: 4px;
+}

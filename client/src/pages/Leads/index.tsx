@@ -971,28 +971,42 @@ const LeadsPage: React.FC = () => {
       )}
 
       {showModal&&(
-        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={()=>setShowModal(false)}>
-          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" onClick={e=>e.stopPropagation()}>
-            <div className="modal-content border-0 shadow">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title">
+        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.4)'}} onClick={()=>setShowModal(false)}>
+          <div className="modal-dialog modal-lg modal-dialog-centered" onClick={e=>e.stopPropagation()}>
+            <div className="modal-content" style={{borderRadius: '12px', overflow: 'hidden', border: 'none', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'}}>
+              <div className="modal-header border-0 py-3 px-4" style={{background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'}}>
+                <h5 className="modal-title text-white fw-semibold" style={{fontSize: '1.1rem'}}>
                   <i className={`fa-solid ${editingLead ? 'fa-pen' : 'fa-user-plus'} me-2`}></i>
                   {editingLead?'Edit Lead':'New Lead'}
                 </h5>
                 <button type="button" className="btn-close btn-close-white" onClick={()=>setShowModal(false)}></button>
               </div>
-              <div className="modal-body p-4">
+              <div className="modal-body p-4" style={{background: '#fff'}}>
                 {/* Priority Field - Always visible at top */}
                 <div className="mb-4">
-                  <label className="form-label fw-semibold text-secondary">Lead Priority</label>
-                  <div className="btn-group w-100" role="group">
+                  <label className="form-label fw-semibold" style={{fontSize: '0.85rem', color: '#64748b'}}>Lead Priority</label>
+                  <div className="d-flex gap-2" role="group">
                     {(['hot','warm','cold'] as LeadPriority[]).map(p=>(
                       <button
                         key={p}
                         type="button"
-                        className={`btn ${formData.priority===p ? 
-                          (p==='hot' ? 'btn-danger' : p==='warm' ? 'btn-warning' : 'btn-info') : 
-                          'btn-outline-secondary'}`}
+                        style={{
+                          flex: 1,
+                          padding: '10px 16px',
+                          borderRadius: '8px',
+                          border: formData.priority===p ? 'none' : '1px solid #e2e8f0',
+                          background: formData.priority===p 
+                            ? (p==='hot' ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                              : p==='warm' ? 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)' 
+                              : 'linear-gradient(135deg, #06b6d4 0%, #0891b2 100%)') 
+                            : '#fff',
+                          color: formData.priority===p ? '#fff' : '#64748b',
+                          fontWeight: 600,
+                          fontSize: '0.9rem',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s',
+                          boxShadow: formData.priority===p ? '0 4px 12px rgba(0,0,0,0.15)' : 'none'
+                        }}
                         onClick={()=>setFormData(prev=>({...prev,priority:p}))}
                       >
                         {p==='hot'&&<i className="fa-solid fa-fire me-1"></i>}
@@ -1066,11 +1080,21 @@ const LeadsPage: React.FC = () => {
                   })}
                 </div>
               </div>
-              <div className="modal-footer bg-light">
-                <button type="button" className="btn btn-outline-secondary" onClick={()=>setShowModal(false)}>
+              <div className="modal-footer border-0 px-4 py-3" style={{background: '#f8fafc'}}>
+                <button 
+                  type="button" 
+                  className="btn" 
+                  style={{padding: '10px 20px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#fff', color: '#64748b', fontWeight: 500}}
+                  onClick={()=>setShowModal(false)}
+                >
                   <i className="fa-solid fa-xmark me-1"></i> Cancel
                 </button>
-                <button type="button" className="btn btn-primary" onClick={handleSave}>
+                <button 
+                  type="button" 
+                  className="btn" 
+                  style={{padding: '10px 24px', borderRadius: '8px', background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)', color: '#fff', fontWeight: 600, border: 'none', boxShadow: '0 4px 12px rgba(37,99,235,0.3)'}}
+                  onClick={handleSave}
+                >
                   <i className={`fa-solid ${editingLead ? 'fa-check' : 'fa-plus'} me-1`}></i>
                   {editingLead?'Update Lead':'Create Lead'}
                 </button>

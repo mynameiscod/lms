@@ -76,7 +76,7 @@ export const addCustomField = async (req: AuthenticatedRequest, res: Response<Ap
       return res.status(400).json({ success: false, message: 'Label and type are required' });
     }
 
-    const validTypes = ['text', 'email', 'tel', 'number', 'date', 'select', 'textarea', 'checkbox'];
+    const validTypes = ['text', 'email', 'tel', 'number', 'date', 'time', 'select', 'textarea', 'checkbox'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({ success: false, message: `Invalid type. Must be one of: ${validTypes.join(', ')}` });
     }

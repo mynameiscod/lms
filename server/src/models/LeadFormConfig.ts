@@ -1,6 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'date' | 'datetime' | 
+export type FieldType = 'text' | 'email' | 'tel' | 'number' | 'date' | 'time' | 'datetime' | 
                         'select' | 'multiselect' | 'textarea' | 'checkbox' | 'radio' |
                         'file' | 'url' | 'location' | 'whatsapp';
 

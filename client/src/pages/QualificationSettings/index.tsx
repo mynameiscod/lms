@@ -489,111 +489,106 @@ const QualificationSettings: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                config.questions
+config.questions
                   .sort((a, b) => a.order - b.order)
                   .map((q, index) => (
                   <div 
                     key={q.id} 
-                    className={`card question-card ${!q.enabled ? 'disabled' : ''}`}
+                    className={`question-card-v2 ${!q.enabled ? 'disabled' : ''}`}
                   >
-                    <div className="card-body d-flex gap-3 align-items-start">
-                      {/* Order Controls */}
-                      <div className="d-flex flex-column align-items-center gap-1" style={{ minWidth: '40px' }}>
-                        <button 
-                          className="order-btn"
-                          onClick={() => moveQuestion(q.id, 'up')}
-                          disabled={index === 0}
+                    {/* Left: Order + Number */}
+                    <div className="qc-order">
+                      <button 
+                        className="qc-order-btn"
+                        onClick={() => moveQuestion(q.id, 'up')}
+                        disabled={index === 0}
+                      >
+                        <i className="fa-solid fa-chevron-up"></i>
+                      </button>
+                      <span className="qc-number">{q.order}</span>
+                      <button 
+                        className="qc-order-btn"
+                        onClick={() => moveQuestion(q.id, 'down')}
+                        disabled={index === config.questions.length - 1}
+                      >
+                        <i className="fa-solid fa-chevron-down"></i>
+                      </button>
+                    </div>
+                    
+                    {/* Center: Content */}
+                    <div className="qc-content">
+                      {/* Badges Row */}
+                      <div className="qc-badges">
+                        <span 
+                          className="qc-badge qc-badge-category"
+                          style={{ background: CATEGORIES.find(c => c.value === q.category)?.color }}
                         >
-                          <i className="fa-solid fa-chevron-up"></i>
-                        </button>
-                        <div className="question-order">{q.order}</div>
-                        <button 
-                          className="order-btn"
-                          onClick={() => moveQuestion(q.id, 'down')}
-                          disabled={index === config.questions.length - 1}
-                        >
-                          <i className="fa-solid fa-chevron-down"></i>
-                        </button>
+                          <i className={`fa-solid ${CATEGORIES.find(c => c.value === q.category)?.icon}`}></i>
+                          {CATEGORIES.find(c => c.value === q.category)?.label}
+                        </span>
+                        <span className="qc-badge qc-badge-type">
+                          <i className={`fa-solid ${ANSWER_TYPES.find(t => t.value === q.answerType)?.icon}`}></i>
+                          {ANSWER_TYPES.find(t => t.value === q.answerType)?.label}
+                        </span>
+                        {q.required && (
+                          <span className="qc-badge qc-badge-required">
+                            <i className="fa-solid fa-asterisk"></i>Required
+                          </span>
+                        )}
+                        {q.fieldToUpdate && (
+                          <span className="qc-badge qc-badge-field">
+                            <i className="fa-solid fa-arrow-right"></i>{q.fieldToUpdate}
+                          </span>
+                        )}
                       </div>
                       
-                      {/* Question Body */}
-                      <div className="flex-grow-1">
-                        <div className="d-flex flex-wrap gap-2 mb-2">
-                          <span 
-                            className="badge category-badge"
-                            style={{ background: CATEGORIES.find(c => c.value === q.category)?.color }}
-                          >
-                            <i className={`fa-solid ${CATEGORIES.find(c => c.value === q.category)?.icon} me-1`}></i>
-                            {CATEGORIES.find(c => c.value === q.category)?.label}
-                          </span>
-                          <span className="badge type-badge">
-                            <i className={`fa-solid ${ANSWER_TYPES.find(t => t.value === q.answerType)?.icon} me-1`}></i>
-                            {ANSWER_TYPES.find(t => t.value === q.answerType)?.label}
-                          </span>
-                          {q.required && (
-                            <span className="badge bg-danger">
-                              <i className="fa-solid fa-asterisk me-1"></i>Required
-                            </span>
-                          )}
-                          {q.fieldToUpdate && (
-                            <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>
-                              <i className="fa-solid fa-arrow-right me-1"></i>{q.fieldToUpdate}
-                            </span>
-                          )}
+                      {/* Question Text */}
+                      <h4 className="qc-question">{q.question}</h4>
+                      
+                      {/* Options */}
+                      {q.options && q.options.length > 0 && (
+                        <div className="qc-options">
+                          {q.options.map((opt, i) => (
+                            <span key={i} className="qc-option">{opt}</span>
+                          ))}
                         </div>
-                        
-                        <p className="question-text mb-2">{q.question}</p>
-                        
-                        {q.options && q.options.length > 0 && (
-                          <div className="options-list mb-2">
-                            <i className="fa-solid fa-list me-1"></i>
-                            {q.options.map((opt, i) => (
-                              <span key={i} className="option-tag">{opt}</span>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {q.helpText && (
-                          <p className="question-meta mb-2">
-                            <i className="fa-solid fa-lightbulb text-warning me-1"></i>{q.helpText}
-                          </p>
-                        )}
-                        
-                        {q.scoreImpact && q.scoreImpact.length > 0 && (
-                          <div className="d-flex flex-wrap gap-1 mt-2">
-                            {q.scoreImpact.map((si, i) => (
-                              <span key={i} className={`score-badge ${si.impact >= 0 ? 'score-positive' : 'score-negative'}`}>
-                                "{si.answerValue}": {si.impact > 0 ? '+' : ''}{si.impact}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      )}
                       
-                      {/* Actions */}
-                      <div className="d-flex flex-column gap-2">
-                        <button 
-                          className={`action-btn ${q.enabled ? 'enabled' : ''}`}
-                          onClick={() => handleToggleQuestion(q)}
-                          title={q.enabled ? 'Disable' : 'Enable'}
-                        >
-                          <i className={`fa-solid ${q.enabled ? 'fa-check' : 'fa-circle'}`}></i>
-                        </button>
-                        <button 
-                          className="action-btn edit"
-                          onClick={() => handleEditQuestion(q)}
-                          title="Edit"
-                        >
-                          <i className="fa-solid fa-pen"></i>
-                        </button>
-                        <button 
-                          className="action-btn delete"
-                          onClick={() => handleDeleteQuestion(q.id)}
-                          title="Delete"
-                        >
-                          <i className="fa-solid fa-trash"></i>
-                        </button>
-                      </div>
+                      {/* Score Impact */}
+                      {q.scoreImpact && q.scoreImpact.length > 0 && (
+                        <div className="qc-scores">
+                          {q.scoreImpact.map((si, i) => (
+                            <span key={i} className={`qc-score ${si.impact >= 0 ? 'positive' : 'negative'}`}>
+                              {si.answerValue}: <strong>{si.impact > 0 ? '+' : ''}{si.impact}</strong>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Right: Actions */}
+                    <div className="qc-actions">
+                      <button 
+                        className={`qc-action-btn ${q.enabled ? 'active' : ''}`}
+                        onClick={() => handleToggleQuestion(q)}
+                        title={q.enabled ? 'Disable' : 'Enable'}
+                      >
+                        <i className={`fa-solid ${q.enabled ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
+                      </button>
+                      <button 
+                        className="qc-action-btn edit"
+                        onClick={() => handleEditQuestion(q)}
+                        title="Edit"
+                      >
+                        <i className="fa-solid fa-pen"></i>
+                      </button>
+                      <button 
+                        className="qc-action-btn delete"
+                        onClick={() => handleDeleteQuestion(q.id)}
+                        title="Delete"
+                      >
+                        <i className="fa-solid fa-trash"></i>
+                      </button>
                     </div>
                   </div>
                 ))

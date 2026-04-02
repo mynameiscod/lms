@@ -28,6 +28,16 @@ interface StatsCard {
   source?: string;
 }
 
+interface TableColumn {
+  key: string;
+  type: 'system' | 'custom';
+  label: string;
+  enabled: boolean;
+  order: number;
+  width?: string;
+  fieldKey?: string;
+}
+
 interface Stage {
   _id: string;
   name: string;
@@ -65,7 +75,12 @@ const LeadFormSettings: React.FC = () => {
   const [statsCards, setStatsCards] = useState<StatsCard[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [savingStats, setSavingStats] = useState(false);
-  const [activeTab, setActiveTab] = useState<'fields' | 'sources' | 'stats'>('fields');
+  
+  // Table columns configuration
+  const [tableColumns, setTableColumns] = useState<TableColumn[]>([]);
+  const [savingColumns, setSavingColumns] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState<'fields' | 'sources' | 'stats' | 'columns'>('fields');
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 3000);
@@ -74,10 +89,11 @@ const LeadFormSettings: React.FC = () => {
   const loadConfig = useCallback(async () => {
     try {
       setLoading(true);
-      const [configRes, stagesRes, statsRes] = await Promise.all([
+      const [configRes, stagesRes, statsRes, columnsRes] = await Promise.all([
         leadFormConfigApi.getConfig(),
         leadStageApi.getStages(),
-        leadFormConfigApi.getStatsCardsConfig()
+        leadFormConfigApi.getStatsCardsConfig(),
+        leadFormConfigApi.getTableColumnsConfig()
       ]);
       
       const config = configRes.data;
@@ -111,6 +127,24 @@ const LeadFormSettings: React.FC = () => {
         existingCards = defaultCards;
       }
       setStatsCards(existingCards.sort((a: StatsCard, b: StatsCard) => a.order - b.order));
+      
+      // Load table columns configuration
+      let existingColumns = columnsRes.data || [];
+      if (existingColumns.length === 0) {
+        // Create default table columns
+        existingColumns = [
+          { key: 'select', type: 'system', label: 'Select', enabled: true, order: 0, width: '40px' },
+          { key: 'lead', type: 'system', label: 'Lead', enabled: true, order: 1 },
+          { key: 'priority', type: 'system', label: 'Priority', enabled: true, order: 2 },
+          { key: 'stage', type: 'system', label: 'Stage', enabled: true, order: 3 },
+          { key: 'source', type: 'system', label: 'Source', enabled: true, order: 4 },
+          { key: 'assignedTo', type: 'system', label: 'Assigned To', enabled: true, order: 5 },
+          { key: 'followUp', type: 'system', label: 'Next Follow-up', enabled: true, order: 6 },
+          { key: 'created', type: 'system', label: 'Created', enabled: true, order: 7 },
+          { key: 'actions', type: 'system', label: 'Actions', enabled: true, order: 8, width: '60px' }
+        ];
+      }
+      setTableColumns(existingColumns.sort((a: TableColumn, b: TableColumn) => a.order - b.order));
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to load form config');
     } finally {
@@ -325,9 +359,83 @@ const LeadFormSettings: React.FC = () => {
     }
   };
 
+  // Table columns handlers
+  const handleToggleTableColumn = (key: string) => {
+    // Don't allow disabling select and actions columns
+    if (key === 'select' || key === 'actions') return;
+    setTableColumns(prev => prev.map(col =>
+      col.key === key ? { ...col, enabled: !col.enabled } : col
+    ));
+  };
+
+  const handleMoveTableColumn = (index: number, direction: 'up' | 'down') => {
+    const newColumns = [...tableColumns];
+    const target = direction === 'up' ? index - 1 : index + 1;
+    if (target < 0 || target >= newColumns.length) return;
+    [newColumns[index], newColumns[target]] = [newColumns[target], newColumns[index]];
+    setTableColumns(newColumns.map((c, i) => ({ ...c, order: i })));
+  };
+
+  const handleTableColumnLabelChange = (key: string, newLabel: string) => {
+    setTableColumns(prev => prev.map(col =>
+      col.key === key ? { ...col, label: newLabel } : col
+    ));
+  };
+
+  const handleAddCustomFieldColumn = (field: FormField) => {
+    const key = `custom_${field.fieldKey}`;
+    if (tableColumns.some(c => c.key === key)) return;
+    const maxOrder = tableColumns.reduce((max, c) => Math.max(max, c.order), 0);
+    // Insert before actions column
+    const actionsIndex = tableColumns.findIndex(c => c.key === 'actions');
+    const newColumns = [...tableColumns];
+    const newCol: TableColumn = {
+      key,
+      type: 'custom',
+      label: field.label,
+      enabled: true,
+      order: actionsIndex >= 0 ? actionsIndex : maxOrder + 1,
+      fieldKey: field.fieldKey
+    };
+    if (actionsIndex >= 0) {
+      newColumns.splice(actionsIndex, 0, newCol);
+      // Re-order
+      setTableColumns(newColumns.map((c, i) => ({ ...c, order: i })));
+    } else {
+      setTableColumns([...tableColumns, newCol]);
+    }
+  };
+
+  const handleRemoveTableColumn = (key: string) => {
+    // Don't remove system columns, just disable them
+    const col = tableColumns.find(c => c.key === key);
+    if (col?.type === 'system') {
+      handleToggleTableColumn(key);
+      return;
+    }
+    setTableColumns(prev => prev.filter(c => c.key !== key).map((c, i) => ({ ...c, order: i })));
+  };
+
+  const handleSaveTableColumns = async () => {
+    try {
+      setSavingColumns(true);
+      await leadFormConfigApi.updateTableColumnsConfig(tableColumns);
+      showAlertMsg('success', 'Table columns configuration saved!');
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to save table columns');
+    } finally {
+      setSavingColumns(false);
+    }
+  };
+
   // Get stages not yet added to stats cards
   const availableStages = stages.filter(
     stage => !statsCards.some(c => c.stageId === stage._id)
+  );
+
+  // Get custom fields not yet added to table columns
+  const availableCustomFields = fields.filter(
+    field => !field.isBuiltIn && field.enabled && !tableColumns.some(c => c.fieldKey === field.fieldKey)
   );
 
   if (loading) {
@@ -355,6 +463,11 @@ const LeadFormSettings: React.FC = () => {
               {savingStats ? 'Saving...' : 'Save Stats Config'}
             </button>
           )}
+          {activeTab === 'columns' && (
+            <button className="btn-primary" onClick={handleSaveTableColumns} disabled={savingColumns}>
+              {savingColumns ? 'Saving...' : 'Save Columns Config'}
+            </button>
+          )}
         </div>
       </div>
 
@@ -379,6 +492,12 @@ const LeadFormSettings: React.FC = () => {
           onClick={() => setActiveTab('stats')}
         >
           📊 Stats Cards
+        </button>
+        <button 
+          className={`settings-tab ${activeTab === 'columns' ? 'active' : ''}`}
+          onClick={() => setActiveTab('columns')}
+        >
+          📋 Table Columns
         </button>
       </div>
 
@@ -584,6 +703,97 @@ const LeadFormSettings: React.FC = () => {
                     style={{ borderColor: stage.color, color: stage.color }}
                   >
                     + {stage.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+      )}
+
+      {/* Table Columns Configuration */}
+      {activeTab === 'columns' && (
+      <div className="settings-section">
+        <h2>Table Columns Configuration</h2>
+        <p className="section-desc">Configure which columns appear in the Leads table. Enable/disable, reorder, and customize labels. You can also add custom field columns.</p>
+
+        <div className="stats-cards-config">
+          <div className="stats-cards-list">
+            <div className="stats-cards-header">
+              <span className="sc-col sc-order">Order</span>
+              <span className="sc-col sc-label" style={{flex: 2}}>Label</span>
+              <span className="sc-col sc-type">Type</span>
+              <span className="sc-col sc-enabled">Enabled</span>
+              <span className="sc-col sc-actions">Actions</span>
+            </div>
+            {tableColumns.map((col, idx) => {
+              const isFixed = col.key === 'select' || col.key === 'actions';
+              return (
+              <div 
+                className={`stats-card-row ${!col.enabled ? 'disabled-row' : ''} ${isFixed ? 'core-row' : ''}`} 
+                key={col.key}
+              >
+                <span className="sc-col sc-order">
+                  <button className="move-btn" onClick={() => handleMoveTableColumn(idx, 'up')} disabled={idx === 0}>▲</button>
+                  <button className="move-btn" onClick={() => handleMoveTableColumn(idx, 'down')} disabled={idx === tableColumns.length - 1}>▼</button>
+                </span>
+                <span className="sc-col sc-label" style={{flex: 2}}>
+                  <input
+                    type="text"
+                    className="label-input"
+                    value={col.label}
+                    onChange={e => handleTableColumnLabelChange(col.key, e.target.value)}
+                    disabled={isFixed}
+                  />
+                  {isFixed && <span className="badge core" style={{marginLeft: 8}}>Fixed</span>}
+                </span>
+                <span className="sc-col sc-type">
+                  <span className={`type-badge type-${col.type}`}>
+                    {col.type === 'system' ? '⚙️ System' : '✨ Custom'}
+                  </span>
+                </span>
+                <span className="sc-col sc-enabled">
+                  <label className="toggle-switch">
+                    <input
+                      type="checkbox"
+                      checked={col.enabled}
+                      onChange={() => handleToggleTableColumn(col.key)}
+                      disabled={isFixed}
+                    />
+                    <span className="toggle-slider" />
+                  </label>
+                </span>
+                <span className="sc-col sc-actions">
+                  {col.type === 'custom' && (
+                    <button
+                      className="delete-field-btn"
+                      onClick={() => handleRemoveTableColumn(col.key)}
+                      title="Remove custom column"
+                    >
+                      🗑️
+                    </button>
+                  )}
+                  {isFixed && <span className="core-lock" title="Fixed column">🔒</span>}
+                </span>
+              </div>
+            )})}
+          </div>
+
+          {/* Add Custom Field Columns */}
+          {availableCustomFields.length > 0 && (
+            <div className="add-stage-cards">
+              <h3>Add Custom Field Columns</h3>
+              <p className="section-desc-small">Click a custom field to add it as a table column</p>
+              <div className="available-stages">
+                {availableCustomFields.map(field => (
+                  <button
+                    key={field.fieldKey}
+                    className="stage-add-btn"
+                    onClick={() => handleAddCustomFieldColumn(field)}
+                    style={{ borderColor: '#6366f1', color: '#6366f1' }}
+                  >
+                    + {field.label}
                   </button>
                 ))}
               </div>

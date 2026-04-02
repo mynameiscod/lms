@@ -230,3 +230,101 @@ export const updateStatsCardsConfig = async (req: AuthenticatedRequest, res: Res
     res.status(500).json({ success: false, message: 'Failed to update stats cards config', error: error.message });
   }
 };
+
+// Default table columns
+const DEFAULT_TABLE_COLUMNS = [
+  { key: 'select', type: 'system', label: 'Select', enabled: true, order: 0, width: '40px' },
+  { key: 'lead', type: 'system', label: 'Lead', enabled: true, order: 1 },
+  { key: 'priority', type: 'system', label: 'Priority', enabled: true, order: 2 },
+  { key: 'stage', type: 'system', label: 'Stage', enabled: true, order: 3 },
+  { key: 'source', type: 'system', label: 'Source', enabled: true, order: 4 },
+  { key: 'assignedTo', type: 'system', label: 'Assigned To', enabled: true, order: 5 },
+  { key: 'followUp', type: 'system', label: 'Next Follow-up', enabled: true, order: 6 },
+  { key: 'created', type: 'system', label: 'Created', enabled: true, order: 7 },
+  { key: 'actions', type: 'system', label: 'Actions', enabled: true, order: 8, width: '60px' }
+];
+
+// Get table columns configuration
+export const getTableColumnsConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    let config = await LeadFormConfig.findOne({ tenantId: req.tenantId });
+
+    if (!config) {
+      config = await LeadFormConfig.create({
+        tenantId: req.tenantId,
+        fields: DEFAULT_FIELDS,
+        sources: DEFAULT_SOURCES,
+        tableColumns: DEFAULT_TABLE_COLUMNS
+      });
+    }
+
+    // Return configured columns or defaults
+    const columns = config.tableColumns && config.tableColumns.length > 0 
+      ? config.tableColumns 
+      : DEFAULT_TABLE_COLUMNS;
+
+    res.json({ 
+      success: true, 
+      message: 'Table columns config fetched', 
+      data: columns 
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch table columns config', error: error.message });
+  }
+};
+
+// Update table columns configuration
+export const updateTableColumnsConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { tableColumns } = req.body;
+
+    if (!tableColumns || !Array.isArray(tableColumns)) {
+      return res.status(400).json({ success: false, message: 'tableColumns array is required' });
+    }
+
+    // Validate each table column
+    for (const col of tableColumns) {
+      if (!col.key || !col.label || !col.type) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Each table column must have key, label, and type' 
+        });
+      }
+      
+      const validTypes = ['system', 'custom'];
+      if (!validTypes.includes(col.type)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Invalid type for column "${col.label}". Must be one of: ${validTypes.join(', ')}` 
+        });
+      }
+    }
+
+    // Check for duplicate keys
+    const keys = tableColumns.map((c: any) => c.key);
+    const duplicates = keys.filter((k: string, i: number) => keys.indexOf(k) !== i);
+    if (duplicates.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Duplicate table column keys: ${duplicates.join(', ')}` 
+      });
+    }
+
+    let config = await LeadFormConfig.findOne({ tenantId: req.tenantId });
+    if (!config) {
+      config = await LeadFormConfig.create({
+        tenantId: req.tenantId,
+        fields: DEFAULT_FIELDS,
+        sources: DEFAULT_SOURCES,
+        tableColumns
+      });
+    } else {
+      config.tableColumns = tableColumns;
+      await config.save();
+    }
+
+    res.json({ success: true, message: 'Table columns config updated', data: config.tableColumns });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update table columns config', error: error.message });
+  }
+};

@@ -41,6 +41,16 @@ interface StatsCard {
   source?: string;
 }
 
+interface TableColumn {
+  key: string;
+  type: 'system' | 'custom';
+  label: string;
+  enabled: boolean;
+  order: number;
+  width?: string;
+  fieldKey?: string;
+}
+
 const SOURCES = ['website','walkin','referral','social_media','google_ads','whatsapp','phone','other'];
 const SOURCE_LABELS: Record<string,string> = {
   website:'Website', walkin:'Walk-in', referral:'Referral', social_media:'Social Media',
@@ -86,6 +96,7 @@ const LeadsPage: React.FC = () => {
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [configSources, setConfigSources] = useState<string[]>(SOURCES);
   const [statsCardsConfig, setStatsCardsConfig] = useState<StatsCard[]>([]);
+  const [tableColumnsConfig, setTableColumnsConfig] = useState<TableColumn[]>([]);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -189,6 +200,11 @@ const LeadsPage: React.FC = () => {
         const statsRes = await leadFormConfigApi.getStatsCardsConfig();
         if (statsRes.data && statsRes.data.length > 0) {
           setStatsCardsConfig(statsRes.data.filter((c: StatsCard) => c.enabled).sort((a: StatsCard, b: StatsCard) => a.order - b.order));
+        }
+        // Load table columns configuration
+        const columnsRes = await leadFormConfigApi.getTableColumnsConfig();
+        if (columnsRes.data && columnsRes.data.length > 0) {
+          setTableColumnsConfig(columnsRes.data.filter((c: TableColumn) => c.enabled).sort((a: TableColumn, b: TableColumn) => a.order - b.order));
         }
       } catch {}
       try {
@@ -713,25 +729,38 @@ const LeadsPage: React.FC = () => {
                 <table className="crm-table">
                   <thead>
                     <tr>
-                      <th style={{width:40}}>
-                        <input type="checkbox"
-                          checked={leads.length>0&&selectedLeads.size===leads.length}
-                          onChange={toggleSelectAll}
-                          title="Select all"/>
-                      </th>
-                      <th>Lead</th>
-                      <th>Priority</th>
-                      <th>Stage</th>
-                      <th>Source</th>
-                      <th>Assigned To</th>
-                      <th>Next Follow-up</th>
-                      <th>Created</th>
-                      <th></th>
+                      {/* Render configured columns or default */}
+                      {(tableColumnsConfig.length > 0 ? tableColumnsConfig : [
+                        { key: 'select', label: 'Select', enabled: true, order: 0, type: 'system' as const },
+                        { key: 'lead', label: 'Lead', enabled: true, order: 1, type: 'system' as const },
+                        { key: 'priority', label: 'Priority', enabled: true, order: 2, type: 'system' as const },
+                        { key: 'stage', label: 'Stage', enabled: true, order: 3, type: 'system' as const },
+                        { key: 'source', label: 'Source', enabled: true, order: 4, type: 'system' as const },
+                        { key: 'assignedTo', label: 'Assigned To', enabled: true, order: 5, type: 'system' as const },
+                        { key: 'followUp', label: 'Next Follow-up', enabled: true, order: 6, type: 'system' as const },
+                        { key: 'created', label: 'Created', enabled: true, order: 7, type: 'system' as const },
+                        { key: 'actions', label: '', enabled: true, order: 8, type: 'system' as const }
+                      ]).map(col => {
+                        if (col.key === 'select') {
+                          return (
+                            <th key={col.key} style={{width: 40}}>
+                              <input type="checkbox"
+                                checked={leads.length>0&&selectedLeads.size===leads.length}
+                                onChange={toggleSelectAll}
+                                title="Select all"/>
+                            </th>
+                          );
+                        }
+                        if (col.key === 'actions') {
+                          return <th key={col.key}></th>;
+                        }
+                        return <th key={col.key}>{col.label}</th>;
+                      })}
                     </tr>
                   </thead>
                   <tbody>
                     {leads.length===0 ? (
-                      <tr><td colSpan={9}>
+                      <tr><td colSpan={(tableColumnsConfig.length > 0 ? tableColumnsConfig : [{ key: 'default' }]).length || 9}>
                         <div className="crm-empty" style={{padding:'50px 0'}}>
                           <div className="crm-empty-icon">&#128269;</div>
                           <h3>No leads found</h3>
@@ -747,88 +776,146 @@ const LeadsPage: React.FC = () => {
                         :'Not set';
                       const fuClass=!lead.nextFollowUp?'none':fuState==='overdue'?'overdue':fuState==='today'?'today':'ok';
                       const isSelected=selectedLeads.has(lead._id);
+                      const customFields = (lead as any).customFields || {};
+                      
+                      const renderColumnCell = (col: TableColumn) => {
+                        switch (col.key) {
+                          case 'select':
+                            return (
+                              <td key={col.key} onClick={e=>e.stopPropagation()} style={{width:40}}>
+                                <input type="checkbox" checked={isSelected}
+                                  onChange={()=>toggleSelectLead(lead._id)}
+                                  onClick={e=>e.stopPropagation()}/>
+                              </td>
+                            );
+                          case 'lead':
+                            return (
+                              <td key={col.key}>
+                                <div className="crm-lead-cell">
+                                  <div className="crm-lead-avatar">{initials(lead.name)}</div>
+                                  <div>
+                                    <div className="crm-lead-info-name">{lead.name}</div>
+                                    <div className="crm-lead-info-phone">{lead.phone}</div>
+                                    {lead.email&&<div className="crm-lead-info-email">{lead.email}</div>}
+                                  </div>
+                                </div>
+                              </td>
+                            );
+                          case 'priority':
+                            return (
+                              <td key={col.key}>
+                                {lead.priority ? (
+                                  <span className="crm-priority-badge" style={{
+                                    backgroundColor: PRIORITY_COLORS[lead.priority].bg,
+                                    color: PRIORITY_COLORS[lead.priority].text
+                                  }}>
+                                    {PRIORITY_COLORS[lead.priority].label}
+                                    {lead.score !== undefined && <span className="crm-priority-score"> ({lead.score})</span>}
+                                  </span>
+                                ) : (
+                                  <span className="crm-unassigned">—</span>
+                                )}
+                              </td>
+                            );
+                          case 'stage':
+                            return (
+                              <td key={col.key} onClick={e=>e.stopPropagation()}>
+                                {stage&&(
+                                  <select className="crm-stage-select"
+                                    value={stage._id}
+                                    onChange={e=>handleStageChange(lead._id,e.target.value)}
+                                    style={{borderLeft:`3px solid ${stage.color}`}}>
+                                    {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
+                                  </select>
+                                )}
+                              </td>
+                            );
+                          case 'source':
+                            return (
+                              <td key={col.key}>
+                                <span className={`crm-source-badge crm-source-${lead.source}`}>
+                                  {SOURCE_LABELS[lead.source]||lead.source.replace('_',' ')}
+                                </span>
+                              </td>
+                            );
+                          case 'assignedTo':
+                            return (
+                              <td key={col.key}>
+                                {assignee ? (
+                                  <div className="crm-assigned-cell">
+                                    <span className="crm-assigned-avatar">{initials(assignee.firstName+' '+assignee.lastName)}</span>
+                                    {assignee.firstName} {assignee.lastName}
+                                  </div>
+                                ) : <span className="crm-unassigned">Unassigned</span>}
+                              </td>
+                            );
+                          case 'followUp':
+                            return (
+                              <td key={col.key}>
+                                <span className={`crm-followup-${fuClass}`} dangerouslySetInnerHTML={{__html: fuText}}/>
+                              </td>
+                            );
+                          case 'created':
+                            return <td key={col.key} className="crm-td-date">{formatShort(lead.createdAt)}</td>;
+                          case 'actions':
+                            return (
+                              <td key={col.key} onClick={e=>e.stopPropagation()} style={{position:'relative'}}>
+                                <button className="crm-row-menu-btn"
+                                  onClick={()=>setOpenMenuId(openMenuId===lead._id?null:lead._id)}>
+                                  &bull;&bull;&bull;
+                                </button>
+                                {openMenuId===lead._id&&(
+                                  <div className="crm-row-menu">
+                                    <button className="crm-row-menu-item"
+                                      onClick={()=>{navigate(`/leads/${lead._id}`);setOpenMenuId(null);}}>
+                                      &#128065; View Details
+                                    </button>
+                                    <button className="crm-row-menu-item"
+                                      onClick={()=>{handleOpenEdit(lead);setOpenMenuId(null);}}>
+                                      &#9998; Edit Lead
+                                    </button>
+                                    {canDelete&&(<>
+                                    <div className="crm-row-menu-divider"/>
+                                    <button className="crm-row-menu-item danger"
+                                      onClick={()=>{handleDelete(lead);setOpenMenuId(null);}}>
+                                      &#128465; Delete
+                                    </button>
+                                    </>)}
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          default:
+                            // Custom field column
+                            if (col.type === 'custom' && col.fieldKey) {
+                              const value = customFields[col.fieldKey];
+                              return (
+                                <td key={col.key}>
+                                  {value !== undefined && value !== null && value !== '' ? (
+                                    typeof value === 'boolean' ? (value ? '✓' : '✗') : String(value)
+                                  ) : (
+                                    <span className="crm-unassigned">—</span>
+                                  )}
+                                </td>
+                              );
+                            }
+                            return <td key={col.key}>—</td>;
+                        }
+                      };
+                      
                       return (
                         <tr key={lead._id} className={isSelected?'crm-row-selected':''} onClick={()=>navigate(`/leads/${lead._id}`)}>
-                          <td onClick={e=>e.stopPropagation()} style={{width:40}}>
-                            <input type="checkbox" checked={isSelected}
-                              onChange={()=>toggleSelectLead(lead._id)}
-                              onClick={e=>e.stopPropagation()}/>
-                          </td>
-                          <td>
-                            <div className="crm-lead-cell">
-                              <div className="crm-lead-avatar">{initials(lead.name)}</div>
-                              <div>
-                                <div className="crm-lead-info-name">{lead.name}</div>
-                                <div className="crm-lead-info-phone">{lead.phone}</div>
-                                {lead.email&&<div className="crm-lead-info-email">{lead.email}</div>}
-                              </div>
-                            </div>
-                          </td>
-                          <td>
-                            {lead.priority ? (
-                              <span className="crm-priority-badge" style={{
-                                backgroundColor: PRIORITY_COLORS[lead.priority].bg,
-                                color: PRIORITY_COLORS[lead.priority].text
-                              }}>
-                                {PRIORITY_COLORS[lead.priority].label}
-                                {lead.score !== undefined && <span className="crm-priority-score"> ({lead.score})</span>}
-                              </span>
-                            ) : (
-                              <span className="crm-unassigned">—</span>
-                            )}
-                          </td>
-                          <td onClick={e=>e.stopPropagation()}>
-                            {stage&&(
-                              <select className="crm-stage-select"
-                                value={stage._id}
-                                onChange={e=>handleStageChange(lead._id,e.target.value)}
-                                style={{borderLeft:`3px solid ${stage.color}`}}>
-                                {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
-                              </select>
-                            )}
-                          </td>
-                          <td>
-                            <span className={`crm-source-badge crm-source-${lead.source}`}>
-                              {SOURCE_LABELS[lead.source]||lead.source.replace('_',' ')}
-                            </span>
-                          </td>
-                          <td>
-                            {assignee ? (
-                              <div className="crm-assigned-cell">
-                                <span className="crm-assigned-avatar">{initials(assignee.firstName+' '+assignee.lastName)}</span>
-                                {assignee.firstName} {assignee.lastName}
-                              </div>
-                            ) : <span className="crm-unassigned">Unassigned</span>}
-                          </td>
-                          <td>
-                            <span className={`crm-followup-${fuClass}`}>{fuText}</span>
-                          </td>
-                          <td className="crm-td-date">{formatShort(lead.createdAt)}</td>
-                          <td onClick={e=>e.stopPropagation()} style={{position:'relative'}}>
-                            <button className="crm-row-menu-btn"
-                              onClick={()=>setOpenMenuId(openMenuId===lead._id?null:lead._id)}>
-                              &bull;&bull;&bull;
-                            </button>
-                            {openMenuId===lead._id&&(
-                              <div className="crm-row-menu">
-                                <button className="crm-row-menu-item"
-                                  onClick={()=>{navigate(`/leads/${lead._id}`);setOpenMenuId(null);}}>
-                                  &#128065; View Details
-                                </button>
-                                <button className="crm-row-menu-item"
-                                  onClick={()=>{handleOpenEdit(lead);setOpenMenuId(null);}}>
-                                  &#9998; Edit Lead
-                                </button>
-                                {canDelete&&(<>
-                                <div className="crm-row-menu-divider"/>
-                                <button className="crm-row-menu-item danger"
-                                  onClick={()=>{handleDelete(lead);setOpenMenuId(null);}}>
-                                  &#128465; Delete
-                                </button>
-                                </>)}
-                              </div>
-                            )}
-                          </td>
+                          {(tableColumnsConfig.length > 0 ? tableColumnsConfig : [
+                            { key: 'select', label: 'Select', enabled: true, order: 0, type: 'system' as const },
+                            { key: 'lead', label: 'Lead', enabled: true, order: 1, type: 'system' as const },
+                            { key: 'priority', label: 'Priority', enabled: true, order: 2, type: 'system' as const },
+                            { key: 'stage', label: 'Stage', enabled: true, order: 3, type: 'system' as const },
+                            { key: 'source', label: 'Source', enabled: true, order: 4, type: 'system' as const },
+                            { key: 'assignedTo', label: 'Assigned To', enabled: true, order: 5, type: 'system' as const },
+                            { key: 'followUp', label: 'Next Follow-up', enabled: true, order: 6, type: 'system' as const },
+                            { key: 'created', label: 'Created', enabled: true, order: 7, type: 'system' as const },
+                            { key: 'actions', label: '', enabled: true, order: 8, type: 'system' as const }
+                          ]).map(col => renderColumnCell(col))}
                         </tr>
                       );
                     })}

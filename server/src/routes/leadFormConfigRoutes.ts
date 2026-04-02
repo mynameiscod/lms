@@ -5,7 +5,9 @@ import {
   addCustomField,
   deleteCustomField,
   getStatsCardsConfig,
-  updateStatsCardsConfig
+  updateStatsCardsConfig,
+  getTableColumnsConfig,
+  updateTableColumnsConfig
 } from '../controllers/leadFormConfigController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -23,5 +25,9 @@ router.delete('/fields/:fieldKey', authMiddleware, tenantResolver, roleGuard(['m
 // Stats cards configuration
 router.get('/stats-cards', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_leads', 'create_leads', 'edit_leads']), getStatsCardsConfig);
 router.put('/stats-cards', authMiddleware, tenantResolver, roleGuard(['manage_leads']), updateStatsCardsConfig);
+
+// Table columns configuration
+router.get('/table-columns', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_leads', 'create_leads', 'edit_leads']), getTableColumnsConfig);
+router.put('/table-columns', authMiddleware, tenantResolver, roleGuard(['manage_leads']), updateTableColumnsConfig);
 
 export default router;

@@ -75,6 +75,17 @@ export interface IStatsCard {
   source?: string;       // For source-based cards
 }
 
+// Table column configuration
+export interface ITableColumn {
+  key: string;           // Unique identifier: 'lead', 'priority', 'stage', 'source', 'assignedTo', 'followUp', 'created', 'custom_xyz'
+  type: 'system' | 'custom';  // system = built-in columns, custom = custom field columns
+  label: string;
+  enabled: boolean;
+  order: number;
+  width?: string;        // Optional width (e.g., '150px', '10%')
+  fieldKey?: string;     // For custom field columns, the field key
+}
+
 export interface ILeadFormConfig extends Document {
   tenantId: mongoose.Types.ObjectId;
   fields: ILeadFormField[];
@@ -100,6 +111,9 @@ export interface ILeadFormConfig extends Document {
   
   // Stats cards configuration
   statsCards?: IStatsCard[];
+  
+  // Table columns configuration
+  tableColumns?: ITableColumn[];
   
   createdAt: Date;
   updatedAt: Date;
@@ -210,6 +224,23 @@ const StatsCardSchema: Schema = new Schema(
   { _id: false }
 );
 
+const TableColumnSchema: Schema = new Schema(
+  {
+    key: { type: String, required: true, trim: true },
+    type: {
+      type: String,
+      enum: ['system', 'custom'],
+      default: 'system'
+    },
+    label: { type: String, required: true, trim: true },
+    enabled: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+    width: { type: String, trim: true },
+    fieldKey: { type: String, trim: true }
+  },
+  { _id: false }
+);
+
 const LeadFormConfigSchema: Schema = new Schema(
   {
     tenantId: {
@@ -238,7 +269,8 @@ const LeadFormConfigSchema: Schema = new Schema(
       requirePhoneVerification: { type: Boolean, default: false },
       requireEmailVerification: { type: Boolean, default: false }
     },
-    statsCards: [StatsCardSchema]
+    statsCards: [StatsCardSchema],
+    tableColumns: [TableColumnSchema]
   },
   { timestamps: true }
 );

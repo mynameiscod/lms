@@ -1820,6 +1820,16 @@ export const leadFormConfigApi = {
       method: 'PUT',
       body: JSON.stringify({ statsCards })
     });
+  },
+  // Table columns configuration
+  getTableColumnsConfig: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config/table-columns`);
+  },
+  updateTableColumnsConfig: async (tableColumns: any[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config/table-columns`, {
+      method: 'PUT',
+      body: JSON.stringify({ tableColumns })
+    });
   }
 };
 

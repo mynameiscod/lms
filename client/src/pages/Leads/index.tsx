@@ -589,28 +589,6 @@ const LeadsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="crm-stage-tabs">
-        <button className={`crm-stage-tab${activeStageFilter===''?' active':''}`}
-          style={activeStageFilter===''?{'--tab-color':'#2563eb','--tab-bg':'#eff6ff'} as React.CSSProperties:{}}
-          onClick={()=>setActiveStageFilter('')}>
-          All <span className="crm-stage-tab-count">{leads.length}</span>
-        </button>
-        {stages.map(stage=>{
-          const count=leads.filter(l=>getStage(l)?._id===stage._id).length;
-          const isActive=activeStageFilter===stage._id;
-          return (
-            <button key={stage._id}
-              className={`crm-stage-tab${isActive?' active':''}`}
-              style={isActive?{'--tab-color':stage.color,'--tab-bg':stage.color+'18'} as React.CSSProperties:{}}
-              onClick={()=>setActiveStageFilter(isActive?'':stage._id)}>
-              <span className="crm-stage-tab-dot" style={{backgroundColor:stage.color}}/>
-              {stage.name}
-              <span className="crm-stage-tab-count">{count}</span>
-            </button>
-          );
-        })}
-      </div>
-
       {stages.length===0 ? (
         <div className="crm-empty">
           <div className="crm-empty-icon">&#128202;</div>

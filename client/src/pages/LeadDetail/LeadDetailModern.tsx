@@ -72,35 +72,33 @@ const LeadHeader: React.FC<{
   };
 
   return (
-    <div className="lead-header sticky-top">
-      <div className="container-fluid">
-        <div className="row align-items-center">
-          <div className="col-auto">
-            <button className="btn btn-link text-dark p-0" onClick={onBack}>
-              <i className="bi bi-arrow-left fs-4"></i>
-            </button>
-          </div>
-          <div className="col">
-            <h1 className="lead-name mb-0">{lead.name}</h1>
-            <span className={`badge ${getPriorityClass(lead.priority)} priority-badge`}>
-              {lead.priority || 'Cold'} Lead
-            </span>
-          </div>
-          <div className="col-auto d-none d-md-flex gap-2">
-            <button className="btn btn-outline-success btn-action" onClick={onCall}>
-              <i className="bi bi-telephone-fill"></i> Call
-            </button>
-            <button className="btn btn-success btn-action" onClick={onWhatsApp}>
-              <i className="bi bi-whatsapp"></i> WhatsApp
-            </button>
-            <button className="btn btn-outline-primary btn-action" onClick={onFollowUp}>
-              <i className="bi bi-calendar-plus"></i> Follow-up
-            </button>
-            <button className="btn btn-primary btn-action" onClick={onConvert}>
-              <i className="bi bi-person-check"></i> Convert
-            </button>
-          </div>
-        </div>
+    <div className="lead-header">
+      <button className="btn btn-link" onClick={onBack}>
+        <i className="bi bi-arrow-left fs-4"></i>
+      </button>
+      <div className="header-info">
+        <h1 className="lead-name">{lead.name}</h1>
+        <span className={`badge ${getPriorityClass(lead.priority)} priority-badge`}>
+          {lead.priority || 'Cold'} Lead
+        </span>
+      </div>
+      <div className="header-actions">
+        <button className="btn btn-outline-success btn-action" onClick={onCall}>
+          <i className="bi bi-telephone-fill"></i>
+          <span>Call</span>
+        </button>
+        <button className="btn btn-success btn-action" onClick={onWhatsApp}>
+          <i className="bi bi-whatsapp"></i>
+          <span>WhatsApp</span>
+        </button>
+        <button className="btn btn-outline-primary btn-action" onClick={onFollowUp}>
+          <i className="bi bi-calendar-plus"></i>
+          <span>Follow-up</span>
+        </button>
+        <button className="btn btn-primary btn-action" onClick={onConvert}>
+          <i className="bi bi-person-check"></i>
+          <span>Convert</span>
+        </button>
       </div>
     </div>
   );

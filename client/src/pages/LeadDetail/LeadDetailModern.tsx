@@ -109,8 +109,8 @@ const LeadHeader: React.FC<{
 // 2. Lead Summary Card Component
 const LeadSummaryCard: React.FC<{ lead: Lead }> = ({ lead }) => {
   const infoItems = [
-    { icon: 'bi-telephone', label: 'Phone', value: lead.phone },
-    { icon: 'bi-envelope', label: 'Email', value: lead.email },
+    { icon: 'bi-telephone', label: 'Phone', value: lead.phone, link: lead.phone ? `tel:${lead.phone}` : undefined },
+    { icon: 'bi-envelope', label: 'Email', value: lead.email, link: lead.email ? `mailto:${lead.email}` : undefined },
     { icon: 'bi-funnel', label: 'Source', value: lead.source },
     { icon: 'bi-book', label: 'Course', value: lead.courseInterested },
     { icon: 'bi-person', label: 'Assigned To', value: lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned' },
@@ -122,20 +122,24 @@ const LeadSummaryCard: React.FC<{ lead: Lead }> = ({ lead }) => {
   return (
     <div className="card summary-card">
       <div className="card-header">
-        <h5 className="mb-0"><i className="bi bi-person-vcard me-2"></i>Lead Information</h5>
+        <h5 className="mb-0"><i className="bi bi-person-vcard"></i>Lead Information</h5>
       </div>
       <div className="card-body">
-        <div className="row g-3">
+        <div className="info-grid">
           {infoItems.map((item, index) => (
-            <div key={index} className="col-6 col-md-6">
-              <div className="info-item">
-                <div className="info-icon">
-                  <i className={`bi ${item.icon}`}></i>
-                </div>
-                <div className="info-content">
-                  <span className="info-label">{item.label}</span>
-                  <span className="info-value">{item.value || '-'}</span>
-                </div>
+            <div key={index} className="info-item">
+              <div className="info-icon">
+                <i className={`bi ${item.icon}`}></i>
+              </div>
+              <div className="info-content">
+                <span className="info-label">{item.label}</span>
+                <span className="info-value">
+                  {item.link ? (
+                    <a href={item.link}>{item.value}</a>
+                  ) : (
+                    item.value || '-'
+                  )}
+                </span>
               </div>
             </div>
           ))}
@@ -173,33 +177,31 @@ const NextActionCard: React.FC<{
   return (
     <div className={`card next-action-card ${followUpStatus.status}`}>
       <div className="card-body">
-        <div className="d-flex justify-content-between align-items-start mb-3">
-          <div>
-            <h5 className="card-title mb-1">
-              <i className="bi bi-lightning-charge-fill me-2"></i>Next Action
-            </h5>
-            <span className={`badge status-badge status-${followUpStatus.status}`}>
-              {followUpStatus.text}
-            </span>
-          </div>
+        <div className="card-title">
+          <i className="bi bi-lightning-charge-fill"></i>
+          <span>Next Action</span>
+          <span className="status-badge">{followUpStatus.text}</span>
+        </div>
+        
+        <div className="follow-up-info">
           {lead.nextFollowUp && (
-            <div className="follow-up-time text-end">
-              <div className="fw-bold">{new Date(lead.nextFollowUp).toLocaleDateString()}</div>
-              <div className="text-muted small">{new Date(lead.nextFollowUp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div className="follow-up-time">
+              <i className="bi bi-calendar-event"></i>
+              <span>{new Date(lead.nextFollowUp).toLocaleDateString()} at {new Date(lead.nextFollowUp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
             </div>
           )}
         </div>
         
-        <div className="ai-suggestion mb-3">
-          <i className="bi bi-robot me-2"></i>
+        <div className="ai-suggestion">
+          <i className="bi bi-robot"></i>
           <span>{suggestedAction}</span>
         </div>
 
-        <div className="d-flex gap-2">
-          <button className="btn btn-success flex-fill" onClick={onCallNow}>
+        <div className="action-buttons">
+          <button className="btn btn-light" onClick={onCallNow}>
             <i className="bi bi-telephone-fill me-2"></i>Call Now
           </button>
-          <button className="btn btn-outline-primary flex-fill" onClick={onScheduleFollowUp}>
+          <button className="btn btn-outline-light" onClick={onScheduleFollowUp}>
             <i className="bi bi-calendar-plus me-2"></i>Schedule
           </button>
         </div>
@@ -220,7 +222,7 @@ const StageStepper: React.FC<{
   return (
     <div className="card stage-stepper-card">
       <div className="card-header">
-        <h5 className="mb-0"><i className="bi bi-signpost-split me-2"></i>Lead Stage</h5>
+        <h5 className="mb-0"><i className="bi bi-signpost-split"></i>Lead Stage</h5>
       </div>
       <div className="card-body">
         <div className="stage-stepper">

@@ -783,9 +783,9 @@ const LeadDetailModern: React.FC = () => {
       // Find the stage ID from the stage name
       const stage = stages.find(s => s.name === newStage);
       if (stage) {
-        await leadApi.changeStage(id!, stage._id);
+        await leadApi.changeStage(leadId!, stage._id);
       } else {
-        await leadApi.updateLead(id!, { stage: newStage });
+        await leadApi.updateLead(leadId!, { stage: newStage });
       }
       setLead(prev => prev ? { ...prev, stage: newStage } : null);
       showToast(`Stage updated to ${newStage}`);
@@ -797,7 +797,7 @@ const LeadDetailModern: React.FC = () => {
 
   const handlePriorityChange = async (newPriority: string) => {
     try {
-      await leadApi.updateLead(id!, { priority: newPriority });
+      await leadApi.updateLead(leadId!, { priority: newPriority });
       setLead(prev => prev ? { ...prev, priority: newPriority } : null);
       showToast(`Priority updated to ${newPriority}`);
     } catch (error) {
@@ -807,7 +807,7 @@ const LeadDetailModern: React.FC = () => {
 
   const handleAddNote = async (content: string, type: string) => {
     try {
-      await leadApi.addActivity(id!, { type, description: content });
+      await leadApi.addActivity(leadId!, { type, description: content });
       showToast('Activity added successfully');
       fetchLead();
     } catch (error) {
@@ -817,7 +817,7 @@ const LeadDetailModern: React.FC = () => {
 
   const handleFollowUpSave = async (dateTime: string) => {
     try {
-      await leadApi.updateLead(id!, { nextFollowUp: dateTime });
+      await leadApi.updateLead(leadId!, { nextFollowUp: dateTime });
       setLead(prev => prev ? { ...prev, nextFollowUp: dateTime } : null);
       showToast('Follow-up scheduled');
     } catch (error) {
@@ -827,7 +827,7 @@ const LeadDetailModern: React.FC = () => {
 
   const handleChecklistSave = async (answers: Record<string, string>) => {
     try {
-      await leadApi.updateLead(id!, { checklistAnswers: answers });
+      await leadApi.updateLead(leadId!, { checklistAnswers: answers });
       setLead(prev => prev ? { ...prev, checklistAnswers: answers } : null);
       showToast('Checklist saved');
     } catch (error) {
@@ -853,7 +853,7 @@ const LeadDetailModern: React.FC = () => {
   };
 
   const handleConvert = () => {
-    navigate(`/leads/${id}/convert`);
+    navigate(`/leads/${leadId}/convert`);
   };
 
   if (loading) {

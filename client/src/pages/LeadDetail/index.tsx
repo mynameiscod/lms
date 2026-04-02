@@ -5,6 +5,7 @@ import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, 
 import MeetingScheduler from '../../components/leads/MeetingScheduler';
 import PaymentLinkModal from '../../components/leads/PaymentLinkModal';
 import LostReasonModal from '../../components/leads/LostReasonModal';
+import LeadDetailModern from './LeadDetailModern';
 import './LeadDetailNew.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
@@ -1256,7 +1257,6 @@ const LeadDetail: React.FC = () => {
 };
 
 // Export the new modern component
-import LeadDetailModern from './LeadDetailModern';
 export default LeadDetailModern;
 
 // Keep old component as backup

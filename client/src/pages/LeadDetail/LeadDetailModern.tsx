@@ -11,8 +11,10 @@ interface Lead {
   phone?: string;
   source?: string;
   stage?: string;
+  stageId?: { _id: string; name: string; color: string; order: number } | string;
   priority?: string;
   assignedTo?: { _id: string; firstName: string; lastName: string } | null;
+  courseInterest?: string[];
   courseInterested?: string;
   location?: string;
   qualification?: string;
@@ -24,6 +26,7 @@ interface Lead {
   updatedAt?: string;
   activities?: Activity[];
   checklistAnswers?: Record<string, string>;
+  qualificationAnswers?: Record<string, any>;
 }
 
 interface Activity {
@@ -700,7 +703,27 @@ const LeadDetailModern: React.FC = () => {
   const fetchLead = useCallback(async () => {
     try {
       const response = await leadApi.getLeadById(id!);
-      setLead(response.data);
+      const leadData = response.data;
+      // Map the API response to our Lead interface
+      const mappedLead: Lead = {
+        ...leadData,
+        // Extract stage name from stageId object if it's an object
+        stage: typeof leadData.stageId === 'object' && leadData.stageId 
+          ? leadData.stageId.name 
+          : leadData.stage || '',
+        // Convert courseInterest array to string
+        courseInterested: Array.isArray(leadData.courseInterest) 
+          ? leadData.courseInterest.join(', ') 
+          : leadData.courseInterested || leadData.courseInterest || '',
+        // Map qualificationAnswers to checklistAnswers format
+        checklistAnswers: leadData.qualificationAnswers 
+          ? Object.entries(leadData.qualificationAnswers).reduce((acc: Record<string, string>, [key, val]: [string, any]) => {
+              acc[key] = val?.answer || '';
+              return acc;
+            }, {})
+          : {}
+      };
+      setLead(mappedLead);
     } catch (error) {
       console.error('Error fetching lead:', error);
       showToast('Failed to fetch lead details', 'danger');

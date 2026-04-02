@@ -18,15 +18,15 @@ const Navbar: React.FC<NavbarProps> = ({ onHamburgerClick }) => {
   };
 
   return (
-    <nav className="navbar">
-      <div className="navbar-container">
-        <div className="navbar-left">
+    <nav className="app-navbar">
+      <div className="app-navbar-container">
+        <div className="app-navbar-left">
           {onHamburgerClick && (
-            <button className="navbar-hamburger" onClick={onHamburgerClick} aria-label="Toggle menu">
+            <button className="app-navbar-hamburger" onClick={onHamburgerClick} aria-label="Toggle menu">
               &#9776;
             </button>
           )}
-          <div className="navbar-logo">
+          <div className="app-navbar-logo">
             <img 
               src="/assets/logo.png" 
               alt="Logo" 
@@ -35,7 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({ onHamburgerClick }) => {
           </div>
         </div>
 
-        <div className="navbar-user">
+        <div className="app-navbar-user">
           {user ? (
             <>
               <Link to="/profile" className="profile-link" title="View your profile">

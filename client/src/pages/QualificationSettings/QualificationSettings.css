@@ -1,153 +1,453 @@
-/* Qualification Settings - Bootstrap Enhancement Styles */
+/* Qualification Settings - Clean Professional Styles */
 
-/* Nav tabs */
-.nav-tabs .nav-link {
-  color: #6c757d;
+/* Page container */
+.qualification-page {
+  background: #f8fafc;
+  min-height: 100vh;
+}
+
+/* Header */
+.qualification-page h1 {
+  font-size: 1.5rem;
+  color: #1e293b;
+}
+
+/* Nav tabs - Clean underline style */
+.qualification-page .nav-tabs {
+  border-bottom: 1px solid #e2e8f0;
+  gap: 0;
+}
+
+.qualification-page .nav-tabs .nav-link {
+  color: #64748b;
   border: none;
   border-bottom: 2px solid transparent;
   padding: 12px 20px;
   font-weight: 500;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  background: transparent;
+  margin-bottom: -1px;
+  transition: all 0.15s ease;
 }
 
-.nav-tabs .nav-link:hover {
-  color: #0d6efd;
-  border-color: transparent;
-}
-
-.nav-tabs .nav-link.active {
-  color: #0d6efd;
-  border-bottom-color: #0d6efd;
+.qualification-page .nav-tabs .nav-link:hover {
+  color: #3b82f6;
+  border-bottom-color: transparent;
   background: transparent;
 }
 
-/* Cards */
-.card {
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: all 0.2s ease;
+.qualification-page .nav-tabs .nav-link.active {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+  background: transparent;
 }
 
-.card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+/* Question Cards - Clean flat design */
+.qualification-page .card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.card-header {
-  border-bottom: 1px solid #e9ecef;
-  padding: 16px 20px;
+.qualification-page .card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.card-body {
-  padding: 20px;
+.qualification-page .card-body {
+  padding: 16px;
 }
 
-/* Badge styles */
-.badge {
-  font-weight: 500;
-  padding: 6px 10px;
-}
-
-/* Form switches */
-.form-check-input:checked {
-  background-color: #0d6efd;
-  border-color: #0d6efd;
-}
-
-.form-switch .form-check-input {
-  width: 3em;
-  height: 1.5em;
-}
-
-/* Form controls */
-.form-control, .form-select {
-  border-radius: 8px;
-  padding: 10px 14px;
-  border: 1px solid #dee2e6;
-  transition: all 0.2s ease;
-}
-
-.form-control:focus, .form-select:focus {
-  border-color: #0d6efd;
-  box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.15);
-}
-
-/* Buttons */
-.btn {
-  border-radius: 8px;
-  padding: 10px 20px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.btn-sm {
-  padding: 6px 12px;
-}
-
-/* Modal */
-.modal-content {
-  border-radius: 16px;
-  border: none;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
-}
-
-.modal-header {
-  border-bottom: 1px solid #e9ecef;
-  padding: 20px 24px;
-}
-
-.modal-body {
-  padding: 24px;
-}
-
-.modal-footer {
-  border-top: 1px solid #e9ecef;
-  padding: 16px 24px;
-}
-
-/* Table */
-.table {
-  margin-bottom: 0;
-}
-
-.table th {
+.qualification-page .card-header {
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 14px 16px;
   font-weight: 600;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-/* Progress bar */
-.progress {
-  background-color: rgba(255, 255, 255, 0.3);
+/* Question item specific */
+.question-card {
+  border-left: 3px solid transparent;
+}
+
+.question-card:hover {
+  border-left-color: #3b82f6;
+}
+
+.question-card.disabled {
+  opacity: 0.5;
+  background: #f8fafc;
+}
+
+/* Order number */
+.question-order {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Order buttons */
+.order-btn {
+  width: 28px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  border-radius: 4px;
+  font-size: 10px;
+  transition: all 0.15s ease;
+}
+
+.order-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #3b82f6;
+}
+
+.order-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* Badges - Softer colors */
+.qualification-page .badge {
+  font-weight: 500;
+  font-size: 11px;
+  padding: 4px 8px;
   border-radius: 4px;
 }
 
-/* Border dashed for empty state */
-.border-dashed {
-  border-style: dashed !important;
-  border-color: #dee2e6 !important;
+.category-badge {
+  color: white !important;
 }
 
-/* WhatsApp preview */
-.bg-success-subtle {
-  background-color: #d1e7dd !important;
+.type-badge {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+/* Action buttons */
+.action-btn {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: white;
+  color: #64748b;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.action-btn:hover {
+  background: #f8fafc;
+}
+
+.action-btn.enabled {
+  background: #10b981;
+  border-color: #10b981;
+  color: white;
+}
+
+.action-btn.edit:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+}
+
+.action-btn.delete:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+  color: white;
+}
+
+/* Question text */
+.question-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.question-meta {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Options list */
+.options-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.option-tag {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+/* Score impact */
+.score-badge {
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.score-positive {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.score-negative {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Form controls */
+.qualification-page .form-control,
+.qualification-page .form-select {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  padding: 10px 12px;
+  font-size: 14px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.qualification-page .form-control:focus,
+.qualification-page .form-select:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.qualification-page .form-label {
+  font-weight: 500;
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 6px;
+}
+
+/* Form switches */
+.qualification-page .form-switch .form-check-input {
+  width: 2.5em;
+  height: 1.25em;
+}
+
+.qualification-page .form-check-input:checked {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+}
+
+/* Buttons */
+.qualification-page .btn {
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 13px;
+  transition: all 0.15s ease;
+}
+
+.qualification-page .btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  border: none;
+}
+
+.qualification-page .btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  transform: translateY(-1px);
+}
+
+.qualification-page .btn-outline-secondary {
+  border-color: #e2e8f0;
+  color: #64748b;
+}
+
+.qualification-page .btn-outline-secondary:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #475569;
+}
+
+/* Modal */
+.qualification-page .modal-content {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.15);
+}
+
+.qualification-page .modal-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding: 16px 20px;
+}
+
+.qualification-page .modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.qualification-page .modal-body {
+  padding: 20px;
+}
+
+.qualification-page .modal-footer {
+  border-top: 1px solid #e2e8f0;
+  padding: 14px 20px;
+}
+
+/* Table */
+.qualification-page .table {
+  font-size: 13px;
+}
+
+.qualification-page .table th {
+  font-weight: 600;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 10px 12px;
+}
+
+.qualification-page .table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+/* Settings card */
+.settings-card {
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.settings-card h6 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+/* Preview styles */
+.preview-container {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid #e2e8f0;
+}
+
+.whatsapp-phone {
+  width: 300px;
+  background: linear-gradient(180deg, #075e54 0%, #128c7e 100%);
+  border-radius: 24px;
+  padding: 8px;
+  margin: 0 auto;
+}
+
+.whatsapp-screen {
+  background: #e5ddd5;
+  border-radius: 18px;
+  padding: 16px;
+  min-height: 400px;
+}
+
+.whatsapp-bubble {
+  background: #dcf8c6;
+  padding: 8px 12px;
+  border-radius: 8px;
+  max-width: 85%;
+  margin-bottom: 8px;
+  font-size: 13px;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+
+.whatsapp-bubble.incoming {
+  background: white;
+  margin-left: 0;
+  border-top-left-radius: 0;
+}
+
+.whatsapp-bubble.outgoing {
+  background: #dcf8c6;
+  margin-left: auto;
+  border-top-right-radius: 0;
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #64748b;
+}
+
+.empty-state i {
+  font-size: 48px;
+  color: #cbd5e1;
+  margin-bottom: 16px;
 }
 
 /* Alert */
-.alert {
-  border-radius: 10px;
+.qualification-page .alert {
+  border-radius: 8px;
   border: none;
+  font-size: 13px;
+  padding: 12px 16px;
+}
+
+/* Category filter pills */
+.category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px 0;
+}
+
+.category-pill {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
-  .nav-tabs .nav-link {
+  .qualification-page .nav-tabs .nav-link {
     padding: 10px 14px;
-    font-size: 14px;
+    font-size: 13px;
   }
   
-  .card-body {
-    padding: 16px;
+  .qualification-page .card-body {
+    padding: 12px;
   }
   
   .btn {

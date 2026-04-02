@@ -390,14 +390,15 @@ const QualificationSettings: React.FC = () => {
   }
 
   return (
-    <div className="container-fluid py-4 px-3 px-lg-4">
-      {/* Alert */}
-      {alert && (
-        <div className={`alert alert-${alert.type === 'success' ? 'success' : 'danger'} alert-dismissible fade show d-flex align-items-center`} role="alert">
-          <i className={`fa-solid ${alert.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
-          {alert.message}
-          <button type="button" className="btn-close" onClick={() => setAlert(null)}></button>
-        </div>
+    <div className="qualification-page">
+      <div className="container-fluid py-4 px-3 px-lg-4">
+        {/* Alert */}
+        {alert && (
+          <div className={`alert alert-${alert.type === 'success' ? 'success' : 'danger'} alert-dismissible fade show d-flex align-items-center`} role="alert">
+            <i className={`fa-solid ${alert.type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
+            {alert.message}
+            <button type="button" className="btn-close" onClick={() => setAlert(null)}></button>
+          </div>
       )}
 
       {/* Header */}
@@ -493,25 +494,23 @@ const QualificationSettings: React.FC = () => {
                   .map((q, index) => (
                   <div 
                     key={q.id} 
-                    className={`card border ${!q.enabled ? 'bg-light opacity-50' : ''}`}
+                    className={`card question-card ${!q.enabled ? 'disabled' : ''}`}
                   >
-                    <div className="card-body d-flex gap-3">
+                    <div className="card-body d-flex gap-3 align-items-start">
                       {/* Order Controls */}
-                      <div className="d-flex flex-column align-items-center" style={{ minWidth: '45px' }}>
+                      <div className="d-flex flex-column align-items-center gap-1" style={{ minWidth: '40px' }}>
                         <button 
-                          className="btn btn-sm btn-outline-secondary mb-1"
+                          className="order-btn"
                           onClick={() => moveQuestion(q.id, 'up')}
                           disabled={index === 0}
-                          style={{ width: '32px', height: '28px', padding: 0 }}
                         >
                           <i className="fa-solid fa-chevron-up"></i>
                         </button>
-                        <span className="fw-bold text-primary fs-5">{q.order}</span>
+                        <div className="question-order">{q.order}</div>
                         <button 
-                          className="btn btn-sm btn-outline-secondary mt-1"
+                          className="order-btn"
                           onClick={() => moveQuestion(q.id, 'down')}
                           disabled={index === config.questions.length - 1}
-                          style={{ width: '32px', height: '28px', padding: 0 }}
                         >
                           <i className="fa-solid fa-chevron-down"></i>
                         </button>
@@ -521,13 +520,13 @@ const QualificationSettings: React.FC = () => {
                       <div className="flex-grow-1">
                         <div className="d-flex flex-wrap gap-2 mb-2">
                           <span 
-                            className="badge"
+                            className="badge category-badge"
                             style={{ background: CATEGORIES.find(c => c.value === q.category)?.color }}
                           >
                             <i className={`fa-solid ${CATEGORIES.find(c => c.value === q.category)?.icon} me-1`}></i>
                             {CATEGORIES.find(c => c.value === q.category)?.label}
                           </span>
-                          <span className="badge bg-secondary">
+                          <span className="badge type-badge">
                             <i className={`fa-solid ${ANSWER_TYPES.find(t => t.value === q.answerType)?.icon} me-1`}></i>
                             {ANSWER_TYPES.find(t => t.value === q.answerType)?.label}
                           </span>
@@ -537,31 +536,33 @@ const QualificationSettings: React.FC = () => {
                             </span>
                           )}
                           {q.fieldToUpdate && (
-                            <span className="badge bg-info">
+                            <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1' }}>
                               <i className="fa-solid fa-arrow-right me-1"></i>{q.fieldToUpdate}
                             </span>
                           )}
                         </div>
                         
-                        <p className="fw-semibold mb-2 text-dark">{q.question}</p>
+                        <p className="question-text mb-2">{q.question}</p>
                         
                         {q.options && q.options.length > 0 && (
-                          <p className="small text-muted mb-2">
+                          <div className="options-list mb-2">
                             <i className="fa-solid fa-list me-1"></i>
-                            Options: {q.options.join(' • ')}
-                          </p>
+                            {q.options.map((opt, i) => (
+                              <span key={i} className="option-tag">{opt}</span>
+                            ))}
+                          </div>
                         )}
                         
                         {q.helpText && (
-                          <p className="small text-info mb-2">
-                            <i className="fa-solid fa-lightbulb me-1"></i>{q.helpText}
+                          <p className="question-meta mb-2">
+                            <i className="fa-solid fa-lightbulb text-warning me-1"></i>{q.helpText}
                           </p>
                         )}
                         
                         {q.scoreImpact && q.scoreImpact.length > 0 && (
-                          <div className="d-flex flex-wrap gap-1">
+                          <div className="d-flex flex-wrap gap-1 mt-2">
                             {q.scoreImpact.map((si, i) => (
-                              <span key={i} className={`badge ${si.impact >= 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'}`}>
+                              <span key={i} className={`score-badge ${si.impact >= 0 ? 'score-positive' : 'score-negative'}`}>
                                 "{si.answerValue}": {si.impact > 0 ? '+' : ''}{si.impact}
                               </span>
                             ))}
@@ -572,26 +573,23 @@ const QualificationSettings: React.FC = () => {
                       {/* Actions */}
                       <div className="d-flex flex-column gap-2">
                         <button 
-                          className={`btn btn-sm ${q.enabled ? 'btn-success' : 'btn-outline-secondary'}`}
+                          className={`action-btn ${q.enabled ? 'enabled' : ''}`}
                           onClick={() => handleToggleQuestion(q)}
                           title={q.enabled ? 'Disable' : 'Enable'}
-                          style={{ width: '38px', height: '38px' }}
                         >
                           <i className={`fa-solid ${q.enabled ? 'fa-check' : 'fa-circle'}`}></i>
                         </button>
                         <button 
-                          className="btn btn-sm btn-outline-primary"
+                          className="action-btn edit"
                           onClick={() => handleEditQuestion(q)}
                           title="Edit"
-                          style={{ width: '38px', height: '38px' }}
                         >
                           <i className="fa-solid fa-pen"></i>
                         </button>
                         <button 
-                          className="btn btn-sm btn-outline-danger"
+                          className="action-btn delete"
                           onClick={() => handleDeleteQuestion(q.id)}
                           title="Delete"
-                          style={{ width: '38px', height: '38px' }}
                         >
                           <i className="fa-solid fa-trash"></i>
                         </button>
@@ -609,14 +607,12 @@ const QualificationSettings: React.FC = () => {
           <div className="tab-pane fade show active">
             <div className="row g-4">
               <div className="col-lg-6">
-                <div className="card h-100">
-                  <div className="card-header bg-white">
-                    <h5 className="card-title mb-0">
-                      <i className="fa-solid fa-sliders me-2 text-primary"></i>General Settings
-                    </h5>
-                  </div>
-                  <div className="card-body">
-                    <div className="form-check form-switch mb-3">
+                <div className="card settings-card h-100">
+                  <h6>
+                    <i className="fa-solid fa-sliders me-2 text-primary"></i>General Settings
+                  </h6>
+                  <div className="d-flex flex-column gap-3">
+                    <div className="form-check form-switch">
                       <input
                         className="form-check-input"
                         type="checkbox"
@@ -633,7 +629,7 @@ const QualificationSettings: React.FC = () => {
                       </label>
                     </div>
                     
-                    <div className="form-check form-switch mb-3">
+                    <div className="form-check form-switch">
                       <input
                         className="form-check-input"
                         type="checkbox"
@@ -671,57 +667,54 @@ const QualificationSettings: React.FC = () => {
               </div>
 
               <div className="col-lg-6">
-                <div className="card h-100">
-                  <div className="card-header bg-white">
-                    <h5 className="card-title mb-0">
-                      <i className="fa-brands fa-whatsapp me-2 text-success"></i>WhatsApp Auto-Qualification
-                    </h5>
+                <div className="card settings-card h-100">
+                  <h6>
+                    <i className="fa-brands fa-whatsapp me-2 text-success"></i>WhatsApp Auto-Qualification
+                  </h6>
+                  <p className="text-muted small mb-3">
+                    Automatically ask qualification questions via WhatsApp when a lead replies
+                  </p>
+                  
+                  <div className="form-check form-switch mb-3">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      id="waEnabled"
+                      checked={config.whatsappSettings?.enabled || false}
+                      onChange={(e) => setConfig({
+                        ...config,
+                        whatsappSettings: { ...config.whatsappSettings!, enabled: e.target.checked }
+                      })}
+                    />
+                    <label className="form-check-label" htmlFor="waEnabled">
+                      Enable WhatsApp Auto-Qualification
+                    </label>
                   </div>
-                  <div className="card-body">
-                    <p className="text-muted small mb-3">
-                      Automatically ask qualification questions via WhatsApp when a lead replies
-                    </p>
-                    
-                    <div className="form-check form-switch mb-3">
-                      <input
-                        className="form-check-input"
-                        type="checkbox"
-                        id="waEnabled"
-                        checked={config.whatsappSettings?.enabled || false}
-                        onChange={(e) => setConfig({
-                          ...config,
-                          whatsappSettings: { ...config.whatsappSettings!, enabled: e.target.checked }
-                        })}
-                      />
-                      <label className="form-check-label" htmlFor="waEnabled">
-                        Enable WhatsApp Auto-Qualification
-                      </label>
-                    </div>
-                    
-                    {config.whatsappSettings?.enabled && (
-                      <>
-                        <div className="mb-3">
-                          <label className="form-label small fw-semibold">
-                            <i className="fa-solid fa-message me-1"></i>Welcome Message
-                          </label>
-                          <textarea
-                            className="form-control"
-                            value={config.whatsappSettings?.welcomeMessage || ''}
-                            onChange={(e) => setConfig({
-                              ...config,
-                              whatsappSettings: { ...config.whatsappSettings!, welcomeMessage: e.target.value }
-                            })}
-                            rows={2}
-                            placeholder="Use {name} for lead's name"
-                          />
-                        </div>
-                        
-                        <div className="mb-3">
-                          <label className="form-label small fw-semibold">
-                            <i className="fa-solid fa-circle-check me-1"></i>Completion Message
-                          </label>
-                          <textarea
-                            className="form-control"
+                  
+                  {config.whatsappSettings?.enabled && (
+                    <>
+                      <div className="mb-3">
+                        <label className="form-label">
+                          <i className="fa-solid fa-message me-1"></i>Welcome Message
+                        </label>
+                        <textarea
+                          className="form-control"
+                          value={config.whatsappSettings?.welcomeMessage || ''}
+                          onChange={(e) => setConfig({
+                            ...config,
+                            whatsappSettings: { ...config.whatsappSettings!, welcomeMessage: e.target.value }
+                          })}
+                          rows={2}
+                          placeholder="Use {name} for lead's name"
+                        />
+                      </div>
+                      
+                      <div className="mb-3">
+                        <label className="form-label">
+                          <i className="fa-solid fa-circle-check me-1"></i>Completion Message
+                        </label>
+                        <textarea
+                          className="form-control"
                             value={config.whatsappSettings?.completionMessage || ''}
                             onChange={(e) => setConfig({
                               ...config,
@@ -733,7 +726,7 @@ const QualificationSettings: React.FC = () => {
                         
                         <div className="row g-3">
                           <div className="col-6">
-                            <label className="form-label small fw-semibold">
+                            <label className="form-label">
                               <i className="fa-solid fa-list-ol me-1"></i>Max Questions
                             </label>
                             <input
@@ -750,7 +743,7 @@ const QualificationSettings: React.FC = () => {
                           </div>
                           
                           <div className="col-6">
-                            <label className="form-label small fw-semibold">
+                            <label className="form-label">
                               <i className="fa-solid fa-clock me-1"></i>Timeout (hours)
                             </label>
                             <input
@@ -768,7 +761,6 @@ const QualificationSettings: React.FC = () => {
                         </div>
                       </>
                     )}
-                  </div>
                 </div>
               </div>
             </div>
@@ -1152,6 +1144,7 @@ const QualificationSettings: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

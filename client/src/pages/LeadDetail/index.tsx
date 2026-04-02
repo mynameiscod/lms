@@ -5,7 +5,7 @@ import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, 
 import MeetingScheduler from '../../components/leads/MeetingScheduler';
 import PaymentLinkModal from '../../components/leads/PaymentLinkModal';
 import LostReasonModal from '../../components/leads/LostReasonModal';
-import './LeadDetail.css';
+import './LeadDetailNew.css';
 
 interface Stage { _id: string; name: string; color: string; order: number; }
 
@@ -451,9 +451,9 @@ const LeadDetail: React.FC = () => {
 
   if(loading){
     return (
-      <div className="ld-page">
-        <div className="ld-loading">
-          <div style={{fontSize:'2rem'}}>&#9889;</div>
+      <div className="crm-page">
+        <div className="crm-loading">
+          <div className="crm-loading-spinner"></div>
           <div>Loading lead...</div>
         </div>
       </div>
@@ -461,11 +461,11 @@ const LeadDetail: React.FC = () => {
   }
   if(!lead){
     return (
-      <div className="ld-page">
-        <div className="ld-loading">
-          <div style={{fontSize:'2rem'}}>&#128274;</div>
+      <div className="crm-page">
+        <div className="crm-loading">
+          <div style={{fontSize:'2rem'}}>🔒</div>
           <div>Lead not found</div>
-          <button className="ld-btn ld-btn-secondary" onClick={()=>navigate('/leads')} style={{marginTop:12}}>Back to Leads</button>
+          <button className="crm-btn crm-btn-secondary" onClick={()=>navigate('/leads')} style={{marginTop:12}}>Back to Leads</button>
         </div>
       </div>
     );
@@ -475,478 +475,592 @@ const LeadDetail: React.FC = () => {
     ? [...lead.activities].reverse()
     : [...lead.activities].reverse().filter(a=>a.type===timelineFilter);
 
+  // Group activities by date for better display
+  const groupedActivities: Record<string, Activity[]> = {};
+  filteredActivities.forEach(activity => {
+    const date = new Date(activity.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    if (!groupedActivities[date]) groupedActivities[date] = [];
+    groupedActivities[date].push(activity);
+  });
+
+  // Calculate checklist progress
+  const answeredCount = Object.keys(qualificationAnswers).filter(k => {
+    const ans = qualificationAnswers[k];
+    return ans && (typeof ans === 'object' ? ans.answered && ans.answer : ans);
+  }).length;
+  const totalQuestions = qualificationQuestions.filter(q => q.enabled !== false).length;
+  const progressPercent = totalQuestions > 0 ? Math.round((answeredCount / totalQuestions) * 100) : 0;
+
   return (
-    <div className="ld-page">
-      {/* ── HEADER ── */}
-      <div className="ld-header">
-        <div className="ld-header-top">
-          <button className="ld-back-btn" onClick={()=>navigate('/leads')}>← Back</button>
-          <div className="ld-header-name">
-            <h1>{lead.name}</h1>
-            <div className="ld-header-name-sub">
-              {lead.phone}{lead.email&&` · ${lead.email}`}
-              {lead.whatsappReplied && <span className="ld-wa-replied-badge">✓ WA Replied</span>}
-            </div>
-          </div>
-          {/* Priority Selector */}
-          <div className="ld-priority-selector">
-            {(['hot', 'warm', 'cold'] as LeadPriority[]).map(p => (
-              <button
-                key={p}
-                className={`ld-priority-btn${lead.priority === p ? ' active' : ''}`}
-                style={{
-                  backgroundColor: lead.priority === p ? PRIORITY_COLORS[p].bg : 'transparent',
-                  color: lead.priority === p ? PRIORITY_COLORS[p].text : '#6b7280'
-                }}
-                onClick={() => handlePriorityChange(p)}
-              >
-                {PRIORITY_COLORS[p].label}
-              </button>
-            ))}
-          </div>
-          {lead.score !== undefined && lead.score > 0 && (
-            <span className="ld-score-badge">⭐ {lead.score}</span>
-          )}
+    <div className="crm-page">
+      {/* ── TOP BAR ── */}
+      <div className="crm-topbar">
+        <div className="crm-topbar-left">
+          <button className="crm-back-btn" onClick={()=>navigate('/leads')}>
+            ← Back to leads
+          </button>
+          <span className="crm-topbar-title">{lead.name}</span>
         </div>
-        <div className="ld-header-actions">
-          <a href={`tel:${lead.phone}`} className="ld-btn ld-btn-green">Call</a>
-          <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="ld-btn ld-btn-whatsapp">WhatsApp</a>
-          {!lead.whatsappReplied && (
-            <button className="ld-btn ld-btn-hot" onClick={handleWhatsAppReply}>WA Replied</button>
-          )}
-          <button className="ld-btn ld-btn-secondary" onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>Edit</button>
-          <button className="ld-btn ld-btn-primary" onClick={()=>setShowMeetingScheduler(true)}>Schedule</button>
-          <button className="ld-btn ld-btn-secondary" onClick={()=>setShowPaymentLinkModal(true)}>Payment</button>
-          {!lead.convertedStudentId&&lead.email&&(
-            <button className="ld-btn ld-btn-convert" onClick={()=>{setConvertPassword('Welcome@123');setShowConvertModal(true);}}>Convert</button>
-          )}
-          {lead.convertedStudentId&&(
-            <span className="ld-converted-badge">✓ Converted</span>
-          )}
-          {!lead.lostReason && !lead.convertedStudentId && (
-            <button className="ld-btn ld-btn-warning" onClick={()=>setShowLostReasonModal(true)}>Mark Lost</button>
-          )}
-          {lead.lostReason && (
-            <span className="ld-lost-badge" title={lead.lostReason}>Lost</span>
+        <div className="crm-topbar-actions">
+          <button className="crm-topbar-btn crm-topbar-btn-secondary" onClick={()=>setShowMeetingScheduler(true)}>
+            📅 Schedule
+          </button>
+          <button className="crm-topbar-btn crm-topbar-btn-secondary" onClick={()=>setShowPaymentLinkModal(true)}>
+            💳 Payment
+          </button>
+          {!lead.convertedStudentId && !lead.lostReason && (
+            <button className="crm-topbar-btn crm-topbar-btn-secondary" onClick={()=>setShowLostReasonModal(true)}>
+              Mark Lost
+            </button>
           )}
           {(currentUser?.role==='TENANT_ADMIN'||currentUser?.role==='SUPER_ADMIN'||
-            (currentUser?.permissions||[]).includes('delete_leads')||
-            (currentUser?.permissions||[]).includes('manage_leads'))&&(
-            <button className="ld-btn ld-btn-danger" onClick={handleDelete}>Delete</button>
+            (currentUser?.permissions||[]).includes('delete_leads'))&&(
+            <button className="crm-topbar-btn crm-topbar-btn-secondary" onClick={handleDelete} style={{color:'#f87171'}}>
+              🗑️ Delete
+            </button>
           )}
         </div>
       </div>
 
       {/* ── ALERT ── */}
-      {alert&&(
-        <div className={`ld-alert ld-alert-${alert.type}`}>
+      {alert && (
+        <div className={`crm-alert crm-alert-${alert.type}`}>
           <span>{alert.type==='success'?'✓':'✕'}</span> {alert.message}
         </div>
       )}
 
-      {/* ── BODY ── */}
-      <div className="ld-body">
+      {/* ── MAIN 3-COLUMN LAYOUT ── */}
+      <div className="crm-main">
 
-        {/* LEFT: Info Cards */}
-        <div className="ld-info-col">
-
-          {/* Contact Info Card */}
-          <div className="ld-card">
-            <div className="ld-card-header">
-              <div className="ld-card-title">
-                <span className="ld-card-title-icon">&#128100;</span> Contact Info
-              </div>
+        {/* ═══ LEFT SIDEBAR - Contact Profile ═══ */}
+        <div className="crm-sidebar-left">
+          <div className="crm-profile-section">
+            <div className="crm-avatar">{initials(lead.name)}</div>
+            <h2 className="crm-profile-name">{lead.name}</h2>
+            <div className="crm-profile-subtitle">
+              {lead.courseInterest?.length > 0 ? lead.courseInterest[0] : 'No course selected'}
             </div>
-            <div className="ld-card-body">
-              <div className="ld-info-grid">
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Phone</span>
-                  <span className="ld-info-value">
-                    <a href={`tel:${lead.phone}`} style={{color:'#2563eb',textDecoration:'none'}}>{lead.phone}</a>
-                  </span>
-                </div>
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Email</span>
-                  <span className="ld-info-value">
-                    {lead.email
-                      ? <a href={`mailto:${lead.email}`} style={{color:'#2563eb',textDecoration:'none'}}>{lead.email}</a>
-                      : <span className="muted">Not provided</span>}
-                  </span>
-                </div>
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Source</span>
-                  <span className={`ld-source-badge ld-source-${lead.source}`}>
-                    {SOURCE_LABELS[lead.source]||lead.source.replace('_',' ')}
-                  </span>
-                </div>
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Created</span>
-                  <span className="ld-info-value">{formatDate(lead.createdAt)}</span>
-                </div>
-                {lead.createdBy&&(
-                  <div className="ld-info-item">
-                    <span className="ld-info-label">Created By</span>
-                    <span className="ld-info-value">{lead.createdBy.firstName} {lead.createdBy.lastName}</span>
-                  </div>
-                )}
-              </div>
+
+            {/* Quick Actions */}
+            <div className="crm-quick-actions">
+              <a href={`tel:${lead.phone}`} className="crm-quick-action">
+                <span className="crm-quick-action-icon">📞</span>
+                Call
+              </a>
+              <a href={`mailto:${lead.email || ''}`} className="crm-quick-action">
+                <span className="crm-quick-action-icon">✉️</span>
+                Email
+              </a>
+              <a href={`https://wa.me/${lead.phone.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="crm-quick-action">
+                <span className="crm-quick-action-icon">💬</span>
+                WhatsApp
+              </a>
+              <button className="crm-quick-action" onClick={()=>navigate('/leads',{state:{edit:lead._id}})}>
+                <span className="crm-quick-action-icon">✏️</span>
+                Edit
+              </button>
+            </div>
+
+            {/* Convert Button */}
+            {!lead.convertedStudentId && lead.email && (
+              <button className="crm-convert-btn" onClick={()=>{setConvertPassword('Welcome@123');setShowConvertModal(true);}}>
+                🎓 Convert to Student
+              </button>
+            )}
+            {lead.convertedStudentId && (
+              <span className="crm-status-badge converted" style={{marginTop:16}}>✓ Converted to Student</span>
+            )}
+            {lead.lostReason && (
+              <span className="crm-status-badge lost" style={{marginTop:16}}>Lost: {lead.lostReasonCategory || 'Unknown'}</span>
+            )}
+
+            {/* Last Activity */}
+            <div className="crm-last-activity">
+              Last activity: {formatDate(lead.updatedAt)}
             </div>
           </div>
 
-          {/* Lead Details Card */}
-          <div className="ld-card">
-            <div className="ld-card-header">
-              <div className="ld-card-title">
-                <span className="ld-card-title-icon">&#128203;</span> Lead Details
+          {/* Info Tabs */}
+          <div className="crm-info-tabs">
+            <button className="crm-info-tab active">Lead Info</button>
+            <button className="crm-info-tab">Notes</button>
+          </div>
+
+          {/* Contact Info List */}
+          <div className="crm-info-list">
+            <div className="crm-info-item">
+              <div className="crm-info-label">Phone</div>
+              <div className="crm-info-value">
+                <a href={`tel:${lead.phone}`}>{lead.phone}</a>
               </div>
             </div>
-            <div className="ld-card-body">
-              <div className="ld-info-grid">
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Stage</span>
-                  <div className="ld-stage-row">
-                    <span className="ld-stage-dot" style={{backgroundColor:lead.stageId?.color}}/>
-                    <select className="ld-stage-select"
-                      value={lead.stageId?._id||''}
-                      onChange={e=>handleStageChange(e.target.value)}
-                      style={{borderLeft:`3px solid ${lead.stageId?.color}`}}>
-                      {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
-                    </select>
-                  </div>
+            <div className="crm-info-item">
+              <div className="crm-info-label">Email</div>
+              <div className="crm-info-value">
+                {lead.email ? <a href={`mailto:${lead.email}`}>{lead.email}</a> : <span className="muted">Not provided</span>}
+              </div>
+            </div>
+            <div className="crm-info-item">
+              <div className="crm-info-label">Source</div>
+              <div className="crm-info-value">
+                <span className={`crm-tag crm-tag-${lead.source === 'whatsapp' ? 'green' : 'blue'}`}>
+                  {SOURCE_LABELS[lead.source] || lead.source}
+                </span>
+              </div>
+            </div>
+            <div className="crm-info-item">
+              <div className="crm-info-label">Assigned To</div>
+              <div className="crm-info-value">
+                {lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : <span className="muted">Unassigned</span>}
+              </div>
+            </div>
+            <div className="crm-info-item">
+              <div className="crm-info-label">Next Follow-up</div>
+              <div className="crm-info-value" style={{color: isOverdue(lead.nextFollowUp) ? '#dc2626' : undefined}}>
+                {lead.nextFollowUp ? formatDate(lead.nextFollowUp) : <span className="muted">Not set</span>}
+                {isOverdue(lead.nextFollowUp) && ' ⚠️ Overdue'}
+              </div>
+            </div>
+            <div className="crm-info-item">
+              <div className="crm-info-label">Created</div>
+              <div className="crm-info-value">{formatDate(lead.createdAt)}</div>
+            </div>
+            {lead.createdBy && (
+              <div className="crm-info-item">
+                <div className="crm-info-label">Created By</div>
+                <div className="crm-info-value">{lead.createdBy.firstName} {lead.createdBy.lastName}</div>
+              </div>
+            )}
+            <div className="crm-info-item">
+              <div className="crm-info-label">Course Interest</div>
+              <div className="crm-info-value">
+                {lead.courseInterest?.length > 0 
+                  ? lead.courseInterest.map((c, i) => <span key={i} className="crm-tag crm-tag-green" style={{marginRight:4}}>{c}</span>)
+                  : <span className="muted">Not specified</span>}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="crm-info-item">
+              <div className="crm-info-label" style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                Notes
+                <button className="crm-card-action" onClick={()=>{setNotesText(lead.notes||'');setEditingNotes(!editingNotes);}}>
+                  {editingNotes ? 'Cancel' : 'Edit'}
+                </button>
+              </div>
+              {editingNotes ? (
+                <div style={{marginTop:8}}>
+                  <textarea
+                    value={notesText}
+                    onChange={e=>setNotesText(e.target.value)}
+                    placeholder="Add notes about this lead..."
+                    style={{width:'100%', minHeight:80, padding:10, borderRadius:8, border:'1px solid #d1d5db', fontSize:'0.88rem', fontFamily:'inherit'}}
+                  />
+                  <button className="crm-btn crm-btn-primary" style={{marginTop:8}} onClick={handleSaveNotes} disabled={savingNotes}>
+                    {savingNotes ? 'Saving...' : 'Save Notes'}
+                  </button>
                 </div>
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Assigned To</span>
-                  {lead.assignedTo ? (
-                    <div className="ld-assignee-row">
-                      <span className="ld-assignee-avatar">{initials(lead.assignedTo.firstName+' '+lead.assignedTo.lastName)}</span>
-                      {lead.assignedTo.firstName} {lead.assignedTo.lastName}
-                    </div>
-                  ) : <span className="ld-info-value muted">Unassigned</span>}
+              ) : (
+                <div className="crm-notes-area">
+                  {lead.notes ? <div className="crm-notes-text">{lead.notes}</div> : <div className="crm-notes-empty">No notes yet</div>}
                 </div>
-                <div className="ld-info-item">
-                  <span className="ld-info-label">Next Follow-up</span>
-                  <span className={`ld-info-value${isOverdue(lead.nextFollowUp)?' overdue':''}`}>
-                    {lead.nextFollowUp ? formatDate(lead.nextFollowUp) : <span className="muted">Not set</span>}
-                    {isOverdue(lead.nextFollowUp)&&' ⚠ Overdue'}
-                  </span>
+              )}
+            </div>
+
+            {/* Custom Fields */}
+            {customFieldConfigs.length > 0 && lead.customFields && customFieldConfigs.map(cf => {
+              const val = lead.customFields?.[cf.fieldKey];
+              if (val === undefined || val === '' || val === null) return null;
+              return (
+                <div className="crm-info-item" key={cf.fieldKey}>
+                  <div className="crm-info-label">{cf.label}</div>
+                  <div className="crm-info-value">{cf.type === 'checkbox' ? (val ? 'Yes' : 'No') : String(val)}</div>
                 </div>
-                <div className="ld-info-item full">
-                  <span className="ld-info-label">Course Interest</span>
-                  {lead.courseInterest?.length>0 ? (
-                    <div className="ld-course-tags">
-                      {lead.courseInterest.map((c,i)=><span key={i} className="ld-course-tag">{c}</span>)}
-                    </div>
-                  ) : <span className="ld-info-value muted">Not set</span>}
+              );
+            })}
+          </div>
+        </div>
+
+        {/* ═══ CENTER PANEL - Activity Feed ═══ */}
+        <div className="crm-center">
+          <div className="crm-center-header">
+            <div className="crm-search-bar">
+              <span className="crm-search-icon">🔍</span>
+              <input type="text" placeholder="Search activity, notes, email and more" />
+            </div>
+          </div>
+
+          {/* Activity Tabs */}
+          <div className="crm-activity-tabs">
+            <button className={`crm-activity-tab${timelineFilter === 'all' ? ' active' : ''}`} onClick={() => setTimelineFilter('all')}>Activity</button>
+            <button className={`crm-activity-tab${timelineFilter === 'note' ? ' active' : ''}`} onClick={() => setTimelineFilter('note')}>Notes</button>
+            <button className={`crm-activity-tab${timelineFilter === 'email' ? ' active' : ''}`} onClick={() => setTimelineFilter('email')}>Emails</button>
+            <button className={`crm-activity-tab${timelineFilter === 'call' ? ' active' : ''}`} onClick={() => setTimelineFilter('call')}>Calls</button>
+            <button className={`crm-activity-tab${timelineFilter === 'whatsapp' ? ' active' : ''}`} onClick={() => setTimelineFilter('whatsapp')}>WhatsApp</button>
+          </div>
+
+          {/* Filters Row */}
+          <div className="crm-filters-row">
+            <select className="crm-filter-select">
+              <option>All activities</option>
+            </select>
+            <select className="crm-filter-select">
+              <option>All users</option>
+            </select>
+          </div>
+
+          {/* Activity Feed */}
+          <div className="crm-activity-feed">
+            {/* Add Activity Card */}
+            <div className="crm-add-activity">
+              <div className="crm-add-activity-header">
+                <div className="crm-add-activity-types">
+                  {[{k:'note',l:'📝 Note'},{k:'call',l:'📞 Call'},{k:'email',l:'✉️ Email'},{k:'whatsapp',l:'💬 WhatsApp'}].map(({k,l})=>(
+                    <button key={k}
+                      className={`crm-add-type-btn${activityType===k?' active':''}`}
+                      onClick={()=>{setActivityType(k);setCallOutcome('');}}>
+                      {l}
+                    </button>
+                  ))}
                 </div>
-                {/* Notes — editable inline */}
-                <div className="ld-info-item full">
-                  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
-                    <span className="ld-info-label">Notes</span>
-                    {!editingNotes&&(
-                      <button className="ld-concerns-edit-btn"
-                        onClick={()=>{setNotesText(lead.notes||'');setEditingNotes(true);}}>
-                        Edit
-                      </button>
-                    )}
-                  </div>
-                  {editingNotes ? (
-                    <div>
-                      <textarea
-                        value={notesText}
-                        onChange={e=>setNotesText(e.target.value)}
-                        placeholder="Add notes about this lead..."
-                        rows={4}
-                        style={{width:'100%',resize:'vertical',padding:'8px',borderRadius:6,border:'1px solid #d1d5db',fontFamily:'inherit',fontSize:'0.88rem'}}
-                        autoFocus/>
-                      <div style={{display:'flex',gap:8,marginTop:6}}>
-                        <button className="ld-btn ld-btn-primary" onClick={handleSaveNotes} disabled={savingNotes}>
-                          {savingNotes?'Saving...':'Save Notes'}
+              </div>
+              <div className="crm-add-activity-body">
+                <textarea
+                  placeholder={activityType==='note'?'Write a note...':activityType==='call'?'Call summary...':activityType==='email'?'Email summary...':'WhatsApp message summary...'}
+                  value={activityDesc}
+                  onChange={e=>setActivityDesc(e.target.value)}/>
+                
+                {activityType === 'call' && (
+                  <div className="crm-call-options">
+                    <div className="crm-call-outcome-label">Call Outcome</div>
+                    <div className="crm-call-pills">
+                      {CALL_OUTCOMES.map(o => (
+                        <button key={o.value}
+                          className={`crm-call-pill${callOutcome === o.value ? ' active' : ''}`}
+                          onClick={() => setCallOutcome(callOutcome === o.value ? '' : o.value)}>
+                          {o.label}
                         </button>
-                        <button className="ld-btn ld-btn-secondary" onClick={()=>setEditingNotes(false)}>Cancel</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="crm-add-activity-footer">
+                <button className="crm-btn crm-btn-primary" onClick={handleAddActivity} disabled={uploadingActivity}>
+                  {uploadingActivity ? 'Saving...' : 'Add Activity'}
+                </button>
+              </div>
+            </div>
+
+            {/* Activity History */}
+            {Object.keys(groupedActivities).length === 0 ? (
+              <div style={{textAlign:'center', padding:40, color:'#9ca3af'}}>
+                <div style={{fontSize:'2rem', marginBottom:8}}>📭</div>
+                <div>No activities yet</div>
+              </div>
+            ) : (
+              Object.entries(groupedActivities).map(([date, activities]) => (
+                <div key={date} className="crm-activity-section">
+                  <div className="crm-activity-section-title">{date}</div>
+                  {activities.map(activity => (
+                    <div key={activity._id} className="crm-activity-card">
+                      <div className="crm-activity-card-header">
+                        <div className={`crm-activity-icon ${activity.type}`}>
+                          {ACTIVITY_ICONS[activity.type] || '•'}
+                        </div>
+                        <div className="crm-activity-content">
+                          <div className="crm-activity-title">
+                            {activity.type === 'call' ? 'Call' : 
+                             activity.type === 'note' ? 'Note' : 
+                             activity.type === 'email' ? 'Email' : 
+                             activity.type === 'whatsapp' ? 'WhatsApp' : 
+                             activity.type === 'status_change' ? 'Stage Changed' :
+                             activity.type === 'created' ? 'Lead Created' : 'Activity'}
+                            {activity.callOutcome && (
+                              <span className={`crm-outcome-badge ${activity.callOutcome}`} style={{marginLeft:8}}>
+                                {CALL_OUTCOMES.find(o=>o.value===activity.callOutcome)?.label || activity.callOutcome}
+                              </span>
+                            )}
+                          </div>
+                          <div className="crm-activity-desc">{activity.description}</div>
+                          <div className="crm-activity-meta">
+                            <span className="crm-activity-meta-item">
+                              👤 {typeof activity.createdBy === 'object' 
+                                ? `${activity.createdBy.firstName} ${activity.createdBy.lastName}` 
+                                : 'System'}
+                            </span>
+                            <span className="crm-activity-meta-item">
+                              🕐 {formatTime(activity.createdAt)}
+                            </span>
+                          </div>
+                          {activity.recordingUrl && (
+                            <div className="crm-audio-player">
+                              <span>🎙️</span>
+                              <audio controls src={activity.recordingUrl} />
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  ) : lead.notes ? (
-                    <span className="ld-info-value" style={{whiteSpace:'pre-wrap'}}>{lead.notes}</span>
-                  ) : (
-                    <span className="ld-info-value muted" style={{fontSize:'0.86rem'}}>No notes yet — click Edit to add</span>
-                  )}
+                  ))}
                 </div>
-                {/* Custom Fields */}
-                {customFieldConfigs.length>0&&lead.customFields&&customFieldConfigs.map(cf=>{
-                  const val=lead.customFields?.[cf.fieldKey];
-                  if(val===undefined||val===''||val===null)return null;
-                  return (
-                    <div className="ld-info-item" key={cf.fieldKey}>
-                      <span className="ld-info-label">{cf.label}</span>
-                      <span className="ld-info-value">{cf.type==='checkbox'?(val?'Yes':'No'):String(val)}</span>
-                    </div>
-                  );
-                })}
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* ═══ RIGHT SIDEBAR ═══ */}
+        <div className="crm-sidebar-right">
+          {/* Stage Card */}
+          <div className="crm-card crm-stage-card">
+            <div className="crm-card-header">
+              <div className="crm-card-title">📊 Stage</div>
+            </div>
+            <div className="crm-card-body">
+              <div className="crm-stage-current">
+                <span className="crm-stage-dot" style={{backgroundColor: lead.stageId?.color || '#6b7280'}}></span>
+                <span className="crm-stage-name">{lead.stageId?.name || 'Unknown'}</span>
               </div>
+              <select 
+                className="crm-stage-select"
+                value={lead.stageId?._id || ''}
+                onChange={e => handleStageChange(e.target.value)}
+                style={{borderLeft: `3px solid ${lead.stageId?.color || '#6b7280'}`}}
+              >
+                {stages.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+              </select>
             </div>
           </div>
 
-          {/* Call Checklist Card - Improved with Submit and View Answers */}
-          <div className="ld-card ld-card-checklist">
-            <div className="ld-card-header">
-              <div className="ld-card-title">
-                <span className="ld-card-title-icon">📋</span> Call Checklist
+          {/* Priority Card */}
+          <div className="crm-card">
+            <div className="crm-card-header">
+              <div className="crm-card-title">🎯 Priority</div>
+              {lead.score !== undefined && lead.score > 0 && (
+                <span style={{fontSize:'0.85rem', fontWeight:700, color:'#7c3aed'}}>⭐ {lead.score}</span>
+              )}
+            </div>
+            <div className="crm-card-body">
+              <div className="crm-priority-btns">
+                {(['hot', 'warm', 'cold'] as LeadPriority[]).map(p => (
+                  <button
+                    key={p}
+                    className={`crm-priority-btn ${p}${lead.priority === p ? ' active' : ''}`}
+                    onClick={() => handlePriorityChange(p)}
+                  >
+                    {PRIORITY_COLORS[p].label}
+                  </button>
+                ))}
               </div>
-              <div className="ld-checklist-header-actions">
-                {qualificationQuestions.length > 0 && (
-                  <>
-                    <span className="ld-qual-progress-badge">
-                      {Object.keys(qualificationAnswers).filter(k => {
-                        const ans = qualificationAnswers[k];
-                        return ans && (typeof ans === 'object' ? ans.answered && ans.answer : ans);
-                      }).length}/{qualificationQuestions.filter(q => q.enabled !== false).length} answered
-                    </span>
-                    <button 
-                      className="ld-checklist-view-toggle"
-                      onClick={() => setShowAnsweredOnly(!showAnsweredOnly)}
-                    >
-                      {showAnsweredOnly ? 'Show All' : 'View Answered'}
-                    </button>
-                  </>
+              {!lead.whatsappReplied && (
+                <button 
+                  className="crm-btn crm-btn-primary" 
+                  style={{width:'100%', marginTop:12, background:'linear-gradient(135deg, #ef4444 0%, #f97316 100%)'}}
+                  onClick={handleWhatsAppReply}
+                >
+                  🔥 WhatsApp Replied (Mark HOT)
+                </button>
+              )}
+              {lead.whatsappReplied && (
+                <div style={{marginTop:12, padding:8, background:'#dcfce7', borderRadius:6, textAlign:'center', fontSize:'0.82rem', color:'#166534', fontWeight:600}}>
+                  ✓ WhatsApp Reply Received
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Call Checklist Card */}
+          {qualificationQuestions.length > 0 && (
+            <div className="crm-card">
+              <div className="crm-card-header">
+                <div className="crm-card-title">📋 Call Checklist</div>
+                <button className="crm-card-action" onClick={() => setShowAnsweredOnly(!showAnsweredOnly)}>
+                  {showAnsweredOnly ? 'Edit' : 'View Answers'}
+                </button>
+              </div>
+              <div className="crm-card-body">
+                {!showAnsweredOnly ? (
+                  <div className="crm-checklist">
+                    {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
+                      const qId = q._id || q.id || `q${idx}`;
+                      const answerData = qualificationAnswers[qId];
+                      const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered && answerData.answer : false);
+                      const answerText = typeof answerData === 'object' ? answerData.answer : (typeof answerData === 'string' ? answerData : '');
+                      
+                      return (
+                        <div key={qId} className={`crm-checklist-item${isAnswered ? ' answered' : ''}`}>
+                          <span className="crm-checklist-num">{isAnswered ? '✓' : idx + 1}</span>
+                          <div className="crm-checklist-content">
+                            <div className="crm-checklist-question">{q.question}</div>
+                            {q.options && q.options.length > 0 ? (
+                              <select
+                                className="crm-checklist-input"
+                                value={answerText}
+                                onChange={(e) => setQualificationAnswers(prev => ({
+                                  ...prev,
+                                  [qId]: { answered: !!e.target.value, answer: e.target.value }
+                                }))}
+                              >
+                                <option value="">-- Select --</option>
+                                {q.options.map((opt, oi) => <option key={oi} value={opt}>{opt}</option>)}
+                              </select>
+                            ) : (
+                              <input
+                                type="text"
+                                className="crm-checklist-input"
+                                placeholder="Enter answer..."
+                                value={answerText}
+                                onChange={(e) => setQualificationAnswers(prev => ({
+                                  ...prev,
+                                  [qId]: { answered: !!e.target.value, answer: e.target.value }
+                                }))}
+                              />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="crm-checklist">
+                    {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
+                      const qId = q._id || q.id || `q${idx}`;
+                      const answerData = qualificationAnswers[qId];
+                      const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered && answerData.answer : false);
+                      const answerText = typeof answerData === 'object' ? answerData.answer : '';
+                      
+                      if (!isAnswered) return null;
+                      
+                      return (
+                        <div key={qId} className="crm-checklist-item answered">
+                          <span className="crm-checklist-num">✓</span>
+                          <div className="crm-checklist-content">
+                            <div className="crm-checklist-question">{q.question}</div>
+                            <div className="crm-checklist-answer">{answerText}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {answeredCount === 0 && (
+                      <div style={{textAlign:'center', padding:20, color:'#9ca3af'}}>No answers recorded yet</div>
+                    )}
+                  </div>
                 )}
+
+                <div className="crm-checklist-footer">
+                  <div className="crm-checklist-progress">
+                    <span className="crm-checklist-progress-text">{answeredCount}/{totalQuestions} answered</span>
+                    <div className="crm-checklist-progress-bar">
+                      <div className="crm-checklist-progress-fill" style={{width: `${progressPercent}%`}}></div>
+                    </div>
+                  </div>
+                  {!showAnsweredOnly && (
+                    <button 
+                      className="crm-btn crm-btn-primary" 
+                      style={{width:'100%'}}
+                      onClick={handleSubmitAllAnswers}
+                      disabled={savingQualification}
+                    >
+                      {savingQualification ? 'Saving...' : '💾 Save All Answers'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="ld-card-body">
-              {qualificationQuestions.length > 0 ? (
+          )}
+
+          {/* AI Insights Card */}
+          <div className="crm-card">
+            <div className="crm-card-header">
+              <div className="crm-card-title">🤖 AI Insights</div>
+              <button className="crm-card-action" onClick={handleGenerateAISummary} disabled={aiLoading}>
+                {aiLoading ? 'Generating...' : lead.aiSummary ? 'Refresh' : 'Generate'}
+              </button>
+            </div>
+            <div className="crm-card-body">
+              {lead.aiSummary ? (
                 <>
-                  {!showAnsweredOnly && (
-                    <p className="ld-checklist-hint">
-                      💡 Ask each question during the call and record answers below
-                    </p>
-                  )}
-                  
-                  {/* Answered Summary View */}
-                  {showAnsweredOnly ? (
-                    <div className="ld-answered-summary">
-                      {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
-                        const qId = q._id || q.id || `q${idx}`;
-                        const answerData = qualificationAnswers[qId];
-                        const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered && answerData.answer : false);
-                        const answerText = typeof answerData === 'object' ? answerData.answer : '';
-                        
-                        if (!isAnswered) return null;
-                        
-                        return (
-                          <div key={qId} className="ld-answered-item">
-                            <div className="ld-answered-question">
-                              <span className="ld-answered-check">✓</span>
-                              {q.question}
-                            </div>
-                            <div className="ld-answered-value">{answerText}</div>
-                          </div>
-                        );
-                      })}
-                      {Object.keys(qualificationAnswers).filter(k => {
-                        const ans = qualificationAnswers[k];
-                        return ans && (typeof ans === 'object' ? ans.answered && ans.answer : false);
-                      }).length === 0 && (
-                        <div className="ld-no-answers">
-                          <span>📭</span>
-                          <p>No answers recorded yet</p>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    /* Edit Mode - Questions with inputs */
-                    <div className="ld-qual-checklist">
-                      {qualificationQuestions.filter(q => q.enabled !== false).map((q, idx) => {
-                        const qId = q._id || q.id || `q${idx}`;
-                        const answerData = qualificationAnswers[qId];
-                        const isAnswered = answerData && (typeof answerData === 'object' ? answerData.answered && answerData.answer : false);
-                        const answerText = typeof answerData === 'object' ? answerData.answer : (typeof answerData === 'string' ? answerData : '');
-                        
-                        return (
-                          <div key={qId} className={`ld-qual-item${isAnswered ? ' answered' : ''}`}>
-                            <div className="ld-qual-question-row">
-                              <span className={`ld-qual-num${isAnswered ? ' done' : ''}`}>{idx + 1}</span>
-                              <span className="ld-qual-question-text">
-                                {q.question}
-                                {q.required && <span className="ld-qual-required">*</span>}
-                              </span>
-                            </div>
-                            <div className="ld-qual-answer-row">
-                              {q.options && q.options.length > 0 ? (
-                                <select
-                                  value={answerText}
-                                  onChange={(e) => setQualificationAnswers(prev => ({
-                                    ...prev,
-                                    [qId]: { answered: !!e.target.value, answer: e.target.value }
-                                  }))}
-                                  className="ld-qual-select"
-                                >
-                                  <option value="">-- Select answer --</option>
-                                  {q.options.map((opt, oi) => (
-                                    <option key={oi} value={opt}>{opt}</option>
-                                  ))}
-                                </select>
-                              ) : (
-                                <input
-                                  type="text"
-                                  placeholder="Enter lead's answer..."
-                                  value={answerText}
-                                  onChange={(e) => setQualificationAnswers(prev => ({
-                                    ...prev,
-                                    [qId]: { answered: !!e.target.value, answer: e.target.value }
-                                  }))}
-                                  className="ld-qual-input"
-                                />
-                              )}
-                              {isAnswered && <span className="ld-qual-answered-badge">✓</span>}
-                            </div>
-                          </div>
-                        );
-                      })}
+                  <div className="crm-ai-summary">{lead.aiSummary.summary}</div>
+                  {lead.aiSummary.suggestedNextAction && (
+                    <div className="crm-ai-action">
+                      <div className="crm-ai-action-label">Suggested Next Action</div>
+                      <div className="crm-ai-action-text">{lead.aiSummary.suggestedNextAction}</div>
                     </div>
                   )}
-                  
-                  {/* Submit Button */}
-                  {!showAnsweredOnly && (
-                    <div className="ld-checklist-footer">
-                      <button 
-                        className="ld-btn ld-btn-primary ld-btn-submit-checklist"
-                        onClick={handleSubmitAllAnswers}
-                        disabled={savingQualification}
-                      >
-                        {savingQualification ? '💾 Saving...' : '💾 Save All Answers'}
-                      </button>
-                    </div>
-                  )}
+                  <div className="crm-ai-metrics">
+                    <span className="crm-ai-metric">
+                      Seriousness: <strong>{lead.aiSummary.seriousnessScore}/10</strong>
+                    </span>
+                    <span className="crm-ai-metric" style={{color: getConversionProbabilityColor(lead.aiSummary.conversionProbability || 'medium')}}>
+                      Conversion: <strong>{(lead.aiSummary.conversionProbability || 'medium').toUpperCase()}</strong>
+                    </span>
+                  </div>
                 </>
               ) : (
-                <div className="ld-checklist-empty">
-                  <span>📝</span>
-                  <p>No checklist questions configured yet</p>
-                  <small>Admin can add questions in Settings → Qualification Questions</small>
+                <div className="crm-ai-empty">
+                  <div className="crm-ai-empty-icon">🧠</div>
+                  <div className="crm-ai-empty-text">Click "Generate" to get AI-powered insights</div>
                 </div>
               )}
             </div>
           </div>
 
           {/* Interest Concerns Card */}
-          <div className="ld-card">
-            <div className="ld-card-header">
-              <div className="ld-card-title">
-                <span className="ld-card-title-icon">&#128276;</span> Interest Concerns
-              </div>
-              <button className="ld-concerns-edit-btn"
-                onClick={()=>{setSelectedConcerns(lead.interestConcerns||[]);setEditingConcerns(!editingConcerns);}}>
-                {editingConcerns?'Cancel':'Edit'}
+          <div className="crm-card">
+            <div className="crm-card-header">
+              <div className="crm-card-title">⚠️ Concerns</div>
+              <button className="crm-card-action" onClick={()=>{setSelectedConcerns(lead.interestConcerns||[]);setEditingConcerns(!editingConcerns);}}>
+                {editingConcerns ? 'Cancel' : 'Edit'}
               </button>
             </div>
-            <div className="ld-card-body">
+            <div className="crm-card-body">
               {editingConcerns ? (
-                <div className="ld-concerns-editor">
-                  <div className="ld-concern-chips">
-                    {INTEREST_CONCERNS.map(c=>(
-                      <button key={c.value}
-                        className={`ld-concern-chip${selectedConcerns.includes(c.value)?' active':''}`}
-                        onClick={()=>toggleConcern(c.value)}>
+                <>
+                  <div style={{display:'flex', flexWrap:'wrap', gap:6, marginBottom:12}}>
+                    {INTEREST_CONCERNS.map(c => (
+                      <button 
+                        key={c.value}
+                        className={`crm-call-pill${selectedConcerns.includes(c.value) ? ' active' : ''}`}
+                        onClick={() => toggleConcern(c.value)}
+                      >
                         {c.label}
                       </button>
                     ))}
                   </div>
-                  <button className="ld-btn ld-btn-primary ld-concern-save" onClick={handleSaveConcerns}>
-                    Save Concerns
-                  </button>
-                </div>
-              ) : lead.interestConcerns&&lead.interestConcerns.length>0 ? (
-                <div className="ld-concern-tags">
-                  {lead.interestConcerns.map(c=>{
-                    const label=INTEREST_CONCERNS.find(ic=>ic.value===c)?.label||c;
-                    return <span key={c} className="ld-concern-tag">{label}</span>;
+                  <button className="crm-btn crm-btn-primary" onClick={handleSaveConcerns}>Save Concerns</button>
+                </>
+              ) : lead.interestConcerns && lead.interestConcerns.length > 0 ? (
+                <div style={{display:'flex', flexWrap:'wrap', gap:6}}>
+                  {lead.interestConcerns.map(c => {
+                    const label = INTEREST_CONCERNS.find(ic => ic.value === c)?.label || c;
+                    return <span key={c} className="crm-tag crm-tag-orange">{label}</span>;
                   })}
                 </div>
               ) : (
-                <span className="ld-info-value muted" style={{fontSize:'0.86rem'}}>No concerns noted</span>
+                <div style={{color:'#9ca3af', fontSize:'0.85rem'}}>No concerns noted</div>
               )}
             </div>
           </div>
 
-          {/* AI Summary Card */}
-          <div className="ld-card">
-            <div className="ld-card-header">
-              <div className="ld-card-title">
-                <span className="ld-card-title-icon">🤖</span> AI Insights
-              </div>
-              <button 
-                className="ld-concerns-edit-btn" 
-                onClick={handleGenerateAISummary}
-                disabled={aiLoading}
-              >
-                {aiLoading ? 'Generating...' : lead.aiSummary ? 'Refresh' : 'Generate'}
-              </button>
-            </div>
-            <div className="ld-card-body">
-              {lead.aiSummary ? (
-                <div className="ld-ai-summary">
-                  <div className="ld-ai-summary-text">{lead.aiSummary.summary}</div>
-                  {lead.aiSummary.keyInsights && lead.aiSummary.keyInsights.length > 0 && (
-                    <div className="ld-ai-insights">
-                      <span className="ld-ai-insights-label">Key Insights:</span>
-                      <ul className="ld-ai-insights-list">
-                        {lead.aiSummary.keyInsights.map((insight, i) => (
-                          <li key={i}>{insight}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  <div className="ld-ai-action">
-                    <span className="ld-ai-action-label">Next Action:</span>
-                    <span className="ld-ai-action-text">{lead.aiSummary.suggestedNextAction}</span>
-                  </div>
-                  <div className="ld-ai-metrics">
-                    <span className="ld-ai-metric">
-                      Seriousness: <strong>{lead.aiSummary.seriousnessScore}/10</strong>
-                    </span>
-                    <span className="ld-ai-metric" style={{ color: getConversionProbabilityColor(lead.aiSummary.conversionProbability || 'medium') }}>
-                      Conversion: <strong>{(lead.aiSummary.conversionProbability || 'medium').toUpperCase()}</strong>
-                    </span>
-                  </div>
-                  <div className="ld-ai-generated-at">
-                    Generated: {formatDate(lead.aiSummary.generatedAt)}
-                  </div>
-                </div>
-              ) : (
-                <div className="ld-ai-empty">
-                  <span className="ld-ai-empty-icon">🧠</span>
-                  <span className="ld-ai-empty-text">Click "Generate" to get AI-powered insights about this lead</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Content Library Quick Share Card */}
+          {/* Quick Share Content */}
           {salesContent.length > 0 && (
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <div className="ld-card-title">
-                  <span className="ld-card-title-icon">📚</span> Share Content
-                </div>
-                <button className="ld-concerns-edit-btn" onClick={() => setShowContentModal(true)}>
-                  View All
-                </button>
+            <div className="crm-card">
+              <div className="crm-card-header">
+                <div className="crm-card-title">📚 Share Content</div>
+                <button className="crm-card-action" onClick={() => setShowContentModal(true)}>View All</button>
               </div>
-              <div className="ld-card-body">
-                <div className="ld-content-quick-share">
-                  {salesContent.slice(0, 4).map(content => (
-                    <button 
+              <div className="crm-card-body">
+                <div style={{display:'flex', flexDirection:'column', gap:8}}>
+                  {salesContent.slice(0, 3).map(content => (
+                    <button
                       key={content._id}
-                      className="ld-content-quick-btn"
+                      className="crm-add-deal-btn"
                       onClick={() => handleShareContent(content)}
                       disabled={sharingContent}
+                      style={{justifyContent:'flex-start'}}
                     >
-                      <span className="ld-content-icon">
-                        {content.type === 'brochure' ? '📄' : 
-                         content.type === 'video' ? '🎬' : 
-                         content.type === 'testimonial' ? '⭐' : 
-                         content.type === 'pricing' ? '💰' : '📋'}
-                      </span>
-                      <span className="ld-content-name">{content.title}</span>
+                      <span>{content.type === 'brochure' ? '📄' : content.type === 'video' ? '🎬' : '📋'}</span>
+                      {content.title}
                     </button>
                   ))}
                 </div>
@@ -954,285 +1068,152 @@ const LeadDetail: React.FC = () => {
             </div>
           )}
 
-          {/* WhatsApp Engagement Card */}
+          {/* WhatsApp Engagement */}
           {lead.whatsappEngagement && (
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <div className="ld-card-title">
-                  <span className="ld-card-title-icon">💬</span> WhatsApp Engagement
-                </div>
-                <span className={`ld-wa-status ld-wa-${lead.whatsappEngagement.status}`}>
-                  {lead.whatsappEngagement.status.replace('_', ' ')}
+            <div className="crm-card">
+              <div className="crm-card-header">
+                <div className="crm-card-title">💬 WhatsApp</div>
+                <span className={`crm-tag crm-tag-${lead.whatsappEngagement.status === 'replied' ? 'green' : 'blue'}`}>
+                  {lead.whatsappEngagement.status}
                 </span>
               </div>
-              <div className="ld-card-body">
-                <div className="ld-wa-stats">
-                  <div className="ld-wa-stat">
-                    <span className="ld-wa-stat-label">Questions Asked</span>
-                    <span className="ld-wa-stat-value">{lead.whatsappEngagement.questionsAsked}</span>
+              <div className="crm-card-body">
+                <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:12}}>
+                  <div>
+                    <div style={{fontSize:'0.72rem', color:'#9ca3af', textTransform:'uppercase'}}>Questions Asked</div>
+                    <div style={{fontSize:'1rem', fontWeight:700, color:'#374151'}}>{lead.whatsappEngagement.questionsAsked}</div>
                   </div>
-                  <div className="ld-wa-stat">
-                    <span className="ld-wa-stat-label">Questions Answered</span>
-                    <span className="ld-wa-stat-value">{lead.whatsappEngagement.questionsAnswered}</span>
+                  <div>
+                    <div style={{fontSize:'0.72rem', color:'#9ca3af', textTransform:'uppercase'}}>Answered</div>
+                    <div style={{fontSize:'1rem', fontWeight:700, color:'#374151'}}>{lead.whatsappEngagement.questionsAnswered}</div>
                   </div>
-                  {lead.whatsappEngagement.lastReplyAt && (
-                    <div className="ld-wa-stat">
-                      <span className="ld-wa-stat-label">Last Reply</span>
-                      <span className="ld-wa-stat-value">{formatDate(lead.whatsappEngagement.lastReplyAt)}</span>
-                    </div>
-                  )}
                 </div>
-                {lead.whatsappEngagement.conversationSummary && (
-                  <div className="ld-wa-summary">
-                    <span className="ld-wa-summary-label">Conversation Summary:</span>
-                    <p className="ld-wa-summary-text">{lead.whatsappEngagement.conversationSummary}</p>
-                  </div>
-                )}
               </div>
             </div>
           )}
-
-          {/* Not Interested Reason (conditional) */}
-          {lead.notInterestedReason&&(
-            <div className="ld-card">
-              <div className="ld-card-header">
-                <div className="ld-card-title" style={{color:'#dc2626'}}>
-                  <span className="ld-card-title-icon">&#128534;</span> Not Interested — Reason
-                </div>
-              </div>
-              <div className="ld-card-body">
-                <div className="ld-not-interested-box">{lead.notInterestedReason}</div>
-              </div>
-            </div>
-          )}
-
-        </div>
-
-        {/* RIGHT: Timeline */}
-        <div className="ld-timeline-col">
-
-          {/* Add Activity */}
-          <div className="ld-add-activity">
-            <div className="ld-add-activity-header">
-              <div className="ld-add-activity-title">&#9998; Log Activity</div>
-            </div>
-            <div className="ld-add-activity-body">
-              <div className="ld-activity-type-row">
-                {[{k:'note',l:'📝 Note'},{k:'call',l:'📞 Call'},{k:'email',l:'📧 Email'},{k:'whatsapp',l:'💬 WhatsApp'}].map(({k,l})=>(
-                  <button key={k}
-                    className={`ld-type-btn${activityType===k?' active '+k:''}`}
-                    onClick={()=>{setActivityType(k);setCallOutcome('');}}>
-                    {l}
-                  </button>
-                ))}
-              </div>
-
-              {activityType==='call'&&(
-                <div className="ld-call-outcome-row">
-                  <div className="ld-call-outcome-label">Call Outcome</div>
-                  <div className="ld-call-outcome-pills">
-                    {CALL_OUTCOMES.map(o=>(
-                      <button key={o.value}
-                        className={`ld-outcome-pill${callOutcome===o.value?' active '+o.value:''}`}
-                        onClick={()=>setCallOutcome(callOutcome===o.value?'':o.value)}>
-                        {o.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {activityType==='call'&&(
-                <div className="ld-recording-row">
-                  <span>&#127897;</span>
-                  <label className="ld-recording-label">
-                    Attach recording (optional)
-                    <input type="file" accept="audio/*,video/*"
-                      onChange={e=>setRecordingFile(e.target.files?.[0]||null)}/>
-                  </label>
-                  {recordingFile&&(
-                    <span className="ld-recording-file">
-                      &#128206; {recordingFile.name}
-                      <button className="ld-recording-clear" onClick={()=>setRecordingFile(null)}>&#10005;</button>
-                    </span>
-                  )}
-                </div>
-              )}
-
-              <textarea
-                placeholder={activityType==='note'?'Write a note...':activityType==='call'?'Call summary...':activityType==='email'?'Email summary...':'WhatsApp message summary...'}
-                value={activityDesc}
-                onChange={e=>setActivityDesc(e.target.value)}/>
-            </div>
-            <div className="ld-add-activity-footer">
-              <button className="ld-btn ld-btn-primary" onClick={handleAddActivity} disabled={uploadingActivity}>
-                {uploadingActivity?'Saving...':'Add Activity'}
-              </button>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="ld-timeline-card">
-            <div className="ld-timeline-header">
-              <div className="ld-timeline-title">Timeline</div>
-              <span className="ld-timeline-count">{lead.activities.length}</span>
-            </div>
-            <div className="ld-timeline-filter-row">
-              {TIMELINE_FILTERS.map(f=>(
-                <button key={f.key}
-                  className={`ld-tfilter${timelineFilter===f.key?' active':''}`}
-                  onClick={()=>setTimelineFilter(f.key)}>
-                  {f.label}
-                </button>
-              ))}
-            </div>
-            <div className="ld-timeline">
-              {filteredActivities.length===0 ? (
-                <div className="ld-timeline-empty">No activities yet</div>
-              ) : filteredActivities.map(activity=>(
-                <div className="ld-activity-item" key={activity._id}>
-                  <div className={`ld-activity-icon ${activity.type}`}>
-                    {ACTIVITY_ICONS[activity.type]||'•'}
-                  </div>
-                  <div className="ld-activity-body">
-                    <div className="ld-activity-desc">
-                      <span>{activity.description}</span>
-                      {activity.callOutcome&&(
-                        <span className={`ld-outcome-badge ${activity.callOutcome}`}>
-                          {CALL_OUTCOMES.find(o=>o.value===activity.callOutcome)?.label||activity.callOutcome}
-                        </span>
-                      )}
-                    </div>
-                    {activity.recordingUrl&&(
-                      <div className="ld-recording-player">
-                        <span className="ld-recording-icon">&#127897;</span>
-                        <audio controls src={activity.recordingUrl} className="ld-audio-player"/>
-                      </div>
-                    )}
-                    <div className="ld-activity-meta">
-                      <span className="ld-meta-author">
-                        {typeof activity.createdBy==='object'
-                          ?`${activity.createdBy.firstName} ${activity.createdBy.lastName}`
-                          :'System'}
-                      </span>
-                      <span className="ld-meta-dot">•</span>
-                      <span>{formatTime(activity.createdAt)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
         </div>
       </div>
 
-      {/* ── NOT INTERESTED REASON MODAL ── */}
-      {showReasonModal&&(
-        <div className="ld-modal-overlay" onClick={()=>setShowReasonModal(false)}>
-          <div className="ld-modal" onClick={e=>e.stopPropagation()}>
-            <div className="ld-modal-header">
-              <h2 className="ld-modal-title">Reason Required</h2>
-              <button className="ld-modal-close" onClick={()=>setShowReasonModal(false)}>&#10005;</button>
+      {/* ── MODALS ── */}
+      
+      {/* Not Interested Reason Modal */}
+      {showReasonModal && (
+        <div className="crm-modal-overlay" onClick={() => setShowReasonModal(false)}>
+          <div className="crm-modal" onClick={e => e.stopPropagation()}>
+            <div className="crm-modal-header">
+              <h2 className="crm-modal-title">Reason Required</h2>
+              <button className="crm-modal-close" onClick={() => setShowReasonModal(false)}>✕</button>
             </div>
-            <div className="ld-modal-body">
-              <p className="ld-modal-subtitle">Why is this lead not interested?</p>
-              <div className="ld-form-group">
+            <div className="crm-modal-body">
+              <p style={{color:'#6b7280', marginBottom:16}}>Why is this lead not interested?</p>
+              <div className="crm-form-group">
                 <label>Reason *</label>
-                <textarea value={notInterestedReason}
-                  onChange={e=>setNotInterestedReason(e.target.value)}
+                <textarea
+                  value={notInterestedReason}
+                  onChange={e => setNotInterestedReason(e.target.value)}
                   placeholder="e.g., Budget constraints, found another institute..."
-                  autoFocus/>
+                  autoFocus
+                />
               </div>
             </div>
-            <div className="ld-modal-footer">
-              <button className="ld-btn ld-btn-secondary" onClick={()=>setShowReasonModal(false)}>Cancel</button>
-              <button className="ld-btn ld-btn-danger" onClick={handleConfirmNotInterested}
-                disabled={!notInterestedReason.trim()}>Confirm</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── CONVERT TO STUDENT MODAL ── */}
-      {showConvertModal&&(
-        <div className="ld-modal-overlay" onClick={()=>setShowConvertModal(false)}>
-          <div className="ld-modal" onClick={e=>e.stopPropagation()}>
-            <div className="ld-modal-header">
-              <h2 className="ld-modal-title">&#127891; Convert to Student</h2>
-              <button className="ld-modal-close" onClick={()=>setShowConvertModal(false)}>&#10005;</button>
-            </div>
-            <div className="ld-modal-body">
-              <p className="ld-modal-subtitle">
-                This will create a student account for <strong>{lead.name}</strong> ({lead.email}).
-              </p>
-              <div className="ld-form-group">
-                <label>Initial Password</label>
-                <input type="text" value={convertPassword}
-                  onChange={e=>setConvertPassword(e.target.value)}
-                  placeholder="e.g., Welcome@123"/>
-              </div>
-            </div>
-            <div className="ld-modal-footer">
-              <button className="ld-btn ld-btn-secondary" onClick={()=>setShowConvertModal(false)}>Cancel</button>
-              <button className="ld-btn ld-btn-convert" onClick={handleConvertToStudent} disabled={converting}>
-                {converting?'Converting...':'Convert to Student'}
+            <div className="crm-modal-footer">
+              <button className="crm-btn crm-btn-secondary" onClick={() => setShowReasonModal(false)}>Cancel</button>
+              <button 
+                className="crm-btn" 
+                style={{background:'#dc2626', color:'#fff'}}
+                onClick={handleConfirmNotInterested}
+                disabled={!notInterestedReason.trim()}
+              >
+                Confirm
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── CONTENT LIBRARY MODAL ── */}
-      {showContentModal && (
-        <div className="ld-modal-overlay" onClick={() => setShowContentModal(false)}>
-          <div className="ld-modal ld-modal-lg" onClick={e => e.stopPropagation()}>
-            <div className="ld-modal-header">
-              <h2 className="ld-modal-title">📚 Share Content with Lead</h2>
-              <button className="ld-modal-close" onClick={() => setShowContentModal(false)}>&#10005;</button>
+      {/* Convert to Student Modal */}
+      {showConvertModal && (
+        <div className="crm-modal-overlay" onClick={() => setShowConvertModal(false)}>
+          <div className="crm-modal" onClick={e => e.stopPropagation()}>
+            <div className="crm-modal-header">
+              <h2 className="crm-modal-title">🎓 Convert to Student</h2>
+              <button className="crm-modal-close" onClick={() => setShowConvertModal(false)}>✕</button>
             </div>
-            <div className="ld-modal-body">
-              <div className="ld-content-grid">
+            <div className="crm-modal-body">
+              <p style={{color:'#6b7280', marginBottom:16}}>
+                This will create a student account for <strong>{lead.name}</strong> ({lead.email}).
+              </p>
+              <div className="crm-form-group">
+                <label>Initial Password</label>
+                <input
+                  type="text"
+                  value={convertPassword}
+                  onChange={e => setConvertPassword(e.target.value)}
+                  placeholder="e.g., Welcome@123"
+                />
+              </div>
+            </div>
+            <div className="crm-modal-footer">
+              <button className="crm-btn crm-btn-secondary" onClick={() => setShowConvertModal(false)}>Cancel</button>
+              <button 
+                className="crm-btn"
+                style={{background:'#7c3aed', color:'#fff'}}
+                onClick={handleConvertToStudent}
+                disabled={converting}
+              >
+                {converting ? 'Converting...' : 'Convert to Student'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Content Library Modal */}
+      {showContentModal && (
+        <div className="crm-modal-overlay" onClick={() => setShowContentModal(false)}>
+          <div className="crm-modal" style={{maxWidth:600}} onClick={e => e.stopPropagation()}>
+            <div className="crm-modal-header">
+              <h2 className="crm-modal-title">📚 Share Content</h2>
+              <button className="crm-modal-close" onClick={() => setShowContentModal(false)}>✕</button>
+            </div>
+            <div className="crm-modal-body" style={{maxHeight:400, overflowY:'auto'}}>
+              <div style={{display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:12}}>
                 {salesContent.map(content => (
-                  <div 
-                    key={content._id} 
-                    className={`ld-content-card${selectedContent?._id === content._id ? ' selected' : ''}`}
+                  <div
+                    key={content._id}
+                    style={{
+                      padding:14,
+                      borderRadius:10,
+                      border: `2px solid ${selectedContent?._id === content._id ? '#2563eb' : '#e5e7eb'}`,
+                      cursor:'pointer',
+                      background: selectedContent?._id === content._id ? '#eff6ff' : '#fff'
+                    }}
                     onClick={() => setSelectedContent(content)}
                   >
-                    <div className="ld-content-card-icon">
-                      {content.type === 'brochure' ? '📄' : 
-                       content.type === 'video' ? '🎬' : 
-                       content.type === 'testimonial' ? '⭐' : 
-                       content.type === 'pricing' ? '💰' : 
-                       content.type === 'case_study' ? '📊' : 
-                       content.type === 'demo' ? '🖥️' : '📋'}
+                    <div style={{fontSize:'1.5rem', marginBottom:8}}>
+                      {content.type === 'brochure' ? '📄' : content.type === 'video' ? '🎬' : content.type === 'testimonial' ? '⭐' : '📋'}
                     </div>
-                    <div className="ld-content-card-info">
-                      <div className="ld-content-card-title">{content.title}</div>
-                      <div className="ld-content-card-type">{content.type.replace('_', ' ')}</div>
-                      {content.description && (
-                        <div className="ld-content-card-desc">{content.description}</div>
-                      )}
-                    </div>
+                    <div style={{fontWeight:600, fontSize:'0.88rem', color:'#111827'}}>{content.title}</div>
+                    <div style={{fontSize:'0.75rem', color:'#6b7280', textTransform:'capitalize'}}>{content.type}</div>
                   </div>
                 ))}
               </div>
             </div>
-            <div className="ld-modal-footer">
-              <button className="ld-btn ld-btn-secondary" onClick={() => setShowContentModal(false)}>Cancel</button>
-              <button 
-                className="ld-btn ld-btn-primary" 
+            <div className="crm-modal-footer">
+              <button className="crm-btn crm-btn-secondary" onClick={() => setShowContentModal(false)}>Cancel</button>
+              <button
+                className="crm-btn crm-btn-primary"
                 onClick={() => selectedContent && handleShareContent(selectedContent)}
                 disabled={!selectedContent || sharingContent}
               >
-                {sharingContent ? 'Sharing...' : 'Share Selected Content'}
+                {sharingContent ? 'Sharing...' : 'Share Content'}
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* ── MEETING SCHEDULER MODAL ── */}
+      {/* Meeting Scheduler */}
       {showMeetingScheduler && (
         <MeetingScheduler
           lead={{ _id: lead._id, name: lead.name, phone: lead.phone, email: lead.email }}
@@ -1245,7 +1226,7 @@ const LeadDetail: React.FC = () => {
         />
       )}
 
-      {/* ── PAYMENT LINK MODAL ── */}
+      {/* Payment Link Modal */}
       {showPaymentLinkModal && (
         <PaymentLinkModal
           lead={{ _id: lead._id, name: lead.name, phone: lead.phone, email: lead.email, courseInterest: lead.courseInterest }}
@@ -1258,7 +1239,7 @@ const LeadDetail: React.FC = () => {
         />
       )}
 
-      {/* ── LOST REASON MODAL ── */}
+      {/* Lost Reason Modal */}
       {showLostReasonModal && (
         <LostReasonModal
           lead={{ _id: lead._id, name: lead.name }}

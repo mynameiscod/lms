@@ -26,6 +26,8 @@ interface Activity {
   description: string;
   createdAt: string;
   createdBy?: { name: string };
+  recordingUrl?: string;
+  callOutcome?: string;
 }
 
 interface Stage {
@@ -57,6 +59,8 @@ const LeadDetailV2: React.FC = () => {
   const [noteType, setNoteType] = useState('note');
   const [followUpDate, setFollowUpDate] = useState('');
   const [checklistAnswers, setChecklistAnswers] = useState<Record<string, string>>({});
+  const [recordingFile, setRecordingFile] = useState<File | null>(null);
+  const [callOutcome, setCallOutcome] = useState('');
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
@@ -149,13 +153,22 @@ const LeadDetailV2: React.FC = () => {
   const handleSaveNote = async () => {
     if (!noteText.trim()) return;
     try {
-      await leadApi.addActivity(leadId!, { type: noteType, description: noteText });
+      const data: { type: string; description: string; callOutcome?: string } = {
+        type: noteType,
+        description: noteText
+      };
+      if (noteType === 'call' && callOutcome) {
+        data.callOutcome = callOutcome;
+      }
+      await leadApi.addActivity(leadId!, data, recordingFile || undefined);
       setNoteText('');
+      setCallOutcome('');
+      setRecordingFile(null);
       setShowNoteModal(false);
       fetchData();
-      showToast('Note added');
+      showToast('Activity added');
     } catch (error) {
-      showToast('Failed to add note', 'error');
+      showToast('Failed to add activity', 'error');
     }
   };
 
@@ -407,9 +420,20 @@ const LeadDetailV2: React.FC = () => {
                         <div className="ld2-timeline-content">
                           <div className="ld2-timeline-meta">
                             <span className="ld2-timeline-type">{activity.type}</span>
+                            {activity.callOutcome && (
+                              <span className={`ld2-call-outcome ld2-outcome-${activity.callOutcome}`}>
+                                {activity.callOutcome.replace('_', ' ')}
+                              </span>
+                            )}
                             <span className="ld2-timeline-time">{formatRelativeTime(activity.createdAt)}</span>
                           </div>
                           <p>{activity.description}</p>
+                          {activity.recordingUrl && (
+                            <div className="ld2-recording">
+                              <i className="bi bi-mic-fill"></i>
+                              <audio controls src={activity.recordingUrl} />
+                            </div>
+                          )}
                           {activity.createdBy && (
                             <span className="ld2-timeline-user">by {activity.createdBy.name}</span>
                           )}
@@ -607,10 +631,55 @@ const LeadDetailV2: React.FC = () => {
                   rows={4}
                 />
               </div>
+              {noteType === 'call' && (
+                <>
+                  <div className="ld2-form-group">
+                    <label>Call Outcome</label>
+                    <select
+                      value={callOutcome}
+                      onChange={(e) => setCallOutcome(e.target.value)}
+                      className="ld2-select"
+                    >
+                      <option value="">Select outcome...</option>
+                      <option value="connected">Connected</option>
+                      <option value="no_answer">No Answer</option>
+                      <option value="busy">Busy</option>
+                      <option value="voicemail">Voicemail</option>
+                      <option value="wrong_number">Wrong Number</option>
+                      <option value="callback_requested">Callback Requested</option>
+                    </select>
+                  </div>
+                  <div className="ld2-form-group">
+                    <label>
+                      <i className="bi bi-mic"></i> Upload Call Recording
+                    </label>
+                    <div className="ld2-file-upload">
+                      <input
+                        type="file"
+                        accept="audio/*"
+                        id="recording-upload"
+                        onChange={(e) => setRecordingFile(e.target.files?.[0] || null)}
+                      />
+                      <label htmlFor="recording-upload" className="ld2-file-label">
+                        <i className="bi bi-cloud-upload"></i>
+                        {recordingFile ? recordingFile.name : 'Choose audio file...'}
+                      </label>
+                      {recordingFile && (
+                        <button 
+                          className="ld2-file-remove"
+                          onClick={() => setRecordingFile(null)}
+                        >
+                          <i className="bi bi-x"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
             <div className="ld2-modal-footer">
-              <button className="ld2-btn-cancel" onClick={() => setShowNoteModal(false)}>Cancel</button>
-              <button className="ld2-btn-primary" onClick={handleSaveNote}>Save Note</button>
+              <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); }}>Cancel</button>
+              <button className="ld2-btn-primary" onClick={handleSaveNote}>Save Activity</button>
             </div>
           </div>
         </div>

@@ -971,188 +971,232 @@ const LeadsPage: React.FC = () => {
       )}
 
       {showModal&&(
-        <div className="crm-modal-overlay" onClick={()=>setShowModal(false)}>
-          <div className="crm-modal" onClick={e=>e.stopPropagation()}>
-            <div className="crm-modal-header">
-              <h2 className="crm-modal-title">{editingLead?'Edit Lead':'New Lead'}</h2>
-              <button className="crm-modal-close" onClick={()=>setShowModal(false)}>&#10005;</button>
-            </div>
-            <div className="crm-form-grid">
-              {/* Priority Field - Always visible at top */}
-              <div className="crm-form-group crm-priority-field">
-                <label>Lead Priority</label>
-                <div className="crm-priority-buttons">
-                  {(['hot','warm','cold'] as LeadPriority[]).map(p=>(
-                    <button
-                      key={p}
-                      type="button"
-                      className={`crm-priority-btn${formData.priority===p?' active':''}`}
-                      style={{
-                        backgroundColor: formData.priority===p ? PRIORITY_COLORS[p].bg : '#f3f4f6',
-                        color: formData.priority===p ? PRIORITY_COLORS[p].text : '#6b7280',
-                        borderColor: formData.priority===p ? PRIORITY_COLORS[p].text : '#d1d5db'
-                      }}
-                      onClick={()=>setFormData(prev=>({...prev,priority:p}))}
-                    >
-                      {PRIORITY_COLORS[p].label}
-                    </button>
-                  ))}
+        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={()=>setShowModal(false)}>
+          <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable" onClick={e=>e.stopPropagation()}>
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header bg-primary text-white">
+                <h5 className="modal-title">
+                  <i className={`fa-solid ${editingLead ? 'fa-pen' : 'fa-user-plus'} me-2`}></i>
+                  {editingLead?'Edit Lead':'New Lead'}
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={()=>setShowModal(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                {/* Priority Field - Always visible at top */}
+                <div className="mb-4">
+                  <label className="form-label fw-semibold text-secondary">Lead Priority</label>
+                  <div className="btn-group w-100" role="group">
+                    {(['hot','warm','cold'] as LeadPriority[]).map(p=>(
+                      <button
+                        key={p}
+                        type="button"
+                        className={`btn ${formData.priority===p ? 
+                          (p==='hot' ? 'btn-danger' : p==='warm' ? 'btn-warning' : 'btn-info') : 
+                          'btn-outline-secondary'}`}
+                        onClick={()=>setFormData(prev=>({...prev,priority:p}))}
+                      >
+                        {p==='hot'&&<i className="fa-solid fa-fire me-1"></i>}
+                        {p==='warm'&&<i className="fa-solid fa-sun me-1"></i>}
+                        {p==='cold'&&<i className="fa-solid fa-snowflake me-1"></i>}
+                        {PRIORITY_COLORS[p].label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="row g-3">
+                  {formFields.map(field=>{
+                    if(field.fieldKey==='source'){return(
+                      <div className="col-md-6" key={field.fieldKey}>
+                        <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
+                        <select className="form-select" value={formData.source||''} onChange={e=>setFormData(p=>({...p,source:e.target.value}))}>
+                          {configSources.map(s=><option key={s} value={s}>{SOURCE_LABELS[s]||s.replace(/_/g,' ')}</option>)}
+                        </select>
+                      </div>
+                    );}
+                    if(field.fieldKey==='stageId'){return(
+                      <div className="col-md-6" key={field.fieldKey}>
+                        <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
+                        <select className="form-select" value={formData.stageId||''} onChange={e=>setFormData(p=>({...p,stageId:e.target.value}))}>
+                          {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
+                        </select>
+                      </div>
+                    );}
+                    if(field.fieldKey==='assignedTo'){return(
+                      <div className="col-md-6" key={field.fieldKey}>
+                        <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
+                        <select className="form-select" value={formData.assignedTo||''} onChange={e=>setFormData(p=>({...p,assignedTo:e.target.value}))}>
+                          <option value="">Unassigned</option>
+                          {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
+                        </select>
+                      </div>
+                    );}
+                    const val=formData[field.fieldKey]??'';
+                    const onChange=(v:any)=>setFormData(p=>({...p,[field.fieldKey]:v}));
+                    const isFullWidth=field.type==='textarea'||field.fieldKey==='notes';
+                    if(field.type==='textarea'){return(
+                      <div className="col-12" key={field.fieldKey}>
+                        <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
+                        <textarea className="form-control" rows={3} value={val} onChange={e=>onChange(e.target.value)} placeholder={field.placeholder||''}/>
+                      </div>
+                    );}
+                    if(field.type==='select'&&field.options?.length){return(
+                      <div className="col-md-6" key={field.fieldKey}>
+                        <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
+                        <select className="form-select" value={val} onChange={e=>onChange(e.target.value)}>
+                          <option value="">-- Select --</option>
+                          {field.options.map(o=><option key={o} value={o}>{o}</option>)}
+                        </select>
+                      </div>
+                    );}
+                    if(field.type==='checkbox'){return(
+                      <div className="col-md-6" key={field.fieldKey}>
+                        <div className="form-check mt-4">
+                          <input className="form-check-input" type="checkbox" id={`field-${field.fieldKey}`} checked={!!val} onChange={e=>onChange(e.target.checked)}/>
+                          <label className="form-check-label" htmlFor={`field-${field.fieldKey}`}>{field.label}</label>
+                        </div>
+                      </div>
+                    );}
+                    return(
+                      <div className={isFullWidth?'col-12':'col-md-6'} key={field.fieldKey}>
+                        <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
+                        <input className="form-control" type={field.type==='time'?'time':field.type} value={val} onChange={e=>onChange(e.target.value)} placeholder={field.placeholder||''}/>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
-              {formFields.map(field=>{
-                if(field.fieldKey==='source'){return(
-                  <div className="crm-form-group" key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <select value={formData.source||''} onChange={e=>setFormData(p=>({...p,source:e.target.value}))}>
-                      {configSources.map(s=><option key={s} value={s}>{SOURCE_LABELS[s]||s.replace(/_/g,' ')}</option>)}
-                    </select>
-                  </div>
-                );}
-                if(field.fieldKey==='stageId'){return(
-                  <div className="crm-form-group" key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <select value={formData.stageId||''} onChange={e=>setFormData(p=>({...p,stageId:e.target.value}))}>
-                      {stages.map(s=><option key={s._id} value={s._id}>{s.name}</option>)}
-                    </select>
-                  </div>
-                );}
-                if(field.fieldKey==='assignedTo'){return(
-                  <div className="crm-form-group" key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <select value={formData.assignedTo||''} onChange={e=>setFormData(p=>({...p,assignedTo:e.target.value}))}>
-                      <option value="">Unassigned</option>
-                      {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
-                    </select>
-                  </div>
-                );}
-                const val=formData[field.fieldKey]??'';
-                const onChange=(v:any)=>setFormData(p=>({...p,[field.fieldKey]:v}));
-                const isFullWidth=field.type==='textarea'||field.fieldKey==='notes';
-                if(field.type==='textarea'){return(
-                  <div className="crm-form-group crm-form-full" key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <textarea value={val} onChange={e=>onChange(e.target.value)} placeholder={field.placeholder||''}/>
-                  </div>
-                );}
-                if(field.type==='select'&&field.options?.length){return(
-                  <div className="crm-form-group" key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <select value={val} onChange={e=>onChange(e.target.value)}>
-                      <option value="">-- Select --</option>
-                      {field.options.map(o=><option key={o} value={o}>{o}</option>)}
-                    </select>
-                  </div>
-                );}
-                if(field.type==='checkbox'){return(
-                  <div className="crm-form-group" key={field.fieldKey}>
-                    <label className="crm-form-checkbox">
-                      <input type="checkbox" checked={!!val} onChange={e=>onChange(e.target.checked)}/>{field.label}
-                    </label>
-                  </div>
-                );}
-                return(
-                  <div className={`crm-form-group${isFullWidth?' crm-form-full':''}`} key={field.fieldKey}>
-                    <label>{field.label}{field.required?' *':''}</label>
-                    <input type={field.type} value={val} onChange={e=>onChange(e.target.value)} placeholder={field.placeholder||''}/>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="crm-modal-actions">
-              <button className="crm-btn crm-btn-secondary" onClick={()=>setShowModal(false)}>Cancel</button>
-              <button className="crm-btn crm-btn-primary" onClick={handleSave}>{editingLead?'Update Lead':'Create Lead'}</button>
+              <div className="modal-footer bg-light">
+                <button type="button" className="btn btn-outline-secondary" onClick={()=>setShowModal(false)}>
+                  <i className="fa-solid fa-xmark me-1"></i> Cancel
+                </button>
+                <button type="button" className="btn btn-primary" onClick={handleSave}>
+                  <i className={`fa-solid ${editingLead ? 'fa-check' : 'fa-plus'} me-1`}></i>
+                  {editingLead?'Update Lead':'Create Lead'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {showReasonModal&&(
-        <div className="crm-modal-overlay" onClick={()=>setShowReasonModal(false)}>
-          <div className="crm-modal crm-modal-sm" onClick={e=>e.stopPropagation()}>
-            <div className="crm-modal-header">
-              <h2 className="crm-modal-title">Reason Required</h2>
-              <button className="crm-modal-close" onClick={()=>setShowReasonModal(false)}>&#10005;</button>
-            </div>
-            <p className="crm-modal-subtitle">Why is this lead not interested? Helps track patterns.</p>
-            <div className="crm-form-group">
-              <label>Reason *</label>
-              <textarea value={notInterestedReason}
-                onChange={e=>setNotInterestedReason(e.target.value)}
-                placeholder="e.g., Budget constraints, found another institute..."
-                autoFocus/>
-            </div>
-            <div className="crm-modal-actions">
-              <button className="crm-btn crm-btn-secondary" onClick={()=>setShowReasonModal(false)}>Cancel</button>
-              <button className="crm-btn crm-btn-danger" onClick={handleConfirmNotInterested}
-                disabled={!notInterestedReason.trim()}>Confirm</button>
+        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={()=>setShowReasonModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header bg-warning">
+                <h5 className="modal-title">
+                  <i className="fa-solid fa-circle-exclamation me-2"></i>
+                  Reason Required
+                </h5>
+                <button type="button" className="btn-close" onClick={()=>setShowReasonModal(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <p className="text-muted mb-3">Why is this lead not interested? Helps track patterns.</p>
+                <div className="mb-0">
+                  <label className="form-label">Reason <span className="text-danger">*</span></label>
+                  <textarea className="form-control" rows={3} value={notInterestedReason}
+                    onChange={e=>setNotInterestedReason(e.target.value)}
+                    placeholder="e.g., Budget constraints, found another institute..."
+                    autoFocus/>
+                </div>
+              </div>
+              <div className="modal-footer bg-light">
+                <button type="button" className="btn btn-outline-secondary" onClick={()=>setShowReasonModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-danger" onClick={handleConfirmNotInterested}
+                  disabled={!notInterestedReason.trim()}>Confirm</button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {showImportModal&&(
-        <div className="crm-modal-overlay" onClick={()=>setShowImportModal(false)}>
-          <div className="crm-modal crm-modal-sm" onClick={e=>e.stopPropagation()}>
-            <div className="crm-modal-header">
-              <h2 className="crm-modal-title">&#8679; Import Leads</h2>
-              <button className="crm-modal-close" onClick={()=>setShowImportModal(false)}>&#10005;</button>
-            </div>
-            <p className="crm-modal-subtitle">
-              CSV headers: <strong>Name, Email, Phone, Source, Course Interest, Notes</strong>. Name and Phone required.
-            </p>
-            <div className={`crm-dropzone${importFile?' has-file':''}`}>
-              <input type="file" accept=".csv,text/csv" id="crm-csv-input"
-                onChange={e=>setImportFile(e.target.files?.[0]||null)}/>
-              <label htmlFor="crm-csv-input" className="crm-dropzone-label">
-                <span className="crm-dropzone-icon">{importFile?'&#128196;':'&#128193;'}</span>
-                {importFile?importFile.name:'Click to select or drop your CSV file'}
-              </label>
-            </div>
-            <div className="crm-modal-actions">
-              <button className="crm-btn crm-btn-secondary" onClick={()=>{setShowImportModal(false);setImportFile(null);}}>Cancel</button>
-              <button className="crm-btn crm-btn-primary" onClick={handleImport}
-                disabled={!importFile||importing}>{importing?'Importing...':'Import Leads'}</button>
+        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={()=>setShowImportModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header bg-success text-white">
+                <h5 className="modal-title">
+                  <i className="fa-solid fa-file-import me-2"></i>
+                  Import Leads
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={()=>setShowImportModal(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <div className="alert alert-info mb-3">
+                  <i className="fa-solid fa-info-circle me-2"></i>
+                  CSV headers: <strong>Name, Email, Phone, Source, Course Interest, Notes</strong>. Name and Phone required.
+                </div>
+                <div className={`border border-2 border-dashed rounded-3 p-4 text-center ${importFile?'border-success bg-success bg-opacity-10':'border-secondary'}`}>
+                  <input type="file" accept=".csv,text/csv" id="crm-csv-input" className="d-none"
+                    onChange={e=>setImportFile(e.target.files?.[0]||null)}/>
+                  <label htmlFor="crm-csv-input" className="d-block mb-0" style={{cursor:'pointer'}}>
+                    <i className={`fa-solid ${importFile?'fa-file-csv text-success':'fa-cloud-arrow-up text-secondary'} fa-3x mb-2`}></i>
+                    <p className="mb-0 text-muted">{importFile?importFile.name:'Click to select or drop your CSV file'}</p>
+                  </label>
+                </div>
+              </div>
+              <div className="modal-footer bg-light">
+                <button type="button" className="btn btn-outline-secondary" onClick={()=>{setShowImportModal(false);setImportFile(null);}}>
+                  Cancel
+                </button>
+                <button type="button" className="btn btn-success" onClick={handleImport}
+                  disabled={!importFile||importing}>
+                  <i className="fa-solid fa-upload me-1"></i>
+                  {importing?'Importing...':'Import Leads'}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
       {showWhatsAppModal&&(
-        <div className="crm-modal-overlay" onClick={()=>setShowWhatsAppModal(false)}>
-          <div className="crm-modal crm-modal-sm" onClick={e=>e.stopPropagation()}>
-            <div className="crm-modal-header">
-              <h2 className="crm-modal-title">&#128172; Bulk WhatsApp</h2>
-              <button className="crm-modal-close" onClick={()=>setShowWhatsAppModal(false)}>&#10005;</button>
-            </div>
-            <p className="crm-modal-subtitle">
-              Sending to <strong>{selectedLeads.size}</strong> lead{selectedLeads.size!==1?'s':''}.
-              Each lead will open in a new WhatsApp tab.
-            </p>
-            <div className="crm-form-group">
-              <label>Message Template</label>
-              <textarea
-                value={whatsAppMessage}
-                onChange={e=>setWhatsAppMessage(e.target.value)}
-                placeholder={`Hi [Lead Name], we wanted to follow up about your interest in our demo...`}
-                rows={5}/>
-              <span style={{fontSize:'0.78rem',color:'#6b7280',marginTop:4,display:'block'}}>
-                Tip: Start each message with the lead's name for a personal touch.
-              </span>
-            </div>
-            <div className="crm-wa-preview">
-              {leads.filter(l=>selectedLeads.has(l._id)).slice(0,3).map(l=>(
-                <div key={l._id} className="crm-wa-chip">
-                  <span className="crm-assignee-avatar" style={{width:22,height:22,fontSize:'0.65rem'}}>{initials(l.name)}</span>
-                  {l.name} · {l.phone}
+        <div className="modal fade show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={()=>setShowWhatsAppModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header" style={{background: '#25D366'}}>
+                <h5 className="modal-title text-white">
+                  <i className="fa-brands fa-whatsapp me-2"></i>
+                  Bulk WhatsApp
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={()=>setShowWhatsAppModal(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <div className="alert alert-light border mb-3">
+                  <i className="fa-solid fa-users me-2"></i>
+                  Sending to <strong>{selectedLeads.size}</strong> lead{selectedLeads.size!==1?'s':''}.
+                  Each lead will open in a new WhatsApp tab.
                 </div>
-              ))}
-              {selectedLeads.size>3&&<span style={{fontSize:'0.8rem',color:'#6b7280'}}>+{selectedLeads.size-3} more</span>}
-            </div>
-            <div className="crm-modal-actions">
-              <button className="crm-btn crm-btn-secondary" onClick={()=>setShowWhatsAppModal(false)}>Cancel</button>
-              <button className="crm-btn crm-btn-whatsapp" onClick={handleSendWhatsApp}>
-                &#128172; Open WhatsApp ({selectedLeads.size})
-              </button>
+                <div className="mb-3">
+                  <label className="form-label">Message Template</label>
+                  <textarea className="form-control"
+                    value={whatsAppMessage}
+                    onChange={e=>setWhatsAppMessage(e.target.value)}
+                    placeholder={`Hi [Lead Name], we wanted to follow up about your interest in our demo...`}
+                    rows={5}/>
+                  <small className="text-muted">
+                    <i className="fa-solid fa-lightbulb me-1"></i>
+                    Tip: Start each message with the lead's name for a personal touch.
+                  </small>
+                </div>
+                <div className="d-flex flex-wrap gap-2 align-items-center">
+                  {leads.filter(l=>selectedLeads.has(l._id)).slice(0,3).map(l=>(
+                    <span key={l._id} className="badge bg-light text-dark border">
+                      <span className="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary text-white me-1" style={{width:20,height:20,fontSize:'0.65rem'}}>{initials(l.name)}</span>
+                      {l.name}
+                    </span>
+                  ))}
+                  {selectedLeads.size>3&&<span className="text-muted small">+{selectedLeads.size-3} more</span>}
+                </div>
+              </div>
+              <div className="modal-footer bg-light">
+                <button type="button" className="btn btn-outline-secondary" onClick={()=>setShowWhatsAppModal(false)}>Cancel</button>
+                <button type="button" className="btn text-white" style={{background: '#25D366'}} onClick={handleSendWhatsApp}>
+                  <i className="fa-brands fa-whatsapp me-1"></i>
+                  Open WhatsApp ({selectedLeads.size})
+                </button>
+              </div>
             </div>
           </div>
         </div>

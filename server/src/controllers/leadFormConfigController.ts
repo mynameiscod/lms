@@ -150,3 +150,83 @@ export const deleteCustomField = async (req: AuthenticatedRequest, res: Response
     res.status(500).json({ success: false, message: 'Failed to delete custom field', error: error.message });
   }
 };
+
+// Get stats cards configuration
+export const getStatsCardsConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    let config = await LeadFormConfig.findOne({ tenantId: req.tenantId });
+
+    if (!config) {
+      config = await LeadFormConfig.create({
+        tenantId: req.tenantId,
+        fields: DEFAULT_FIELDS,
+        sources: DEFAULT_SOURCES,
+        statsCards: []
+      });
+    }
+
+    res.json({ 
+      success: true, 
+      message: 'Stats cards config fetched', 
+      data: config.statsCards || [] 
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch stats cards config', error: error.message });
+  }
+};
+
+// Update stats cards configuration
+export const updateStatsCardsConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { statsCards } = req.body;
+
+    if (!statsCards || !Array.isArray(statsCards)) {
+      return res.status(400).json({ success: false, message: 'statsCards array is required' });
+    }
+
+    // Validate each stats card
+    for (const card of statsCards) {
+      if (!card.key || !card.label || !card.type) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Each stats card must have key, label, and type' 
+        });
+      }
+      
+      const validTypes = ['system', 'stage', 'priority', 'source', 'custom'];
+      if (!validTypes.includes(card.type)) {
+        return res.status(400).json({ 
+          success: false, 
+          message: `Invalid type for card "${card.label}". Must be one of: ${validTypes.join(', ')}` 
+        });
+      }
+    }
+
+    // Check for duplicate keys
+    const keys = statsCards.map((c: any) => c.key);
+    const duplicates = keys.filter((k: string, i: number) => keys.indexOf(k) !== i);
+    if (duplicates.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: `Duplicate stats card keys: ${duplicates.join(', ')}` 
+      });
+    }
+
+    let config = await LeadFormConfig.findOne({ tenantId: req.tenantId });
+    if (!config) {
+      config = await LeadFormConfig.create({
+        tenantId: req.tenantId,
+        fields: DEFAULT_FIELDS,
+        sources: DEFAULT_SOURCES,
+        statsCards
+      });
+    } else {
+      config.statsCards = statsCards;
+      await config.save();
+    }
+
+    res.json({ success: true, message: 'Stats cards config updated', data: config.statsCards });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update stats cards config', error: error.message });
+  }
+};

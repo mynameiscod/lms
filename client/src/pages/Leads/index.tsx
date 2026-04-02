@@ -28,6 +28,19 @@ interface FormField {
   options?: string[]; placeholder?: string; order: number;
 }
 
+interface StatsCard {
+  key: string;
+  type: 'system' | 'stage' | 'priority' | 'source' | 'custom';
+  label: string;
+  icon?: string;
+  color?: string;
+  enabled: boolean;
+  order: number;
+  stageId?: string;
+  priority?: string;
+  source?: string;
+}
+
 const SOURCES = ['website','walkin','referral','social_media','google_ads','whatsapp','phone','other'];
 const SOURCE_LABELS: Record<string,string> = {
   website:'Website', walkin:'Walk-in', referral:'Referral', social_media:'Social Media',
@@ -72,6 +85,7 @@ const LeadsPage: React.FC = () => {
 
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [configSources, setConfigSources] = useState<string[]>(SOURCES);
+  const [statsCardsConfig, setStatsCardsConfig] = useState<StatsCard[]>([]);
 
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
@@ -170,6 +184,11 @@ const LeadsPage: React.FC = () => {
           const enabled=(configRes.data.fields||[]).filter((f:FormField)=>f.enabled).sort((a:FormField,b:FormField)=>a.order-b.order);
           setFormFields(enabled);
           if(configRes.data.sources?.length>0) setConfigSources(configRes.data.sources);
+        }
+        // Load stats cards configuration
+        const statsRes = await leadFormConfigApi.getStatsCardsConfig();
+        if (statsRes.data && statsRes.data.length > 0) {
+          setStatsCardsConfig(statsRes.data.filter((c: StatsCard) => c.enabled).sort((a: StatsCard, b: StatsCard) => a.order - b.order));
         }
       } catch {}
       try {
@@ -422,31 +441,73 @@ const LeadsPage: React.FC = () => {
       )}
 
       <div className="crm-stats">
-        <div className="crm-stat-card" style={{'--stat-accent':'#2563eb'} as React.CSSProperties}
-          onClick={()=>{setActiveStageFilter('');setFilterStage('');}}>
-          <span className="crm-stat-icon">&#128203;</span>
-          <div className="crm-stat-value">{totalLeads}</div>
-          <div className="crm-stat-label">Total Leads</div>
-        </div>
-        <div className="crm-stat-card" style={{'--stat-accent':'#ea580c'} as React.CSSProperties}>
-          <span className="crm-stat-icon">&#128276;</span>
-          <div className="crm-stat-value">{todayFollowUps}</div>
-          <div className="crm-stat-label">Follow-ups Today</div>
-        </div>
-        {stages.slice(0,6).map(stage=>{
-          const count=leads.filter(l=>getStage(l)?._id===stage._id).length;
-          const isActive=activeStageFilter===stage._id;
-          return (
-            <div key={stage._id}
-              className={`crm-stat-card${isActive?' active':''}`}
-              style={{'--stat-accent':stage.color} as React.CSSProperties}
-              onClick={()=>setActiveStageFilter(isActive?'':stage._id)}>
-              <span className="crm-stat-icon" style={{color:stage.color}}>&#9679;</span>
-              <div className="crm-stat-value">{count}</div>
-              <div className="crm-stat-label">{stage.name}</div>
+        {/* Render configured stats cards or default cards if not configured */}
+        {statsCardsConfig.length > 0 ? (
+          statsCardsConfig.map(card => {
+            let count = 0;
+            let isActive = false;
+            let onClick: (() => void) | undefined;
+            
+            if (card.type === 'system') {
+              if (card.key === 'totalLeads') {
+                count = totalLeads;
+                onClick = () => { setActiveStageFilter(''); setFilterStage(''); };
+              } else if (card.key === 'todayFollowUps') {
+                count = todayFollowUps;
+              }
+            } else if (card.type === 'stage' && card.stageId) {
+              count = leads.filter(l => getStage(l)?._id === card.stageId).length;
+              isActive = activeStageFilter === card.stageId;
+              onClick = () => setActiveStageFilter(isActive ? '' : card.stageId!);
+            } else if (card.type === 'priority' && card.priority) {
+              count = leads.filter(l => l.priority === card.priority).length;
+            }
+            
+            return (
+              <div 
+                key={card.key}
+                className={`crm-stat-card${isActive ? ' active' : ''}`}
+                style={{ '--stat-accent': card.color || '#6b7280' } as React.CSSProperties}
+                onClick={onClick}
+              >
+                <span className="crm-stat-icon" style={card.type === 'stage' ? { color: card.color } : undefined}>
+                  {card.icon || '📊'}
+                </span>
+                <div className="crm-stat-value">{count}</div>
+                <div className="crm-stat-label">{card.label}</div>
+              </div>
+            );
+          })
+        ) : (
+          // Default stats cards when not configured
+          <>
+            <div className="crm-stat-card" style={{'--stat-accent':'#2563eb'} as React.CSSProperties}
+              onClick={()=>{setActiveStageFilter('');setFilterStage('');}}>
+              <span className="crm-stat-icon">&#128203;</span>
+              <div className="crm-stat-value">{totalLeads}</div>
+              <div className="crm-stat-label">Total Leads</div>
             </div>
-          );
-        })}
+            <div className="crm-stat-card" style={{'--stat-accent':'#ea580c'} as React.CSSProperties}>
+              <span className="crm-stat-icon">&#128276;</span>
+              <div className="crm-stat-value">{todayFollowUps}</div>
+              <div className="crm-stat-label">Follow-ups Today</div>
+            </div>
+            {stages.slice(0,6).map(stage=>{
+              const count=leads.filter(l=>getStage(l)?._id===stage._id).length;
+              const isActive=activeStageFilter===stage._id;
+              return (
+                <div key={stage._id}
+                  className={`crm-stat-card${isActive?' active':''}`}
+                  style={{'--stat-accent':stage.color} as React.CSSProperties}
+                  onClick={()=>setActiveStageFilter(isActive?'':stage._id)}>
+                  <span className="crm-stat-icon" style={{color:stage.color}}>&#9679;</span>
+                  <div className="crm-stat-value">{count}</div>
+                  <div className="crm-stat-label">{stage.name}</div>
+                </div>
+              );
+            })}
+          </>
+        )}
       </div>
 
       <div className="crm-toolbar">

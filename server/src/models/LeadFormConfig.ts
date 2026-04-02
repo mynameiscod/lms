@@ -61,6 +61,20 @@ export interface ILeadFormField {
   displayFormat?: string;       // e.g., 'currency', 'phone', 'date'
 }
 
+// Stats card configuration
+export interface IStatsCard {
+  key: string;           // Unique identifier: 'totalLeads', 'todayFollowUps', 'stage_<stageId>', 'priority_hot', etc.
+  type: 'system' | 'stage' | 'priority' | 'source' | 'custom';
+  label: string;
+  icon?: string;
+  color?: string;
+  enabled: boolean;
+  order: number;
+  stageId?: string;      // For stage-based cards
+  priority?: string;     // For priority-based cards
+  source?: string;       // For source-based cards
+}
+
 export interface ILeadFormConfig extends Document {
   tenantId: mongoose.Types.ObjectId;
   fields: ILeadFormField[];
@@ -83,6 +97,9 @@ export interface ILeadFormConfig extends Document {
     requirePhoneVerification?: boolean;
     requireEmailVerification?: boolean;
   };
+  
+  // Stats cards configuration
+  statsCards?: IStatsCard[];
   
   createdAt: Date;
   updatedAt: Date;
@@ -173,6 +190,26 @@ const FieldGroupSchema: Schema = new Schema(
   { _id: false }
 );
 
+const StatsCardSchema: Schema = new Schema(
+  {
+    key: { type: String, required: true, trim: true },
+    type: {
+      type: String,
+      enum: ['system', 'stage', 'priority', 'source', 'custom'],
+      default: 'system'
+    },
+    label: { type: String, required: true, trim: true },
+    icon: { type: String, trim: true },
+    color: { type: String, trim: true },
+    enabled: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+    stageId: { type: String, trim: true },
+    priority: { type: String, trim: true },
+    source: { type: String, trim: true }
+  },
+  { _id: false }
+);
+
 const LeadFormConfigSchema: Schema = new Schema(
   {
     tenantId: {
@@ -200,7 +237,8 @@ const LeadFormConfigSchema: Schema = new Schema(
       },
       requirePhoneVerification: { type: Boolean, default: false },
       requireEmailVerification: { type: Boolean, default: false }
-    }
+    },
+    statsCards: [StatsCardSchema]
   },
   { timestamps: true }
 );

@@ -1810,6 +1810,16 @@ export const leadFormConfigApi = {
     return authenticatedFetch(`${API_BASE_URL}/lead-form-config/fields/${fieldKey}`, {
       method: 'DELETE'
     });
+  },
+  // Stats cards configuration
+  getStatsCardsConfig: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config/stats-cards`);
+  },
+  updateStatsCardsConfig: async (statsCards: any[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/lead-form-config/stats-cards`, {
+      method: 'PUT',
+      body: JSON.stringify({ statsCards })
+    });
   }
 };
 

@@ -1255,4 +1255,9 @@ const LeadDetail: React.FC = () => {
   );
 };
 
-export default LeadDetail;
+// Export the new modern component
+import LeadDetailModern from './LeadDetailModern';
+export default LeadDetailModern;
+
+// Keep old component as backup
+export { LeadDetail };

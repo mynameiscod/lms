@@ -684,7 +684,7 @@ const FollowUpModal: React.FC<{
 
 // Main Component
 const LeadDetailModern: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { leadId } = useParams<{ leadId: string }>();
   const navigate = useNavigate();
   
   const [lead, setLead] = useState<Lead | null>(null);
@@ -702,7 +702,7 @@ const LeadDetailModern: React.FC = () => {
 
   const fetchLead = useCallback(async () => {
     try {
-      const response = await leadApi.getLeadById(id!);
+      const response = await leadApi.getLeadById(leadId!);
       const leadData = response.data;
       // Map the API response to our Lead interface
       const mappedLead: Lead = {
@@ -728,7 +728,7 @@ const LeadDetailModern: React.FC = () => {
       console.error('Error fetching lead:', error);
       showToast('Failed to fetch lead details', 'danger');
     }
-  }, [id]);
+  }, [leadId]);
 
   const fetchStages = useCallback(async () => {
     try {
@@ -759,8 +759,8 @@ const LeadDetailModern: React.FC = () => {
       await Promise.all([fetchLead(), fetchStages()]);
       setLoading(false);
     };
-    if (id) loadData();
-  }, [id, fetchLead, fetchStages]);
+    if (leadId) loadData();
+  }, [leadId, fetchLead, fetchStages]);
 
   useEffect(() => {
     if (lead) {

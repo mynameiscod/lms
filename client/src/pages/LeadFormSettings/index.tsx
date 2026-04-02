@@ -57,6 +57,8 @@ const FIELD_TYPES = [
   { value: 'checkbox', label: 'Checkbox' },
 ];
 
+const CORE_FIELDS = ['name', 'email', 'phone'];
+
 const LeadFormSettings: React.FC = () => {
   const [fields, setFields] = useState<FormField[]>([]);
   const [sources, setSources] = useState<string[]>([]);
@@ -439,427 +441,468 @@ const LeadFormSettings: React.FC = () => {
   );
 
   if (loading) {
-    return <div className="lead-form-settings"><div className="loading-spinner">Loading form configuration...</div></div>;
+    return (
+      <div className="container-fluid py-4">
+        <div className="d-flex justify-content-center align-items-center" style={{minHeight: '300px'}}>
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="lead-form-settings">
-      <div className="settings-header">
+    <div className="container-fluid py-4 lfs-page">
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
         <div>
-          <h1>Lead Form Settings</h1>
-          <p className="settings-subtitle">Customize form fields, lead sources, and stats cards display.</p>
+          <h4 className="fw-bold text-dark mb-1">Lead Form Settings</h4>
+          <p className="text-muted small mb-0">Customize form fields, lead sources, stats cards and table columns.</p>
         </div>
-        <div className="settings-header-actions">
+        <div className="d-flex gap-2">
           {activeTab === 'fields' && (
             <>
-              <button className="btn-secondary" onClick={() => setShowAddModal(true)}>+ Add Custom Field</button>
-              <button className="btn-primary" onClick={handleSave} disabled={saving}>
+              <button className="btn btn-outline-primary btn-sm" onClick={() => setShowAddModal(true)}>
+                <i className="fa fa-plus me-1"></i> Add Field
+              </button>
+              <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving}>
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
             </>
           )}
           {activeTab === 'stats' && (
-            <button className="btn-primary" onClick={handleSaveStatsCards} disabled={savingStats}>
-              {savingStats ? 'Saving...' : 'Save Stats Config'}
+            <button className="btn btn-primary btn-sm" onClick={handleSaveStatsCards} disabled={savingStats}>
+              {savingStats ? 'Saving...' : 'Save Config'}
             </button>
           )}
           {activeTab === 'columns' && (
-            <button className="btn-primary" onClick={handleSaveTableColumns} disabled={savingColumns}>
-              {savingColumns ? 'Saving...' : 'Save Columns Config'}
+            <button className="btn btn-primary btn-sm" onClick={handleSaveTableColumns} disabled={savingColumns}>
+              {savingColumns ? 'Saving...' : 'Save Config'}
             </button>
           )}
         </div>
       </div>
 
-      {alert && <div className={`alert alert-${alert.type}`}>{alert.message}</div>}
+      {/* Alert */}
+      {alert && (
+        <div className={`alert alert-${alert.type === 'success' ? 'success' : 'danger'} alert-dismissible fade show`} role="alert">
+          {alert.message}
+          <button type="button" className="btn-close" onClick={() => setAlert(null)}></button>
+        </div>
+      )}
 
-      {/* Tab Navigation */}
-      <div className="settings-tabs">
-        <button 
-          className={`settings-tab ${activeTab === 'fields' ? 'active' : ''}`}
-          onClick={() => setActiveTab('fields')}
-        >
-          📝 Form Fields
-        </button>
-        <button 
-          className={`settings-tab ${activeTab === 'sources' ? 'active' : ''}`}
-          onClick={() => setActiveTab('sources')}
-        >
-          🔗 Lead Sources
-        </button>
-        <button 
-          className={`settings-tab ${activeTab === 'stats' ? 'active' : ''}`}
-          onClick={() => setActiveTab('stats')}
-        >
-          📊 Stats Cards
-        </button>
-        <button 
-          className={`settings-tab ${activeTab === 'columns' ? 'active' : ''}`}
-          onClick={() => setActiveTab('columns')}
-        >
-          📋 Table Columns
-        </button>
-      </div>
+      {/* Tabs */}
+      <ul className="nav nav-tabs mb-4">
+        <li className="nav-item">
+          <button className={`nav-link ${activeTab === 'fields' ? 'active' : ''}`} onClick={() => setActiveTab('fields')}>
+            Form Fields
+          </button>
+        </li>
+        <li className="nav-item">
+          <button className={`nav-link ${activeTab === 'sources' ? 'active' : ''}`} onClick={() => setActiveTab('sources')}>
+            Lead Sources
+          </button>
+        </li>
+        <li className="nav-item">
+          <button className={`nav-link ${activeTab === 'stats' ? 'active' : ''}`} onClick={() => setActiveTab('stats')}>
+            Stats Cards
+          </button>
+        </li>
+        <li className="nav-item">
+          <button className={`nav-link ${activeTab === 'columns' ? 'active' : ''}`} onClick={() => setActiveTab('columns')}>
+            Table Columns
+          </button>
+        </li>
+      </ul>
 
-      {/* Fields Configuration */}
+      {/* Form Fields Tab */}
       {activeTab === 'fields' && (
-      <div className="settings-section">
-        <h2>Form Fields</h2>
-        <p className="section-desc">Edit labels, types, enable/disable, and set required for all fields. <strong>Name, Email and Phone</strong> cannot be removed but all other settings are customizable.</p>
-
-        <div className="fields-table">
-          <div className="fields-table-header">
-            <span className="ft-col ft-order">Order</span>
-            <span className="ft-col ft-label">Label</span>
-            <span className="ft-col ft-type">Type</span>
-            <span className="ft-col ft-enabled">Enabled</span>
-            <span className="ft-col ft-required">Required</span>
-            <span className="ft-col ft-actions">Actions</span>
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-white py-3">
+            <h6 className="mb-0 fw-semibold">Form Fields</h6>
+            <small className="text-muted">Edit labels, types, enable/disable, and set required fields.</small>
           </div>
-          {fields.map((field, idx) => {
-            const isCore = CORE_FIELDS.includes(field.fieldKey);
-            return (
-            <div className={`fields-table-row ${!field.enabled ? 'disabled-row' : ''} ${isCore ? 'core-row' : ''}`} key={field.fieldKey}>
-              <span className="ft-col ft-order">
-                <button className="move-btn" onClick={() => handleMoveField(idx, 'up')} disabled={idx === 0}>▲</button>
-                <button className="move-btn" onClick={() => handleMoveField(idx, 'down')} disabled={idx === fields.length - 1}>▼</button>
-              </span>
-              <span className="ft-col ft-label">
-                <div className="field-label-wrapper">
-                  <input
-                    type="text"
-                    className="label-input"
-                    value={field.label}
-                    onChange={e => handleLabelChange(field.fieldKey, e.target.value)}
-                  />
-                  {field.isBuiltIn && (
-                    isCore
-                      ? <span className="badge core">Default</span>
-                      : <span className="badge built-in">Built-in</span>
-                  )}
-                </div>
-              </span>
-              <span className="ft-col ft-type">
-                <select
-                  className="type-select"
-                  value={field.type}
-                  onChange={e => handleTypeChange(field.fieldKey, e.target.value)}
-                >
-                  {FIELD_TYPES.map(t => (
-                    <option key={t.value} value={t.value}>{t.label}</option>
-                  ))}
-                </select>
-              </span>
-              <span className="ft-col ft-enabled">
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={field.enabled}
-                    onChange={() => handleToggleEnabled(field.fieldKey)}
-                    disabled={isCore}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </span>
-              <span className="ft-col ft-required">
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    checked={field.required}
-                    onChange={() => handleToggleRequired(field.fieldKey)}
-                  />
-                  <span className="toggle-slider" />
-                </label>
-              </span>
-              <span className="ft-col ft-actions">
-                {!isCore && (
-                  <button
-                    className="delete-field-btn"
-                    onClick={() => handleDeleteField(field)}
-                    title={field.isBuiltIn ? 'Remove from form' : 'Delete custom field'}
-                  >
-                    🗑️
-                  </button>
-                )}
-                {isCore && <span className="core-lock" title="Required default field">🔒</span>}
-              </span>
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th style={{width: '70px'}}>Order</th>
+                    <th>Label</th>
+                    <th style={{width: '120px'}}>Type</th>
+                    <th style={{width: '80px'}} className="text-center">Enabled</th>
+                    <th style={{width: '80px'}} className="text-center">Required</th>
+                    <th style={{width: '60px'}} className="text-center"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {fields.map((field, idx) => {
+                    const isCore = CORE_FIELDS.includes(field.fieldKey);
+                    return (
+                      <tr key={field.fieldKey} className={!field.enabled ? 'table-secondary' : ''}>
+                        <td>
+                          <div className="btn-group btn-group-sm">
+                            <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveField(idx, 'up')} disabled={idx === 0}>
+                              <i className="fa fa-chevron-up"></i>
+                            </button>
+                            <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveField(idx, 'down')} disabled={idx === fields.length - 1}>
+                              <i className="fa fa-chevron-down"></i>
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              style={{maxWidth: '200px'}}
+                              value={field.label}
+                              onChange={e => handleLabelChange(field.fieldKey, e.target.value)}
+                            />
+                            {field.isBuiltIn && (
+                              <span className={`badge ${isCore ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}`}>
+                                {isCore ? 'Core' : 'Built-in'}
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <select
+                            className="form-select form-select-sm"
+                            value={field.type}
+                            onChange={e => handleTypeChange(field.fieldKey, e.target.value)}
+                          >
+                            {FIELD_TYPES.map(t => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="text-center">
+                          <div className="form-check form-switch d-flex justify-content-center">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              checked={field.enabled}
+                              onChange={() => handleToggleEnabled(field.fieldKey)}
+                              disabled={isCore}
+                            />
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          <div className="form-check form-switch d-flex justify-content-center">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              checked={field.required}
+                              onChange={() => handleToggleRequired(field.fieldKey)}
+                            />
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          {!isCore ? (
+                            <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteField(field)} title="Delete">
+                              <i className="fa fa-trash-alt"></i>
+                            </button>
+                          ) : (
+                            <i className="fa fa-lock text-muted" title="Core field"></i>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          );
-          })}
+          </div>
         </div>
-      </div>
       )}
 
-      {/* Sources Configuration */}
+      {/* Lead Sources Tab */}
       {activeTab === 'sources' && (
-      <div className="settings-section">
-        <h2>Lead Sources</h2>
-        <p className="section-desc">Customize the source options available when creating leads.</p>
-
-        <div className="sources-config">
-          <div className="source-tags">
-            {sources.map(source => (
-              <span className="source-tag" key={source}>
-                {source.replace(/_/g, ' ')}
-                <button className="source-remove" onClick={() => handleRemoveSource(source)}>×</button>
-              </span>
-            ))}
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-white py-3">
+            <h6 className="mb-0 fw-semibold">Lead Sources</h6>
+            <small className="text-muted">Manage source options for lead creation.</small>
           </div>
-          <div className="add-source-row">
-            <input
-              type="text"
-              value={newSource}
-              onChange={e => setNewSource(e.target.value)}
-              placeholder="Add new source..."
-              onKeyDown={e => e.key === 'Enter' && handleAddSource()}
-            />
-            <button className="btn-secondary" onClick={handleAddSource}>Add</button>
+          <div className="card-body">
+            <div className="d-flex flex-wrap gap-2 mb-3">
+              {sources.map(source => (
+                <span key={source} className="badge bg-light text-dark border d-flex align-items-center gap-1 py-2 px-3">
+                  {source.replace(/_/g, ' ')}
+                  <button className="btn-close btn-close-sm ms-1" style={{fontSize: '0.6rem'}} onClick={() => handleRemoveSource(source)}></button>
+                </span>
+              ))}
+              {sources.length === 0 && <span className="text-muted">No sources added yet.</span>}
+            </div>
+            <div className="input-group" style={{maxWidth: '400px'}}>
+              <input
+                type="text"
+                className="form-control form-control-sm"
+                value={newSource}
+                onChange={e => setNewSource(e.target.value)}
+                placeholder="Add new source..."
+                onKeyDown={e => e.key === 'Enter' && handleAddSource()}
+              />
+              <button className="btn btn-primary btn-sm" onClick={handleAddSource}>Add</button>
+            </div>
           </div>
         </div>
-      </div>
       )}
 
-      {/* Stats Cards Configuration */}
+      {/* Stats Cards Tab */}
       {activeTab === 'stats' && (
-      <div className="settings-section">
-        <h2>Stats Cards Configuration</h2>
-        <p className="section-desc">Configure which stats cards appear on the All Leads page. Enable/disable, reorder, and customize labels.</p>
-
-        <div className="stats-cards-config">
-          <div className="stats-cards-list">
-            <div className="stats-cards-header">
-              <span className="sc-col sc-order">Order</span>
-              <span className="sc-col sc-icon">Icon</span>
-              <span className="sc-col sc-label">Label</span>
-              <span className="sc-col sc-type">Type</span>
-              <span className="sc-col sc-enabled">Enabled</span>
-              <span className="sc-col sc-actions">Actions</span>
-            </div>
-            {statsCards.map((card, idx) => (
-              <div 
-                className={`stats-card-row ${!card.enabled ? 'disabled-row' : ''}`} 
-                key={card.key}
-                style={{ borderLeft: `4px solid ${card.color || '#6b7280'}` }}
-              >
-                <span className="sc-col sc-order">
-                  <button className="move-btn" onClick={() => handleMoveStatsCard(idx, 'up')} disabled={idx === 0}>▲</button>
-                  <button className="move-btn" onClick={() => handleMoveStatsCard(idx, 'down')} disabled={idx === statsCards.length - 1}>▼</button>
-                </span>
-                <span className="sc-col sc-icon">
-                  <span style={{ fontSize: '1.2rem' }}>{card.icon || '📊'}</span>
-                </span>
-                <span className="sc-col sc-label">
-                  <input
-                    type="text"
-                    className="label-input"
-                    value={card.label}
-                    onChange={e => handleStatsCardLabelChange(card.key, e.target.value)}
-                  />
-                </span>
-                <span className="sc-col sc-type">
-                  <span className={`type-badge type-${card.type}`}>
-                    {card.type === 'system' ? '⚙️ System' : 
-                     card.type === 'stage' ? '📋 Stage' : 
-                     card.type === 'priority' ? '🎯 Priority' :
-                     card.type === 'source' ? '🔗 Source' : '✨ Custom'}
-                  </span>
-                </span>
-                <span className="sc-col sc-enabled">
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={card.enabled}
-                      onChange={() => handleToggleStatsCard(card.key)}
-                    />
-                    <span className="toggle-slider" />
-                  </label>
-                </span>
-                <span className="sc-col sc-actions">
-                  {card.type === 'stage' && (
-                    <button
-                      className="delete-field-btn"
-                      onClick={() => handleRemoveStatsCard(card.key)}
-                      title="Remove stage card"
-                    >
-                      🗑️
-                    </button>
-                  )}
-                </span>
-              </div>
-            ))}
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-white py-3">
+            <h6 className="mb-0 fw-semibold">Stats Cards</h6>
+            <small className="text-muted">Configure which stats cards appear on the All Leads page.</small>
           </div>
-
-          {/* Add Stage Cards */}
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th style={{width: '70px'}}>Order</th>
+                    <th>Label</th>
+                    <th style={{width: '100px'}}>Type</th>
+                    <th style={{width: '80px'}} className="text-center">Enabled</th>
+                    <th style={{width: '60px'}} className="text-center"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {statsCards.map((card, idx) => (
+                    <tr key={card.key} className={!card.enabled ? 'table-secondary' : ''} style={{borderLeft: `3px solid ${card.color || '#6b7280'}`}}>
+                      <td>
+                        <div className="btn-group btn-group-sm">
+                          <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveStatsCard(idx, 'up')} disabled={idx === 0}>
+                            <i className="fa fa-chevron-up"></i>
+                          </button>
+                          <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveStatsCard(idx, 'down')} disabled={idx === statsCards.length - 1}>
+                            <i className="fa fa-chevron-down"></i>
+                          </button>
+                        </div>
+                      </td>
+                      <td>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          style={{maxWidth: '200px'}}
+                          value={card.label}
+                          onChange={e => handleStatsCardLabelChange(card.key, e.target.value)}
+                        />
+                      </td>
+                      <td>
+                        <span className={`badge ${card.type === 'system' ? 'bg-secondary' : card.type === 'stage' ? 'bg-info' : card.type === 'priority' ? 'bg-warning text-dark' : 'bg-light text-dark'}`}>
+                          {card.type}
+                        </span>
+                      </td>
+                      <td className="text-center">
+                        <div className="form-check form-switch d-flex justify-content-center">
+                          <input
+                            className="form-check-input"
+                            type="checkbox"
+                            checked={card.enabled}
+                            onChange={() => handleToggleStatsCard(card.key)}
+                          />
+                        </div>
+                      </td>
+                      <td className="text-center">
+                        {card.type === 'stage' && (
+                          <button className="btn btn-link text-danger p-0" onClick={() => handleRemoveStatsCard(card.key)}>
+                            <i className="fa fa-trash-alt"></i>
+                          </button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
           {availableStages.length > 0 && (
-            <div className="add-stage-cards">
-              <h3>Add Stage Cards</h3>
-              <p className="section-desc-small">Click a stage to add it as a stats card</p>
-              <div className="available-stages">
+            <div className="card-footer bg-light">
+              <h6 className="small fw-semibold mb-2">Add Stage Cards</h6>
+              <div className="d-flex flex-wrap gap-2">
                 {availableStages.map(stage => (
                   <button
                     key={stage._id}
-                    className="stage-add-btn"
+                    className="btn btn-outline-secondary btn-sm"
                     onClick={() => handleAddStageCard(stage)}
-                    style={{ borderColor: stage.color, color: stage.color }}
                   >
-                    + {stage.name}
+                    <i className="fa fa-plus me-1"></i> {stage.name}
                   </button>
                 ))}
               </div>
             </div>
           )}
         </div>
-      </div>
       )}
 
-      {/* Table Columns Configuration */}
+      {/* Table Columns Tab */}
       {activeTab === 'columns' && (
-      <div className="settings-section">
-        <h2>Table Columns Configuration</h2>
-        <p className="section-desc">Configure which columns appear in the Leads table. Enable/disable, reorder, and customize labels. You can also add custom field columns.</p>
-
-        <div className="stats-cards-config">
-          <div className="stats-cards-list">
-            <div className="stats-cards-header">
-              <span className="sc-col sc-order">Order</span>
-              <span className="sc-col sc-label" style={{flex: 2}}>Label</span>
-              <span className="sc-col sc-type">Type</span>
-              <span className="sc-col sc-enabled">Enabled</span>
-              <span className="sc-col sc-actions">Actions</span>
-            </div>
-            {tableColumns.map((col, idx) => {
-              const isFixed = col.key === 'select' || col.key === 'actions';
-              return (
-              <div 
-                className={`stats-card-row ${!col.enabled ? 'disabled-row' : ''} ${isFixed ? 'core-row' : ''}`} 
-                key={col.key}
-              >
-                <span className="sc-col sc-order">
-                  <button className="move-btn" onClick={() => handleMoveTableColumn(idx, 'up')} disabled={idx === 0}>▲</button>
-                  <button className="move-btn" onClick={() => handleMoveTableColumn(idx, 'down')} disabled={idx === tableColumns.length - 1}>▼</button>
-                </span>
-                <span className="sc-col sc-label" style={{flex: 2}}>
-                  <input
-                    type="text"
-                    className="label-input"
-                    value={col.label}
-                    onChange={e => handleTableColumnLabelChange(col.key, e.target.value)}
-                    disabled={isFixed}
-                  />
-                  {isFixed && <span className="badge core" style={{marginLeft: 8}}>Fixed</span>}
-                </span>
-                <span className="sc-col sc-type">
-                  <span className={`type-badge type-${col.type}`}>
-                    {col.type === 'system' ? '⚙️ System' : '✨ Custom'}
-                  </span>
-                </span>
-                <span className="sc-col sc-enabled">
-                  <label className="toggle-switch">
-                    <input
-                      type="checkbox"
-                      checked={col.enabled}
-                      onChange={() => handleToggleTableColumn(col.key)}
-                      disabled={isFixed}
-                    />
-                    <span className="toggle-slider" />
-                  </label>
-                </span>
-                <span className="sc-col sc-actions">
-                  {col.type === 'custom' && (
-                    <button
-                      className="delete-field-btn"
-                      onClick={() => handleRemoveTableColumn(col.key)}
-                      title="Remove custom column"
-                    >
-                      🗑️
-                    </button>
-                  )}
-                  {isFixed && <span className="core-lock" title="Fixed column">🔒</span>}
-                </span>
-              </div>
-            )})}
+        <div className="card border-0 shadow-sm">
+          <div className="card-header bg-white py-3">
+            <h6 className="mb-0 fw-semibold">Table Columns</h6>
+            <small className="text-muted">Configure which columns appear in the Leads table.</small>
           </div>
-
-          {/* Add Custom Field Columns */}
+          <div className="card-body p-0">
+            <div className="table-responsive">
+              <table className="table table-hover mb-0 align-middle">
+                <thead className="table-light">
+                  <tr>
+                    <th style={{width: '70px'}}>Order</th>
+                    <th>Label</th>
+                    <th style={{width: '100px'}}>Type</th>
+                    <th style={{width: '80px'}} className="text-center">Enabled</th>
+                    <th style={{width: '60px'}} className="text-center"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tableColumns.map((col, idx) => {
+                    const isFixed = col.key === 'select' || col.key === 'actions';
+                    return (
+                      <tr key={col.key} className={!col.enabled ? 'table-secondary' : ''}>
+                        <td>
+                          <div className="btn-group btn-group-sm">
+                            <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveTableColumn(idx, 'up')} disabled={idx === 0}>
+                              <i className="fa fa-chevron-up"></i>
+                            </button>
+                            <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveTableColumn(idx, 'down')} disabled={idx === tableColumns.length - 1}>
+                              <i className="fa fa-chevron-down"></i>
+                            </button>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="d-flex align-items-center gap-2">
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              style={{maxWidth: '200px'}}
+                              value={col.label}
+                              onChange={e => handleTableColumnLabelChange(col.key, e.target.value)}
+                              disabled={isFixed}
+                            />
+                            {isFixed && <span className="badge bg-secondary">Fixed</span>}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`badge ${col.type === 'system' ? 'bg-secondary' : 'bg-info'}`}>
+                            {col.type}
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <div className="form-check form-switch d-flex justify-content-center">
+                            <input
+                              className="form-check-input"
+                              type="checkbox"
+                              checked={col.enabled}
+                              onChange={() => handleToggleTableColumn(col.key)}
+                              disabled={isFixed}
+                            />
+                          </div>
+                        </td>
+                        <td className="text-center">
+                          {col.type === 'custom' ? (
+                            <button className="btn btn-link text-danger p-0" onClick={() => handleRemoveTableColumn(col.key)}>
+                              <i className="fa fa-trash-alt"></i>
+                            </button>
+                          ) : isFixed ? (
+                            <i className="fa fa-lock text-muted"></i>
+                          ) : null}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
           {availableCustomFields.length > 0 && (
-            <div className="add-stage-cards">
-              <h3>Add Custom Field Columns</h3>
-              <p className="section-desc-small">Click a custom field to add it as a table column</p>
-              <div className="available-stages">
+            <div className="card-footer bg-light">
+              <h6 className="small fw-semibold mb-2">Add Custom Field Columns</h6>
+              <div className="d-flex flex-wrap gap-2">
                 {availableCustomFields.map(field => (
                   <button
                     key={field.fieldKey}
-                    className="stage-add-btn"
+                    className="btn btn-outline-primary btn-sm"
                     onClick={() => handleAddCustomFieldColumn(field)}
-                    style={{ borderColor: '#6366f1', color: '#6366f1' }}
                   >
-                    + {field.label}
+                    <i className="fa fa-plus me-1"></i> {field.label}
                   </button>
                 ))}
               </div>
             </div>
           )}
         </div>
-      </div>
       )}
 
       {/* Add Custom Field Modal */}
       {showAddModal && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h2>Add Custom Field</h2>
-            <div className="form-group">
-              <label>Field Label *</label>
-              <input
-                type="text"
-                value={newField.label}
-                onChange={e => setNewField(p => ({ ...p, label: e.target.value }))}
-                placeholder="e.g., City, College Name, Budget"
-                autoFocus
-              />
-            </div>
-            <div className="form-row">
-              <div className="form-group">
-                <label>Field Type *</label>
-                <select value={newField.type} onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}>
-                  {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
+        <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowAddModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Add Custom Field</h5>
+                <button type="button" className="btn-close" onClick={() => setShowAddModal(false)}></button>
               </div>
-              <div className="form-group">
-                <label>Required</label>
-                <label className="toggle-switch" style={{ marginTop: 8 }}>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold">Field Label *</label>
                   <input
-                    type="checkbox"
-                    checked={newField.required}
-                    onChange={e => setNewField(p => ({ ...p, required: e.target.checked }))}
+                    type="text"
+                    className="form-control"
+                    value={newField.label}
+                    onChange={e => setNewField(p => ({ ...p, label: e.target.value }))}
+                    placeholder="e.g., City, College Name"
+                    autoFocus
                   />
-                  <span className="toggle-slider" />
-                </label>
+                </div>
+                <div className="row mb-3">
+                  <div className="col-8">
+                    <label className="form-label small fw-semibold">Field Type *</label>
+                    <select className="form-select" value={newField.type} onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}>
+                      {FIELD_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-4">
+                    <label className="form-label small fw-semibold">Required</label>
+                    <div className="form-check form-switch mt-2">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={newField.required}
+                        onChange={e => setNewField(p => ({ ...p, required: e.target.checked }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold">Placeholder</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newField.placeholder}
+                    onChange={e => setNewField(p => ({ ...p, placeholder: e.target.value }))}
+                    placeholder="Placeholder text..."
+                  />
+                </div>
+                {newField.type === 'select' && (
+                  <div className="mb-3">
+                    <label className="form-label small fw-semibold">Options (comma separated) *</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newField.options}
+                      onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
+                      placeholder="e.g., Option 1, Option 2"
+                    />
+                  </div>
+                )}
               </div>
-            </div>
-            <div className="form-group">
-              <label>Placeholder</label>
-              <input
-                type="text"
-                value={newField.placeholder}
-                onChange={e => setNewField(p => ({ ...p, placeholder: e.target.value }))}
-                placeholder="Placeholder text..."
-              />
-            </div>
-            {newField.type === 'select' && (
-              <div className="form-group">
-                <label>Options (comma separated) *</label>
-                <input
-                  type="text"
-                  value={newField.options}
-                  onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
-                  placeholder="e.g., Option 1, Option 2, Option 3"
-                />
+              <div className="modal-footer">
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
+                <button type="button" className="btn btn-primary" onClick={handleAddCustomField}>Add Field</button>
               </div>
-            )}
-            <div className="modal-actions">
-              <button className="btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="btn-primary" onClick={handleAddCustomField}>Add Field</button>
             </div>
           </div>
         </div>

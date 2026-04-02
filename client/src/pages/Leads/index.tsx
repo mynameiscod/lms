@@ -132,6 +132,17 @@ const LeadsPage: React.FC = () => {
   const menuRef = useRef<HTMLDivElement>(null);
   const isFirstLoad = useRef(true);
 
+  // Prevent background scroll when any modal is open
+  useEffect(() => {
+    const anyModalOpen = showModal || showImportModal || showWhatsAppModal || showReasonModal;
+    if (anyModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [showModal, showImportModal, showWhatsAppModal, showReasonModal]);
+
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {

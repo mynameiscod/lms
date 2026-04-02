@@ -1662,70 +1662,66 @@
 }
 
 /* ============================================================
-   BOOTSTRAP MODAL OVERRIDES
-   Clean modal styling
+   MODAL OVERLAY
+   Simple overlay approach - no Bootstrap modal classes needed
    ============================================================ */
 
-/* Fix modal backdrop */
-.modal-backdrop {
-  position: fixed !important;
+.lead-modal-overlay {
+  position: fixed;
   top: 0;
   left: 0;
+  right: 0;
+  bottom: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.5) !important;
-  z-index: 1040 !important;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
 }
 
-.modal-backdrop.show {
-  opacity: 1 !important;
-}
-
-/* Modal dialog styling */
-.modal {
-  position: fixed !important;
-  top: 0;
-  left: 0;
+.lead-modal-overlay .modal-dialog {
+  background: transparent;
+  box-shadow: none;
+  margin: 0;
   width: 100%;
-  height: 100%;
-  z-index: 1050 !important;
-  background: transparent !important;
-  overflow-x: hidden;
-  overflow-y: auto;
+  max-width: 800px;
 }
 
-.modal-dialog {
-  box-shadow: none !important;
-  background: transparent !important;
-  margin: 1.75rem auto;
+.lead-modal-overlay .modal-dialog-centered {
+  margin: 0;
 }
 
-.modal-content {
-  border: none !important;
-  border-radius: 12px !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25) !important;
+.lead-modal-overlay .modal-content {
+  background: #fff;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   overflow: hidden;
-  background: #fff !important;
 }
 
-.modal-header {
+.lead-modal-overlay .modal-header {
   border-bottom: 1px solid #e5e7eb;
   padding: 16px 20px;
 }
 
-.modal-body {
+.lead-modal-overlay .modal-body {
   padding: 20px;
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
-.modal-footer {
+.lead-modal-overlay .modal-footer {
   border-top: 1px solid #e5e7eb;
   padding: 16px 20px;
   background: #f9fafb;
 }
 
 /* Form fields inside modal */
-.modal .form-control,
-.modal .form-select {
+.lead-modal-overlay .form-control,
+.lead-modal-overlay .form-select {
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 10px 14px;
@@ -1734,25 +1730,25 @@
   background: #fff;
 }
 
-.modal .form-control:focus,
-.modal .form-select:focus {
+.lead-modal-overlay .form-control:focus,
+.lead-modal-overlay .form-select:focus {
   border-color: #2563eb;
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
   outline: none;
 }
 
-.modal .form-control::placeholder {
+.lead-modal-overlay .form-control::placeholder {
   color: #94a3b8;
 }
 
-.modal .form-label {
+.lead-modal-overlay .form-label {
   font-size: 0.85rem;
   font-weight: 600;
   color: #475569;
   margin-bottom: 6px;
 }
 
-.modal .form-check-input {
+.lead-modal-overlay .form-check-input {
   width: 18px;
   height: 18px;
   margin-top: 0;
@@ -1760,12 +1756,12 @@
   border-radius: 4px;
 }
 
-.modal .form-check-input:checked {
+.lead-modal-overlay .form-check-input:checked {
   background-color: #2563eb;
   border-color: #2563eb;
 }
 
-.modal .form-check-label {
+.lead-modal-overlay .form-check-label {
   font-size: 0.9rem;
   color: #475569;
   margin-left: 4px;

@@ -971,11 +971,9 @@ const LeadsPage: React.FC = () => {
       )}
 
       {showModal&&(
-        <>
-          <div className="modal-backdrop fade show"></div>
-          <div className="modal fade show d-block" onClick={()=>setShowModal(false)}>
-            <div className="modal-dialog modal-lg modal-dialog-centered" onClick={e=>e.stopPropagation()}>
-            <div className="modal-content" style={{borderRadius: '12px', overflow: 'hidden', border: 'none', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'}}>
+          <div className="lead-modal-overlay" onClick={()=>setShowModal(false)}>
+            <div className="modal-dialog" onClick={e=>e.stopPropagation()}>
+            <div className="modal-content">
               <div className="modal-header border-0 py-3 px-4" style={{background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'}}>
                 <h5 className="modal-title text-white fw-semibold" style={{fontSize: '1.1rem'}}>
                   <i className={`fa-solid ${editingLead ? 'fa-pen' : 'fa-user-plus'} me-2`}></i>
@@ -1104,13 +1102,10 @@ const LeadsPage: React.FC = () => {
             </div>
           </div>
         </div>
-        </>
       )}
 
       {showReasonModal&&(
-        <>
-          <div className="modal-backdrop fade show"></div>
-          <div className="modal fade show d-block" onClick={()=>setShowReasonModal(false)}>
+          <div className="lead-modal-overlay" onClick={()=>setShowReasonModal(false)}>
             <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
             <div className="modal-content border-0 shadow">
               <div className="modal-header bg-warning">
@@ -1138,13 +1133,10 @@ const LeadsPage: React.FC = () => {
             </div>
           </div>
         </div>
-        </>
       )}
 
       {showImportModal&&(
-        <>
-          <div className="modal-backdrop fade show"></div>
-          <div className="modal fade show d-block" onClick={()=>setShowImportModal(false)}>
+          <div className="lead-modal-overlay" onClick={()=>setShowImportModal(false)}>
             <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
             <div className="modal-content border-0 shadow">
               <div className="modal-header bg-success text-white">
@@ -1181,13 +1173,10 @@ const LeadsPage: React.FC = () => {
             </div>
           </div>
         </div>
-        </>
       )}
 
       {showWhatsAppModal&&(
-        <>
-          <div className="modal-backdrop fade show"></div>
-          <div className="modal fade show d-block" onClick={()=>setShowWhatsAppModal(false)}>
+          <div className="lead-modal-overlay" onClick={()=>setShowWhatsAppModal(false)}>
             <div className="modal-dialog modal-dialog-centered" onClick={e=>e.stopPropagation()}>
               <div className="modal-content border-0 shadow">
                 <div className="modal-header" style={{background: '#25D366'}}>
@@ -1235,7 +1224,6 @@ const LeadsPage: React.FC = () => {
             </div>
           </div>
         </div>
-        </>
       )}
     </div>
   );

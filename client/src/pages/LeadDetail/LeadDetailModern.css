@@ -559,6 +559,11 @@
 .stage-step:last-child .stage-connector {
   display: none;
 }
+
+.stage-indicator {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;

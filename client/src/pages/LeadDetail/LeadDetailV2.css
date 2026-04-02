@@ -462,7 +462,54 @@
 .ld2-timeline-list {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
+  max-height: 500px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.ld2-timeline-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ld2-timeline-list::-webkit-scrollbar-track {
+  background: var(--ld2-gray-100);
+  border-radius: 3px;
+}
+
+.ld2-timeline-list::-webkit-scrollbar-thumb {
+  background: var(--ld2-gray-300);
+  border-radius: 3px;
+}
+
+.ld2-timeline-list::-webkit-scrollbar-thumb:hover {
+  background: var(--ld2-gray-400);
+}
+
+/* Time Gap Between Activities */
+.ld2-timeline-gap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 8px 0;
+  margin: 0 20px;
+}
+
+.ld2-gap-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--ld2-gray-200), transparent);
+}
+
+.ld2-gap-time {
+  font-size: 11px;
+  color: var(--ld2-gray-400);
+  background: var(--ld2-gray-50);
+  padding: 4px 12px;
+  border-radius: 12px;
+  white-space: nowrap;
+  border: 1px dashed var(--ld2-gray-200);
 }
 
 .ld2-timeline-item {
@@ -472,6 +519,16 @@
   background: var(--ld2-gray-50);
   border-radius: 10px;
   transition: all 0.2s;
+  margin-bottom: 0;
+}
+
+.ld2-timeline-item:first-child {
+  margin-top: 0;
+}
+
+.ld2-timeline-gap + .ld2-timeline-item,
+.ld2-timeline-item:first-of-type {
+  margin-top: 0;
 }
 
 .ld2-timeline-item:hover {

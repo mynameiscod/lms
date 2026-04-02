@@ -209,14 +209,40 @@ const LeadDetailV2: React.FC = () => {
     const now = new Date();
     const d = new Date(date);
     const diff = now.getTime() - d.getTime();
+    const seconds = Math.floor(diff / 1000);
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
     
+    if (seconds < 60) return `${seconds}s ago`;
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
+    if (weeks < 4) return `${weeks}w ago`;
+    if (months < 12) return `${months}mo ago`;
     return formatDate(date);
+  };
+
+  const formatTimeDifference = (date1: string, date2: string) => {
+    if (!date1 || !date2) return '';
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    const diff = Math.abs(d1.getTime() - d2.getTime());
+    const seconds = Math.floor(diff / 1000);
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    
+    if (seconds < 60) return `${seconds} seconds`;
+    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+    if (hours < 24) return `${hours} hour${hours !== 1 ? 's' : ''}`;
+    if (days < 7) return `${days} day${days !== 1 ? 's' : ''}`;
+    if (weeks < 4) return `${weeks} week${weeks !== 1 ? 's' : ''}`;
+    return `${months} month${months !== 1 ? 's' : ''}`;
   };
 
   const getActivityIcon = (type: string) => {
@@ -412,34 +438,48 @@ const LeadDetailV2: React.FC = () => {
                 </div>
                 {lead.activities && lead.activities.length > 0 ? (
                   <div className="ld2-timeline-list">
-                    {[...lead.activities].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((activity, index) => (
-                      <div key={activity._id || index} className="ld2-timeline-item">
-                        <div className="ld2-timeline-icon">
-                          {getActivityIcon(activity.type)}
-                        </div>
-                        <div className="ld2-timeline-content">
-                          <div className="ld2-timeline-meta">
-                            <span className="ld2-timeline-type">{activity.type}</span>
-                            {activity.callOutcome && (
-                              <span className={`ld2-call-outcome ld2-outcome-${activity.callOutcome}`}>
-                                {activity.callOutcome.replace('_', ' ')}
-                              </span>
-                            )}
-                            <span className="ld2-timeline-time">{formatRelativeTime(activity.createdAt)}</span>
+                    {(() => {
+                      const sortedActivities = [...lead.activities].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                      return sortedActivities.map((activity, index) => (
+                        <React.Fragment key={activity._id || index}>
+                          <div className="ld2-timeline-item">
+                            <div className="ld2-timeline-icon">
+                              {getActivityIcon(activity.type)}
+                            </div>
+                            <div className="ld2-timeline-content">
+                              <div className="ld2-timeline-meta">
+                                <span className="ld2-timeline-type">{activity.type}</span>
+                                {activity.callOutcome && (
+                                  <span className={`ld2-call-outcome ld2-outcome-${activity.callOutcome}`}>
+                                    {activity.callOutcome.replace('_', ' ')}
+                                  </span>
+                                )}
+                                <span className="ld2-timeline-time">{formatRelativeTime(activity.createdAt)}</span>
+                              </div>
+                              <p>{activity.description}</p>
+                              {activity.recordingUrl && (
+                                <div className="ld2-recording">
+                                  <i className="bi bi-mic-fill"></i>
+                                  <audio controls src={activity.recordingUrl} />
+                                </div>
+                              )}
+                              {activity.createdBy && (
+                                <span className="ld2-timeline-user">by {activity.createdBy.name}</span>
+                              )}
+                            </div>
                           </div>
-                          <p>{activity.description}</p>
-                          {activity.recordingUrl && (
-                            <div className="ld2-recording">
-                              <i className="bi bi-mic-fill"></i>
-                              <audio controls src={activity.recordingUrl} />
+                          {index < sortedActivities.length - 1 && (
+                            <div className="ld2-timeline-gap">
+                              <span className="ld2-gap-line"></span>
+                              <span className="ld2-gap-time">
+                                {formatTimeDifference(activity.createdAt, sortedActivities[index + 1].createdAt)} later
+                              </span>
+                              <span className="ld2-gap-line"></span>
                             </div>
                           )}
-                          {activity.createdBy && (
-                            <span className="ld2-timeline-user">by {activity.createdBy.name}</span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                        </React.Fragment>
+                      ));
+                    })()}
                   </div>
                 ) : (
                   <div className="ld2-empty">

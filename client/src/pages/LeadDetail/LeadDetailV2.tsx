@@ -412,7 +412,7 @@ const LeadDetailV2: React.FC = () => {
                 </div>
                 {lead.activities && lead.activities.length > 0 ? (
                   <div className="ld2-timeline-list">
-                    {lead.activities.map((activity, index) => (
+                    {[...lead.activities].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((activity, index) => (
                       <div key={activity._id || index} className="ld2-timeline-item">
                         <div className="ld2-timeline-icon">
                           {getActivityIcon(activity.type)}

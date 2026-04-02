@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, qualificationQuestionApi } from '../../api';
+import { leadApi, leadStageApi, qualificationApi } from '../../api';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -68,10 +68,10 @@ const LeadDetailV2: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [leadRes, stagesRes, questionsRes] = await Promise.all([
+      const [leadRes, stagesRes, configRes] = await Promise.all([
         leadApi.getLeadById(leadId!),
         leadStageApi.getStages(),
-        qualificationQuestionApi.getQuestions()
+        qualificationApi.getConfig()
       ]);
       
       const leadData = leadRes.data;
@@ -83,7 +83,7 @@ const LeadDetailV2: React.FC = () => {
           : leadData.courseInterest || ''
       });
       setStages(stagesRes.data || []);
-      setQuestions(questionsRes.data || []);
+      setQuestions(configRes.data?.questions || []);
       setChecklistAnswers(leadData.qualificationAnswers || {});
     } catch (error) {
       console.error('Error fetching data:', error);

@@ -22,7 +22,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     assignments: false,
     'code snippets': false,
     leads: false,
-    marketing: false
+    marketing: false,
+    'learning hub': false,
+    'mock interviews': false
   });
   const location = useLocation();
   const { user } = useAuth();
@@ -38,121 +40,121 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   };
 
   const menuItems: MenuItem[] = [
-    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: '⌂', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
-    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: '📚', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: '🧠', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '▦', permissions: ['view_courses'] },
-    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '⚡', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-    { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⊕', permissions: ['manage_tenant_users'] },
-    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '⚙', permissions: ['manage_roles'] },
-    { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '▤', permissions: ['manage_tenant_courses'] },
+    { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-gauge-high', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
+    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-graduation-cap', permissions: ['view_courses'] },
+    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-bolt', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
+    { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },
+    { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
     {
       label: 'Attendance',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],
-      icon: '☑',
+      icon: 'fa-solid fa-clipboard-check',
       featureKey: 'attendance',
       permissions: ['mark_attendance', 'view_attendance'],
       submenu: [
-        { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], permissions: ['mark_attendance'] },
-        { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], permissions: ['view_attendance'] },
-        { label: 'Reports', path: '/attendance-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports'] },
+        { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-check-double', permissions: ['mark_attendance'] },
+        { label: 'My Attendance', path: '/my-attendance', roles: ['INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-calendar-check', permissions: ['view_attendance'] },
+        { label: 'Reports', path: '/attendance-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-pie', permissions: ['view_reports'] },
       ]
     },
     {
       label: 'Quizzes',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
-      icon: '✎',
+      icon: 'fa-solid fa-clipboard-question',
       featureKey: 'quizzes',
       permissions: ['create_quiz', 'edit_quiz', 'view_quiz'],
       submenu: [
-        { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'], permissions: ['view_quiz'] },
-        { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['create_quiz', 'edit_quiz'] },
-        { label: 'Question Bank', path: '/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['create_question', 'edit_question'] },
-        { label: 'Quiz Reports', path: '/quiz-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports'] },
+        { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'], icon: 'fa-solid fa-list-check', permissions: ['view_quiz'] },
+        { label: 'Manage Quizzes', path: '/quiz-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sliders', permissions: ['create_quiz', 'edit_quiz'] },
+        { label: 'Question Bank', path: '/question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-database', permissions: ['create_question', 'edit_question'] },
+        { label: 'Quiz Reports', path: '/quiz-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-line', permissions: ['view_reports'] },
       ]
     },
     {
       label: 'Assignments',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
-      icon: '📝',
+      icon: 'fa-solid fa-file-pen',
       featureKey: 'assignments',
       permissions: ['manage_assignments', 'submit_assignments', 'view_grades'],
       submenu: [
-        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], permissions: ['submit_assignments', 'view_grades'] },
-        { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_assignments'] },
-        { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['view_reports', 'grade_assignments'] },
+        { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], icon: 'fa-solid fa-file-lines', permissions: ['submit_assignments', 'view_grades'] },
+        { label: 'Manage Assignments', path: '/admin/assignments', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-folder-open', permissions: ['manage_assignments'] },
+        { label: 'Assignment Reports', path: '/admin/assignments/reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-column', permissions: ['view_reports', 'grade_assignments'] },
       ]
     },
     {
       label: 'Code Snippets',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
-      icon: '⌥',
+      icon: 'fa-solid fa-code',
       featureKey: 'codingSnippets',
       permissions: ['manage_snippets', 'grade_snippets', 'view_snippets'],
       submenu: [
-        { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], permissions: ['view_snippets'] },
-        { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_snippets'] },
-        { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_snippets', 'grade_snippets'] },
+        { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal', permissions: ['view_snippets'] },
+        { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-gears', permissions: ['manage_snippets'] },
+        { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-star-half-stroke', permissions: ['manage_snippets', 'grade_snippets'] },
       ]
     },
-    { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '📊', permissions: ['view_reports'] },
-    { label: 'Student Profiles', path: '/admin/student-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: '👤', permissions: ['view_reports'] },
+    { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-bar', permissions: ['view_reports'] },
+    { label: 'Student Profiles', path: '/admin/student-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-card', permissions: ['view_reports'] },
     {
       label: 'Learning Hub',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
-      icon: '🧩',
+      icon: 'fa-solid fa-lightbulb',
       permissions: ['view_reports', 'manage_tenant_users'],
       submenu: [
-        { label: 'Topic Mastery Heatmap', path: '/admin/topic-mastery', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], permissions: ['view_reports'] },
-        { label: 'Learning Requests', path: '/admin/learning-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], permissions: ['view_reports', 'manage_tenant_users'] },
+        { label: 'Topic Mastery Heatmap', path: '/admin/topic-mastery', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['view_reports'] },
+        { label: 'Learning Requests', path: '/admin/learning-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-hand-holding-heart', permissions: ['view_reports', 'manage_tenant_users'] },
       ]
     },
-    { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: '🎛', permissions: ['manage_tenant_settings', 'manage_tenant'] },
-    { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: '💼', permissions: ['manage_interviews'] },
+    { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-toggle-on', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+    { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_interviews'] },
     {
       label: 'Mock Interviews',
       roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
-      icon: '🎯',
+      icon: 'fa-solid fa-bullseye',
       featureKey: 'mockInterviews',
       permissions: ['manage_interviews', 'take_interviews'],
       submenu: [
-        { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['take_interviews'] },
-        { label: 'Assign to Students', path: '/mock-interviews/assign', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], permissions: ['manage_interviews'] },
+        { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-play', permissions: ['take_interviews'] },
+        { label: 'Assign to Students', path: '/mock-interviews/assign', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-plus', permissions: ['manage_interviews'] },
       ]
     },
     {
       label: 'Leads',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
-      icon: '🎯',
+      icon: 'fa-solid fa-user-tag',
       permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads'],
       submenu: [
-        { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_leads'] },
-        { label: 'Telecaller Console', path: '/telecaller-console', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['view_leads', 'edit_leads', 'create_leads'] },
-        { label: 'Follow-up Calendar', path: '/follow-ups', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['view_leads', 'edit_leads'] },
-        { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads', 'view_lead_analytics'] },
-        { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], permissions: ['view_leads', 'edit_leads', 'create_leads'] },
-        { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['manage_leads', 'view_lead_analytics'] },
-        { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], permissions: ['view_leads', 'create_leads'] },
-        { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads', 'manage_lead_stages'] },
-        { label: 'Priority Settings', path: '/lead-priority-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
-        { label: 'Qualification Questions', path: '/qualification-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
-        { label: 'Form Settings', path: '/lead-form-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
-        { label: 'Audit Logs', path: '/lead-audit-logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_leads'] },
+        { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
+        { label: 'Telecaller Console', path: '/telecaller-console', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-headset', permissions: ['view_leads', 'edit_leads', 'create_leads'] },
+        { label: 'Follow-up Calendar', path: '/follow-ups', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-calendar-days', permissions: ['view_leads', 'edit_leads'] },
+        { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-simple', permissions: ['manage_leads', 'view_lead_analytics'] },
+        { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], icon: 'fa-solid fa-trophy', permissions: ['view_leads', 'edit_leads', 'create_leads'] },
+        { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-clipboard-user', permissions: ['manage_leads', 'view_lead_analytics'] },
+        { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },
+        { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-stairs', permissions: ['manage_leads', 'manage_lead_stages'] },
+        { label: 'Priority Settings', path: '/lead-priority-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-ranking-star', permissions: ['manage_leads'] },
+        { label: 'Qualification Questions', path: '/qualification-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-circle-question', permissions: ['manage_leads'] },
+        { label: 'Form Settings', path: '/lead-form-settings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-pen-to-square', permissions: ['manage_leads'] },
+        { label: 'Audit Logs', path: '/lead-audit-logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clock-rotate-left', permissions: ['manage_leads'] },
       ]
     },
     {
       label: 'Marketing',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
-      icon: '📊',
+      icon: 'fa-solid fa-bullhorn',
       permissions: ['manage_marketing'],
       submenu: [
-        { label: 'Dashboard', path: '/marketing', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
-        { label: 'Campaigns', path: '/marketing/campaigns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
-        { label: 'Stage Analytics', path: '/lead-stage-analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
-        { label: 'Competitors', path: '/marketing/competitors', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
-        { label: 'Ad Capture', path: '/marketing/ads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
-        { label: 'Insights', path: '/marketing/insights', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
-        { label: 'Marketing Ideas', path: '/marketing/ideas', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], permissions: ['manage_marketing'] },
+        { label: 'Dashboard', path: '/marketing', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-area', permissions: ['manage_marketing'] },
+        { label: 'Campaigns', path: '/marketing/campaigns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-paper-plane', permissions: ['manage_marketing'] },
+        { label: 'Stage Analytics', path: '/lead-stage-analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-project', permissions: ['manage_marketing'] },
+        { label: 'Competitors', path: '/marketing/competitors', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-scale-balanced', permissions: ['manage_marketing'] },
+        { label: 'Ad Capture', path: '/marketing/ads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-rectangle-ad', permissions: ['manage_marketing'] },
+        { label: 'Insights', path: '/marketing/insights', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-magnifying-glass-chart', permissions: ['manage_marketing'] },
+        { label: 'Marketing Ideas', path: '/marketing/ideas', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['manage_marketing'] },
       ]
     },
   ];
@@ -197,9 +199,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
             className={`sidebar-group-button ${isExpanded ? 'expanded' : ''}`}
             onClick={() => toggleGroup(item.label.toLowerCase())}
           >
-            <span className="group-icon">{item.icon}</span>
+            <span className="group-icon"><i className={item.icon}></i></span>
             <span className="group-label">{item.label}</span>
-            <span className="group-chevron">›</span>
+            <span className="group-chevron"><i className="fa-solid fa-chevron-right"></i></span>
           </button>
           {isExpanded && (
             <ul className="submenu">
@@ -210,6 +212,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
                   <Link
                     to={subitem.path!}
                     className={`sidebar-link submenu-link ${isActive(subitem.path) ? 'active' : ''}`}                    onClick={onMobileClose}                  >
+                    {subitem.icon && <span className="submenu-icon"><i className={subitem.icon}></i></span>}
                     <span className="sidebar-label">{subitem.label}</span>
                   </Link>
                 </li>
@@ -227,7 +230,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
           onClick={onMobileClose}
         >
-          <span className="menu-icon">{item.icon}</span>
+          <span className="menu-icon"><i className={item.icon}></i></span>
           <span className="sidebar-label">{item.label}</span>
         </Link>
       </li>
@@ -249,9 +252,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           }
         }}
       >
-        <div className="header-icon">☰</div>
+        <div className="header-icon"><i className="fa-solid fa-bars"></i></div>
         <div className="header-text">Menu</div>
-        <div className="header-toggle">{isOpen ? '‹' : '›'}</div>
+        <div className="header-toggle"><i className={`fa-solid fa-chevron-${isOpen ? 'left' : 'right'}`}></i></div>
       </div>
 
       {/* Navigation */}

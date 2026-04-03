@@ -226,27 +226,30 @@ async function fetchAndCreateLead(
   if (existingLead) {
     console.log('📌 Lead already exists for phone:', cleanPhone, '- Updating activity');
 
-    // Add activity to existing lead
-    existingLead.activityLog = existingLead.activityLog || [];
-    existingLead.activityLog.push({
-      type: 'note',
-      description: `New Meta Lead Form submission (Form: ${meta.formId || 'N/A'}, Campaign: ${meta.campaignId || 'N/A'})`,
-      performedBy: existingLead.assignedTo || existingLead.createdBy,
-      timestamp: new Date()
-    } as any);
+    // Update existing lead with $push for activity and $set for metadata
+    await Lead.updateOne(
+      { _id: existingLead._id },
+      {
+        $push: {
+          activities: {
+            type: 'note',
+            description: `New Meta Lead Form submission (Form: ${meta.formId || 'N/A'}, Campaign: ${meta.campaignId || 'N/A'})`,
+            performedBy: existingLead.assignedTo || existingLead.createdBy,
+            createdAt: new Date()
+          }
+        },
+        $set: {
+          sourceDetails: {
+            platform: 'meta',
+            formId: meta.formId,
+            adId: meta.adId,
+            campaignName: leadData.campaign_name,
+          },
+          updatedAt: new Date()
+        }
+      }
+    );
 
-    // Update source details if not already from Meta
-    if (!existingLead.sourceDetails || existingLead.sourceDetails.platform !== 'meta') {
-      existingLead.sourceDetails = {
-        platform: 'meta',
-        formId: meta.formId,
-        adId: meta.adId,
-        campaignName: leadData.campaign_name,
-      };
-    }
-
-    existingLead.lastContactedAt = new Date();
-    await existingLead.save();
     console.log('✅ Existing lead updated:', existingLead._id);
     return;
   }

@@ -1,9 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import { Tenant } from '../models/Tenant';
-import { Lead } from '../models/Lead';
-import { LeadFormConfig } from '../models/LeadFormConfig';
-import { LeadStage } from '../models/LeadStage';
+import Tenant from '../models/Tenant';
+import Lead from '../models/Lead';
+import LeadFormConfig from '../models/LeadFormConfig';
+import LeadStage from '../models/LeadStage';
 
 // Rate limiting map (simple in-memory)
 const submitCounts = new Map<string, { count: number; resetAt: number }>();

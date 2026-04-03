@@ -81,8 +81,10 @@ const LeadFormSettings: React.FC = () => {
   // Table columns configuration
   const [tableColumns, setTableColumns] = useState<TableColumn[]>([]);
   const [savingColumns, setSavingColumns] = useState(false);
+  const [tenantSlug, setTenantSlug] = useState('');
   
-  const [activeTab, setActiveTab] = useState<'fields' | 'sources' | 'stats' | 'columns'>('fields');
+  const [activeTab, setActiveTab] = useState<'fields' | 'sources' | 'stats' | 'columns' | 'embed'>('fields');
+  const [embedCopied, setEmbedCopied] = useState(false);
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 3000);
@@ -101,6 +103,7 @@ const LeadFormSettings: React.FC = () => {
       const config = configRes.data;
       setFields((config.fields || []).sort((a: FormField, b: FormField) => a.order - b.order));
       setSources(config.sources || []);
+      if (config.tenantSlug) setTenantSlug(config.tenantSlug);
       
       const loadedStages = stagesRes.data || [];
       setStages(loadedStages);
@@ -514,6 +517,11 @@ const LeadFormSettings: React.FC = () => {
             Table Columns
           </button>
         </li>
+        <li className="nav-item">
+          <button className={`nav-link ${activeTab === 'embed' ? 'active' : ''}`} onClick={() => setActiveTab('embed')}>
+            <i className="fa-solid fa-code me-1"></i> Embed Form
+          </button>
+        </li>
       </ul>
 
       {/* Form Fields Tab */}
@@ -835,6 +843,211 @@ const LeadFormSettings: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Embed Form Tab */}
+      {activeTab === 'embed' && (() => {
+        const baseUrl = window.location.origin;
+        const apiUrl = `${baseUrl}/api/v1/public/form/${tenantSlug}`;
+        const enabledFields = fields.filter(f => f.enabled).sort((a, b) => a.order - b.order);
+        
+        const embedHtml = `<!-- Lead Capture Form - Paste this in your website -->
+<div id="cb-lead-form"></div>
+<script>
+(function() {
+  var API = '${apiUrl}';
+  var container = document.getElementById('cb-lead-form');
+  
+  // Fetch form config
+  fetch(API)
+    .then(function(r) { return r.json(); })
+    .then(function(config) {
+      var form = document.createElement('form');
+      form.id = 'cb-lead-capture';
+      form.style.cssText = 'max-width:500px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,sans-serif;';
+      
+      // Title
+      var title = document.createElement('h3');
+      title.textContent = 'Get in Touch';
+      title.style.cssText = 'text-align:center;margin-bottom:20px;color:#333;';
+      form.appendChild(title);
+      
+      config.fields.forEach(function(field) {
+        var wrapper = document.createElement('div');
+        wrapper.style.cssText = 'margin-bottom:14px;';
+        
+        var label = document.createElement('label');
+        label.textContent = field.label + (field.required ? ' *' : '');
+        label.style.cssText = 'display:block;margin-bottom:4px;font-size:14px;font-weight:500;color:#374151;';
+        wrapper.appendChild(label);
+        
+        var input;
+        if (field.type === 'select' && field.options && field.options.length) {
+          input = document.createElement('select');
+          var opt = document.createElement('option');
+          opt.value = '';
+          opt.textContent = field.placeholder || 'Select...';
+          input.appendChild(opt);
+          field.options.forEach(function(o) {
+            var op = document.createElement('option');
+            op.value = o; op.textContent = o;
+            input.appendChild(op);
+          });
+        } else if (field.type === 'textarea') {
+          input = document.createElement('textarea');
+          input.rows = 3;
+        } else {
+          input = document.createElement('input');
+          input.type = field.type === 'tel' ? 'tel' : field.type === 'email' ? 'email' : field.type || 'text';
+        }
+        
+        input.name = field.fieldKey;
+        input.placeholder = field.placeholder || '';
+        if (field.required) input.required = true;
+        input.style.cssText = 'width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;box-sizing:border-box;outline:none;transition:border 0.2s;';
+        input.onfocus = function() { this.style.borderColor = '#4f46e5'; };
+        input.onblur = function() { this.style.borderColor = '#d1d5db'; };
+        wrapper.appendChild(input);
+        form.appendChild(wrapper);
+      });
+      
+      // UTM params from URL
+      var params = new URLSearchParams(window.location.search);
+      ['utm_source','utm_medium','utm_campaign','utm_content','utm_term'].forEach(function(p) {
+        if (params.get(p)) {
+          var h = document.createElement('input');
+          h.type = 'hidden'; h.name = p; h.value = params.get(p);
+          form.appendChild(h);
+        }
+      });
+      
+      // Submit button
+      var btn = document.createElement('button');
+      btn.type = 'submit';
+      btn.textContent = 'Submit';
+      btn.style.cssText = 'width:100%;padding:12px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;margin-top:8px;transition:background 0.2s;';
+      btn.onmouseover = function() { this.style.background = '#4338ca'; };
+      btn.onmouseout = function() { this.style.background = '#4f46e5'; };
+      form.appendChild(btn);
+      
+      // Message div
+      var msg = document.createElement('div');
+      msg.id = 'cb-form-msg';
+      msg.style.cssText = 'display:none;text-align:center;padding:12px;margin-top:12px;border-radius:8px;font-size:14px;';
+      form.appendChild(msg);
+      
+      form.onsubmit = function(e) {
+        e.preventDefault();
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+        var data = {};
+        new FormData(form).forEach(function(v, k) { data[k] = v; });
+        fetch(API, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          msg.style.display = 'block';
+          if (res.success) {
+            msg.style.background = '#ecfdf5';
+            msg.style.color = '#065f46';
+            msg.textContent = res.message;
+            form.reset();
+          } else {
+            msg.style.background = '#fef2f2';
+            msg.style.color = '#991b1b';
+            msg.textContent = res.error || 'Something went wrong';
+          }
+          btn.disabled = false;
+          btn.textContent = 'Submit';
+        })
+        .catch(function() {
+          msg.style.display = 'block';
+          msg.style.background = '#fef2f2';
+          msg.style.color = '#991b1b';
+          msg.textContent = 'Network error. Please try again.';
+          btn.disabled = false;
+          btn.textContent = 'Submit';
+        });
+      };
+      
+      container.appendChild(form);
+    });
+})();
+</script>`;
+
+        const handleCopyEmbed = () => {
+          navigator.clipboard.writeText(embedHtml);
+          setEmbedCopied(true);
+          setTimeout(() => setEmbedCopied(false), 2000);
+        };
+
+        return (
+          <div>
+            <div className="card shadow-sm mb-4">
+              <div className="card-header bg-white d-flex justify-content-between align-items-center">
+                <h6 className="mb-0 fw-semibold">
+                  <i className="fa-solid fa-code me-2 text-primary"></i>
+                  Embeddable Lead Form
+                </h6>
+              </div>
+              <div className="card-body">
+                <div className="alert alert-info mb-4">
+                  <i className="fa-solid fa-circle-info me-2"></i>
+                  Copy the code below and paste it into your website HTML. The form will automatically load your configured fields and submit leads directly to your CRM.
+                </div>
+
+                <h6 className="fw-semibold mb-2">API Endpoints</h6>
+                <div className="mb-4">
+                  <div className="bg-light rounded p-3 mb-2">
+                    <small className="text-muted d-block mb-1">GET - Fetch Form Config</small>
+                    <code className="text-primary">{apiUrl}</code>
+                  </div>
+                  <div className="bg-light rounded p-3">
+                    <small className="text-muted d-block mb-1">POST - Submit Lead</small>
+                    <code className="text-primary">{apiUrl}</code>
+                  </div>
+                </div>
+
+                <h6 className="fw-semibold mb-2">Embed Code (HTML + JS)</h6>
+                <div className="position-relative">
+                  <pre className="bg-dark text-light rounded p-3" style={{maxHeight: '300px', overflow: 'auto', fontSize: '12px'}}>
+                    <code>{embedHtml}</code>
+                  </pre>
+                  <button
+                    className={`btn ${embedCopied ? 'btn-success' : 'btn-primary'} btn-sm position-absolute`}
+                    style={{top: '10px', right: '10px'}}
+                    onClick={handleCopyEmbed}
+                  >
+                    <i className={`fa-solid ${embedCopied ? 'fa-check' : 'fa-copy'} me-1`}></i>
+                    {embedCopied ? 'Copied!' : 'Copy'}
+                  </button>
+                </div>
+
+                <h6 className="fw-semibold mt-4 mb-2">Fields Included in Form</h6>
+                <div className="d-flex flex-wrap gap-2">
+                  {enabledFields.map(f => (
+                    <span key={f.fieldKey} className={`badge ${f.required ? 'bg-primary' : 'bg-secondary'}`}>
+                      {f.label} {f.required ? '*' : ''}
+                    </span>
+                  ))}
+                </div>
+
+                <h6 className="fw-semibold mt-4 mb-2">How It Works</h6>
+                <ol className="text-muted small">
+                  <li className="mb-1">Customer fills the form on your website</li>
+                  <li className="mb-1">Form submits to <code>{apiUrl}</code></li>
+                  <li className="mb-1">Lead is automatically created in your CRM with source = "website"</li>
+                  <li className="mb-1">Duplicate phone numbers are detected — existing leads get an activity log instead</li>
+                  <li className="mb-1">UTM parameters (utm_source, utm_medium, etc.) are automatically captured from the URL</li>
+                  <li>Rate limited to 10 submissions per minute per IP</li>
+                </ol>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Add Custom Field Modal */}
       {showAddModal && (

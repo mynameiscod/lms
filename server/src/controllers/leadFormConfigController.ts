@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import LeadFormConfig, { DEFAULT_FIELDS, DEFAULT_SOURCES } from '../models/LeadFormConfig';
+import { Tenant } from '../models/Tenant';
 
 // Get form config for tenant (auto-initialize if not exists)
 export const getFormConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
@@ -16,7 +17,12 @@ export const getFormConfig = async (req: AuthenticatedRequest, res: Response<Api
       });
     }
 
-    res.json({ success: true, message: 'Form config fetched', data: config });
+    // Get tenant slug for embed form
+    const tenant = await Tenant.findById(req.tenantId, 'slug');
+    const configData = config.toObject();
+    (configData as any).tenantSlug = tenant?.slug || '';
+
+    res.json({ success: true, message: 'Form config fetched', data: configData });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch form config', error: error.message });
   }

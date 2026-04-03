@@ -107,13 +107,17 @@ export const handleWebhook = async (req: Request, res: Response) => {
   try {
     const payload: WhatsAppWebhookPayload = req.body;
 
+    console.log('📱 WhatsApp webhook received:', JSON.stringify(payload, null, 2));
+
     // Always respond 200 quickly to WhatsApp
     res.status(200).send('EVENT_RECEIVED');
 
     // Process asynchronously
-    processWhatsAppMessage(payload).catch(console.error);
+    processWhatsAppMessage(payload).catch(err => {
+      console.error('❌ WhatsApp message processing error:', err);
+    });
   } catch (error: any) {
-    console.error('WhatsApp webhook error:', error);
+    console.error('❌ WhatsApp webhook error:', error);
     res.status(200).send('EVENT_RECEIVED'); // Always 200 to prevent retries
   }
 };
@@ -121,13 +125,28 @@ export const handleWebhook = async (req: Request, res: Response) => {
 // ===================== MESSAGE PROCESSOR =====================
 
 async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
-  if (payload.object !== 'whatsapp_business_account') return;
+  console.log('🔄 Processing WhatsApp payload, object:', payload.object);
+  if (payload.object !== 'whatsapp_business_account') {
+    console.log('⚠️ Ignoring non-WhatsApp payload:', payload.object);
+    return;
+  }
 
   for (const entry of payload.entry) {
     for (const change of entry.changes) {
       const value = change.value;
       
-      if (!value.messages || value.messages.length === 0) continue;
+      console.log('📨 Change field:', change.field, 'Messages:', value.messages?.length || 0, 'Statuses:', value.statuses?.length || 0);
+
+      // Handle status updates (delivered, read, etc.)
+      if (value.statuses && value.statuses.length > 0) {
+        console.log('📊 Status update:', value.statuses[0].status, 'for', value.statuses[0].recipient_id);
+        continue;
+      }
+
+      if (!value.messages || value.messages.length === 0) {
+        console.log('⚠️ No messages in this change');
+        continue;
+      }
 
       const message = value.messages[0];
       const contact = value.contacts?.[0];
@@ -143,7 +162,12 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
                       message.interactive?.list_reply?.title || '';
       }
 
-      if (!messageText) continue;
+      console.log(`💬 Message from ${phoneNumber} (${senderName}): "${messageText}" [type: ${message.type}]`);
+
+      if (!messageText) {
+        console.log('⚠️ Empty message text, skipping');
+        continue;
+      }
 
       // Process the conversation
       await handleConversation(phoneNumber, senderName, messageText, value.metadata.phone_number_id);
@@ -159,10 +183,13 @@ async function handleConversation(
   messageText: string,
   phoneNumberId: string
 ) {
+  console.log(`🔄 handleConversation: phone=${phoneNumber}, name=${senderName}, phoneNumberId=${phoneNumberId}`);
+  
   // Get or create conversation state
   let state = conversationStates.get(phoneNumber);
   
   if (!state) {
+    console.log(`🆕 New conversation from ${phoneNumber}`);
     // New conversation - start qualification flow
     state = {
       phone: phoneNumber,
@@ -174,6 +201,9 @@ async function handleConversation(
     // Send initial question
     await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message);
     state.conversationStep = 'asked_name';
+
+    // Also create a lead immediately (don't wait for full qualification)
+    await createOrUpdateLeadFromWhatsApp(phoneNumber, senderName, messageText);
     return;
   }
 
@@ -312,6 +342,69 @@ async function createLeadFromWhatsApp(
 
   } catch (error) {
     console.error('Error creating lead from WhatsApp:', error);
+  }
+}
+
+// ===================== CREATE OR UPDATE LEAD IMMEDIATELY =====================
+
+async function createOrUpdateLeadFromWhatsApp(phoneNumber: string, senderName: string, messageText: string) {
+  try {
+    const tenantId = process.env.DEFAULT_TENANT_ID;
+    if (!tenantId) {
+      console.error('❌ DEFAULT_TENANT_ID not set, cannot create lead');
+      return;
+    }
+
+    // Check if lead already exists by phone
+    const phoneRegex = phoneNumber.slice(-10);
+    let lead = await Lead.findOne({
+      tenantId: new mongoose.Types.ObjectId(tenantId),
+      phone: { $regex: phoneRegex, $options: 'i' }
+    });
+
+    if (lead) {
+      // Add activity to existing lead
+      console.log(`📝 Lead already exists (${lead._id}), adding WhatsApp activity`);
+      lead.activities.push({
+        type: 'whatsapp',
+        description: `WhatsApp message: ${messageText.substring(0, 500)}`,
+        createdAt: new Date(),
+        createdBy: new mongoose.Types.ObjectId(tenantId)
+      });
+      lead.whatsappStatus = 'replied';
+      await lead.save();
+      return;
+    }
+
+    // Get initial stage
+    const initialStage = await LeadStage.findOne({
+      tenantId: new mongoose.Types.ObjectId(tenantId)
+    }).sort({ order: 1 });
+
+    // Create new lead immediately
+    lead = new Lead({
+      tenantId: new mongoose.Types.ObjectId(tenantId),
+      name: senderName || 'WhatsApp User',
+      email: '',
+      phone: phoneNumber,
+      source: 'whatsapp',
+      priority: 'warm',
+      stageId: initialStage?._id,
+      whatsappStatus: 'replied',
+      activities: [{
+        type: 'whatsapp',
+        description: `Lead created from WhatsApp. First message: "${messageText.substring(0, 200)}"`,
+        createdAt: new Date(),
+        createdBy: new mongoose.Types.ObjectId(tenantId)
+      }],
+      notes: `WhatsApp lead - First message: ${messageText}`,
+      createdBy: new mongoose.Types.ObjectId(tenantId)
+    });
+
+    await lead.save();
+    console.log(`✅ Created new lead ${lead._id} from WhatsApp: ${phoneNumber} (${senderName})`);
+  } catch (error) {
+    console.error('❌ Error creating/updating lead from WhatsApp:', error);
   }
 }
 

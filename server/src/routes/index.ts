@@ -41,11 +41,13 @@ import salesContentRoutes from './salesContentRoutes';
 import leadAIRoutes from './leadAIRoutes';
 import lostReasonRoutes from './lostReasonRoutes';
 import publicLeadRoutes from './publicLeadRoutes';
+import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 
 const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
 router.use('/public', publicLeadRoutes);
+router.use('/meta-leads', metaLeadAdsRoutes);
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);

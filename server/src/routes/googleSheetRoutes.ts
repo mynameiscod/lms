@@ -6,6 +6,7 @@ import {
   updateIntegration,
   deleteIntegration,
   fetchHeaders,
+  fetchTabs,
   triggerSync,
   resetSync
 } from '../controllers/googleSheetController';
@@ -17,6 +18,9 @@ const router = express.Router();
 
 // All routes require authentication + tenant + manage_leads permission
 router.use(authMiddleware, tenantResolver, roleGuard(['manage_leads']));
+
+// Fetch tab names from a Google Sheet URL
+router.post('/fetch-tabs', fetchTabs);
 
 // Fetch headers from a Google Sheet URL (before creating integration)
 router.post('/fetch-headers', fetchHeaders);

@@ -82,6 +82,53 @@ export function extractSheetId(url: string): string | null {
   return match ? match[1] : null;
 }
 
+// Decode HTML entities
+function decodeHtmlEntities(str: string): string {
+  return str
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'");
+}
+
+// Fetch all tab (worksheet) names from a Google Sheet
+export async function fetchSheetTabs(sheetId: string): Promise<string[]> {
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/htmlview`;
+  const html = await fetchSheetCsv(url);
+
+  const tabs: string[] = [];
+  let match: RegExpExecArray | null;
+
+  // Pattern 1: <a href="#gid=...">TabName</a>
+  const p1 = /<a[^>]+href=["']#gid=\d+["'][^>]*>([^<]+)<\/a>/gi;
+  while ((match = p1.exec(html)) !== null) {
+    const name = decodeHtmlEntities(match[1].trim());
+    if (name && !tabs.includes(name)) tabs.push(name);
+  }
+  if (tabs.length > 0) return tabs;
+
+  // Pattern 2: id="sheet-button-..." elements
+  const p2 = /id=["']sheet-button-\d+["'][^>]*>([^<]+)/gi;
+  while ((match = p2.exec(html)) !== null) {
+    const name = decodeHtmlEntities(match[1].trim());
+    if (name && !tabs.includes(name)) tabs.push(name);
+  }
+  if (tabs.length > 0) return tabs;
+
+  // Pattern 3: data-name attributes on sheet tabs
+  const p3 = /data-name=["']([^"']+)["']/gi;
+  while ((match = p3.exec(html)) !== null) {
+    const name = decodeHtmlEntities(match[1].trim());
+    if (name && !tabs.includes(name)) tabs.push(name);
+  }
+  if (tabs.length > 0) return tabs;
+
+  // Fallback: return Sheet1
+  return ['Sheet1'];
+}
+
 // Fetch headers from a Google Sheet
 export async function fetchSheetHeaders(sheetId: string, sheetName: string = 'Sheet1'): Promise<string[]> {
   const url = buildSheetCsvUrl(sheetId, sheetName);
@@ -113,7 +160,7 @@ function mapRowToLead(
   return mapped;
 }
 
-// Main sync function for a single integration
+// Main sync function for a single integration (handles multiple tabs)
 export async function syncGoogleSheet(integration: IGoogleSheetIntegration): Promise<ISyncLog> {
   const syncLog: ISyncLog = {
     syncedAt: new Date(),
@@ -125,42 +172,17 @@ export async function syncGoogleSheet(integration: IGoogleSheetIntegration): Pro
   };
 
   try {
-    console.log(`[GSHEET-SYNC] Starting sync for "${integration.name}" (sheet: ${integration.sheetId})`);
+    // Backward compat: use sheetNames, fall back to old sheetName field
+    const sheetNames = integration.sheetNames?.length > 0
+      ? integration.sheetNames
+      : [(integration as any).sheetName || 'Sheet1'];
 
-    // Fetch all CSV data
-    const url = buildSheetCsvUrl(integration.sheetId, integration.sheetName);
-    const csvData = await fetchSheetCsv(url);
-    const allRows = parseCsvData(csvData);
-
-    if (allRows.length === 0) {
-      syncLog.errorDetails?.push('Sheet is empty');
-      return syncLog;
+    // Initialize lastSyncedRows map if needed
+    if (!integration.lastSyncedRows) {
+      integration.lastSyncedRows = new Map();
     }
 
-    // Extract headers from the header row
-    const headerRowIndex = (integration.headerRow || 1) - 1;
-    if (headerRowIndex >= allRows.length) {
-      syncLog.errorDetails?.push(`Header row ${integration.headerRow} exceeds sheet rows (${allRows.length})`);
-      return syncLog;
-    }
-
-    const headers = allRows[headerRowIndex];
-    console.log(`[GSHEET-SYNC] Headers: ${headers.join(', ')}`);
-
-    // Data rows start after header row
-    const dataStartIndex = headerRowIndex + 1;
-    const totalDataRows = allRows.length - dataStartIndex;
-
-    // Only process rows after lastSyncedRow
-    const startFromRow = Math.max(integration.lastSyncedRow, 0);
-    const newRows = allRows.slice(dataStartIndex + startFromRow);
-
-    if (newRows.length === 0) {
-      console.log(`[GSHEET-SYNC] No new rows to sync (total: ${totalDataRows}, lastSynced: ${startFromRow})`);
-      return syncLog;
-    }
-
-    console.log(`[GSHEET-SYNC] Processing ${newRows.length} new rows (starting from row ${startFromRow + dataStartIndex + 1})`);
+    console.log(`[GSHEET-SYNC] Starting sync for "${integration.name}" - tabs: ${sheetNames.join(', ')}`);
 
     // Get default stage for the tenant
     let defaultStageId = integration.defaultStageId;
@@ -176,114 +198,30 @@ export async function syncGoogleSheet(integration: IGoogleSheetIntegration): Pro
       }
     }
 
-    // Process each new row
-    for (let i = 0; i < newRows.length; i++) {
-      const row = newRows[i];
-      const currentRowNumber = startFromRow + i + 1; // 1-based data row number
-
+    // Process each tab
+    for (const sheetName of sheetNames) {
       try {
-        const mapped = mapRowToLead(row, headers, integration.columnMapping);
+        console.log(`[GSHEET-SYNC] Syncing tab "${sheetName}"...`);
+        const tabLog = await syncSingleTab(integration, sheetName, defaultStageId);
 
-        // Skip rows without required fields
-        if (!mapped.name && !mapped.phone && !mapped.email) {
-          continue; // Empty/header row
+        syncLog.rowsSynced += tabLog.rowsSynced;
+        syncLog.newLeads += tabLog.newLeads;
+        syncLog.duplicatesSkipped += tabLog.duplicatesSkipped;
+        syncLog.errors += tabLog.errors;
+        if (tabLog.errorDetails?.length) {
+          syncLog.errorDetails?.push(...tabLog.errorDetails.map(e => `[${sheetName}] ${e}`));
         }
-
-        // Need at least name and phone
-        const leadName = mapped.name || mapped.email || 'Unknown';
-        const leadPhone = mapped.phone || '';
-        const leadEmail = mapped.email || '';
-
-        if (!leadPhone && !leadEmail) {
-          syncLog.errors++;
-          syncLog.errorDetails?.push(`Row ${currentRowNumber}: No phone or email`);
-          continue;
-        }
-
-        // Check for duplicate by phone (last 10 digits) or email
-        let existingLead = null;
-        if (leadPhone) {
-          const phoneDigits = leadPhone.replace(/\D/g, '').slice(-10);
-          if (phoneDigits.length >= 7) {
-            existingLead = await Lead.findOne({
-              tenantId: integration.tenantId,
-              phone: { $regex: phoneDigits + '$' }
-            });
-          }
-        }
-        if (!existingLead && leadEmail) {
-          existingLead = await Lead.findOne({
-            tenantId: integration.tenantId,
-            email: { $regex: new RegExp(`^${leadEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
-          });
-        }
-
-        if (existingLead) {
-          // Add activity to existing lead
-          existingLead.activities.push({
-            type: 'note' as any,
-            description: `Duplicate entry from Google Sheet "${integration.name}" (Row ${currentRowNumber + headerRowIndex + 1})`,
-            createdBy: integration.createdBy,
-            createdAt: new Date()
-          } as any);
-          await existingLead.save();
-          syncLog.duplicatesSkipped++;
-        } else {
-          // Build custom fields from unmapped columns
-          const customFields: Record<string, string> = {};
-          const mappedLeadFields = integration.columnMapping.map(m => m.leadField);
-          const standardFields = ['name', 'email', 'phone', 'courseInterest', 'source'];
-
-          for (const mapping of integration.columnMapping) {
-            if (!standardFields.includes(mapping.leadField) && mapped[mapping.leadField]) {
-              customFields[mapping.leadField] = mapped[mapping.leadField];
-            }
-          }
-
-          // Create new lead
-          const newLead = new Lead({
-            tenantId: integration.tenantId,
-            name: leadName,
-            phone: leadPhone,
-            email: leadEmail,
-            courseInterest: mapped.courseInterest ? [mapped.courseInterest] : [],
-            source: mapped.source || integration.defaultSource,
-            priority: integration.defaultPriority,
-            stageId: defaultStageId,
-            assignedTo: integration.assignToUserId,
-            createdBy: integration.createdBy,
-            customFields,
-            sourceDetails: {
-              platform: 'google_sheet' as any,
-              formId: integration.sheetId,
-              campaignName: integration.name
-            },
-            activities: [{
-              type: 'created',
-              description: `Imported from Google Sheet "${integration.name}" (Row ${currentRowNumber + headerRowIndex + 1})`,
-              createdBy: integration.createdBy,
-              createdAt: new Date()
-            }]
-          });
-
-          await newLead.save();
-          syncLog.newLeads++;
-        }
-
-        syncLog.rowsSynced++;
-      } catch (rowErr: any) {
+      } catch (tabErr: any) {
         syncLog.errors++;
-        syncLog.errorDetails?.push(`Row ${currentRowNumber}: ${rowErr.message}`);
-        console.error(`[GSHEET-SYNC] Row ${currentRowNumber} error:`, rowErr.message);
+        syncLog.errorDetails?.push(`[${sheetName}] ${tabErr.message}`);
+        console.error(`[GSHEET-SYNC] Tab "${sheetName}" error:`, tabErr.message);
       }
     }
 
-    // Update last synced row
-    integration.lastSyncedRow = startFromRow + newRows.length;
+    // Save state
     integration.lastSyncAt = new Date();
     integration.lastError = syncLog.errors > 0 ? `${syncLog.errors} errors during sync` : undefined;
 
-    // Keep only last 50 sync logs
     integration.syncLogs.push(syncLog);
     if (integration.syncLogs.length > 50) {
       integration.syncLogs = integration.syncLogs.slice(-50);
@@ -291,7 +229,7 @@ export async function syncGoogleSheet(integration: IGoogleSheetIntegration): Pro
 
     await integration.save();
 
-    console.log(`[GSHEET-SYNC] Completed: ${syncLog.newLeads} new, ${syncLog.duplicatesSkipped} duplicates, ${syncLog.errors} errors`);
+    console.log(`[GSHEET-SYNC] Completed: ${syncLog.newLeads} new, ${syncLog.duplicatesSkipped} duplicates, ${syncLog.errors} errors (across ${sheetNames.length} tab(s))`);
 
     return syncLog;
   } catch (err: any) {
@@ -306,6 +244,153 @@ export async function syncGoogleSheet(integration: IGoogleSheetIntegration): Pro
 
     return syncLog;
   }
+}
+
+// Sync a single tab of a Google Sheet
+async function syncSingleTab(
+  integration: IGoogleSheetIntegration,
+  sheetName: string,
+  defaultStageId: mongoose.Types.ObjectId
+): Promise<ISyncLog> {
+  const tabLog: ISyncLog = {
+    syncedAt: new Date(),
+    rowsSynced: 0,
+    newLeads: 0,
+    duplicatesSkipped: 0,
+    errors: 0,
+    errorDetails: []
+  };
+
+  // Fetch CSV data for this tab
+  const url = buildSheetCsvUrl(integration.sheetId, sheetName);
+  const csvData = await fetchSheetCsv(url);
+  const allRows = parseCsvData(csvData);
+
+  if (allRows.length === 0) {
+    tabLog.errorDetails?.push('Tab is empty');
+    return tabLog;
+  }
+
+  // Extract headers
+  const headerRowIndex = (integration.headerRow || 1) - 1;
+  if (headerRowIndex >= allRows.length) {
+    tabLog.errorDetails?.push(`Header row ${integration.headerRow} exceeds tab rows (${allRows.length})`);
+    return tabLog;
+  }
+
+  const headers = allRows[headerRowIndex];
+  console.log(`[GSHEET-SYNC] [${sheetName}] Headers: ${headers.join(', ')}`);
+
+  const dataStartIndex = headerRowIndex + 1;
+  const lastSyncedRow = integration.lastSyncedRows?.get(sheetName) || 0;
+  const startFromRow = Math.max(lastSyncedRow, 0);
+  const newRows = allRows.slice(dataStartIndex + startFromRow);
+
+  if (newRows.length === 0) {
+    console.log(`[GSHEET-SYNC] [${sheetName}] No new rows`);
+    return tabLog;
+  }
+
+  console.log(`[GSHEET-SYNC] [${sheetName}] Processing ${newRows.length} new rows`);
+
+  for (let i = 0; i < newRows.length; i++) {
+    const row = newRows[i];
+    const currentRowNumber = startFromRow + i + 1;
+
+    try {
+      const mapped = mapRowToLead(row, headers, integration.columnMapping);
+
+      if (!mapped.name && !mapped.phone && !mapped.email) {
+        continue;
+      }
+
+      const leadName = mapped.name || mapped.email || 'Unknown';
+      const leadPhone = mapped.phone || '';
+      const leadEmail = mapped.email || '';
+
+      if (!leadPhone && !leadEmail) {
+        tabLog.errors++;
+        tabLog.errorDetails?.push(`Row ${currentRowNumber}: No phone or email`);
+        continue;
+      }
+
+      // Duplicate check
+      let existingLead = null;
+      if (leadPhone) {
+        const phoneDigits = leadPhone.replace(/\D/g, '').slice(-10);
+        if (phoneDigits.length >= 7) {
+          existingLead = await Lead.findOne({
+            tenantId: integration.tenantId,
+            phone: { $regex: phoneDigits + '$' }
+          });
+        }
+      }
+      if (!existingLead && leadEmail) {
+        existingLead = await Lead.findOne({
+          tenantId: integration.tenantId,
+          email: { $regex: new RegExp(`^${leadEmail.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`, 'i') }
+        });
+      }
+
+      if (existingLead) {
+        existingLead.activities.push({
+          type: 'note' as any,
+          description: `Duplicate entry from Google Sheet "${integration.name}" tab "${sheetName}" (Row ${currentRowNumber + headerRowIndex + 1})`,
+          createdBy: integration.createdBy,
+          createdAt: new Date()
+        } as any);
+        await existingLead.save();
+        tabLog.duplicatesSkipped++;
+      } else {
+        const customFields: Record<string, string> = {};
+        const standardFields = ['name', 'email', 'phone', 'courseInterest', 'source'];
+        for (const mapping of integration.columnMapping) {
+          if (!standardFields.includes(mapping.leadField) && mapped[mapping.leadField]) {
+            customFields[mapping.leadField] = mapped[mapping.leadField];
+          }
+        }
+
+        const newLead = new Lead({
+          tenantId: integration.tenantId,
+          name: leadName,
+          phone: leadPhone,
+          email: leadEmail,
+          courseInterest: mapped.courseInterest ? [mapped.courseInterest] : [],
+          source: mapped.source || integration.defaultSource,
+          priority: integration.defaultPriority,
+          stageId: defaultStageId,
+          assignedTo: integration.assignToUserId,
+          createdBy: integration.createdBy,
+          customFields,
+          sourceDetails: {
+            platform: 'google_sheet' as any,
+            formId: integration.sheetId,
+            campaignName: `${integration.name} / ${sheetName}`
+          },
+          activities: [{
+            type: 'created',
+            description: `Imported from Google Sheet "${integration.name}" tab "${sheetName}" (Row ${currentRowNumber + headerRowIndex + 1})`,
+            createdBy: integration.createdBy,
+            createdAt: new Date()
+          }]
+        });
+
+        await newLead.save();
+        tabLog.newLeads++;
+      }
+
+      tabLog.rowsSynced++;
+    } catch (rowErr: any) {
+      tabLog.errors++;
+      tabLog.errorDetails?.push(`Row ${currentRowNumber}: ${rowErr.message}`);
+      console.error(`[GSHEET-SYNC] [${sheetName}] Row ${currentRowNumber} error:`, rowErr.message);
+    }
+  }
+
+  // Update last synced row for this tab
+  integration.lastSyncedRows.set(sheetName, startFromRow + newRows.length);
+
+  return tabLog;
 }
 
 // Sync all active integrations (called by cron)

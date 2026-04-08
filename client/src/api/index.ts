@@ -2114,6 +2114,12 @@ export const googleSheetApi = {
   getIntegration: async (id: string) =>
     authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/${id}`),
 
+  fetchTabs: async (sheetUrl: string) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/fetch-tabs`, {
+      method: 'POST',
+      body: JSON.stringify({ sheetUrl })
+    }),
+
   fetchHeaders: async (sheetUrl: string, sheetName?: string) =>
     authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/fetch-headers`, {
       method: 'POST',

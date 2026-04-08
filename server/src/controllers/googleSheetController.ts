@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import GoogleSheetIntegration from '../models/GoogleSheetIntegration';
-import { extractSheetId, fetchSheetHeaders, syncGoogleSheet } from '../services/googleSheetSyncService';
+import { extractSheetId, fetchSheetHeaders, fetchSheetTabs, syncGoogleSheet } from '../services/googleSheetSyncService';
 
 // GET /google-sheet-integrations - List all integrations for tenant
 export const getIntegrations = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
@@ -42,6 +42,34 @@ export const getIntegrationById = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
+// POST /google-sheet-integrations/fetch-tabs - Fetch tab names from a sheet URL
+export const fetchTabs = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { sheetUrl } = req.body;
+
+    if (!sheetUrl) {
+      res.status(400).json({ success: false, message: 'Sheet URL is required' });
+      return;
+    }
+
+    const sheetId = extractSheetId(sheetUrl);
+    if (!sheetId) {
+      res.status(400).json({ success: false, message: 'Invalid Google Sheets URL' });
+      return;
+    }
+
+    const tabs = await fetchSheetTabs(sheetId);
+
+    res.json({ success: true, data: { sheetId, tabs } });
+  } catch (err: any) {
+    console.error('[GSHEET] Error fetching tabs:', err);
+    res.status(400).json({
+      success: false,
+      message: err.message || 'Failed to fetch sheet tabs. Make sure the sheet is shared publicly.'
+    });
+  }
+};
+
 // POST /google-sheet-integrations/fetch-headers - Fetch headers from a sheet URL
 export const fetchHeaders = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
@@ -74,7 +102,7 @@ export const fetchHeaders = async (req: AuthenticatedRequest, res: Response): Pr
 export const createIntegration = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const {
-      name, sheetUrl, sheetName, columnMapping, headerRow,
+      name, sheetUrl, sheetNames, columnMapping, headerRow,
       syncInterval, defaultSource, defaultPriority, defaultStageId, assignToUserId
     } = req.body;
 
@@ -94,9 +122,11 @@ export const createIntegration = async (req: AuthenticatedRequest, res: Response
       return;
     }
 
-    // Verify the sheet is accessible
+    const tabNames = sheetNames?.length > 0 ? sheetNames : ['Sheet1'];
+
+    // Verify at least the first tab is accessible
     try {
-      await fetchSheetHeaders(sheetId, sheetName || 'Sheet1');
+      await fetchSheetHeaders(sheetId, tabNames[0]);
     } catch {
       res.status(400).json({
         success: false,
@@ -110,7 +140,7 @@ export const createIntegration = async (req: AuthenticatedRequest, res: Response
       name,
       sheetId,
       sheetUrl,
-      sheetName: sheetName || 'Sheet1',
+      sheetNames: tabNames,
       columnMapping,
       headerRow: headerRow || 1,
       syncInterval: syncInterval || 10,
@@ -120,7 +150,7 @@ export const createIntegration = async (req: AuthenticatedRequest, res: Response
       assignToUserId: assignToUserId || undefined,
       createdBy: req.user!.id,
       isActive: true,
-      lastSyncedRow: 0
+      lastSyncedRows: new Map()
     });
 
     await integration.save();
@@ -136,7 +166,7 @@ export const createIntegration = async (req: AuthenticatedRequest, res: Response
 export const updateIntegration = async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const {
-      name, sheetUrl, sheetName, columnMapping, headerRow,
+      name, sheetUrl, sheetNames, columnMapping, headerRow,
       syncInterval, isActive, defaultSource, defaultPriority,
       defaultStageId, assignToUserId
     } = req.body;
@@ -160,11 +190,21 @@ export const updateIntegration = async (req: AuthenticatedRequest, res: Response
       }
       integration.sheetId = newSheetId;
       integration.sheetUrl = sheetUrl;
-      integration.lastSyncedRow = 0; // Reset sync position
+      integration.lastSyncedRows = new Map(); // Reset sync position
     }
 
     if (name !== undefined) integration.name = name;
-    if (sheetName !== undefined) integration.sheetName = sheetName;
+    if (sheetNames !== undefined) {
+      integration.sheetNames = sheetNames.length > 0 ? sheetNames : ['Sheet1'];
+      // Reset sync rows for removed tabs
+      if (integration.lastSyncedRows) {
+        for (const [tabName] of integration.lastSyncedRows) {
+          if (!integration.sheetNames.includes(tabName)) {
+            integration.lastSyncedRows.delete(tabName);
+          }
+        }
+      }
+    }
     if (columnMapping !== undefined) integration.columnMapping = columnMapping;
     if (headerRow !== undefined) integration.headerRow = headerRow;
     if (syncInterval !== undefined) integration.syncInterval = syncInterval;
@@ -251,7 +291,7 @@ export const resetSync = async (req: AuthenticatedRequest, res: Response): Promi
       return;
     }
 
-    integration.lastSyncedRow = 0;
+    integration.lastSyncedRows = new Map();
     integration.syncLogs = [];
     integration.lastError = undefined;
     await integration.save();

@@ -21,10 +21,10 @@ interface Integration {
   name: string;
   sheetId: string;
   sheetUrl: string;
-  sheetName: string;
+  sheetNames: string[];
   columnMapping: ColumnMapping[];
   headerRow: number;
-  lastSyncedRow: number;
+  lastSyncedRows: Record<string, number>;
   syncInterval: number;
   isActive: boolean;
   defaultSource: string;
@@ -59,10 +59,14 @@ const GoogleSheetIntegration: React.FC = () => {
   // Form state
   const [formName, setFormName] = useState('');
   const [formSheetUrl, setFormSheetUrl] = useState('');
-  const [formSheetName, setFormSheetName] = useState('Sheet1');
+  const [formSheetNames, setFormSheetNames] = useState<string[]>(['Sheet1']);
   const [formSyncInterval, setFormSyncInterval] = useState(10);
   const [formPriority, setFormPriority] = useState<'hot' | 'warm' | 'cold'>('warm');
   const [formSource, setFormSource] = useState('google_sheet');
+
+  // Tabs
+  const [fetchingTabs, setFetchingTabs] = useState(false);
+  const [availableTabs, setAvailableTabs] = useState<string[]>([]);
 
   // Headers & mapping
   const [fetchingHeaders, setFetchingHeaders] = useState(false);
@@ -94,13 +98,44 @@ const GoogleSheetIntegration: React.FC = () => {
   const resetForm = () => {
     setFormName('');
     setFormSheetUrl('');
-    setFormSheetName('Sheet1');
+    setFormSheetNames(['Sheet1']);
     setFormSyncInterval(10);
     setFormPriority('warm');
     setFormSource('google_sheet');
+    setAvailableTabs([]);
     setSheetHeaders([]);
     setColumnMapping([]);
     setEditingId(null);
+  };
+
+  const handleFetchTabs = async () => {
+    if (!formSheetUrl) {
+      showAlert('error', 'Please enter a Google Sheet URL');
+      return;
+    }
+    try {
+      setFetchingTabs(true);
+      const res = await googleSheetApi.fetchTabs(formSheetUrl);
+      const tabs = res.data.tabs || ['Sheet1'];
+      setAvailableTabs(tabs);
+      // Auto-select all tabs if none selected yet, or keep current selection
+      if (formSheetNames.length === 1 && formSheetNames[0] === 'Sheet1') {
+        setFormSheetNames(tabs.length === 1 ? tabs : []);
+      }
+      showAlert('success', `Found ${tabs.length} tab(s) in the sheet`);
+    } catch (err: any) {
+      showAlert('error', err.message || 'Failed to fetch tabs. Make sure the sheet is shared publicly.');
+      // Fallback: allow manual entry
+      setAvailableTabs(['Sheet1']);
+    } finally {
+      setFetchingTabs(false);
+    }
+  };
+
+  const toggleTab = (tabName: string) => {
+    setFormSheetNames(prev =>
+      prev.includes(tabName) ? prev.filter(t => t !== tabName) : [...prev, tabName]
+    );
   };
 
   const handleFetchHeaders = async () => {
@@ -108,9 +143,14 @@ const GoogleSheetIntegration: React.FC = () => {
       showAlert('error', 'Please enter a Google Sheet URL');
       return;
     }
+    if (formSheetNames.length === 0) {
+      showAlert('error', 'Please select at least one tab');
+      return;
+    }
     try {
       setFetchingHeaders(true);
-      const res = await googleSheetApi.fetchHeaders(formSheetUrl, formSheetName);
+      // Fetch headers from the first selected tab
+      const res = await googleSheetApi.fetchHeaders(formSheetUrl, formSheetNames[0]);
       const headers = res.data.headers || [];
       setSheetHeaders(headers);
 
@@ -132,7 +172,7 @@ const GoogleSheetIntegration: React.FC = () => {
       }
       setColumnMapping(autoMapping.length > 0 ? autoMapping : headers.map(h => ({ sheetColumn: h, leadField: '' })));
 
-      showAlert('success', `Found ${headers.length} columns in the sheet`);
+      showAlert('success', `Found ${headers.length} columns (from tab "${formSheetNames[0]}")`);
     } catch (err: any) {
       showAlert('error', err.message || 'Failed to fetch headers. Make sure the sheet is shared publicly.');
     } finally {
@@ -185,7 +225,7 @@ const GoogleSheetIntegration: React.FC = () => {
       const data = {
         name: formName,
         sheetUrl: formSheetUrl,
-        sheetName: formSheetName,
+        sheetNames: formSheetNames.length > 0 ? formSheetNames : ['Sheet1'],
         columnMapping: validMappings,
         syncInterval: formSyncInterval,
         defaultPriority: formPriority,
@@ -214,12 +254,13 @@ const GoogleSheetIntegration: React.FC = () => {
     setEditingId(integration._id);
     setFormName(integration.name);
     setFormSheetUrl(integration.sheetUrl);
-    setFormSheetName(integration.sheetName);
+    setFormSheetNames(integration.sheetNames?.length > 0 ? integration.sheetNames : ['Sheet1']);
     setFormSyncInterval(integration.syncInterval);
     setFormPriority(integration.defaultPriority);
     setFormSource(integration.defaultSource);
     setColumnMapping(integration.columnMapping);
     setSheetHeaders(integration.columnMapping.map(m => m.sheetColumn));
+    setAvailableTabs(integration.sheetNames?.length > 0 ? integration.sheetNames : []);
     setShowForm(true);
   };
 
@@ -317,28 +358,51 @@ const GoogleSheetIntegration: React.FC = () => {
           <div className="gsheet-form-body">
             <div className="gsheet-form-section">
               <h3>Sheet Details</h3>
-              <div className="gsheet-form-grid">
-                <div className="gsheet-form-group">
-                  <label>Integration Name *</label>
-                  <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Facebook Lead Sheet" />
-                </div>
-                <div className="gsheet-form-group">
-                  <label>Sheet Tab Name</label>
-                  <input type="text" value={formSheetName} onChange={e => setFormSheetName(e.target.value)} placeholder="Sheet1" />
-                </div>
+              <div className="gsheet-form-group">
+                <label>Integration Name *</label>
+                <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Facebook Lead Sheet" />
               </div>
               <div className="gsheet-form-group">
                 <label>Google Sheet URL *</label>
                 <div className="gsheet-url-row">
                   <input type="url" value={formSheetUrl} onChange={e => setFormSheetUrl(e.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." />
-                  <button className="gsheet-btn gsheet-btn-secondary" onClick={handleFetchHeaders} disabled={fetchingHeaders}>
-                    {fetchingHeaders ? <><i className="fa-solid fa-spinner fa-spin"></i> Fetching...</> : <><i className="fa-solid fa-download"></i> Fetch Columns</>}
+                  <button className="gsheet-btn gsheet-btn-secondary" onClick={handleFetchTabs} disabled={fetchingTabs}>
+                    {fetchingTabs ? <><i className="fa-solid fa-spinner fa-spin"></i> Fetching...</> : <><i className="fa-solid fa-layer-group"></i> Fetch Tabs</>}
                   </button>
                 </div>
                 <small className="gsheet-hint">
                   <i className="fa-solid fa-info-circle"></i> Sheet must be shared as "Anyone with the link can view"
                 </small>
               </div>
+
+              {availableTabs.length > 0 && (
+                <div className="gsheet-form-group">
+                  <label>Select Tabs to Sync <span className="gsheet-tab-count">({formSheetNames.length} selected)</span></label>
+                  <div className="gsheet-tabs-selector">
+                    {availableTabs.map(tab => (
+                      <label key={tab} className={`gsheet-tab-option ${formSheetNames.includes(tab) ? 'gsheet-tab-selected' : ''}`}>
+                        <input
+                          type="checkbox"
+                          checked={formSheetNames.includes(tab)}
+                          onChange={() => toggleTab(tab)}
+                        />
+                        <i className={`fa-solid ${formSheetNames.includes(tab) ? 'fa-check-square' : 'fa-square'}`}></i>
+                        {tab}
+                      </label>
+                    ))}
+                  </div>
+                  {formSheetNames.length > 0 && (
+                    <div className="gsheet-url-row" style={{ marginTop: '0.5rem' }}>
+                      <button className="gsheet-btn gsheet-btn-secondary" onClick={handleFetchHeaders} disabled={fetchingHeaders}>
+                        {fetchingHeaders ? <><i className="fa-solid fa-spinner fa-spin"></i> Fetching...</> : <><i className="fa-solid fa-download"></i> Fetch Columns</>}
+                      </button>
+                      <small className="gsheet-hint" style={{ alignSelf: 'center' }}>
+                        Columns are fetched from the first selected tab. All tabs should share the same column structure.
+                      </small>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             {(sheetHeaders.length > 0 || columnMapping.length > 0) && (
@@ -460,8 +524,8 @@ const GoogleSheetIntegration: React.FC = () => {
                     </a>
                   </div>
                   <div className="gsheet-info-item">
-                    <span className="gsheet-info-label">Tab</span>
-                    <span>{integration.sheetName}</span>
+                    <span className="gsheet-info-label">Tabs</span>
+                    <span>{(integration.sheetNames || []).join(', ') || 'Sheet1'}</span>
                   </div>
                   <div className="gsheet-info-item">
                     <span className="gsheet-info-label">Sync Every</span>
@@ -469,7 +533,7 @@ const GoogleSheetIntegration: React.FC = () => {
                   </div>
                   <div className="gsheet-info-item">
                     <span className="gsheet-info-label">Rows Synced</span>
-                    <span>{integration.lastSyncedRow}</span>
+                    <span>{integration.lastSyncedRows ? Object.values(integration.lastSyncedRows).reduce((a: number, b: number) => a + b, 0) : 0}</span>
                   </div>
                   <div className="gsheet-info-item">
                     <span className="gsheet-info-label">Last Sync</span>

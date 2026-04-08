@@ -18,11 +18,11 @@ export interface IGoogleSheetIntegration extends Document {
   tenantId: mongoose.Types.ObjectId;
   name: string;
   sheetId: string;
-  sheetName: string;        // Tab/worksheet name (default: Sheet1)
+  sheetNames: string[];     // Tab/worksheet names to sync
   sheetUrl: string;         // Full Google Sheet URL for display
   columnMapping: IColumnMapping[];
   headerRow: number;        // Row number containing headers (default: 1)
-  lastSyncedRow: number;    // Last row that was synced
+  lastSyncedRows: Map<string, number>;  // Last row synced per tab
   syncInterval: number;     // Minutes between syncs (default: 10)
   isActive: boolean;
   defaultSource: string;    // Lead source label (default: 'google_sheet')
@@ -55,11 +55,11 @@ const GoogleSheetIntegrationSchema = new Schema<IGoogleSheetIntegration>({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true },
   name: { type: String, required: true, trim: true },
   sheetId: { type: String, required: true, trim: true },
-  sheetName: { type: String, default: 'Sheet1', trim: true },
+  sheetNames: { type: [String], default: ['Sheet1'] },
   sheetUrl: { type: String, required: true, trim: true },
   columnMapping: { type: [ColumnMappingSchema], default: [] },
   headerRow: { type: Number, default: 1, min: 1 },
-  lastSyncedRow: { type: Number, default: 0 },
+  lastSyncedRows: { type: Map, of: Number, default: () => new Map() },
   syncInterval: { type: Number, default: 10, min: 1, max: 1440 },
   isActive: { type: Boolean, default: true },
   defaultSource: { type: String, default: 'google_sheet' },

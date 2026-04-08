@@ -20,7 +20,7 @@ export interface IUtmParams {
 }
 
 export interface ISourceDetails {
-  platform: 'meta' | 'google' | 'linkedin' | 'website' | 'manual' | 'whatsapp';
+  platform: 'meta' | 'google' | 'linkedin' | 'website' | 'manual' | 'whatsapp' | 'google_sheet';
   campaignId?: mongoose.Types.ObjectId;
   campaignName?: string;
   adSetId?: string;
@@ -357,7 +357,7 @@ const LeadSchema: Schema = new Schema(
     sourceDetails: {
       platform: {
         type: String,
-        enum: ['meta', 'google', 'linkedin', 'website', 'manual', 'whatsapp']
+        enum: ['meta', 'google', 'linkedin', 'website', 'manual', 'whatsapp', 'google_sheet']
       },
       campaignId: { type: mongoose.Types.ObjectId, ref: 'AdCampaign' },
       campaignName: { type: String, trim: true },

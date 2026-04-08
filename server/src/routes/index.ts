@@ -43,6 +43,7 @@ import lostReasonRoutes from './lostReasonRoutes';
 import publicLeadRoutes from './publicLeadRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
+import leadScoringRoutes from './leadScoringRoutes';
 
 const router = express.Router();
 
@@ -92,5 +93,6 @@ router.use('/sales-content', salesContentRoutes);
 router.use('/lead-ai', leadAIRoutes);
 router.use('/lost-reasons', lostReasonRoutes);
 router.use('/google-sheet-integrations', googleSheetRoutes);
+router.use('/lead-scoring', leadScoringRoutes);
 
 export default router;

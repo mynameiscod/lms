@@ -428,6 +428,15 @@ async function syncSingleTab(
         });
 
         await newLead.save();
+
+        // Auto-score, qualify, and assign the new lead
+        try {
+          const { scoreAndAssignLead } = await import('./leadScoringService');
+          await scoreAndAssignLead(newLead, integration.tenantId);
+        } catch (scoringErr: any) {
+          console.error(`[GSHEET-SYNC] Lead scoring error for lead ${newLead._id}:`, scoringErr.message);
+        }
+
         tabLog.newLeads++;
       }
 

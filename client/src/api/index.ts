@@ -2153,3 +2153,23 @@ export const googleSheetApi = {
       method: 'POST'
     })
 };
+
+// Lead Scoring API
+export const leadScoringApi = {
+  getConfig: async () =>
+    authenticatedFetch(`${API_BASE_URL}/lead-scoring/config`),
+
+  updateConfig: async (data: any) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-scoring/config`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  getTeamMembers: async () =>
+    authenticatedFetch(`${API_BASE_URL}/lead-scoring/team-members`),
+
+  rescoreAll: async () =>
+    authenticatedFetch(`${API_BASE_URL}/lead-scoring/rescore-all`, {
+      method: 'POST'
+    })
+};

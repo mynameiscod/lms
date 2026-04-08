@@ -101,25 +101,33 @@ export async function fetchSheetTabs(sheetId: string): Promise<string[]> {
   const tabs: string[] = [];
   let match: RegExpExecArray | null;
 
-  // Pattern 1: <a href="#gid=...">TabName</a>
-  const p1 = /<a[^>]+href=["']#gid=\d+["'][^>]*>([^<]+)<\/a>/gi;
+  // Pattern 1: items.push({name: "TabName", ...}) - primary pattern in Google htmlview
+  const p1 = /items\.push\(\{name:\s*"([^"]+)"/g;
   while ((match = p1.exec(html)) !== null) {
     const name = decodeHtmlEntities(match[1].trim());
     if (name && !tabs.includes(name)) tabs.push(name);
   }
   if (tabs.length > 0) return tabs;
 
-  // Pattern 2: id="sheet-button-..." elements
-  const p2 = /id=["']sheet-button-\d+["'][^>]*>([^<]+)/gi;
+  // Pattern 2: {name: "TabName"} in inline script (alternative format)
+  const p2 = /\{name:\s*"([^"]+)",\s*pageUrl:/g;
   while ((match = p2.exec(html)) !== null) {
     const name = decodeHtmlEntities(match[1].trim());
     if (name && !tabs.includes(name)) tabs.push(name);
   }
   if (tabs.length > 0) return tabs;
 
-  // Pattern 3: data-name attributes on sheet tabs
-  const p3 = /data-name=["']([^"']+)["']/gi;
+  // Pattern 3: <a href="#gid=...">TabName</a>
+  const p3 = /<a[^>]+href=["']#gid=\d+["'][^>]*>([^<]+)<\/a>/gi;
   while ((match = p3.exec(html)) !== null) {
+    const name = decodeHtmlEntities(match[1].trim());
+    if (name && !tabs.includes(name)) tabs.push(name);
+  }
+  if (tabs.length > 0) return tabs;
+
+  // Pattern 4: id="sheet-button-..." elements
+  const p4 = /id=["']sheet-button-\d+["'][^>]*>([^<]+)/gi;
+  while ((match = p4.exec(html)) !== null) {
     const name = decodeHtmlEntities(match[1].trim());
     if (name && !tabs.includes(name)) tabs.push(name);
   }

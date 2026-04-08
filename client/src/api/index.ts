@@ -2105,3 +2105,45 @@ export const lostReasonApi = {
     });
   }
 };
+
+// Google Sheet Integration API
+export const googleSheetApi = {
+  getIntegrations: async () =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations`),
+
+  getIntegration: async (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/${id}`),
+
+  fetchHeaders: async (sheetUrl: string, sheetName?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/fetch-headers`, {
+      method: 'POST',
+      body: JSON.stringify({ sheetUrl, sheetName })
+    }),
+
+  createIntegration: async (data: any) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  updateIntegration: async (id: string, data: any) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  deleteIntegration: async (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/${id}`, {
+      method: 'DELETE'
+    }),
+
+  triggerSync: async (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/${id}/sync`, {
+      method: 'POST'
+    }),
+
+  resetSync: async (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/google-sheet-integrations/${id}/reset-sync`, {
+      method: 'POST'
+    })
+};

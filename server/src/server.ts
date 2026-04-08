@@ -5,6 +5,7 @@ import app from './app';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
+import { syncAllActiveSheets } from './services/googleSheetSyncService';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -60,6 +61,17 @@ const startServer = async () => {
         console.log(`❌ Client disconnected: ${socket.id}`);
       });
     });
+
+    // Start Google Sheets sync cron (runs every 5 minutes)
+    const GSHEET_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
+    setInterval(async () => {
+      try {
+        await syncAllActiveSheets();
+      } catch (err) {
+        console.error('[GSHEET-CRON] Sync error:', err);
+      }
+    }, GSHEET_SYNC_INTERVAL);
+    console.log(`📊 Google Sheets sync scheduled every ${GSHEET_SYNC_INTERVAL / 60000} minutes`);
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

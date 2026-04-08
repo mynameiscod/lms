@@ -79,6 +79,7 @@ import CertificatePage from './pages/Certificate/CertificatePage';
 import AdminTopicMasteryPage from './pages/AdminTopicMastery';
 import TopicHubPage from './pages/TopicHub';
 import AdminLearningRequestsPage from './pages/AdminLearningRequests';
+import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -711,6 +712,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadPrioritySettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/google-sheet-integration"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <GoogleSheetIntegrationPage />
             </Layout>
           </ProtectedRoute>
         }

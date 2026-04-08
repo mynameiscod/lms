@@ -148,6 +148,28 @@ export async function fetchSheetHeaders(sheetId: string, sheetName: string = 'Sh
   return rows[0]; // First row = headers
 }
 
+// Clean data values from Meta Lead Ads export format
+function cleanFieldValue(value: string, fieldType: string): string {
+  let cleaned = value.trim();
+
+  // Strip Meta prefixes: p:, l:, f:, ag:, as:, c:
+  if (/^(p:|l:|f:|ag:|as:|c:)/.test(cleaned)) {
+    cleaned = cleaned.replace(/^(p:|l:|f:|ag:|as:|c:)/, '');
+  }
+
+  // Strip test lead placeholders
+  if (cleaned.startsWith('<test lead:')) {
+    return '';
+  }
+
+  // For phone fields: strip everything except digits, +, and spaces
+  if (fieldType === 'phone') {
+    cleaned = cleaned.replace(/[^\d+\s-]/g, '').trim();
+  }
+
+  return cleaned;
+}
+
 // Map a row to lead fields based on column mapping
 function mapRowToLead(
   row: string[],
@@ -161,7 +183,8 @@ function mapRowToLead(
       h => h.toLowerCase().trim() === mapping.sheetColumn.toLowerCase().trim()
     );
     if (colIndex >= 0 && colIndex < row.length && row[colIndex].trim()) {
-      mapped[mapping.leadField] = row[colIndex].trim();
+      const baseField = mapping.leadField.startsWith('custom:') ? 'custom' : mapping.leadField;
+      mapped[mapping.leadField] = cleanFieldValue(row[colIndex], baseField);
     }
   }
 

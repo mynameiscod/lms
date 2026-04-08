@@ -161,9 +161,19 @@ const GoogleSheetIntegration: React.FC = () => {
 
       // Auto-map obvious columns
       const autoMapping: ColumnMapping[] = [];
+      // Columns to skip (meta/internal fields from Meta Lead Ads export)
+      const skipPatterns = ['id', 'created_time', 'ad_id', 'ad_name', 'adset_id', 'adset_name',
+        'campaign_id', 'campaign_name', 'form_id', 'form_name', 'is_organic', 'platform', 'lead_status'];
+
       for (const header of headers) {
-        const lower = header.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
-        if (lower.includes('name') && !lower.includes('course')) {
+        const lower = header.toLowerCase().replace(/[^a-z0-9_\s]/g, '').trim();
+
+        // Skip meta/internal columns
+        if (skipPatterns.includes(lower)) continue;
+        // Skip empty headers
+        if (!lower) continue;
+
+        if (lower.includes('full_name') || (lower.includes('name') && !lower.includes('course') && !lower.includes('campaign') && !lower.includes('form') && !lower.includes('ad'))) {
           autoMapping.push({ sheetColumn: header, leadField: 'name' });
         } else if (lower.includes('email') || lower.includes('mail')) {
           autoMapping.push({ sheetColumn: header, leadField: 'email' });
@@ -171,12 +181,12 @@ const GoogleSheetIntegration: React.FC = () => {
           autoMapping.push({ sheetColumn: header, leadField: 'phone' });
         } else if (lower.includes('course') || lower.includes('program') || lower.includes('interest')) {
           autoMapping.push({ sheetColumn: header, leadField: 'courseInterest' });
-        } else if (lower.includes('source') || lower.includes('platform')) {
+        } else if (lower === 'source') {
           autoMapping.push({ sheetColumn: header, leadField: 'source' });
         } else {
           // Auto-map unrecognized columns as custom fields
           const key = header.replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').toLowerCase();
-          autoMapping.push({ sheetColumn: header, leadField: `custom:${key}` });
+          if (key) autoMapping.push({ sheetColumn: header, leadField: `custom:${key}` });
         }
       }
       setColumnMapping(autoMapping);

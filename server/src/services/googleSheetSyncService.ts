@@ -350,12 +350,27 @@ async function syncSingleTab(
         await existingLead.save();
         tabLog.duplicatesSkipped++;
       } else {
+        // Build custom fields from custom: prefixed mappings
         const customFields: Record<string, string> = {};
-        const standardFields = ['name', 'email', 'phone', 'courseInterest', 'source'];
+        const standardFields = ['name', 'email', 'phone', 'courseInterest', 'source', 'notes', 'priority', 'location', 'mode', 'technologies'];
+
         for (const mapping of integration.columnMapping) {
-          if (!standardFields.includes(mapping.leadField) && mapped[mapping.leadField]) {
+          // Handle custom:key prefix
+          if (mapping.leadField.startsWith('custom:')) {
+            const customKey = mapping.leadField.replace('custom:', '');
+            if (customKey && mapped[mapping.leadField]) {
+              customFields[customKey] = mapped[mapping.leadField];
+            }
+          } else if (!standardFields.includes(mapping.leadField) && mapped[mapping.leadField]) {
             customFields[mapping.leadField] = mapped[mapping.leadField];
           }
+        }
+
+        // Determine priority from sheet data or use default
+        let leadPriority = integration.defaultPriority;
+        if (mapped.priority) {
+          const p = mapped.priority.toLowerCase().trim();
+          if (['hot', 'warm', 'cold'].includes(p)) leadPriority = p as 'hot' | 'warm' | 'cold';
         }
 
         const newLead = new Lead({
@@ -365,11 +380,17 @@ async function syncSingleTab(
           email: leadEmail,
           courseInterest: mapped.courseInterest ? [mapped.courseInterest] : [],
           source: mapped.source || integration.defaultSource,
-          priority: integration.defaultPriority,
+          priority: leadPriority,
+          notes: mapped.notes || '',
           stageId: defaultStageId,
           assignedTo: integration.assignToUserId,
           createdBy: integration.createdBy,
           customFields,
+          interests: {
+            location: mapped.location || undefined,
+            mode: ['online', 'offline', 'hybrid'].includes(mapped.mode?.toLowerCase()) ? mapped.mode.toLowerCase() : undefined,
+            technologies: mapped.technologies ? [mapped.technologies] : [],
+          },
           sourceDetails: {
             platform: 'google_sheet' as any,
             formId: integration.sheetId,

@@ -45,6 +45,11 @@ const LEAD_FIELDS = [
   { value: 'phone', label: 'Phone' },
   { value: 'courseInterest', label: 'Course Interest' },
   { value: 'source', label: 'Source' },
+  { value: 'notes', label: 'Notes' },
+  { value: 'priority', label: 'Priority (hot/warm/cold)' },
+  { value: 'location', label: 'Location' },
+  { value: 'mode', label: 'Mode (online/offline/hybrid)' },
+  { value: 'technologies', label: 'Technologies' },
 ];
 
 const GoogleSheetIntegration: React.FC = () => {
@@ -157,7 +162,7 @@ const GoogleSheetIntegration: React.FC = () => {
       // Auto-map obvious columns
       const autoMapping: ColumnMapping[] = [];
       for (const header of headers) {
-        const lower = header.toLowerCase().trim();
+        const lower = header.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim();
         if (lower.includes('name') && !lower.includes('course')) {
           autoMapping.push({ sheetColumn: header, leadField: 'name' });
         } else if (lower.includes('email') || lower.includes('mail')) {
@@ -168,9 +173,13 @@ const GoogleSheetIntegration: React.FC = () => {
           autoMapping.push({ sheetColumn: header, leadField: 'courseInterest' });
         } else if (lower.includes('source') || lower.includes('platform')) {
           autoMapping.push({ sheetColumn: header, leadField: 'source' });
+        } else {
+          // Auto-map unrecognized columns as custom fields
+          const key = header.replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').toLowerCase();
+          autoMapping.push({ sheetColumn: header, leadField: `custom:${key}` });
         }
       }
-      setColumnMapping(autoMapping.length > 0 ? autoMapping : headers.map(h => ({ sheetColumn: h, leadField: '' })));
+      setColumnMapping(autoMapping);
 
       showAlert('success', `Found ${headers.length} columns (from tab "${formSheetNames[0]}")`);
     } catch (err: any) {
@@ -416,21 +425,45 @@ const GoogleSheetIntegration: React.FC = () => {
                     <span>Lead Field</span>
                     <span></span>
                   </div>
-                  {columnMapping.map((mapping, idx) => (
+                  {columnMapping.map((mapping, idx) => {
+                    const isCustom = mapping.leadField.startsWith('custom:');
+                    const selectValue = isCustom ? '__custom__' : mapping.leadField;
+                    return (
                     <div className="gsheet-mapping-row" key={idx}>
                       <span className="gsheet-mapping-col">{mapping.sheetColumn}</span>
-                      <select value={mapping.leadField} onChange={e => updateMapping(idx, e.target.value)}>
-                        <option value="">-- Skip --</option>
-                        {LEAD_FIELDS.map(f => (
-                          <option key={f.value} value={f.value}>{f.label}</option>
-                        ))}
-                        <option value="custom">Custom Field</option>
-                      </select>
+                      <div className="gsheet-mapping-field">
+                        <select value={selectValue} onChange={e => {
+                          const val = e.target.value;
+                          if (val === '__custom__') {
+                            // Auto-generate custom field key from sheet column name
+                            const key = mapping.sheetColumn.replace(/[^a-zA-Z0-9_]/g, '_').replace(/_+/g, '_').replace(/^_|_$/g, '').toLowerCase();
+                            updateMapping(idx, `custom:${key}`);
+                          } else {
+                            updateMapping(idx, val);
+                          }
+                        }}>
+                          <option value="">-- Skip --</option>
+                          {LEAD_FIELDS.map(f => (
+                            <option key={f.value} value={f.value}>{f.label}</option>
+                          ))}
+                          <option value="__custom__">📦 Custom Field</option>
+                        </select>
+                        {isCustom && (
+                          <input
+                            type="text"
+                            className="gsheet-custom-key"
+                            value={mapping.leadField.replace('custom:', '')}
+                            onChange={e => updateMapping(idx, `custom:${e.target.value}`)}
+                            placeholder="custom field key"
+                          />
+                        )}
+                      </div>
                       <button className="gsheet-btn-icon" onClick={() => removeMappingRow(idx)} title="Remove">
                         <i className="fa-solid fa-trash"></i>
                       </button>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
 
                 {sheetHeaders.filter(h => !columnMapping.find(m => m.sheetColumn === h)).length > 0 && (
@@ -550,7 +583,7 @@ const GoogleSheetIntegration: React.FC = () => {
                   <div className="gsheet-mapping-chips">
                     {integration.columnMapping.map((m, i) => (
                       <span key={i} className="gsheet-mapping-chip">
-                        {m.sheetColumn} → {LEAD_FIELDS.find(f => f.value === m.leadField)?.label || m.leadField}
+                        {m.sheetColumn} → {m.leadField.startsWith('custom:') ? `📦 ${m.leadField.replace('custom:', '')}` : LEAD_FIELDS.find(f => f.value === m.leadField)?.label || m.leadField}
                       </span>
                     ))}
                   </div>

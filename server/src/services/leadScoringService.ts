@@ -1,4 +1,12 @@
 import mongoose from 'mongoose';
+import Lead, { ILead, LeadPriority, LeadEligibility } from '../models/Lead';
+import LeadPriorityConfig, {
+  ILeadPriorityConfig,
+  ILeadPriorityRule,
+  IEligibilityRule,
+  DEFAULT_PRIORITY_RULES,
+  DEFAULT_THRESHOLDS
+} from '../models/LeadPriorityConfig';
 import LeadScoringConfig, { ILeadScoringConfig, IScoringRule, IQualificationRule } from '../models/LeadScoringConfig';
 
 /**
@@ -261,7 +269,6 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
  * Bulk re-score all leads for a tenant (for when rules change)
  */
 export async function rescoreAllLeads(tenantId: mongoose.Types.ObjectId): Promise<{ processed: number; scored: number; assigned: number }> {
-  const Lead = mongoose.model('Lead');
   const config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
 
   if (!config) {
@@ -284,3 +291,176 @@ export async function rescoreAllLeads(tenantId: mongoose.Types.ObjectId): Promis
 
   return { processed: leads.length, scored, assigned };
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  Original LeadScoringService class (used by leadPriorityController)
+// ═══════════════════════════════════════════════════════════════════
+
+interface ScoreBreakdown {
+  ruleName: string;
+  ruleId: string;
+  impact: number;
+  matched: boolean;
+  condition: string;
+}
+
+interface ScoringResult {
+  score: number;
+  priority: LeadPriority;
+  eligibility: LeadEligibility;
+  eligibilityReason?: string;
+  breakdown: ScoreBreakdown[];
+}
+
+class LeadScoringService {
+  async getConfig(tenantId: mongoose.Types.ObjectId): Promise<ILeadPriorityConfig> {
+    let config = await LeadPriorityConfig.findOne({ tenantId });
+    if (!config) {
+      config = await LeadPriorityConfig.create({
+        tenantId,
+        rules: DEFAULT_PRIORITY_RULES,
+        thresholds: DEFAULT_THRESHOLDS,
+        eligibilityRules: [],
+        isActive: true
+      });
+    }
+    return config;
+  }
+
+  async calculateScore(lead: ILead): Promise<ScoringResult> {
+    const config = await this.getConfig(lead.tenantId);
+    let totalScore = 0;
+    const breakdown: ScoreBreakdown[] = [];
+    let overridePriority: LeadPriority | null = null;
+
+    for (const rule of config.rules.filter(r => r.enabled)) {
+      const matched = this.evaluateRuleCondition(lead, rule.condition);
+      breakdown.push({
+        ruleName: rule.name,
+        ruleId: rule.id,
+        impact: matched ? rule.scoreImpact : 0,
+        matched,
+        condition: `${rule.condition.field} ${rule.condition.operator} ${rule.condition.value}`
+      });
+      if (matched) {
+        totalScore += rule.scoreImpact;
+        if (rule.setPriority) overridePriority = rule.setPriority;
+      }
+    }
+
+    let priority: LeadPriority;
+    if (overridePriority) priority = overridePriority;
+    else if (totalScore >= config.thresholds.hot) priority = 'hot';
+    else if (totalScore >= config.thresholds.warm) priority = 'warm';
+    else priority = 'cold';
+
+    const { eligibility, reason } = this.evaluateEligibilityRules(lead, config.eligibilityRules);
+
+    return {
+      score: Math.max(0, totalScore),
+      priority,
+      eligibility,
+      eligibilityReason: reason,
+      breakdown
+    };
+  }
+
+  private evaluateRuleCondition(lead: ILead, condition: ILeadPriorityRule['condition']): boolean {
+    const value = this.getLeadFieldValue(lead, condition.field);
+    switch (condition.operator) {
+      case 'equals': return value === condition.value;
+      case 'notEquals': return value !== condition.value;
+      case 'contains': return String(value).toLowerCase().includes(String(condition.value).toLowerCase());
+      case 'greaterThan': return Number(value) > Number(condition.value);
+      case 'lessThan': return Number(value) < Number(condition.value);
+      case 'greaterThanOrEqual': return Number(value) >= Number(condition.value);
+      case 'lessThanOrEqual': return Number(value) <= Number(condition.value);
+      case 'in': return Array.isArray(condition.value) ? condition.value.includes(value) : false;
+      case 'notIn': return Array.isArray(condition.value) ? !condition.value.includes(value) : true;
+      case 'exists': return value !== undefined && value !== null && value !== '';
+      case 'notExists': return value === undefined || value === null || value === '';
+      case 'between': {
+        const num = Number(value);
+        return num >= Number(condition.value) && num <= Number(condition.secondValue);
+      }
+      default: return false;
+    }
+  }
+
+  private getLeadFieldValue(lead: ILead, fieldPath: string): any {
+    switch (fieldPath) {
+      case 'noReplyHours':
+        if (lead.whatsappEngagement?.initiatedAt && lead.whatsappStatus !== 'replied') {
+          return Math.floor((Date.now() - new Date(lead.whatsappEngagement.initiatedAt).getTime()) / (1000 * 60 * 60));
+        }
+        return 0;
+      case 'daysSinceCreated':
+        return Math.floor((Date.now() - new Date(lead.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+      case 'daysSinceLastAction':
+        if (lead.telecallerMetrics?.lastActionAt) {
+          return Math.floor((Date.now() - new Date(lead.telecallerMetrics.lastActionAt).getTime()) / (1000 * 60 * 60 * 24));
+        }
+        return 999;
+      default: {
+        const parts = fieldPath.split('.');
+        let val: any = lead;
+        for (const part of parts) {
+          if (val === undefined || val === null) return undefined;
+          if (val instanceof Map) val = val.get(part);
+          else if (typeof val.get === 'function') val = val.get(part);
+          else val = val[part];
+        }
+        return val;
+      }
+    }
+  }
+
+  private evaluateEligibilityRules(
+    lead: ILead,
+    rules: IEligibilityRule[]
+  ): { eligibility: LeadEligibility; reason?: string } {
+    if (!rules || rules.length === 0) return { eligibility: 'needs_review' };
+    for (const rule of rules.filter(r => r.enabled)) {
+      const matched = this.evaluateRuleCondition(lead, rule.condition);
+      if (matched) return { eligibility: rule.result, reason: rule.reason };
+    }
+    return { eligibility: 'needs_review' };
+  }
+
+  async updateLeadScore(leadId: mongoose.Types.ObjectId): Promise<ScoringResult | null> {
+    const lead = await Lead.findById(leadId);
+    if (!lead) return null;
+    const result = await this.calculateScore(lead);
+    await Lead.findByIdAndUpdate(leadId, {
+      score: result.score,
+      priority: result.priority,
+      eligibility: result.eligibility,
+      eligibilityReason: result.eligibilityReason
+    });
+    return result;
+  }
+
+  async bulkUpdateScores(tenantId: mongoose.Types.ObjectId): Promise<number> {
+    const leads = await Lead.find({ tenantId, convertedStudentId: { $exists: false } });
+    let updated = 0;
+    for (const lead of leads) {
+      const result = await this.calculateScore(lead);
+      await Lead.findByIdAndUpdate(lead._id, {
+        score: result.score,
+        priority: result.priority,
+        eligibility: result.eligibility,
+        eligibilityReason: result.eligibilityReason
+      });
+      updated++;
+    }
+    return updated;
+  }
+
+  async getScoreBreakdown(leadId: mongoose.Types.ObjectId): Promise<ScoringResult | null> {
+    const lead = await Lead.findById(leadId);
+    if (!lead) return null;
+    return this.calculateScore(lead);
+  }
+}
+
+export default new LeadScoringService();

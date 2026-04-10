@@ -111,7 +111,7 @@ const LeadSummaryCard: React.FC<{ lead: Lead }> = ({ lead }) => {
     { icon: 'bi-envelope', label: 'Email', value: lead.email, link: lead.email ? `mailto:${lead.email}` : undefined },
     { icon: 'bi-funnel', label: 'Source', value: lead.source },
     { icon: 'bi-book', label: 'Course', value: lead.courseInterested },
-    { icon: 'bi-person', label: 'Assigned To', value: lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned' },
+    { icon: 'bi-person', label: 'Assigned To', value: lead.assignedTo && typeof lead.assignedTo === 'object' ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : 'Unassigned' },
     { icon: 'bi-geo-alt', label: 'Location', value: lead.location },
     { icon: 'bi-mortarboard', label: 'Qualification', value: lead.qualification },
     { icon: 'bi-calendar3', label: 'Created', value: lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : '-' },

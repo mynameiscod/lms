@@ -11,6 +11,7 @@ import XLSX from 'xlsx';
 import { buildLeadScopeFilter, resolveLeadScope } from '../middleware/leadScope';
 import { initializeLeadStageHistory, recordStageTransition } from './leadStageHistoryController';
 import { linkLeadToCampaign } from './adCampaignController';
+import { scoreAndAssignLead } from '../services/leadScoringService';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -359,6 +360,14 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         utmParams,
         req.tenantId as unknown as mongoose.Types.ObjectId
       );
+    }
+
+    // Auto-score and auto-assign lead based on scoring rules
+    try {
+      const scoringResult = await scoreAndAssignLead(lead, req.tenantId as unknown as mongoose.Types.ObjectId);
+      console.log(`[LEAD-CREATE] Scoring applied: score=${scoringResult.score}, priority=${scoringResult.priority}${scoringResult.assignedTo ? `, auto-assigned=${scoringResult.assignedTo}` : ''}`);
+    } catch (scoringError) {
+      console.error('[LEAD-CREATE] Scoring failed (non-blocking):', scoringError);
     }
 
     const populated = await Lead.findById(lead._id)

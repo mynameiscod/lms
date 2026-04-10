@@ -364,10 +364,14 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 
     // Auto-score and auto-assign lead based on scoring rules
     try {
+      console.log(`[LEAD-CREATE] ===== SCORING START for lead ${lead._id} =====`);
+      console.log(`[LEAD-CREATE] Lead data: name="${lead.name}", phone="${lead.phone}", source="${lead.source}", priority="${lead.priority}"`);
+      console.log(`[LEAD-CREATE] CustomFields type: ${lead.customFields?.constructor?.name}, value:`, lead.customFields instanceof Map ? Object.fromEntries(lead.customFields) : lead.customFields);
+      console.log(`[LEAD-CREATE] TenantId: ${req.tenantId}`);
       const scoringResult = await scoreAndAssignLead(lead, req.tenantId as unknown as mongoose.Types.ObjectId);
-      console.log(`[LEAD-CREATE] Scoring applied: score=${scoringResult.score}, priority=${scoringResult.priority}${scoringResult.assignedTo ? `, auto-assigned=${scoringResult.assignedTo}` : ''}`);
+      console.log(`[LEAD-CREATE] ===== SCORING RESULT: score=${scoringResult.score}, priority=${scoringResult.priority}, eligibility=${scoringResult.eligibility}${scoringResult.assignedTo ? `, auto-assigned=${scoringResult.assignedTo}` : ''} =====`);
     } catch (scoringError) {
-      console.error('[LEAD-CREATE] Scoring failed (non-blocking):', scoringError);
+      console.error('[LEAD-CREATE] Scoring FAILED:', scoringError);
     }
 
     const populated = await Lead.findById(lead._id)

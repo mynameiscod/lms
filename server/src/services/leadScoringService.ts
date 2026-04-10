@@ -206,13 +206,21 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
   assignedTo?: mongoose.Types.ObjectId;
 }> {
   // Find config - try active first, fallback to any config with rules
+  console.log(`[LEAD-SCORING] Looking for config: tenantId=${tenantId}`);
   let config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
+  console.log(`[LEAD-SCORING] Active config found: ${!!config}`);
   if (!config) {
     config = await LeadScoringConfig.findOne({ tenantId, 'scoringRules.0': { $exists: true } });
+    console.log(`[LEAD-SCORING] Fallback config (with rules) found: ${!!config}`);
+  }
+  if (!config) {
+    // Last resort: find ANY config for this tenant
+    const anyConfig = await LeadScoringConfig.findOne({ tenantId });
+    console.log(`[LEAD-SCORING] ANY config for tenant: ${!!anyConfig}, isActive=${anyConfig?.isActive}, rulesCount=${anyConfig?.scoringRules?.length || 0}`);
   }
 
   if (!config) {
-    console.log(`[LEAD-SCORING] No scoring config found for tenant ${tenantId}`);
+    console.log(`[LEAD-SCORING] NO config found at all for tenant ${tenantId}`);
     return {
       score: 0,
       priority: lead.priority || 'cold',
@@ -221,6 +229,9 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
     };
   }
 
+  console.log(`[LEAD-SCORING] Config: isActive=${config.isActive}, rules=${config.scoringRules.length}, hotThreshold=${config.hotThreshold}, warmThreshold=${config.warmThreshold}`);
+  console.log(`[LEAD-SCORING] Rules:`, config.scoringRules.map(r => ({ label: r.label, field: r.field, op: r.operator, val: r.value, pts: r.points })));
+
   // 1. Calculate score
   const score = calculateScore(lead, config.scoringRules);
 
@@ -228,6 +239,7 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
   const priority = config.scoringRules.length > 0
     ? determinePriority(score, config.hotThreshold, config.warmThreshold)
     : (lead.priority || 'cold');
+  console.log(`[LEAD-SCORING] Final: score=${score}, priority=${priority} (thresholds: hot>=${config.hotThreshold}, warm>=${config.warmThreshold})`);
 
   // 3. Evaluate qualification
   const qualification = evaluateQualification(lead, config.qualificationRules);

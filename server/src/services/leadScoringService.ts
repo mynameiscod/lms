@@ -85,10 +85,13 @@ function calculateScore(lead: any, rules: IScoringRule[]): number {
   let score = 0;
   for (const rule of rules) {
     const fieldValue = getFieldValue(lead, rule.field);
-    if (evaluateCondition(fieldValue, rule.operator, rule.value)) {
+    const matched = evaluateCondition(fieldValue, rule.operator, rule.value);
+    console.log(`[LEAD-SCORING] Rule "${rule.label}": field=${rule.field}, value="${fieldValue}", operator=${rule.operator}, target="${rule.value}", matched=${matched}, points=${matched ? rule.points : 0}`);
+    if (matched) {
       score += rule.points;
     }
   }
+  console.log(`[LEAD-SCORING] Total score: ${score}`);
   return score;
 }
 
@@ -202,14 +205,19 @@ export async function scoreAndAssignLead(lead: any, tenantId: mongoose.Types.Obj
   eligibilityReason: string;
   assignedTo?: mongoose.Types.ObjectId;
 }> {
-  const config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
+  // Find config - try active first, fallback to any config with rules
+  let config = await LeadScoringConfig.findOne({ tenantId, isActive: true });
+  if (!config) {
+    config = await LeadScoringConfig.findOne({ tenantId, 'scoringRules.0': { $exists: true } });
+  }
 
   if (!config) {
+    console.log(`[LEAD-SCORING] No scoring config found for tenant ${tenantId}`);
     return {
       score: 0,
       priority: lead.priority || 'cold',
       eligibility: 'needs_review',
-      eligibilityReason: 'No scoring config active'
+      eligibilityReason: 'No scoring config found'
     };
   }
 

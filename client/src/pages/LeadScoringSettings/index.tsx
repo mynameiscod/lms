@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { leadScoringApi } from '../../api';
+import { leadScoringApi, leadFormConfigApi } from '../../api';
 import './LeadScoringSettings.css';
 
 interface ScoringRule {
@@ -101,6 +101,7 @@ const LeadScoringSettings: React.FC = () => {
   const [rescoring, setRescoring] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [customFieldInputs, setCustomFieldInputs] = useState<Record<string, string>>({});
+  const [customFieldOptions, setCustomFieldOptions] = useState<{value:string;label:string}[]>([]);
 
   const showAlert = useCallback((type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
@@ -134,6 +135,17 @@ const LeadScoringSettings: React.FC = () => {
         if (membersRes.success) {
           setTeamMembers(membersRes.data || []);
         }
+        // Load custom fields from form config
+        try {
+          const formRes = await leadFormConfigApi.getConfig();
+          if (formRes.data?.fields) {
+            const builtInKeys = STANDARD_FIELDS.map(f => f.value);
+            const cFields = (formRes.data.fields as any[])
+              .filter((f: any) => !f.isBuiltIn && f.enabled && !builtInKeys.includes(f.fieldKey))
+              .map((f: any) => ({ value: `custom:${f.fieldKey}`, label: `🏷️ ${f.label} (custom)` }));
+            setCustomFieldOptions(cFields);
+          }
+        } catch(_) {}
       } catch (err: any) {
         showAlert('error', 'Failed to load configuration');
       } finally {
@@ -201,6 +213,13 @@ const LeadScoringSettings: React.FC = () => {
           {STANDARD_FIELDS.map(f => (
             <option key={f.value} value={f.value}>{f.label}</option>
           ))}
+          {customFieldOptions.length > 0 && (
+            <optgroup label="Custom Fields">
+              {customFieldOptions.map(f => (
+                <option key={f.value} value={f.value}>{f.label}</option>
+              ))}
+            </optgroup>
+          )}
           <option value="__custom__">📦 Custom Field...</option>
         </select>
         {(isCustom || value === '__custom__') && (

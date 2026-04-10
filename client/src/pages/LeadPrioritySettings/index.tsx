@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadPriorityApi } from '../../api';
+import { leadPriorityApi, leadFormConfigApi } from '../../api';
 import './LeadPrioritySettings.css';
 
 interface RuleCondition {
@@ -104,6 +104,7 @@ const LeadPrioritySettings: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [alert, setAlert] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [allFieldOptions, setAllFieldOptions] = useState(FIELD_OPTIONS);
   
   // Edit state for flat structure (easier to work with in form)
   const [editingRuleFlat, setEditingRuleFlat] = useState<{
@@ -129,7 +130,28 @@ const LeadPrioritySettings: React.FC = () => {
 
   useEffect(() => {
     loadConfig();
+    loadCustomFields();
   }, []);
+
+  const loadCustomFields = async () => {
+    try {
+      const res = await leadFormConfigApi.getConfig();
+      if (res.data?.fields) {
+        const builtInKeys = FIELD_OPTIONS.map(f => f.value);
+        const customFields = (res.data.fields as any[])
+          .filter((f: any) => !f.isBuiltIn && f.enabled && !builtInKeys.includes(f.fieldKey))
+          .map((f: any) => ({
+            value: `custom:${f.fieldKey}`,
+            label: `🏷️ ${f.label} (custom)`
+          }));
+        if (customFields.length > 0) {
+          setAllFieldOptions([...FIELD_OPTIONS, ...customFields]);
+        }
+      }
+    } catch (e) {
+      // Non-critical, keep default fields
+    }
+  };
 
   const loadConfig = async () => {
     try {
@@ -505,7 +527,7 @@ const LeadPrioritySettings: React.FC = () => {
                     </div>
                     <div className="lps-rule-body">
                       <div className="lps-rule-condition">
-                        <strong>{FIELD_OPTIONS.find(f => f.value === field)?.label || field}</strong>
+                        <strong>{allFieldOptions.find(f => f.value === field)?.label || field}</strong>
                         {' '}
                         <span className="lps-operator">
                           {OPERATOR_OPTIONS.find(o => o.value === operator)?.label || operator}
@@ -656,7 +678,7 @@ const LeadPrioritySettings: React.FC = () => {
                 onChange={(e) => setEditingRuleFlat({ ...editingRuleFlat, field: e.target.value })}
               >
                 <option value="">Select field...</option>
-                {FIELD_OPTIONS.map(opt => (
+                {allFieldOptions.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>

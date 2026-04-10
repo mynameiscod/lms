@@ -257,16 +257,18 @@ const LeadsPage: React.FC = () => {
 
   const handleOpenCreate = () => {
     setEditingLead(null);
+    const builtInPayloadKeys=['name','email','phone','courseInterest','source','stageId','assignedTo','nextFollowUp','notes','priority'];
     const initial:Record<string,any>={
       name:'',email:'',phone:'',courseInterest:'',source:configSources[0]||'other',
       stageId:stages[0]?._id||'',assignedTo:'',nextFollowUp:'',notes:'',priority:'cold'
     };
-    formFields.forEach(f=>{if(!f.isBuiltIn&&!(f.fieldKey in initial))initial[f.fieldKey]=f.type==='checkbox'?false:'';});
+    formFields.forEach(f=>{if(!builtInPayloadKeys.includes(f.fieldKey)&&!(f.fieldKey in initial))initial[f.fieldKey]=f.type==='checkbox'?false:'';});
     setFormData(initial); setShowModal(true);
   };
 
   const handleOpenEdit = (lead:Lead) => {
     setEditingLead(lead);
+    const builtInPayloadKeys=['name','email','phone','courseInterest','source','stageId','assignedTo','nextFollowUp','notes','priority'];
     const stage=typeof lead.stageId==='object'?lead.stageId._id:lead.stageId;
     const data:Record<string,any>={
       name:lead.name,email:lead.email||'',phone:lead.phone,
@@ -276,7 +278,7 @@ const LeadsPage: React.FC = () => {
       priority:lead.priority||'cold'
     };
     const customs=(lead as any).customFields||{};
-    formFields.forEach(f=>{if(!f.isBuiltIn)data[f.fieldKey]=customs[f.fieldKey]??(f.type==='checkbox'?false:'');});
+    formFields.forEach(f=>{if(!builtInPayloadKeys.includes(f.fieldKey))data[f.fieldKey]=customs[f.fieldKey]??(f.type==='checkbox'?false:'');});
     setFormData(data); setShowModal(true);
   };
 
@@ -290,7 +292,7 @@ const LeadsPage: React.FC = () => {
     try {
       const builtInKeys=['name','email','phone','courseInterest','source','stageId','assignedTo','nextFollowUp','notes','priority'];
       const customFields:Record<string,any>={};
-      formFields.forEach(f=>{if(!f.isBuiltIn&&formData[f.fieldKey]!==undefined)customFields[f.fieldKey]=formData[f.fieldKey];});
+      formFields.forEach(f=>{if(!builtInKeys.includes(f.fieldKey)&&formData[f.fieldKey]!==undefined)customFields[f.fieldKey]=formData[f.fieldKey];});
       const payload:any={};
       builtInKeys.forEach(key=>{if(formData[key]!==undefined)payload[key]=formData[key];});
       payload.courseInterest=(formData.courseInterest||'').split(',').map((s:string)=>s.trim()).filter(Boolean);

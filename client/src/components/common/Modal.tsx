@@ -1,5 +1,6 @@
 // filepath: d:\Simple_CB_LMS\Codebegun\lms-saas\client\src\components\common\Modal.tsx
 import React from 'react';
+import ReactDOM from 'react-dom';
 import './Modal.css';
 
 interface ModalProps {
@@ -21,18 +22,19 @@ const Modal: React.FC<ModalProps> = ({
 }) => {
   if (!isOpen) return null;
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className={`modal modal-${size}`} style={maxWidth ? { maxWidth } : {}} onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2 className="modal-title">{title}</h2>
-          <button className="modal-close" onClick={onClose}>
+  return ReactDOM.createPortal(
+    <div className="cb-modal-overlay" onClick={onClose}>
+      <div className={`cb-modal cb-modal-${size}`} style={maxWidth ? { maxWidth } : {}} onClick={(e) => e.stopPropagation()}>
+        <div className="cb-modal-header">
+          <h2 className="cb-modal-title">{title}</h2>
+          <button className="cb-modal-close" onClick={onClose}>
             ×
           </button>
         </div>
-        <div className="modal-body">{children}</div>
+        <div className="cb-modal-body">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

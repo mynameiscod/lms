@@ -1,4 +1,4 @@
-.modal-overlay {
+.cb-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
@@ -10,10 +10,10 @@
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  animation: fadeIn 0.3s ease;
+  animation: cbModalFadeIn 0.3s ease;
 }
 
-.modal {
+.cb-modal {
   background: white;
   border-radius: 12px;
   box-shadow: 0 20px 50px rgba(15, 23, 42, 0.15);
@@ -21,22 +21,22 @@
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
-  animation: slideUp 0.3s ease;
+  animation: cbModalSlideUp 0.3s ease;
 }
 
-.modal-small {
+.cb-modal-small {
   width: 400px;
 }
 
-.modal-medium {
+.cb-modal-medium {
   width: 600px;
 }
 
-.modal-large {
+.cb-modal-large {
   width: 800px;
 }
 
-.modal-header {
+.cb-modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -45,7 +45,7 @@
   background: white;
 }
 
-.modal-title {
+.cb-modal-title {
   margin: 0;
   font-size: 18px;
   font-weight: 700;
@@ -53,7 +53,7 @@
   letter-spacing: 0.3px;
 }
 
-.modal-close {
+.cb-modal-close {
   background: none;
   border: none;
   font-size: 24px;
@@ -69,17 +69,17 @@
   border-radius: 6px;
 }
 
-.modal-close:hover {
+.cb-modal-close:hover {
   color: #1e293b;
   background: #e2e8f0;
 }
 
-.modal-body {
+.cb-modal-body {
   padding: 24px;
   color: #475569;
 }
 
-@keyframes fadeIn {
+@keyframes cbModalFadeIn {
   from {
     opacity: 0;
   }
@@ -88,7 +88,7 @@
   }
 }
 
-@keyframes slideUp {
+@keyframes cbModalSlideUp {
   from {
     transform: translateY(20px);
     opacity: 0;

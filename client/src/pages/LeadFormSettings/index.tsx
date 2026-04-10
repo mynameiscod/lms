@@ -167,7 +167,6 @@ const LeadFormSettings: React.FC = () => {
   const handleToggleEnabled = (fieldKey: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        if (CORE_FIELDS.includes(f.fieldKey)) return f;
         return { ...f, enabled: !f.enabled };
       }
       return f;
@@ -253,11 +252,10 @@ const LeadFormSettings: React.FC = () => {
     }
   };
 
-  // Handles deletion of any non-core field (built-in non-core or custom)
+  // Handles deletion of any field (built-in or custom)
   const handleDeleteField = async (field: FormField) => {
-    if (CORE_FIELDS.includes(field.fieldKey)) return;
     if (field.isBuiltIn) {
-      if (!window.confirm(`Remove "${field.label}" from the form? You can restore it by re-initializing defaults.`)) return;
+      if (!window.confirm(`Remove "${field.label}" from the form? You can re-add it later by resetting to defaults.`)) return;
       const updated = fields.filter(f => f.fieldKey !== field.fieldKey).map((f, i) => ({ ...f, order: i }));
       setFields(updated);
       try {
@@ -593,7 +591,6 @@ const LeadFormSettings: React.FC = () => {
                               type="checkbox"
                               checked={field.enabled}
                               onChange={() => handleToggleEnabled(field.fieldKey)}
-                              disabled={isCore}
                             />
                           </div>
                         </td>
@@ -608,13 +605,9 @@ const LeadFormSettings: React.FC = () => {
                           </div>
                         </td>
                         <td className="text-center">
-                          {!isCore ? (
-                            <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteField(field)} title="Delete">
-                              <i className="fa fa-trash-alt"></i>
-                            </button>
-                          ) : (
-                            <i className="fa fa-lock text-muted" title="Core field"></i>
-                          )}
+                          <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteField(field)} title={isCore ? 'Delete core field' : 'Delete'}>
+                            <i className="fa fa-trash-alt"></i>
+                          </button>
                         </td>
                       </tr>
                     );
@@ -631,28 +624,33 @@ const LeadFormSettings: React.FC = () => {
         <div className="card border-0 shadow-sm">
           <div className="card-header bg-white py-3">
             <h6 className="mb-0 fw-semibold">Lead Sources</h6>
-            <small className="text-muted">Manage source options for lead creation.</small>
+            <small className="text-muted">Manage source options for lead creation and tracking.</small>
           </div>
           <div className="card-body">
-            <div className="d-flex flex-wrap gap-2 mb-3">
-              {sources.map(source => (
-                <span key={source} className="badge bg-light text-dark border d-flex align-items-center gap-1 py-2 px-3">
-                  {source.replace(/_/g, ' ')}
-                  <button className="btn-close btn-close-sm ms-1" style={{fontSize: '0.6rem'}} onClick={() => handleRemoveSource(source)}></button>
-                </span>
-              ))}
-              {sources.length === 0 && <span className="text-muted">No sources added yet.</span>}
-            </div>
-            <div className="input-group" style={{maxWidth: '400px'}}>
+            {sources.length === 0 ? (
+              <p className="text-muted mb-3">No sources added yet.</p>
+            ) : (
+              <div className="d-flex flex-wrap gap-2 mb-3">
+                {sources.map(source => (
+                  <span key={source} className="lfs-source-badge">
+                    {source.replace(/_/g, ' ')}
+                    <button type="button" className="btn-close" style={{fontSize: '0.5rem'}} onClick={() => handleRemoveSource(source)} aria-label="Remove"></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="d-flex gap-2 align-items-center" style={{maxWidth: '400px'}}>
               <input
                 type="text"
                 className="form-control form-control-sm"
                 value={newSource}
                 onChange={e => setNewSource(e.target.value)}
-                placeholder="Add new source..."
+                placeholder="Enter new source name..."
                 onKeyDown={e => e.key === 'Enter' && handleAddSource()}
               />
-              <button className="btn btn-primary btn-sm" onClick={handleAddSource}>Add</button>
+              <button className="btn btn-primary btn-sm" onClick={handleAddSource} disabled={!newSource.trim()}>
+                <i className="fa fa-plus me-1"></i>Add
+              </button>
             </div>
           </div>
         </div>
@@ -1051,8 +1049,8 @@ const LeadFormSettings: React.FC = () => {
 
       {/* Add Custom Field Modal */}
       {showAddModal && (
-        <div className="modal show d-block" style={{backgroundColor: 'rgba(0,0,0,0.5)'}} onClick={() => setShowAddModal(false)}>
-          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+        <div className="lfs-modal-backdrop" onClick={() => setShowAddModal(false)}>
+          <div className="modal-dialog" onClick={e => e.stopPropagation()}>
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Add Custom Field</h5>

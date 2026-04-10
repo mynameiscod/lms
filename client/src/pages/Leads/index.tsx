@@ -204,6 +204,11 @@ const LeadsPage: React.FC = () => {
         const configRes=await leadFormConfigApi.getConfig();
         if(configRes.data){
           const enabled=(configRes.data.fields||[]).filter((f:FormField)=>f.enabled).sort((a:FormField,b:FormField)=>a.order-b.order);
+          // Ensure assignedTo field is always available in the form
+          if(!enabled.some((f:FormField)=>f.fieldKey==='assignedTo')){
+            const maxOrder=enabled.length>0?Math.max(...enabled.map((f:FormField)=>f.order)):0;
+            enabled.push({fieldKey:'assignedTo',label:'Assigned To',type:'select',required:false,enabled:true,isBuiltIn:true,order:maxOrder+1} as FormField);
+          }
           setFormFields(enabled);
           if(configRes.data.sources?.length>0) setConfigSources(configRes.data.sources);
         }

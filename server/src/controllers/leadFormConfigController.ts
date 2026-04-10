@@ -15,6 +15,17 @@ export const getFormConfig = async (req: AuthenticatedRequest, res: Response<Api
         fields: DEFAULT_FIELDS,
         sources: DEFAULT_SOURCES
       });
+    } else {
+      // Merge any missing default fields (e.g. assignedTo added after initial setup)
+      const existingKeys = config.fields.map((f: any) => f.fieldKey);
+      const missingFields = DEFAULT_FIELDS.filter((df: any) => !existingKeys.includes(df.fieldKey));
+      if (missingFields.length > 0) {
+        const maxOrder = config.fields.reduce((max: number, f: any) => Math.max(max, f.order), 0);
+        missingFields.forEach((mf: any, i: number) => {
+          config!.fields.push({ ...mf, order: maxOrder + 1 + i } as any);
+        });
+        await config.save();
+      }
     }
 
     // Get tenant slug for embed form
@@ -37,16 +48,7 @@ export const updateFormConfig = async (req: AuthenticatedRequest, res: Response<
       return res.status(400).json({ success: false, message: 'fields array is required' });
     }
 
-    // Validate: name and phone must remain enabled & required
-    const nameField = fields.find((f: any) => f.fieldKey === 'name');
-    const phoneField = fields.find((f: any) => f.fieldKey === 'phone');
-    if (nameField && (!nameField.enabled || !nameField.required)) {
-      return res.status(400).json({ success: false, message: 'Name field must be enabled and required' });
-    }
-    if (phoneField && (!phoneField.enabled || !phoneField.required)) {
-      return res.status(400).json({ success: false, message: 'Phone field must be enabled and required' });
-    }
-
+    // No forced constraints — admin has full control over fields
     // Validate custom field keys are unique
     const fieldKeys = fields.map((f: any) => f.fieldKey);
     const duplicates = fieldKeys.filter((k: string, i: number) => fieldKeys.indexOf(k) !== i);

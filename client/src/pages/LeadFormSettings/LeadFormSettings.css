@@ -1,49 +1,346 @@
-/* Lead Form Settings */
-.lfs-page {
-  background: #f8f9fa;
-  min-height: calc(100vh - 60px);
+/* Lead Form Settings — scoped overrides to fix Bootstrap conflicts from global Card.css / Button.css / Input.css */
+
+/* Reset global .card overrides inside this page */
+.lfs-page .card {
+  padding: 0;
+  border-radius: 0.5rem;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  transform: none !important;
+}
+.lfs-page .card:hover {
+  transform: none !important;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+.lfs-page .card-header {
+  padding: 1rem 1.25rem;
+  margin-bottom: 0;
+  border-bottom: 1px solid #dee2e6;
+  display: block;
+}
+.lfs-page .card-body {
+  padding: 1.25rem;
+  color: #212529;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.lfs-page .card-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #dee2e6;
 }
 
-.lfs-header {
-  margin-bottom: 1.5rem;
+/* Reset global .btn overrides */
+.lfs-page .btn {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  transition: color 0.15s, background-color 0.15s, border-color 0.15s;
+  box-shadow: none;
+  letter-spacing: normal;
+  gap: 0;
+}
+.lfs-page .btn:hover:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+.lfs-page .btn:active:not(:disabled) {
+  transform: none;
+}
+.lfs-page .btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+.lfs-page .btn-primary {
+  background: #0d6efd !important;
+  color: #fff !important;
+  border-color: #0d6efd;
+  box-shadow: none !important;
+}
+.lfs-page .btn-primary:hover:not(:disabled) {
+  background: #0b5ed7 !important;
+  border-color: #0a58ca;
+  box-shadow: none !important;
+}
+.lfs-page .btn-outline-primary {
+  color: #0d6efd;
+  border-color: #0d6efd;
+  background: transparent;
+}
+.lfs-page .btn-outline-primary:hover {
+  background: #0d6efd;
+  color: #fff;
+}
+.lfs-page .btn-outline-secondary {
+  color: #6c757d;
+  border-color: #6c757d;
+  background: transparent;
+}
+.lfs-page .btn-outline-secondary:hover {
+  background: #6c757d;
+  color: #fff;
+}
+.lfs-page .btn-outline-danger {
+  color: #dc3545;
+  border-color: #dc3545;
+  background: transparent;
+}
+.lfs-page .btn-outline-danger:hover {
+  background: #dc3545;
+  color: #fff;
 }
 
-.lfs-tabs .nav-link {
+/* Reset global .input-group overrides */
+.lfs-page .input-group {
+  flex-direction: row;
+  gap: 0;
+  margin-bottom: 0;
+}
+.lfs-page .input-group label {
+  font-weight: normal;
+  color: inherit;
+  font-size: inherit;
+  letter-spacing: normal;
+}
+
+/* Ensure form controls and text are visible */
+.lfs-page .form-control,
+.lfs-page .form-select {
+  color: #212529;
+  background-color: #fff;
+  border: 1px solid #ced4da;
+  border-radius: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+.lfs-page .form-control:focus,
+.lfs-page .form-select:focus {
+  color: #212529;
+  background-color: #fff;
+  border-color: #86b7fe;
+  outline: 0;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+.lfs-page .form-control-sm,
+.lfs-page .form-select-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.8125rem;
+}
+.lfs-page .form-control::placeholder {
+  color: #6c757d;
+}
+.lfs-page .form-control:disabled {
+  background-color: #e9ecef;
+  opacity: 1;
+  color: #6c757d;
+}
+
+/* Labels */
+.lfs-page .form-label {
+  color: #212529;
+  font-size: 0.875rem;
+  margin-bottom: 0.375rem;
+}
+
+/* Nav tabs — text visibility fix */
+.lfs-page .nav-tabs {
+  border-bottom: 2px solid #dee2e6;
+}
+.lfs-page .nav-tabs .nav-link {
   color: #495057;
   font-weight: 500;
-}
-
-.lfs-tabs .nav-link.active {
-  color: #0d6efd;
-  border-bottom: 2px solid #0d6efd;
-}
-
-.lfs-card {
+  font-size: 0.875rem;
+  padding: 0.625rem 1rem;
   border: none;
-  border-radius: 8px;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  background: transparent;
 }
-
-.lfs-table th {
+.lfs-page .nav-tabs .nav-link:hover {
+  color: #0d6efd;
+  border-bottom-color: #dee2e6;
+}
+.lfs-page .nav-tabs .nav-link.active {
+  color: #0d6efd;
+  border-bottom-color: #0d6efd;
+  background: transparent;
   font-weight: 600;
+}
+
+/* Alerts — force Bootstrap standard look */
+.lfs-page .alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #212529;
+}
+.lfs-page .alert-success {
+  background-color: #d1e7dd;
+  border-color: #badbcc;
+  color: #0f5132;
+}
+.lfs-page .alert-danger {
+  background-color: #f8d7da;
+  border-color: #f5c2c7;
+  color: #842029;
+}
+.lfs-page .alert-info {
+  background-color: #cff4fc;
+  border-color: #b6effb;
+  color: #055160;
+}
+
+/* Table text visibility */
+.lfs-page .table {
+  color: #212529;
+  font-size: 0.875rem;
+}
+.lfs-page .table th {
+  font-weight: 600;
+  color: #212529;
+  font-size: 0.8125rem;
+  white-space: nowrap;
+  border-bottom-width: 2px;
+}
+.lfs-page .table td {
+  vertical-align: middle;
+  padding: 0.625rem 0.75rem;
+  color: #212529;
+}
+.lfs-page .table-secondary > td,
+.lfs-page .table-secondary > th,
+.lfs-page tr.table-secondary td {
+  color: #6c757d;
+}
+
+/* Badges */
+.lfs-page .badge {
+  font-weight: 500;
+  font-size: 0.75rem;
+  padding: 0.35em 0.65em;
+}
+
+/* Toggle switches */
+.lfs-page .form-check-input:checked {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+}
+.lfs-page .form-switch .form-check-input {
+  cursor: pointer;
+}
+
+/* Modal - scoped fixes */
+.lfs-page .lfs-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+.lfs-page .modal-dialog {
+  margin: 0;
+  max-width: 500px;
+  width: 100%;
+}
+.lfs-page .modal-content {
+  border-radius: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.175);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  padding: 0;
+}
+.lfs-page .modal-header {
+  padding: 1rem 1.25rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #dee2e6;
+  margin-bottom: 0;
+}
+.lfs-page .modal-body {
+  padding: 1.25rem;
+  color: #212529;
+}
+.lfs-page .modal-footer {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #dee2e6;
+}
+.lfs-page .modal-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #212529;
+  margin: 0;
+}
+
+/* Source badges */
+.lfs-source-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
   background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 2rem;
+  font-size: 0.8125rem;
+  color: #212529;
+  font-weight: 500;
+}
+.lfs-source-badge .btn-close {
+  font-size: 0.5rem;
+  padding: 0.25rem;
 }
 
-.lfs-order-btn {
-  padding: 2px 8px;
-  font-size: 12px;
+/* Page title */
+.lfs-page h4,
+.lfs-page h5,
+.lfs-page h6 {
+  color: #212529;
+}
+.lfs-page .text-muted {
+  color: #6c757d !important;
+}
+.lfs-page .fw-semibold {
+  color: #212529;
+}
+.lfs-page p {
+  color: #212529;
 }
 
-.lfs-badge-core {
-  background: #e3f2fd;
-  color: #1976d2;
+/* Delete action buttons */
+.lfs-page .btn-link {
+  padding: 0;
+  text-decoration: none;
+}
+.lfs-page .btn-link:hover {
+  transform: none;
+  box-shadow: none;
 }
 
-.lfs-badge-custom {
-  background: #f3e5f5;
-  color: #7b1fa2;
+/* Small text helpers */
+.lfs-page small {
+  color: #6c757d;
+}
+.lfs-page code {
+  color: #0d6efd;
+  font-size: 0.85em;
 }
 
-.lfs-toggle .form-check-input:checked {
-  background-color: #28a745;
-  border-color: #28a745;
+/* Pre/code block for embed */
+.lfs-page pre {
+  margin: 0;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lfs-page .table-responsive {
+    font-size: 0.8125rem;
+  }
+  .lfs-page .nav-tabs .nav-link {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.8125rem;
+  }
 }

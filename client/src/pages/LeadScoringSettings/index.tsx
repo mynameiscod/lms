@@ -194,13 +194,14 @@ const LeadScoringSettings: React.FC = () => {
     onChange: (val: string) => void;
     id: string;
   }> = ({ value, onChange, id }) => {
-    const isCustom = value.startsWith('custom:');
-    const customKey = isCustom ? value.replace('custom:', '') : '';
+    const isKnownCustom = customFieldOptions.some(f => f.value === value);
+    const isManualCustom = value.startsWith('custom:') && !isKnownCustom;
+    const customKey = isManualCustom ? value.replace('custom:', '') : '';
 
     return (
       <div className="ls-field-selector">
         <select
-          value={isCustom ? '__custom__' : value}
+          value={isManualCustom ? '__custom__' : value}
           onChange={e => {
             if (e.target.value === '__custom__') {
               onChange(`custom:${customFieldInputs[id] || ''}`);
@@ -222,7 +223,7 @@ const LeadScoringSettings: React.FC = () => {
           )}
           <option value="__custom__">📦 Custom Field...</option>
         </select>
-        {(isCustom || value === '__custom__') && (
+        {(isManualCustom || value === '__custom__') && (
           <input
             type="text"
             placeholder="custom field key"

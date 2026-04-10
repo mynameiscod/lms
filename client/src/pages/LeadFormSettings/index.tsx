@@ -186,7 +186,32 @@ const LeadFormSettings: React.FC = () => {
   const handleTypeChange = (fieldKey: string, newType: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        return { ...f, type: newType };
+        const updated: FormField = { ...f, type: newType };
+        if (newType === 'select' && (!f.options || f.options.length === 0)) {
+          updated.options = [];
+        }
+        if (newType !== 'select') {
+          delete updated.options;
+        }
+        return updated;
+      }
+      return f;
+    }));
+  };
+
+  const handleOptionsChange = (fieldKey: string, optionsStr: string) => {
+    setFields(prev => prev.map(f => {
+      if (f.fieldKey === fieldKey) {
+        return { ...f, options: optionsStr.split(',').map(o => o.trim()).filter(Boolean) };
+      }
+      return f;
+    }));
+  };
+
+  const handlePlaceholderChange = (fieldKey: string, placeholder: string) => {
+    setFields(prev => prev.map(f => {
+      if (f.fieldKey === fieldKey) {
+        return { ...f, placeholder };
       }
       return f;
     }));
@@ -546,70 +571,91 @@ const LeadFormSettings: React.FC = () => {
                   {fields.map((field, idx) => {
                     const isCore = CORE_FIELDS.includes(field.fieldKey);
                     return (
-                      <tr key={field.fieldKey} className={!field.enabled ? 'table-secondary' : ''}>
-                        <td>
-                          <div className="btn-group btn-group-sm">
-                            <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveField(idx, 'up')} disabled={idx === 0}>
-                              <i className="fa fa-chevron-up"></i>
+                      <React.Fragment key={field.fieldKey}>
+                        <tr className={!field.enabled ? 'table-secondary' : ''}>
+                          <td>
+                            <div className="btn-group btn-group-sm">
+                              <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveField(idx, 'up')} disabled={idx === 0}>
+                                <i className="fa fa-chevron-up"></i>
+                              </button>
+                              <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveField(idx, 'down')} disabled={idx === fields.length - 1}>
+                                <i className="fa fa-chevron-down"></i>
+                              </button>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="d-flex align-items-center gap-2">
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                style={{maxWidth: '200px'}}
+                                value={field.label}
+                                onChange={e => handleLabelChange(field.fieldKey, e.target.value)}
+                              />
+                              {field.isBuiltIn && (
+                                <span className={`badge ${isCore ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}`}>
+                                  {isCore ? 'Core' : 'Built-in'}
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <select
+                              className="form-select form-select-sm"
+                              value={field.type}
+                              onChange={e => handleTypeChange(field.fieldKey, e.target.value)}
+                            >
+                              {FIELD_TYPES.map(t => (
+                                <option key={t.value} value={t.value}>{t.label}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td className="text-center">
+                            <div className="form-check form-switch d-flex justify-content-center">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                checked={field.enabled}
+                                onChange={() => handleToggleEnabled(field.fieldKey)}
+                              />
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            <div className="form-check form-switch d-flex justify-content-center">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                checked={field.required}
+                                onChange={() => handleToggleRequired(field.fieldKey)}
+                              />
+                            </div>
+                          </td>
+                          <td className="text-center">
+                            <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteField(field)} title={isCore ? 'Delete core field' : 'Delete'}>
+                              <i className="fa fa-trash-alt"></i>
                             </button>
-                            <button className="btn btn-outline-secondary btn-sm py-0 px-1" onClick={() => handleMoveField(idx, 'down')} disabled={idx === fields.length - 1}>
-                              <i className="fa fa-chevron-down"></i>
-                            </button>
-                          </div>
-                        </td>
-                        <td>
-                          <div className="d-flex align-items-center gap-2">
-                            <input
-                              type="text"
-                              className="form-control form-control-sm"
-                              style={{maxWidth: '200px'}}
-                              value={field.label}
-                              onChange={e => handleLabelChange(field.fieldKey, e.target.value)}
-                            />
-                            {field.isBuiltIn && (
-                              <span className={`badge ${isCore ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'}`}>
-                                {isCore ? 'Core' : 'Built-in'}
-                              </span>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <select
-                            className="form-select form-select-sm"
-                            value={field.type}
-                            onChange={e => handleTypeChange(field.fieldKey, e.target.value)}
-                          >
-                            {FIELD_TYPES.map(t => (
-                              <option key={t.value} value={t.value}>{t.label}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="text-center">
-                          <div className="form-check form-switch d-flex justify-content-center">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={field.enabled}
-                              onChange={() => handleToggleEnabled(field.fieldKey)}
-                            />
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          <div className="form-check form-switch d-flex justify-content-center">
-                            <input
-                              className="form-check-input"
-                              type="checkbox"
-                              checked={field.required}
-                              onChange={() => handleToggleRequired(field.fieldKey)}
-                            />
-                          </div>
-                        </td>
-                        <td className="text-center">
-                          <button className="btn btn-link text-danger p-0" onClick={() => handleDeleteField(field)} title={isCore ? 'Delete core field' : 'Delete'}>
-                            <i className="fa fa-trash-alt"></i>
-                          </button>
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
+                        {field.type === 'select' && (
+                          <tr className="lfs-options-row">
+                            <td></td>
+                            <td colSpan={5}>
+                              <div className="d-flex align-items-center gap-2 py-1">
+                                <i className="fa fa-list-ul text-muted small"></i>
+                                <span className="small fw-semibold text-muted">Options:</span>
+                                <input
+                                  type="text"
+                                  className="form-control form-control-sm"
+                                  style={{maxWidth: '400px'}}
+                                  value={(field.options || []).join(', ')}
+                                  onChange={e => handleOptionsChange(field.fieldKey, e.target.value)}
+                                  placeholder="Enter options separated by commas, e.g., Option 1, Option 2"
+                                />
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </React.Fragment>
                     );
                   })}
                 </tbody>

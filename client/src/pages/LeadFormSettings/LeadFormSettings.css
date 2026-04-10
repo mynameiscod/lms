@@ -334,6 +334,17 @@
   margin: 0;
 }
 
+/* Options sub-row for dropdown fields */
+.lfs-page .lfs-options-row {
+  background: #f8f9fa;
+  border-top: none;
+}
+.lfs-page .lfs-options-row td {
+  padding-top: 0;
+  padding-bottom: 0.5rem;
+  border-top: none;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .lfs-page .table-responsive {

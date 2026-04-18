@@ -9,6 +9,55 @@ import {
 } from '../../api/assignmentApi';
 import './assignments.css';
 
+const ActionsDropdown: React.FC<{
+  assignment: Assignment;
+  onEdit: () => void;
+  onPublish: () => void;
+  onViewSubmissions: () => void;
+  onArchive: () => void;
+  onClone: () => void;
+  onDelete: () => void;
+}> = ({ assignment, onEdit, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <div className="actions-dropdown" ref={ref}>
+      <button
+        className="btn btn-icon btn-secondary"
+        onClick={() => setOpen(!open)}
+        title="Actions"
+      >
+        ⋮
+      </button>
+      {open && (
+        <div className="actions-dropdown-menu">
+          <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>
+          {assignment.status === AssignmentStatus.DRAFT && (
+            <button onClick={() => { onPublish(); setOpen(false); }}>🚀 Publish</button>
+          )}
+          {assignment.status === AssignmentStatus.PUBLISHED && (
+            <>
+              <button onClick={() => { onViewSubmissions(); setOpen(false); }}>👥 View Submissions</button>
+              <button onClick={() => { onArchive(); setOpen(false); }}>📦 Archive</button>
+            </>
+          )}
+          <button onClick={() => { onClone(); setOpen(false); }}>📋 Clone</button>
+          <button className="danger" onClick={() => { onDelete(); setOpen(false); }}>🗑️ Delete</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const AdminAssignmentList: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -677,54 +726,15 @@ const AdminAssignmentList: React.FC = () => {
                     </span>
                   </td>
                   <td className="actions-cell">
-                    <button
-                      className="btn btn-icon btn-secondary"
-                      onClick={() => navigate(`/admin/assignments/${assignment._id}/edit`)}
-                      title="Edit"
-                    >
-                      ✏️
-                    </button>
-                    {assignment.status === AssignmentStatus.DRAFT && (
-                      <button
-                        className="btn btn-icon btn-success"
-                        onClick={() => handlePublish(assignment._id)}
-                        title="Publish"
-                      >
-                        🚀
-                      </button>
-                    )}
-                    {assignment.status === AssignmentStatus.PUBLISHED && (
-                      <>
-                        <button
-                          className="btn btn-icon btn-secondary"
-                          onClick={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
-                          title="View Submissions"
-                        >
-                          👥
-                        </button>
-                        <button
-                          className="btn btn-icon btn-secondary"
-                          onClick={() => handleArchive(assignment._id)}
-                          title="Archive"
-                        >
-                          📦
-                        </button>
-                      </>
-                    )}
-                    <button
-                      className="btn btn-icon btn-secondary"
-                      onClick={() => handleClone(assignment._id)}
-                      title="Clone"
-                    >
-                      📋
-                    </button>
-                    <button
-                      className="btn btn-icon btn-danger"
-                      onClick={() => handleDelete(assignment._id)}
-                      title="Delete"
-                    >
-                      🗑️
-                    </button>
+                    <ActionsDropdown
+                      assignment={assignment}
+                      onEdit={() => navigate(`/admin/assignments/${assignment._id}/edit`)}
+                      onPublish={() => handlePublish(assignment._id)}
+                      onViewSubmissions={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
+                      onArchive={() => handleArchive(assignment._id)}
+                      onClone={() => handleClone(assignment._id)}
+                      onDelete={() => handleDelete(assignment._id)}
+                    />
                   </td>
                 </tr>
               ))}

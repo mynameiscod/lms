@@ -11,6 +11,7 @@ import {
   ProgrammingLanguage,
   TestResult
 } from '../../api/assignmentApi';
+import ShareOnLinkedIn from '../../components/common/ShareOnLinkedIn';
 import './assignments.css';
 
 const AssignmentWorkspace: React.FC = () => {
@@ -299,6 +300,16 @@ const AssignmentWorkspace: React.FC = () => {
           >
             View Results
           </button>
+          {submission.shareToken && assignment && (
+            <div style={{ marginTop: '16px' }}>
+              <ShareOnLinkedIn
+                shareToken={submission.shareToken}
+                title={assignment.title}
+                type="assignment"
+                percentage={submission.percentage}
+              />
+            </div>
+          )}
         </div>
       </div>
     );

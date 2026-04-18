@@ -48,13 +48,16 @@ const AssignmentWorkspace: React.FC = () => {
   // Initialize workspace state from a submission object
   const initWorkspaceFromSubmission = useCallback((sub: Submission, asgn: Assignment) => {
     setSubmission(sub);
+    // Default to assignment's first allowed language
+    const defaultLang = asgn.allowedLanguages?.[0] || ProgrammingLanguage.JAVASCRIPT;
     if (sub.code) {
       setCode(sub.code);
-      setSelectedLanguage(sub.language || ProgrammingLanguage.JAVASCRIPT);
+      setSelectedLanguage(sub.language || defaultLang);
     } else if (asgn.starterCode.length > 0) {
-      const defaultLang = asgn.allowedLanguages[0];
       const starter = asgn.starterCode.find(s => s.language === defaultLang);
       setCode(starter?.code || '');
+      setSelectedLanguage(defaultLang);
+    } else {
       setSelectedLanguage(defaultLang);
     }
     if (sub.theoryAnswer) setTheoryAnswer(sub.theoryAnswer);

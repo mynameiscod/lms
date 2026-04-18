@@ -67,6 +67,12 @@ const AdminAssignmentForm: React.FC = () => {
   const [shuffleOptions, setShuffleOptions] = useState(true);
   const [showCorrectAnswers, setShowCorrectAnswers] = useState(false);
 
+  // AI generation for Coding assignments
+  const [creationMode, setCreationMode] = useState<'manual' | 'ai'>('manual');
+  const [aiCoding, setAiCoding] = useState({ concept: '', testCaseCount: 5 });
+  const [aiCodingLoading, setAiCodingLoading] = useState(false);
+  const [aiCodingError, setAiCodingError] = useState('');
+
   // Rubric
   const [rubric, setRubric] = useState<RubricItem[]>([]);
 
@@ -393,7 +399,13 @@ const AdminAssignmentForm: React.FC = () => {
   };
 
   const updateStarterCode = (lang: ProgrammingLanguage, code: string) => {
-    setStarterCode(starterCode.map(s => s.language === lang ? { ...s, code } : s));
+    setStarterCode(prev => {
+      const exists = prev.find(s => s.language === lang);
+      if (exists) {
+        return prev.map(s => s.language === lang ? { ...s, code } : s);
+      }
+      return [...prev, { language: lang, code }];
+    });
   };
 
   const removeStarterCode = (lang: ProgrammingLanguage) => {
@@ -427,6 +439,53 @@ const AdminAssignmentForm: React.FC = () => {
       setAiMcqError(err.message || 'AI generation failed');
     } finally {
       setAiMcqLoading(false);
+    }
+  };
+
+  // AI helper for Coding assignments
+  const generateAICodingAssignment = async () => {
+    if (!title.trim() || !aiCoding.concept.trim()) return;
+    const primaryLang = allowedLanguages[0];
+    if (!primaryLang) {
+      setAiCodingError('Please select at least one programming language first.');
+      return;
+    }
+    try {
+      setAiCodingLoading(true);
+      setAiCodingError('');
+      const res = await assignmentApi.generateWithAI({
+        title: title.trim(),
+        concept: aiCoding.concept.trim(),
+        language: primaryLang,
+        difficulty,
+        testCaseCount: aiCoding.testCaseCount
+      });
+      const data = res.data.data;
+      if (data) {
+        if (data.description) setDescription(data.description);
+        if (data.instructions) setInstructions(data.instructions);
+        if (data.starterCode) {
+          setStarterCode([{ language: primaryLang, code: data.starterCode }]);
+        }
+        if (data.testCases && Array.isArray(data.testCases)) {
+          setTestCases(data.testCases.map((tc: any) => ({
+            input: tc.input || '',
+            expectedOutput: tc.expectedOutput || '',
+            description: tc.description || '',
+            isHidden: Boolean(tc.isHidden),
+            points: tc.points || 10
+          })));
+        }
+        if (data.topics && Array.isArray(data.topics)) {
+          setTopics(prev => [...new Set([...prev, ...data.topics])]);
+        }
+        // Switch to coding tab to show results
+        setActiveTab('coding');
+      }
+    } catch (err: any) {
+      setAiCodingError(err.response?.data?.message || err.message || 'AI generation failed');
+    } finally {
+      setAiCodingLoading(false);
     }
   };
 
@@ -600,6 +659,56 @@ const AdminAssignmentForm: React.FC = () => {
             <h3 className="section-title">Basic Information</h3>
             <p className="section-description">Enter the basic details of your assignment</p>
 
+            {/* Creation Mode Toggle */}
+            {(type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && !isEdit && (
+              <div style={{ 
+                display: 'flex', 
+                gap: '0', 
+                marginBottom: '24px',
+                background: '#f1f5f9',
+                borderRadius: '12px',
+                padding: '4px',
+                width: 'fit-content'
+              }}>
+                <button
+                  type="button"
+                  onClick={() => setCreationMode('manual')}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    transition: 'all 0.2s',
+                    background: creationMode === 'manual' ? '#fff' : 'transparent',
+                    color: creationMode === 'manual' ? '#1e293b' : '#64748b',
+                    boxShadow: creationMode === 'manual' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                  }}
+                >
+                  ✏️ Manual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCreationMode('ai')}
+                  style={{
+                    padding: '10px 24px',
+                    borderRadius: '10px',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    transition: 'all 0.2s',
+                    background: creationMode === 'ai' ? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' : 'transparent',
+                    color: creationMode === 'ai' ? '#fff' : '#64748b',
+                    boxShadow: creationMode === 'ai' ? '0 2px 8px rgba(102,126,234,0.4)' : 'none'
+                  }}
+                >
+                  ✨ AI Generate
+                </button>
+              </div>
+            )}
+
             <div className="form-group">
               <label className="form-label">
                 Title <span className="text-danger">*</span>
@@ -658,6 +767,72 @@ const AdminAssignmentForm: React.FC = () => {
                 />
               </div>
             </div>
+
+            {/* AI Generation Panel for Coding */}
+            {creationMode === 'ai' && (type === AssignmentType.CODING || type === AssignmentType.SQL || type === AssignmentType.WEB) && !isEdit && (
+              <div style={{ 
+                marginBottom: '24px', 
+                padding: '24px', 
+                background: 'linear-gradient(135deg, #f0f4ff 0%, #faf0ff 100%)', 
+                borderRadius: '16px', 
+                border: '2px solid #c7d2fe'
+              }}>
+                <h4 style={{ margin: '0 0 4px', color: '#4338ca', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  ✨ AI Assignment Generator
+                </h4>
+                <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6366f1' }}>
+                  Fill in the title, select language & difficulty above, then describe the concept below. AI will generate description, instructions, starter code, and test cases.
+                </p>
+                {aiCodingError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: '8px', padding: '8px 12px', background: '#fef2f2', borderRadius: '8px' }}>{aiCodingError}</p>}
+                
+                <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div className="form-group" style={{ flex: 3, minWidth: '220px', marginBottom: 0 }}>
+                    <label className="form-label">Concept / Problem Description <span className="text-danger">*</span></label>
+                    <textarea
+                      className="form-control"
+                      placeholder="e.g., Write a program that reads N integers and prints them in sorted order. Include edge cases for empty input and single element."
+                      value={aiCoding.concept}
+                      onChange={e => setAiCoding({ ...aiCoding, concept: e.target.value })}
+                      rows={3}
+                      style={{ resize: 'vertical' }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ width: '120px', marginBottom: 0 }}>
+                    <label className="form-label">Test Cases</label>
+                    <input
+                      type="number"
+                      className="form-control"
+                      min={2}
+                      max={15}
+                      value={aiCoding.testCaseCount}
+                      onChange={e => setAiCoding({ ...aiCoding, testCaseCount: Math.min(15, Math.max(2, Number(e.target.value))) })}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={generateAICodingAssignment}
+                    disabled={aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || allowedLanguages.length === 0}
+                    style={{ 
+                      marginBottom: 0, 
+                      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                      border: 'none',
+                      padding: '10px 28px',
+                      fontWeight: 600,
+                      opacity: (aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || allowedLanguages.length === 0) ? 0.6 : 1
+                    }}
+                  >
+                    {aiCodingLoading ? '⏳ Generating...' : '✨ Generate Assignment'}
+                  </button>
+                </div>
+                {!title.trim() && (
+                  <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#f59e0b' }}>⚠️ Please enter a title first</p>
+                )}
+                {allowedLanguages.length === 0 && (
+                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f59e0b' }}>⚠️ Select at least one language in Coding Settings tab</p>
+                )}
+              </div>
+            )}
 
             <div className="form-group">
               <label className="form-label">Description</label>
@@ -816,13 +991,10 @@ const AdminAssignmentForm: React.FC = () => {
                     <textarea
                       className="form-control"
                       value={sc?.code || ''}
-                      onChange={(e) => {
-                        if (!sc) addStarterCode(lang);
-                        updateStarterCode(lang, e.target.value);
-                      }}
+                      onChange={(e) => updateStarterCode(lang, e.target.value)}
                       placeholder={`// Starter code for ${lang}...`}
                       rows={6}
-                      style={{ fontFamily: 'monospace' }}
+                      style={{ fontFamily: 'monospace', whiteSpace: 'pre', tabSize: 4 }}
                     />
                   </div>
                 );

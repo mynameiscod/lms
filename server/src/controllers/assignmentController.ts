@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import assignmentService from '../services/assignmentService';
 import { AssignmentType, AssignmentStatus, DifficultyLevel } from '../models/Assignment';
+import { generateCodingAssignmentWithAI } from '../services/aiService';
 
 // Extended Request interface with user and tenant
 interface AuthRequest extends Request {
@@ -780,6 +781,40 @@ class AssignmentController {
         return { $gte: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000) };
       default:
         return null;
+    }
+  }
+
+  // AI Generate Coding Assignment
+  async generateWithAI(req: AuthRequest, res: Response) {
+    try {
+      const { title, concept, language, difficulty, testCaseCount } = req.body;
+
+      if (!title || !concept || !language) {
+        return res.status(400).json({ message: 'title, concept, and language are required' });
+      }
+
+      const validDifficulties = ['beginner', 'easy', 'medium', 'hard', 'expert'];
+      if (difficulty && !validDifficulties.includes(difficulty)) {
+        return res.status(400).json({ message: `Invalid difficulty. Must be one of: ${validDifficulties.join(', ')}` });
+      }
+
+      const count = Math.min(Math.max(parseInt(testCaseCount) || 5, 2), 15);
+
+      const result = await generateCodingAssignmentWithAI({
+        title,
+        concept,
+        language,
+        difficulty: difficulty || 'medium',
+        testCaseCount: count
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error: any) {
+      console.error('AI coding assignment generation error:', error);
+      if (error.message?.includes('OPENAI_API_KEY')) {
+        return res.status(503).json({ message: error.message });
+      }
+      res.status(500).json({ message: error.message || 'Failed to generate assignment with AI' });
     }
   }
 }

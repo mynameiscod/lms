@@ -29,6 +29,7 @@ router.get('/reports/by-assignment', roleGuard(['manage_assignments']), assignme
 router.get('/reports/by-student', roleGuard(['manage_assignments']), assignmentController.getReportsByStudent);
 
 // Assignment CRUD
+router.post('/generate-ai', roleGuard(['manage_assignments']), assignmentController.generateWithAI);
 router.post('/', roleGuard(['manage_assignments']), assignmentController.create);
 router.get('/', roleGuard(['manage_assignments']), assignmentController.list);
 router.get('/bank', roleGuard(['manage_assignments']), assignmentController.getBankAssignments);

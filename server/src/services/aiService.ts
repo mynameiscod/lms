@@ -18,6 +18,29 @@ export interface GenerateQuestionsParams {
   count: number;
 }
 
+export interface GenerateCodingAssignmentParams {
+  title: string;
+  concept: string;
+  language: string;
+  difficulty: 'beginner' | 'easy' | 'medium' | 'hard' | 'expert';
+  testCaseCount: number;
+}
+
+export interface GeneratedCodingAssignment {
+  description: string;
+  instructions: string;
+  starterCode: string;
+  solutionCode: string;
+  testCases: {
+    input: string;
+    expectedOutput: string;
+    description: string;
+    isHidden: boolean;
+    points: number;
+  }[];
+  topics: string[];
+}
+
 function buildPrompt(params: GenerateQuestionsParams): string {
   const { topic, type, difficulty, count } = params;
 
@@ -166,4 +189,137 @@ export async function generateQuestionsWithAI(
       tags: Array.isArray(q.tags) ? q.tags.map(String) : [],
     };
   });
+}
+
+function buildCodingAssignmentPrompt(params: GenerateCodingAssignmentParams): string {
+  const { title, concept, language, difficulty, testCaseCount } = params;
+
+  const langMap: Record<string, { readInput: string; printOutput: string }> = {
+    java: {
+      readInput: 'Scanner sc = new Scanner(System.in); int n = sc.nextInt();',
+      printOutput: 'System.out.println(...)'
+    },
+    python: {
+      readInput: 'n = int(input())',
+      printOutput: 'print(...)'
+    },
+    javascript: {
+      readInput: "const readline = require('readline'); rl.on('line', ...)",
+      printOutput: 'console.log(...)'
+    },
+    c: {
+      readInput: 'scanf("%d", &n);',
+      printOutput: 'printf(...)'
+    },
+    'c++': {
+      readInput: 'cin >> n;',
+      printOutput: 'cout << ... << endl;'
+    }
+  };
+
+  const langInfo = langMap[language.toLowerCase()] || langMap['java'];
+
+  return `You are an expert coding instructor creating a coding assignment for an LMS.
+
+Assignment Title: "${title}"
+Programming Concept: "${concept}"
+Language: ${language}
+Difficulty: ${difficulty}
+Number of Test Cases: ${testCaseCount}
+
+CRITICAL RULES FOR CODE EXECUTION:
+- The program MUST read input from stdin and print output to stdout.
+- For ${language}: use ${langInfo.readInput} to read input, and ${langInfo.printOutput} to print output.
+- Test case input is passed via stdin line by line.
+- Test case expected output is compared against stdout (trimmed).
+- The starter code should have the boilerplate with clear TODO comments.
+- The solution code must be a complete, working program that reads stdin and prints to stdout.
+- Output must EXACTLY match expected output (no extra spaces, no trailing text).
+- Each test case input should be simple values (numbers, strings) on separate lines.
+
+Return ONLY a valid JSON object with this exact structure:
+{
+  "description": "HTML description of the assignment (2-3 paragraphs, can include <b>, <p>, <ul>, <li> tags)",
+  "instructions": "HTML step-by-step instructions (use <ol>, <li>, <p>, <code> tags)",
+  "starterCode": "Complete starter code template with TODO comments (the student fills in the logic)",
+  "solutionCode": "Complete working solution that reads from stdin and prints to stdout",
+  "testCases": [
+    {
+      "input": "the stdin input (plain text, newline-separated values)",
+      "expectedOutput": "the exact expected stdout output (plain text)",
+      "description": "what this test case checks",
+      "isHidden": false,
+      "points": 20
+    }
+  ],
+  "topics": ["topic1", "topic2"]
+}
+
+Rules for test cases:
+- First ${Math.min(Math.ceil(testCaseCount / 2), testCaseCount)} test cases should be visible (isHidden: false)
+- Remaining test cases should be hidden (isHidden: true)
+- Include edge cases (empty input, boundary values, large inputs)
+- Points should sum to 100 (distribute evenly)
+- Input/output must be plain text, no formatting
+
+Return exactly ${testCaseCount} test cases. No markdown, no code blocks, only the JSON object.`;
+}
+
+export async function generateCodingAssignmentWithAI(
+  params: GenerateCodingAssignmentParams
+): Promise<GeneratedCodingAssignment> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error('OPENAI_API_KEY is not configured on the server.');
+  }
+
+  const openai = new OpenAI({ apiKey });
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert coding instructor. Always respond with valid JSON only — no markdown, no code fences, just the raw JSON object.'
+      },
+      {
+        role: 'user',
+        content: buildCodingAssignmentPrompt(params)
+      }
+    ],
+    temperature: 0.7,
+    response_format: { type: 'json_object' }
+  });
+
+  const raw = response.choices[0]?.message?.content || '{}';
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error('AI service returned malformed JSON. Please try again.');
+  }
+
+  if (!parsed.testCases || !Array.isArray(parsed.testCases) || parsed.testCases.length === 0) {
+    throw new Error('AI returned no test cases. Please try again.');
+  }
+
+  const totalPoints = 100;
+  const perTestPoints = Math.floor(totalPoints / parsed.testCases.length);
+  const remainder = totalPoints - (perTestPoints * parsed.testCases.length);
+
+  return {
+    description: String(parsed.description || ''),
+    instructions: String(parsed.instructions || ''),
+    starterCode: String(parsed.starterCode || ''),
+    solutionCode: String(parsed.solutionCode || ''),
+    testCases: parsed.testCases.slice(0, params.testCaseCount).map((tc: any, i: number) => ({
+      input: String(tc.input || ''),
+      expectedOutput: String(tc.expectedOutput || ''),
+      description: String(tc.description || `Test case ${i + 1}`),
+      isHidden: Boolean(tc.isHidden),
+      points: i === 0 ? perTestPoints + remainder : perTestPoints
+    })),
+    topics: Array.isArray(parsed.topics) ? parsed.topics.map(String) : []
+  };
 }

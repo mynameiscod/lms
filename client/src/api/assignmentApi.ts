@@ -309,6 +309,10 @@ interface PaginatedResponse<T> {
 
 // Assignment API
 export const assignmentApi = {
+  // AI Generate Coding Assignment
+  generateWithAI: (data: { title: string; concept: string; language: string; difficulty: string; testCaseCount: number }) =>
+    api.post<ApiResponse<any>>('/assignments/generate-ai', data),
+
   // Admin - Create assignment
   create: (data: AssignmentInput) =>
     api.post<ApiResponse<Assignment>>('/assignments', data),

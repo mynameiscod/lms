@@ -1,8 +1,32 @@
 import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { mockInterviewController } from '../controllers/mockInterviewController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
+
+// Multer config for per-answer interview recordings
+const mockRecordingsDir = path.join(__dirname, '../../uploads/interview-recordings');
+if (!fs.existsSync(mockRecordingsDir)) {
+  fs.mkdirSync(mockRecordingsDir, { recursive: true });
+}
+const mockRecordingStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, mockRecordingsDir),
+  filename: (_req, file, cb) => cb(null, `mock-${Date.now()}${path.extname(file.originalname) || '.webm'}`)
+});
+const uploadMockRecording = multer({
+  storage: mockRecordingStorage,
+  limits: { fileSize: 200 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('audio/') || file.mimetype.startsWith('video/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only audio/video files are allowed'));
+    }
+  }
+});
 
 const router = express.Router();
 
@@ -63,5 +87,10 @@ router.post('/:interviewId/answer', mockInterviewController.submitAnswer);
 router.post('/:interviewId/complete', mockInterviewController.completeInterview);
 router.post('/:interviewId/cancel', mockInterviewController.cancelInterview);
 router.post('/:interviewId/recording', mockInterviewController.saveRecording);
+router.post(
+  '/:interviewId/upload-answer',
+  uploadMockRecording.single('recording'),
+  mockInterviewController.uploadAnswerRecording
+);
 
 export default router;

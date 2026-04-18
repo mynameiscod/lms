@@ -49,6 +49,16 @@ import TakeInterview from './pages/TakeInterview';
 import InterviewResult from './pages/InterviewResult';
 import AssignInterviewPage from './pages/AssignInterview';
 
+// Structured Interview Module Pages
+import InterviewTemplateList from './pages/InterviewTemplateList';
+import InterviewTemplateCreate from './pages/InterviewTemplateCreate';
+import InterviewQBManagement from './pages/InterviewQBManagement';
+import InterviewAssignment from './pages/InterviewAssignment';
+import InterviewAnalytics from './pages/InterviewAnalytics';
+import StudentInterviewHub from './pages/StudentInterviewHub';
+import TakeStructuredInterview from './pages/TakeStructuredInterview';
+import InterviewFeedbackReport from './pages/InterviewFeedbackReport';
+
 // Assignment Pages
 import {
   AdminAssignmentList,
@@ -92,11 +102,11 @@ interface ProtectedRouteProps {
 // Used to grant custom role users access to routes they have permissions for
 const ROLE_TO_PERMISSIONS: Record<string, string[]> = {
   'SUPER_ADMIN': ['manage_tenants', 'manage_all_users', 'manage_system_settings'],
-  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads', 'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads'],
-  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets'],
+  'TENANT_ADMIN': ['manage_tenant_users', 'manage_roles', 'manage_tenant', 'manage_tenant_settings', 'manage_leads', 'manage_marketing', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads', 'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews'],
+  'INSTRUCTOR': ['create_courses', 'edit_courses', 'manage_own_courses', 'create_quiz', 'create_question', 'manage_assignments', 'grade_assignments', 'manage_snippets', 'grade_snippets', 'manage_interview_templates', 'assign_interviews', 'evaluate_interviews'],
   'ATTENDANCE_ADMIN': ['mark_attendance'],
   'STAFF': ['mark_attendance', 'view_attendance', 'view_reports', 'manage_tenant_users', 'create_courses', 'view_leads', 'create_leads', 'edit_leads', 'assign_leads', 'view_lead_analytics', 'export_leads', 'convert_leads'],
-  'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets'],
+  'STUDENT': ['enroll_courses', 'submit_assignments', 'view_quiz', 'take_interviews', 'view_snippets', 'attempt_interviews'],
 };
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
@@ -624,6 +634,111 @@ const AppRoutes: React.FC = () => {
       />
 
       <Route path="/" element={<Navigate to="/dashboard" />} />
+
+      {/* ── Structured Interview Module (Admin/Instructor) ─── */}
+      <Route
+        path="/admin/interviews/templates"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewTemplateList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interviews/templates/create"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewTemplateCreate />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interviews/templates/:templateId/edit"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewTemplateCreate />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interviews/question-bank"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewQBManagement />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interviews/assignments"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewAssignment />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interviews/analytics"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewAnalytics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/interviews/report/:attemptId"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewFeedbackReport />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Structured Interview Module (Student) ──────────── */}
+      <Route
+        path="/student/interviews"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <StudentInterviewHub />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/interviews/take/:templateId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <TakeStructuredInterview />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/student/interviews/report/:attemptId"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <InterviewFeedbackReport />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<NotFoundPage />} />
 
       {/* Lead Management */}

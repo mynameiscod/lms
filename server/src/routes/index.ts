@@ -44,6 +44,7 @@ import publicLeadRoutes from './publicLeadRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
+import interviewTemplateRoutes from './interviewTemplateRoutes';
 
 const router = express.Router();
 
@@ -94,5 +95,6 @@ router.use('/lead-ai', leadAIRoutes);
 router.use('/lost-reasons', lostReasonRoutes);
 router.use('/google-sheet-integrations', googleSheetRoutes);
 router.use('/lead-scoring', leadScoringRoutes);
+router.use('/interview-module', interviewTemplateRoutes);
 
 export default router;

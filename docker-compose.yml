@@ -30,10 +30,22 @@ services:
       NODE_ENV: production
       # Production URL for email links
       FRONTEND_URL: http://187.124.97.56:5000
+      # Code execution engine
+      PISTON_URL: http://piston:2000/api/v2
     volumes:
       - uploads_data:/app/uploads
     depends_on:
       - mongodb
+      - piston
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+  piston:
+    image: ghcr.io/engineer-man/piston
+    container_name: lms-piston
+    tmpfs:
+      - /piston/jobs:exec,size=256m
     networks:
       - lms-network
     restart: unless-stopped

@@ -9,6 +9,8 @@ export interface IInterviewResponse {
   
   // Student's Response
   answer: string;
+  answerAudioUrl?: string;
+  answerVideoUrl?: string;
   responseTime: number; // seconds taken to answer
   
   // AI Evaluation
@@ -101,6 +103,8 @@ const InterviewResponseSchema = new Schema<IInterviewResponse>({
   expectedTopics: [String],
   
   answer: { type: String, default: '' },
+  answerAudioUrl: { type: String },
+  answerVideoUrl: { type: String },
   responseTime: { type: Number, default: 0 },
   
   score: { type: Number, default: 0, min: 0, max: 10 },

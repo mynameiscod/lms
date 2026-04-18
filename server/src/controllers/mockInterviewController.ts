@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import mockInterviewService from '../services/mockInterviewService';
+import MockInterview from '../models/MockInterview';
 
 export const mockInterviewController = {
   // Create a new interview
@@ -529,6 +530,57 @@ export const mockInterviewController = {
     } catch (error: any) {
       console.error('Error fetching interviews with recordings:', error);
       res.status(500).json({ message: error.message || 'Failed to fetch recordings' });
+    }
+  },
+
+  // Upload per-answer audio/video recording for a mock interview question
+  async uploadAnswerRecording(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { interviewId } = req.params;
+      const studentId = req.userId;
+      const file = (req as any).file;
+
+      if (!studentId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      if (!file) {
+        return res.status(400).json({ message: 'No recording file uploaded' });
+      }
+
+      const questionIndex = parseInt(req.body.questionIndex, 10);
+      if (isNaN(questionIndex) || questionIndex < 0) {
+        return res.status(400).json({ message: 'Valid questionIndex is required' });
+      }
+
+      const fileUrl = `/uploads/interview-recordings/${file.filename}`;
+      const isVideo = file.mimetype.startsWith('video/');
+
+      const interview = await MockInterview.findOne({ _id: interviewId, studentId });
+      if (!interview) {
+        return res.status(404).json({ message: 'Interview not found' });
+      }
+
+      if (questionIndex >= interview.responses.length) {
+        return res.status(400).json({ message: 'Invalid question index' });
+      }
+
+      if (isVideo) {
+        interview.responses[questionIndex].answerVideoUrl = fileUrl;
+      } else {
+        interview.responses[questionIndex].answerAudioUrl = fileUrl;
+      }
+      await interview.save();
+
+      res.json({
+        success: true,
+        fileUrl,
+        fileType: isVideo ? 'video' : 'audio',
+        fileSize: file.size,
+        questionIndex
+      });
+    } catch (error: any) {
+      console.error('Error uploading answer recording:', error);
+      res.status(500).json({ message: error.message || 'Failed to upload recording' });
     }
   }
 };

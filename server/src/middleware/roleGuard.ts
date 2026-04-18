@@ -73,6 +73,10 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     permissions: [
       { key: 'manage_interviews', label: 'Manage Interview Questions & Bank' },
       { key: 'take_interviews', label: 'Take Mock Interviews' },
+      { key: 'manage_interview_templates', label: 'Create & Manage Interview Templates' },
+      { key: 'assign_interviews', label: 'Assign Interviews to Students' },
+      { key: 'evaluate_interviews', label: 'Evaluate & Review Interview Attempts' },
+      { key: 'attempt_interviews', label: 'Attempt Assigned Interviews' },
     ]
   },
   reports: {
@@ -150,6 +154,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_assignments', 'grade_assignments', 'grade_submissions', 'view_grades',
     // Interviews
     'manage_interviews', 'take_interviews',
+    'manage_interview_templates', 'assign_interviews', 'evaluate_interviews', 'attempt_interviews',
     // Reports
     'view_reports', 'view_analytics', 'view_tenant_analytics',
     // Admin
@@ -177,6 +182,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_assignments', 'grade_assignments', 'grade_submissions', 'view_grades',
     // Interviews
     'manage_interviews', 'take_interviews',
+    'manage_interview_templates', 'assign_interviews', 'evaluate_interviews',
     // Reports
     'view_reports',
     // Coding Snippets
@@ -199,7 +205,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
   STUDENT: [
     'enroll_courses', 'view_courses', 'view_public_courses', 'access_resources',
     'submit_assignments', 'view_grades', 'view_attendance', 'view_quiz',
-    'take_interviews',
+    'take_interviews', 'attempt_interviews',
     // Coding Snippets
     'view_snippets',
   ],

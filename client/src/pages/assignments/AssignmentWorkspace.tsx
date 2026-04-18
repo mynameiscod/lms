@@ -283,7 +283,7 @@ const AssignmentWorkspace: React.FC = () => {
   }
 
   // Already submitted
-  if (submission.status === SubmissionStatus.SUBMITTED || submission.status === SubmissionStatus.GRADED) {
+  if (submission && (submission.status === SubmissionStatus.SUBMITTED || submission.status === SubmissionStatus.GRADED)) {
     return (
       <div className="assignment-page">
         <div className="empty-state">

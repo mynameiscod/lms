@@ -99,6 +99,30 @@ const AdminAssignmentForm: React.FC = () => {
       ['link', 'image'],
       ['clean']
     ],
+    keyboard: {
+      bindings: {
+        // Shift+Enter exits code-block and inserts a normal paragraph
+        exitCodeBlock: {
+          key: 13, // Enter
+          shiftKey: true,
+          handler: function(this: any) {
+            const quill = this.quill;
+            const range = quill.getSelection();
+            if (!range) return true;
+            const [line] = quill.getLine(range.index);
+            const format = quill.getFormat(range.index);
+            if (format['code-block']) {
+              const lineEnd = quill.getIndex(line) + line.length();
+              quill.insertText(lineEnd, '\n', { 'code-block': false });
+              quill.setSelection(lineEnd + 1, 0);
+              quill.removeFormat(lineEnd + 1, 1);
+              return false;
+            }
+            return true;
+          }
+        }
+      }
+    }
   }), []);
 
   const quillFormats = [

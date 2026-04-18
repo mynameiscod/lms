@@ -12,7 +12,7 @@ const ShareOnLinkedIn: React.FC<ShareOnLinkedInProps> = ({ shareToken, title, ty
   const certUrl = `${window.location.origin}/certificate/${type}/${shareToken}`;
 
   const handleSharePost = () => {
-    const url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(certUrl)}`;
+    const url = `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(certUrl)}&title=${encodeURIComponent(title)}`;
     window.open(url, '_blank', 'noopener,noreferrer,width=600,height=500');
   };
 

@@ -29,7 +29,7 @@ services:
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
       NODE_ENV: production
       # Production URL for email links
-      FRONTEND_URL: http://187.124.97.56:5000
+      FRONTEND_URL: https://www.platform.codebegun.com
       # Code execution engine
       PISTON_URL: http://piston:2000/api/v2
     volumes:

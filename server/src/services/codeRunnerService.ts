@@ -554,7 +554,7 @@ class CodeRunnerService {
   // Map our language enum to Piston language/version
   private mapToPistonLanguage(language: ProgrammingLanguage): { language: string; version: string } {
     const mapping: Record<ProgrammingLanguage, { language: string; version: string }> = {
-      [ProgrammingLanguage.JAVASCRIPT]: { language: 'node', version: '18.15.0' },
+      [ProgrammingLanguage.JAVASCRIPT]: { language: 'javascript', version: '18.15.0' },
       [ProgrammingLanguage.TYPESCRIPT]: { language: 'typescript', version: '5.0.3' },
       [ProgrammingLanguage.PYTHON]: { language: 'python', version: '3.10.0' },
       [ProgrammingLanguage.JAVA]: { language: 'java', version: '15.0.2' },
@@ -568,7 +568,7 @@ class CodeRunnerService {
       [ProgrammingLanguage.CSS]: { language: 'css', version: '3' }
     };
 
-    return mapping[language] || { language: 'node', version: '18.15.0' };
+    return mapping[language] || { language: 'javascript', version: '18.15.0' };
   }
 
   // Extract simulated output from code (basic pattern matching)

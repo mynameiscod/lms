@@ -703,7 +703,10 @@
 .stat-card .stat-value {
   font-size: 34px;
   font-weight: 800;
-  color: #1a1a2e;\n  letter-spacing: -1px;\n  line-height: 1;\n}
+  color: #1a1a2e;
+  letter-spacing: -1px;
+  line-height: 1;
+}
 
 .stat-card .stat-change {
   font-size: 12px;

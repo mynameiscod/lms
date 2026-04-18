@@ -471,21 +471,37 @@ class CodeRunnerService {
     try {
       const pistonLanguage = this.mapToPistonLanguage(language);
       
+      // For Java, set filename to match the public class name
+      const fileName = language === ProgrammingLanguage.JAVA ? 'Main.java' : undefined;
+      
+      const requestBody = {
+        language: pistonLanguage.language,
+        version: pistonLanguage.version,
+        files: [{ name: fileName, content: code }],
+        stdin: stdin || '',
+        run_timeout: timeLimit || 5000,
+        compile_timeout: 10000
+      };
+
+      console.log('[PISTON] Request:', JSON.stringify({
+        language: requestBody.language,
+        version: requestBody.version,
+        fileName,
+        codeLength: code?.length,
+        stdin: stdin?.substring(0, 50),
+        run_timeout: requestBody.run_timeout
+      }));
+
       const response = await fetch(`${this.pistonUrl}/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          language: pistonLanguage.language,
-          version: pistonLanguage.version,
-          files: [{ content: code }],
-          stdin,
-          run_timeout: timeLimit,
-          compile_timeout: 10000
-        })
+        body: JSON.stringify(requestBody)
       });
 
       if (!response.ok) {
-        throw new Error(`Piston API error: ${response.statusText}`);
+        const errorBody = await response.text();
+        console.error('[PISTON] Error response:', response.status, errorBody);
+        throw new Error(`Piston API error: ${response.statusText} - ${errorBody}`);
       }
 
       const result: any = await response.json();

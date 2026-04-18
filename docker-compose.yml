@@ -44,8 +44,11 @@ services:
   piston:
     image: ghcr.io/engineer-man/piston
     container_name: lms-piston
+    privileged: true
     tmpfs:
       - /piston/jobs:exec,size=256m
+    volumes:
+      - piston_data:/piston/packages
     networks:
       - lms-network
     restart: unless-stopped
@@ -53,6 +56,7 @@ services:
 volumes:
   mongodb_data:
   uploads_data:
+  piston_data:
 
 networks:
   lms-network:

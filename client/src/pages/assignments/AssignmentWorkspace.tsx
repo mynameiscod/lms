@@ -859,7 +859,18 @@ const AssignmentWorkspace: React.FC = () => {
                   value={code}
                   onChange={(value) => setCode(value || '')}
                   theme="vs-dark"
-                  onMount={(editor) => { editorRef.current = editor; }}
+                  onMount={(editor, monaco) => {
+                    editorRef.current = editor;
+                    // Disable built-in JS/TS diagnostics for non-JS/TS languages to avoid false errors
+                    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
+                      noSemanticValidation: true,
+                      noSyntaxValidation: true,
+                    });
+                    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
+                      noSemanticValidation: true,
+                      noSyntaxValidation: true,
+                    });
+                  }}
                   options={{
                     minimap: { enabled: false },
                     fontSize: 14,
@@ -873,7 +884,19 @@ const AssignmentWorkspace: React.FC = () => {
                     fontLigatures: true,
                     cursorBlinking: 'smooth',
                     smoothScrolling: true,
-                    renderLineHighlight: 'all'
+                    renderLineHighlight: 'all',
+                    suggestOnTriggerCharacters: true,
+                    quickSuggestions: { other: true, comments: false, strings: true },
+                    acceptSuggestionOnEnter: 'on',
+                    snippetSuggestions: 'inline',
+                    wordBasedSuggestions: 'currentDocument',
+                    parameterHints: { enabled: true },
+                    bracketPairColorization: { enabled: true },
+                    autoClosingBrackets: 'always',
+                    autoClosingQuotes: 'always',
+                    autoIndent: 'full',
+                    formatOnPaste: true,
+                    formatOnType: true,
                   }}
                 />
               </div>

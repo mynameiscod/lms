@@ -40,6 +40,7 @@ const StartRecording: React.FC = () => {
   const cameraStreamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const previewRef = useRef<HTMLVideoElement | null>(null);
+  const combinedStreamRef = useRef<MediaStream | null>(null);
   const cameraPreviewRef = useRef<HTMLVideoElement | null>(null);
 
   // Load courses on mount
@@ -147,10 +148,8 @@ const StartRecording: React.FC = () => {
         ...dest.stream.getAudioTracks()
       ]);
 
-      // Preview
-      if (previewRef.current) {
-        previewRef.current.srcObject = combinedStream;
-      }
+      // Store for preview attachment via useEffect
+      combinedStreamRef.current = combinedStream;
 
       // 5. Start MediaRecorder
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
@@ -266,6 +265,13 @@ const StartRecording: React.FC = () => {
       }
     });
   }, [title, selectedCourse, selectedSubject, selectedChapter, elapsed, navigate]);
+
+  // Attach stream to preview video element once it mounts
+  useEffect(() => {
+    if (recording && previewRef.current && combinedStreamRef.current) {
+      previewRef.current.srcObject = combinedStreamRef.current;
+    }
+  }, [recording]);
 
   // Cleanup on unmount
   useEffect(() => {

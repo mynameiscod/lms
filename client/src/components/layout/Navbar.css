@@ -1,9 +1,9 @@
 .app-navbar {
-  background: white;
+  background: #ffffff;
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e8ecf3;
   width: 100%;
 }
 
@@ -66,19 +66,19 @@
 }
 
 .user-avatar {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 700;
-  width: 34px;
-  height: 34px;
-  background: none;
-  border-radius: 0;
+  width: 36px;
+  height: 36px;
+  background: #051d64;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #005897;
+  color: white;
   letter-spacing: 0.5px;
   box-shadow: none;
-  transition: none;
+  transition: background 0.2s;
 }
 
 .user-avatar-img {
@@ -101,7 +101,7 @@
 .user-name {
   font-size: 13.5px;
   font-weight: 600;
-  color: #1e293b;
+  color: #051d64;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;

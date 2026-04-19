@@ -92,6 +92,12 @@ import AdminLearningRequestsPage from './pages/AdminLearningRequests';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
 
+// Class Recording Pages
+import StartRecording from './pages/ClassRecording/StartRecording';
+import RecordingsList from './pages/ClassRecording/RecordingsList';
+import RecordingView from './pages/ClassRecording/RecordingView';
+import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
@@ -1015,6 +1021,58 @@ const AppRoutes: React.FC = () => {
                 <StudentCodeSnippets />
               </Layout>
             </FeatureRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Class Recordings */}
+      <Route
+        path="/admin/class-recordings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <RecordingsList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/class-recordings/start"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <StartRecording />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/class-recordings/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <RecordingView />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/class-recordings"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <StudentRecordingsList />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/class-recordings/:id"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <RecordingView />
+            </Layout>
           </ProtectedRoute>
         }
       />

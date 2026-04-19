@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
 import './Sidebar.css';
@@ -27,6 +27,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     'mock interviews': false
   });
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
 
@@ -95,6 +96,17 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal', permissions: ['view_snippets'] },
         { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-gears', permissions: ['manage_snippets'] },
         { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-star-half-stroke', permissions: ['manage_snippets', 'grade_snippets'] },
+      ]
+    },
+    {
+      label: 'Class Recordings',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      icon: 'fa-solid fa-video',
+      permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'view_courses'],
+      submenu: [
+        { label: 'All Recordings', path: '/admin/class-recordings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-list', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: 'Start Class', path: '/admin/class-recordings/start', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-circle-dot', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: 'Watch Recordings', path: '/class-recordings', roles: ['STUDENT'], icon: 'fa-solid fa-play-circle', permissions: ['view_courses'] },
       ]
     },
     { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-bar', permissions: ['view_reports'] },
@@ -239,34 +251,83 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     );
   };
 
+  // Group menu items by section for students
+  const isStudent = user?.role === 'STUDENT';
+  
+  const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
+  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'Mock Interviews', 'Topic Hub'].includes(i.label));
+  const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
+  const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
+
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'} ${mobileOpen ? 'mobile-open' : ''}`}>
-      {/* Sidebar Header - Clickable to Toggle */}
-      <div 
-        className="sidebar-header" 
-        onClick={() => setIsOpen(!isOpen)}
-        title={isOpen ? "Collapse" : "Expand"}
-        role="button"
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            setIsOpen(!isOpen);
-          }
-        }}
-      >
-        <div className="header-icon"><i className="fa-solid fa-bars"></i></div>
-        <div className="header-text">Menu</div>
-        <div className="header-toggle"><i className={`fa-solid fa-chevron-${isOpen ? 'left' : 'right'}`}></i></div>
+      {/* Sidebar Header - Logo */}
+      <div className="sidebar-brand">
+        <div className="brand-icon" onClick={() => setIsOpen(!isOpen)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setIsOpen(!isOpen); }}>
+          <i className="fa-solid fa-bars"></i>
+        </div>
+        <div className="brand-text">
+          <span className="brand-name">CodeBegun</span>
+          <span className="brand-sub">LMS PLATFORM</span>
+        </div>
       </div>
 
-      {/* Navigation */}
+      {/* Search */}
+      {isOpen && (
+        <div className="sidebar-search">
+          <i className="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Search courses, topics..." />
+        </div>
+      )}
+
+      {/* Navigation - grouped for students */}
       <nav className="sidebar-nav">
-        <ul>
-          {filteredItems.map((item) => 
-            item.submenu ? renderMenuItem(item) : renderMenuItem(item)
-          )}
-        </ul>
+        {isStudent ? (
+          <>
+            {mainItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">MAIN</span>
+                <ul>{mainItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {academicItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">ACADEMICS</span>
+                <ul>{academicItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {supportItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">SUPPORT</span>
+                <ul>{supportItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            {otherItems.length > 0 && (
+              <ul>{[...mainItems, ...otherItems, ...academicItems].map(item => renderMenuItem(item))}</ul>
+            )}
+            {otherItems.length === 0 && (
+              <ul>{filteredItems.map(item => renderMenuItem(item))}</ul>
+            )}
+          </>
+        )}
       </nav>
+
+      {/* User card at bottom */}
+      {isOpen && user && (
+        <div className="sidebar-user" onClick={() => navigate('/profile')}>
+          <div className="sidebar-user-avatar">
+            {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
+          </div>
+          <div className="sidebar-user-info">
+            <span className="sidebar-user-name">{user.firstName} {user.lastName}</span>
+            <span className="sidebar-user-role">{user.batchName || user.role}</span>
+          </div>
+          <i className="fa-solid fa-chevron-right sidebar-user-arrow"></i>
+        </div>
+      )}
     </aside>
   );
 };

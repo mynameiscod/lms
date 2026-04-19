@@ -4,7 +4,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { Spinner } from '../../components/common';
 import { attendanceApi, dashboardApi, leadApi } from '../../api';
-import AttendanceCard from '../../components/dashboard/AttendanceCard';
 import './DashboardPage.css';
 
 interface DashboardData {
@@ -395,289 +394,241 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  // Student Dashboard - Redesigned Option A
+  // Student Dashboard - Redesigned to match screenshot theme
   const data = dashboardData;
+  const totalPending = (data?.stats.pendingAssignments || 0) + (data?.stats.pendingQuizzes || 0) + (data?.stats.pendingSnippets || 0);
+  const totalDays = attendance.totalPresent + attendance.totalAbsent;
+  const attPct = attendance.attendancePercentage;
+  const attColor = attPct >= 75 ? '#359aad' : attPct >= 50 ? '#f59e0b' : '#ef4444';
+  const attLabel = attPct >= 85 ? 'Good' : attPct >= 75 ? 'Average' : attPct >= 50 ? 'Low' : 'Critical';
+
+  // Compute quiz average from recent activity
+  const quizScores = data?.recentActivity.filter(a => a.type === 'quiz' && a.score !== undefined).map(a => a.score!) || [];
+  const quizAvg = quizScores.length > 0 ? Math.round(quizScores.reduce((a, b) => a + b, 0) / quizScores.length) : 0;
+
+  // Combine deadlines into a single sorted list
+  const allDeadlines = [
+    ...(data?.upcomingDeadlines.assignments.map(a => ({ ...a, kind: 'assignment' as const, due: a.dueDate, daysLeft: a.daysUntilDue })) || []),
+    ...(data?.upcomingDeadlines.quizzes.filter(q => q.endDate).map(q => ({ ...q, kind: 'quiz' as const, due: q.endDate!, daysLeft: q.daysUntilEnd! })) || []),
+    ...(data?.upcomingDeadlines.snippets?.filter(s => s.dueDate).map(s => ({ ...s, kind: 'snippet' as const, due: s.dueDate!, daysLeft: s.daysUntilDue! })) || []),
+  ].sort((a, b) => a.daysLeft - b.daysLeft).slice(0, 5);
+
+  const getDeadlineColor = (days: number) => {
+    if (days <= 1) return '#ef4444';
+    if (days <= 3) return '#f59e0b';
+    return '#359aad';
+  };
 
   return (
-    <div className="student-dashboard-v2">
-      {/* Header with Greeting */}
-      <div className="dashboard-header-v2">
-        <div className="greeting-section">
-          <h1>{getGreeting()}, {user?.firstName}!</h1>
-          <p className="motivation">{getMotivation()}</p>
+    <div className="sd">
+      {/* Hero Banner */}
+      {isFeatureEnabled('myCourse') && data?.course && (
+        <div className="sd-hero">
+          <div className="sd-hero-content">
+            <span className="sd-hero-label">CURRENTLY LEARNING</span>
+            <h2 className="sd-hero-title">{data.course.title}</h2>
+            <p className="sd-hero-meta">
+              {data.courseProgress.completed} of {data.courseProgress.total} chapters completed
+            </p>
+            <div className="sd-hero-bar-wrap">
+              <div className="sd-hero-bar">
+                <div className="sd-hero-bar-fill" style={{ width: `${data.courseProgress.percentage}%` }} />
+              </div>
+              <span className="sd-hero-bar-text">{data.courseProgress.percentage}% complete</span>
+            </div>
+          </div>
+          <div className="sd-hero-right">
+            <div className="sd-hero-pct">{data.courseProgress.percentage}%</div>
+            <span className="sd-hero-pct-label">course progress</span>
+            <button className="sd-hero-btn" onClick={() => navigate('/my-course')}>
+              <i className="fa-solid fa-play"></i> Resume lesson
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Quick Stats Row */}
-      <div className="quick-stats-row">
-        {isFeatureEnabled('myCourse') && (
-        <div className="stat-card" onClick={() => navigate('/my-course')}>
-          <div className="stat-icon-circle blue">📚</div>
-          <div className="stat-content">
-            <span className="stat-number">{data?.courseProgress.percentage || 0}%</span>
-            <span className="stat-label">Course Progress</span>
-          </div>
-        </div>
-        )}
+      {/* Stats Row */}
+      <div className="sd-stats-row">
         {isFeatureEnabled('assignments') && (
-        <>
-        <div className="stat-card" onClick={() => navigate('/assignments')}>
-          <div className="stat-icon-circle green">✅</div>
-          <div className="stat-content">
-            <span className="stat-number">{data?.stats.completedAssignments || 0}</span>
-            <span className="stat-label">Assignments Done</span>
+          <div className="sd-stat-card" onClick={() => navigate('/assignments')}>
+            <div className="sd-stat-icon sd-stat-green"><i className="fa-solid fa-check"></i></div>
+            {(data?.stats.completedAssignments || 0) > 0 && <span className="sd-stat-badge sd-badge-teal">+1 today</span>}
+            <div className="sd-stat-number">{data?.stats.completedAssignments || 0}</div>
+            <div className="sd-stat-label">Assignments done</div>
+            <div className="sd-stat-sub">{data?.stats.completedAssignments || 0} of {data?.stats.totalAssignments || 0} total · {data?.stats.pendingAssignments || 0} pending</div>
           </div>
+        )}
+        <div className="sd-stat-card">
+          <div className="sd-stat-icon sd-stat-orange"><i className="fa-solid fa-clock"></i></div>
+          {totalPending > 0 && <span className="sd-stat-badge sd-badge-red">Due soon</span>}
+          <div className="sd-stat-number">{totalPending}</div>
+          <div className="sd-stat-label">Pending tasks</div>
+          <div className="sd-stat-sub">{data?.upcomingDeadlines.assignments.filter(a => a.daysUntilDue <= 1).length || 0} due tomorrow · {data?.upcomingDeadlines.assignments.filter(a => a.daysUntilDue <= 7).length || 0} this week</div>
         </div>
-        <div className="stat-card" onClick={() => navigate('/assignments')}>
-          <div className="stat-icon-circle orange">⏰</div>
-          <div className="stat-content">
-            <span className="stat-number">{data?.stats.pendingAssignments || 0}</span>
-            <span className="stat-label">Assignments Pending</span>
+        {isFeatureEnabled('quizzes') && (
+          <div className="sd-stat-card" onClick={() => navigate('/quizzes')}>
+            <div className="sd-stat-icon sd-stat-star"><i className="fa-solid fa-star"></i></div>
+            {quizAvg > 0 && <span className="sd-stat-badge sd-badge-teal">Last: {quizScores[0]}%</span>}
+            <div className="sd-stat-number">{quizAvg}%</div>
+            <div className="sd-stat-label">Quiz avg score</div>
+            <div className="sd-stat-sub">{data?.stats.completedQuizzes || 0} quizzes taken · {quizAvg >= 70 ? 'above avg' : 'needs work'}</div>
           </div>
-        </div>
-        </>
         )}
         {isFeatureEnabled('attendance') && (
-        <div className="stat-card">
-          <div className="stat-icon-circle purple">📊</div>
-          <div className="stat-content">
-            <span className="stat-number">{attendance.attendancePercentage}%</span>
-            <span className="stat-label">Attendance</span>
+          <div className="sd-stat-card" onClick={() => navigate('/my-attendance')}>
+            <div className="sd-stat-icon sd-stat-monitor"><i className="fa-solid fa-desktop"></i></div>
+            <span className={`sd-stat-badge ${attPct >= 75 ? 'sd-badge-teal' : 'sd-badge-red'}`}>{attLabel}</span>
+            <div className="sd-stat-number">{attPct}%</div>
+            <div className="sd-stat-label">Attendance</div>
+            <div className="sd-stat-sub">{attendance.totalPresent} present · {attendance.totalAbsent} absent · {totalDays} total</div>
           </div>
-        </div>
         )}
       </div>
 
-      {/* Main Grid */}
-      <div className="dashboard-main-grid">
-        {/* Left Column */}
-        <div className="dashboard-left">
+      {/* Main Content Grid */}
+      <div className="sd-main-grid">
+        {/* Left: Course progress + Recent activity */}
+        <div className="sd-main-left">
           {/* Course Progress Card */}
-          {isFeatureEnabled('myCourse') && data?.course && (
-            <div className="dashboard-card-v2">
-              <div className="card-header-v2">
-                <h3>📈 My Progress</h3>
-                <button className="btn-link" onClick={() => navigate('/my-course')}>View Course</button>
+          {isFeatureEnabled('myCourse') && (
+            <div className="sd-card">
+              <div className="sd-card-header">
+                <h3>Course progress</h3>
+                <button className="sd-link" onClick={() => navigate('/my-course')}>View all modules →</button>
               </div>
-              <div className="course-progress-section">
-                <div className="course-info">
-                  <h4>{data.course.title}</h4>
-                  <p className="course-desc">{data.course.description}</p>
-                </div>
-                <div className="progress-bar-container">
-                  <div className="progress-bar-v2">
-                    <div 
-                      className="progress-fill-v2" 
-                      style={{ width: `${data.courseProgress.percentage}%` }}
-                    />
+              <div className="sd-course-list">
+                {data?.course && (
+                  <div className="sd-course-item">
+                    <div className={`sd-course-icon ${data.courseProgress.percentage === 100 ? 'sd-ci-done' : 'sd-ci-progress'}`}>
+                      {data.courseProgress.percentage === 100 ? <i className="fa-solid fa-check"></i> : <i className="fa-solid fa-play"></i>}
+                    </div>
+                    <div className="sd-course-info">
+                      <div className="sd-course-name">{data.course.title}</div>
+                      <div className="sd-course-meta">{data.courseProgress.total} chapters · {data.courseProgress.completed} completed</div>
+                      <div className="sd-course-bar">
+                        <div className="sd-course-bar-fill" style={{ width: `${data.courseProgress.percentage}%` }} />
+                      </div>
+                      <span className="sd-course-pct">{data.courseProgress.percentage}%</span>
+                    </div>
+                    <div className="sd-course-status">
+                      {data.courseProgress.percentage === 100 ? (
+                        <span className="sd-status-done">Completed</span>
+                      ) : (
+                        <span className="sd-status-progress">In progress</span>
+                      )}
+                    </div>
                   </div>
-                  <div className="progress-text">
-                    <span>{data.courseProgress.completed} / {data.courseProgress.total} chapters</span>
-                    <span className="progress-percentage">{data.courseProgress.percentage}%</span>
-                  </div>
-                </div>
+                )}
               </div>
             </div>
           )}
-
-          {/* Upcoming Deadlines */}
-          <div className="dashboard-card-v2">
-            <div className="card-header-v2">
-              <h3>📅 Upcoming Deadlines</h3>
-            </div>
-            <div className="deadlines-section">
-              {(!data?.upcomingDeadlines.assignments.length && !data?.upcomingDeadlines.quizzes.length) ? (
-                <div className="empty-state">
-                  <span className="empty-icon">🎉</span>
-                  <p>No pending deadlines!</p>
-                </div>
-              ) : (
-                <div className="deadline-list">
-                  {data?.upcomingDeadlines.assignments.map((a) => (
-                    <div 
-                      key={a._id} 
-                      className="deadline-item" 
-                      onClick={() => navigate(`/assignments/${a._id}/workspace`)}
-                    >
-                      <div className="deadline-icon assignment">✏️</div>
-                      <div className="deadline-info">
-                        <span className="deadline-title">{a.title}</span>
-                        <span className="deadline-meta">{a.type} • {a.totalPoints} pts</span>
-                      </div>
-                      <div className={`deadline-due ${a.daysUntilDue <= 2 ? 'urgent' : ''}`}>
-                        {formatDate(a.dueDate)}
-                      </div>
-                    </div>
-                  ))}
-                  {data?.upcomingDeadlines.quizzes.map((q) => (
-                    <div 
-                      key={q._id} 
-                      className="deadline-item"
-                      onClick={() => navigate(`/quizzes/${q._id}`)}
-                    >
-                      <div className="deadline-icon quiz">📝</div>
-                      <div className="deadline-info">
-                        <span className="deadline-title">{q.title}</span>
-                        <span className="deadline-meta">{q.totalQuestions} questions • {q.timeLimit} min</span>
-                      </div>
-                      {q.daysUntilEnd && (
-                        <div className={`deadline-due ${q.daysUntilEnd <= 2 ? 'urgent' : ''}`}>
-                          {formatDate(q.endDate!)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {data?.upcomingDeadlines.snippets?.map((s) => (
-                    <div 
-                      key={s._id} 
-                      className="deadline-item"
-                      onClick={() => navigate(`/code-snippets/${s._id}`)}
-                    >
-                      <div className="deadline-icon quiz">💻</div>
-                      <div className="deadline-info">
-                        <span className="deadline-title">{s.title}</span>
-                        <span className="deadline-meta">{s.language} • {s.totalMarks} marks</span>
-                      </div>
-                      {s.dueDate && s.daysUntilDue !== null && (
-                        <div className={`deadline-due ${s.daysUntilDue <= 2 ? 'urgent' : ''}`}>
-                          {formatDate(s.dueDate)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Recent Activity */}
-          <div className="dashboard-card-v2">
-            <div className="card-header-v2">
-              <h3>📝 Recent Activity</h3>
+          <div className="sd-card">
+            <div className="sd-card-header">
+              <h3>Recent activity</h3>
+              <button className="sd-link" onClick={() => navigate('/assignments')}>View full history</button>
             </div>
-            <div className="activity-section">
+            <div className="sd-activity-list">
               {!data?.recentActivity.length ? (
-                <div className="empty-state">
-                  <span className="empty-icon">📭</span>
-                  <p>No recent activity</p>
-                </div>
+                <div className="sd-empty">No recent activity</div>
               ) : (
-                <div className="activity-list">
-                  {data.recentActivity.map((activity, idx) => (
-                    <div key={idx} className="activity-item">
-                      <div className="activity-icon">{activity.icon}</div>
-                      <div className="activity-info">
-                        <span className="activity-title">{activity.title}</span>
-                        <span className="activity-meta">
-                          {activity.type === 'assignment' ? 'Assignment' : activity.type === 'snippet' ? 'Code Snippet' : 'Quiz'}
-                          {activity.score !== undefined && ` • Score: ${activity.score}`}
-                        </span>
-                      </div>
-                      <div className="activity-time">{formatTimestamp(activity.timestamp)}</div>
+                data.recentActivity.map((act, idx) => (
+                  <div key={idx} className="sd-activity-item">
+                    <div className={`sd-activity-dot ${act.status === 'graded' ? 'sd-dot-green' : act.type === 'quiz' ? 'sd-dot-orange' : 'sd-dot-teal'}`}>
+                      {act.status === 'graded' ? <i className="fa-solid fa-check"></i> : act.type === 'quiz' ? <i className="fa-solid fa-circle"></i> : <i className="fa-solid fa-play"></i>}
                     </div>
-                  ))}
-                </div>
+                    <div className="sd-activity-content">
+                      <div className="sd-activity-text">
+                        {act.status === 'graded' ? 'Submitted' : act.type === 'quiz' ? 'Scored' : 'Watched'}{' '}
+                        <strong>{act.title}</strong>
+                        {act.score !== undefined && ` — ${act.type === 'assignment' ? 'assignment marked complete' : `${act.score}%`}`}
+                      </div>
+                      <div className="sd-activity-meta">
+                        {formatTimestamp(act.timestamp)} · {new Date(act.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                      </div>
+                      <span className={`sd-activity-tag ${act.type === 'assignment' ? 'sd-tag-teal' : act.type === 'quiz' ? 'sd-tag-orange' : 'sd-tag-blue'}`}>
+                        {act.type === 'assignment' ? 'Assignment' : act.type === 'quiz' ? 'Quiz' : act.type === 'snippet' ? 'Code' : 'Video'}
+                      </span>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="dashboard-right">
+        {/* Right: Attendance + Deadlines */}
+        <div className="sd-main-right">
           {/* Attendance Card */}
           {isFeatureEnabled('attendance') && (
-            <AttendanceCard date={selectedDate} attendance={attendance} />
+            <div className="sd-card">
+              <div className="sd-card-header">
+                <h3>Attendance</h3>
+                <button className="sd-link" onClick={() => navigate('/my-attendance')}>Details</button>
+              </div>
+              <div className="sd-att-ring-wrap">
+                <svg className="sd-att-ring" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r="50" fill="none" stroke="#e5e7eb" strokeWidth="10" />
+                  <circle
+                    cx="60" cy="60" r="50" fill="none"
+                    stroke={attColor}
+                    strokeWidth="10"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(attPct / 100) * 314.16} 314.16`}
+                    transform="rotate(-90 60 60)"
+                  />
+                </svg>
+                <div className="sd-att-ring-center">
+                  <span className="sd-att-ring-val">{attPct}%</span>
+                  <span className="sd-att-ring-sub">overall</span>
+                </div>
+              </div>
+              <div className="sd-att-stats">
+                <div className="sd-att-stat">
+                  <span className="sd-att-stat-num" style={{ color: '#359aad' }}>{attendance.totalPresent}</span>
+                  <span className="sd-att-stat-lbl">Present</span>
+                </div>
+                <div className="sd-att-stat">
+                  <span className="sd-att-stat-num" style={{ color: '#ef4444' }}>{attendance.totalAbsent}</span>
+                  <span className="sd-att-stat-lbl">Absent</span>
+                </div>
+                <div className="sd-att-stat">
+                  <span className="sd-att-stat-num" style={{ color: '#051d64' }}>{totalDays}</span>
+                  <span className="sd-att-stat-lbl">Total</span>
+                </div>
+              </div>
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* Bottom Row - Quick Actions & Summary */}
-      <div className="dashboard-bottom-row">
-        {/* Quick Actions */}
-        <div className="dashboard-card-v2">
-          <div className="card-header-v2">
-            <h3>⚡ Quick Actions</h3>
-          </div>
-          <div className="quick-actions">
-            {isFeatureEnabled('myCourse') && (
-            <button className="quick-action-btn" onClick={() => navigate('/my-course')}>
-              <span className="action-icon">📚</span>
-              <span>My Course</span>
-            </button>
-            )}
-            {isFeatureEnabled('assignments') && (
-            <button className="quick-action-btn" onClick={() => navigate('/assignments')}>
-              <span className="action-icon">✏️</span>
-              <span>Assignments</span>
-            </button>
-            )}
-            {isFeatureEnabled('quizzes') && (
-            <button className="quick-action-btn" onClick={() => navigate('/quizzes')}>
-              <span className="action-icon">📝</span>
-              <span>Quizzes</span>
-            </button>
-            )}
-            {isFeatureEnabled('codingSnippets') && (
-            <button className="quick-action-btn" onClick={() => navigate('/code-snippets')}>
-              <span className="action-icon">💻</span>
-              <span>Code Snippets</span>
-            </button>
-            )}
-            {isFeatureEnabled('attendance') && (
-            <button className="quick-action-btn" onClick={() => navigate('/my-attendance')}>
-              <span className="action-icon">☑</span>
-              <span>Attendance</span>
-            </button>
-            )}
-          </div>
-        </div>
-
-        {/* Summary */}
-        <div className="dashboard-card-v2">
-          <div className="card-header-v2">
-            <h3>📊 Summary</h3>
-          </div>
-          <div className="summary-stats horizontal">
-            {isFeatureEnabled('assignments') && (
-            <div className="summary-item">
-              <div className="summary-icon-box s-green">✏️</div>
-              <div className="summary-info">
-                <span className="summary-label">Assignments</span>
-                <span className="summary-value">{data?.stats.completedAssignments || 0}<span className="summary-total"> / {data?.stats.totalAssignments || 0}</span></span>
-                <div className="summary-bar"><div className="summary-bar-fill s-green" style={{ width: `${data?.stats.totalAssignments ? Math.round(((data.stats.completedAssignments || 0) / data.stats.totalAssignments) * 100) : 0}%` }} /></div>
-              </div>
+          {/* Deadlines */}
+          <div className="sd-card">
+            <div className="sd-card-header">
+              <h3>Deadlines</h3>
+              <button className="sd-link" onClick={() => navigate('/assignments')}>All tasks</button>
             </div>
-            )}
-            {isFeatureEnabled('quizzes') && (
-            <div className="summary-item">
-              <div className="summary-icon-box s-blue">📝</div>
-              <div className="summary-info">
-                <span className="summary-label">Quizzes</span>
-                <span className="summary-value">{data?.stats.completedQuizzes || 0}<span className="summary-total"> / {data?.stats.totalQuizzes || 0}</span></span>
-                <div className="summary-bar"><div className="summary-bar-fill s-blue" style={{ width: `${data?.stats.totalQuizzes ? Math.round(((data.stats.completedQuizzes || 0) / data.stats.totalQuizzes) * 100) : 0}%` }} /></div>
-              </div>
+            <div className="sd-deadline-list">
+              {allDeadlines.length === 0 ? (
+                <div className="sd-empty">No upcoming deadlines</div>
+              ) : (
+                allDeadlines.map((d, idx) => (
+                  <div
+                    key={idx}
+                    className="sd-deadline-item"
+                    onClick={() => navigate(d.kind === 'assignment' ? `/assignments/${d._id}/workspace` : d.kind === 'quiz' ? `/quizzes/${d._id}` : `/code-snippets/${d._id}`)}
+                  >
+                    <div className="sd-deadline-bar" style={{ backgroundColor: getDeadlineColor(d.daysLeft) }} />
+                    <div className="sd-deadline-info">
+                      <span className="sd-deadline-title">{d.title}</span>
+                      <span className="sd-deadline-meta">Due {new Date(d.due).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}</span>
+                    </div>
+                    <span className="sd-deadline-days" style={{ color: getDeadlineColor(d.daysLeft) }}>
+                      {d.daysLeft <= 0 ? 'Today' : d.daysLeft === 1 ? '1 day' : `${d.daysLeft} days`}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
-            )}
-            {isFeatureEnabled('myCourse') && (
-            <div className="summary-item">
-              <div className="summary-icon-box s-purple">📖</div>
-              <div className="summary-info">
-                <span className="summary-label">Chapters</span>
-                <span className="summary-value">{data?.courseProgress.completed || 0}<span className="summary-total"> / {data?.courseProgress.total || 0}</span></span>
-                <div className="summary-bar"><div className="summary-bar-fill s-purple" style={{ width: `${data?.courseProgress.total ? Math.round(((data.courseProgress.completed || 0) / data.courseProgress.total) * 100) : 0}%` }} /></div>
-              </div>
-            </div>
-            )}
-            {isFeatureEnabled('codingSnippets') && (
-            <div className="summary-item">
-              <div className="summary-icon-box s-orange">💻</div>
-              <div className="summary-info">
-                <span className="summary-label">Code Snippets</span>
-                <span className="summary-value">{data?.stats.completedSnippets || 0}<span className="summary-total"> / {data?.stats.totalSnippets || 0}</span></span>
-                <div className="summary-bar"><div className="summary-bar-fill s-orange" style={{ width: `${data?.stats.totalSnippets ? Math.round(((data.stats.completedSnippets || 0) / data.stats.totalSnippets) * 100) : 0}%` }} /></div>
-              </div>
-            </div>
-            )}
           </div>
         </div>
       </div>

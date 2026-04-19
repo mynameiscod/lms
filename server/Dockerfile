@@ -9,6 +9,7 @@ RUN npm install && npm run build
 # Production runtime
 FROM node:18-alpine
 WORKDIR /app
+RUN apk add --no-cache fontconfig ttf-dejavu
 COPY package*.json ./
 COPY .env ./
 RUN npm install --production

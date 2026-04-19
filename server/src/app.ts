@@ -119,6 +119,91 @@ const staticPath = process.env.NODE_ENV === 'production'
 app.use(express.static(staticPath));
 console.log(`📁 Serving static files from: ${staticPath}`);
 
+// Certificate OG meta tags for LinkedIn/social media crawlers
+app.get('/certificate/:type/:token', async (req: Request, res: Response) => {
+  const { type, token } = req.params;
+  const ua = (req.headers['user-agent'] || '').toLowerCase();
+  const isBot = /linkedinbot|facebookexternalhit|twitterbot|slackbot|whatsapp|telegram|discord|googlebot|bingbot/i.test(ua);
+  
+  if (!isBot) {
+    return res.sendFile(indexPath);
+  }
+  
+  try {
+    let title = 'Certificate of Completion';
+    let description = 'View this achievement on Codebegun LMS';
+    let studentName = 'Student';
+    let score = '';
+    let percentage = 0;
+    let isPassing = false;
+    const siteUrl = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const certUrl = `${siteUrl}/certificate/${type}/${token}`;
+
+    if (type === 'assignment') {
+      const Submission = require('./models/Submission').default;
+      const sub = await Submission.findOne({ shareToken: token })
+        .populate('assignment', 'title totalPoints')
+        .populate('student', 'firstName lastName');
+      if (sub) {
+        const asn = sub.assignment as any;
+        const stu = sub.student as any;
+        studentName = stu ? `${stu.firstName} ${stu.lastName}`.trim() : 'Student';
+        title = `${studentName} completed "${asn?.title || 'Assignment'}"`;
+        percentage = sub.percentage ?? 0;
+        isPassing = sub.isPassing ?? false;
+        score = `${sub.finalScore ?? 0}/${asn?.totalPoints ?? 0}`;
+        description = `Score: ${score} (${percentage}%) • ${isPassing ? '✅ Passed' : '❌ Not Passed'} • Codebegun LMS`;
+      }
+    } else if (type === 'quiz') {
+      const QuizAttempt = require('./models/QuizAttempt').default;
+      const Quiz = require('./models/Quiz').default;
+      const User = require('./models/User').default;
+      const attempt = await QuizAttempt.findOne({ shareToken: token });
+      if (attempt) {
+        const [quiz, stu] = await Promise.all([
+          Quiz.findById(attempt.quizId).select('title'),
+          User.findById(attempt.studentId).select('firstName lastName')
+        ]);
+        studentName = stu ? `${stu.firstName} ${stu.lastName}`.trim() : 'Student';
+        title = `${studentName} completed "${(quiz as any)?.title || 'Quiz'}"`;
+        percentage = attempt.percentage ?? 0;
+        score = `${attempt.obtainedMarks ?? 0}/${attempt.totalMarks ?? 0}`;
+        description = `Score: ${score} (${percentage}%) • ${attempt.passed ? '✅ Passed' : '❌ Not Passed'} • Codebegun LMS`;
+      }
+    }
+
+    // Escape HTML special characters to prevent XSS
+    const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const ogHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>${escHtml(title)} | Codebegun</title>
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="${escHtml(title)}">
+  <meta property="og:description" content="${escHtml(description)}">
+  <meta property="og:url" content="${escHtml(certUrl)}">
+  <meta property="og:site_name" content="Codebegun LMS">
+  <meta property="og:image" content="${siteUrl}/api/v1/share/og-image/${encodeURIComponent(type)}/${encodeURIComponent(token)}">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="${escHtml(title)}">
+  <meta name="twitter:description" content="${escHtml(description)}">
+  <meta name="twitter:image" content="${siteUrl}/api/v1/share/og-image/${encodeURIComponent(type)}/${encodeURIComponent(token)}">
+</head>
+<body>
+  <p>Redirecting...</p>
+  <script>window.location.href="${escHtml(certUrl)}";</script>
+</body>
+</html>`;
+    res.type('html').send(ogHtml);
+  } catch {
+    res.sendFile(indexPath);
+  }
+});
+
 // Serve React index.html for all non-API routes (client-side routing)
 const indexPath = process.env.NODE_ENV === 'production'
   ? '/app/client/build/index.html'

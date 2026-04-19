@@ -80,7 +80,7 @@ const CertificatePage: React.FC = () => {
   const handleSharePost = () => {
     const certUrl = window.location.href;
     window.open(
-      `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(certUrl)}`,
+      `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(certUrl)}&title=${encodeURIComponent(data.title + ' — ' + data.percentage + '%')}&summary=${encodeURIComponent(data.studentName + ' scored ' + data.percentage + '% on ' + data.title + ' — Codebegun LMS')}`,
       '_blank',
       'noopener,noreferrer,width=600,height=500'
     );

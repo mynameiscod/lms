@@ -140,7 +140,11 @@ const RubricScoreSchema = new Schema<IRubricScore>({
   maxPoints: { type: Number, required: true },
   pointsAwarded: { type: Number, default: 0 },
   feedback: { type: String }
-}, { _id: false });
+}, { _id: false, toJSON: { virtuals: true }, toObject: { virtuals: true } });
+
+RubricScoreSchema.virtual('score').get(function() {
+  return this.pointsAwarded;
+});
 
 const UploadedFileSchema = new Schema<IUploadedFile>({
   filename: { type: String, required: true },
@@ -230,5 +234,17 @@ SubmissionSchema.pre('save', function(next) {
   
   next();
 });
+
+// Add virtual aliases so client can read `score` and `feedback`
+SubmissionSchema.virtual('score').get(function() {
+  return this.finalScore;
+});
+
+SubmissionSchema.virtual('feedback').get(function() {
+  return this.overallFeedback;
+});
+
+SubmissionSchema.set('toJSON', { virtuals: true });
+SubmissionSchema.set('toObject', { virtuals: true });
 
 export default mongoose.model<ISubmission>('Submission', SubmissionSchema);

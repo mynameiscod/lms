@@ -538,6 +538,11 @@ class SubmissionService {
     submission.gradedAt = new Date();
     submission.status = SubmissionStatus.GRADED;
 
+    // Ensure shareToken exists for LinkedIn sharing
+    if (!submission.shareToken) {
+      submission.shareToken = crypto.randomUUID();
+    }
+
     await submission.save();
     await assignmentService.updateStats(assignment._id, tenant);
 

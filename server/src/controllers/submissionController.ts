@@ -231,17 +231,31 @@ class SubmissionController {
       const tenantId = req.tenantId;
       const userId = req.user?.id;
       const { submissionId } = req.params;
-      const { rubricScores, manualScore, overallFeedback, privateFeedback } = req.body;
+      const { rubricScores, manualScore, score, overallFeedback, feedback, privateFeedback } = req.body;
 
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
       }
 
+      // Accept both field name conventions (score/feedback or manualScore/overallFeedback)
+      const resolvedManualScore = manualScore ?? score;
+      const resolvedFeedback = overallFeedback ?? feedback;
+
+      // Map rubric scores from client format {criterion, score} to server format {criterionIndex, pointsAwarded}
+      let mappedRubricScores = rubricScores;
+      if (rubricScores?.length && rubricScores[0].criterion !== undefined && rubricScores[0].criterionIndex === undefined) {
+        mappedRubricScores = rubricScores.map((rs: any, index: number) => ({
+          criterionIndex: index,
+          pointsAwarded: rs.score ?? rs.pointsAwarded ?? 0,
+          feedback: rs.feedback
+        }));
+      }
+
       const submission = await submissionService.grade(submissionId, tenantId as any, {
         gradedBy: userId as any,
-        rubricScores,
-        manualScore,
-        overallFeedback,
+        rubricScores: mappedRubricScores,
+        manualScore: resolvedManualScore,
+        overallFeedback: resolvedFeedback,
         privateFeedback
       });
 

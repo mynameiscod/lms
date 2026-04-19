@@ -57,7 +57,7 @@ const RecordingsList: React.FC = () => {
           return r;
         })
       );
-      if (changed) setRecordings(updated);
+      if (changed) setRecordings(updated as ClassRecording[]);
     }, 5000);
 
     return () => clearInterval(interval);

@@ -876,14 +876,17 @@ const AssignmentWorkspace: React.FC = () => {
                   onMount={(editor, monaco) => {
                     editorRef.current = editor;
                     // Disable built-in JS/TS diagnostics for non-JS/TS languages to avoid false errors
-                    monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions({
-                      noSemanticValidation: true,
-                      noSyntaxValidation: true,
-                    });
-                    monaco.languages.typescript.typescriptDefaults.setDiagnosticsOptions({
-                      noSemanticValidation: true,
-                      noSyntaxValidation: true,
-                    });
+                    const ts = (monaco.languages as any).typescript;
+                    if (ts) {
+                      ts.javascriptDefaults?.setDiagnosticsOptions({
+                        noSemanticValidation: true,
+                        noSyntaxValidation: true,
+                      });
+                      ts.typescriptDefaults?.setDiagnosticsOptions({
+                        noSemanticValidation: true,
+                        noSyntaxValidation: true,
+                      });
+                    }
                   }}
                   options={{
                     minimap: { enabled: false },

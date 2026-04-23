@@ -40,6 +40,12 @@ export interface ClassRecording {
     testCases?: { input: string; expectedOutput: string; description: string; isHidden: boolean; points: number }[];
     savedAssignmentId?: string;
   };
+  generatedNotes?: {
+    sections: { heading: string; content: string }[];
+  };
+  generatedPractice?: {
+    problems: { title: string; starterCode: string; hint: string }[];
+  };
   recordedAt: string;
   isPublished: boolean;
   viewCount: number;

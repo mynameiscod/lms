@@ -184,6 +184,94 @@ Rules:
 }
 
 /**
+ * Generate structured notes from transcript.
+ */
+async function generateNotesFromTranscript(transcript: string, title: string): Promise<{ sections: { heading: string; content: string }[] }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
+  const openai = new OpenAI({ apiKey });
+  const maxChars = 48000;
+  const truncated = transcript.length > maxChars ? transcript.substring(0, maxChars) : transcript;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are an expert educator creating structured class notes. Always respond with valid JSON only.' },
+      {
+        role: 'user',
+        content: `Create structured notes for students based on this class transcript.
+Class: "${title}"
+Transcript: """${truncated}"""
+Return JSON:
+{
+  "sections": [
+    { "heading": "1. Section Title", "content": "Explanation text (2-4 sentences, clear and concise)" }
+  ]
+}
+Generate 4-6 sections covering the main concepts. Return ONLY valid JSON.`
+      }
+    ],
+    temperature: 0.4,
+    response_format: { type: 'json_object' }
+  });
+  const raw = response.choices[0]?.message?.content || '{}';
+  const parsed = JSON.parse(raw);
+  return {
+    sections: Array.isArray(parsed.sections)
+      ? parsed.sections.map((s: any) => ({ heading: String(s.heading || ''), content: String(s.content || '') }))
+      : []
+  };
+}
+
+/**
+ * Generate practice problems from transcript.
+ */
+async function generatePracticeFromTranscript(transcript: string, title: string): Promise<{ problems: { title: string; starterCode: string; hint: string }[] }> {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
+  const openai = new OpenAI({ apiKey });
+  const maxChars = 40000;
+  const truncated = transcript.length > maxChars ? transcript.substring(0, maxChars) : transcript;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      { role: 'system', content: 'You are an expert coding instructor creating practice problems. Always respond with valid JSON only.' },
+      {
+        role: 'user',
+        content: `Create 2-3 short practice coding problems based on this class.
+Class: "${title}"
+Transcript: """${truncated}"""
+Return JSON:
+{
+  "problems": [
+    {
+      "title": "Problem Name",
+      "starterCode": "// Java starter code with // TODO: comment",
+      "hint": "💡 A short hint for the student"
+    }
+  ]
+}
+Return ONLY valid JSON.`
+      }
+    ],
+    temperature: 0.6,
+    response_format: { type: 'json_object' }
+  });
+  const raw = response.choices[0]?.message?.content || '{}';
+  const parsed = JSON.parse(raw);
+  return {
+    problems: Array.isArray(parsed.problems)
+      ? parsed.problems.map((p: any) => ({
+          title: String(p.title || ''),
+          starterCode: String(p.starterCode || ''),
+          hint: String(p.hint || '')
+        }))
+      : []
+  };
+}
+
+/**
  * Generate a coding assignment from transcript.
  */
 async function generateAssignmentFromTranscript(transcript: string, title: string): Promise<any> {
@@ -287,24 +375,38 @@ export async function processClassRecording(recordingId: string): Promise<void> 
     await updateStatus(recordingId, 'transcribing', 40, { transcript });
     console.log(`[ClassRecording] Transcript complete: ${transcript.length} chars`);
 
-    // Step 2: Summarize (40-60%)
+    // Step 2: Summarize (40-55%)
     await updateStatus(recordingId, 'summarizing', 45);
     console.log(`[ClassRecording] Generating summary...`);
     const summary = await generateSummary(transcript);
-    await updateStatus(recordingId, 'summarizing', 60, { summary });
+    await updateStatus(recordingId, 'summarizing', 55, { summary });
     console.log(`[ClassRecording] Summary complete`);
 
-    // Step 3: Generate Quiz (60-80%)
-    await updateStatus(recordingId, 'generating_quiz', 65);
+    // Step 3: Generate Notes (55-65%)
+    await updateStatus(recordingId, 'generating_notes', 57);
+    console.log(`[ClassRecording] Generating notes...`);
+    const generatedNotes = await generateNotesFromTranscript(transcript, recording.title);
+    await updateStatus(recordingId, 'generating_notes', 65, { generatedNotes });
+    console.log(`[ClassRecording] Notes complete`);
+
+    // Step 4: Generate Quiz (65-78%)
+    await updateStatus(recordingId, 'generating_quiz', 67);
     console.log(`[ClassRecording] Generating quiz...`);
     const quizQuestions = await generateQuizFromTranscript(transcript, recording.title);
-    await updateStatus(recordingId, 'generating_quiz', 80, {
+    await updateStatus(recordingId, 'generating_quiz', 78, {
       generatedQuiz: { questions: quizQuestions }
     });
     console.log(`[ClassRecording] Quiz complete: ${quizQuestions.length} questions`);
 
-    // Step 4: Generate Assignment (80-100%)
-    await updateStatus(recordingId, 'generating_assignment', 85);
+    // Step 5: Generate Practice (78-88%)
+    await updateStatus(recordingId, 'generating_practice', 80);
+    console.log(`[ClassRecording] Generating practice problems...`);
+    const generatedPractice = await generatePracticeFromTranscript(transcript, recording.title);
+    await updateStatus(recordingId, 'generating_practice', 88, { generatedPractice });
+    console.log(`[ClassRecording] Practice complete`);
+
+    // Step 6: Generate Assignment (88-100%)
+    await updateStatus(recordingId, 'generating_assignment', 90);
     console.log(`[ClassRecording] Generating assignment...`);
     const assignment = await generateAssignmentFromTranscript(transcript, recording.title);
     await updateStatus(recordingId, 'generating_assignment', 95, {

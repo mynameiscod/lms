@@ -18,7 +18,7 @@ export interface IClassRecording extends Document {
   thumbnailUrl?: string;
 
   // Processing pipeline
-  status: 'uploading' | 'uploaded' | 'transcribing' | 'summarizing' | 'generating_quiz' | 'generating_assignment' | 'completed' | 'failed';
+  status: 'uploading' | 'uploaded' | 'transcribing' | 'summarizing' | 'generating_notes' | 'generating_quiz' | 'generating_practice' | 'generating_assignment' | 'completed' | 'failed';
   processingProgress: number; // 0-100
   processingError?: string;
 
@@ -30,6 +30,23 @@ export interface IClassRecording extends Document {
     overview: string;
     keyPoints: string[];
     topics: string[];
+  };
+
+  // AI-generated notes
+  generatedNotes?: {
+    sections: {
+      heading: string;
+      content: string;
+    }[];
+  };
+
+  // AI-generated practice problems
+  generatedPractice?: {
+    problems: {
+      title: string;
+      starterCode: string;
+      hint: string;
+    }[];
   };
 
   // AI-generated quiz (draft before saving to Quiz system)
@@ -84,7 +101,7 @@ const classRecordingSchema = new Schema<IClassRecording>(
 
     status: {
       type: String,
-      enum: ['uploading', 'uploaded', 'transcribing', 'summarizing', 'generating_quiz', 'generating_assignment', 'completed', 'failed'],
+      enum: ['uploading', 'uploaded', 'transcribing', 'summarizing', 'generating_notes', 'generating_quiz', 'generating_practice', 'generating_assignment', 'completed', 'failed'],
       default: 'uploading'
     },
     processingProgress: { type: Number, default: 0 },
@@ -96,6 +113,21 @@ const classRecordingSchema = new Schema<IClassRecording>(
       overview: { type: String },
       keyPoints: [{ type: String }],
       topics: [{ type: String }]
+    },
+
+    generatedNotes: {
+      sections: [{
+        heading: { type: String },
+        content: { type: String }
+      }]
+    },
+
+    generatedPractice: {
+      problems: [{
+        title: { type: String },
+        starterCode: { type: String },
+        hint: { type: String }
+      }]
     },
 
     generatedQuiz: {

@@ -98,6 +98,11 @@ import RecordingsList from './pages/ClassRecording/RecordingsList';
 import RecordingView from './pages/ClassRecording/RecordingView';
 import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList';
 
+// Class Flow (new unified flow)
+import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
+import StudentMyClasses from './pages/StudentClassHub/StudentMyClasses';
+import StudentClassHub from './pages/StudentClassHub/StudentClassHub';
+
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredRoles?: string[];
@@ -1056,6 +1061,37 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* Class Flow — new unified teacher wizard */}
+      <Route
+        path="/admin/class-flow"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <ClassFlowPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Student Class Hub — new unified student pages */}
+      <Route
+        path="/class-hub"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <FeatureRoute feature="myCourse">
+              <StudentMyClasses />
+            </FeatureRoute>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/class-hub/:id"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <StudentClassHub />
+          </ProtectedRoute>
+        }
+      />
+
       <Route
         path="/class-recordings"
         element={

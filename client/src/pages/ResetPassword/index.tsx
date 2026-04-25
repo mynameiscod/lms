@@ -42,8 +42,8 @@ export const ResetPassword: React.FC = () => {
       return;
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long');
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
       return;
     }
 
@@ -149,7 +149,7 @@ export const ResetPassword: React.FC = () => {
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
-              <p className="help-text">Minimum 6 characters</p>
+              <p className="help-text">Minimum 8 characters</p>
             </div>
 
             <div className="form-group">

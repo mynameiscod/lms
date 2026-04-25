@@ -549,3 +549,29 @@
   text-decoration: underline;
   background-color: rgba(26, 84, 144, 0.05);
 }
+
+/* Login footer sign-up links */
+.login-footer {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  text-align: center;
+}
+
+.login-footer-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.login-footer-link {
+  color: #ffffff;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s;
+}
+
+.login-footer-link:hover {
+  opacity: 0.8;
+}

@@ -162,6 +162,21 @@ const LoginPage: React.FC = () => {
               {loading ? 'Logging in...' : 'Continue'}
             </button>
           </form>
+
+          <div className="login-footer">
+            <p className="login-footer-text">
+              New here?{' '}
+              <Link to="/create-organization" className="login-footer-link">
+                Create your organization
+              </Link>
+            </p>
+            <p className="login-footer-text" style={{ marginTop: '8px' }}>
+              Have an invite link?{' '}
+              <Link to="/register" className="login-footer-link">
+                Join organization
+              </Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

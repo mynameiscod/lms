@@ -13,6 +13,8 @@ const CreateOrganizationPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [studentFeatures, setStudentFeatures] = useState({
     dashboard: true,
     myCourse: true,
@@ -44,8 +46,8 @@ const CreateOrganizationPage: React.FC = () => {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -142,25 +144,31 @@ const CreateOrganizationPage: React.FC = () => {
                 required
               />
 
-              <Input
-                type="password"
-                name="password"
-                label="Password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-                required
-              />
+              <div className="org-password-field">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  name="password"
+                  label="Password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
+                  required
+                />
+                <button type="button" className="org-pw-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? '🙈' : '👁️'}</button>
+              </div>
 
-              <Input
-                type="password"
-                name="confirmPassword"
-                label="Confirm Password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                required
-              />
+              <div className="org-password-field">
+                <Input
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  name="confirmPassword"
+                  label="Confirm Password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                  required
+                />
+                <button type="button" className="org-pw-toggle" onClick={() => setShowConfirmPassword(v => !v)} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>{showConfirmPassword ? '🙈' : '👁️'}</button>
+              </div>
             </div>
 
             <div className="org-section">

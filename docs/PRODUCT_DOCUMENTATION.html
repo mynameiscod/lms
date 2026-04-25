@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LMS SaaS – Product Documentation</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-light: #eef2ff;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --bg: #f9fafb;
+      --card: #ffffff;
+      --text: #111827;
+      --text-sm: #374151;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; }
+
+    /* ── NAV ── */
+    .top-nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: var(--primary); color: #fff; padding: 0 2rem;
+      display: flex; align-items: center; justify-content: space-between; height: 56px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .top-nav h1 { font-size: 1.1rem; font-weight: 700; letter-spacing: .5px; }
+    .top-nav .badge { background: rgba(255,255,255,.2); padding: 2px 10px; border-radius: 999px; font-size: .8rem; }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      position: fixed; top: 56px; left: 0; bottom: 0; width: 260px;
+      background: #1e1b4b; color: #c7d2fe; overflow-y: auto; padding: 1rem 0;
+      font-size: .85rem;
+    }
+    .sidebar-section { padding: 0.5rem 1.2rem; font-size: .7rem; text-transform: uppercase;
+      letter-spacing: 1px; color: #818cf8; margin-top: 0.5rem; }
+    .sidebar a { display: block; padding: 0.4rem 1.4rem; color: #c7d2fe; text-decoration: none;
+      transition: background .15s; border-left: 3px solid transparent; }
+    .sidebar a:hover { background: rgba(255,255,255,.07); color: #fff; border-left-color: #818cf8; }
+
+    /* ── MAIN CONTENT ── */
+    .main { margin-left: 260px; margin-top: 56px; padding: 2rem; }
+
+    /* ── HERO ── */
+    .hero { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff;
+      border-radius: 12px; padding: 3rem 2.5rem; margin-bottom: 2.5rem; }
+    .hero h2 { font-size: 2rem; margin-bottom: .5rem; }
+    .hero p { opacity: .9; max-width: 680px; }
+    .hero-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-top: 2rem; }
+    .hero-stat { background: rgba(255,255,255,.15); border-radius: 8px; padding: 1rem;
+      text-align: center; }
+    .hero-stat .num { font-size: 2rem; font-weight: 700; }
+    .hero-stat .lbl { font-size: .8rem; opacity: .8; }
+
+    /* ── SECTION TITLE ── */
+    .section-title { font-size: 1.5rem; font-weight: 700; color: var(--primary);
+      border-bottom: 2px solid var(--primary-light); padding-bottom: .5rem; margin-bottom: 1.5rem; }
+
+    /* ── MODULE CARD ── */
+    .module-card {
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+      margin-bottom: 2.5rem; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.06);
+    }
+    .module-header {
+      display: flex; align-items: center; gap: 1rem;
+      padding: 1.25rem 1.5rem; border-bottom: 1px solid var(--border);
+      background: var(--primary-light);
+    }
+    .module-icon { width: 44px; height: 44px; border-radius: 10px; display: flex;
+      align-items: center; justify-content: center; font-size: 1.4rem;
+      background: var(--primary); color: #fff; flex-shrink: 0; }
+    .module-title { flex: 1; }
+    .module-title h3 { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+    .module-title p { font-size: .82rem; color: var(--muted); margin-top: 2px; }
+    .module-badge { font-size: .75rem; padding: 3px 10px; border-radius: 999px; font-weight: 600; }
+    .badge-green { background: #dcfce7; color: #15803d; }
+    .badge-blue  { background: #dbeafe; color: #1d4ed8; }
+    .badge-yellow{ background: #fef9c3; color: #a16207; }
+    .badge-red   { background: #fee2e2; color: #b91c1c; }
+    .badge-gray  { background: #f3f4f6; color: #374151; }
+
+    /* ── PROGRESS BAR ── */
+    .progress-wrap { padding: 0 1.5rem 0; }
+    .progress-row { display: flex; align-items: center; gap: 1rem; padding: .75rem 0;
+      border-bottom: 1px solid var(--border); }
+    .progress-row:last-child { border-bottom: none; }
+    .progress-name { flex: 0 0 220px; font-size: .85rem; color: var(--text-sm); }
+    .progress-bar-wrap { flex: 1; height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+    .progress-bar { height: 100%; border-radius: 999px; transition: width .4s; }
+    .pct-label { flex: 0 0 40px; font-size: .82rem; font-weight: 600; text-align: right; }
+    .status-icon { flex: 0 0 20px; font-size: .9rem; }
+
+    .bar-90 { width: 90%; background: #16a34a; }
+    .bar-85 { width: 85%; background: #16a34a; }
+    .bar-80 { width: 80%; background: #65a30d; }
+    .bar-75 { width: 75%; background: #65a30d; }
+    .bar-70 { width: 70%; background: #ca8a04; }
+    .bar-65 { width: 65%; background: #ca8a04; }
+    .bar-60 { width: 60%; background: #d97706; }
+    .bar-55 { width: 55%; background: #ea580c; }
+    .bar-50 { width: 50%; background: #ea580c; }
+    .bar-45 { width: 45%; background: #dc2626; }
+    .bar-40 { width: 40%; background: #dc2626; }
+    .bar-35 { width: 35%; background: #dc2626; }
+
+    /* ── GRID LAYOUT ── */
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; padding: 1.5rem; }
+    .three-col { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem; padding: 1.5rem; }
+
+    /* ── FEATURE LIST ── */
+    .feature-list { padding: 0; list-style: none; }
+    .feature-list li { display: flex; align-items: flex-start; gap: .5rem;
+      padding: .45rem 0; border-bottom: 1px dashed #f3f4f6; font-size: .85rem; }
+    .feature-list li:last-child { border-bottom: none; }
+    .fi-done { color: #16a34a; }
+    .fi-partial { color: #d97706; }
+    .fi-todo { color: #dc2626; }
+
+    /* ── ROUTE TABLE ── */
+    .route-table { width: 100%; border-collapse: collapse; font-size: .83rem; }
+    .route-table th { background: #f3f4f6; text-align: left; padding: .5rem .75rem;
+      font-weight: 600; border-bottom: 2px solid var(--border); }
+    .route-table td { padding: .45rem .75rem; border-bottom: 1px solid var(--border); vertical-align: top; }
+    .route-table tr:hover td { background: var(--primary-light); }
+    .route-code { font-family: 'Consolas', monospace; background: #f3f4f6; padding: 1px 6px;
+      border-radius: 4px; color: #4338ca; font-size: .8rem; }
+
+    /* ── DEPENDENCY BOX ── */
+    .dep-box { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px;
+      padding: 1rem; font-size: .84rem; }
+    .dep-box h4 { font-size: .88rem; color: var(--primary); margin-bottom: .6rem; }
+    .dep-tag { display: inline-block; background: var(--primary-light); color: var(--primary);
+      border: 1px solid #c7d2fe; border-radius: 6px; padding: 2px 8px; margin: 2px;
+      font-size: .78rem; font-weight: 500; }
+
+    /* ── NAV PATH ── */
+    .nav-path { display: flex; align-items: center; gap: .4rem; flex-wrap: wrap;
+      font-size: .82rem; color: var(--muted); padding: .8rem 1.5rem; background: #fafafa;
+      border-bottom: 1px solid var(--border); }
+    .nav-step { background: #e0e7ff; color: #3730a3; padding: 2px 10px; border-radius: 6px;
+      font-weight: 500; font-size: .78rem; }
+    .nav-arrow { color: #9ca3af; }
+
+    /* ── SCREENSHOT PLACEHOLDER ── */
+    .screenshot-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 1rem;
+      padding: 1.5rem; }
+    .screenshot { background: linear-gradient(135deg, #e0e7ff, #f3f4f6);
+      border: 2px dashed #a5b4fc; border-radius: 10px; aspect-ratio: 16/9;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 1rem; cursor: pointer; transition: border-color .2s; }
+    .screenshot:hover { border-color: var(--primary); background: linear-gradient(135deg, #c7d2fe, #e0e7ff); }
+    .screenshot .ss-icon { font-size: 2rem; margin-bottom: .4rem; }
+    .screenshot .ss-label { font-size: .78rem; color: var(--muted); font-weight: 500; }
+    .screenshot .ss-path { font-size: .68rem; color: #a5b4fc; margin-top: .3rem;
+      font-family: 'Consolas', monospace; }
+
+    /* ── ARCH DIAGRAM ── */
+    .arch-diagram { padding: 1.5rem; }
+    .arch-tree { font-family: 'Consolas', monospace; font-size: .82rem; background: #1e1b4b;
+      color: #c7d2fe; border-radius: 10px; padding: 1.5rem; line-height: 1.9; }
+    .arch-tree .node-root { color: #818cf8; font-weight: 700; }
+    .arch-tree .node-main { color: #a5b4fc; }
+    .arch-tree .node-sub  { color: #c7d2fe; }
+
+    /* ── OVERALL PROGRESS SUMMARY ── */
+    .summary-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 2rem; }
+    .summary-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+      padding: 1.2rem; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .summary-card .big-num { font-size: 2.2rem; font-weight: 800; }
+    .summary-card .sm-lbl { font-size: .78rem; color: var(--muted); margin-top: 2px; }
+
+    /* ── OVERALL PROGRESS TABLE ── */
+    .overview-table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+    .overview-table th { background: var(--primary); color: #fff; padding: .6rem 1rem; text-align: left; }
+    .overview-table td { padding: .6rem 1rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .overview-table tr:hover td { background: var(--primary-light); }
+    .pct-pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .78rem; font-weight: 700; }
+
+    /* ── PRINT ── */
+    @media print {
+      .sidebar, .top-nav { display: none; }
+      .main { margin: 0; padding: 1rem; }
+      .module-card { break-inside: avoid; }
+    }
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+      .two-col, .three-col, .screenshot-grid, .hero-stats { grid-template-columns: 1fr; }
+      .summary-grid { grid-template-columns: repeat(2,1fr); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ──────────── TOP NAV ──────────── -->
+<nav class="top-nav">
+  <h1>🎓 LMS SaaS – Product Documentation</h1>
+  <span class="badge">v1.0 · April 2026</span>
+</nav>
+
+<!-- ──────────── SIDEBAR ──────────── -->
+<aside class="sidebar">
+  <div class="sidebar-section">Overview</div>
+  <a href="#overview">System Overview</a>
+  <a href="#architecture">Architecture & Dependencies</a>
+  <a href="#completion-summary">Completion Summary</a>
+
+  <div class="sidebar-section">Modules</div>
+  <a href="#mod-auth">1. Auth & Onboarding</a>
+  <a href="#mod-user">2. User Management</a>
+  <a href="#mod-role">3. Roles & Permissions</a>
+  <a href="#mod-tenant">4. Tenant Management</a>
+  <a href="#mod-course">5. Course Management</a>
+  <a href="#mod-batch">6. Batch Management</a>
+  <a href="#mod-attendance">7. Attendance System</a>
+  <a href="#mod-quiz">8. Quiz & Assessment</a>
+  <a href="#mod-assignment">9. Assignment Management</a>
+  <a href="#mod-code">10. Code Snippets</a>
+  <a href="#mod-recording">11. Class Recordings</a>
+  <a href="#mod-interview">12. Mock Interviews</a>
+  <a href="#mod-leads">13. Leads & CRM</a>
+  <a href="#mod-marketing">14. Marketing Intelligence</a>
+  <a href="#mod-placement">15. Placement & Alumni</a>
+  <a href="#mod-college">16. College Administration</a>
+  <a href="#mod-learning">17. Learning Hub</a>
+  <a href="#mod-content">18. Content Management</a>
+  <a href="#mod-notifications">19. Notifications</a>
+  <a href="#mod-certificates">20. Certificates</a>
+  <a href="#mod-dashboard">21. Dashboard & Analytics</a>
+  <a href="#mod-sysadmin">22. System Administration</a>
+
+  <div class="sidebar-section">Reference</div>
+  <a href="#api-overview">API Overview</a>
+  <a href="#tech-stack">Tech Stack</a>
+</aside>
+
+<!-- ──────────── MAIN ──────────── -->
+<main class="main">
+
+  <!-- ══════════ HERO ══════════ -->
+  <section id="overview" class="hero">
+    <h2>LMS SaaS Platform</h2>
+    <p>A full-stack multi-tenant Learning Management System with integrated CRM, Placement, Marketing Intelligence, and AI-powered features. Built for educational institutions, coding bootcamps, and professional training providers.</p>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="num">22</div><div class="lbl">Modules</div></div>
+      <div class="hero-stat"><div class="num">120+</div><div class="lbl">Features</div></div>
+      <div class="hero-stat"><div class="num">~65%</div><div class="lbl">Overall Complete</div></div>
+      <div class="hero-stat"><div class="num">8</div><div class="lbl">User Roles</div></div>
+    </div>
+  </section>
+
+  <!-- ══════════ COMPLETION SUMMARY ══════════ -->
+  <section id="completion-summary">
+    <h2 class="section-title">📊 Completion Summary</h2>
+
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="big-num" style="color:#16a34a">5</div>
+        <div class="sm-lbl">Modules 85–95%</div>
+      </div>
+      <div class="summary-card">
+        <div class="big-num" style="color:#ca8a04">5</div>
+        <div class="sm-lbl">Modules 70–84%</div>
+      </div>
+      <div class="summary-card">
+        <div class="big-num" style="color:#d97706">7</div>
+        <div class="sm-lbl">Modules 50–69%</div>
+      </div>
+      <div class="summary-card">
+        <div class="big-num" style="color:#dc2626">5</div>
+        <div class="sm-lbl">Modules &lt;50%</div>
+      </div>
+    </div>
+
+    <div class="module-card">
+      <table class="overview-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Module</th>
+            <th>Completion</th>
+            <th>Progress</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Authentication &amp; Onboarding</td><td><span class="pct-pill badge-green">95%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:95%"></div></div></td><td>✅ Production Ready</td></tr>
+          <tr><td>2</td><td>User Management</td><td><span class="pct-pill badge-green">85%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div></td><td>✅ Stable</td></tr>
+          <tr><td>3</td><td>Roles &amp; Permissions</td><td><span class="pct-pill badge-green">85%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div></td><td>✅ Stable</td></tr>
+          <tr><td>4</td><td>Tenant Management</td><td><span class="pct-pill badge-green">90%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:90%"></div></div></td><td>✅ Production Ready</td></tr>
+          <tr><td>5</td><td>Course Management</td><td><span class="pct-pill badge-blue">80%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-80"></div></div></td><td>⚠️ Minor gaps</td></tr>
+          <tr><td>6</td><td>Batch Management</td><td><span class="pct-pill badge-blue">75%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-75"></div></div></td><td>⚠️ Reporting partial</td></tr>
+          <tr><td>7</td><td>Attendance System</td><td><span class="pct-pill badge-yellow">60%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-60"></div></div></td><td>⚠️ 15–20hrs work left</td></tr>
+          <tr><td>8</td><td>Quiz &amp; Assessment</td><td><span class="pct-pill badge-yellow">65%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-65"></div></div></td><td>⚠️ 17–22hrs work left</td></tr>
+          <tr><td>9</td><td>Assignment Management</td><td><span class="pct-pill badge-blue">70%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-70"></div></div></td><td>⚠️ Grading partial</td></tr>
+          <tr><td>10</td><td>Code Snippets</td><td><span class="pct-pill badge-yellow">60%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-60"></div></div></td><td>⚠️ No execution engine</td></tr>
+          <tr><td>11</td><td>Class Recordings</td><td><span class="pct-pill badge-yellow">55%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-55"></div></div></td><td>⚠️ ClassFlow incomplete</td></tr>
+          <tr><td>12</td><td>Mock Interviews</td><td><span class="pct-pill badge-yellow">50%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-50"></div></div></td><td>⚠️ AI eval missing</td></tr>
+          <tr><td>13</td><td>Leads &amp; CRM</td><td><span class="pct-pill badge-blue">70%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-70"></div></div></td><td>⚠️ Bulk import missing</td></tr>
+          <tr><td>14</td><td>Marketing Intelligence</td><td><span class="pct-pill badge-red">40%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-40"></div></div></td><td>🚧 Early-stage</td></tr>
+          <tr><td>15</td><td>Placement &amp; Alumni</td><td><span class="pct-pill badge-red">45%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-45"></div></div></td><td>🚧 Core done</td></tr>
+          <tr><td>16</td><td>College Administration</td><td><span class="pct-pill badge-yellow">50%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-50"></div></div></td><td>⚠️ Hierarchy missing</td></tr>
+          <tr><td>17</td><td>Learning Hub</td><td><span class="pct-pill badge-red">35%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-35"></div></div></td><td>🚧 Early-stage</td></tr>
+          <tr><td>18</td><td>Content Management</td><td><span class="pct-pill badge-blue">80%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-80"></div></div></td><td>✅ Stable</td></tr>
+          <tr><td>19</td><td>Notifications</td><td><span class="pct-pill badge-yellow">50%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-50"></div></div></td><td>⚠️ WS partial</td></tr>
+          <tr><td>20</td><td>Certificates</td><td><span class="pct-pill badge-red">40%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-40"></div></div></td><td>🚧 Basic only</td></tr>
+          <tr><td>21</td><td>Dashboard &amp; Analytics</td><td><span class="pct-pill badge-yellow">65%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-65"></div></div></td><td>⚠️ Partial analytics</td></tr>
+          <tr><td>22</td><td>System Administration</td><td><span class="pct-pill badge-blue">70%</span></td><td><div class="progress-bar-wrap"><div class="progress-bar bar-70"></div></div></td><td>⚠️ Monitoring missing</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════ ARCHITECTURE ══════════ -->
+  <section id="architecture">
+    <h2 class="section-title">🏗 Architecture &amp; Dependencies</h2>
+    <div class="module-card">
+      <div class="arch-diagram">
+        <div class="arch-tree">
+<span class="node-root">LMS SaaS Platform</span>
+│
+├── <span class="node-main">Authentication (JWT + OAuth)</span>
+│   ├── User Management ──────────────────────────────┐
+│   │   ├── Role &amp; Permissions                        │
+│   │   └── Tenant Management (Multi-tenant)          │
+│   └── Session / Refresh Token                       │
+│                                                     │
+├── <span class="node-main">Learning Core</span>                                   │
+│   ├── Course Management                             ├─ All modules
+│   │   ├── Batch Management                         │   scoped by
+│   │   │   ├── Attendance System                    │   tenantId
+│   │   │   └── Class Recordings / ClassFlow         │
+│   │   ├── Content Management (WebSocket)           │
+│   │   └── Enrollment                               │
+│   └── Assessments                                  │
+│       ├── Quiz &amp; Assessment                        │
+│       │   └── Question Bank                        │
+│       ├── Assignment Management                    │
+│       ├── Code Snippets                            │
+│       └── Mock Interviews                          │
+│           └── Interview Question Bank              │
+│                                                    │
+├── <span class="node-main">CRM &amp; Sales</span>                                   │
+│   ├── Leads &amp; CRM                                  │
+│   │   ├── Lead Stages &amp; Pipeline                   │
+│   │   ├── Lead Scoring &amp; Priority                  │
+│   │   ├── Telecaller Console                        │
+│   │   ├── Follow-up Calendar                       │
+│   │   ├── Lead AI Service (OpenAI GPT-4)           │
+│   │   └── Google Sheet Integration                 │
+│   ├── Marketing Intelligence                       │
+│   │   ├── Ad Campaigns                             │
+│   │   ├── Competitor Tracking                      │
+│   │   └── Meta Webhook Integration                 │
+│   └── Sales Content Library                        │
+│                                                    │
+├── <span class="node-main">Institution Management</span>                          │
+│   ├── College Administration                       │
+│   │   ├── Departments                              │
+│   │   ├── Members                                  │
+│   │   └── Bulk Upload                              │
+│   ├── Placement &amp; Alumni                           │
+│   │   ├── Placement Drives                         │
+│   │   ├── Alumni Directory                         │
+│   │   └── Student Applications                     │
+│   └── Learning Hub                                 │
+│       ├── Topic Mastery Heatmap                    │
+│       └── Learning Requests                        │
+│                                                    │
+└── <span class="node-main">Infrastructure</span>
+    ├── Notifications (WebSocket + Email)
+    ├── Certificates (Token-based)
+    ├── Dashboard &amp; Analytics
+    ├── System Administration
+    │   ├── Feature Flags
+    │   └── Tenant Settings
+    └── File Upload Service (Multer)
+        </div>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- MODULE 1: AUTH -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="mod-auth">
+    <h2 class="section-title">1. Authentication &amp; Onboarding</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🔐</div>
+        <div class="module-title">
+          <h3>Authentication &amp; Onboarding</h3>
+          <p>Entry point for all users — login, registration, password management &amp; OAuth</p>
+        </div>
+        <span class="module-badge badge-green">95% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Public URL</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/login</span><span class="nav-arrow">or</span>
+        <span class="nav-step">/register</span><span class="nav-arrow">→</span>
+        <span class="nav-step">JWT Token</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/dashboard</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <strong style="font-size:.88rem">Features</strong>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Email/password login with JWT</li>
+            <li><span class="fi-done">✅</span> User registration (self-service)</li>
+            <li><span class="fi-done">✅</span> Organization creation at registration</li>
+            <li><span class="fi-done">✅</span> Forgot &amp; Reset password flow</li>
+            <li><span class="fi-done">✅</span> Setup password (invite-based)</li>
+            <li><span class="fi-done">✅</span> Profile completion wizard</li>
+            <li><span class="fi-done">✅</span> OAuth (GitHub / LinkedIn) ready</li>
+            <li><span class="fi-done">✅</span> Refresh token mechanism</li>
+            <li><span class="fi-done">✅</span> bcrypt password hashing</li>
+            <li><span class="fi-partial">⚠️</span> OAuth full flow (partial)</li>
+          </ul>
+        </div>
+        <div>
+          <strong style="font-size:.88rem">Routes</strong>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/login</span></td><td>Public</td></tr>
+            <tr><td><span class="route-code">/register</span></td><td>Public</td></tr>
+            <tr><td><span class="route-code">/create-organization</span></td><td>Public</td></tr>
+            <tr><td><span class="route-code">/forgot-password</span></td><td>Public</td></tr>
+            <tr><td><span class="route-code">/reset-password</span></td><td>Public</td></tr>
+            <tr><td><span class="route-code">/setup-password</span></td><td>Invited</td></tr>
+            <tr><td><span class="route-code">/complete-profile</span></td><td>Authenticated</td></tr>
+            <tr><td><span class="route-code">/profile/oauth-callback</span></td><td>OAuth</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Dependencies</h4>
+            <span class="dep-tag">None (Entry Point)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row"><span class="progress-name">JWT Auth &amp; Token Refresh</span><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:98%"></div></div><span class="pct-label">98%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Password Management</span><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:95%"></div></div><span class="pct-label">95%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">OAuth Integration</span><div class="progress-bar-wrap"><div class="progress-bar bar-60"></div></div><span class="pct-label">60%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Profile Completion Wizard</span><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:92%"></div></div><span class="pct-label">92%</span><span class="status-icon">✅</span></div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Login Page</div><div class="ss-path">/login</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Register / Create Org</div><div class="ss-path">/register · /create-organization</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Profile Completion</div><div class="ss-path">/complete-profile</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════════════════════════════════════ -->
+  <!-- MODULE 2: USERS -->
+  <!-- ═══════════════════════════════════════════════ -->
+  <section id="mod-user">
+    <h2 class="section-title">2. User Management</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">👥</div>
+        <div class="module-title">
+          <h3>User Management</h3>
+          <p>Create, manage and monitor all users across the platform</p>
+        </div>
+        <span class="module-badge badge-green">85% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Users</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/users</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Create / Edit / Deactivate</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Full CRUD for users</li>
+            <li><span class="fi-done">✅</span> Role assignment per user</li>
+            <li><span class="fi-done">✅</span> User status (active / inactive)</li>
+            <li><span class="fi-done">✅</span> Bulk user operations</li>
+            <li><span class="fi-done">✅</span> Profile picture upload</li>
+            <li><span class="fi-done">✅</span> Search &amp; filter</li>
+            <li><span class="fi-done">✅</span> Account deactivation</li>
+            <li><span class="fi-partial">⚠️</span> User activity tracking (partial)</li>
+            <li><span class="fi-todo">❌</span> User analytics dashboard</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/users</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/profile</span></td><td>All</td></tr>
+            <tr><td><span class="route-code">/admin/student-profiles</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/student-profiles/:id</span></td><td>Admin</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Authentication</span>
+            <span class="dep-tag">Roles</span>
+            <span class="dep-tag">Tenant Management</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row"><span class="progress-name">CRUD Operations</span><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:95%"></div></div><span class="pct-label">95%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Invite &amp; Onboarding</span><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div><span class="pct-label">85%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Activity Tracking</span><div class="progress-bar-wrap"><div class="progress-bar bar-50"></div></div><span class="pct-label">50%</span><span class="status-icon">⚠️</span></div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">User List</div><div class="ss-path">/users</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Student Profiles</div><div class="ss-path">/admin/student-profiles</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">My Profile</div><div class="ss-path">/profile</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 3: ROLES -->
+  <section id="mod-role">
+    <h2 class="section-title">3. Roles &amp; Permissions</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🛡</div>
+        <div class="module-title">
+          <h3>Roles &amp; Permission Management</h3>
+          <p>Fine-grained RBAC with 20+ permission types across all modules</p>
+        </div>
+        <span class="module-badge badge-green">85% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Roles</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/roles</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Create / Edit Role</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <strong style="font-size:.88rem">Predefined Roles</strong>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> SUPER_ADMIN — full system access</li>
+            <li><span class="fi-done">✅</span> TENANT_ADMIN — tenant-level management</li>
+            <li><span class="fi-done">✅</span> INSTRUCTOR — course &amp; content</li>
+            <li><span class="fi-done">✅</span> ATTENDANCE_ADMIN — attendance marking</li>
+            <li><span class="fi-done">✅</span> STAFF — sales, leads, enrollment</li>
+            <li><span class="fi-done">✅</span> STUDENT — learner access</li>
+            <li><span class="fi-done">✅</span> PLACEMENT_OFFICER — placement module</li>
+            <li><span class="fi-done">✅</span> GUEST — limited read access</li>
+            <li><span class="fi-done">✅</span> Custom roles</li>
+            <li><span class="fi-partial">⚠️</span> Permission inheritance (partial)</li>
+          </ul>
+        </div>
+        <div>
+          <strong style="font-size:.88rem">Key Permissions</strong>
+          <div style="font-size:.78rem; line-height:2; margin-top:.5rem">
+            <code>manage_tenants</code> · <code>manage_all_users</code> · <code>manage_system_settings</code><br>
+            <code>manage_tenant_users</code> · <code>manage_roles</code> · <code>manage_tenant_settings</code><br>
+            <code>create_courses</code> · <code>manage_assignments</code> · <code>manage_interviews</code><br>
+            <code>mark_attendance</code> · <code>view_reports</code> · <code>export_leads</code><br>
+            <code>create_leads</code> · <code>manage_quizzes</code> · <code>view_analytics</code>
+          </div>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Authentication</span>
+            <span class="dep-tag">User Management</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 4: TENANT -->
+  <section id="mod-tenant">
+    <h2 class="section-title">4. Tenant Management</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🏢</div>
+        <div class="module-title">
+          <h3>Tenant Management</h3>
+          <p>Multi-tenant isolation, configuration, and subscription management</p>
+        </div>
+        <span class="module-badge badge-green">90% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">SUPER_ADMIN</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Sidebar: Tenant Management</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/super-admin/tenants</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Complete tenant isolation (middleware)</li>
+            <li><span class="fi-done">✅</span> Tenant CRUD by SUPER_ADMIN</li>
+            <li><span class="fi-done">✅</span> Multi-tenant API scoping</li>
+            <li><span class="fi-done">✅</span> Tenant-level configuration</li>
+            <li><span class="fi-done">✅</span> Subscription tier tracking</li>
+            <li><span class="fi-done">✅</span> Usage statistics per tenant</li>
+            <li><span class="fi-done">✅</span> Tenant-specific feature flags</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/super-admin/tenants</span></td><td>SUPER_ADMIN</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Architecture</h4>
+            <p style="font-size:.8rem;color:var(--muted)">Middleware-based tenant context injection. All DB queries filtered by <code>tenantId</code>. Cross-tenant access prevented at middleware layer.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 5: COURSES -->
+  <section id="mod-course">
+    <h2 class="section-title">5. Course Management</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📚</div>
+        <div class="module-title">
+          <h3>Course Management</h3>
+          <p>Create, organize and manage courses with enrollments and instructor assignments</p>
+        </div>
+        <span class="module-badge badge-blue">80% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Courses</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/courses</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Course Detail → Batches → Enrollment</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Create/edit/delete courses</li>
+            <li><span class="fi-done">✅</span> Course enrollment management</li>
+            <li><span class="fi-done">✅</span> Enrollment limits (capacity)</li>
+            <li><span class="fi-done">✅</span> Course status (active/draft/archived)</li>
+            <li><span class="fi-done">✅</span> Instructor assignment</li>
+            <li><span class="fi-done">✅</span> Course statistics</li>
+            <li><span class="fi-done">✅</span> Student course view (feature-gated)</li>
+            <li><span class="fi-partial">⚠️</span> Course content organization (via Content module)</li>
+            <li><span class="fi-todo">❌</span> Course prerequisites</li>
+            <li><span class="fi-todo">❌</span> Course templates</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/courses</span></td><td>Admin/Instructor</td></tr>
+            <tr><td><span class="route-code">/course-management</span></td><td>Admin/Instructor</td></tr>
+            <tr><td><span class="route-code">/my-course</span></td><td>Student</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Authentication</span>
+            <span class="dep-tag">User Management</span>
+            <span class="dep-tag">Tenant Management</span>
+          </div>
+          <div class="dep-box" style="margin-top:.5rem">
+            <h4>Required By</h4>
+            <span class="dep-tag">Batches</span>
+            <span class="dep-tag">Attendance</span>
+            <span class="dep-tag">Quizzes</span>
+            <span class="dep-tag">Assignments</span>
+            <span class="dep-tag">Content</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row"><span class="progress-name">Course CRUD</span><div class="progress-bar-wrap"><div class="progress-bar bar-90" style="width:95%"></div></div><span class="pct-label">95%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Enrollment System</span><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div><span class="pct-label">85%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Content Organization</span><div class="progress-bar-wrap"><div class="progress-bar bar-60"></div></div><span class="pct-label">60%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Prerequisites &amp; Templates</span><div class="progress-bar-wrap"><div class="progress-bar bar-40" style="width:0%"></div></div><span class="pct-label">0%</span><span class="status-icon">❌</span></div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Course List</div><div class="ss-path">/courses</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Course Management</div><div class="ss-path">/course-management</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">My Course (Student)</div><div class="ss-path">/my-course</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 6: BATCH -->
+  <section id="mod-batch">
+    <h2 class="section-title">6. Batch Management</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🗂</div>
+        <div class="module-title">
+          <h3>Batch Management</h3>
+          <p>Organize students into batches with schedules and capacity controls</p>
+        </div>
+        <span class="module-badge badge-blue">75% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Batches</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/batches</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Create/manage batches</li>
+            <li><span class="fi-done">✅</span> Student assignment to batches</li>
+            <li><span class="fi-done">✅</span> Batch capacity management</li>
+            <li><span class="fi-done">✅</span> Batch scheduling</li>
+            <li><span class="fi-done">✅</span> Batch statistics</li>
+            <li><span class="fi-partial">⚠️</span> Batch-level reporting (partial)</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/batches</span></td><td>Admin/Instructor</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Courses</span>
+            <span class="dep-tag">Users</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 7: ATTENDANCE -->
+  <section id="mod-attendance">
+    <h2 class="section-title">7. Attendance System</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📋</div>
+        <div class="module-title">
+          <h3>Attendance System</h3>
+          <p>Mark, track and report student attendance with time tracking</p>
+        </div>
+        <span class="module-badge badge-yellow">60% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Attendance</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/attendance</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Select Batch → Mark → Save</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Mark attendance (P/A/L status)</li>
+            <li><span class="fi-done">✅</span> In-time / out-time tracking</li>
+            <li><span class="fi-done">✅</span> Batch &amp; student level views</li>
+            <li><span class="fi-done">✅</span> Attendance % calculation</li>
+            <li><span class="fi-done">✅</span> Date range filtering</li>
+            <li><span class="fi-done">✅</span> CSV export</li>
+            <li><span class="fi-partial">⚠️</span> Bulk marking (in progress)</li>
+            <li><span class="fi-partial">⚠️</span> Attendance notifications (TODO)</li>
+            <li><span class="fi-todo">❌</span> QR code attendance</li>
+            <li><span class="fi-todo">❌</span> Analytics dashboard</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/attendance</span></td><td>Admin/Instructor</td></tr>
+            <tr><td><span class="route-code">/my-attendance</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/attendance-reports</span></td><td>Admin</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Batches</span>
+            <span class="dep-tag">Users</span>
+            <span class="dep-tag">Courses</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row"><span class="progress-name">Basic Mark &amp; Track</span><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div><span class="pct-label">85%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Reports &amp; Export</span><div class="progress-bar-wrap"><div class="progress-bar bar-70"></div></div><span class="pct-label">70%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Bulk Operations</span><div class="progress-bar-wrap"><div class="progress-bar bar-35"></div></div><span class="pct-label">35%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Analytics &amp; Notifications</span><div class="progress-bar-wrap"><div class="progress-bar bar-40" style="width:10%"></div></div><span class="pct-label">10%</span><span class="status-icon">❌</span></div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Mark Attendance</div><div class="ss-path">/attendance</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">My Attendance (Student)</div><div class="ss-path">/my-attendance</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Attendance Reports</div><div class="ss-path">/attendance-reports</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 8: QUIZ -->
+  <section id="mod-quiz">
+    <h2 class="section-title">8. Quiz &amp; Assessment</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📝</div>
+        <div class="module-title">
+          <h3>Quiz &amp; Assessment</h3>
+          <p>Create question banks, configure quizzes with timers, and track student attempts</p>
+        </div>
+        <span class="module-badge badge-yellow">65% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/quiz-management → Create Quiz</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Link Questions</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Publish</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Student /quizzes → Take</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> MCQ, Short Answer question types</li>
+            <li><span class="fi-done">✅</span> Question bank management</li>
+            <li><span class="fi-done">✅</span> Quiz creation wizard</li>
+            <li><span class="fi-done">✅</span> Question linking to quizzes</li>
+            <li><span class="fi-done">✅</span> Configurable timer</li>
+            <li><span class="fi-done">✅</span> Instant scoring</li>
+            <li><span class="fi-done">✅</span> Student attempt tracking</li>
+            <li><span class="fi-partial">⚠️</span> Auto-save answers</li>
+            <li><span class="fi-partial">⚠️</span> Question randomization (TODO 2hrs)</li>
+            <li><span class="fi-partial">⚠️</span> Answer review after submit (TODO)</li>
+            <li><span class="fi-todo">❌</span> Quiz analytics dashboard</li>
+            <li><span class="fi-todo">❌</span> Negative marking</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/quizzes</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/quiz-management</span></td><td>Instructor</td></tr>
+            <tr><td><span class="route-code">/question-bank</span></td><td>Instructor</td></tr>
+            <tr><td><span class="route-code">/quiz/:id/take</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/quiz/:id/results/:attemptId</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/quiz-reports</span></td><td>Admin</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Courses</span>
+            <span class="dep-tag">Users</span>
+            <span class="dep-tag">Content Mgmt</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row"><span class="progress-name">Quiz Creation &amp; Question Bank</span><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div><span class="pct-label">85%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Quiz Taking Interface</span><div class="progress-bar-wrap"><div class="progress-bar bar-75"></div></div><span class="pct-label">75%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Scoring &amp; Results</span><div class="progress-bar-wrap"><div class="progress-bar bar-70"></div></div><span class="pct-label">70%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Analytics &amp; Reports</span><div class="progress-bar-wrap"><div class="progress-bar bar-35"></div></div><span class="pct-label">35%</span><span class="status-icon">❌</span></div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Quiz Management</div><div class="ss-path">/quiz-management</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Quiz Taking</div><div class="ss-path">/quiz/:id/take</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Quiz Results</div><div class="ss-path">/quiz/:id/results/:attemptId</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 9: ASSIGNMENTS -->
+  <section id="mod-assignment">
+    <h2 class="section-title">9. Assignment Management</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📎</div>
+        <div class="module-title">
+          <h3>Assignment Management</h3>
+          <p>Create assignments, manage submissions, and grade student work</p>
+        </div>
+        <span class="module-badge badge-blue">70% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/assignments/create</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Set Due Date</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Student Submits</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Grade in /submissions</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Assignment CRUD</li>
+            <li><span class="fi-done">✅</span> Due date management</li>
+            <li><span class="fi-done">✅</span> File upload / download</li>
+            <li><span class="fi-done">✅</span> Submission tracking</li>
+            <li><span class="fi-done">✅</span> Grading interface</li>
+            <li><span class="fi-done">✅</span> Assignment reports</li>
+            <li><span class="fi-todo">❌</span> Rubric-based grading</li>
+            <li><span class="fi-todo">❌</span> Plagiarism detection</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/assignments</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/admin/assignments</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/assignments/create</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/assignments/:id/submissions</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/assignments/reports</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/assignments/:id/workspace</span></td><td>Student</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Courses</span><span class="dep-tag">Users</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 10: CODE SNIPPETS -->
+  <section id="mod-code">
+    <h2 class="section-title">10. Code Snippets / Assessments</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">💻</div>
+        <div class="module-title">
+          <h3>Code Snippets &amp; Assessments</h3>
+          <p>Coding assessments with submission tracking and grading</p>
+        </div>
+        <span class="module-badge badge-yellow">60% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/coding-snippets</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Create Snippet</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Student Submits</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Grade</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Code snippet CRUD</li>
+            <li><span class="fi-done">✅</span> Submission grading</li>
+            <li><span class="fi-done">✅</span> Code syntax highlighting</li>
+            <li><span class="fi-partial">⚠️</span> Code execution engine (not implemented)</li>
+            <li><span class="fi-partial">⚠️</span> Test case validation (not implemented)</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/coding-snippets</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/coding-snippets/:id/submissions</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/coding-snippets</span></td><td>Student</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 11: RECORDINGS -->
+  <section id="mod-recording">
+    <h2 class="section-title">11. Class Recordings &amp; Live Class</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🎥</div>
+        <div class="module-title">
+          <h3>Class Recordings &amp; Live Class</h3>
+          <p>Record, store and serve class videos to students</p>
+        </div>
+        <span class="module-badge badge-yellow">55% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Instructor</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/class-recordings/start</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Upload Recording</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Student: /class-hub</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Recording upload &amp; storage</li>
+            <li><span class="fi-done">✅</span> Recording playback</li>
+            <li><span class="fi-done">✅</span> Recording management</li>
+            <li><span class="fi-done">✅</span> Student recording access</li>
+            <li><span class="fi-partial">⚠️</span> ClassFlow unified interface (incomplete)</li>
+            <li><span class="fi-todo">❌</span> Live video conferencing</li>
+            <li><span class="fi-todo">❌</span> Recording transcription</li>
+            <li><span class="fi-todo">❌</span> Chapter markers</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/class-recordings</span></td><td>Instructor</td></tr>
+            <tr><td><span class="route-code">/admin/class-recordings/start</span></td><td>Instructor</td></tr>
+            <tr><td><span class="route-code">/admin/class-flow</span></td><td>Instructor</td></tr>
+            <tr><td><span class="route-code">/class-hub</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/class-recordings</span></td><td>Student</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 12: INTERVIEWS -->
+  <section id="mod-interview">
+    <h2 class="section-title">12. Mock Interviews</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🎤</div>
+        <div class="module-title">
+          <h3>Mock Interviews</h3>
+          <p>Create structured interview templates, assign to students, collect feedback</p>
+        </div>
+        <span class="module-badge badge-yellow">50% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/interviews/templates/create</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Assign to Student</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/student/interviews/take/:templateId</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Analytics</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Interview template creation</li>
+            <li><span class="fi-done">✅</span> Question bank management</li>
+            <li><span class="fi-done">✅</span> Assignment to students</li>
+            <li><span class="fi-done">✅</span> Student interview taking interface</li>
+            <li><span class="fi-done">✅</span> Feedback report generation</li>
+            <li><span class="fi-done">✅</span> Analytics dashboard</li>
+            <li><span class="fi-partial">⚠️</span> AI-powered evaluation (not implemented)</li>
+            <li><span class="fi-todo">❌</span> Video interview capability</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/interviews/templates</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/interviews/assignments</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/interviews/analytics</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/student/interviews</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/student/interviews/take/:id</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/mock-interviews</span></td><td>Student</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 13: LEADS CRM -->
+  <section id="mod-leads">
+    <h2 class="section-title">13. Leads &amp; CRM System</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🎯</div>
+        <div class="module-title">
+          <h3>Leads &amp; CRM System</h3>
+          <p>Full lead lifecycle management — capture, score, nurture and convert leads to students</p>
+        </div>
+        <span class="module-badge badge-blue">70% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Meta/Website Lead</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Webhook / Form</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/leads (Assign)</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Telecaller → Follow-Up</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Convert → Student</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Lead creation (manual, webhook, form)</li>
+            <li><span class="fi-done">✅</span> Lead stages &amp; Kanban pipeline</li>
+            <li><span class="fi-done">✅</span> Lead assignment to staff</li>
+            <li><span class="fi-done">✅</span> Follow-up tracking calendar</li>
+            <li><span class="fi-done">✅</span> Lead analytics &amp; reports</li>
+            <li><span class="fi-done">✅</span> Manager performance board</li>
+            <li><span class="fi-done">✅</span> Telecaller console</li>
+            <li><span class="fi-done">✅</span> Lead priority (hot/warm/cold)</li>
+            <li><span class="fi-done">✅</span> Lead scoring rules engine</li>
+            <li><span class="fi-done">✅</span> Audit logs</li>
+            <li><span class="fi-done">✅</span> Form customization</li>
+            <li><span class="fi-done">✅</span> Google Sheets integration</li>
+            <li><span class="fi-done">✅</span> Meta webhook integration</li>
+            <li><span class="fi-done">✅</span> AI summary (OpenAI GPT-4)</li>
+            <li><span class="fi-partial">⚠️</span> Bulk lead import (missing)</li>
+            <li><span class="fi-partial">⚠️</span> Lead conversion tracking (partial)</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/leads</span></td><td>Staff/Admin</td></tr>
+            <tr><td><span class="route-code">/leads/:leadId</span></td><td>Staff</td></tr>
+            <tr><td><span class="route-code">/lead-stages</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/lead-form-settings</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/lead-manager-board</span></td><td>Manager</td></tr>
+            <tr><td><span class="route-code">/lead-my-performance</span></td><td>Staff</td></tr>
+            <tr><td><span class="route-code">/lead-audit-logs</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/telecaller-console</span></td><td>Staff</td></tr>
+            <tr><td><span class="route-code">/lead-priority-settings</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/qualification-settings</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/sales-content</span></td><td>Staff</td></tr>
+            <tr><td><span class="route-code">/leads/analytics</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/follow-ups</span></td><td>Staff</td></tr>
+            <tr><td><span class="route-code">/lead-scoring-settings</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/google-sheet-integration</span></td><td>Admin</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Users</span><span class="dep-tag">Roles</span>
+            <span class="dep-tag">Notifications</span>
+          </div>
+          <div class="dep-box" style="margin-top:.5rem">
+            <h4>Integrations</h4>
+            <span class="dep-tag">Meta/Facebook Webhook</span>
+            <span class="dep-tag">Google Sheets API</span>
+            <span class="dep-tag">OpenAI GPT-4</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="progress-wrap">
+        <div class="progress-row"><span class="progress-name">Lead Capture &amp; Pipeline</span><div class="progress-bar-wrap"><div class="progress-bar bar-85"></div></div><span class="pct-label">85%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Telecaller Console</span><div class="progress-bar-wrap"><div class="progress-bar bar-80"></div></div><span class="pct-label">80%</span><span class="status-icon">✅</span></div>
+        <div class="progress-row"><span class="progress-name">Lead Scoring &amp; Priority</span><div class="progress-bar-wrap"><div class="progress-bar bar-75"></div></div><span class="pct-label">75%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">AI Summary (GPT-4)</span><div class="progress-bar-wrap"><div class="progress-bar bar-60"></div></div><span class="pct-label">60%</span><span class="status-icon">⚠️</span></div>
+        <div class="progress-row"><span class="progress-name">Bulk Import</span><div class="progress-bar-wrap"><div class="progress-bar bar-40" style="width:0%"></div></div><span class="pct-label">0%</span><span class="status-icon">❌</span></div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Leads List / Kanban</div><div class="ss-path">/leads</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Lead Detail</div><div class="ss-path">/leads/:leadId</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Telecaller Console</div><div class="ss-path">/telecaller-console</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Lead Analytics</div><div class="ss-path">/leads/analytics</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Follow-Up Calendar</div><div class="ss-path">/follow-ups</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Manager Board</div><div class="ss-path">/lead-manager-board</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 14: MARKETING -->
+  <section id="mod-marketing">
+    <h2 class="section-title">14. Marketing Intelligence</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📣</div>
+        <div class="module-title">
+          <h3>Marketing Intelligence</h3>
+          <p>Campaign tracking, competitor analysis, and AI-powered marketing content generation</p>
+        </div>
+        <span class="module-badge badge-red">40% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Marketing</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/marketing</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Marketing dashboard</li>
+            <li><span class="fi-done">✅</span> Campaign management</li>
+            <li><span class="fi-done">✅</span> Competitor tracking</li>
+            <li><span class="fi-done">✅</span> Ad capture / monitoring</li>
+            <li><span class="fi-done">✅</span> Insights feed</li>
+            <li><span class="fi-partial">⚠️</span> AI content generation (partial)</li>
+            <li><span class="fi-todo">❌</span> Social media integration</li>
+            <li><span class="fi-todo">❌</span> Email campaign management</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/marketing</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/marketing/campaigns</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/marketing/competitors</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/marketing/ads</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/marketing/insights</span></td><td>Admin</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Leads CRM</span>
+            <span class="dep-tag">Meta Webhook</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 15: PLACEMENT -->
+  <section id="mod-placement">
+    <h2 class="section-title">15. Placement &amp; Alumni</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🎓</div>
+        <div class="module-title">
+          <h3>Placement &amp; Alumni</h3>
+          <p>Manage placement drives, track student applications, maintain alumni directory</p>
+        </div>
+        <span class="module-badge badge-red">45% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Placement Officer</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/college/placement</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Create Drive</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Student: /student/my-applications</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Placement drive creation</li>
+            <li><span class="fi-done">✅</span> Placement analytics</li>
+            <li><span class="fi-done">✅</span> Alumni management</li>
+            <li><span class="fi-done">✅</span> Student application tracking</li>
+            <li><span class="fi-done">✅</span> Alumni directory</li>
+            <li><span class="fi-partial">⚠️</span> Job posting system (not documented)</li>
+            <li><span class="fi-todo">❌</span> Offer management</li>
+            <li><span class="fi-todo">❌</span> Salary tracking</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/college/placement</span></td><td>Placement Officer</td></tr>
+            <tr><td><span class="route-code">/admin/college/placement-analytics</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/college/alumni</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/student/my-applications</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/student/college</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/student/alumni-directory</span></td><td>Student</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 16: COLLEGE ADMIN -->
+  <section id="mod-college">
+    <h2 class="section-title">16. College Administration</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🏫</div>
+        <div class="module-title">
+          <h3>College Administration</h3>
+          <p>Manage departments, members, settings and bulk data operations</p>
+        </div>
+        <span class="module-badge badge-yellow">50% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">College</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/college/departments</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Department CRUD</li>
+            <li><span class="fi-done">✅</span> Settings management</li>
+            <li><span class="fi-done">✅</span> Member management</li>
+            <li><span class="fi-done">✅</span> Bulk upload (CSV)</li>
+            <li><span class="fi-done">✅</span> College reports</li>
+            <li><span class="fi-partial">⚠️</span> Department hierarchy (not documented)</li>
+            <li><span class="fi-todo">❌</span> Holiday calendar management</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/college/departments</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/college/settings</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/college/members</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/college/reports</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/bulk-upload</span></td><td>Admin</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 17: LEARNING HUB -->
+  <section id="mod-learning">
+    <h2 class="section-title">17. Learning Hub</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🧠</div>
+        <div class="module-title">
+          <h3>Learning Hub</h3>
+          <p>Topic mastery heatmaps and personalized learning request management</p>
+        </div>
+        <span class="module-badge badge-red">35% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/topic-mastery</span><span class="nav-arrow">or</span>
+        <span class="nav-step">Student: /topic-hub</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Topic mastery heatmap</li>
+            <li><span class="fi-done">✅</span> Learning request tracking</li>
+            <li><span class="fi-partial">⚠️</span> Personalized learning paths (not implemented)</li>
+            <li><span class="fi-todo">❌</span> Adaptive learning engine</li>
+            <li><span class="fi-todo">❌</span> Topic recommendations</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/topic-mastery</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/topic-hub</span></td><td>Student</td></tr>
+            <tr><td><span class="route-code">/admin/learning-requests</span></td><td>Admin</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 18: CONTENT -->
+  <section id="mod-content">
+    <h2 class="section-title">18. Content Management</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📄</div>
+        <div class="module-title">
+          <h3>Content Management</h3>
+          <p>Manage announcements, notes, cheatsheets, snippets &amp; assignments with real-time sync</p>
+        </div>
+        <span class="module-badge badge-blue">80% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Content</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/admin/content</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Select Type → Create → Publish</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <strong style="font-size:.88rem">Content Types</strong>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Announcements (with expiry, priority)</li>
+            <li><span class="fi-done">✅</span> Notes (educational references)</li>
+            <li><span class="fi-done">✅</span> Assignments (due-date linked)</li>
+            <li><span class="fi-done">✅</span> Cheatsheets (quick references)</li>
+            <li><span class="fi-done">✅</span> Snippets (code examples)</li>
+          </ul>
+          <strong style="font-size:.88rem;margin-top:.8rem;display:block">Platform Features</strong>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Rich text editing</li>
+            <li><span class="fi-done">✅</span> File attachments (5 files, 50MB each)</li>
+            <li><span class="fi-done">✅</span> Real-time sync (WebSocket)</li>
+            <li><span class="fi-done">✅</span> Publish / draft status</li>
+            <li><span class="fi-done">✅</span> Tag-based organization</li>
+            <li><span class="fi-done">✅</span> View count tracking</li>
+            <li><span class="fi-partial">⚠️</span> Collaborative editing (not documented)</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/admin/content</span></td><td>Admin/Instructor</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Courses</span>
+            <span class="dep-tag">WebSocket</span>
+            <span class="dep-tag">File Upload</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 19: NOTIFICATIONS -->
+  <section id="mod-notifications">
+    <h2 class="section-title">19. Notifications</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🔔</div>
+        <div class="module-title">
+          <h3>Notification Center</h3>
+          <p>In-app notification bell and notification management center</p>
+        </div>
+        <span class="module-badge badge-yellow">50% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Header Bell Icon</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Notification Dropdown</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/notifications (Full Center)</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Notification bell component</li>
+            <li><span class="fi-done">✅</span> Notification center page</li>
+            <li><span class="fi-partial">⚠️</span> Real-time notifications (WS partial)</li>
+            <li><span class="fi-partial">⚠️</span> Email notifications (infra ready)</li>
+            <li><span class="fi-todo">❌</span> Notification scheduling</li>
+            <li><span class="fi-todo">❌</span> Notification preferences</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/notifications</span></td><td>All</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 20: CERTIFICATES -->
+  <section id="mod-certificates">
+    <h2 class="section-title">20. Certificates</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">🏆</div>
+        <div class="module-title">
+          <h3>Certificates</h3>
+          <p>Token-based certificate generation and verification</p>
+        </div>
+        <span class="module-badge badge-red">40% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Course Completion</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Generate Token</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/certificate/:type/:token</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Certificate generation</li>
+            <li><span class="fi-done">✅</span> Token-based access &amp; verification</li>
+            <li><span class="fi-partial">⚠️</span> Multiple certificate types (partial)</li>
+            <li><span class="fi-todo">❌</span> Blockchain certificate integration</li>
+            <li><span class="fi-todo">❌</span> Custom certificate templates</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/certificate/:type/:token</span></td><td>Public</td></tr>
+          </table>
+          <div class="dep-box" style="margin-top:1rem">
+            <h4>Depends On</h4>
+            <span class="dep-tag">Courses</span>
+            <span class="dep-tag">Users</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 21: DASHBOARD -->
+  <section id="mod-dashboard">
+    <h2 class="section-title">21. Dashboard &amp; Analytics</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">📊</div>
+        <div class="module-title">
+          <h3>Dashboard &amp; Analytics</h3>
+          <p>Role-based dashboards with system-wide analytics and quick stats</p>
+        </div>
+        <span class="module-badge badge-yellow">65% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Login</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/dashboard (Role-adaptive)</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Role-based dashboard content</li>
+            <li><span class="fi-done">✅</span> Quick statistics</li>
+            <li><span class="fi-done">✅</span> Enrolled courses display</li>
+            <li><span class="fi-done">✅</span> Recent activity</li>
+            <li><span class="fi-partial">⚠️</span> Advanced analytics (per module)</li>
+            <li><span class="fi-todo">❌</span> Custom dashboard widgets</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/dashboard</span></td><td>All</td></tr>
+            <tr><td><span class="route-code">/student-reports</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/admin/college/reports</span></td><td>Admin</td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="screenshot-grid">
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Admin Dashboard</div><div class="ss-path">/dashboard (Admin)</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Student Dashboard</div><div class="ss-path">/dashboard (Student)</div></div>
+        <div class="screenshot"><div class="ss-icon">🖼</div><div class="ss-label">Student Reports</div><div class="ss-path">/student-reports</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- MODULE 22: SYS ADMIN -->
+  <section id="mod-sysadmin">
+    <h2 class="section-title">22. System Administration</h2>
+    <div class="module-card">
+      <div class="module-header">
+        <div class="module-icon">⚙️</div>
+        <div class="module-title">
+          <h3>System Administration</h3>
+          <p>Feature flags, bulk operations, audit logging and system health</p>
+        </div>
+        <span class="module-badge badge-blue">70% Complete</span>
+      </div>
+
+      <div class="nav-path">
+        <span class="nav-step">Admin Sidebar</span><span class="nav-arrow">→</span>
+        <span class="nav-step">Settings</span><span class="nav-arrow">→</span>
+        <span class="nav-step">/student-features or /bulk-upload</span>
+      </div>
+
+      <div class="two-col">
+        <div>
+          <ul class="feature-list">
+            <li><span class="fi-done">✅</span> Feature flag management per tenant</li>
+            <li><span class="fi-done">✅</span> Bulk user upload (CSV)</li>
+            <li><span class="fi-done">✅</span> Bulk data operations</li>
+            <li><span class="fi-partial">⚠️</span> System health monitoring (not documented)</li>
+            <li><span class="fi-partial">⚠️</span> Audit logging (partial)</li>
+          </ul>
+        </div>
+        <div>
+          <table class="route-table">
+            <tr><th>Path</th><th>Role</th></tr>
+            <tr><td><span class="route-code">/student-features</span></td><td>Admin</td></tr>
+            <tr><td><span class="route-code">/bulk-upload</span></td><td>Admin</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ API OVERVIEW ══════════ -->
+  <section id="api-overview">
+    <h2 class="section-title">🔌 API Overview</h2>
+    <div class="module-card" style="padding:1.5rem">
+      <p style="font-size:.85rem;color:var(--muted);margin-bottom:1rem">Base URL: <code>https://&lt;your-domain&gt;/api/v1</code> · Auth: <code>Bearer &lt;JWT&gt;</code></p>
+      <table class="route-table">
+        <thead><tr><th>Module</th><th>Endpoint Group</th><th>Auth Required</th></tr></thead>
+        <tbody>
+          <tr><td>Auth</td><td><span class="route-code">/auth/*</span></td><td>Public (some)</td></tr>
+          <tr><td>Users</td><td><span class="route-code">/users/*</span></td><td>JWT</td></tr>
+          <tr><td>Roles</td><td><span class="route-code">/roles/*</span></td><td>JWT + manage_roles</td></tr>
+          <tr><td>Tenants</td><td><span class="route-code">/tenants/*</span></td><td>JWT + manage_tenants</td></tr>
+          <tr><td>Courses</td><td><span class="route-code">/courses/*</span></td><td>JWT</td></tr>
+          <tr><td>Batches</td><td><span class="route-code">/batches/*</span></td><td>JWT</td></tr>
+          <tr><td>Attendance</td><td><span class="route-code">/attendance/*</span></td><td>JWT + mark_attendance</td></tr>
+          <tr><td>Quizzes</td><td><span class="route-code">/quizzes/*</span></td><td>JWT</td></tr>
+          <tr><td>Assignments</td><td><span class="route-code">/assignments/*</span></td><td>JWT</td></tr>
+          <tr><td>Leads</td><td><span class="route-code">/leads/*</span></td><td>JWT + create_leads</td></tr>
+          <tr><td>Public Lead Form</td><td><span class="route-code">/public/form/:tenantSlug</span></td><td>Public (rate-limited)</td></tr>
+          <tr><td>Meta Webhook</td><td><span class="route-code">/meta-leads/webhook</span></td><td>Public (verify token)</td></tr>
+          <tr><td>Interviews</td><td><span class="route-code">/mock-interviews/* · /interview-templates/*</span></td><td>JWT</td></tr>
+          <tr><td>Content</td><td><span class="route-code">/content/*</span></td><td>JWT</td></tr>
+          <tr><td>Notifications</td><td><span class="route-code">/notifications/*</span></td><td>JWT</td></tr>
+          <tr><td>Dashboard</td><td><span class="route-code">/dashboard/*</span></td><td>JWT</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══════════ TECH STACK ══════════ -->
+  <section id="tech-stack">
+    <h2 class="section-title">⚡ Tech Stack</h2>
+    <div class="three-col">
+      <div class="module-card" style="padding:1.2rem">
+        <strong>Frontend</strong>
+        <ul class="feature-list" style="margin-top:.6rem">
+          <li><span class="fi-done">✅</span> React 18 (TypeScript)</li>
+          <li><span class="fi-done">✅</span> React Router v6</li>
+          <li><span class="fi-done">✅</span> Context API (auth, tenant)</li>
+          <li><span class="fi-done">✅</span> Axios (API client)</li>
+          <li><span class="fi-done">✅</span> Tailwind CSS</li>
+        </ul>
+      </div>
+      <div class="module-card" style="padding:1.2rem">
+        <strong>Backend</strong>
+        <ul class="feature-list" style="margin-top:.6rem">
+          <li><span class="fi-done">✅</span> Node.js + Express (TypeScript)</li>
+          <li><span class="fi-done">✅</span> MongoDB + Mongoose</li>
+          <li><span class="fi-done">✅</span> JWT Authentication</li>
+          <li><span class="fi-done">✅</span> Socket.io (WebSocket)</li>
+          <li><span class="fi-done">✅</span> Multer (file upload)</li>
+          <li><span class="fi-done">✅</span> Nodemailer (email)</li>
+        </ul>
+      </div>
+      <div class="module-card" style="padding:1.2rem">
+        <strong>Infrastructure &amp; Integrations</strong>
+        <ul class="feature-list" style="margin-top:.6rem">
+          <li><span class="fi-done">✅</span> Docker + Docker Compose</li>
+          <li><span class="fi-done">✅</span> Nginx reverse proxy</li>
+          <li><span class="fi-done">✅</span> GitHub Actions CI/CD</li>
+          <li><span class="fi-done">✅</span> Meta/Facebook Webhook</li>
+          <li><span class="fi-done">✅</span> Google Sheets API</li>
+          <li><span class="fi-partial">⚠️</span> OpenAI GPT-4 (env-gated)</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div style="margin-top:3rem;padding:2rem;text-align:center;color:var(--muted);font-size:.8rem;border-top:1px solid var(--border)">
+    <p>LMS SaaS Platform · Product Documentation · Generated April 2026</p>
+    <p style="margin-top:.3rem">To print as PDF: use browser Print → Save as PDF (enable Background Graphics for best output)</p>
+  </div>
+
+</main>
+
+<script>
+  // Smooth scroll for sidebar links
+  document.querySelectorAll('.sidebar a').forEach(link => {
+    link.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+
+  // Screenshot placeholder click message
+  document.querySelectorAll('.screenshot').forEach(el => {
+    el.addEventListener('click', () => {
+      const label = el.querySelector('.ss-label').textContent;
+      const path = el.querySelector('.ss-path').textContent;
+      alert(`Screenshot placeholder for:\n"${label}"\nRoute: ${path}\n\nTo add a real screenshot, replace this placeholder with an <img> tag or upload a screenshot image.`);
+    });
+  });
+
+  // Highlight active sidebar link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const sidebarLinks = document.querySelectorAll('.sidebar a[href^="#"]');
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(section => {
+      if (window.scrollY >= section.offsetTop - 80) current = section.id;
+    });
+    sidebarLinks.forEach(link => {
+      link.style.background = link.getAttribute('href') === '#' + current
+        ? 'rgba(255,255,255,.12)' : '';
+      link.style.color = link.getAttribute('href') === '#' + current ? '#fff' : '';
+      link.style.borderLeftColor = link.getAttribute('href') === '#' + current ? '#818cf8' : 'transparent';
+    });
+  });
+</script>
+
+</body>
+</html>

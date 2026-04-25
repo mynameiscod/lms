@@ -1,5 +1,6 @@
 import { Response } from 'express';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { AuthService } from '../services/authService';
 import { EmailService } from '../services/emailService';
@@ -132,12 +133,11 @@ export const forgotPassword = async (
       });
     }
 
-    // Check if user account is deactivated
+    // Don't reveal deactivation status — treat same as not found
     if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: 'Your account has been deactivated. Please contact your administrator to reactivate your account.',
-        error: 'ACCOUNT_DEACTIVATED'
+      return res.status(200).json({
+        success: true,
+        message: 'If an account with that email exists, a password reset link has been sent.'
       });
     }
 
@@ -189,6 +189,40 @@ export const forgotPassword = async (
   }
 };
 
+// Refresh Token - Return a new JWT using the current valid token
+export const refreshToken = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'No token provided', error: 'MISSING_TOKEN' });
+    }
+    const oldToken = authHeader.split(' ')[1];
+    const secret = process.env.JWT_SECRET || 'secret-key';
+    let decoded: any;
+    try {
+      decoded = jwt.verify(oldToken, secret as string);
+    } catch {
+      return res.status(401).json({ success: false, message: 'Token invalid or expired', error: 'INVALID_TOKEN' });
+    }
+    const user = await User.findById(decoded.id);
+    if (!user || !user.isActive) {
+      return res.status(401).json({ success: false, message: 'User not found or inactive', error: 'USER_INACTIVE' });
+    }
+    const expiresIn = process.env.JWT_EXPIRES_IN || '7d';
+    const newToken = jwt.sign(
+      { id: user._id, email: user.email, role: user.role, tenantId: user.tenantId },
+      secret as string,
+      { expiresIn } as any
+    );
+    return res.status(200).json({ success: true, message: 'Token refreshed', data: { token: newToken } });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Token refresh failed', error: error.message });
+  }
+};
+
 // Reset Password - Verify token and set new password
 export const resetPassword = async (
   req: AuthenticatedRequest,
@@ -205,10 +239,10 @@ export const resetPassword = async (
       });
     }
 
-    if (password.length < 6) {
+    if (password.length < 8) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters long',
+        message: 'Password must be at least 8 characters long',
         error: 'Password too short'
       });
     }

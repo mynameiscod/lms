@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import { User } from '../types';
 
 interface AuthContextType {
@@ -8,9 +8,11 @@ interface AuthContextType {
   token: string | null;
   login: (email: string, password: string, tenantId?: string) => Promise<void>;
   register: (firstName: string, lastName: string, email: string, password: string, tenantId: string) => Promise<void>;
-  logout: () => void;
+  logout: (message?: string) => void;
   setUser: (user: User | null) => void;
   updateProfile: (updates: Partial<User>) => void;
+  /** Refresh JWT — returns new token or throws */
+  refreshAuthToken: () => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +21,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Track if a refresh is in-flight to avoid concurrent refreshes
+  const refreshingRef = useRef(false);
 
   // Initialize from localStorage and validate user still exists
   useEffect(() => {
@@ -176,13 +180,68 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = useCallback((message?: string) => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('tenantId');
+    if (message) {
+      localStorage.setItem('loginMessage', message);
+    }
     setToken(null);
     setUser(null);
-  };
+  }, []);
+
+  // Refresh token using the current valid JWT
+  const refreshAuthToken = useCallback(async (): Promise<string> => {
+    if (refreshingRef.current) {
+      // Wait briefly and return whatever token is now stored
+      await new Promise(r => setTimeout(r, 300));
+      const stored = localStorage.getItem('token');
+      if (stored) return stored;
+      throw new Error('Token refresh already in progress');
+    }
+    refreshingRef.current = true;
+    try {
+      const currentToken = localStorage.getItem('token');
+      if (!currentToken) throw new Error('No token to refresh');
+      const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
+      const response = await fetch(`${API_URL}/auth/refresh-token`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${currentToken}` }
+      });
+      if (!response.ok) {
+        logout('Your session has expired. Please log in again.');
+        throw new Error('Token refresh failed');
+      }
+      const data = await response.json();
+      const newToken: string = data.data.token;
+      localStorage.setItem('token', newToken);
+      setToken(newToken);
+      return newToken;
+    } finally {
+      refreshingRef.current = false;
+    }
+  }, [logout]);
+
+  // Global 401 interceptor: override fetch to auto-logout on 401
+  useEffect(() => {
+    const originalFetch = window.fetch;
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+        // Don't intercept the login/register/forgot-password/setup-password/refresh endpoints themselves
+        const isAuthEndpoint = /\/(login|register|register-organization|forgot-password|reset-password|setup-password|refresh-token)/.test(url);
+        if (!isAuthEndpoint) {
+          logout('Your session has expired. Please log in again.');
+        }
+      }
+      return response;
+    };
+    return () => {
+      window.fetch = originalFetch;
+    };
+  }, [logout]);
 
   const updateProfile = (updates: Partial<User>) => {
     if (user) {
@@ -201,7 +260,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     register,
     logout,
     setUser,
-    updateProfile
+    updateProfile,
+    refreshAuthToken
   };
 
   return (

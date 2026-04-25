@@ -1,11 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import './ProfileCompletion.css';
 
+const MAX_BIO = 200;
+const PHONE_PATTERN = /^[+]?[\d\s\-().]{7,20}$/;
+
 export const ProfileCompletion: React.FC = () => {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [formData, setFormData] = useState({
     phone: '',
@@ -14,6 +18,8 @@ export const ProfileCompletion: React.FC = () => {
     linkedin: '',
     github: ''
   });
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,6 +35,7 @@ export const ProfileCompletion: React.FC = () => {
         linkedin: user.linkedin || '',
         github: user.github || ''
       });
+      if (user.avatar) setAvatarPreview(user.avatar);
     }
   }, [user]);
 
@@ -39,14 +46,23 @@ export const ProfileCompletion: React.FC = () => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'bio' && value.length > MAX_BIO) return;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Avatar image must be smaller than 5 MB');
+      return;
+    }
+    setAvatarFile(file);
+    setAvatarPreview(URL.createObjectURL(file));
+    setError('');
   };
 
   const handleSkip = () => {
-    // Mark as complete even if skipped
     navigate('/dashboard');
   };
 
@@ -54,40 +70,59 @@ export const ProfileCompletion: React.FC = () => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    if (formData.phone && !PHONE_PATTERN.test(formData.phone)) {
+      setError('Enter a valid phone number (e.g. +91 9876543210)');
+      return;
+    }
+
     setLoading(true);
 
     try {
       const API_URL = process.env.REACT_APP_API_URL || '/api/v1';
       const token = localStorage.getItem('token');
 
+      // Upload avatar file first if one was chosen
+      let avatarUrl = formData.avatar;
+      if (avatarFile) {
+        const fd = new FormData();
+        fd.append('avatar', avatarFile);
+        const uploadRes = await fetch(`${API_URL}/users/${user._id}/avatar`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd
+        });
+        if (!uploadRes.ok) {
+          const err = await uploadRes.json();
+          throw new Error(err.message || 'Avatar upload failed');
+        }
+        const uploadData = await uploadRes.json();
+        avatarUrl = uploadData.data.avatarUrl;
+      }
+
       const response = await fetch(`${API_URL}/users/${user._id}/profile`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify({
           ...formData,
+          avatar: avatarUrl,
           profileComplete: true
         })
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to update profile');
       }
 
       const data = await response.json();
-      
-      // Update local context
-      updateProfile(data.data);
-      
-      setSuccess('✓ Profile updated successfully!');
+      updateProfile({ ...data.data, avatar: avatarUrl });
 
-      // Redirect after success
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+      setSuccess('✓ Profile updated successfully!');
+      setTimeout(() => navigate('/dashboard'), 1500);
     } catch (err: any) {
       setError(err.message || 'Failed to update profile');
     } finally {
@@ -112,33 +147,46 @@ export const ProfileCompletion: React.FC = () => {
             <h3>Basic Information</h3>
 
             <div className="form-group">
-              <label htmlFor="phone">Phone Number</label>
+              <label htmlFor="phone">
+                Phone Number
+                <span className="field-hint">e.g. +91 9876543210</span>
+              </label>
               <input
                 type="tel"
                 id="phone"
                 name="phone"
                 value={formData.phone}
                 onChange={handleChange}
-                placeholder="+1 (555) 555-5555"
+                placeholder="+91 9876543210"
                 disabled={loading}
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="avatar">Avatar URL</label>
+              <label>Profile Picture</label>
+              <div className="avatar-upload-area" onClick={() => fileInputRef.current?.click()}>
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar preview" className="avatar-preview-img" />
+                ) : (
+                  <div className="avatar-placeholder">
+                    <span className="avatar-upload-icon">📷</span>
+                    <span>Click to upload photo</span>
+                    <span className="avatar-hint">JPEG, PNG, GIF or WebP · max 5 MB</span>
+                  </div>
+                )}
+              </div>
               <input
-                type="url"
-                id="avatar"
-                name="avatar"
-                value={formData.avatar}
-                onChange={handleChange}
-                placeholder="https://example.com/avatar.jpg"
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                style={{ display: 'none' }}
+                onChange={handleAvatarFile}
                 disabled={loading}
               />
-              {formData.avatar && (
-                <div className="avatar-preview">
-                  <img src={formData.avatar} alt="Avatar preview" />
-                </div>
+              {avatarPreview && (
+                <button type="button" className="avatar-remove-btn" onClick={() => { setAvatarFile(null); setAvatarPreview(''); setFormData(p => ({ ...p, avatar: '' })); }}>
+                  Remove photo
+                </button>
               )}
             </div>
 
@@ -151,9 +199,12 @@ export const ProfileCompletion: React.FC = () => {
                 onChange={handleChange}
                 placeholder="Tell us about yourself..."
                 rows={4}
+                maxLength={MAX_BIO}
                 disabled={loading}
               />
-              <p className="char-count">{formData.bio.length}/200 characters</p>
+              <p className={`char-count${formData.bio.length >= MAX_BIO ? ' char-count--limit' : ''}`}>
+                {formData.bio.length}/{MAX_BIO} characters
+              </p>
             </div>
           </div>
 
@@ -188,15 +239,15 @@ export const ProfileCompletion: React.FC = () => {
           </div>
 
           <div className="form-actions">
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="submit-btn"
               disabled={loading}
             >
               {loading ? 'Saving...' : 'Save & Continue'}
             </button>
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="skip-btn"
               onClick={handleSkip}
               disabled={loading}

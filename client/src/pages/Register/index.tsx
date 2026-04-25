@@ -14,6 +14,8 @@ const RegisterPage: React.FC = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isJoiningOrg, setIsJoiningOrg] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -30,6 +32,11 @@ const RegisterPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError('Passwords do not match');
@@ -52,10 +59,33 @@ const RegisterPage: React.FC = () => {
     }
   };
 
+  // No invite — show a redirect notice instead of a broken form
+  if (!isJoiningOrg) {
+    return (
+      <div className="auth-container">
+        <div className="auth-card">
+          <Card title="Join Organization" subtitle="You need an invite link to register">
+            <div className="register-no-invite">
+              <p>This page is for users who have received an <strong>invitation link</strong> from their organization.</p>
+              <p>Want to create a new organization?</p>
+              <Link to="/create-organization" className="register-cta-btn">
+                Create Organization
+              </Link>
+              <p style={{ marginTop: '16px' }}>
+                Already have an account?{' '}
+                <Link to="/login" className="auth-link">Sign in</Link>
+              </p>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-container">
       <div className="auth-card">
-        <Card title={isJoiningOrg ? "Join Organization" : "Create Account"} subtitle={isJoiningOrg ? "Complete your profile to join" : "Sign up to get started"}>
+        <Card title="Join Organization" subtitle="Complete your profile to join">
           {error && <Alert type="error" message={error} onClose={() => setError('')} />}
 
           <form onSubmit={handleSubmit}>
@@ -90,37 +120,35 @@ const RegisterPage: React.FC = () => {
               required
             />
 
-            <Input
-              type="password"
-              name="password"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
-              required
-            />
-
-            <Input
-              type="password"
-              name="confirmPassword"
-              label="Confirm Password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-              required
-            />
-
-            {!isJoiningOrg && (
+            <div className="register-pw-field">
               <Input
-                type="text"
-                name="tenantId"
-                label="Organization Name"
-                placeholder="Enter your organization name"
-                value={tenantId}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTenantId(e.target.value)}
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                label="Password (min. 8 characters)"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setPassword(e.target.value)}
                 required
               />
-            )}
+              <button type="button" className="register-pw-toggle" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}>
+                {showPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
+
+            <div className="register-pw-field">
+              <Input
+                type={showConfirmPassword ? 'text' : 'password'}
+                name="confirmPassword"
+                label="Confirm Password"
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                required
+              />
+              <button type="button" className="register-pw-toggle" onClick={() => setShowConfirmPassword(v => !v)} aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}>
+                {showConfirmPassword ? '🙈' : '👁️'}
+              </button>
+            </div>
 
             <Button type="submit" loading={loading} className="auth-button">
               Create Account

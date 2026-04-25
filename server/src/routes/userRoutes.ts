@@ -1,4 +1,7 @@
 import { Router } from 'express';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 import { 
   createUser,
   getUsers, 
@@ -19,6 +22,31 @@ import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
 
 const router = Router();
+
+// ── Avatar upload config ────────────────────────────────────────
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => {
+    const dir = path.join(__dirname, '..', '..', 'uploads', 'avatars');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `avatar-${Date.now()}${ext}`);
+  }
+});
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (_req, file, cb) => {
+    if (/^image\/(jpeg|png|gif|webp)$/.test(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Avatar must be JPEG, PNG, GIF or WebP'));
+    }
+  }
+});
+// ────────────────────────────────────────────────────────────────
 
 // PUBLIC ROUTES (no auth required)
 // Setup password from email link (public route - no auth required for new students)
@@ -64,5 +92,20 @@ router.get('/bulk-upload/template', roleGuard(['manage_tenant_users']), download
 
 // Update user profile
 router.patch('/:userId/profile', updateProfile);
+
+// Upload avatar picture
+router.post('/:userId/avatar', avatarUpload.single('avatar'), async (req: any, res: any) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+    const User = require('../models/User').default;
+    await User.findByIdAndUpdate(req.params.userId, { avatar: avatarUrl });
+    return res.status(200).json({ success: true, data: { avatarUrl } });
+  } catch (err: any) {
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
 
 export default router;

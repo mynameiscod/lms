@@ -11,7 +11,8 @@ export class AuthService {
     firstName: string,
     lastName: string,
     password: string,
-    tenantIdentifier: string
+    tenantIdentifier: string,
+    studentFeatures?: Record<string, boolean>
   ): Promise<IUser> {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -45,7 +46,8 @@ export class AuthService {
           slug,
           adminId: placeholderAdminId,
           isActive: true,
-          subscriptionPlan: 'free'
+          subscriptionPlan: 'free',
+          ...(studentFeatures ? { studentFeatures } : {})
         });
         await tenant.save();
         isNewTenant = true;

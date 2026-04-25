@@ -13,7 +13,7 @@ export const registerOrganization = async (
   res: Response<ApiResponse<any>>
 ) => {
   try {
-    const { organizationName, email, firstName, lastName, password } = req.body;
+    const { organizationName, email, firstName, lastName, password, studentFeatures } = req.body;
 
     if (!organizationName || !email || !firstName || !lastName || !password) {
       return res.status(400).json({
@@ -25,7 +25,7 @@ export const registerOrganization = async (
 
     // Create organization (tenant) + admin user using existing service
     // The authService.register will create tenant if slug doesn't exist
-    const user = await authService.register(email, firstName, lastName, password, organizationName);
+    const user = await authService.register(email, firstName, lastName, password, organizationName, studentFeatures);
 
     // Generate token for auto-login
     const loginResult = await authService.login(email, password);

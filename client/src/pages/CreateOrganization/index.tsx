@@ -13,8 +13,27 @@ const CreateOrganizationPage: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [studentFeatures, setStudentFeatures] = useState({
+    dashboard: true,
+    myCourse: true,
+    classHub: true,
+    attendance: true,
+    quizzes: true,
+    assignments: true,
+    mockInterviews: true
+  });
   const { setUser } = useAuth();
   const navigate = useNavigate();
+
+  const featureList = [
+    { key: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', desc: 'Student home with progress, upcoming deadlines and widgets' },
+    { key: 'myCourse', label: 'My Courses', icon: 'fa-solid fa-book-open', desc: 'Access enrolled courses and topics' },
+    { key: 'classHub', label: 'Class Hub', icon: 'fa-solid fa-video', desc: 'Live & recorded classes with AI notes and quizzes' },
+    { key: 'attendance', label: 'Attendance', icon: 'fa-solid fa-calendar-check', desc: 'View personal attendance records and summaries' },
+    { key: 'quizzes', label: 'Quizzes', icon: 'fa-solid fa-circle-question', desc: 'Take assigned quizzes and view results' },
+    { key: 'assignments', label: 'Assignments', icon: 'fa-solid fa-file-pen', desc: 'Submit coding and written assignments' },
+    { key: 'mockInterviews', label: 'Mock Interviews', icon: 'fa-solid fa-comments', desc: 'Practice AI-powered mock interview sessions' }
+  ];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -42,7 +61,8 @@ const CreateOrganizationPage: React.FC = () => {
           firstName,
           lastName,
           email,
-          password
+          password,
+          studentFeatures
         })
       });
 
@@ -141,6 +161,34 @@ const CreateOrganizationPage: React.FC = () => {
                 onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
                 required
               />
+            </div>
+
+            <div className="org-section">
+              <h3 className="section-title">
+                <i className="fa-solid fa-sliders" style={{ marginRight: '0.5rem' }} />
+                Student Features
+              </h3>
+              <p className="section-desc">Choose which features will be available to your students. You can change these later from College → Student Features.</p>
+              <div className="feature-grid">
+                {featureList.map(f => (
+                  <label
+                    key={f.key}
+                    className={`feature-toggle-card${(studentFeatures as any)[f.key] ? ' active' : ''}`}
+                    onClick={() => setStudentFeatures(prev => ({ ...prev, [f.key]: !(prev as any)[f.key] }))}
+                  >
+                    <div className="feature-toggle-top">
+                      <i className={f.icon} />
+                      <div className={`feature-switch${(studentFeatures as any)[f.key] ? ' on' : ''}`} />
+                    </div>
+                    <div className="feature-toggle-label">{f.label}</div>
+                    <div className="feature-toggle-desc">{f.desc}</div>
+                  </label>
+                ))}
+              </div>
+              <p className="feature-count">
+                <i className="fa-solid fa-circle-check" style={{ color: 'var(--bs-success)', marginRight: '0.4rem' }} />
+                {Object.values(studentFeatures).filter(Boolean).length} of {featureList.length} features enabled
+              </p>
             </div>
 
             <Button

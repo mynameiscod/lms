@@ -654,6 +654,24 @@ export const userApi = {
 
 // Tenant API
 export const tenantApi = {
+  registerOrganization: async (data: {
+    organizationName: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    password: string;
+    studentFeatures?: Record<string, boolean>;
+  }) => {
+    const response = await fetch(`${API_BASE_URL}/auth/register-organization`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    const json = await response.json();
+    if (!response.ok) throw new Error(json.message || 'Failed to create organization');
+    return json;
+  },
+
   getTenant: async (tenantId: string) => {
     const response = await fetch(`${API_BASE_URL}/tenants/${tenantId}`, {
       method: 'GET',

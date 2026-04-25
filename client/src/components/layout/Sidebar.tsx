@@ -222,7 +222,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     if (!roleAllowed) return false;
 
     // If user has a permissions array (custom role), also verify at least one permission matches
-    if (user.permissions && user.permissions.length > 0 && item.permissions) {
+    // SUPER_ADMIN bypasses permission checks — role alone is the gate
+    if (user.role !== 'SUPER_ADMIN' && user.permissions && user.permissions.length > 0 && item.permissions) {
       const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
       if (!hasPermission) return false;
     }

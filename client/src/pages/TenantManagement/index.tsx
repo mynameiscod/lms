@@ -81,7 +81,7 @@ const TenantManagementPage: React.FC = () => {
     if (!selected) return;
     setSaving(true);
     try {
-      const res = await tenantApi.updateTenantModules(selected._id, editModules);
+      const res = await tenantApi.updateTenantModules(selected._id, editModules as Record<string, boolean>);
       if (res.success) {
         setTenants(prev => prev.map(t => t._id === selected._id ? { ...t, modules: res.data } : t));
         setSelected(prev => prev ? { ...prev, modules: res.data } : null);

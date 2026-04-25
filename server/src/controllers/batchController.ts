@@ -9,7 +9,7 @@ export const createBatch = async (
   res: Response<ApiResponse<any>>
 ) => {
   try {
-    const { name, courseId, startDate, endDate, timings, instructors, capacity } = req.body;
+    const { name, courseId, startDate, endDate, timings, instructors, capacity, departmentId } = req.body;
 
     if (!name || !startDate || !endDate || !timings || !Array.isArray(timings) || timings.length === 0) {
       return res.status(400).json({
@@ -38,7 +38,8 @@ export const createBatch = async (
       timings,
       instructors: instructors || [],
       tenantId: req.tenantId!,
-      capacity: capacity || 30
+      capacity: capacity || 30,
+      departmentId: departmentId || null
     };
 
     const batch = await batchService.createBatch(batchData);
@@ -115,7 +116,7 @@ export const updateBatch = async (
 ) => {
   try {
     const { batchId } = req.params;
-    const { name, courseId, startDate, endDate, timings, instructors, capacity } = req.body;
+    const { name, courseId, startDate, endDate, timings, instructors, capacity, departmentId } = req.body;
 
     const updateData: any = {};
     if (name) updateData.name = name;
@@ -125,6 +126,7 @@ export const updateBatch = async (
     if (timings) updateData.timings = timings;
     if (instructors) updateData.instructors = instructors;
     if (capacity) updateData.capacity = capacity;
+    if (departmentId !== undefined) updateData.departmentId = departmentId || null;
 
     // Validate date range if both dates are provided
     if (updateData.startDate && updateData.endDate) {

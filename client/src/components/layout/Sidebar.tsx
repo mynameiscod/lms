@@ -44,6 +44,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-gauge-high', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
     { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
+    { label: '🎓 My Classes', path: '/class-hub', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'classHub' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'view_attendance', 'view_quiz'] },
     { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-graduation-cap', permissions: ['view_courses'] },
     { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-bolt', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
@@ -105,12 +106,32 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'view_courses'],
       submenu: [
         { label: 'All Recordings', path: '/admin/class-recordings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-list', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: '✨ Class Flow', path: '/admin/class-flow', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: 'Start Class', path: '/admin/class-recordings/start', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-circle-dot', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: 'Watch Recordings', path: '/class-recordings', roles: ['STUDENT'], icon: 'fa-solid fa-play-circle', permissions: ['view_courses'] },
       ]
     },
     { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-bar', permissions: ['view_reports'] },
     { label: 'Student Profiles', path: '/admin/student-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-card', permissions: ['view_reports'] },
+    { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Notifications',      path: '/notifications',             roles: ['STUDENT', 'TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-bell', permissions: [] },
+    {
+      label: 'College',
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
+      icon: 'fa-solid fa-university',
+      permissions: ['manage_tenant_settings', 'manage_tenant'],
+      submenu: [
+        { label: 'Departments',     path: '/admin/college/departments',           roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building-columns', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Members',         path: '/admin/college/members',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users',            permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Placement Drives',path: '/admin/college/placement',             roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-briefcase',        permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Placement Analytics', path: '/admin/college/placement-analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-pie',     permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Alumni',          path: '/admin/college/alumni',                roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-graduation-cap',  permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Reports',         path: '/admin/college/reports',               roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column',    permissions: ['manage_tenant_settings', 'manage_tenant'] },
+        { label: 'Settings',        path: '/admin/college/settings',              roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders',         permissions: ['manage_tenant_settings', 'manage_tenant'] },
+      ]
+    },
     {
       label: 'Learning Hub',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
@@ -255,7 +276,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const isStudent = user?.role === 'STUDENT';
   
   const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'Mock Interviews', 'Topic Hub'].includes(i.label));
+  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'Mock Interviews', 'Topic Hub', '🎓 My Classes'].includes(i.label));
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
   const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
 

@@ -1,0 +1,6 @@
+.pd-page { min-height: 100vh; }
+.pd-backdrop { background: rgba(0,0,0,.45); }
+.pd-card { transition: box-shadow .15s; }
+.pd-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12) !important; }
+.pd-meta { font-size: .82rem; }
+.pd-stat-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }

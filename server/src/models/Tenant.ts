@@ -15,6 +15,37 @@ export interface IStudentFeatures {
   quizzes: boolean;
   assignments: boolean;
   mockInterviews: boolean;
+  classHub?: boolean;
+}
+
+// College-specific information (only populated when type = 'college')
+export interface ICollegeInfo {
+  universityName?: string;
+  collegeCode?: string;
+  collegeType?: 'engineering' | 'arts' | 'polytechnic' | 'management' | 'other';
+  accreditation?: string;       // e.g. "NAAC-A+", "NBA"
+  establishedYear?: number;
+  totalStrength?: number;
+  address?: {
+    city?: string;
+    state?: string;
+    pincode?: string;
+    country?: string;
+  };
+  placementOfficerEmail?: string;
+  placementOfficerPhone?: string;
+}
+
+// White-label branding (all optional — existing tenants get safe defaults)
+export interface IBranding {
+  primaryColor?: string;        // e.g. "#6650d8"
+  secondaryColor?: string;      // e.g. "#38bdf8"
+  portalTitle?: string;         // Shown in browser tab & nav header
+  welcomeMessage?: string;      // Shown on student login
+  faviconUrl?: string;
+  coverImageUrl?: string;
+  hideCodeBegunBranding?: boolean;
+  customDomain?: string;        // e.g. "lms.stmarys.edu"
 }
 
 export interface ITenant extends Document {
@@ -25,9 +56,12 @@ export interface ITenant extends Document {
   website?: string;
   adminId: mongoose.Types.ObjectId;
   isActive: boolean;
+  type: 'institute' | 'college' | 'corporate' | 'codebegun';
   subscriptionPlan: 'free' | 'pro' | 'enterprise';
   settings: ITenantSettings;
   studentFeatures: IStudentFeatures;
+  collegeInfo?: ICollegeInfo;
+  branding?: IBranding;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -65,6 +99,11 @@ const TenantSchema: Schema = new Schema(
       type: Boolean, 
       default: true 
     },
+    type: {
+      type: String,
+      enum: ['institute', 'college', 'corporate', 'codebegun'],
+      default: 'institute'
+    },
     subscriptionPlan: { 
       type: String, 
       enum: ['free', 'pro', 'enterprise'], 
@@ -82,7 +121,39 @@ const TenantSchema: Schema = new Schema(
       attendance: { type: Boolean, default: true },
       quizzes: { type: Boolean, default: true },
       assignments: { type: Boolean, default: true },
-      mockInterviews: { type: Boolean, default: true }
+      mockInterviews: { type: Boolean, default: true },
+      classHub: { type: Boolean, default: true }
+    },
+    // College-specific info — all optional, existing tenants unaffected
+    collegeInfo: {
+      universityName: { type: String },
+      collegeCode: { type: String },
+      collegeType: {
+        type: String,
+        enum: ['engineering', 'arts', 'polytechnic', 'management', 'other']
+      },
+      accreditation: { type: String },
+      establishedYear: { type: Number },
+      totalStrength: { type: Number },
+      address: {
+        city: { type: String },
+        state: { type: String },
+        pincode: { type: String },
+        country: { type: String, default: 'India' }
+      },
+      placementOfficerEmail: { type: String },
+      placementOfficerPhone: { type: String }
+    },
+    // White-label branding — all optional, safe defaults applied on frontend
+    branding: {
+      primaryColor: { type: String, default: null },
+      secondaryColor: { type: String, default: null },
+      portalTitle: { type: String, default: null },
+      welcomeMessage: { type: String, default: null },
+      faviconUrl: { type: String, default: null },
+      coverImageUrl: { type: String, default: null },
+      hideCodeBegunBranding: { type: Boolean, default: false },
+      customDomain: { type: String, default: null }
     }
   },
   { timestamps: true }

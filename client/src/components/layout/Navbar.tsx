@@ -2,6 +2,7 @@ import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Button } from '../common';
+import NotificationBell from '../NotificationBell';
 import './Navbar.css';
 
 interface NavbarProps {
@@ -38,6 +39,7 @@ const Navbar: React.FC<NavbarProps> = ({ onHamburgerClick }) => {
         <div className="app-navbar-user">
           {user ? (
             <>
+              <NotificationBell />
               <Link to="/profile" className="profile-link" title="View your profile">
                 <div className="user-info">
                   {user.profilePicture ? (

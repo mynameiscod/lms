@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { batchApi, attendanceApi, userApi } from '../../api';
+import { batchApi, attendanceApi, userApi, attendanceBulkApi } from '../../api';
 import { Button, Alert, Spinner } from '../../components/common';
 import { Batch, User, Attendance } from '../../types';
 import './AttendancePage.css';
@@ -277,6 +277,48 @@ const AttendancePage: React.FC = () => {
     return timing.startTime;
   };
 
+  const handleMarkAllPresent = () => {
+    const defaultInTime = getDefaultInTime();
+    setStudentAttendance(prev => {
+      const updated = { ...prev };
+      batchStudents.forEach(s => {
+        updated[s._id] = { ...updated[s._id], status: 'present', inTime: updated[s._id]?.inTime || defaultInTime };
+      });
+      return updated;
+    });
+  };
+
+  const handleMarkAllAbsent = () => {
+    setStudentAttendance(prev => {
+      const updated = { ...prev };
+      batchStudents.forEach(s => {
+        updated[s._id] = { ...updated[s._id], status: 'absent', inTime: '', outTime: '' };
+      });
+      return updated;
+    });
+  };
+
+  const handleExportCSV = async () => {
+    if (!selectedBatch) { setError('Please select a batch first'); return; }
+    try {
+      // Default: export current month
+      const now = new Date();
+      const startDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+      const endDate = selectedDate;
+      const res = await attendanceBulkApi.exportCSV(selectedBatch._id, startDate, endDate);
+      if (!res.ok) { setError('CSV export failed'); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `attendance_${selectedBatch.name}_${startDate}_${endDate}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setError(err.message || 'CSV export failed');
+    }
+  };
+
   const handleMarkPresent = (studentId: string) => {
     const currentInTime = studentAttendance[studentId]?.inTime;
     const defaultInTime = currentInTime || getDefaultInTime();
@@ -347,19 +389,16 @@ const AttendancePage: React.FC = () => {
       setSubmitting(true);
       setError('');
 
-      // Submit attendance for only changed students
-      const promises = changedRecords.map(attendance =>
-        attendanceApi.markAttendance({
-          studentId: attendance.studentId,
-          batchId: selectedBatch._id,
-          date: selectedDate,
-          inTime: attendance.inTime || undefined,
-          outTime: attendance.outTime || undefined,
-          status: attendance.status
-        })
-      );
+      // Use bulk endpoint for efficiency
+      const bulkRecords = changedRecords.map(att => ({
+        studentId: att.studentId,
+        status: att.status,
+        inTime: att.inTime || undefined,
+        outTime: att.outTime || undefined
+      }));
 
-      await Promise.all(promises);
+      await attendanceBulkApi.bulkMark(selectedBatch._id, selectedDate, bulkRecords);
+
       setSuccess({ show: true, count: changedRecords.length });
       
       // Update original attendance to match current (so re-submit won't send again)
@@ -383,6 +422,21 @@ const AttendancePage: React.FC = () => {
   return (
     <div className="attendance-page">
       <h3 className="attendance-title">Mark Attendance</h3>
+
+      {/* Bulk Actions Toolbar */}
+      {selectedBatch && (
+        <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+          <Button variant="secondary" onClick={handleMarkAllPresent} disabled={submitting}>
+            <i className="fa-solid fa-check-double" style={{ marginRight: '0.4rem' }} />Mark All Present
+          </Button>
+          <Button variant="secondary" onClick={handleMarkAllAbsent} disabled={submitting}>
+            <i className="fa-solid fa-xmark" style={{ marginRight: '0.4rem' }} />Mark All Absent
+          </Button>
+          <Button variant="secondary" onClick={handleExportCSV}>
+            <i className="fa-solid fa-file-csv" style={{ marginRight: '0.4rem' }} />Export CSV
+          </Button>
+        </div>
+      )}
 
       {/* Success Notification */}
       {success.show && (

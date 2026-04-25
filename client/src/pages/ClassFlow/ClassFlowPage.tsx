@@ -43,12 +43,17 @@ const ClassFlowPage: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [batches, setBatches] = useState<{_id: string; name: string}[]>([]);
   const [courseId, setCourseId] = useState('');
   const [subjectId, setSubjectId] = useState('');
   const [chapterId, setChapterId] = useState('');
+  const [batchId, setBatchId] = useState('');
   const [classTitle, setClassTitle] = useState('');
   const [learningObjectives, setLearningObjectives] = useState('');
   const [durationMinutes, setDurationMinutes] = useState(60);
+  const [classDate, setClassDate] = useState('');
+  const [classTime, setClassTime] = useState('');
+  const [classMode, setClassMode] = useState<'live' | 'schedule'>('live');
   const [sessionMode, setSessionMode] = useState<SessionMode>('record');
   const [formError, setFormError] = useState('');
 
@@ -84,6 +89,15 @@ const ClassFlowPage: React.FC = () => {
   const [savingAssignment, setSavingAssignment] = useState(false);
   const [quizSaved, setQuizSaved] = useState(false);
   const [assignmentSaved, setAssignmentSaved] = useState(false);
+  // Step 4 — quiz editing
+  const [isEditingQuiz, setIsEditingQuiz] = useState(false);
+  const [editedQuizQuestions, setEditedQuizQuestions] = useState<any[]>([]);
+  const [savingEditedQuiz, setSavingEditedQuiz] = useState(false);
+  // Step 4 — assignment editing
+  const [isEditingAssignment, setIsEditingAssignment] = useState(false);
+  const [editedTitle, setEditedTitle] = useState('');
+  const [editedDescription, setEditedDescription] = useState('');
+  const [editedInstructions, setEditedInstructions] = useState('');
 
   const authHeaders = useCallback(() => ({
     Authorization: `Bearer ${localStorage.getItem('token')}`,
@@ -112,6 +126,14 @@ const ClassFlowPage: React.FC = () => {
       .then(r => r.json()).then(res => setChapters(Array.isArray(res) ? res : res.data || []))
       .catch(() => {});
   }, [subjectId, authHeaders]);
+
+  // Load batches
+  useEffect(() => {
+    fetch('/api/v1/batches', { headers: authHeaders() })
+      .then(r => r.json())
+      .then(res => setBatches(Array.isArray(res) ? res : res.data || []))
+      .catch(() => {});
+  }, [authHeaders]);
 
   // Poll processing status in step 3
   useEffect(() => {
@@ -156,6 +178,7 @@ const ClassFlowPage: React.FC = () => {
     setFormError('');
     if (!classTitle.trim()) return setFormError('Please enter a class title (Chapter/Topic name).');
     if (!courseId) return setFormError('Please select a course.');
+    if (classMode === 'schedule' && !classDate) return setFormError('Please select a scheduled date for the class.');
     setStep(2);
   };
 
@@ -176,11 +199,6 @@ const ClassFlowPage: React.FC = () => {
       const combined = new MediaStream(tracks);
       combinedStreamRef.current = combined;
 
-      if (previewRef.current) {
-        previewRef.current.srcObject = screenStream;
-        previewRef.current.play().catch(() => {});
-      }
-
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
         ? 'video/webm;codecs=vp9,opus'
         : 'video/webm';
@@ -192,6 +210,14 @@ const ClassFlowPage: React.FC = () => {
 
       setRecording(true);
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
+
+      // Set preview after state update — ref is always in DOM now
+      requestAnimationFrame(() => {
+        if (previewRef.current) {
+          previewRef.current.srcObject = screenStream;
+          previewRef.current.play().catch(() => {});
+        }
+      });
     } catch (err: any) {
       setRecordingError(err.message || 'Could not start recording. Please allow screen access.');
     }
@@ -209,38 +235,20 @@ const ClassFlowPage: React.FC = () => {
     setPaused(p => !p);
   };
 
-  const stopRecordingAndUpload = useCallback(async () => {
-    if (!mediaRecorderRef.current) return;
-    setUploading(true);
-    setRecordingError('');
-    if (timerRef.current) clearInterval(timerRef.current);
-
-    await new Promise<void>(resolve => {
-      const mr = mediaRecorderRef.current!;
-      mr.onstop = () => resolve();
-      mr.stop();
-    });
-
-    [screenStreamRef, micStreamRef, combinedStreamRef].forEach(ref => {
-      ref.current?.getTracks().forEach(t => t.stop());
-      ref.current = null;
-    });
-    if (previewRef.current) previewRef.current.srcObject = null;
-
-    const blob = new Blob(chunksRef.current, { type: 'video/webm' });
-    const file = new File([blob], `class-recording-${Date.now()}.webm`, { type: 'video/webm' });
-    await doUpload(file);
-  }, []);  // eslint-disable-line
-
-  const doUpload = async (file: File) => {
+  const doUpload = useCallback(async (file: File) => {
     const formData = new FormData();
     formData.append('video', file);
     formData.append('title', classTitle);
     formData.append('courseId', courseId);
     if (subjectId) formData.append('subjectId', subjectId);
     if (chapterId) formData.append('chapterId', chapterId);
+    if (batchId) formData.append('batchId', batchId);
     formData.append('duration', String(durationMinutes * 60));
     if (learningObjectives) formData.append('description', learningObjectives);
+    if (classMode === 'schedule' && classDate) {
+      const scheduledAt = classTime ? `${classDate}T${classTime}:00` : `${classDate}T00:00:00`;
+      formData.append('scheduledAt', scheduledAt);
+    }
 
     try {
       // Use XMLHttpRequest for upload progress
@@ -272,7 +280,30 @@ const ClassFlowPage: React.FC = () => {
       setRecordingError(err.message || 'Upload failed.');
       setUploading(false);
     }
-  };
+  }, [classTitle, courseId, subjectId, chapterId, durationMinutes, learningObjectives, batchId, classDate, classMode, classTime]);
+
+  const stopRecordingAndUpload = useCallback(async () => {
+    if (!mediaRecorderRef.current) return;
+    setUploading(true);
+    setRecordingError('');
+    if (timerRef.current) clearInterval(timerRef.current);
+
+    await new Promise<void>(resolve => {
+      const mr = mediaRecorderRef.current!;
+      mr.onstop = () => resolve();
+      mr.stop();
+    });
+
+    [screenStreamRef, micStreamRef, combinedStreamRef].forEach(ref => {
+      ref.current?.getTracks().forEach(t => t.stop());
+      ref.current = null;
+    });
+    if (previewRef.current) previewRef.current.srcObject = null;
+
+    const blob = new Blob(chunksRef.current, { type: 'video/webm' });
+    const file = new File([blob], `class-recording-${Date.now()}.webm`, { type: 'video/webm' });
+    await doUpload(file);
+  }, [doUpload]);
 
   const handleFileSelect = (file: File) => {
     if (!file.type.startsWith('video/')) return setRecordingError('Please select a video file.');
@@ -321,19 +352,54 @@ const ClassFlowPage: React.FC = () => {
     <div className="cf-page">
       {/* Top Bar */}
       <div className="cf-topbar">
-        <div className="cf-breadcrumb">
-          {step === 1 && <><span>Admin › </span><strong>Create Class</strong></>}
-          {step === 2 && <><span>Admin › </span><strong>Record / Upload</strong></>}
-          {step === 3 && <><span>Admin › </span><strong>AI Processing</strong></>}
-          {step === 4 && <><span>Admin › </span><strong>Review &amp; Publish</strong></>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <button
+            className="cf-back-btn"
+            onClick={() => {
+              if (step > 1 && step < 3) setStep((step - 1) as Step);
+              else navigate('/admin/class-recordings');
+            }}
+            title={step > 1 && step < 3 ? 'Go back one step' : 'Back to All Recordings'}
+          >
+            ← {step > 1 && step < 3 ? 'Back' : 'All Recordings'}
+          </button>
+          <div className="cf-breadcrumb">
+            {step === 1 && <><span>Admin › </span><strong>Create Class</strong></>}
+            {step === 2 && <><span>Admin › </span><strong>Record / Upload</strong></>}
+            {step === 3 && <><span>Admin › </span><strong>AI Processing</strong></>}
+            {step === 4 && <><span>Admin › </span><strong>Review &amp; Publish</strong></>}
+          </div>
         </div>
-        <div className="cf-user-badge">
-          <span className="cf-role-pill">{user?.role === 'INSTRUCTOR' ? 'Teacher' : 'Admin'}</span>
-          <div className="cf-avatar">{initials}</div>
-          <span style={{ fontWeight: 600, fontSize: 14, color: '#0b1437' }}>
-            {user?.firstName} {user?.lastName}
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <div className="cf-user-badge">
+            <span className="cf-role-pill">{user?.role === 'INSTRUCTOR' ? 'Teacher' : 'Admin'}</span>
+            <div className="cf-avatar">{initials}</div>
+            <span style={{ fontWeight: 600, fontSize: 14, color: '#0b1437' }}>
+              {user?.firstName} {user?.lastName}
+            </span>
+          </div>
+          <button
+            className="cf-exit-btn"
+            onClick={() => navigate('/admin/class-recordings')}
+            title="Exit to All Recordings"
+          >
+            ✕
+          </button>
         </div>
+      </div>
+
+      {/* ── Step Nav (top) ── */}
+      <div className="cf-step-nav">
+        {(['Create', 'Record', 'Process', 'Publish'] as const).map((label, i) => (
+          <button
+            key={label}
+            className={`cf-step-nav-item ${step === (i + 1) as Step ? 'active' : ''} ${i + 1 < step ? 'done' : ''}`}
+            onClick={() => { if (i + 1 <= step) setStep((i + 1) as Step); }}
+          >
+            <span className="cf-step-nav-num">{i + 1 < step ? '✓' : i + 1}</span>
+            <span>{label}</span>
+          </button>
+        ))}
       </div>
 
       {/* ── STEP 1: Create Class ── */}
@@ -404,18 +470,69 @@ const ClassFlowPage: React.FC = () => {
               </div>
 
               <div className="col-6">
+                <div className="cf-label">Batch (optional)</div>
+                <select className="cf-select" value={batchId} onChange={e => setBatchId(e.target.value)}>
+                  <option value="">All students / No batch</option>
+                  {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                </select>
+              </div>
+
+              <div className="col-6">
                 <div className="cf-label">Session Mode</div>
                 <select className="cf-select" value={sessionMode} onChange={e => setSessionMode(e.target.value as SessionMode)}>
                   <option value="record">Record Live in Browser</option>
                   <option value="upload">Upload Pre-recorded Video</option>
                 </select>
               </div>
+
+              {/* Schedule toggle */}
+              <div className="col-12">
+                <div className="cf-label">Class Timing</div>
+                <div className="cf-mode-tabs" style={{ marginBottom: 0 }}>
+                  <div className={`cf-mode-tab ${classMode === 'live' ? 'active' : ''}`} onClick={() => setClassMode('live')}>
+                    🔴 Start Now (Live)
+                  </div>
+                  <div className={`cf-mode-tab ${classMode === 'schedule' ? 'active' : ''}`} onClick={() => setClassMode('schedule')}>
+                    📅 Schedule for Later
+                  </div>
+                </div>
+              </div>
+
+              {classMode === 'schedule' && (
+                <>
+                  <div className="col-6">
+                    <div className="cf-label">Class Date <span className="text-danger">*</span></div>
+                    <input
+                      type="date"
+                      className="cf-input"
+                      value={classDate}
+                      min={new Date().toISOString().split('T')[0]}
+                      onChange={e => setClassDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <div className="cf-label">Class Time</div>
+                    <input
+                      type="time"
+                      className="cf-input"
+                      value={classTime}
+                      onChange={e => setClassTime(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-12">
+                    <div className="alert alert-info py-2 small" style={{ borderRadius: 10 }}>
+                      📅 This class is scheduled for <strong>{classDate ? new Date(classDate).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '—'}</strong>
+                      {classTime ? ` at ${classTime}` : ''}. You can upload the recording after the session.
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {formError && <div className="alert alert-danger mt-3 py-2 small">{formError}</div>}
 
             <button className="cf-btn-primary mt-4 w-100" onClick={handleStartSetup}>
-              {sessionMode === 'record' ? 'Start Recording →' : 'Proceed to Upload →'}
+              {classMode === 'schedule' ? '📅 Schedule Class →' : sessionMode === 'record' ? 'Start Recording →' : 'Proceed to Upload →'}
             </button>
           </div>
         </div>
@@ -446,7 +563,13 @@ const ClassFlowPage: React.FC = () => {
           {sessionMode === 'record' && (
             <div className="cf-card">
               <div className="cf-recorder">
-                {recording && <video ref={previewRef} className="cf-recorder-preview" muted />}
+                {/* Always in DOM so ref is ready before setRecording(true) */}
+                <video
+                  ref={previewRef}
+                  className="cf-recorder-preview"
+                  muted
+                  style={{ display: recording ? 'block' : 'none' }}
+                />
                 {!recording && (
                   <>
                     <div style={{ fontSize: 48 }}>🎬</div>
@@ -639,19 +762,151 @@ const ClassFlowPage: React.FC = () => {
                 {/* Quiz */}
                 {reviewTab === 'quiz' && (
                   <div>
-                    <div className="d-flex justify-content-between align-items-center mb-3">
-                      <small className="text-muted">Click an option to check your answer</small>
-                      {!quizSaved && (
-                        <button className="cf-btn-primary" style={{ padding: '8px 18px', fontSize: 13 }} onClick={async () => { setSavingQuiz(true); try { await classRecordingApi.saveQuiz(recordingId); setQuizSaved(true); } catch {} finally { setSavingQuiz(false); } }} disabled={savingQuiz}>
-                          {savingQuiz ? 'Saving…' : '💾 Save Quiz'}
-                        </button>
-                      )}
-                      {quizSaved && <span className="badge bg-success">✓ Saved to Quiz System</span>}
+                    <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                      <div>
+                        <strong style={{ color: '#0b1437' }}>
+                          {isEditingQuiz ? 'Editing Quiz' : `Quiz — ${(recordingData.generatedQuiz?.questions || []).length} Questions`}
+                        </strong>
+                        {!isEditingQuiz && <small className="text-muted ms-2">Click an option to preview answers</small>}
+                      </div>
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        {!isEditingQuiz && (
+                          <button
+                            className="btn btn-outline-secondary btn-sm"
+                            style={{ borderRadius: 8 }}
+                            onClick={() => {
+                              const qs = (recordingData.generatedQuiz?.questions || []).map(q => ({
+                                question: q.question,
+                                explanation: q.explanation,
+                                difficulty: q.difficulty,
+                                options: q.options.map(o => ({ text: o.text, isCorrect: o.isCorrect }))
+                              }));
+                              setEditedQuizQuestions(qs);
+                              setIsEditingQuiz(true);
+                            }}
+                          >
+                            ✏️ Edit Quiz
+                          </button>
+                        )}
+                        {isEditingQuiz && (
+                          <>
+                            <button
+                              className="btn btn-outline-secondary btn-sm"
+                              style={{ borderRadius: 8 }}
+                              onClick={() => {
+                                setEditedQuizQuestions(prev => [...prev, {
+                                  question: 'New question?',
+                                  explanation: '',
+                                  difficulty: 'medium',
+                                  options: [
+                                    { text: 'Option A', isCorrect: true },
+                                    { text: 'Option B', isCorrect: false },
+                                    { text: 'Option C', isCorrect: false },
+                                    { text: 'Option D', isCorrect: false },
+                                  ]
+                                }]);
+                              }}
+                            >
+                              + Add Question
+                            </button>
+                            <button
+                              className="cf-btn-primary btn-sm"
+                              style={{ padding: '6px 16px', fontSize: 13, borderRadius: 8 }}
+                              disabled={savingEditedQuiz}
+                              onClick={async () => {
+                                setSavingEditedQuiz(true);
+                                try {
+                                  await classRecordingApi.update(recordingId, {
+                                    generatedQuiz: { questions: editedQuizQuestions }
+                                  } as any);
+                                  await loadReviewData();
+                                  setIsEditingQuiz(false);
+                                } catch {}
+                                finally { setSavingEditedQuiz(false); }
+                              }}
+                            >
+                              {savingEditedQuiz ? 'Saving…' : '💾 Save Changes'}
+                            </button>
+                            <button
+                              className="btn btn-outline-secondary btn-sm"
+                              style={{ borderRadius: 8 }}
+                              onClick={() => setIsEditingQuiz(false)}
+                            >
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {!isEditingQuiz && !quizSaved && (
+                          <button className="cf-btn-primary" style={{ padding: '8px 18px', fontSize: 13, borderRadius: 8 }} onClick={async () => { setSavingQuiz(true); try { await classRecordingApi.saveQuiz(recordingId); setQuizSaved(true); } catch {} finally { setSavingQuiz(false); } }} disabled={savingQuiz}>
+                            {savingQuiz ? 'Saving…' : '💾 Save to Quiz System'}
+                          </button>
+                        )}
+                        {quizSaved && <span className="badge bg-success align-self-center">✓ Saved to Quiz System</span>}
+                      </div>
                     </div>
-                    {(recordingData.generatedQuiz?.questions || []).map((q, i) => (
-                      <ReviewQuizQuestion key={i} index={i} question={q} />
-                    ))}
-                    {!recordingData.generatedQuiz?.questions?.length && <div className="text-muted">No quiz generated yet.</div>}
+
+                    {isEditingQuiz ? (
+                      <div>
+                        {editedQuizQuestions.map((q, qi) => (
+                          <div key={qi} className="cf-quiz-q" style={{ borderLeft: '3px solid #6650d8', paddingLeft: 12 }}>
+                            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'flex-start' }}>
+                              <span style={{ minWidth: 24, fontWeight: 700, color: '#6650d8', marginTop: 8 }}>Q{qi + 1}</span>
+                              <textarea
+                                className="cf-textarea"
+                                style={{ minHeight: 54, flex: 1 }}
+                                value={q.question}
+                                onChange={e => setEditedQuizQuestions(prev => prev.map((x, i) => i === qi ? { ...x, question: e.target.value } : x))}
+                              />
+                              <button
+                                className="btn btn-sm btn-outline-danger"
+                                style={{ borderRadius: 8, flexShrink: 0, marginTop: 4 }}
+                                onClick={() => setEditedQuizQuestions(prev => prev.filter((_, i) => i !== qi))}
+                              >
+                                🗑
+                              </button>
+                            </div>
+                            {q.options.map((opt: any, oi: number) => (
+                              <div key={oi} style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center', paddingLeft: 32 }}>
+                                <input
+                                  type="radio"
+                                  name={`q${qi}-correct`}
+                                  checked={opt.isCorrect}
+                                  onChange={() => setEditedQuizQuestions(prev => prev.map((x, i) => i === qi
+                                    ? { ...x, options: x.options.map((o: any, j: number) => ({ ...o, isCorrect: j === oi })) }
+                                    : x))}
+                                  style={{ cursor: 'pointer', flexShrink: 0 }}
+                                  title="Mark as correct"
+                                />
+                                <input
+                                  className="cf-input"
+                                  style={{ flex: 1, padding: '6px 10px' }}
+                                  value={opt.text}
+                                  onChange={e => setEditedQuizQuestions(prev => prev.map((x, i) => i === qi
+                                    ? { ...x, options: x.options.map((o: any, j: number) => j === oi ? { ...o, text: e.target.value } : o) }
+                                    : x))}
+                                />
+                              </div>
+                            ))}
+                            <div style={{ paddingLeft: 32, marginTop: 4 }}>
+                              <input
+                                className="cf-input"
+                                style={{ fontSize: 12, padding: '5px 10px', background: '#fffbeb', borderColor: '#fde68a' }}
+                                placeholder="Explanation (optional)"
+                                value={q.explanation || ''}
+                                onChange={e => setEditedQuizQuestions(prev => prev.map((x, i) => i === qi ? { ...x, explanation: e.target.value } : x))}
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <>
+                        {(recordingData.generatedQuiz?.questions || []).map((q, i) => (
+                          <ReviewQuizQuestion key={i} index={i} question={q} />
+                        ))}
+                        {!recordingData.generatedQuiz?.questions?.length && <div className="text-muted">No quiz generated yet.</div>}
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -659,9 +914,19 @@ const ClassFlowPage: React.FC = () => {
                 {reviewTab === 'notes' && (
                   <div>
                     {((recordingData as any).generatedNotes?.sections || []).map((sec: any, i: number) => (
-                      <div key={i} className="cf-note-section">
-                        <div className="cf-note-heading">{sec.heading}</div>
-                        <div className="cf-note-content">{sec.content}</div>
+                      <div key={i} className="cf-note-card">
+                        <div className="cf-note-num">{i + 1}</div>
+                        <div className="cf-note-body">
+                          <div className="cf-note-heading">{sec.heading}</div>
+                          <div className="cf-note-lines">
+                            {sec.content.split('\n').filter((l: string) => l.trim()).map((line: string, li: number) => (
+                              <div key={li} className="cf-note-line">
+                                <span className="cf-note-bullet">▸</span>
+                                <span>{line.trim()}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     ))}
                     {!((recordingData as any).generatedNotes?.sections?.length) && <div className="text-muted">Notes not generated yet.</div>}
@@ -686,29 +951,95 @@ const ClassFlowPage: React.FC = () => {
                 {reviewTab === 'assignment' && recordingData.generatedAssignment && (
                   <div>
                     <div className="cf-assignment-meta">⏰ Due in 2 days · 100 XP reward on completion</div>
-                    <div className="d-flex justify-content-end mb-2">
-                      {!assignmentSaved && (
-                        <button className="cf-btn-primary" style={{ padding: '8px 18px', fontSize: 13 }} onClick={async () => { setSavingAssignment(true); try { await classRecordingApi.saveAssignment(recordingId); setAssignmentSaved(true); } catch {} finally { setSavingAssignment(false); } }} disabled={savingAssignment}>
-                          {savingAssignment ? 'Saving…' : '💾 Save Assignment'}
-                        </button>
-                      )}
-                      {assignmentSaved && <span className="badge bg-success">✓ Saved to Assignments</span>}
-                    </div>
-                    <div className="cf-task-item">
-                      <div className="cf-task-num">1</div>
-                      <div>
-                        <div className="cf-task-title">{recordingData.generatedAssignment.title}</div>
-                        <div className="cf-task-desc" dangerouslySetInnerHTML={{ __html: recordingData.generatedAssignment.description?.substring(0, 300) || '' }} />
+                    <div className="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                      <strong style={{ color: '#0b1437' }}>
+                        {isEditingAssignment ? 'Editing Assignment' : 'Assignment Details'}
+                      </strong>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        {!isEditingAssignment && (
+                          <button
+                            className="btn btn-outline-secondary btn-sm"
+                            style={{ borderRadius: 8 }}
+                            onClick={() => {
+                              setEditedTitle(recordingData.generatedAssignment?.title || '');
+                              setEditedDescription(recordingData.generatedAssignment?.description || '');
+                              setEditedInstructions(recordingData.generatedAssignment?.instructions || '');
+                              setIsEditingAssignment(true);
+                            }}
+                          >
+                            ✏️ Edit Assignment
+                          </button>
+                        )}
+                        {isEditingAssignment && (
+                          <>
+                            <button
+                              className="cf-btn-primary btn-sm"
+                              style={{ padding: '6px 16px', fontSize: 13, borderRadius: 8 }}
+                              onClick={async () => {
+                                try {
+                                  await classRecordingApi.update(recordingId, {
+                                    generatedAssignment: {
+                                      ...recordingData.generatedAssignment,
+                                      title: editedTitle,
+                                      description: editedDescription,
+                                      instructions: editedInstructions,
+                                    }
+                                  } as any);
+                                  await loadReviewData();
+                                  setIsEditingAssignment(false);
+                                } catch {}
+                              }}
+                            >
+                              💾 Save Changes
+                            </button>
+                            <button className="btn btn-outline-secondary btn-sm" style={{ borderRadius: 8 }} onClick={() => setIsEditingAssignment(false)}>
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {!assignmentSaved && !isEditingAssignment && (
+                          <button className="cf-btn-primary" style={{ padding: '8px 18px', fontSize: 13, borderRadius: 8 }} onClick={async () => { setSavingAssignment(true); try { await classRecordingApi.saveAssignment(recordingId); setAssignmentSaved(true); } catch {} finally { setSavingAssignment(false); } }} disabled={savingAssignment}>
+                            {savingAssignment ? 'Saving…' : '💾 Save to Assignments'}
+                          </button>
+                        )}
+                        {assignmentSaved && <span className="badge bg-success align-self-center">✓ Saved to Assignments</span>}
                       </div>
                     </div>
-                    {recordingData.generatedAssignment.instructions && (
-                      <div className="cf-task-item">
-                        <div className="cf-task-num">2</div>
+
+                    {isEditingAssignment ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div>
-                          <div className="cf-task-title">Instructions</div>
-                          <div className="cf-task-desc" dangerouslySetInnerHTML={{ __html: recordingData.generatedAssignment.instructions?.substring(0, 300) || '' }} />
+                          <div className="cf-label">Assignment Title</div>
+                          <input className="cf-input" value={editedTitle} onChange={e => setEditedTitle(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="cf-label">Description</div>
+                          <textarea className="cf-textarea" style={{ minHeight: 100 }} value={editedDescription} onChange={e => setEditedDescription(e.target.value)} />
+                        </div>
+                        <div>
+                          <div className="cf-label">Instructions</div>
+                          <textarea className="cf-textarea" style={{ minHeight: 80 }} value={editedInstructions} onChange={e => setEditedInstructions(e.target.value)} />
                         </div>
                       </div>
+                    ) : (
+                      <>
+                        <div className="cf-task-item">
+                          <div className="cf-task-num">1</div>
+                          <div>
+                            <div className="cf-task-title">{recordingData.generatedAssignment.title}</div>
+                            <div className="cf-task-desc" dangerouslySetInnerHTML={{ __html: recordingData.generatedAssignment.description?.substring(0, 500) || '' }} />
+                          </div>
+                        </div>
+                        {recordingData.generatedAssignment.instructions && (
+                          <div className="cf-task-item">
+                            <div className="cf-task-num">2</div>
+                            <div>
+                              <div className="cf-task-title">Instructions</div>
+                              <div className="cf-task-desc" dangerouslySetInnerHTML={{ __html: recordingData.generatedAssignment.instructions?.substring(0, 500) || '' }} />
+                            </div>
+                          </div>
+                        )}
+                      </>
                     )}
                   </div>
                 )}
@@ -725,21 +1056,6 @@ const ClassFlowPage: React.FC = () => {
         </div>
       )}
 
-      {/* ── Bottom Nav ── */}
-      <div className="cf-bottom-nav">
-        {(['Create', 'Record', 'Process', 'Publish'] as const).map((label, i) => (
-          <button
-            key={label}
-            className={`cf-nav-item ${step === (i + 1) as Step ? 'active' : ''}`}
-            onClick={() => {
-              // Only allow going back or to already-unlocked steps
-              if (i + 1 <= step) setStep((i + 1) as Step);
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
     </div>
   );
 };

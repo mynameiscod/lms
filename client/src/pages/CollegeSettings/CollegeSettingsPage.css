@@ -1,0 +1,14 @@
+.cs-page { min-height: 100vh; }
+
+.cs-preview-bar {
+  height: 48px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+}
+.cs-preview-logo {
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+}

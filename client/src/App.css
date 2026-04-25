@@ -1,3 +1,36 @@
+/* Bootstrap 5 theme defaults — TenantContext overrides these at runtime per college */
+:root {
+  --bs-primary:          #6650d8;
+  --bs-primary-rgb:      102, 80, 216;
+  --bs-secondary:        #38bdf8;
+  --bs-secondary-rgb:    56, 189, 248;
+  --bs-link-color:       #6650d8;
+  --bs-link-hover-color: #6650d8;
+  --portal-title:        "LMS";
+}
+
+/* Keep btn-primary / badge-primary in sync with --bs-primary */
+.btn-primary {
+  --bs-btn-bg:           var(--bs-primary);
+  --bs-btn-border-color: var(--bs-primary);
+  --bs-btn-hover-bg:     color-mix(in srgb, var(--bs-primary) 85%, black);
+  --bs-btn-active-bg:    color-mix(in srgb, var(--bs-primary) 75%, black);
+}
+.btn-outline-primary {
+  --bs-btn-color:         var(--bs-primary);
+  --bs-btn-border-color:  var(--bs-primary);
+  --bs-btn-hover-bg:      var(--bs-primary);
+  --bs-btn-hover-color:   #fff;
+  --bs-btn-active-bg:     var(--bs-primary);
+}
+.badge.bg-primary,
+.badge.text-bg-primary {
+  background-color: var(--bs-primary) !important;
+}
+.nav-pills .nav-link.active {
+  background-color: var(--bs-primary);
+}
+
 * {
   margin: 0;
   padding: 0;

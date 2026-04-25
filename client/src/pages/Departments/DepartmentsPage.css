@@ -1,0 +1,13 @@
+.dp-page {
+  min-height: 100vh;
+}
+
+.dp-empty-icon {
+  font-size: 3rem;
+  color: var(--bs-secondary);
+}
+
+/* Semi-transparent backdrop for modals (Bootstrap modal JS not loaded) */
+.dp-modal-backdrop {
+  background: rgba(0, 0, 0, 0.45);
+}

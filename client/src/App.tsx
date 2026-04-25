@@ -41,6 +41,17 @@ import NotFoundPage from './pages/NotFound';
 import StudentReportsPage from './pages/StudentReports';
 import AdminStudentProfilesPage from './pages/AdminStudentProfiles';
 import StudentProfileDetail from './pages/AdminStudentProfiles/StudentProfileDetail';
+import DepartmentsPage from './pages/Departments';
+import CollegeSettingsPage from './pages/CollegeSettings';
+import CollegeMembersPage from './pages/CollegeMembers';
+import PlacementDrivesPage from './pages/PlacementDrives';
+import PlacementAnalyticsPage from './pages/PlacementAnalytics';
+import MyApplicationsPage from './pages/MyApplications';
+import AlumniManagementPage from './pages/AlumniManagement';
+import AlumniDirectoryPage from './pages/AlumniDirectory';
+import NotificationCenterPage from './pages/NotificationCenter';
+import StudentCollegePortal from './pages/StudentCollegePortal';
+import DeptReportsPage from './pages/DeptReports';
 import BulkUploadPage from './pages/BulkUpload';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
@@ -378,6 +389,127 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <StudentReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/departments"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <DepartmentsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/settings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <CollegeSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/members"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <CollegeMembersPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/placement"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'PLACEMENT_OFFICER']}>
+            <Layout>
+              <PlacementDrivesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/placement-analytics"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'PLACEMENT_OFFICER']}>
+            <Layout>
+              <PlacementAnalyticsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/alumni"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <AlumniManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/college"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <StudentCollegePortal />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/my-applications"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <MyApplicationsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/alumni-directory"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <AlumniDirectoryPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/notifications"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <NotificationCenterPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/reports"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <DeptReportsPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -1077,7 +1209,7 @@ const AppRoutes: React.FC = () => {
         path="/class-hub"
         element={
           <ProtectedRoute requiredRoles={['STUDENT']}>
-            <FeatureRoute feature="myCourse">
+            <FeatureRoute feature="classHub">
               <StudentMyClasses />
             </FeatureRoute>
           </ProtectedRoute>
@@ -1087,7 +1219,9 @@ const AppRoutes: React.FC = () => {
         path="/class-hub/:id"
         element={
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <StudentClassHub />
+            <FeatureRoute feature="classHub">
+              <StudentClassHub />
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />

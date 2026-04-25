@@ -22,6 +22,17 @@ export interface User {
   profileComplete?: boolean;
 }
 
+export interface TenantBranding {
+  primaryColor?: string;
+  secondaryColor?: string;
+  portalTitle?: string;
+  welcomeMessage?: string;
+  faviconUrl?: string;
+  coverImageUrl?: string;
+  hideCodeBegunBranding?: boolean;
+  customDomain?: string;
+}
+
 export interface Tenant {
   _id: string;
   name: string;
@@ -29,6 +40,7 @@ export interface Tenant {
   logo?: string;
   subscriptionPlan: string;
   isActive: boolean;
+  branding?: TenantBranding;
 }
 
 export interface Course {

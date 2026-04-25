@@ -1,0 +1,82 @@
+.nb-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.nb-bell-btn {
+  position: relative;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: inherit;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.nb-bell-btn:hover { background: rgba(0,0,0,0.07); }
+
+.nb-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  line-height: 1;
+}
+
+.nb-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 340px;
+  max-height: 420px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.12);
+  border-radius: 12px;
+  z-index: 9999;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.nb-header {
+  border-bottom: 1px solid rgba(0,0,0,.08);
+  flex-shrink: 0;
+}
+
+.nb-list {
+  overflow-y: auto;
+  flex: 1;
+}
+
+.nb-item {
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0,0,0,.05);
+  transition: background 0.1s;
+}
+.nb-item:hover { background: #f8f9fa; }
+.nb-item--unread { background: #eff6ff; }
+.nb-item--unread:hover { background: #dbeafe; }
+
+.nb-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+
+.nb-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--bs-primary, #0d6efd);
+  margin-top: 6px;
+}
+
+.nb-empty { padding: 24px; }

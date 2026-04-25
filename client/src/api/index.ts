@@ -699,7 +699,13 @@ export const tenantApi = {
     });
     if (!response.ok) throw new Error('Failed to update student features');
     return response.json();
-  }
+  },
+
+  updateTenant: async (tenantId: string, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/tenants/${tenantId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    })
 };
 
 // Role API
@@ -2172,4 +2178,231 @@ export const leadScoringApi = {
     authenticatedFetch(`${API_BASE_URL}/lead-scoring/rescore-all`, {
       method: 'POST'
     })
+};
+// --- College Module API ------------------------------------------------------
+export const departmentApi = {
+  list: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/departments`),
+
+  getById: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/departments/${id}`),
+
+  create: (data: { name: string; code: string; description?: string; headUserId?: string }) =>
+    authenticatedFetch(`${API_BASE_URL}/college/departments`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: Partial<{ name: string; code: string; description: string; headUserId: string | null; isActive: boolean }>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/departments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  remove: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/departments/${id}`, { method: 'DELETE' })
+};
+
+export const collegeMembershipApi = {
+  list: (params?: { collegeRole?: string; departmentId?: string; yearOfStudy?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.collegeRole)  q.set('collegeRole',  params.collegeRole);
+    if (params?.departmentId) q.set('departmentId', params.departmentId);
+    if (params?.yearOfStudy)  q.set('yearOfStudy',  String(params.yearOfStudy));
+    return authenticatedFetch(`${API_BASE_URL}/college/membership?${q.toString()}`);
+  },
+
+  getMe: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/membership/me`),
+
+  upsert: (data: {
+    userId: string;
+    collegeRole: string;
+    departmentId?: string | null;
+    yearOfStudy?: number | null;
+    rollNumber?: string;
+    academicYear?: string;
+    division?: string;
+    cgpa?: number;
+    backlogs?: number;
+    semesterGrades?: { semester: number; sgpa: number }[];
+  }) =>
+    authenticatedFetch(`${API_BASE_URL}/college/membership`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  updateAcademic: (userId: string, data: { cgpa?: number; backlogs?: number; semesterGrades?: { semester: number; sgpa: number }[] }) =>
+    authenticatedFetch(`${API_BASE_URL}/college/membership/${userId}/academic`, {
+      method: 'PATCH',
+      body: JSON.stringify(data)
+    }),
+
+  deactivate: (userId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/membership/${userId}`, { method: 'DELETE' })
+};
+
+export const placementDriveApi = {
+  list: (status?: string) => {
+    const q = status ? `?status=${status}` : '';
+    return authenticatedFetch(`${API_BASE_URL}/college/placement${q}`);
+  },
+
+  getById: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}`),
+
+  create: (data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  remove: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}`, { method: 'DELETE' }),
+
+  apply: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/apply`, { method: 'POST' }),
+
+  withdraw: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/withdraw`, { method: 'POST' }),
+
+  getStats: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/stats`),
+
+  getApplicants: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/applicants`),
+
+  setApplicantStatus: (id: string, userId: string, status: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/applicants/${userId}/status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
+    }),
+
+  addRound: (id: string, data: { name: string; date?: string; venue?: string; description?: string }) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/rounds`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  updateRound: (id: string, roundIndex: number, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/rounds/${roundIndex}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  removeRound: (id: string, roundIndex: number) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/rounds/${roundIndex}`, { method: 'DELETE' }),
+
+  bulkStatusImport: (id: string, updates: { email?: string; rollNumber?: string; status: string }[]) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/applicants/bulk-status`, {
+      method: 'POST',
+      body: JSON.stringify({ updates })
+    }),
+
+  downloadCertificate: async (driveId: string, userId: string): Promise<string> => {
+    const token = localStorage.getItem('token');
+    const tenantId = localStorage.getItem('tenantId');
+    const response = await fetch(`${API_BASE_URL}/college/placement/${driveId}/certificate/${userId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-Tenant-ID': tenantId || ''
+      }
+    });
+    if (!response.ok) throw new Error('Failed to download certificate');
+    const blob = await response.blob();
+    return URL.createObjectURL(blob);
+  },
+
+  getAnalytics: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/analytics`),
+
+  getMyApplications: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/my-applications`),
+};
+
+export const notificationApi = {
+  list: () =>
+    authenticatedFetch(`${API_BASE_URL}/notifications`),
+
+  markRead: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/notifications/${id}/read`, { method: 'PATCH' }),
+
+  markAllRead: () =>
+    authenticatedFetch(`${API_BASE_URL}/notifications/read-all`, { method: 'POST' })
+};
+
+export const departmentReportApi = {
+  getReport: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/departments/report`)
+};
+
+export const collegeSnapshotApi = {
+  getSnapshot: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/snapshot`)
+};
+
+export const alumniApi = {
+  list: (params?: { year?: number; department?: string; mentoring?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.year) q.set('year', String(params.year));
+    if (params?.department) q.set('department', params.department);
+    if (params?.mentoring) q.set('mentoring', 'true');
+    const qs = q.toString() ? `?${q}` : '';
+    return authenticatedFetch(`${API_BASE_URL}/college/alumni${qs}`);
+  },
+  getOne: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/${id}`),
+  create: (data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+  update: (id: string, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+  remove: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/${id}`, { method: 'DELETE' }),
+  getStats: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/stats`),
+
+  // Mentoring requests
+  requestMentoring: (alumniId: string, message: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/mentoring-requests`, {
+      method: 'POST',
+      body: JSON.stringify({ alumniId, message })
+    }),
+  getMyMentoringRequests: () =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/mentoring-requests/mine`),
+  respondToRequest: (requestId: string, status: 'accepted' | 'declined', responseMessage?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/alumni/mentoring-requests/${requestId}/respond`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status, responseMessage })
+    }),
+};
+
+export const attendanceBulkApi = {
+  bulkMark: (batchId: string, date: string, records: Array<{ studentId: string; status: 'present' | 'absent' | 'leave'; inTime?: string; outTime?: string; remarks?: string }>) =>
+    authenticatedFetch(`${API_BASE_URL}/attendance/bulk`, {
+      method: 'POST',
+      body: JSON.stringify({ batchId, date, records })
+    }),
+  exportCSV: (batchId: string, startDate: string, endDate: string) => {
+    const token = localStorage.getItem('token');
+    const tenantId = localStorage.getItem('tenantId');
+    const params = new URLSearchParams({ batchId, startDate, endDate });
+    return fetch(`${API_BASE_URL}/attendance/export/csv?${params}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'x-tenant-id': tenantId || ''
+      }
+    });
+  }
 };

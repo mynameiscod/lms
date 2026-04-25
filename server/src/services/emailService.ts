@@ -648,4 +648,99 @@ This is an automated message from CodeBegun Learning Management System.
       console.log('📧 [EMAIL SERVICE] Email delivery failed (assignment still published)\n');
     }
   }
+
+  // ─── Placement status alert ──────────────────────────────────────────────────
+  async sendPlacementStatusEmail(
+    email: string,
+    firstName: string,
+    companyName: string,
+    role: string,
+    status: 'shortlisted' | 'selected' | 'placed' | 'rejected'
+  ): Promise<void> {
+    const statusMeta: Record<string, { emoji: string; color: string; headline: string }> = {
+      shortlisted: { emoji: '🎯', color: '#f59e0b', headline: 'You have been Shortlisted!' },
+      selected:    { emoji: '✅', color: '#10b981', headline: 'Congratulations — You are Selected!' },
+      placed:      { emoji: '🎉', color: '#059669', headline: 'You are Placed! Congratulations!' },
+      rejected:    { emoji: '📋', color: '#6b7280', headline: 'Application Status Update' },
+    };
+    const meta = statusMeta[status] || { emoji: '📋', color: '#6b7280', headline: 'Placement Status Update' };
+    const subject = `${meta.emoji} ${meta.headline} — ${companyName}`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: ${meta.color}; color: white; padding: 2rem; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">${meta.emoji} ${meta.headline}</h2>
+        </div>
+        <div style="background: #f9f9f9; padding: 2rem; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
+          <p>Hello <strong>${firstName}</strong>,</p>
+          <p>Your application for <strong>${role}</strong> at <strong>${companyName}</strong> has been updated.</p>
+          <div style="background: white; border-left: 4px solid ${meta.color}; padding: 1rem; margin: 1.5rem 0; border-radius: 4px;">
+            <p style="margin: 0;"><strong>Company:</strong> ${companyName}</p>
+            <p style="margin: 0.5rem 0;"><strong>Role:</strong> ${role}</p>
+            <p style="margin: 0;"><strong>Status:</strong> <span style="color: ${meta.color}; font-weight: bold; text-transform: uppercase;">${status}</span></p>
+          </div>
+          ${status === 'placed' ? '<p style="color: #059669; font-weight: bold;">Welcome aboard! Our team will reach out with next steps.</p>' : ''}
+          <p style="color: #999; font-size: 12px; border-top: 1px solid #e0e0e0; padding-top: 1rem; margin-bottom: 0;">
+            This is an automated message from CodeBegun LMS. Do not reply.
+          </p>
+        </div>
+      </div>`;
+    const text = `${meta.headline}\n\nHello ${firstName},\n\nYour application for ${role} at ${companyName} has been updated.\nStatus: ${status.toUpperCase()}\n\nCodeBegun LMS`;
+    try {
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, html, text);
+      } else {
+        await this.transporter!.sendMail({
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email, subject, html, text
+        });
+      }
+    } catch (err) {
+      console.error('❌ sendPlacementStatusEmail failed:', err);
+      // Non-fatal — don't throw
+    }
+  }
+
+  // ─── New placement drive alert ───────────────────────────────────────────────
+  async sendNewDriveEmail(
+    email: string,
+    firstName: string,
+    companyName: string,
+    role: string,
+    applyDeadline: string,
+    link: string
+  ): Promise<void> {
+    const subject = `🚀 New Placement Drive — ${companyName} (${role})`;
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; padding: 2rem; border-radius: 8px 8px 0 0;">
+          <h2 style="margin: 0;">🚀 New Placement Drive</h2>
+        </div>
+        <div style="background: #f9f9f9; padding: 2rem; border: 1px solid #e0e0e0; border-radius: 0 0 8px 8px;">
+          <p>Hello <strong>${firstName}</strong>,</p>
+          <p>A new placement drive is open and you may be eligible!</p>
+          <div style="background: white; border-left: 4px solid #2563eb; padding: 1rem; margin: 1.5rem 0; border-radius: 4px;">
+            <p style="margin: 0;"><strong>Company:</strong> ${companyName}</p>
+            <p style="margin: 0.5rem 0;"><strong>Role:</strong> ${role}</p>
+            <p style="margin: 0;"><strong>Apply by:</strong> ${applyDeadline}</p>
+          </div>
+          <a href="${link}" style="display: inline-block; background: #2563eb; color: white; padding: 0.75rem 1.5rem; border-radius: 6px; text-decoration: none; font-weight: bold;">View Drive &amp; Apply</a>
+          <p style="color: #999; font-size: 12px; border-top: 1px solid #e0e0e0; padding-top: 1rem; margin: 1.5rem 0 0;">
+            This is an automated message from CodeBegun LMS. Do not reply.
+          </p>
+        </div>
+      </div>`;
+    const text = `New Placement Drive — ${companyName} (${role})\n\nHello ${firstName},\nApply by: ${applyDeadline}\n${link}`;
+    try {
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, html, text);
+      } else {
+        await this.transporter!.sendMail({
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email, subject, html, text
+        });
+      }
+    } catch (err) {
+      console.error('❌ sendNewDriveEmail failed:', err);
+    }
+  }
 }

@@ -17,7 +17,6 @@
   min-height: 100vh;
   background: var(--sch-bg);
   font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-  padding-bottom: 80px;
 }
 
 /* ── Top Bar ── */
@@ -198,14 +197,18 @@
   background: var(--sch-grad);
 }
 
-/* ── Bottom Nav ── */
-.sch-bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: #fff; border-top: 1px solid #e8ecf3;
-  display: flex; z-index: 200;
+/* ── Top Nav (sticky below global navbar) ── */
+.sch-top-nav {
+  position: sticky;
+  top: 62px;
+  background: #fff;
+  border-bottom: 2px solid #e8ecf3;
+  display: flex;
+  z-index: 99;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.04);
 }
 .sch-nav-item {
-  flex: 1; padding: 14px 8px 12px;
+  flex: 1; padding: 13px 8px 11px;
   text-align: center;
   font-size: 13px; font-weight: 600;
   color: #94a3b8;
@@ -216,10 +219,37 @@
 .sch-nav-item.active { color: var(--sch-purple); }
 .sch-nav-item.active::after {
   content: ''; position: absolute;
-  top: 0; left: 20%; right: 20%;
+  bottom: 0; left: 20%; right: 20%;
   height: 3px; background: var(--sch-grad);
-  border-radius: 0 0 3px 3px;
+  border-radius: 3px 3px 0 0;
 }
+.sch-nav-item:hover:not(.active) { color: var(--sch-dark); }
+
+/* ── Note Cards ── */
+.sch-notes-doc { display: flex; flex-direction: column; gap: 14px; }
+.sch-note-card {
+  background: #f8fafc;
+  border-radius: 12px;
+  border-left: 4px solid var(--sch-purple);
+  overflow: hidden;
+}
+.sch-note-card-header {
+  display: flex; align-items: center; gap: 12px;
+  background: #ede9ff; padding: 12px 16px;
+}
+.sch-note-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--sch-purple); color: #fff;
+  font-size: 12px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.sch-note-heading { font-size: 14px; font-weight: 700; color: var(--sch-dark); }
+.sch-note-body { padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; }
+.sch-note-line {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-size: 14px; color: #374151; line-height: 1.6;
+}
+.sch-note-bullet { color: var(--sch-purple); font-weight: 700; margin-top: 2px; flex-shrink: 0; }
 
 /* ── Class Hub (detail view) ── */
 .sch-hub-header {

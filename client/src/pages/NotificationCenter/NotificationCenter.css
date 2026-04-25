@@ -1,0 +1,235 @@
+.nc-page {
+  padding: 1.5rem;
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.nc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.25rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.nc-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 0.25rem;
+}
+
+.nc-unread-badge {
+  display: inline-block;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+}
+
+.nc-mark-all-btn {
+  padding: 0.45rem 1rem;
+  background: var(--bs-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: opacity 0.2s;
+}
+
+.nc-mark-all-btn:hover {
+  opacity: 0.85;
+}
+
+.nc-filters {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nc-filter-group {
+  display: flex;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.nc-filter-btn {
+  padding: 0.4rem 0.9rem;
+  background: #fff;
+  border: none;
+  font-size: 0.875rem;
+  color: #64748b;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.nc-filter-btn + .nc-filter-btn {
+  border-left: 1px solid #e2e8f0;
+}
+
+.nc-filter-active {
+  background: var(--bs-primary);
+  color: #fff;
+}
+
+.nc-type-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  background: #fff;
+  outline: none;
+  cursor: pointer;
+}
+
+.nc-count {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-bottom: 0.75rem;
+}
+
+.nc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.nc-empty {
+  text-align: center;
+  padding: 3rem;
+  color: #94a3b8;
+  font-size: 1rem;
+}
+
+.nc-empty i {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.nc-item {
+  display: flex;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  background: #fff;
+  position: relative;
+  transition: background 0.15s, box-shadow 0.15s;
+  align-items: flex-start;
+}
+
+.nc-item-unread {
+  background: #f0f7ff;
+  border-color: #c7dff7;
+}
+
+.nc-item-clickable {
+  cursor: pointer;
+}
+
+.nc-item-clickable:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.nc-item-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.nc-icon-placement_drive_new { background: #eff6ff; color: #3b82f6; }
+.nc-icon-placement_deadline  { background: #fff7ed; color: #f97316; }
+.nc-icon-placement_status    { background: #f0fdf4; color: #22c55e; }
+.nc-icon-general             { background: #f8fafc; color: #64748b; }
+
+.nc-item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.nc-item-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.2rem;
+  flex-wrap: wrap;
+}
+
+.nc-item-title {
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: #1e293b;
+}
+
+.nc-item-time {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.nc-item-text {
+  font-size: 0.875rem;
+  color: #475569;
+  margin: 0 0 0.5rem;
+  line-height: 1.5;
+}
+
+.nc-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.nc-type-tag {
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.15rem 0.5rem;
+  border-radius: 20px;
+}
+
+.nc-type-placement_drive_new { background: #eff6ff; color: #3b82f6; }
+.nc-type-placement_deadline  { background: #fff7ed; color: #f97316; }
+.nc-type-placement_status    { background: #f0fdf4; color: #22c55e; }
+.nc-type-general             { background: #f1f5f9; color: #64748b; }
+
+.nc-mark-btn {
+  background: none;
+  border: none;
+  font-size: 0.78rem;
+  color: var(--bs-primary);
+  cursor: pointer;
+  padding: 0;
+  font-weight: 500;
+}
+
+.nc-mark-btn:hover {
+  text-decoration: underline;
+}
+
+.nc-unread-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--bs-primary);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.35rem;
+}

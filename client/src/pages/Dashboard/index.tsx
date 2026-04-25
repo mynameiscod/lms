@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { Spinner } from '../../components/common';
-import { attendanceApi, dashboardApi, leadApi } from '../../api';
+import { attendanceApi, dashboardApi, leadApi, collegeSnapshotApi, placementDriveApi, alumniApi } from '../../api';
 import './DashboardPage.css';
 
 interface DashboardData {
@@ -85,6 +85,28 @@ interface DashboardStats {
   totalContent: number;
 }
 
+interface CollegeSnapshot {
+  activeDrives: number;
+  applicantsThisMonth: number;
+  placedStudents: number;
+  topCompany: string;
+}
+
+interface UpcomingDrive {
+  _id: string;
+  companyName: string;
+  role: string;
+  applicationDeadline?: string;
+  ctcMin?: number;
+  ctcMax?: number;
+}
+
+interface AlumniStats {
+  total: number;
+  mentorsAvailable: number;
+  topCompany: string;
+}
+
 const DashboardPage: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
@@ -106,8 +128,13 @@ const DashboardPage: React.FC = () => {
     attendancePercentage: 0,
   });
 
+  // Student-specific extras
+  const [upcomingDrives, setUpcomingDrives] = useState<UpcomingDrive[]>([]);
+  const [alumniStats, setAlumniStats] = useState<AlumniStats | null>(null);
+
   // Lead follow-up notifications for staff/admin users
   const [leadPerf, setLeadPerf] = useState<{ todayFollowUps: number; overdueFollowUps: number; totalAssigned: number } | null>(null);
+  const [collegeSnapshot, setCollegeSnapshot] = useState<CollegeSnapshot | null>(null);
   const hasLeadPermission = user?.permissions?.some((p: string) => ['view_leads', 'manage_leads', 'create_leads'].includes(p)) ?? false;
 
   // Determine if user should see admin dashboard
@@ -164,6 +191,15 @@ const DashboardPage: React.FC = () => {
     }
   };
 
+  const fetchCollegeSnapshot = async () => {
+    try {
+      const res = await collegeSnapshotApi.getSnapshot();
+      if (res.success && res.data) setCollegeSnapshot(res.data);
+    } catch {
+      // Optional widget — silently ignore
+    }
+  };
+
   // Fetch lead follow-up stats for users with lead access
   const fetchLeadFollowUps = async () => {
     try {
@@ -189,6 +225,32 @@ const DashboardPage: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching student dashboard:', error);
+    }
+  };
+
+  const fetchUpcomingDrives = async () => {
+    try {
+      const res = await placementDriveApi.list('active');
+      if (res.success && Array.isArray(res.data)) {
+        setUpcomingDrives(res.data.slice(0, 3));
+      }
+    } catch {
+      // Optional — silently ignore
+    }
+  };
+
+  const fetchAlumniStats = async () => {
+    try {
+      const res = await alumniApi.getStats();
+      if (res.success && res.data) {
+        setAlumniStats({
+          total: res.data.total || 0,
+          mentorsAvailable: res.data.mentorsAvailable || 0,
+          topCompany: res.data.topCompanies?.[0]?.company || ''
+        });
+      }
+    } catch {
+      // Optional — silently ignore
     }
   };
 
@@ -226,10 +288,11 @@ const DashboardPage: React.FC = () => {
       setLoading(true);
       
       if (user?.role === 'STUDENT' && !isAdminUser) {
-        await Promise.all([fetchStudentDashboard(), fetchAttendance()]);
+        await Promise.all([fetchStudentDashboard(), fetchAttendance(), fetchUpcomingDrives(), fetchAlumniStats()]);
       } else {
         await Promise.all([
           fetchAdminStats(),
+          fetchCollegeSnapshot(),
           ...(hasLeadPermission ? [fetchLeadFollowUps()] : [])
         ]);
       }
@@ -340,6 +403,34 @@ const DashboardPage: React.FC = () => {
                 </p>
               </div>
             </div>
+
+            {collegeSnapshot && (
+              <div className="dashboard-card">
+                <h2>🎓 College &amp; Placement</h2>
+                <div className="card-content">
+                  <div className="stat-item">
+                    <span className="stat-label">Active Drives</span>
+                    <span className="stat-value" style={{ color: 'var(--bs-primary)' }}>{collegeSnapshot.activeDrives}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Applicants This Month</span>
+                    <span className="stat-value">{collegeSnapshot.applicantsThisMonth}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Students Placed</span>
+                    <span className="stat-value" style={{ color: '#059669' }}>{collegeSnapshot.placedStudents}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Top Recruiter</span>
+                    <span className="stat-value" style={{ fontSize: '0.9rem' }}>{collegeSnapshot.topCompany}</span>
+                  </div>
+                  <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <a href="/admin/college/placement" className="action-link">🚀 Drives</a>
+                    <a href="/admin/college/reports" className="action-link">📊 Reports</a>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Follow-up Reminders Widget — only for users with lead access */}
@@ -630,6 +721,57 @@ const DashboardPage: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Upcoming Placement Drives */}
+          {upcomingDrives.length > 0 && (
+            <div className="sd-card">
+              <div className="sd-card-header">
+                <h3>Open Drives</h3>
+                <button className="sd-link" onClick={() => navigate('/student/my-applications')}>View all →</button>
+              </div>
+              <div className="sd-deadline-list">
+                {upcomingDrives.map(d => (
+                  <div key={d._id} className="sd-deadline-item" style={{ cursor: 'default' }}>
+                    <div className="sd-deadline-bar" style={{ backgroundColor: 'var(--bs-primary)' }} />
+                    <div className="sd-deadline-info">
+                      <span className="sd-deadline-title">{d.companyName}</span>
+                      <span className="sd-deadline-meta">{d.role}{d.ctcMin ? ` · ₹${d.ctcMin}–${d.ctcMax || d.ctcMin} LPA` : ''}</span>
+                    </div>
+                    {d.applicationDeadline && (
+                      <span className="sd-deadline-days" style={{ color: '#475569', fontSize: '0.78rem' }}>
+                        Till {new Date(d.applicationDeadline).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Alumni Network Quick Widget */}
+          {alumniStats && alumniStats.total > 0 && (
+            <div className="sd-card">
+              <div className="sd-card-header">
+                <h3>Alumni Network</h3>
+                <button className="sd-link" onClick={() => navigate('/student/alumni-directory')}>Browse →</button>
+              </div>
+              <div className="sd-att-stats" style={{ margin: '0.5rem 0 0.25rem' }}>
+                <div className="sd-att-stat">
+                  <span className="sd-att-stat-num" style={{ color: 'var(--bs-primary)' }}>{alumniStats.total}</span>
+                  <span className="sd-att-stat-lbl">Alumni</span>
+                </div>
+                <div className="sd-att-stat">
+                  <span className="sd-att-stat-num" style={{ color: '#22c55e' }}>{alumniStats.mentorsAvailable}</span>
+                  <span className="sd-att-stat-lbl">Mentors</span>
+                </div>
+              </div>
+              {alumniStats.topCompany && (
+                <p style={{ fontSize: '0.82rem', color: '#64748b', margin: '0.5rem 0 0', textAlign: 'center' }}>
+                  Top recruiter: <strong>{alumniStats.topCompany}</strong>
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>

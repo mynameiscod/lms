@@ -46,6 +46,13 @@ import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
 import interviewTemplateRoutes from './interviewTemplateRoutes';
 import classRecordingRoutes from './classRecordingRoutes';
+import departmentRoutes from '../college/departmentRoutes';
+import membershipRoutes from '../college/membershipRoutes';
+import placementDriveRoutes from '../placement/placementDriveRoutes';
+import alumniRoutes from '../alumni/alumniRoutes';
+import notificationRoutes from '../notifications/notificationRoutes';
+// Boot notification listeners
+import '../notifications/notificationService';
 
 const router = express.Router();
 
@@ -98,5 +105,12 @@ router.use('/google-sheet-integrations', googleSheetRoutes);
 router.use('/lead-scoring', leadScoringRoutes);
 router.use('/interview-module', interviewTemplateRoutes);
 router.use('/class-recordings', classRecordingRoutes);
+
+// ─── College Module ────────────────────────────────────────────────────────────
+router.use('/college/departments', departmentRoutes);
+router.use('/college/membership', membershipRoutes);
+router.use('/college/placement', placementDriveRoutes);
+router.use('/college/alumni', alumniRoutes);
+router.use('/notifications', notificationRoutes);
 
 export default router;

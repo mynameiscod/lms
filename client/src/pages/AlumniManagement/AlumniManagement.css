@@ -1,0 +1,90 @@
+.am-container {
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.am-loading { display: flex; justify-content: center; padding: 4rem; }
+.am-empty { text-align: center; color: #9ca3af; padding: 3rem; font-size: 0.9rem; }
+
+.am-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.am-title { font-size: 1.4rem; font-weight: 700; color: #1e1e2e; margin-bottom: 0.15rem; }
+.am-subtitle { color: #6b7280; font-size: 0.85rem; margin: 0; }
+
+.am-filters {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.am-search { max-width: 320px; }
+.am-year-select { max-width: 140px; }
+
+/* Cards grid */
+.am-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.am-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.1rem;
+  box-shadow: 0 1px 4px rgba(0,0,0,.07);
+  border: 1px solid #f3f4f6;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: box-shadow 0.2s;
+}
+.am-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.1); }
+
+.am-card-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--bs-primary), #38bdf8);
+  color: #fff;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.am-card-body { flex: 1; }
+
+.am-name { font-weight: 700; font-size: 0.95rem; color: #1e1e2e; }
+.am-year-dept { font-size: 0.78rem; color: #9ca3af; margin-top: 0.1rem; }
+.am-company { font-size: 0.82rem; color: #374151; margin-top: 0.3rem; }
+.am-ctc { font-size: 0.78rem; color: #22c55e; font-weight: 600; margin-top: 0.2rem; }
+.am-loc { font-size: 0.78rem; color: #6b7280; margin-top: 0.15rem; }
+
+.am-badges { display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem; }
+.am-badge { font-size: 0.7rem; }
+.am-badge-li {
+  background: #0a66c2;
+  color: #fff;
+  padding: 0.15rem 0.45rem;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  text-decoration: none;
+  font-weight: 500;
+}
+.am-badge-li:hover { background: #004182; color: #fff; }
+
+.am-card-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+.am-card-actions .btn { flex: 1; font-size: 0.75rem; }

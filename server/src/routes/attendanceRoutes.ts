@@ -6,7 +6,9 @@ import {
   getBatchAttendanceSummary,
   getStudentAttendanceSummary,
   getAttendanceByDateRange,
-  deleteAttendance
+  deleteAttendance,
+  bulkMarkAttendance,
+  exportAttendanceCSV
 } from '../controllers/attendanceController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -47,6 +49,20 @@ router.get(
 router.get(
   '/range',
   getAttendanceByDateRange
+);
+
+// Export attendance as CSV
+router.get(
+  '/export/csv',
+  roleGuard(['mark_attendance']),
+  exportAttendanceCSV
+);
+
+// Bulk mark attendance
+router.post(
+  '/bulk',
+  roleGuard(['mark_attendance']),
+  bulkMarkAttendance
 );
 
 // Get student attendance summary

@@ -1,8 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { batchApi, userApi, courseApi } from '../../api';
+import { batchApi, userApi, courseApi, departmentApi } from '../../api';
 import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
 import { Batch, User } from '../../types';
 import './BatchesPage.css';
+
+interface Department {
+  _id: string;
+  name: string;
+  code: string;
+}
 
 interface Course {
   _id: string;
@@ -16,6 +22,7 @@ const BatchesPage: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -26,6 +33,7 @@ const BatchesPage: React.FC = () => {
   const [formData, setFormData] = useState({
     name: '',
     courseId: '',
+    departmentId: '',
     startDate: '',
     endDate: '',
     timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
@@ -41,14 +49,16 @@ const BatchesPage: React.FC = () => {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [batchesRes, instructorsRes, coursesRes] = await Promise.all([
+      const [batchesRes, instructorsRes, coursesRes, deptRes] = await Promise.all([
         batchApi.getBatches(),
         userApi.getUsers(),
-        courseApi.getCourses({ isActive: true })
+        courseApi.getCourses({ isActive: true }),
+        departmentApi.list()
       ]);
 
       setBatches(batchesRes.data || []);
       setCourses(coursesRes.data || []);
+      setDepartments(deptRes.data || []);
       // Filter instructors - only users with INSTRUCTOR, TENANT_ADMIN, or SUPER_ADMIN role
       const instructorUsers = (instructorsRes.data || []).filter(
         (u: User) => {
@@ -139,6 +149,7 @@ const BatchesPage: React.FC = () => {
     setFormData({
       name: '',
       courseId: '',
+      departmentId: '',
       startDate: today,
       endDate,
       timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
@@ -153,6 +164,7 @@ const BatchesPage: React.FC = () => {
     setFormData({
       name: batch.name,
       courseId: (batch as any).courseId?._id || (batch as any).courseId || '',
+      departmentId: (batch as any).departmentId?._id || (batch as any).departmentId || '',
       startDate: batch.startDate.split('T')[0],
       endDate: batch.endDate.split('T')[0],
       timings: batch.timings,
@@ -264,6 +276,13 @@ const BatchesPage: React.FC = () => {
                       📚 {typeof (batch as any).courseId === 'object' 
                         ? (batch as any).courseId.title 
                         : courses.find(c => c._id === (batch as any).courseId)?.title || 'Course'}
+                    </p>
+                  )}
+                  {(batch as any).departmentId && (
+                    <p className="batch-course">
+                      🏛 {typeof (batch as any).departmentId === 'object'
+                        ? `${(batch as any).departmentId.name} (${(batch as any).departmentId.code})`
+                        : departments.find(d => d._id === (batch as any).departmentId)?.name || 'Department'}
                     </p>
                   )}
                   <p className="batch-dates">
@@ -383,6 +402,23 @@ const BatchesPage: React.FC = () => {
               {courses.map((course) => (
                 <option key={course._id} value={course._id}>
                   {course.title} ({course.code})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">Department <span className="text-muted small">(optional)</span></label>
+            <select
+              name="departmentId"
+              value={(formData as any).departmentId || ''}
+              onChange={handleFormChange}
+              className="form-select"
+            >
+              <option value="">-- No Department --</option>
+              {departments.map((dept) => (
+                <option key={dept._id} value={dept._id}>
+                  {dept.name} ({dept.code})
                 </option>
               ))}
             </select>

@@ -15,6 +15,7 @@ export interface IBatch extends Document {
   isActive: boolean;
   capacity?: number;
   enrolledCount?: number;
+  departmentId?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -86,6 +87,11 @@ const BatchSchema: Schema = new Schema(
     enrolledCount: {
       type: Number,
       default: 0
+    },
+    departmentId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Department',
+      default: null
     }
   },
   { timestamps: true }

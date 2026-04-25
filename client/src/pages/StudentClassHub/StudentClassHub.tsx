@@ -6,7 +6,6 @@ import { Spinner } from '../../components/common';
 import './StudentClassHub.css';
 
 type HubTab = 'video' | 'summary' | 'quiz' | 'notes' | 'practice' | 'assignment';
-type NavTab = 'classes' | 'tasks' | 'progress';
 
 interface ClassProgress {
   videoWatchedPercent: number;
@@ -50,7 +49,6 @@ const StudentClassHub: React.FC = () => {
     const t = searchParams.get('tab') as HubTab;
     return ['video', 'summary', 'quiz', 'notes', 'practice', 'assignment'].includes(t) ? t : 'video';
   });
-  const [navTab] = useState<NavTab>('classes');
 
   // Time tracking
   const [sessionSeconds, setSessionSeconds] = useState(0);
@@ -129,7 +127,11 @@ const StudentClassHub: React.FC = () => {
   const recDate = new Date(recording.recordedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   const videoDurationMin = Math.round((recording.duration || 0) / 60);
   const videoUrl = recording.videoUrl
-    ? (recording.videoUrl.startsWith('http') ? recording.videoUrl : `/api/v1/class-recordings/${recording._id}/stream`)
+    ? (() => {
+        const token = localStorage.getItem('token') || '';
+        const tenantId = localStorage.getItem('tenantId') || '';
+        return `/api/v1/class-recordings/${recording._id}/stream?token=${encodeURIComponent(token)}&tenantId=${encodeURIComponent(tenantId)}`;
+      })()
     : null;
 
   const questions = recording.generatedQuiz?.questions || [];
@@ -157,6 +159,13 @@ const StudentClassHub: React.FC = () => {
             {user?.firstName} {user?.lastName}
           </span>
         </div>
+      </div>
+
+      {/* Top Nav (sticky below topbar) */}
+      <div className="sch-top-nav">
+        <button className={`sch-nav-item${activeTab === 'video' ? ' active' : ''}`} onClick={() => navigate('/class-hub')}>🏠 Classes</button>
+        <button className="sch-nav-item" onClick={() => navigate('/class-hub?tab=tasks')}>📋 Tasks</button>
+        <button className="sch-nav-item" onClick={() => navigate('/class-hub?tab=progress')}>📊 Progress</button>
       </div>
 
       <div className="sch-content">
@@ -361,12 +370,24 @@ const StudentClassHub: React.FC = () => {
         {activeTab === 'notes' && (
           <div className="sch-tab-content">
             {notes.length > 0 ? (
-              notes.map((sec: any, i: number) => (
-                <div key={i} className="sch-note-section">
-                  <div className="sch-note-heading">{sec.heading}</div>
-                  <div className="sch-note-content">{sec.content}</div>
-                </div>
-              ))
+              <div className="sch-notes-doc">
+                {notes.map((sec: any, i: number) => (
+                  <div key={i} className="sch-note-card">
+                    <div className="sch-note-card-header">
+                      <span className="sch-note-num">{i + 1}</span>
+                      <div className="sch-note-heading">{sec.heading}</div>
+                    </div>
+                    <div className="sch-note-body">
+                      {sec.content.split('\n').filter((l: string) => l.trim()).map((line: string, li: number) => (
+                        <div key={li} className="sch-note-line">
+                          <span className="sch-note-bullet">▸</span>
+                          <span>{line.trim()}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : (
               <div className="text-muted text-center py-4">Notes not available yet.</div>
             )}
@@ -412,13 +433,17 @@ const StudentClassHub: React.FC = () => {
                     </div>
                   </div>
                 )}
-                {assignment.savedAssignmentId && (
+                {assignment.savedAssignmentId ? (
                   <button
                     style={{ marginTop: 16, background: 'linear-gradient(90deg,#6650d8,#38bdf8)', border: 'none', color: '#fff', borderRadius: 12, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer', width: '100%' }}
                     onClick={() => { navigate(`/assignments/${assignment.savedAssignmentId}/workspace`); if (id) saveProgress(id, { assignmentSubmitted: true }); }}
                   >
-                    Open Assignment Workspace →
+                    Open Assignment Editor →
                   </button>
+                ) : (
+                  <div className="alert alert-info mt-3" style={{ fontSize: 13, borderRadius: 10 }}>
+                    🔗 Assignment workspace not linked yet. Ask your instructor to publish this assignment.
+                  </div>
                 )}
               </>
             ) : (
@@ -428,12 +453,6 @@ const StudentClassHub: React.FC = () => {
         )}
       </div>
 
-      {/* Bottom Nav */}
-      <div className="sch-bottom-nav">
-        <button className="sch-nav-item active" onClick={() => navigate('/class-hub')}>Classes</button>
-        <button className="sch-nav-item" onClick={() => navigate('/class-hub?tab=tasks')}>Tasks</button>
-        <button className="sch-nav-item" onClick={() => navigate('/class-hub?tab=progress')}>Progress</button>
-      </div>
     </div>
   );
 };

@@ -1,0 +1,15 @@
+.scp-page { min-height: 100vh; }
+
+.scp-avatar {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.scp-stat-box { min-width: 80px; }
+
+.scp-drive-card { transition: box-shadow .15s; }
+.scp-drive-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.12) !important; }
+
+.scp-ineligible { opacity: .8; }
+.scp-ineligible-banner { font-size: .82rem; }

@@ -10,11 +10,13 @@ interface FeatureConfig {
   quizzes: boolean;
   assignments: boolean;
   mockInterviews: boolean;
+  classHub: boolean;
 }
 
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
   { key: 'dashboard', label: 'Dashboard', description: 'Student dashboard with stats, progress, deadlines, and quick actions', icon: '⌂' },
   { key: 'myCourse', label: 'My Course', description: 'Course content, chapters, and learning materials', icon: '📚' },
+  { key: 'classHub', label: '🎓 My Classes (Class Hub)', description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: '🎬' },
   { key: 'attendance', label: 'Attendance', description: 'View attendance records and attendance percentage', icon: '☑' },
   { key: 'quizzes', label: 'Quizzes', description: 'Take quizzes and view quiz results', icon: '✎' },
   { key: 'assignments', label: 'Assignments', description: 'Submit coding assignments and view results', icon: '📝' },
@@ -29,7 +31,8 @@ const StudentFeaturesPage: React.FC = () => {
     attendance: true,
     quizzes: true,
     assignments: true,
-    mockInterviews: true
+    mockInterviews: true,
+    classHub: true
   });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

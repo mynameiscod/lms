@@ -1,5 +1,7 @@
 import { Response } from 'express';
 import attendanceService from '../services/attendanceService';
+import Attendance from '../models/Attendance';
+import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 
 export const markAttendance = async (req: AuthenticatedRequest, res: Response) => {
@@ -189,5 +191,82 @@ export const deleteAttendance = async (req: AuthenticatedRequest, res: Response)
       success: false,
       message: error.message || 'Failed to delete attendance record'
     });
+  }
+};
+
+export const bulkMarkAttendance = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { batchId, date, records } = req.body;
+    const tenantId = req.tenantId!;
+    const markedBy = req.user?.id || req.userId!;
+
+    if (!batchId || !date || !Array.isArray(records) || records.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: batchId, date, records[]'
+      });
+    }
+
+    const results = await Promise.allSettled(
+      records.map((r: { studentId: string; status: 'present' | 'absent' | 'leave'; inTime?: string; outTime?: string; remarks?: string }) =>
+        attendanceService.markAttendance(
+          r.studentId, batchId, new Date(date),
+          r.inTime, r.outTime, r.status, markedBy, tenantId, r.remarks
+        )
+      )
+    );
+
+    const saved = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+
+    res.status(200).json({
+      success: true,
+      data: { saved, failed, total: records.length },
+      message: `Bulk attendance: ${saved} saved, ${failed} failed`
+    });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'Bulk mark failed' });
+  }
+};
+
+export const exportAttendanceCSV = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { batchId, startDate, endDate } = req.query;
+    const tenantId = req.tenantId!;
+
+    if (!batchId || !startDate || !endDate) {
+      return res.status(400).json({ success: false, message: 'batchId, startDate, endDate required' });
+    }
+
+    const records = await Attendance.find({
+      batchId,
+      tenantId,
+      date: {
+        $gte: new Date(startDate as string),
+        $lte: new Date(new Date(endDate as string).setHours(23, 59, 59, 999))
+      }
+    })
+      .populate('studentId', 'firstName lastName email rollNumber')
+      .populate('batchId', 'name')
+      .sort({ date: 1, 'studentId.firstName': 1 });
+
+    const lines: string[] = ['Date,Student Name,Roll Number,Email,Status,In Time,Out Time,Remarks'];
+    for (const r of records as any[]) {
+      const dateStr = new Date(r.date).toISOString().split('T')[0];
+      const name = r.studentId ? `${r.studentId.firstName} ${r.studentId.lastName || ''}`.trim() : '';
+      const roll = r.studentId?.rollNumber || '';
+      const email = r.studentId?.email || '';
+      const inT = r.inTime || '';
+      const outT = r.outTime || '';
+      const remarks = (r.remarks || '').replace(/,/g, ';');
+      lines.push(`${dateStr},"${name}","${roll}","${email}",${r.status},${inT},${outT},"${remarks}"`);
+    }
+
+    const csv = lines.join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="attendance_${batchId}_${startDate}_${endDate}.csv"`);
+    res.status(200).send(csv);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message || 'CSV export failed' });
   }
 };

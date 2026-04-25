@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
+import { TenantModulesProvider } from './contexts/TenantModulesContext';
 import { SocketProvider } from './contexts/SocketContext';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
@@ -48,6 +49,7 @@ import PlacementDrivesPage from './pages/PlacementDrives';
 import PlacementAnalyticsPage from './pages/PlacementAnalytics';
 import MyApplicationsPage from './pages/MyApplications';
 import AlumniManagementPage from './pages/AlumniManagement';
+import TenantManagementPage from './pages/TenantManagement';
 import AlumniDirectoryPage from './pages/AlumniDirectory';
 import NotificationCenterPage from './pages/NotificationCenter';
 import StudentCollegePortal from './pages/StudentCollegePortal';
@@ -455,6 +457,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <AlumniManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/super-admin/tenants"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN']}>
+            <Layout>
+              <TenantManagementPage />
             </Layout>
           </ProtectedRoute>
         }
@@ -1289,11 +1302,13 @@ const App: React.FC = () => {
     <AuthProvider>
       <TenantProvider>
         <StudentFeaturesProvider>
-          <SocketProvider>
-            <BrowserRouter>
-              <AppRoutes />
-            </BrowserRouter>
-          </SocketProvider>
+          <TenantModulesProvider>
+            <SocketProvider>
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </SocketProvider>
+          </TenantModulesProvider>
         </StudentFeaturesProvider>
       </TenantProvider>
     </AuthProvider>

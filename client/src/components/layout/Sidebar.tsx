@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
+import { useTenantModules, TenantModules } from '../../contexts/TenantModulesContext';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -11,6 +12,7 @@ interface MenuItem {
   icon?: string;
   submenu?: MenuItem[];
   featureKey?: keyof StudentFeatures;
+  moduleKey?: keyof TenantModules;
   permissions?: string[]; // If set, user needs at least one of these permissions
 }
 
@@ -30,6 +32,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const navigate = useNavigate();
   const { user } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
+  const { isModuleEnabled } = useTenantModules();
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -42,11 +45,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   const menuItems: MenuItem[] = [
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-gauge-high', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
-    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'myCourse', permissions: ['enroll_courses', 'view_courses'] },
-    { label: '🎓 My Classes', path: '/class-hub', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'classHub' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'view_attendance', 'view_quiz'] },
-    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-graduation-cap', permissions: ['view_courses'] },
-    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-bolt', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'myCourse', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'myCourse', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
+    { label: '🎓 My Classes', path: '/class-hub', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'classHub' as keyof StudentFeatures, moduleKey: 'classRecordings', permissions: ['enroll_courses', 'view_courses', 'view_attendance', 'view_quiz'] },
+    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'courses', permissions: ['view_courses'] },
+    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-bolt', moduleKey: 'courses', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
     { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
@@ -55,6 +58,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],
       icon: 'fa-solid fa-clipboard-check',
       featureKey: 'attendance',
+      moduleKey: 'attendance',
       permissions: ['mark_attendance', 'view_attendance'],
       submenu: [
         { label: 'Mark Attendance', path: '/attendance', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'ATTENDANCE_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-check-double', permissions: ['mark_attendance'] },
@@ -67,6 +71,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-clipboard-question',
       featureKey: 'quizzes',
+      moduleKey: 'quizzes',
       permissions: ['create_quiz', 'edit_quiz', 'view_quiz'],
       submenu: [
         { label: 'My Quizzes', path: '/quizzes', roles: ['INSTRUCTOR', 'STUDENT'], icon: 'fa-solid fa-list-check', permissions: ['view_quiz'] },
@@ -80,6 +85,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-file-pen',
       featureKey: 'assignments',
+      moduleKey: 'assignments',
       permissions: ['manage_assignments', 'submit_assignments', 'view_grades'],
       submenu: [
         { label: 'My Assignments', path: '/assignments', roles: ['STUDENT'], icon: 'fa-solid fa-file-lines', permissions: ['submit_assignments', 'view_grades'] },
@@ -92,6 +98,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-code',
       featureKey: 'codingSnippets',
+      moduleKey: 'codeAssessments',
       permissions: ['manage_snippets', 'grade_snippets', 'view_snippets'],
       submenu: [
         { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal', permissions: ['view_snippets'] },
@@ -103,6 +110,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       label: 'Class Recordings',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-video',
+      moduleKey: 'classRecordings',
       permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'view_courses'],
       submenu: [
         { label: 'All Recordings', path: '/admin/class-recordings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-list', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
@@ -113,14 +121,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     },
     { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-bar', permissions: ['view_reports'] },
     { label: 'Student Profiles', path: '/admin/student-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-card', permissions: ['view_reports'] },
-    { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Notifications',      path: '/notifications',             roles: ['STUDENT', 'TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-bell', permissions: [] },
     {
       label: 'College',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
       icon: 'fa-solid fa-university',
+      moduleKey: 'placement',
       permissions: ['manage_tenant_settings', 'manage_tenant'],
       submenu: [
         { label: 'Departments',     path: '/admin/college/departments',           roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-building-columns', permissions: ['manage_tenant_settings', 'manage_tenant'] },
@@ -143,12 +152,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       ]
     },
     { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-toggle-on', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+    { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['manage_interviews'] },
     {
       label: 'Mock Interviews',
       roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: 'fa-solid fa-bullseye',
       featureKey: 'mockInterviews',
+      moduleKey: 'mockInterviews',
       permissions: ['manage_interviews', 'take_interviews'],
       submenu: [
         { label: 'Practice', path: '/mock-interviews', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-play', permissions: ['take_interviews'] },
@@ -159,6 +170,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       label: 'Leads',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
       icon: 'fa-solid fa-user-tag',
+      moduleKey: 'leads',
       permissions: ['manage_leads', 'view_leads', 'create_leads', 'edit_leads'],
       submenu: [
         { label: 'All Leads', path: '/leads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-users-viewfinder', permissions: ['manage_leads', 'view_leads'] },
@@ -181,6 +193,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       label: 'Marketing',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
       icon: 'fa-solid fa-bullhorn',
+      moduleKey: 'marketing',
       permissions: ['manage_marketing'],
       submenu: [
         { label: 'Dashboard', path: '/marketing', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-area', permissions: ['manage_marketing'] },
@@ -212,6 +225,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     if (user.permissions && user.permissions.length > 0 && item.permissions) {
       const hasPermission = item.permissions.some(p => user.permissions!.includes(p));
       if (!hasPermission) return false;
+    }
+
+    // Platform-level module gate (applies to ALL roles — set by SUPER_ADMIN per tenant)
+    if (item.moduleKey && !isModuleEnabled(item.moduleKey)) {
+      return false;
     }
 
     // For students, check if the feature is enabled by admin

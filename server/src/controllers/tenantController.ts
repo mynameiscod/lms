@@ -1,7 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { TenantService } from '../services/tenantService';
-import Tenant, { IStudentFeatures } from '../models/Tenant';
+import Tenant, { IStudentFeatures, ITenantModules } from '../models/Tenant';
 
 const tenantService = new TenantService();
 
@@ -236,5 +236,75 @@ export const updateStudentFeatures = async (
       message: error.message,
       error: error.message
     });
+  }
+};
+
+// ── SUPER_ADMIN: list all tenants ─────────────────────────────────────────────
+export const listTenants = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const tenants = await Tenant.find({})
+      .select('name slug isActive type subscriptionPlan modules studentFeatures createdAt')
+      .sort({ createdAt: -1 });
+    res.status(200).json({ success: true, message: 'Tenants fetched', data: tenants });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message, error: error.message });
+  }
+};
+
+// ── GET tenant modules ────────────────────────────────────────────────────────
+export const getTenantModules = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { tenantId } = req.params;
+    const tenant = await Tenant.findById(tenantId).select('modules');
+    if (!tenant) {
+      return res.status(404).json({ success: false, message: 'Tenant not found', error: 'Not found' });
+    }
+    const defaults: ITenantModules = {
+      courses: true, attendance: true, quizzes: true, assignments: true,
+      classRecordings: true, codeAssessments: true, mockInterviews: true,
+      placement: true, leads: true, marketing: true
+    };
+    res.status(200).json({ success: true, message: 'Modules fetched', data: tenant.modules || defaults });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message, error: error.message });
+  }
+};
+
+// ── SUPER_ADMIN: update tenant modules ────────────────────────────────────────
+export const updateTenantModules = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { tenantId } = req.params;
+    const incoming = req.body as Partial<ITenantModules>;
+    const allowedKeys: (keyof ITenantModules)[] = [
+      'courses', 'attendance', 'quizzes', 'assignments',
+      'classRecordings', 'codeAssessments', 'mockInterviews',
+      'placement', 'leads', 'marketing'
+    ];
+    const updateObj: Record<string, boolean> = {};
+    for (const key of allowedKeys) {
+      if (typeof incoming[key] === 'boolean') {
+        updateObj[`modules.${key}`] = incoming[key]!;
+      }
+    }
+    const tenant = await Tenant.findByIdAndUpdate(
+      tenantId,
+      { $set: updateObj },
+      { new: true }
+    ).select('modules');
+    if (!tenant) {
+      return res.status(404).json({ success: false, message: 'Tenant not found', error: 'Not found' });
+    }
+    res.status(200).json({ success: true, message: 'Tenant modules updated', data: tenant.modules });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message, error: error.message });
   }
 };

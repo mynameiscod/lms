@@ -18,6 +18,20 @@ export interface IStudentFeatures {
   classHub?: boolean;
 }
 
+// Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
+export interface ITenantModules {
+  courses: boolean;          // Courses, Course Mgmt, My Course, Topic Hub
+  attendance: boolean;       // Entire attendance module
+  quizzes: boolean;          // Entire quiz module
+  assignments: boolean;      // Entire assignments module
+  classRecordings: boolean;  // Class recordings + Class Hub
+  codeAssessments: boolean;  // Code snippets / assessments
+  mockInterviews: boolean;   // Mock interviews
+  placement: boolean;        // CRT: Placement drives, alumni, student applications
+  leads: boolean;            // CRM / Leads module
+  marketing: boolean;        // Marketing module
+}
+
 // College-specific information (only populated when type = 'college')
 export interface ICollegeInfo {
   universityName?: string;
@@ -60,6 +74,7 @@ export interface ITenant extends Document {
   subscriptionPlan: 'free' | 'pro' | 'enterprise';
   settings: ITenantSettings;
   studentFeatures: IStudentFeatures;
+  modules: ITenantModules;
   collegeInfo?: ICollegeInfo;
   branding?: IBranding;
   createdAt: Date;
@@ -123,6 +138,19 @@ const TenantSchema: Schema = new Schema(
       assignments: { type: Boolean, default: true },
       mockInterviews: { type: Boolean, default: true },
       classHub: { type: Boolean, default: true }
+    },
+    // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
+    modules: {
+      courses:          { type: Boolean, default: true },
+      attendance:       { type: Boolean, default: true },
+      quizzes:          { type: Boolean, default: true },
+      assignments:      { type: Boolean, default: true },
+      classRecordings:  { type: Boolean, default: true },
+      codeAssessments:  { type: Boolean, default: true },
+      mockInterviews:   { type: Boolean, default: true },
+      placement:        { type: Boolean, default: true },
+      leads:            { type: Boolean, default: true },
+      marketing:        { type: Boolean, default: true }
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

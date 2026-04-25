@@ -705,6 +705,18 @@ export const tenantApi = {
     authenticatedFetch(`${API_BASE_URL}/tenants/${tenantId}`, {
       method: 'PATCH',
       body: JSON.stringify(data)
+    }),
+
+  listTenants: async () =>
+    authenticatedFetch(`${API_BASE_URL}/tenants`),
+
+  getTenantModules: async (tenantId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/tenants/${tenantId}/modules`),
+
+  updateTenantModules: async (tenantId: string, modules: Record<string, boolean>) =>
+    authenticatedFetch(`${API_BASE_URL}/tenants/${tenantId}/modules`, {
+      method: 'PATCH',
+      body: JSON.stringify(modules)
     })
 };
 

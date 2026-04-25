@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+﻿import React, { useEffect, useState, useCallback } from 'react';
 import { tenantApi } from '../../api';
 import './TenantManagement.css';
 
@@ -60,7 +60,7 @@ const DEFAULT_STUDENT_FEATURES: Record<string, boolean> = {
   attendance: true, quizzes: true, assignments: true, mockInterviews: true,
 };
 
-// ── Create Tenant Modal ─────────────────────────────────────────────────────
+// â”€â”€ Create Tenant Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface CreateModalProps {
   onClose: () => void;
   onCreated: (tenant: TenantRow, loginLink: string, registerLink: string) => void;
@@ -162,11 +162,11 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
 
           <div className="tm-form-row">
             <div className="tm-form-group">
-              <label>Admin Password * <span className="tm-hint">(min. 8 chars — share with admin)</span></label>
+              <label>Admin Password * <span className="tm-hint">(min. 8 chars â€” share with admin)</span></label>
               <div className="tm-pw-wrap">
-                <input type={showPw ? 'text' : 'password'} name="password" value={form.password} onChange={change} placeholder="••••••••" disabled={saving} />
+                <input type={showPw ? 'text' : 'password'} name="password" value={form.password} onChange={change} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" disabled={saving} />
                 <button type="button" className="tm-pw-toggle" onClick={() => setShowPw(v => !v)} tabIndex={-1}>
-                  {showPw ? '🙈' : '👁️'}
+                  {showPw ? 'ðŸ™ˆ' : 'ðŸ‘ï¸'}
                 </button>
               </div>
             </div>
@@ -193,7 +193,7 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="fa-solid fa-plus me-2" />}
-              {saving ? 'Creating…' : 'Create Organization'}
+              {saving ? 'Creatingâ€¦' : 'Create Organization'}
             </button>
           </div>
         </form>
@@ -202,7 +202,7 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
   );
 };
 
-// ── Success / Invite Links Modal ────────────────────────────────────────────
+// â”€â”€ Success / Invite Links Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 interface LinksModalProps {
   tenantName: string;
   loginLink: string;
@@ -223,16 +223,16 @@ const InviteLinksModal: React.FC<LinksModalProps> = ({ tenantName, loginLink, re
   return (
     <div className="tm-modal-overlay">
       <div className="tm-modal tm-modal-success">
-        <div className="tm-success-icon">🎉</div>
+        <div className="tm-success-icon">ðŸŽ‰</div>
         <h4 className="tm-success-title">"{tenantName}" created!</h4>
         <p className="tm-success-sub">Share these links with the college. The admin can log in immediately.</p>
 
         <div className="tm-link-box">
           <div className="tm-link-label"><i className="fa-solid fa-right-to-bracket me-1" />Admin / Staff Login Link</div>
           <div className="tm-link-row">
-            <span className="tm-link-url">{loginLink || '—'}</span>
+            <span className="tm-link-url">{loginLink || 'â€”'}</span>
             <button className="tm-copy-btn" onClick={() => copy(loginLink, 'login')}>
-              {copied === 'login' ? '✓ Copied' : 'Copy'}
+              {copied === 'login' ? 'âœ“ Copied' : 'Copy'}
             </button>
           </div>
         </div>
@@ -240,9 +240,9 @@ const InviteLinksModal: React.FC<LinksModalProps> = ({ tenantName, loginLink, re
         <div className="tm-link-box">
           <div className="tm-link-label"><i className="fa-solid fa-user-plus me-1" />New Student Registration Link</div>
           <div className="tm-link-row">
-            <span className="tm-link-url">{registerLink || '—'}</span>
+            <span className="tm-link-url">{registerLink || 'â€”'}</span>
             <button className="tm-copy-btn" onClick={() => copy(registerLink, 'register')}>
-              {copied === 'register' ? '✓ Copied' : 'Copy'}
+              {copied === 'register' ? 'âœ“ Copied' : 'Copy'}
             </button>
           </div>
         </div>
@@ -258,7 +258,7 @@ const InviteLinksModal: React.FC<LinksModalProps> = ({ tenantName, loginLink, re
   );
 };
 
-// ── Main Page ───────────────────────────────────────────────────────────────
+// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const TenantManagementPage: React.FC = () => {
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -354,7 +354,7 @@ const TenantManagementPage: React.FC = () => {
             <i className="fa-solid fa-magnifying-glass" />
             <input
               className="tm-search"
-              placeholder="Search tenants…"
+              placeholder="Search tenantsâ€¦"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
@@ -390,7 +390,7 @@ const TenantManagementPage: React.FC = () => {
                 <div className="tm-avatar">{t.name[0].toUpperCase()}</div>
                 <div className="tm-card-info">
                   <div className="tm-card-name">{t.name}</div>
-                  <div className="tm-card-meta">{t.slug} · {t.subscriptionPlan}</div>
+                  <div className="tm-card-meta">{t.slug} Â· {t.subscriptionPlan}</div>
                 </div>
                 <span className={`tm-badge ${t.isActive ? 'active' : 'inactive'}`}>
                   {t.isActive ? 'Active' : 'Inactive'}
@@ -447,7 +447,7 @@ const TenantManagementPage: React.FC = () => {
             </div>
             <p className="tm-panel-hint">
               Toggle modules on/off. <strong>Disabled modules are completely hidden</strong> from all
-              users in this tenant — admins, instructors, and students alike.
+              users in this tenant â€” admins, instructors, and students alike.
             </p>
             <div className="tm-module-grid">
               {MODULE_DEFS.map(m => {
@@ -504,229 +504,6 @@ const TenantManagementPage: React.FC = () => {
           onClose={() => setSuccessLinks(null)}
         />
       )}
-    </div>
-  );
-};
-
-export default TenantManagementPage;
-
-interface TenantModules {
-  courses: boolean;
-  attendance: boolean;
-  quizzes: boolean;
-  assignments: boolean;
-  classRecordings: boolean;
-  codeAssessments: boolean;
-  mockInterviews: boolean;
-  placement: boolean;
-  leads: boolean;
-  marketing: boolean;
-}
-
-interface TenantRow {
-  _id: string;
-  name: string;
-  slug: string;
-  isActive: boolean;
-  type: string;
-  subscriptionPlan: string;
-  modules: TenantModules;
-  createdAt: string;
-}
-
-const MODULE_DEFS: { key: keyof TenantModules; label: string; icon: string; desc: string }[] = [
-  { key: 'courses',         label: 'Courses & Learning',   icon: 'fa-solid fa-book-open',         desc: 'Course mgmt, My Course, Topic Hub' },
-  { key: 'attendance',      label: 'Attendance',           icon: 'fa-solid fa-calendar-check',    desc: 'Mark, view & report attendance' },
-  { key: 'quizzes',         label: 'Quizzes',              icon: 'fa-solid fa-circle-question',   desc: 'Quiz management & taking' },
-  { key: 'assignments',     label: 'Assignments',          icon: 'fa-solid fa-file-pen',          desc: 'Assignments & grading' },
-  { key: 'classRecordings', label: 'Class Recordings',     icon: 'fa-solid fa-video',             desc: 'Live classes & recordings' },
-  { key: 'codeAssessments', label: 'Code Assessments',     icon: 'fa-solid fa-code',              desc: 'Coding snippets & submissions' },
-  { key: 'mockInterviews',  label: 'Mock Interviews',      icon: 'fa-solid fa-comments',          desc: 'AI mock interview practice' },
-  { key: 'placement',       label: 'CRT / Placement',      icon: 'fa-solid fa-briefcase',         desc: 'Placement drives, alumni, applications' },
-  { key: 'leads',           label: 'Leads / CRM',          icon: 'fa-solid fa-user-tag',          desc: 'Lead management & telecaller' },
-  { key: 'marketing',       label: 'Marketing',            icon: 'fa-solid fa-bullhorn',          desc: 'Campaigns, analytics, insights' },
-];
-
-const DEFAULT_MODULES: TenantModules = {
-  courses: true, attendance: true, quizzes: true, assignments: true,
-  classRecordings: true, codeAssessments: true, mockInterviews: true,
-  placement: true, leads: true, marketing: true,
-};
-
-const TenantManagementPage: React.FC = () => {
-  const [tenants, setTenants] = useState<TenantRow[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selected, setSelected] = useState<TenantRow | null>(null);
-  const [editModules, setEditModules] = useState<TenantModules>(DEFAULT_MODULES);
-  const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState('');
-  const [search, setSearch] = useState('');
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await tenantApi.listTenants();
-      if (res.success) setTenants(res.data);
-    } catch {
-      // ignore
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => { load(); }, [load]);
-
-  const openPanel = (t: TenantRow) => {
-    setSelected(t);
-    setEditModules({ ...DEFAULT_MODULES, ...(t.modules || {}) });
-  };
-
-  const toggle = (key: keyof TenantModules) => {
-    setEditModules(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
-  const save = async () => {
-    if (!selected) return;
-    setSaving(true);
-    try {
-      const res = await tenantApi.updateTenantModules(selected._id, editModules);
-      if (res.success) {
-        setTenants(prev => prev.map(t => t._id === selected._id ? { ...t, modules: res.data } : t));
-        setSelected(prev => prev ? { ...prev, modules: res.data } : null);
-        setToast('Modules saved!');
-        setTimeout(() => setToast(''), 3000);
-      }
-    } catch {
-      setToast('Save failed');
-      setTimeout(() => setToast(''), 3000);
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const enabledCount = (m?: TenantModules) =>
-    Object.values(m || DEFAULT_MODULES).filter(Boolean).length;
-
-  const filtered = tenants.filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.slug.toLowerCase().includes(search.toLowerCase())
-  );
-
-  return (
-    <div className="tm-page">
-      <div className="tm-header">
-        <div>
-          <h2 className="tm-title">
-            <i className="fa-solid fa-building me-2" />Tenant Management
-          </h2>
-          <p className="tm-sub">Control which modules are enabled per college / institute.</p>
-        </div>
-        <div className="tm-search-wrap">
-          <i className="fa-solid fa-magnifying-glass" />
-          <input
-            className="tm-search"
-            placeholder="Search tenants…"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {toast && <div className="tm-toast">{toast}</div>}
-
-      <div className="tm-layout">
-        {/* Left: tenant list */}
-        <div className="tm-list">
-          {loading ? (
-            <div className="tm-loading"><div className="spinner-border spinner-border-sm" /></div>
-          ) : filtered.length === 0 ? (
-            <p className="tm-empty">No tenants found.</p>
-          ) : filtered.map(t => (
-            <div
-              key={t._id}
-              className={`tm-card${selected?._id === t._id ? ' active' : ''}`}
-              onClick={() => openPanel(t)}
-            >
-              <div className="tm-card-top">
-                <div className="tm-avatar">{t.name[0].toUpperCase()}</div>
-                <div className="tm-card-info">
-                  <div className="tm-card-name">{t.name}</div>
-                  <div className="tm-card-meta">{t.slug} · {t.subscriptionPlan}</div>
-                </div>
-                <span className={`tm-badge ${t.isActive ? 'active' : 'inactive'}`}>
-                  {t.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div className="tm-modules-chips">
-                {MODULE_DEFS.map(m => {
-                  const on = (t.modules || DEFAULT_MODULES)[m.key];
-                  return (
-                    <span key={m.key} className={`tm-chip ${on ? 'on' : 'off'}`} title={m.label}>
-                      <i className={m.icon} />
-                    </span>
-                  );
-                })}
-                <span className="tm-chip-count">{enabledCount(t.modules)}/10</span>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Right: edit panel */}
-        {selected ? (
-          <div className="tm-panel">
-            <div className="tm-panel-head">
-              <div>
-                <h4 className="tm-panel-title">{selected.name}</h4>
-                <span className="tm-panel-slug">{selected.slug}</span>
-              </div>
-              <button className="tm-close" onClick={() => setSelected(null)}>
-                <i className="fa-solid fa-xmark" />
-              </button>
-            </div>
-            <p className="tm-panel-hint">
-              Toggle modules on/off. <strong>Disabled modules are completely hidden</strong> from all
-              users in this tenant — admins, instructors, and students alike.
-            </p>
-            <div className="tm-module-grid">
-              {MODULE_DEFS.map(m => {
-                const on = editModules[m.key];
-                return (
-                  <div
-                    key={m.key}
-                    className={`tm-module-card${on ? ' on' : ' off'}`}
-                    onClick={() => toggle(m.key)}
-                  >
-                    <div className="tm-module-top">
-                      <span className="tm-module-icon"><i className={m.icon} /></span>
-                      <div className={`tm-switch${on ? ' on' : ''}`}>
-                        <div className="tm-switch-thumb" />
-                      </div>
-                    </div>
-                    <div className="tm-module-label">{m.label}</div>
-                    <div className="tm-module-desc">{m.desc}</div>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="tm-panel-footer">
-              <span className="tm-enabled-count">
-                <i className="fa-solid fa-circle-check" style={{ color: 'var(--bs-success)' }} />
-                {' '}{Object.values(editModules).filter(Boolean).length} of 10 modules enabled
-              </span>
-              <button className="btn btn-primary" onClick={save} disabled={saving}>
-                {saving ? <span className="spinner-border spinner-border-sm me-2" /> : null}
-                Save Changes
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="tm-panel tm-panel-empty">
-            <i className="fa-solid fa-arrow-left tm-panel-empty-icon" />
-            <p>Select a tenant from the list to configure its modules.</p>
-          </div>
-        )}
-      </div>
     </div>
   );
 };

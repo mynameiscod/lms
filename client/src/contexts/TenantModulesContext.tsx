@@ -28,6 +28,19 @@ const DEFAULT_MODULES: TenantModules = {
   marketing: true,
 };
 
+const ALL_DISABLED_MODULES: TenantModules = {
+  courses: false,
+  attendance: false,
+  quizzes: false,
+  assignments: false,
+  classRecordings: false,
+  codeAssessments: false,
+  mockInterviews: false,
+  placement: false,
+  leads: false,
+  marketing: false,
+};
+
 interface TenantModulesContextType {
   modules: TenantModules;
   loading: boolean;
@@ -39,8 +52,8 @@ const TenantModulesContext = createContext<TenantModulesContextType | undefined>
 
 export const TenantModulesProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAuth();
-  const [modules, setModules] = useState<TenantModules>(DEFAULT_MODULES);
-  const [loading, setLoading] = useState(false);
+  const [modules, setModules] = useState<TenantModules>(ALL_DISABLED_MODULES);
+  const [loading, setLoading] = useState(true);
 
   const fetchModules = useCallback(async () => {
     if (!user?.tenantId) return;
@@ -48,25 +61,32 @@ export const TenantModulesProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       const response = await tenantApi.getTenantModules(user.tenantId);
       if (response.success && response.data) {
-        setModules({ ...DEFAULT_MODULES, ...response.data });
+        // Merge with ALL_DISABLED so any missing key stays false (fail-closed)
+        setModules({ ...ALL_DISABLED_MODULES, ...response.data });
       }
     } catch {
-      // fallback to all-enabled defaults
+      // On error, keep all disabled (fail-closed — better than showing everything)
     } finally {
       setLoading(false);
     }
   }, [user?.tenantId]);
 
   useEffect(() => {
-    if (isAuthenticated && user?.tenantId) {
+    if (isAuthenticated && user?.role === 'SUPER_ADMIN') {
+      // SUPER_ADMIN has no tenant; skip fetch and unlock all modules immediately
+      setModules(DEFAULT_MODULES);
+      setLoading(false);
+    } else if (isAuthenticated && user?.tenantId) {
       fetchModules();
+    } else {
+      setLoading(false);
     }
-  }, [isAuthenticated, user?.tenantId, fetchModules]);
+  }, [isAuthenticated, user?.role, user?.tenantId, fetchModules]);
 
   // SUPER_ADMIN bypasses module gates (they manage other tenants, not their own)
   const isModuleEnabled = useCallback((key: keyof TenantModules): boolean => {
     if (user?.role === 'SUPER_ADMIN') return true;
-    return modules[key] ?? true;
+    return modules[key] === true;
   }, [user?.role, modules]);
 
   return (

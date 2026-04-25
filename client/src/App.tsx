@@ -49,6 +49,8 @@ import PlacementDrivesPage from './pages/PlacementDrives';
 import PlacementAnalyticsPage from './pages/PlacementAnalytics';
 import MyApplicationsPage from './pages/MyApplications';
 import AlumniManagementPage from './pages/AlumniManagement';
+import CollegeCurriculumPage from './pages/CollegeCurriculum';
+import CRTManagementPage from './pages/CRTManagement';
 import TenantManagementPage from './pages/TenantManagement';
 import AlumniDirectoryPage from './pages/AlumniDirectory';
 import NotificationCenterPage from './pages/NotificationCenter';
@@ -457,6 +459,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <AlumniManagementPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/curriculum"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <CollegeCurriculumPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/college/crt"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'CRT_TRAINER']}>
+            <Layout>
+              <CRTManagementPage />
             </Layout>
           </ProtectedRoute>
         }

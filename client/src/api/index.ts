@@ -2418,6 +2418,72 @@ export const alumniApi = {
     }),
 };
 
+// --- Curriculum API ----------------------------------------------------------
+export const curriculumApi = {
+  list: (params?: { departmentId?: string; yearOfStudy?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.departmentId) q.set('departmentId', params.departmentId);
+    if (params?.yearOfStudy)  q.set('yearOfStudy',  String(params.yearOfStudy));
+    const qs = q.toString() ? `?${q}` : '';
+    return authenticatedFetch(`${API_BASE_URL}/college/curriculum${qs}`);
+  },
+
+  getById: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/curriculum/${id}`),
+
+  create: (data: { departmentId: string; yearOfStudy: number; academicYear?: string; semesters: any[] }) =>
+    authenticatedFetch(`${API_BASE_URL}/college/curriculum`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: { semesters?: any[]; academicYear?: string; isActive?: boolean }) =>
+    authenticatedFetch(`${API_BASE_URL}/college/curriculum/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  remove: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/curriculum/${id}`, { method: 'DELETE' })
+};
+
+// --- CRT API -----------------------------------------------------------------
+export const crtApi = {
+  list: (params?: { trainerId?: string; status?: string; departmentId?: string; year?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.trainerId)    q.set('trainerId',    params.trainerId);
+    if (params?.status)       q.set('status',       params.status);
+    if (params?.departmentId) q.set('departmentId', params.departmentId);
+    if (params?.year)         q.set('year',         String(params.year));
+    const qs = q.toString() ? `?${q}` : '';
+    return authenticatedFetch(`${API_BASE_URL}/college/crt${qs}`);
+  },
+
+  getById: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/crt/${id}`),
+
+  create: (data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/crt`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  update: (id: string, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/college/crt/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  remove: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/crt/${id}`, { method: 'DELETE' }),
+
+  markAttendance: (id: string, attendance: { userId: string; status: 'present' | 'absent' | 'late' }[]) =>
+    authenticatedFetch(`${API_BASE_URL}/college/crt/${id}/attendance`, {
+      method: 'POST',
+      body: JSON.stringify({ attendance })
+    })
+};
+
 export const attendanceBulkApi = {
   bulkMark: (batchId: string, date: string, records: Array<{ studentId: string; status: 'present' | 'absent' | 'leave'; inTime?: string; outTime?: string; remarks?: string }>) =>
     authenticatedFetch(`${API_BASE_URL}/attendance/bulk`, {

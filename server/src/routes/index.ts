@@ -48,6 +48,8 @@ import interviewTemplateRoutes from './interviewTemplateRoutes';
 import classRecordingRoutes from './classRecordingRoutes';
 import departmentRoutes from '../college/departmentRoutes';
 import membershipRoutes from '../college/membershipRoutes';
+import curriculumRoutes from '../college/curriculumRoutes';
+import crtRoutes from '../crt/crtRoutes';
 import placementDriveRoutes from '../placement/placementDriveRoutes';
 import alumniRoutes from '../alumni/alumniRoutes';
 import notificationRoutes from '../notifications/notificationRoutes';
@@ -109,6 +111,8 @@ router.use('/class-recordings', classRecordingRoutes);
 // ─── College Module ────────────────────────────────────────────────────────────
 router.use('/college/departments', departmentRoutes);
 router.use('/college/membership', membershipRoutes);
+router.use('/college/curriculum', curriculumRoutes);
+router.use('/college/crt', crtRoutes);
 router.use('/college/placement', placementDriveRoutes);
 router.use('/college/alumni', alumniRoutes);
 router.use('/notifications', notificationRoutes);

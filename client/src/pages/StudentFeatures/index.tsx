@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { tenantApi } from '../../api';
 import './StudentFeaturesPage.css';
@@ -13,14 +13,25 @@ interface FeatureConfig {
   classHub: boolean;
 }
 
+// Map each student feature to the module that must be enabled for it
+const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
+  dashboard:      null,            // always available
+  myCourse:       'courses',
+  classHub:       'classRecordings',
+  attendance:     'attendance',
+  quizzes:        'quizzes',
+  assignments:    'assignments',
+  mockInterviews: 'mockInterviews',
+};
+
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
-  { key: 'dashboard', label: 'Dashboard', description: 'Student dashboard with stats, progress, deadlines, and quick actions', icon: '⌂' },
-  { key: 'myCourse', label: 'My Course', description: 'Course content, chapters, and learning materials', icon: '📚' },
-  { key: 'classHub', label: '🎓 My Classes (Class Hub)', description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: '🎬' },
-  { key: 'attendance', label: 'Attendance', description: 'View attendance records and attendance percentage', icon: '☑' },
-  { key: 'quizzes', label: 'Quizzes', description: 'Take quizzes and view quiz results', icon: '✎' },
-  { key: 'assignments', label: 'Assignments', description: 'Submit coding assignments and view results', icon: '📝' },
-  { key: 'mockInterviews', label: 'Mock Interviews', description: 'Practice mock interviews with AI feedback', icon: '🎯' },
+  { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and quick actions', icon: 'âŒ‚' },
+  { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: 'ðŸ“š' },
+  { key: 'classHub',       label: 'ðŸŽ“ My Classes (Class Hub)',        description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: 'ðŸŽ¬' },
+  { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: 'â˜‘' },
+  { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: 'âœŽ' },
+  { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: 'ðŸ“' },
+  { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: 'ðŸŽ¯' },
 ];
 
 const StudentFeaturesPage: React.FC = () => {
@@ -34,28 +45,47 @@ const StudentFeaturesPage: React.FC = () => {
     mockInterviews: true,
     classHub: true
   });
+  const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
+  const [modulesLoaded, setModulesLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+
   useEffect(() => {
-    const fetchFeatures = async () => {
+    const fetchAll = async () => {
       if (!user?.tenantId) return;
       try {
-        const response = await tenantApi.getStudentFeatures(user.tenantId);
-        if (response.success && response.data) {
-          setFeatures(prev => ({ ...prev, ...response.data }));
+        const [featRes, tenantRes] = await Promise.allSettled([
+          tenantApi.getStudentFeatures(user.tenantId),
+          tenantApi.getTenant(user.tenantId)
+        ]);
+        if (featRes.status === 'fulfilled' && featRes.value.success && featRes.value.data) {
+          setFeatures(prev => ({ ...prev, ...featRes.value.data }));
         }
+        if (tenantRes.status === 'fulfilled' && tenantRes.value.data) {
+          setEnabledModules(tenantRes.value.data.modules || {});
+        }
+        setModulesLoaded(true);
       } catch (err) {
         console.error('Failed to fetch student features:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchFeatures();
+    fetchAll();
   }, [user?.tenantId]);
 
+  const isModuleLocked = (featureKey: keyof FeatureConfig): boolean => {
+    if (isSuperAdmin) return false;
+    const moduleKey = FEATURE_MODULE_MAP[featureKey];
+    if (!moduleKey) return false;
+    return modulesLoaded && enabledModules[moduleKey] === false;
+  };
+
   const handleToggle = (key: keyof FeatureConfig) => {
+    if (isModuleLocked(key)) return;
     setFeatures(prev => ({ ...prev, [key]: !prev[key] }));
     setSaved(false);
   };
@@ -75,6 +105,7 @@ const StudentFeaturesPage: React.FC = () => {
   };
 
   const enabledCount = Object.values(features).filter(Boolean).length;
+  const lockedCount = FEATURE_META.filter(f => isModuleLocked(f.key)).length;
 
   if (loading) {
     return (
@@ -96,37 +127,49 @@ const StudentFeaturesPage: React.FC = () => {
         </div>
       </div>
 
+      {lockedCount > 0 && (
+        <div className="sf-module-notice">
+          <i className="fa-solid fa-lock me-2" />
+          <strong>{lockedCount} feature{lockedCount > 1 ? 's are' : ' is'} locked</strong> â€” the corresponding platform module{lockedCount > 1 ? 's are' : ' is'} disabled by your Super Admin. Contact them to enable.
+        </div>
+      )}
+
       <div className="sf-features-grid">
-        {FEATURE_META.map(({ key, label, description, icon }) => (
-          <div key={key} className={`sf-feature-card ${features[key] ? 'enabled' : 'disabled'}`}>
-            <div className="sf-feature-info">
-              <span className="sf-feature-icon">{icon}</span>
-              <div className="sf-feature-text">
-                <h3>{label}</h3>
-                <p>{description}</p>
+        {FEATURE_META.map(({ key, label, description, icon }) => {
+          const locked = isModuleLocked(key);
+          return (
+            <div key={key} className={`sf-feature-card ${features[key] && !locked ? 'enabled' : 'disabled'}${locked ? ' sf-locked' : ''}`}>
+              <div className="sf-feature-info">
+                <span className="sf-feature-icon">{icon}</span>
+                <div className="sf-feature-text">
+                  <h3>{label} {locked && <span className="sf-lock-badge"><i className="fa-solid fa-lock" /> Module disabled</span>}</h3>
+                  <p>{description}</p>
+                </div>
               </div>
+              <label className={`sf-toggle${locked ? ' sf-toggle-disabled' : ''}`}>
+                <input
+                  type="checkbox"
+                  checked={features[key] && !locked}
+                  onChange={() => handleToggle(key)}
+                  disabled={locked}
+                />
+                <span className="sf-toggle-slider"></span>
+                <span className="sf-toggle-label">{locked ? 'Locked' : features[key] ? 'Visible' : 'Hidden'}</span>
+              </label>
             </div>
-            <label className="sf-toggle">
-              <input
-                type="checkbox"
-                checked={features[key]}
-                onChange={() => handleToggle(key)}
-              />
-              <span className="sf-toggle-slider"></span>
-              <span className="sf-toggle-label">{features[key] ? 'Visible' : 'Hidden'}</span>
-            </label>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="sf-actions">
         <button className="sf-save-btn" onClick={handleSave} disabled={saving}>
-          {saving ? 'Saving...' : saved ? '✓ Saved!' : 'Save Changes'}
+          {saving ? 'Saving...' : saved ? 'âœ“ Saved!' : 'Save Changes'}
         </button>
         {saved && <span className="sf-saved-msg">Student feature settings updated successfully.</span>}
       </div>
     </div>
   );
 };
+
 
 export default StudentFeaturesPage;

@@ -4,7 +4,10 @@ import {
   getStudentWelcomeEmailPlainText,
   getPasswordResetEmailHtml,
   getPasswordResetEmailPlainText,
-  DEFAULT_SUBJECT_LINE 
+  DEFAULT_SUBJECT_LINE,
+  getTenantAdminWelcomeEmailHtml,
+  getTenantAdminWelcomeEmailPlainText,
+  TenantAdminEmailData
 } from './emailTemplates';
 
 export class EmailService {
@@ -741,6 +744,32 @@ This is an automated message from CodeBegun Learning Management System.
       }
     } catch (err) {
       console.error('❌ sendNewDriveEmail failed:', err);
+    }
+  }
+
+  async sendTenantAdminWelcomeEmail(data: TenantAdminEmailData): Promise<void> {
+    const subject = `🎉 Your Organization "${data.organizationName}" is Ready — CodeBegun`;
+    const html = getTenantAdminWelcomeEmailHtml(data);
+    const text = getTenantAdminWelcomeEmailPlainText(data);
+    console.log('\n📧 [EMAIL SERVICE] Tenant Admin Welcome Email');
+    console.log('   Recipient:', data.email);
+    console.log('   Organization:', data.organizationName);
+    try {
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(data.email, subject, html, text);
+      } else {
+        await this.transporter!.sendMail({
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: data.email,
+          subject,
+          html,
+          text
+        });
+      }
+      console.log('   ✅ Tenant admin welcome email sent\n');
+    } catch (err: any) {
+      console.error('❌ sendTenantAdminWelcomeEmail failed:', err.message);
+      // Don't throw — email failure must not block org creation
     }
   }
 }

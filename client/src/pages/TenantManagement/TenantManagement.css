@@ -655,3 +655,95 @@
   text-align: left;
   margin-top: 0.25rem;
 }
+
+/* ── Wider modal for Create org ─────────────────────────────────────────── */
+.tm-modal-wide {
+  max-width: 700px;
+  width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+/* ── Org type & plan chips ───────────────────────────────────────────────── */
+.tm-type-chips {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 0.25rem;
+}
+
+.tm-type-chip {
+  padding: 0.4rem 0.9rem;
+  border-radius: 20px;
+  border: 2px solid #e5e7eb;
+  background: #f9fafb;
+  color: #374151;
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.tm-type-chip:hover { border-color: var(--bs-primary); color: var(--bs-primary); }
+.tm-type-chip.active {
+  border-color: var(--bs-primary);
+  background: #eef5ff;
+  color: var(--bs-primary);
+  font-weight: 700;
+}
+.tm-type-chip.tm-plan-pro.active { border-color: #7c3aed; background: #f5f3ff; color: #7c3aed; }
+.tm-type-chip.tm-plan-enterprise.active { border-color: #d97706; background: #fffbeb; color: #d97706; }
+
+/* ── Module select grid (in create modal) ───────────────────────────────── */
+.tm-module-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.tm-module-select-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 8px;
+  border: 1.5px solid #e5e7eb;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: #6b7280;
+  transition: all 0.15s;
+}
+.tm-module-select-chip:hover { border-color: var(--bs-primary); }
+.tm-module-select-chip i { font-size: 0.9rem; opacity: 0.6; }
+.tm-module-select-chip span:first-of-type { flex: 1; }
+.tm-module-select-chip.on {
+  border-color: #22c55e;
+  background: #f0fdf4;
+  color: #166534;
+}
+.tm-module-select-chip.on i { opacity: 1; }
+
+.tm-module-select-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  background: #e5e7eb;
+  color: #9ca3af;
+}
+.tm-module-select-badge.on {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+/* ── Info box below form ────────────────────────────────────────────────── */
+.tm-modal-info-box {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 0.6rem 0.85rem;
+  font-size: 0.82rem;
+  color: #1d4ed8;
+  margin: 0.75rem 0;
+}

@@ -629,3 +629,167 @@ Phone: +91-6301099587 | +91-9063906358
 
 © ${new Date().getFullYear()} CodeBegun. All rights reserved.`;
 }
+
+// ─── Tenant Admin Onboarding Email ───────────────────────────────────────────
+
+export interface TenantAdminEmailData {
+  adminName: string;
+  organizationName: string;
+  email: string;
+  password: string;
+  loginLink: string;
+  enabledModules: string[];
+}
+
+export function getTenantAdminWelcomeEmailHtml({
+  adminName,
+  organizationName,
+  email,
+  password,
+  loginLink,
+  enabledModules
+}: TenantAdminEmailData): string {
+  const moduleListHtml = enabledModules.map(m =>
+    `<li style="margin:4px 0;color:#374151;">✅ ${m}</li>`
+  ).join('');
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your Organization is Ready — CodeBegun</title>
+</head>
+<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#f8f9fb;line-height:1.6;color:#333;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8f9fb;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:620px;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,0.08);overflow:hidden;border-collapse:collapse;">
+
+        <!-- Header -->
+        <tr>
+          <td style="background:linear-gradient(90deg,#517ff4 0%,#9234e8 100%);padding:40px 30px;text-align:center;color:#fff;">
+            <img src="https://platform.codebegun.com/assets/logo.png" alt="CodeBegun" style="height:44px;display:block;margin:0 auto 10px;" />
+            <span style="font-size:22px;font-weight:bold;color:#fff;display:block;">CodeBegun</span>
+            <h1 style="margin:16px 0 0;font-size:26px;font-weight:700;">Your Organization is Ready! 🎉</h1>
+            <p style="margin:8px 0 0;font-size:15px;opacity:0.9;">Welcome aboard, ${adminName}</p>
+          </td>
+        </tr>
+
+        <!-- Body -->
+        <tr>
+          <td style="padding:36px 32px;">
+            <p style="margin:0 0 16px;font-size:16px;">Hi <strong>${adminName}</strong>,</p>
+            <p style="margin:0 0 24px;color:#555;font-size:15px;">
+              Your organization <strong>"${organizationName}"</strong> has been set up on 
+              <strong>CodeBegun LMS</strong>. You can now log in and start managing your institution.
+            </p>
+
+            <!-- Credentials box -->
+            <div style="background:#f0f4ff;border:1px solid #d0dbff;border-radius:8px;padding:20px 24px;margin-bottom:28px;">
+              <h3 style="margin:0 0 14px;font-size:15px;color:#374151;">🔑 Your Login Credentials</h3>
+              <table cellpadding="0" cellspacing="0" style="width:100%;">
+                <tr>
+                  <td style="padding:4px 0;color:#6b7280;font-size:14px;width:90px;">Email:</td>
+                  <td style="padding:4px 0;font-size:14px;font-weight:600;">${email}</td>
+                </tr>
+                <tr>
+                  <td style="padding:4px 0;color:#6b7280;font-size:14px;">Password:</td>
+                  <td style="padding:4px 0;font-size:14px;font-weight:600;letter-spacing:1px;">${password}</td>
+                </tr>
+              </table>
+              <p style="margin:12px 0 0;font-size:12px;color:#d97706;">⚠ Please change your password after first login.</p>
+            </div>
+
+            <!-- CTA Button -->
+            <div style="text-align:center;margin-bottom:28px;">
+              <a href="${loginLink}" style="display:inline-block;background:linear-gradient(90deg,#517ff4,#9234e8);color:#fff;text-decoration:none;padding:14px 40px;border-radius:8px;font-size:16px;font-weight:600;letter-spacing:0.3px;">
+                Login to Your Dashboard →
+              </a>
+              <p style="margin:10px 0 0;font-size:12px;color:#9ca3af;">Or copy this link: ${loginLink}</p>
+            </div>
+
+            <!-- Enabled modules -->
+            ${enabledModules.length > 0 ? `
+            <div style="background:#f9fafb;border-radius:8px;padding:18px 22px;margin-bottom:24px;">
+              <h3 style="margin:0 0 12px;font-size:15px;color:#374151;">🚀 Modules Enabled for You</h3>
+              <ul style="margin:0;padding-left:4px;list-style:none;">
+                ${moduleListHtml}
+              </ul>
+            </div>` : ''}
+
+            <!-- What to do next -->
+            <div style="border-left:4px solid #517ff4;padding-left:16px;margin-bottom:24px;">
+              <h3 style="margin:0 0 10px;font-size:14px;color:#374151;">📋 Next Steps</h3>
+              <ol style="margin:0;padding-left:18px;color:#555;font-size:14px;line-height:1.8;">
+                <li>Log in using the credentials above</li>
+                <li>Change your password immediately</li>
+                <li>Add departments and members</li>
+                <li>Configure student features from the admin panel</li>
+                <li>Invite students using the Registration Link in your dashboard</li>
+              </ol>
+            </div>
+
+            <p style="color:#6b7280;font-size:13px;margin:0;">
+              Need help? Reach us at 
+              <a href="mailto:infocodebegun@gmail.com" style="color:#517ff4;">infocodebegun@gmail.com</a>
+            </p>
+          </td>
+        </tr>
+
+        <!-- Footer -->
+        <tr>
+          <td style="background:#f3f4f6;padding:20px 32px;text-align:center;">
+            <p style="margin:0;font-size:12px;color:#9ca3af;">
+              © ${new Date().getFullYear()} CodeBegun · Savas Tech Solution Pvt Ltd · Hyderabad, India
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+}
+
+export function getTenantAdminWelcomeEmailPlainText({
+  adminName,
+  organizationName,
+  email,
+  password,
+  loginLink,
+  enabledModules
+}: TenantAdminEmailData): string {
+  return `Welcome to CodeBegun — ${organizationName} is Ready!
+
+Hi ${adminName},
+
+Your organization "${organizationName}" has been set up on CodeBegun LMS.
+
+LOGIN CREDENTIALS
+-----------------
+Email:    ${email}
+Password: ${password}
+
+⚠ Please change your password after first login.
+
+Login here: ${loginLink}
+
+ENABLED MODULES
+---------------
+${enabledModules.map(m => `• ${m}`).join('\n')}
+
+NEXT STEPS
+----------
+1. Log in using the credentials above
+2. Change your password immediately
+3. Add departments and members
+4. Configure student features
+5. Invite students via the Registration Link in your dashboard
+
+Need help? Email us at infocodebegun@gmail.com
+
+---
+CodeBegun · Savas Tech Solution Pvt Ltd · Hyderabad, India
+© ${new Date().getFullYear()} CodeBegun. All rights reserved.`;
+}
+

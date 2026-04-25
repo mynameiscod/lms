@@ -60,16 +60,25 @@ const DEFAULT_STUDENT_FEATURES: Record<string, boolean> = {
   attendance: true, quizzes: true, assignments: true, mockInterviews: true,
 };
 
-// â”€â”€ Create Tenant Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Create Tenant Modal ────────────────────────────────────────────────────
 interface CreateModalProps {
   onClose: () => void;
   onCreated: (tenant: TenantRow, loginLink: string, registerLink: string) => void;
 }
 
+const DEFAULT_CREATE_MODULES: TenantModules = {
+  courses: true, attendance: true, quizzes: true, assignments: true,
+  classRecordings: false, codeAssessments: false, mockInterviews: false,
+  placement: false, leads: false, marketing: false,
+};
+
 const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
     organizationName: '', firstName: '', lastName: '', email: '', password: ''
   });
+  const [orgType, setOrgType] = useState<'institute' | 'college' | 'corporate'>('college');
+  const [plan, setPlan] = useState<'free' | 'pro' | 'enterprise'>('free');
+  const [modules, setModules] = useState<TenantModules>({ ...DEFAULT_CREATE_MODULES });
   const [features, setFeatures] = useState<Record<string, boolean>>(DEFAULT_STUDENT_FEATURES);
   const [showPw, setShowPw] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -77,6 +86,12 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
 
   const change = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm(p => ({ ...p, [e.target.name]: e.target.value }));
+
+  const toggleModule = (key: keyof TenantModules) =>
+    setModules(p => ({ ...p, [key]: !p[key] }));
+
+  const enabledCount = Object.values(modules).filter(Boolean).length;
+
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +108,8 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
     setSaving(true);
     try {
       const res = await tenantApi.registerOrganization({
-        organizationName, firstName, lastName, email, password, studentFeatures: features
+        organizationName, firstName, lastName, email, password,
+        studentFeatures: features, modules: { ...modules }, type: orgType, subscriptionPlan: plan
       });
       const tenantId = res.data?.user?.tenantId;
       let loginLink = '';
@@ -105,15 +121,14 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
           registerLink = linkRes.data?.registerLink || '';
         } catch { /* ignore */ }
       }
-      // Build a minimal TenantRow so parent list refreshes
       const newTenant: TenantRow = {
         _id: tenantId || '',
         name: organizationName,
         slug: organizationName.toLowerCase().replace(/\s+/g, '-'),
         isActive: true,
-        type: 'institute',
-        subscriptionPlan: 'free',
-        modules: DEFAULT_MODULES,
+        type: orgType,
+        subscriptionPlan: plan,
+        modules,
         createdAt: new Date().toISOString(),
       };
       onCreated(newTenant, loginLink, registerLink);
@@ -126,22 +141,52 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
 
   return (
     <div className="tm-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="tm-modal">
+      <div className="tm-modal tm-modal-wide">
         <div className="tm-modal-header">
-          <h4><i className="fa-solid fa-building me-2" />Add New College / Organization</h4>
+          <h4><i className="fa-solid fa-building me-2" />Add New Organization</h4>
           <button className="tm-close" onClick={onClose}><i className="fa-solid fa-xmark" /></button>
         </div>
 
         <form onSubmit={submit} className="tm-modal-body">
           {error && <div className="tm-modal-error">{error}</div>}
 
+          {/* Org Type & Plan */}
+          <div className="tm-form-row two-col">
+            <div className="tm-form-group">
+              <label>Organization Type *</label>
+              <div className="tm-type-chips">
+                {(['college', 'institute', 'corporate'] as const).map(t => (
+                  <button key={t} type="button"
+                    className={`tm-type-chip${orgType === t ? ' active' : ''}`}
+                    onClick={() => setOrgType(t)}>
+                    <i className={t === 'college' ? 'fa-solid fa-school me-1' : t === 'institute' ? 'fa-solid fa-building-columns me-1' : 'fa-solid fa-briefcase me-1'} />
+                    {t.charAt(0).toUpperCase() + t.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="tm-form-group">
+              <label>Subscription Plan *</label>
+              <div className="tm-type-chips">
+                {(['free', 'pro', 'enterprise'] as const).map(p => (
+                  <button key={p} type="button"
+                    className={`tm-type-chip tm-plan-${p}${plan === p ? ' active' : ''}`}
+                    onClick={() => setPlan(p)}>
+                    <i className={p === 'enterprise' ? 'fa-solid fa-crown me-1' : p === 'pro' ? 'fa-solid fa-star me-1' : 'fa-solid fa-circle me-1'} />
+                    {p.charAt(0).toUpperCase() + p.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Basic Info */}
           <div className="tm-form-row">
             <div className="tm-form-group">
               <label>Organization Name *</label>
               <input name="organizationName" value={form.organizationName} onChange={change} placeholder="ABC Engineering College" disabled={saving} />
             </div>
           </div>
-
           <div className="tm-form-row two-col">
             <div className="tm-form-group">
               <label>Admin First Name *</label>
@@ -152,48 +197,69 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
               <input name="lastName" value={form.lastName} onChange={change} placeholder="Doe" disabled={saving} />
             </div>
           </div>
-
           <div className="tm-form-row">
             <div className="tm-form-group">
               <label>Admin Email *</label>
               <input type="email" name="email" value={form.email} onChange={change} placeholder="admin@college.edu" disabled={saving} />
             </div>
           </div>
-
           <div className="tm-form-row">
             <div className="tm-form-group">
-              <label>Admin Password * <span className="tm-hint">(min. 8 chars â€” share with admin)</span></label>
+              <label>Admin Password * <span className="tm-hint">(min. 8 chars)</span></label>
               <div className="tm-pw-wrap">
-                <input type={showPw ? 'text' : 'password'} name="password" value={form.password} onChange={change} placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢" disabled={saving} />
+                <input type={showPw ? 'text' : 'password'} name="password" value={form.password} onChange={change} placeholder="••••••••" disabled={saving} />
                 <button type="button" className="tm-pw-toggle" onClick={() => setShowPw(v => !v)} tabIndex={-1}>
-                  {showPw ? 'ðŸ™ˆ' : 'ðŸ‘ï¸'}
+                  {showPw ? '🙈' : '👁️'}
                 </button>
               </div>
             </div>
           </div>
 
+          {/* Module Access */}
           <div className="tm-form-group">
-            <label>Student Features</label>
+            <label>
+              Enabled Modules
+              <span className="tm-hint ms-2">({enabledCount}/10 enabled — only these modules are visible to this tenant)</span>
+            </label>
+            <div className="tm-module-select-grid">
+              {MODULE_DEFS.map(m => {
+                const on = modules[m.key];
+                return (
+                  <div key={m.key} className={`tm-module-select-chip${on ? ' on' : ''}`} onClick={() => toggleModule(m.key)}>
+                    <i className={m.icon} />
+                    <span>{m.label}</span>
+                    <span className={`tm-module-select-badge${on ? ' on' : ''}`}>{on ? 'ON' : 'OFF'}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Student Features */}
+          <div className="tm-form-group">
+            <label>Student-side Features <span className="tm-hint">(student portal visibility)</span></label>
             <div className="tm-sf-grid">
               {STUDENT_FEATURES.map(f => (
                 <label key={f.key} className={`tm-sf-chip${features[f.key] ? ' on' : ''}`}>
-                  <input
-                    type="checkbox"
-                    checked={!!features[f.key]}
+                  <input type="checkbox" checked={!!features[f.key]}
                     onChange={() => setFeatures(p => ({ ...p, [f.key]: !p[f.key] }))}
-                    style={{ display: 'none' }}
-                  />
+                    style={{ display: 'none' }} />
                   <i className={f.icon} style={{ marginRight: 6 }} />{f.label}
                 </label>
               ))}
             </div>
           </div>
 
+          <div className="tm-modal-info-box">
+            <i className="fa-solid fa-envelope me-2" />
+            A welcome email with login credentials and enabled modules will be sent to <strong>{form.email || 'the admin email'}</strong> automatically.
+          </div>
+
           <div className="tm-modal-footer">
             <button type="button" className="btn btn-secondary" onClick={onClose} disabled={saving}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
               {saving ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="fa-solid fa-plus me-2" />}
-              {saving ? 'Creatingâ€¦' : 'Create Organization'}
+              {saving ? 'Creating…' : 'Create Organization'}
             </button>
           </div>
         </form>
@@ -202,7 +268,7 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
   );
 };
 
-// â”€â”€ Success / Invite Links Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Success / Invite Links Modal ────────────────────────────────────────────
 interface LinksModalProps {
   tenantName: string;
   loginLink: string;
@@ -223,16 +289,19 @@ const InviteLinksModal: React.FC<LinksModalProps> = ({ tenantName, loginLink, re
   return (
     <div className="tm-modal-overlay">
       <div className="tm-modal tm-modal-success">
-        <div className="tm-success-icon">ðŸŽ‰</div>
-        <h4 className="tm-success-title">"{tenantName}" created!</h4>
-        <p className="tm-success-sub">Share these links with the college. The admin can log in immediately.</p>
+        <div className="tm-success-icon">🎉</div>
+        <h4 className="tm-success-title">&quot;{tenantName}&quot; created!</h4>
+        <p className="tm-success-sub">
+          A welcome email with login credentials and enabled modules has been sent to the admin.
+          Share these links as a backup.
+        </p>
 
         <div className="tm-link-box">
           <div className="tm-link-label"><i className="fa-solid fa-right-to-bracket me-1" />Admin / Staff Login Link</div>
           <div className="tm-link-row">
-            <span className="tm-link-url">{loginLink || 'â€”'}</span>
+            <span className="tm-link-url">{loginLink || '-'}</span>
             <button className="tm-copy-btn" onClick={() => copy(loginLink, 'login')}>
-              {copied === 'login' ? 'âœ“ Copied' : 'Copy'}
+              {copied === 'login' ? '✔ Copied' : 'Copy'}
             </button>
           </div>
         </div>
@@ -240,9 +309,9 @@ const InviteLinksModal: React.FC<LinksModalProps> = ({ tenantName, loginLink, re
         <div className="tm-link-box">
           <div className="tm-link-label"><i className="fa-solid fa-user-plus me-1" />New Student Registration Link</div>
           <div className="tm-link-row">
-            <span className="tm-link-url">{registerLink || 'â€”'}</span>
+            <span className="tm-link-url">{registerLink || '-'}</span>
             <button className="tm-copy-btn" onClick={() => copy(registerLink, 'register')}>
-              {copied === 'register' ? 'âœ“ Copied' : 'Copy'}
+              {copied === 'register' ? '✔ Copied' : 'Copy'}
             </button>
           </div>
         </div>
@@ -258,7 +327,7 @@ const InviteLinksModal: React.FC<LinksModalProps> = ({ tenantName, loginLink, re
   );
 };
 
-// â”€â”€ Main Page â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Main Page ──────────────────────────────────────────────────────────────
 const TenantManagementPage: React.FC = () => {
   const [tenants, setTenants] = useState<TenantRow[]>([]);
   const [loading, setLoading] = useState(true);

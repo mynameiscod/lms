@@ -5,8 +5,23 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import { AuthService } from '../services/authService';
 import { EmailService } from '../services/emailService';
 import User from '../models/User';
+import Tenant from '../models/Tenant';
 
 const authService = new AuthService();
+
+// Friendly display names for module keys
+const MODULE_LABELS: Record<string, string> = {
+  courses: 'Courses',
+  attendance: 'Attendance',
+  quizzes: 'Quizzes & Assessments',
+  assignments: 'Assignments',
+  classRecordings: 'Class Recordings',
+  codeAssessments: 'Code Assessments',
+  mockInterviews: 'Mock Interviews',
+  placement: 'Placement',
+  leads: 'Leads & CRM',
+  marketing: 'Marketing'
+};
 
 // Register a new organization with admin user
 export const registerOrganization = async (
@@ -14,7 +29,10 @@ export const registerOrganization = async (
   res: Response<ApiResponse<any>>
 ) => {
   try {
-    const { organizationName, email, firstName, lastName, password, studentFeatures } = req.body;
+    const {
+      organizationName, email, firstName, lastName, password,
+      studentFeatures, modules, type, subscriptionPlan
+    } = req.body;
 
     if (!organizationName || !email || !firstName || !lastName || !password) {
       return res.status(400).json({
@@ -24,9 +42,33 @@ export const registerOrganization = async (
       });
     }
 
-    // Create organization (tenant) + admin user using existing service
-    // The authService.register will create tenant if slug doesn't exist
-    const user = await authService.register(email, firstName, lastName, password, organizationName, studentFeatures);
+    // Create organization (tenant) + admin user
+    const user = await authService.registerOrganizationFull(
+      email, firstName, lastName, password, organizationName,
+      { studentFeatures, modules, type, subscriptionPlan }
+    );
+
+    // Generate frontend links
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    const tenantId = user.tenantId?.toString();
+    const loginLink = `${frontendUrl}/login?tenantId=${tenantId}`;
+
+    // Send welcome email to tenant admin (non-blocking)
+    const emailService = new EmailService();
+    const enabledModules = modules
+      ? Object.entries(modules as Record<string, boolean>)
+          .filter(([, v]) => v)
+          .map(([k]) => MODULE_LABELS[k] || k)
+      : Object.values(MODULE_LABELS); // all enabled by default
+
+    emailService.sendTenantAdminWelcomeEmail({
+      adminName: `${firstName} ${lastName}`,
+      organizationName,
+      email,
+      password,
+      loginLink,
+      enabledModules
+    }).catch(() => { /* non-blocking */ });
 
     // Generate token for auto-login
     const loginResult = await authService.login(email, password);

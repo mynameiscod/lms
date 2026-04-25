@@ -6,6 +6,60 @@ import Role from '../models/Role';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 
 export class AuthService {
+  async registerOrganizationFull(
+    email: string,
+    firstName: string,
+    lastName: string,
+    password: string,
+    organizationName: string,
+    options?: {
+      studentFeatures?: Record<string, boolean>;
+      modules?: Record<string, boolean>;
+      type?: string;
+      subscriptionPlan?: string;
+    }
+  ): Promise<IUser> {
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      throw new Error('User already exists with this email');
+    }
+
+    const slug = organizationName.toLowerCase().replace(/\s+/g, '-');
+    const existingTenant = await Tenant.findOne({ $or: [{ slug }, { name: organizationName }] });
+    if (existingTenant) {
+      throw new Error('An organization with this name already exists');
+    }
+
+    const placeholderAdminId = new mongoose.Types.ObjectId();
+    const tenantData: Record<string, any> = {
+      name: organizationName,
+      slug,
+      adminId: placeholderAdminId,
+      isActive: true,
+      subscriptionPlan: options?.subscriptionPlan || 'free',
+      type: options?.type || 'institute',
+    };
+    if (options?.studentFeatures) tenantData.studentFeatures = options.studentFeatures;
+    if (options?.modules) tenantData.modules = options.modules;
+
+    const tenant = new Tenant(tenantData);
+    await tenant.save();
+
+    const user = new User({
+      email,
+      firstName,
+      lastName,
+      password,
+      tenantId: tenant._id,
+      role: 'TENANT_ADMIN'
+    });
+    await user.save();
+
+    await Tenant.findByIdAndUpdate(tenant._id, { adminId: user._id });
+
+    return user;
+  }
+
   async register(
     email: string,
     firstName: string,

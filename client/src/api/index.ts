@@ -661,6 +661,9 @@ export const tenantApi = {
     email: string;
     password: string;
     studentFeatures?: Record<string, boolean>;
+    modules?: Record<string, boolean>;
+    type?: string;
+    subscriptionPlan?: string;
   }) => {
     const response = await fetch(`${API_BASE_URL}/auth/register-organization`, {
       method: 'POST',

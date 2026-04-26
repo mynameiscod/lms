@@ -64,7 +64,7 @@ async function getOrCreateConfig(tenantId: string) {
 // ─── GET /lead-source-config ─────────────────────────────────────────────────
 export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const tenantId = req.user!.tenantId;
+    const tenantId = req.tenantId!;
     const config = await getOrCreateConfig(tenantId);
 
     // Build lead counts per source this month
@@ -129,7 +129,7 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
         config: {
           allowedDomains: config.websiteForm.config.allowedDomains,
           redirectUrl: config.websiteForm.config.redirectUrl,
-          webhookUrl: buildWebhookUrl(req, `public/form/${req.user!.tenantId}`),
+          webhookUrl: buildWebhookUrl(req, `public/form/${req.tenantId}`),  
           embedCode: buildEmbedCode(req),
         },
         autoActions: config.websiteForm.autoActions,
@@ -180,7 +180,9 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
         },
       },
       thirdParty: config.thirdParty.map(tp => ({
-        ...tp.toObject(),
+        name: tp.name,
+        isActive: tp.isActive,
+        fieldMapping: tp.fieldMapping,
         apiKey: maskToken(tp.apiKey || ''),
         webhookUrl: buildWebhookUrl(req, `public/webhook/${tp.name.toLowerCase().replace(/\s/g, '-')}`),
         stats: {
@@ -201,7 +203,7 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
 // ─── PUT /lead-source-config/:source ─────────────────────────────────────────
 export const updateSourceConfig = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const tenantId = req.user!.tenantId;
+    const tenantId = req.tenantId!;
     const { source } = req.params;
     const { isConnected, config: newConfig, autoActions } = req.body;
 
@@ -255,7 +257,7 @@ export const updateSourceConfig = async (req: AuthenticatedRequest, res: Respons
 // ─── POST /lead-source-config/third-party ────────────────────────────────────
 export const addThirdPartySource = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const tenantId = req.user!.tenantId;
+    const tenantId = req.tenantId!;
     const { name, fieldMapping } = req.body;
 
     if (!name) {
@@ -286,7 +288,7 @@ export const addThirdPartySource = async (req: AuthenticatedRequest, res: Respon
 // ─── DELETE /lead-source-config/third-party/:name ────────────────────────────
 export const removeThirdPartySource = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const tenantId = req.user!.tenantId;
+    const tenantId = req.tenantId!;
     const { name } = req.params;
 
     const config = await getOrCreateConfig(tenantId);
@@ -340,7 +342,7 @@ export const getDecryptedTokens = async (tenantId: string) => {
 
 // ─── Helper: Build embed code snippet ────────────────────────────────────────
 function buildEmbedCode(req: AuthenticatedRequest): string {
-  const tenantId = req.user!.tenantId;
+  const tenantId = req.tenantId!;
   const baseUrl = buildWebhookUrl(req, `public/form/${tenantId}`);
   return `<script src="${baseUrl.replace('/api/v1', '')}/embed/lead-form.js" data-tenant="${tenantId}"></script>`;
 }
@@ -349,7 +351,7 @@ function buildEmbedCode(req: AuthenticatedRequest): string {
 export const testConnection = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { source } = req.params;
-    const tenantId = req.user!.tenantId;
+    const tenantId = req.tenantId!;
     const tokens = await getDecryptedTokens(tenantId);
 
     if (!tokens) {

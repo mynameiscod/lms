@@ -3,6 +3,8 @@ import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import mongoose from 'mongoose';
 import https from 'https';
+import { getDecryptedTokens } from './leadSourceConfigController';
+import LeadSourceConfig from '../models/LeadSourceConfig';
 
 // ===================== DEBUG LOGGER =====================
 
@@ -290,20 +292,52 @@ async function fetchAndCreateLead(
   debugLog('CREATE', '========== FETCH AND CREATE LEAD ==========');
   debugLog('CREATE', `leadgenId: ${leadgenId}`);
   debugLog('CREATE', `meta:`, meta);
-  
-  // Use PAGE_ACCESS_TOKEN (page-level token) for fetching lead data
-  const accessToken = process.env.PAGE_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
 
-  debugLog('CREATE', `Using PAGE_ACCESS_TOKEN: ${!!process.env.PAGE_ACCESS_TOKEN}`);
-  debugLog('CREATE', `Using WHATSAPP_ACCESS_TOKEN as fallback: ${!process.env.PAGE_ACCESS_TOKEN && !!process.env.WHATSAPP_ACCESS_TOKEN}`);
+  // ── Multi-tenant: find which tenant owns this pageId ──────────────────────
+  let accessToken: string | undefined;
+  let tenantId: string | undefined;
+
+  if (meta.pageId) {
+    // Search DB for a tenant whose Meta Ads pageId matches
+    const tenantConfig = await LeadSourceConfig.findOne({
+      'metaAds.config.pageId': meta.pageId,
+      'metaAds.isConnected': true,
+    });
+    if (tenantConfig) {
+      const tokens = await getDecryptedTokens(tenantConfig.tenantId.toString());
+      if (tokens?.metaAds.pageAccessToken) {
+        accessToken = tokens.metaAds.pageAccessToken;
+        tenantId = tenantConfig.tenantId.toString();
+        debugLog('CREATE', `✅ Resolved tenant from DB by pageId: ${tenantId}`);
+      }
+    }
+  }
+
+  // .env fallback (legacy support)
+  if (!accessToken) {
+    accessToken = process.env.PAGE_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
+    debugLog('CREATE', `⚠️ Using .env fallback for accessToken`);
+  }
+  if (!tenantId) {
+    tenantId = process.env.DEFAULT_TENANT_ID;
+    debugLog('CREATE', `⚠️ Using .env fallback for tenantId: ${tenantId || 'NOT SET'}`);
+  }
+
   debugLog('CREATE', `Token available: ${!!accessToken}`);
   debugLog('CREATE', `Token length: ${accessToken?.length || 0}`);
 
   if (!accessToken) {
-    errorLog('CREATE', '❌ No PAGE_ACCESS_TOKEN or WHATSAPP_ACCESS_TOKEN configured');
-    console.error('❌ No PAGE_ACCESS_TOKEN or WHATSAPP_ACCESS_TOKEN configured');
+    errorLog('CREATE', '❌ No access token configured (DB or .env)');
+    console.error('❌ No PAGE_ACCESS_TOKEN configured in DB or .env');
     return;
   }
+
+  if (!tenantId) {
+    errorLog('CREATE', '❌ Could not resolve tenantId from pageId or DEFAULT_TENANT_ID');
+    console.error('❌ DEFAULT_TENANT_ID not configured in DB or .env');
+    return;
+  }
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Fetch full lead data from Meta Graph API
   debugLog('CREATE', `📡 Fetching lead data from Meta for: ${leadgenId}`);
@@ -346,15 +380,6 @@ async function fetchAndCreateLead(
   if (!cleanPhone) {
     errorLog('CREATE', '❌ No phone number found in Meta lead data');
     console.error('❌ No phone number found in Meta lead data');
-    return;
-  }
-
-  const tenantId = process.env.DEFAULT_TENANT_ID;
-  debugLog('CREATE', `DEFAULT_TENANT_ID: ${tenantId || 'NOT SET'}`);
-  
-  if (!tenantId) {
-    errorLog('CREATE', '❌ DEFAULT_TENANT_ID not configured');
-    console.error('❌ DEFAULT_TENANT_ID not configured');
     return;
   }
 

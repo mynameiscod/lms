@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import mongoose from 'mongoose';
+import { getDecryptedTokens } from './leadSourceConfigController';
+import LeadSourceConfig from '../models/LeadSourceConfig';
 
 // ===================== TYPES =====================
 
@@ -78,6 +80,29 @@ const COURSE_MAPPING: Record<string, string> = {
   'mobile': 'Mobile App Development',
   'app': 'Mobile App Development'
 };
+
+// ===================== TENANT RESOLVER (by WhatsApp phoneNumberId) =====================
+
+async function resolveTenantByPhoneNumberId(phoneNumberId: string): Promise<{ tenantId: string; accessToken: string } | null> {
+  // Search DB for matching WhatsApp config
+  const tenantConfig = await LeadSourceConfig.findOne({
+    'whatsApp.config.phoneNumberId': phoneNumberId,
+    'whatsApp.isConnected': true,
+  });
+  if (tenantConfig) {
+    const tokens = await getDecryptedTokens(tenantConfig.tenantId.toString());
+    if (tokens?.whatsApp.accessToken) {
+      return { tenantId: tenantConfig.tenantId.toString(), accessToken: tokens.whatsApp.accessToken };
+    }
+  }
+  // .env fallback
+  const envTenantId = process.env.DEFAULT_TENANT_ID;
+  const envToken = process.env.WHATSAPP_ACCESS_TOKEN;
+  if (envTenantId && envToken) {
+    return { tenantId: envTenantId, accessToken: envToken };
+  }
+  return null;
+}
 
 // ===================== WEBHOOK VERIFICATION (GET) =====================
 
@@ -169,8 +194,15 @@ async function processWhatsAppMessage(payload: WhatsAppWebhookPayload) {
         continue;
       }
 
+      // Resolve tenant from DB by phoneNumberId
+      const tenantInfo = await resolveTenantByPhoneNumberId(value.metadata.phone_number_id);
+      if (!tenantInfo) {
+        console.error(`❌ Could not resolve tenant for phoneNumberId: ${value.metadata.phone_number_id}`);
+        continue;
+      }
+
       // Process the conversation
-      await handleConversation(phoneNumber, senderName, messageText, value.metadata.phone_number_id);
+      await handleConversation(phoneNumber, senderName, messageText, value.metadata.phone_number_id, tenantInfo);
     }
   }
 }
@@ -181,9 +213,10 @@ async function handleConversation(
   phoneNumber: string, 
   senderName: string, 
   messageText: string,
-  phoneNumberId: string
+  phoneNumberId: string,
+  tenantInfo: { tenantId: string; accessToken: string }
 ) {
-  console.log(`🔄 handleConversation: phone=${phoneNumber}, name=${senderName}, phoneNumberId=${phoneNumberId}`);
+  console.log(`🔄 handleConversation: phone=${phoneNumber}, name=${senderName}, phoneNumberId=${phoneNumberId}, tenant=${tenantInfo.tenantId}`);
   
   // Get or create conversation state
   let state = conversationStates.get(phoneNumber);
@@ -199,11 +232,11 @@ async function handleConversation(
     conversationStates.set(phoneNumber, state);
 
     // Send initial question
-    await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message);
+    await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message, tenantInfo.accessToken);
     state.conversationStep = 'asked_name';
 
     // Also create a lead immediately (don't wait for full qualification)
-    await createOrUpdateLeadFromWhatsApp(phoneNumber, senderName, messageText);
+    await createOrUpdateLeadFromWhatsApp(phoneNumber, senderName, messageText, tenantInfo.tenantId);
     return;
   }
 
@@ -214,40 +247,41 @@ async function handleConversation(
   switch (state.conversationStep) {
     case 'asked_name':
       state.name = messageText.trim();
-      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_name.message);
+      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_name.message, tenantInfo.accessToken);
       state.conversationStep = 'asked_year';
       break;
 
     case 'asked_year':
       state.yearOfGraduation = messageText.trim();
-      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_year.message);
+      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_year.message, tenantInfo.accessToken);
       state.conversationStep = 'asked_course';
       break;
 
     case 'asked_course':
       const courseLower = messageText.toLowerCase().trim();
       state.interestedCourse = COURSE_MAPPING[courseLower] || messageText.trim();
-      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_course.message);
+      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_course.message, tenantInfo.accessToken);
       state.conversationStep = 'qualified';
       
       // Create HOT lead - user responded to all questions
-      await createLeadFromWhatsApp(state, 'hot', senderName);
+      await createLeadFromWhatsApp(state, 'hot', senderName, tenantInfo.tenantId);
       break;
 
     case 'qualified':
       // Already qualified, just log the message as activity
-      await addLeadActivity(phoneNumber, messageText);
+      await addLeadActivity(phoneNumber, messageText, tenantInfo.tenantId);
       await sendWhatsAppMessage(
         phoneNumberId, 
         phoneNumber, 
-        `Thanks for your message! Our team will get back to you soon. 🙂`
+        `Thanks for your message! Our team will get back to you soon. 🙂`,
+        tenantInfo.accessToken
       );
       break;
 
     default:
       // Restart conversation
       state.conversationStep = 'initial';
-      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message);
+      await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message, tenantInfo.accessToken);
       state.conversationStep = 'asked_name';
   }
 
@@ -259,11 +293,11 @@ async function handleConversation(
 async function createLeadFromWhatsApp(
   data: LeadQualificationData, 
   temperature: 'hot' | 'cold',
-  whatsappName: string
+  whatsappName: string,
+  resolvedTenantId?: string
 ) {
   try {
-    // Find default tenant (or use specific one from config)
-    const tenantId = process.env.DEFAULT_TENANT_ID;
+    const tenantId = resolvedTenantId || process.env.DEFAULT_TENANT_ID;
     if (!tenantId) {
       console.error('DEFAULT_TENANT_ID not set');
       return;
@@ -347,9 +381,9 @@ async function createLeadFromWhatsApp(
 
 // ===================== CREATE OR UPDATE LEAD IMMEDIATELY =====================
 
-async function createOrUpdateLeadFromWhatsApp(phoneNumber: string, senderName: string, messageText: string) {
+async function createOrUpdateLeadFromWhatsApp(phoneNumber: string, senderName: string, messageText: string, resolvedTenantId?: string) {
   try {
-    const tenantId = process.env.DEFAULT_TENANT_ID;
+    const tenantId = resolvedTenantId || process.env.DEFAULT_TENANT_ID;
     if (!tenantId) {
       console.error('❌ DEFAULT_TENANT_ID not set, cannot create lead');
       return;
@@ -410,9 +444,9 @@ async function createOrUpdateLeadFromWhatsApp(phoneNumber: string, senderName: s
 
 // ===================== ADD ACTIVITY TO EXISTING LEAD =====================
 
-async function addLeadActivity(phoneNumber: string, message: string) {
+async function addLeadActivity(phoneNumber: string, message: string, resolvedTenantId?: string) {
   try {
-    const tenantId = process.env.DEFAULT_TENANT_ID;
+    const tenantId = resolvedTenantId || process.env.DEFAULT_TENANT_ID;
     if (!tenantId) return;
 
     await Lead.findOneAndUpdate(
@@ -435,10 +469,10 @@ async function addLeadActivity(phoneNumber: string, message: string) {
 
 // ===================== SEND WHATSAPP MESSAGE =====================
 
-async function sendWhatsAppMessage(phoneNumberId: string, to: string, message: string) {
+async function sendWhatsAppMessage(phoneNumberId: string, to: string, message: string, accessToken?: string) {
   try {
-    const accessToken = process.env.WHATSAPP_ACCESS_TOKEN;
-    if (!accessToken) {
+    const token = accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    if (!token) {
       console.log('WHATSAPP_ACCESS_TOKEN not set. Message would be:', message);
       return;
     }
@@ -448,7 +482,7 @@ async function sendWhatsAppMessage(phoneNumberId: string, to: string, message: s
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

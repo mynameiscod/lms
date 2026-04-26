@@ -2194,6 +2194,33 @@ export const googleSheetApi = {
 };
 
 // Lead Scoring API
+export const leadSourceConfigApi = {
+  getSources: async () =>
+    authenticatedFetch(`${API_BASE_URL}/lead-source-config`),
+
+  updateSource: async (sourceKey: string, data: any) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-source-config/${sourceKey}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    }),
+
+  testConnection: async (sourceKey: string) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-source-config/${sourceKey}/test`, {
+      method: 'POST'
+    }),
+
+  addThirdPartySource: async (data: { name: string; fieldMapping?: Record<string, string> }) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-source-config/third-party`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    }),
+
+  removeThirdPartySource: async (name: string) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-source-config/third-party/${encodeURIComponent(name)}`, {
+      method: 'DELETE'
+    }),
+};
+
 export const leadScoringApi = {
   getConfig: async () =>
     authenticatedFetch(`${API_BASE_URL}/lead-scoring/config`),

@@ -106,6 +106,7 @@ import TopicHubPage from './pages/TopicHub';
 import AdminLearningRequestsPage from './pages/AdminLearningRequests';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
+import LeadSourcesPage from './pages/LeadSources';
 
 // Class Recording Pages
 import StartRecording from './pages/ClassRecording/StartRecording';
@@ -1018,6 +1019,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <GoogleSheetIntegrationPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-sources"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadSourcesPage />
             </Layout>
           </ProtectedRoute>
         }

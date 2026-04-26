@@ -44,6 +44,7 @@ import publicLeadRoutes from './publicLeadRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
+import leadSourceConfigRoutes from './leadSourceConfigRoutes';
 import interviewTemplateRoutes from './interviewTemplateRoutes';
 import classRecordingRoutes from './classRecordingRoutes';
 import departmentRoutes from '../college/departmentRoutes';
@@ -105,6 +106,7 @@ router.use('/lead-ai', leadAIRoutes);
 router.use('/lost-reasons', lostReasonRoutes);
 router.use('/google-sheet-integrations', googleSheetRoutes);
 router.use('/lead-scoring', leadScoringRoutes);
+router.use('/lead-source-config', leadSourceConfigRoutes);
 router.use('/interview-module', interviewTemplateRoutes);
 router.use('/class-recordings', classRecordingRoutes);
 

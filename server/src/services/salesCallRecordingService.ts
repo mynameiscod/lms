@@ -18,6 +18,7 @@ async function transcribeAudio(filePath: string): Promise<{ text: string; durati
   form.append('file', fs.createReadStream(filePath));
   form.append('model', 'whisper-1');
   form.append('response_format', 'verbose_json');
+  form.append('language', 'en');
 
   const response = await axios.post(`${OPENAI_BASE}/audio/transcriptions`, form, {
     headers: { ...form.getHeaders(), Authorization: `Bearer ${apiKey}` },

@@ -272,3 +272,26 @@ export const getNextBestAction = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ message: 'Failed to get next best action' });
   }
 };
+
+// ===================== GENERATE FOLLOW-UP MESSAGE =====================
+
+export const generateFollowUpMessage = async (req: AuthRequest, res: Response) => {
+  try {
+    const { leadId } = req.params;
+    const { language = 'english' } = req.query as { language?: string };
+
+    const allowedLanguages = ['english', 'telugu', 'hindi'] as const;
+    const lang = allowedLanguages.includes(language as any)
+      ? (language as 'english' | 'telugu' | 'hindi')
+      : 'english';
+
+    const lead = await Lead.findById(leadId);
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    const message = await leadAIService.generateFollowUpMessage(lead._id as any, lang);
+    res.json({ success: true, message: 'Follow-up message generated', data: { message, language: lang } });
+  } catch (error) {
+    console.error('Error generating follow-up message:', error);
+    res.status(500).json({ message: 'Failed to generate follow-up message' });
+  }
+};

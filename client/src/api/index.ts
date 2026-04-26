@@ -1825,6 +1825,31 @@ export const leadApi = {
       method: 'PATCH',
       body: JSON.stringify(data)
     });
+  },
+  getAgingLeads: async (params?: { stageId?: string; days?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.stageId) q.append('stageId', params.stageId);
+    if (params?.days) q.append('days', String(params.days));
+    return authenticatedFetch(`${API_BASE_URL}/leads/aging${q.toString() ? `?${q}` : ''}`);
+  },
+  getDuplicateLeads: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/duplicates`);
+  },
+  mergeDuplicateLeads: async (primaryLeadId: string, duplicateLeadIds: string[]) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/duplicates/merge`, {
+      method: 'POST',
+      body: JSON.stringify({ primaryLeadId, duplicateLeadIds })
+    });
+  },
+  getPendingApprovals: async () => {
+    // Reuse the leads list, filtering for leads that have pendingApproval set
+    return authenticatedFetch(`${API_BASE_URL}/leads?hasPendingApproval=true`);
+  },
+  approveStageChange: async (leadId: string, approved: boolean, rejectReason?: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/approve-stage`, {
+      method: 'POST',
+      body: JSON.stringify({ approved, rejectReason })
+    });
   }
 };
 

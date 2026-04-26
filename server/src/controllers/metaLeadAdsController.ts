@@ -294,7 +294,7 @@ async function fetchAndCreateLead(
   debugLog('CREATE', `leadgenId: ${leadgenId}`);
   debugLog('CREATE', `meta:`, meta);
 
-  // ── Multi-tenant: find which tenant owns this pageId ──────────────────────
+  // ── Multi-tenant: find which tenant owns this pageId or formId ──────────────
   let accessToken: string | undefined;
   let tenantId: string | undefined;
 
@@ -310,6 +310,22 @@ async function fetchAndCreateLead(
         accessToken = tokens.metaAds.pageAccessToken;
         tenantId = tenantConfig.tenantId.toString();
         debugLog('CREATE', `✅ Resolved tenant from DB by pageId: ${tenantId}`);
+      }
+    }
+  }
+
+  // Fallback: try matching by formId
+  if (!tenantId && meta.formId) {
+    const tenantConfig = await LeadSourceConfig.findOne({
+      'metaAds.config.formIds': meta.formId,
+      'metaAds.isConnected': true,
+    });
+    if (tenantConfig) {
+      const tokens = await getDecryptedTokens(tenantConfig.tenantId.toString());
+      if (tokens?.metaAds.pageAccessToken) {
+        accessToken = tokens.metaAds.pageAccessToken;
+        tenantId = tenantConfig.tenantId.toString();
+        debugLog('CREATE', `✅ Resolved tenant from DB by formId: ${tenantId}`);
       }
     }
   }

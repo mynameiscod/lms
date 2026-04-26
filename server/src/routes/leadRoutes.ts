@@ -18,7 +18,10 @@ import {
   getManagerBoard,
   getLeadAuditLogs,
   getMyPerformance,
-  quickUpdateLead
+  quickUpdateLead,
+  getAgingLeads,
+  getDuplicateLeads,
+  mergeDuplicateLeads,
 } from '../controllers/leadController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -80,5 +83,12 @@ router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['e
 
 // Convert to student (need convert_leads or manage_leads)
 router.post('/:leadId/convert', authMiddleware, tenantResolver, roleGuard(['convert_leads', 'manage_leads']), convertToStudent);
+
+// Lead aging board
+router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getAgingLeads);
+
+// Duplicate lead detection + merge
+router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
+router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
 
 export default router;

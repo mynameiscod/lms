@@ -98,6 +98,10 @@ import QualificationSettingsPage from './pages/QualificationSettings';
 import SalesContentLibraryPage from './pages/SalesContentLibrary';
 import LeadAnalyticsPage from './pages/LeadAnalytics';
 import FollowUpCalendarPage from './pages/FollowUpCalendar';
+import LeadAgingPage from './pages/LeadAging';
+import LeadDuplicatesPage from './pages/LeadDuplicates';
+import LeadApprovalsPage from './pages/LeadApprovals';
+import LeadKanbanPage from './pages/LeadKanban';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas, CampaignManagement, StageAnalytics } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
@@ -1124,6 +1128,46 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <FollowUpCalendarPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-aging"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadAgingPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-duplicates"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadDuplicatesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-approvals"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadApprovalsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/lead-kanban"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <LeadKanbanPage />
             </Layout>
           </ProtectedRoute>
         }

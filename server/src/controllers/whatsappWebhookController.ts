@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { getDecryptedTokens } from './leadSourceConfigController';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import { scoreAndAssignLead } from '../services/leadScoringService';
+import WhatsAppConversationState, { ConversationStep } from '../models/WhatsAppConversationState';
 
 // ===================== TYPES =====================
 
@@ -42,8 +43,42 @@ interface LeadQualificationData {
   lastMessageAt: Date;
 }
 
-// In-memory conversation state (in production, use Redis)
-const conversationStates = new Map<string, LeadQualificationData>();
+// ===================== PERSISTENT STATE HELPERS =====================
+
+async function getConversationState(phone: string, tenantId: string): Promise<LeadQualificationData | null> {
+  const doc = await WhatsAppConversationState.findOne({ phone, tenantId }).lean();
+  if (!doc) return null;
+  return {
+    phone: doc.phone,
+    conversationStep: doc.conversationStep as LeadQualificationData['conversationStep'],
+    name: doc.name,
+    yearOfGraduation: doc.yearOfGraduation,
+    interestedCourse: doc.interestedCourse,
+    lastMessageAt: doc.lastMessageAt,
+  };
+}
+
+async function setConversationState(phone: string, tenantId: string, state: LeadQualificationData): Promise<void> {
+  await WhatsAppConversationState.findOneAndUpdate(
+    { phone, tenantId },
+    {
+      $set: {
+        conversationStep: state.conversationStep as ConversationStep,
+        name: state.name,
+        yearOfGraduation: state.yearOfGraduation,
+        interestedCourse: state.interestedCourse,
+        lastMessageAt: state.lastMessageAt,
+        // Reset TTL on every message
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      },
+    },
+    { upsert: true, new: true }
+  );
+}
+
+async function deleteConversationState(phone: string, tenantId: string): Promise<void> {
+  await WhatsAppConversationState.deleteOne({ phone, tenantId });
+}
 
 // ===================== QUALIFICATION QUESTIONS =====================
 
@@ -219,24 +254,23 @@ async function handleConversation(
 ) {
   console.log(`🔄 handleConversation: phone=${phoneNumber}, name=${senderName}, phoneNumberId=${phoneNumberId}, tenant=${tenantInfo.tenantId}`);
   
-  // Get or create conversation state
-  let state = conversationStates.get(phoneNumber);
+  // Get or create conversation state from MongoDB
+  let state = await getConversationState(phoneNumber, tenantInfo.tenantId);
   
   if (!state) {
     console.log(`🆕 New conversation from ${phoneNumber}`);
-    // New conversation - start qualification flow
     state = {
       phone: phoneNumber,
       conversationStep: 'initial',
       lastMessageAt: new Date()
     };
-    conversationStates.set(phoneNumber, state);
 
     // Send initial question
     await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message, tenantInfo.accessToken);
     state.conversationStep = 'asked_name';
+    await setConversationState(phoneNumber, tenantInfo.tenantId, state);
 
-    // Also create a lead immediately (don't wait for full qualification)
+    // Create a lead immediately (don't wait for full qualification)
     await createOrUpdateLeadFromWhatsApp(phoneNumber, senderName, messageText, tenantInfo.tenantId);
     return;
   }
@@ -250,23 +284,26 @@ async function handleConversation(
       state.name = messageText.trim();
       await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_name.message, tenantInfo.accessToken);
       state.conversationStep = 'asked_year';
+      await setConversationState(phoneNumber, tenantInfo.tenantId, state);
       break;
 
     case 'asked_year':
       state.yearOfGraduation = messageText.trim();
       await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_year.message, tenantInfo.accessToken);
       state.conversationStep = 'asked_course';
+      await setConversationState(phoneNumber, tenantInfo.tenantId, state);
       break;
 
-    case 'asked_course':
+    case 'asked_course': {
       const courseLower = messageText.toLowerCase().trim();
       state.interestedCourse = COURSE_MAPPING[courseLower] || messageText.trim();
       await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.asked_course.message, tenantInfo.accessToken);
       state.conversationStep = 'qualified';
-      
+      await setConversationState(phoneNumber, tenantInfo.tenantId, state);
       // Create HOT lead - user responded to all questions
       await createLeadFromWhatsApp(state, 'hot', senderName, tenantInfo.tenantId);
       break;
+    }
 
     case 'qualified':
       // Already qualified, just log the message as activity
@@ -277,6 +314,7 @@ async function handleConversation(
         `Thanks for your message! Our team will get back to you soon. 🙂`,
         tenantInfo.accessToken
       );
+      await setConversationState(phoneNumber, tenantInfo.tenantId, state);
       break;
 
     default:
@@ -284,9 +322,8 @@ async function handleConversation(
       state.conversationStep = 'initial';
       await sendWhatsAppMessage(phoneNumberId, phoneNumber, QUALIFICATION_FLOW.initial.message, tenantInfo.accessToken);
       state.conversationStep = 'asked_name';
+      await setConversationState(phoneNumber, tenantInfo.tenantId, state);
   }
-
-  conversationStates.set(phoneNumber, state);
 }
 
 // ===================== CREATE LEAD FROM WHATSAPP =====================
@@ -377,8 +414,10 @@ async function createLeadFromWhatsApp(
       console.error('[WHATSAPP-LEAD] Auto-score failed:', err)
     );
 
-    // Clear conversation state after lead created
-    conversationStates.delete(data.phone);
+    // Clear conversation state from MongoDB after lead created
+    if (resolvedTenantId) {
+      await deleteConversationState(data.phone, resolvedTenantId);
+    }
 
   } catch (error) {
     console.error('Error creating lead from WhatsApp:', error);
@@ -522,15 +561,23 @@ export const markColdLeads = async (req: Request, res: Response) => {
     const cutoffTime = new Date(Date.now() - COLD_THRESHOLD_HOURS * 60 * 60 * 1000);
 
     // Find conversations that haven't completed qualification
+    // Find stale states from MongoDB
+    const staleStates = await WhatsAppConversationState.find({
+      lastMessageAt: { $lt: cutoffTime },
+      conversationStep: { $ne: 'qualified' },
+    }).lean();
+
     const coldPhones: string[] = [];
-    conversationStates.forEach((state, phone) => {
-      if (state.lastMessageAt < cutoffTime && state.conversationStep !== 'qualified') {
-        coldPhones.push(phone);
-        // Create cold lead
-        createLeadFromWhatsApp(state, 'cold', 'WhatsApp User').catch(console.error);
-        conversationStates.delete(phone);
-      }
-    });
+    for (const doc of staleStates) {
+      coldPhones.push(doc.phone);
+      createLeadFromWhatsApp(
+        { phone: doc.phone, conversationStep: doc.conversationStep as any, name: doc.name, yearOfGraduation: doc.yearOfGraduation, interestedCourse: doc.interestedCourse, lastMessageAt: doc.lastMessageAt },
+        'cold',
+        'WhatsApp User',
+        doc.tenantId
+      ).catch(console.error);
+      await deleteConversationState(doc.phone, doc.tenantId);
+    }
 
     res.json({
       success: true,

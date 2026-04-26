@@ -270,6 +270,68 @@ Please analyze and respond with this JSON structure:
     // Generate new summary
     return this.generateSummary(leadId);
   }
+
+  /**
+   * Generate a personalised follow-up WhatsApp message for a lead.
+   * When language = 'telugu' or 'hindi', instructs GPT-4 to respond in that language.
+   */
+  async generateFollowUpMessage(
+    leadId: mongoose.Types.ObjectId,
+    language: 'english' | 'telugu' | 'hindi' = 'english'
+  ): Promise<string | null> {
+    const lead = await Lead.findById(leadId)
+      .populate('stageId', 'name')
+      .lean();
+    if (!lead) return null;
+
+    const FALLBACKS: Record<string, string> = {
+      english: `Hi ${lead.name}! 👋 We noticed you were interested in ${(lead.courseInterest || []).join(', ') || 'our courses'}. Would you like to know more? Reply YES to schedule a free demo!`,
+      telugu: `నమస్కారం ${lead.name} గారు! 👋 మీరు ${(lead.courseInterest || []).join(', ') || 'మా కోర్సులు'}లో ఆసక్తి చూపారు. ఒక ఉచిత డెమో షెడ్యూల్ చేయాలంటే YES అని రిప్లై చేయండి!`,
+      hindi: `नमस्ते ${lead.name} जी! 👋 आप ${(lead.courseInterest || []).join(', ') || 'हमारे courses'}में रुचि रखते हैं। एक मुफ्त डेमो बुक करने के लिए YES लिखें!`,
+    };
+
+    if (!this.openai) {
+      return FALLBACKS[language] || FALLBACKS.english;
+    }
+
+    const languageInstructions: Record<string, string> = {
+      telugu: 'Respond ONLY in Telugu (తెలుగు) script. Use warm, respectful Telugu appropriate for an EdTech context.',
+      hindi: 'Respond ONLY in Hindi (हिंदी). Use warm, respectful Hindi appropriate for an EdTech context.',
+      english: 'Respond in clear, friendly English.',
+    };
+
+    const stage = (lead.stageId as any)?.name || 'Unknown';
+    const courses = (lead.courseInterest || []).join(', ') || 'not specified';
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: 'gpt-4-turbo-preview',
+        messages: [
+          {
+            role: 'system',
+            content: `You are a friendly EdTech sales assistant crafting WhatsApp follow-up messages. ${languageInstructions[language] || languageInstructions.english} Keep the message under 200 characters. Use a single relevant emoji. Never use markdown. Return only the message text.`,
+          },
+          {
+            role: 'user',
+            content: `Write a follow-up WhatsApp message for this lead:
+Name: ${lead.name}
+Current Stage: ${stage}
+Course Interest: ${courses}
+Last activity: ${lead.activities?.slice(-1)[0]?.description?.substring(0, 100) || 'none'}
+
+The message should re-engage them and invite them to schedule a free demo.`,
+          },
+        ],
+        temperature: 0.8,
+        max_tokens: 200,
+      });
+
+      return completion.choices[0]?.message?.content?.trim() || FALLBACKS[language] || FALLBACKS.english;
+    } catch (err) {
+      console.error('[LeadAI] generateFollowUpMessage error:', err);
+      return FALLBACKS[language] || FALLBACKS.english;
+    }
+  }
 }
 
 export default new LeadAIService();

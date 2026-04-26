@@ -15,6 +15,7 @@ export interface ISourceAutoAction {
 export interface IMetaAdsConfig {
   pageAccessToken?: string;            // Meta Page Access Token (encrypted at rest)
   pageId?: string;                     // Facebook Page ID
+  formIds?: string[];                  // Facebook Lead Ad Form IDs for per-tenant routing
   verifyToken?: string;                // Webhook verify token
   webhookUrl?: string;                 // Computed — for display only
   adAccountId?: string;               // Optional: for cost data
@@ -170,6 +171,7 @@ const LeadSourceConfigSchema = new Schema<ILeadSourceConfig>({
     config: {
       pageAccessToken: { type: String, default: '' },
       pageId: { type: String, default: '' },
+      formIds: { type: [String], default: [] },
       verifyToken: { type: String, default: 'codebegun_verify' },
       adAccountId: { type: String, default: '' },
     },

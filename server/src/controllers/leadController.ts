@@ -49,15 +49,16 @@ const emitLeadEvent = (req: AuthenticatedRequest, event: string, data: any) => {
 
 // Build common filter from query params, merged with scope filter
 const buildLeadFilter = (query: any, tenantId: string, scopeFilter: Record<string, any> = {}) => {
-  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority } = query;
+  const { stageId, source, assignedTo, search, dateFrom, dateTo, priority, hasPendingApproval } = query;
   const filter: any = { tenantId, ...scopeFilter };
   if (stageId) filter.stageId = stageId;
   if (source) filter.source = source;
-  // Only allow assignedTo filter if scope allows it (admin/manager filtering down)
   if (assignedTo) filter.assignedTo = assignedTo;
-  // Filter by priority (hot/warm/cold)
   if (priority && ['hot', 'warm', 'cold'].includes(priority)) {
     filter.priority = priority;
+  }
+  if (hasPendingApproval === 'true') {
+    filter['pendingApproval.stageId'] = { $exists: true };
   }
   if (search) {
     const searchRegex = new RegExp(String(search).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
@@ -1249,5 +1250,113 @@ export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<A
     res.json({ success: true, message: 'Lead updated', data: populated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to update lead', error: error.message });
+  }
+};
+
+// ===================== LEAD AGING REPORT =====================
+
+export const getAgingLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { stageId, days = '7' } = req.query;
+    const daysNum = Math.max(1, parseInt(days as string, 10) || 7);
+    const cutoff = new Date(Date.now() - daysNum * 24 * 60 * 60 * 1000);
+
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const match: any = {
+      tenantId: req.tenantId as any,
+      ...scopeFilter,
+      updatedAt: { $lte: cutoff },
+    };
+    if (stageId) {
+      match.stageId = new mongoose.Types.ObjectId(stageId as string);
+    }
+
+    const leads = await Lead.find(match)
+      .select('name phone email priority stageId assignedTo updatedAt createdAt source')
+      .populate('stageId', 'name color')
+      .populate('assignedTo', 'firstName lastName email')
+      .sort({ updatedAt: 1 })
+      .limit(200)
+      .lean();
+
+    const now = Date.now();
+    const annotated = leads.map((l: any) => ({
+      ...l,
+      daysStuck: Math.floor((now - new Date(l.updatedAt).getTime()) / (1000 * 60 * 60 * 24)),
+    }));
+
+    res.json({ success: true, message: 'Aging leads fetched', data: annotated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch aging leads', error: error.message });
+  }
+};
+
+// ===================== DUPLICATE LEAD DETECTION =====================
+
+export const getDuplicateLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const groups = await Lead.aggregate([
+      { $match: { tenantId: req.tenantId as any } },
+      {
+        $addFields: {
+          last10: { $substr: [{ $replaceAll: { input: '$phone', find: ' ', replacement: '' } }, -10, 10] },
+        },
+      },
+      {
+        $group: {
+          _id: '$last10',
+          leads: { $push: { _id: '$_id', name: '$name', phone: '$phone', email: '$email', stageId: '$stageId', createdAt: '$createdAt', source: '$source' } },
+          count: { $sum: 1 },
+        },
+      },
+      { $match: { count: { $gt: 1 } } },
+      { $sort: { count: -1 } },
+      { $limit: 100 },
+    ]);
+
+    res.json({ success: true, message: 'Duplicate groups fetched', data: groups });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to detect duplicates', error: error.message });
+  }
+};
+
+// ===================== MERGE DUPLICATE LEADS =====================
+
+export const mergeDuplicateLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { primaryLeadId, duplicateLeadIds } = req.body as { primaryLeadId: string; duplicateLeadIds: string[] };
+
+    if (!primaryLeadId || !Array.isArray(duplicateLeadIds) || duplicateLeadIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'primaryLeadId and duplicateLeadIds[] required' });
+    }
+
+    const primary = await Lead.findOne({ _id: primaryLeadId, tenantId: req.tenantId });
+    if (!primary) return res.status(404).json({ success: false, message: 'Primary lead not found' });
+
+    const duplicates = await Lead.find({ _id: { $in: duplicateLeadIds }, tenantId: req.tenantId });
+
+    for (const dup of duplicates) {
+      for (const act of dup.activities) {
+        primary.activities.push(act);
+      }
+      if (dup.notes) {
+        primary.notes = (primary.notes ? primary.notes + '\n' : '') + `[Merged from ${dup.name}] ${dup.notes}`;
+      }
+    }
+
+    primary.activities.push({
+      type: 'note',
+      description: `Merged ${duplicates.length} duplicate lead(s): ${duplicates.map((d: any) => d.name).join(', ')}`,
+      createdBy: req.user!.id as any,
+      createdAt: new Date(),
+    });
+
+    await primary.save();
+    await Lead.deleteMany({ _id: { $in: duplicateLeadIds }, tenantId: req.tenantId });
+    await auditLog(req, 'MERGE', `Merged ${duplicates.length} duplicate leads into ${primary.name}`, primary._id as any, { duplicateLeadIds });
+
+    res.json({ success: true, message: `Merged ${duplicates.length} lead(s) into primary`, data: { primaryLeadId } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to merge leads', error: error.message });
   }
 };

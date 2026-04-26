@@ -6,7 +6,8 @@ import {
   bulkGenerateSummaries,
   checkAIStatus,
   getLeadsNeedingSummary,
-  getNextBestAction
+  getNextBestAction,
+  generateFollowUpMessage
 } from '../controllers/leadAIController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -74,6 +75,15 @@ router.get(
   tenantResolver,
   roleGuard(['view_leads', 'manage_leads', 'create_leads']),
   getNextBestAction
+);
+
+// Generate AI follow-up message (supports language=english|telugu|hindi)
+router.get(
+  '/leads/:leadId/followup-message',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_leads', 'manage_leads', 'create_leads', 'edit_leads']),
+  generateFollowUpMessage
 );
 
 export default router;

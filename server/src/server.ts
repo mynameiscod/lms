@@ -6,6 +6,7 @@ import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { syncAllActiveSheets } from './services/googleSheetSyncService';
+import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -72,6 +73,18 @@ const startServer = async () => {
       }
     }, GSHEET_SYNC_INTERVAL);
     console.log(`📊 Google Sheets sync scheduled every ${GSHEET_SYNC_INTERVAL / 60000} minutes`);
+
+    // Start follow-up reminder cron (runs every 5 minutes)
+    setInterval(async () => {
+      try {
+        await fireFollowUpReminders(io);
+      } catch (err) {
+        console.error('[FOLLOWUP-CRON] Error:', err);
+      }
+    }, CRON_INTERVAL_MS);
+    // Fire once immediately after startup to catch anything missed during downtime
+    setTimeout(() => fireFollowUpReminders(io).catch(console.error), 10_000);
+    console.log(`🔔 Follow-up reminder cron scheduled every ${CRON_INTERVAL_MS / 60000} minutes`);
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

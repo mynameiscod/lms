@@ -12,6 +12,7 @@ import { buildLeadScopeFilter, resolveLeadScope } from '../middleware/leadScope'
 import { initializeLeadStageHistory, recordStageTransition } from './leadStageHistoryController';
 import { linkLeadToCampaign } from './adCampaignController';
 import { scoreAndAssignLead } from '../services/leadScoringService';
+import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -320,6 +321,22 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       resolvedStageName = stage?.name || 'Unknown';
     }
 
+    // Duplicate phone check — last 10 digits match
+    const lastTen = phone.replace(/\D/g, '').slice(-10);
+    if (lastTen) {
+      const dup = await Lead.findOne({
+        tenantId: req.tenantId,
+        phone: { $regex: lastTen + '$' }
+      }).lean();
+      if (dup) {
+        return res.status(409).json({
+          success: false,
+          message: 'A lead with this phone number already exists',
+          data: { existingLeadId: (dup as any)._id }
+        });
+      }
+    }
+
     const lead = await Lead.create({
       name,
       email,
@@ -373,6 +390,11 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     } catch (scoringError) {
       console.error('[LEAD-CREATE] Scoring FAILED:', scoringError);
     }
+
+    // Send WhatsApp welcome message if configured for this source
+    sendLeadWelcomeWhatsApp(name, phone, source || 'other', req.tenantId!).catch(err =>
+      console.error('[LEAD-CREATE] WhatsApp welcome failed:', err)
+    );
 
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')

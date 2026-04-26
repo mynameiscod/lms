@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { followUpApi } from '../../api';
 import './FollowUpCalendar.css';
 
 interface FollowUp {
@@ -34,14 +35,38 @@ const FollowUpCalendar: React.FC = () => {
   const loadFollowUps = useCallback(async () => {
     try {
       setLoading(true);
-      // Use mock data for now - API endpoint can be added later
-      const mockData = getMockFollowUps();
-      
+
+      // Compute first and last day of the current visible month
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+      const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+      const resp = await followUpApi.getCalendar(startDate, endDate);
+      // resp.data.calendar is keyed by "YYYY-MM-DD"; convert to dateString() keys
+      const apiCalendar: Record<string, any[]> = resp?.data?.calendar || {};
+
+      const converted: DayFollowUps = {};
+      Object.entries(apiCalendar).forEach(([isoDate, items]) => {
+        // isoDate is "YYYY-MM-DD"; parse as local date (avoid UTC offset issues)
+        const [y, m, d] = isoDate.split('-').map(Number);
+        const localDate = new Date(y, m - 1, d);
+        const key = localDate.toDateString();
+        converted[key] = items.map((item: any) => ({
+          _id: item._id,
+          leadId: item.leadId?._id || item.leadId,
+          leadName: item.leadId?.name || 'Unknown Lead',
+          type: item.type,
+          scheduledFor: item.scheduledAt,
+          notes: item.description || item.notes,
+          status: item.status === 'scheduled' ? 'pending' : item.status,
+        }));
+      });
+
       // Calculate stats
       const now = new Date();
       let overdue = 0, today = 0, upcoming = 0;
-      
-      Object.values(mockData).flat().forEach((fu: FollowUp) => {
+      Object.values(converted).flat().forEach((fu: FollowUp) => {
         const fuDate = new Date(fu.scheduledFor);
         if (fu.status === 'pending') {
           if (fuDate < now && fuDate.toDateString() !== now.toDateString()) {
@@ -53,14 +78,13 @@ const FollowUpCalendar: React.FC = () => {
           }
         }
       });
-      
-      setFollowUps(mockData);
+
+      setFollowUps(converted);
       setStats({ overdue, today, upcoming });
     } catch (error: any) {
-      // Use mock data if API fails
-      console.log('Using mock follow-up data');
-      setFollowUps(getMockFollowUps());
-      setStats({ overdue: 3, today: 8, upcoming: 15 });
+      console.error('Failed to load follow-ups from API, using empty calendar:', error);
+      setFollowUps({});
+      setStats({ overdue: 0, today: 0, upcoming: 0 });
     } finally {
       setLoading(false);
     }
@@ -69,36 +93,6 @@ const FollowUpCalendar: React.FC = () => {
   useEffect(() => {
     loadFollowUps();
   }, [loadFollowUps]);
-
-  const getMockFollowUps = (): DayFollowUps => {
-    const today = new Date();
-    const result: DayFollowUps = {};
-    
-    // Today's follow-ups
-    result[today.toDateString()] = [
-      { _id: '1', leadId: 'l1', leadName: 'Rajesh Kumar', type: 'call', scheduledFor: new Date(today.setHours(10, 0)).toISOString(), notes: 'Discuss fee structure', status: 'pending' },
-      { _id: '2', leadId: 'l2', leadName: 'Priya Sharma', type: 'whatsapp', scheduledFor: new Date(today.setHours(11, 0)).toISOString(), notes: 'Send curriculum', status: 'pending' },
-      { _id: '3', leadId: 'l3', leadName: 'Amit Patel', type: 'call', scheduledFor: new Date(today.setHours(14, 0)).toISOString(), notes: 'Follow up on demo', status: 'pending' },
-      { _id: '4', leadId: 'l4', leadName: 'Sneha Reddy', type: 'visit', scheduledFor: new Date(today.setHours(15, 0)).toISOString(), notes: 'Campus visit', status: 'pending' },
-    ];
-    
-    // Tomorrow
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    result[tomorrow.toDateString()] = [
-      { _id: '5', leadId: 'l5', leadName: 'Kiran Verma', type: 'call', scheduledFor: new Date(tomorrow.setHours(10, 0)).toISOString(), status: 'pending' },
-      { _id: '6', leadId: 'l6', leadName: 'Anita Desai', type: 'demo', scheduledFor: new Date(tomorrow.setHours(14, 0)).toISOString(), notes: 'Online demo', status: 'pending' },
-    ];
-    
-    // Yesterday (overdue)
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    result[yesterday.toDateString()] = [
-      { _id: '7', leadId: 'l7', leadName: 'Ravi Kumar', type: 'call', scheduledFor: new Date(yesterday.setHours(16, 0)).toISOString(), notes: 'Fee discussion', status: 'pending' },
-    ];
-    
-    return result;
-  };
 
   const getTypeIcon = (type: string): string => {
     const icons: Record<string, string> = {
@@ -146,11 +140,12 @@ const FollowUpCalendar: React.FC = () => {
 
   const handleComplete = async (followUp: FollowUp) => {
     try {
-      // Update local state - API integration can be added later
+      await followUpApi.completeFollowUp(followUp._id, {});
+      // Optimistically update local state
       setFollowUps(prev => {
         const updated = { ...prev };
         Object.keys(updated).forEach(date => {
-          updated[date] = updated[date].map(fu => 
+          updated[date] = updated[date].map(fu =>
             fu._id === followUp._id ? { ...fu, status: 'completed' as const } : fu
           );
         });

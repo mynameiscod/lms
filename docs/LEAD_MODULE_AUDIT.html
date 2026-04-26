@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lead Module Audit Report — CodeBegun LMS</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 13px; color: #1a1a2e; background: #fff; }
+  
+  /* Cover page */
+  .cover {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    color: white;
+    padding: 80px 60px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    page-break-after: always;
+  }
+  .cover .badge {
+    background: rgba(229,57,53,0.9);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 32px;
+  }
+  .cover h1 { font-size: 44px; font-weight: 800; line-height: 1.15; margin-bottom: 16px; }
+  .cover h2 { font-size: 22px; font-weight: 400; opacity: 0.75; margin-bottom: 48px; }
+  .cover .divider { width: 80px; height: 4px; background: #e53935; margin-bottom: 48px; border-radius: 2px; }
+  .cover .meta { display: flex; gap: 48px; }
+  .cover .meta-item label { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; opacity: 0.5; display: block; margin-bottom: 6px; }
+  .cover .meta-item span { font-size: 15px; font-weight: 600; }
+  .cover .logo { font-size: 13px; opacity: 0.4; margin-top: auto; padding-top: 60px; }
+
+  /* TOC */
+  .toc-page {
+    padding: 60px;
+    page-break-after: always;
+  }
+  .toc-page h2 { font-size: 28px; font-weight: 800; color: #0f3460; margin-bottom: 8px; }
+  .toc-page .toc-subtitle { color: #666; font-size: 13px; margin-bottom: 40px; }
+  .toc-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .toc-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    border: 1px solid #e8ecf0;
+    border-radius: 8px;
+    background: #f8faff;
+  }
+  .toc-item .num {
+    background: #0f3460;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .toc-item .toc-text strong { display: block; font-size: 13px; color: #1a1a2e; }
+  .toc-item .toc-text span { font-size: 11px; color: #888; }
+
+  /* Content pages */
+  .page { padding: 50px 60px; page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+
+  /* Section header */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 3px solid #0f3460;
+  }
+  .section-num {
+    background: #0f3460;
+    color: white;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .section-title h2 { font-size: 22px; font-weight: 800; color: #0f3460; }
+  .section-title p { font-size: 12px; color: #888; margin-top: 3px; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; font-size: 12px; }
+  thead tr { background: #0f3460; color: white; }
+  thead th { padding: 10px 12px; text-align: left; font-weight: 600; font-size: 11px; letter-spacing: 0.5px; }
+  tbody tr:nth-child(even) { background: #f8faff; }
+  tbody tr:hover { background: #eef2ff; }
+  tbody td { padding: 9px 12px; border-bottom: 1px solid #e8ecf0; vertical-align: top; line-height: 1.5; }
+  tbody tr:last-child td { border-bottom: none; }
+
+  /* Status badges */
+  .badge-ok { background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-partial { background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-missing { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-critical { background: #7b1fa2; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-high { background: #e53935; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-medium { background: #fb8c00; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+  .badge-low { background: #43a047; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+
+  /* Info boxes */
+  .info-box { border-radius: 8px; padding: 16px 20px; margin-bottom: 20px; }
+  .info-box.green { background: #e8f5e9; border-left: 4px solid #2e7d32; }
+  .info-box.red { background: #ffebee; border-left: 4px solid #c62828; }
+  .info-box.orange { background: #fff3e0; border-left: 4px solid #e65100; }
+  .info-box.blue { background: #e3f2fd; border-left: 4px solid #1565c0; }
+  .info-box h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+  .info-box ul { margin-left: 16px; }
+  .info-box ul li { font-size: 12px; margin-bottom: 4px; line-height: 1.6; }
+
+  /* Phase cards */
+  .phase-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .phase-card { border-radius: 10px; padding: 20px; }
+  .phase-card.p1 { background: #ffebee; border-top: 4px solid #e53935; }
+  .phase-card.p2 { background: #fff3e0; border-top: 4px solid #fb8c00; }
+  .phase-card.p3 { background: #e3f2fd; border-top: 4px solid #1565c0; }
+  .phase-card h3 { font-size: 14px; font-weight: 800; margin-bottom: 4px; }
+  .phase-card .phase-label { font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 12px; opacity: 0.7; }
+  .phase-card ul { margin-left: 14px; }
+  .phase-card ul li { font-size: 11px; line-height: 1.7; }
+
+  /* Score summary card */
+  .score-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 28px; }
+  .score-card { text-align: center; padding: 20px 12px; border-radius: 10px; border: 1px solid #e8ecf0; }
+  .score-card .score-num { font-size: 36px; font-weight: 800; line-height: 1; margin-bottom: 6px; }
+  .score-card .score-label { font-size: 11px; color: #666; }
+  .score-card.green .score-num { color: #2e7d32; }
+  .score-card.orange .score-num { color: #e65100; }
+  .score-card.red .score-num { color: #c62828; }
+  .score-card.purple .score-num { color: #7b1fa2; }
+
+  h3 { font-size: 15px; font-weight: 700; color: #0f3460; margin: 20px 0 10px; }
+  p { line-height: 1.7; margin-bottom: 12px; color: #444; }
+  code { background: #f0f0f0; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<!-- ===== COVER PAGE ===== -->
+<div class="cover">
+  <div class="badge">Senior SaaS Product Architect + MERN Code Auditor</div>
+  <h1>Lead Management Module<br>Audit Report</h1>
+  <h2>CodeBegun LMS — Comprehensive Codebase Audit</h2>
+  <div class="divider"></div>
+  <div class="meta">
+    <div class="meta-item"><label>Organization</label><span>CodeBegun</span></div>
+    <div class="meta-item"><label>Date</label><span>April 26, 2026</span></div>
+    <div class="meta-item"><label>Stack</label><span>MERN + WhatsApp + Meta Ads + OpenAI</span></div>
+    <div class="meta-item"><label>Sections</label><span>10 Sections</span></div>
+  </div>
+  <div class="logo">CodeBegun LMS · Confidential · Internal Use Only</div>
+</div>
+
+<!-- ===== TABLE OF CONTENTS ===== -->
+<div class="toc-page">
+  <h2>Table of Contents</h2>
+  <div class="toc-subtitle">10-section comprehensive audit covering schema, APIs, UI, AI readiness, and implementation roadmap</div>
+  <div class="toc-grid">
+    <div class="toc-item"><div class="num">1</div><div class="toc-text"><strong>Lead Model / Schema Audit</strong><span>All fields, sub-documents, indexes</span></div></div>
+    <div class="toc-item"><div class="num">2</div><div class="toc-text"><strong>Backend API Audit</strong><span>All routes, RBAC, validation, pagination</span></div></div>
+    <div class="toc-item"><div class="num">3</div><div class="toc-text"><strong>Frontend UI Audit</strong><span>All pages, mobile, fake-update prevention</span></div></div>
+    <div class="toc-item"><div class="num">4</div><div class="toc-text"><strong>Sales Process Gap Analysis</strong><span>Lead lifecycle — available / partial / missing</span></div></div>
+    <div class="toc-item"><div class="num">5</div><div class="toc-text"><strong>AI Sales Automation Readiness</strong><span>WhatsApp, Meta, Telugu, scoring, OpenAI</span></div></div>
+    <div class="toc-item"><div class="num">6</div><div class="toc-text"><strong>Employee Control &amp; Accountability</strong><span>Tracking, fake updates, SLA, approvals</span></div></div>
+    <div class="toc-item"><div class="num">7</div><div class="toc-text"><strong>Database Gap Report</strong><span>Missing fields, indexes, new collections</span></div></div>
+    <div class="toc-item"><div class="num">8</div><div class="toc-text"><strong>API Gap Report</strong><span>Missing endpoints, changes needed</span></div></div>
+    <div class="toc-item"><div class="num">9</div><div class="toc-text"><strong>UI Gap Report</strong><span>Missing screens, broken pages, mobile</span></div></div>
+    <div class="toc-item"><div class="num">10</div><div class="toc-text"><strong>Final Recommendations</strong><span>Phase 1 / 2 / 3 implementation roadmap</span></div></div>
+  </div>
+
+  <!-- Quick summary scores -->
+  <h3 style="margin-top:36px;">Audit Score Summary</h3>
+  <div class="score-grid">
+    <div class="score-card green"><div class="score-num">27</div><div class="score-label">Features Available ✅</div></div>
+    <div class="score-card orange"><div class="score-num">14</div><div class="score-label">Partially Working ⚠️</div></div>
+    <div class="score-card red"><div class="score-num">18</div><div class="score-label">Features Missing ❌</div></div>
+    <div class="score-card purple"><div class="score-num">5</div><div class="score-label">Critical / P0 Bugs 🚨</div></div>
+  </div>
+</div>
+
+<!-- ===== SECTION 1: LEAD MODEL ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">1</div>
+    <div class="section-title"><h2>Lead Model / Schema Audit</h2><p>server/src/models/Lead.ts — All fields, sub-documents, and indexes</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Feature / Field</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Basic fields (name, phone, email)</td><td><span class="badge-ok">✅ Available</span></td><td>phone required, email optional</td></tr>
+      <tr><td>Course interest</td><td><span class="badge-ok">✅ Available</span></td><td>Array of strings, multiple courses supported</td></tr>
+      <tr><td>Source tracking</td><td><span class="badge-ok">✅ Available</span></td><td>source string + full sourceDetails sub-doc (platform, campaignId, adSetId, adId, formId, landingPage)</td></tr>
+      <tr><td>UTM parameters</td><td><span class="badge-ok">✅ Available</span></td><td>Full utmParams sub-doc (source, medium, campaign, content, term)</td></tr>
+      <tr><td>Stage tracking</td><td><span class="badge-ok">✅ Available</span></td><td>stageId → ref to LeadStage collection</td></tr>
+      <tr><td>Priority (Hot/Warm/Cold)</td><td><span class="badge-ok">✅ Available</span></td><td>priority enum + score number</td></tr>
+      <tr><td>Lead assignment</td><td><span class="badge-ok">✅ Available</span></td><td>assignedTo (current) + full assignment sub-doc with previousAssignees history</td></tr>
+      <tr><td>Follow-up date</td><td><span class="badge-ok">✅ Available</span></td><td>nextFollowUp Date field</td></tr>
+      <tr><td>Notes</td><td><span class="badge-ok">✅ Available</span></td><td>notes string</td></tr>
+      <tr><td>Activity / Timeline log</td><td><span class="badge-ok">✅ Available</span></td><td>activities[] — note, call, email, whatsapp, status_change, assignment, created</td></tr>
+      <tr><td>Call recording URL</td><td><span class="badge-ok">✅ Available</span></td><td>activities[].recordingUrl</td></tr>
+      <tr><td>Call outcome</td><td><span class="badge-ok">✅ Available</span></td><td>not_answered, busy, rejected, connected, not_connected</td></tr>
+      <tr><td>Call duration</td><td><span class="badge-ok">✅ Available</span></td><td>activities[].callDuration (seconds)</td></tr>
+      <tr><td>WhatsApp tracking</td><td><span class="badge-ok">✅ Available</span></td><td>whatsappStatus, whatsappReplied, whatsappEngagement sub-doc</td></tr>
+      <tr><td>AI Summary</td><td><span class="badge-ok">✅ Available</span></td><td>aiSummary: summary, keyInsights, suggestedNextAction, seriousnessScore, conversionProbability</td></tr>
+      <tr><td>Telecaller metrics</td><td><span class="badge-ok">✅ Available</span></td><td>firstViewedAt, firstCallAt, totalCalls, totalActions, lastActionAt</td></tr>
+      <tr><td>Qualification answers</td><td><span class="badge-ok">✅ Available</span></td><td>qualificationAnswers Map + qualificationProgress</td></tr>
+      <tr><td>Lead interests (structured)</td><td><span class="badge-ok">✅ Available</span></td><td>interests sub-doc: courses, mode, location, placement, urgency, affordability, demoInterest</td></tr>
+      <tr><td>Lost reason tracking</td><td><span class="badge-ok">✅ Available</span></td><td>lostReason, lostReasonCategory, lostAt, reEngagementDate</td></tr>
+      <tr><td>Eligibility</td><td><span class="badge-ok">✅ Available</span></td><td>eligible / not_eligible / needs_review</td></tr>
+      <tr><td>Converted student link</td><td><span class="badge-ok">✅ Available</span></td><td>convertedStudentId ref</td></tr>
+      <tr><td>Cost data</td><td><span class="badge-ok">✅ Available</span></td><td>costData.costPerLead, campaignSpend, visible flag</td></tr>
+      <tr><td>Multi-tenancy (tenantId)</td><td><span class="badge-ok">✅ Available</span></td><td>Required field with compound indexes</td></tr>
+      <tr><td>Duplicate phone check (DB)</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Checked in Meta/WhatsApp webhooks only (last-10-digit regex). No unique DB index on {tenantId, phone}</td></tr>
+      <tr><td>Language preference (Telugu)</td><td><span class="badge-missing">❌ Missing</span></td><td>No language field. WhatsApp messages are English only.</td></tr>
+      <tr><td>Demo booked date/time</td><td><span class="badge-missing">❌ Missing</span></td><td>demoInterest: boolean exists but no demoBookedAt DateTime</td></tr>
+      <tr><td>Call SLA breach tracking</td><td><span class="badge-missing">❌ Missing</span></td><td>No firstCallSLABreached or callSLABreachAt field</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Supporting Models (all exist)</h3>
+  <table>
+    <thead><tr><th>Model</th><th>File</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td>LeadStage</td><td><code>models/LeadStage.ts</code></td><td>Stage pipeline with SLA, automation triggers (sendWhatsApp, setFollowUp), Kanban config</td></tr>
+      <tr><td>LeadStageHistory</td><td><code>models/LeadStageHistory.ts</code></td><td>Immutable audit trail of stage transitions with entry/exit time and duration minutes</td></tr>
+      <tr><td>LeadScoringConfig</td><td><code>models/LeadScoringConfig.ts</code></td><td>Scoring rules, qualification rules, round-robin + rule-based auto-assignment config</td></tr>
+      <tr><td>LeadPriorityConfig</td><td><code>models/LeadPriorityConfig.ts</code></td><td>Rule-based priority overrides + eligibility rules</td></tr>
+      <tr><td>LeadFormConfig</td><td><code>models/LeadFormConfig.ts</code></td><td>Custom fields, per-field visibility, stats card config, table column config</td></tr>
+      <tr><td>QualificationQuestionConfig</td><td><code>models/QualificationQuestionConfig.ts</code></td><td>Question builder with categories, answer types, score impact, stage-based visibility</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 2: BACKEND API ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">2</div>
+    <div class="section-title"><h2>Backend API Audit</h2><p>All routes with RBAC, validation, pagination status</p></div>
+  </div>
+
+  <h3>Lead Routes — server/src/routes/leadRoutes.ts</h3>
+  <table>
+    <thead><tr><th>Route</th><th>Method</th><th>Purpose</th><th>Auth/RBAC</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /leads</code></td><td>GET</td><td>Paginated list with filters (stage, source, assignedTo, search, priority, dateFrom, dateTo)</td><td>✅ Role-scoped: ALL/TEAM/OWN</td></tr>
+      <tr><td><code>GET /leads/:id</code></td><td>GET</td><td>Lead detail with full activities</td><td>✅ Scoped</td></tr>
+      <tr><td><code>POST /leads</code></td><td>POST</td><td>Create lead manually — calls scoreAndAssignLead</td><td>✅ create_leads</td></tr>
+      <tr><td><code>PUT /leads/:id</code></td><td>PUT</td><td>Full update</td><td>✅ edit_leads</td></tr>
+      <tr><td><code>DELETE /leads/:id</code></td><td>DELETE</td><td>Delete lead</td><td>✅ delete_leads</td></tr>
+      <tr><td><code>PATCH /leads/:id/quick-update</code></td><td>PATCH</td><td>Telecaller-friendly: stage + note + followup in one call</td><td>✅ edit_leads</td></tr>
+      <tr><td><code>PATCH /leads/:id/stage</code></td><td>PATCH</td><td>Change stage with history tracking</td><td>✅ edit_leads</td></tr>
+      <tr><td><code>POST /leads/:id/activities</code></td><td>POST</td><td>Add activity (call/note/email/whatsapp) + recording upload (100MB multer)</td><td>✅ edit_leads</td></tr>
+      <tr><td><code>POST /leads/:id/convert</code></td><td>POST</td><td>Convert lead to student account</td><td>✅ convert_leads</td></tr>
+      <tr><td><code>GET /leads/analytics</code></td><td>GET</td><td>Funnel, source performance, team analytics</td><td>✅ view_lead_analytics</td></tr>
+      <tr><td><code>GET /leads/manager-board</code></td><td>GET</td><td>Per-employee: leads, today followups, overdue, stage breakdown</td><td>✅ manage_leads</td></tr>
+      <tr><td><code>GET /leads/audit-logs</code></td><td>GET</td><td>All audit actions with pagination</td><td>✅ manage_leads</td></tr>
+      <tr><td><code>GET /leads/my-performance</code></td><td>GET</td><td>Self performance — followups, overdue, activity counts</td><td>✅ view_leads</td></tr>
+      <tr><td><code>GET /leads/export</code></td><td>GET</td><td>XLSX export with filter support</td><td>✅ export_leads</td></tr>
+      <tr><td><code>POST /leads/import</code></td><td>POST</td><td>Bulk import from XLSX/CSV</td><td>✅ manage_leads</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Meta Ads, WhatsApp &amp; AI Routes</h3>
+  <table>
+    <thead><tr><th>Route Group</th><th>Routes</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Meta Lead Ads<br><code>metaLeadAdsRoutes.ts</code></td><td>GET/POST /meta-leads/webhook — verify + receive Meta form submissions</td><td><span class="badge-ok">✅ Working</span></td></tr>
+      <tr><td>WhatsApp<br><code>whatsappRoutes.ts</code></td><td>verify webhook, receive messages, send manual, bulk cold leads, mark cold</td><td><span class="badge-ok">✅ Working</span></td></tr>
+      <tr><td>Lead AI<br><code>leadAIRoutes.ts</code></td><td>check status, generate summary (GPT-4), get summary, quick insights, bulk generate</td><td><span class="badge-ok">✅ Working</span></td></tr>
+      <tr><td>Lead Stages<br><code>leadStageRoutes.ts</code></td><td>CRUD + reorder + initialize defaults</td><td><span class="badge-ok">✅ Working</span></td></tr>
+      <tr><td>Lead Scoring<br><code>leadScoringRoutes.ts</code></td><td>config CRUD + team-members + rescore-all</td><td><span class="badge-ok">✅ Working</span></td></tr>
+      <tr><td>Lead Priority<br><code>leadPriorityRoutes.ts</code></td><td>config + rule CRUD + thresholds + recalculate</td><td><span class="badge-ok">✅ Working</span></td></tr>
+    </tbody>
+  </table>
+
+  <h3>Missing APIs (Gap Table)</h3>
+  <table>
+    <thead><tr><th>Missing API</th><th>File to Add</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td><code>GET /leads/check-phone?phone=xxx</code> — duplicate check before create</td><td>leadController.ts</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td><code>GET /leads/overdue</code> — leads where nextFollowUp &lt; now and not closed</td><td>leadController.ts</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td><code>POST /leads/:id/demo-book</code> — book demo with date/time</td><td>New leadDemoController.ts</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Follow-up reminder scheduler (node-cron)</td><td>New scheduler/reminders.ts</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Daily summary email (cron at 8pm)</td><td>New scheduler/dailyReport.ts</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td><code>GET /leads/aging?stageId=x&amp;days=7</code> — leads stuck in stage</td><td>leadController.ts</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td><code>POST /leads/:id/request-close</code> — manager approval workflow</td><td>leadController.ts</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>WhatsApp conversation state persistence (replace in-memory Map)</td><td>whatsappWebhookController.ts</td><td><span class="badge-critical">Critical</span></td></tr>
+      <tr><td>Multi-tenant Meta webhook routing (remove DEFAULT_TENANT_ID hardcode)</td><td>metaLeadAdsController.ts</td><td><span class="badge-medium">Medium</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 3: FRONTEND UI ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">3</div>
+    <div class="section-title"><h2>Frontend UI Audit</h2><p>client/src/pages — all lead-related pages, mobile support, fake-update prevention</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Page / Folder</th><th>Status</th><th>Purpose &amp; Notes</th></tr></thead>
+    <tbody>
+      <tr><td><code>Leads/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Lead list table — filters (stage, source, priority, search, date range), configurable columns, pagination, import/export buttons</td></tr>
+      <tr><td><code>LeadDetail/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Full lead profile — activities timeline, AI insights panel, WhatsApp engagement, qualification answers, stage change, note/call logging. Sub-components: LeadDetailModern, LeadDetailV2</td></tr>
+      <tr><td><code>TelecallerConsole/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Telecaller-optimized view — lead queue (priority/followup sort), quick action panel (call/note/whatsapp), qualification form, AI insights, sales content library, lost reason modal</td></tr>
+      <tr><td><code>LeadManagerBoard/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Manager overview — per-employee lead counts, today followups, overdue, stage breakdown, expandable rows, reassign modal</td></tr>
+      <tr><td><code>LeadMyPerformance/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Self-performance — assigned, followups, overdue, activity counts by day/week/month, recent activity list, completion rate</td></tr>
+      <tr><td><code>LeadAnalytics/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Funnel analytics, source performance, team performance, bottlenecks, lost reasons, daily lead trend</td></tr>
+      <tr><td><code>LeadAuditLogs/index.tsx</code></td><td><span class="badge-partial">⚠️ Bug</span></td><td>Audit log viewer exists but calls <code>.ok</code> on parsed JSON response — authenticatedFetch returns JSON, not Response object. Page likely broken.</td></tr>
+      <tr><td><code>LeadScoringSettings/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Scoring rules, qualification criteria, assignment mode (none/round-robin/rule-based), team pool, re-score all</td></tr>
+      <tr><td><code>LeadPrioritySettings/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Priority rule config, threshold settings, bulk recalculate</td></tr>
+      <tr><td><code>LeadStages/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Stage manager — create, reorder, SLA config, automation triggers</td></tr>
+      <tr><td><code>LeadFormSettings/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Custom field builder, stats card config, table column visibility config</td></tr>
+      <tr><td><code>QualificationSettings/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Question builder — categories, answer types, score impact, stage visibility</td></tr>
+      <tr><td><code>FollowUpCalendar/index.tsx</code></td><td><span class="badge-critical">🚨 Mock Data</span></td><td>Calendar view EXISTS but calls <code>getMockFollowUps()</code> — HARDCODED fake data, no real API connected</td></tr>
+      <tr><td><code>SalesContentLibrary/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Brochures, videos for telecallers to share during calls</td></tr>
+      <tr><td><code>GoogleSheetIntegration/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Google Sheets sync configuration</td></tr>
+      <tr><td><code>Marketing/index.tsx</code></td><td><span class="badge-ok">✅ Exists</span></td><td>Campaign analytics, ad capture, competitor tracking</td></tr>
+      <tr><td>Mobile-optimized telecaller view</td><td><span class="badge-partial">⚠️ Untested</span></td><td>TelecallerConsole not verified for mobile breakpoints</td></tr>
+      <tr><td>Walk-in quick-entry form</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Full lead form exists but no 10-second quick walk-in capture modal</td></tr>
+      <tr><td>Demo booking UI</td><td><span class="badge-missing">❌ Missing</span></td><td>No date/time booking modal in LeadDetail</td></tr>
+      <tr><td>Telugu language toggle</td><td><span class="badge-missing">❌ Missing</span></td><td>No language switcher anywhere in the app</td></tr>
+      <tr><td>Call recording playback</td><td><span class="badge-partial">⚠️ Partial</span></td><td>recordingUrl stored in activity — no &lt;audio&gt; player rendered in LeadDetail</td></tr>
+      <tr><td>Manager approval queue</td><td><span class="badge-missing">❌ Missing</span></td><td>No approval page for lost/close stage requests</td></tr>
+      <tr><td>Lead aging / stuck-lead board</td><td><span class="badge-missing">❌ Missing</span></td><td>No table showing leads stuck in same stage &gt; N days</td></tr>
+      <tr><td>Duplicate lead detection/merge UI</td><td><span class="badge-missing">❌ Missing</span></td><td>No UI to detect or merge duplicate phone numbers</td></tr>
+      <tr><td>Real-time hot lead alerts</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Socket.io set up but no hot-lead-specific toast notification</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 4: SALES PROCESS ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">4</div>
+    <div class="section-title"><h2>Sales Process Gap Analysis</h2><p>End-to-end lead lifecycle — available / partial / missing</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Process Step</th><th>Status</th><th>File</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Meta Ad → Auto save to LMS</td><td><span class="badge-ok">✅ Available</span></td><td>metaLeadAdsController.ts</td><td>Webhook receives, fetches from Graph API v19.0, creates lead</td></tr>
+      <tr><td>WhatsApp opt-in → Lead capture</td><td><span class="badge-ok">✅ Available</span></td><td>whatsappWebhookController.ts</td><td>Creates lead immediately on first message, assigns stage</td></tr>
+      <tr><td>Walk-in lead capture</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Leads/index.tsx</td><td>source='walkin' exists, but no dedicated fast-capture modal</td></tr>
+      <tr><td>Duplicate check by phone</td><td><span class="badge-partial">⚠️ Partial</span></td><td>metaLeadAdsController.ts, whatsappWebhookController.ts</td><td>Done in webhooks (last 10 digits). NOT enforced on manual create. No DB unique index.</td></tr>
+      <tr><td>Auto-assign to counselor</td><td><span class="badge-ok">✅ Available</span></td><td>leadScoringService.ts</td><td>Round-robin and rule-based assignment on creation via scoreAndAssignLead()</td></tr>
+      <tr><td>Auto WhatsApp on lead creation</td><td><span class="badge-partial">⚠️ Partial</span></td><td>whatsappWebhookController.ts</td><td>Stage triggers have sendWhatsApp flag, but NOT auto-fired for Meta/manual creates</td></tr>
+      <tr><td>AI WhatsApp qualification flow</td><td><span class="badge-ok">✅ Available</span></td><td>whatsappWebhookController.ts</td><td>4-step flow: initial → name → graduation year → course → qualified. 🚨 State in in-memory Map (lost on restart)</td></tr>
+      <tr><td>Lead scoring Hot/Warm/Cold</td><td><span class="badge-ok">✅ Available</span></td><td>leadScoringService.ts</td><td>Rules engine recalculates on create and update</td></tr>
+      <tr><td>Follow-up reminders</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Lead.nextFollowUp field</td><td>Date stored. Dashboard shows overdue count. No background job sends actual reminders.</td></tr>
+      <tr><td>Call recording upload</td><td><span class="badge-ok">✅ Available</span></td><td>leadRoutes.ts (multer 100MB)</td><td>Upload works. recordingUrl stored. No playback UI.</td></tr>
+      <tr><td>Notes and status update</td><td><span class="badge-ok">✅ Available</span></td><td>TelecallerConsole, LeadDetail</td><td>Both views support notes + stage changes with activity log</td></tr>
+      <tr><td>Demo booking</td><td><span class="badge-missing">❌ Missing</span></td><td>—</td><td>interests.demoInterest: boolean only. No date/time booking. No calendar integration.</td></tr>
+      <tr><td>Admission conversion to student</td><td><span class="badge-ok">✅ Available</span></td><td>POST /leads/:id/convert</td><td>Creates student account from lead with data transfer</td></tr>
+      <tr><td>Manager performance dashboard</td><td><span class="badge-ok">✅ Available</span></td><td>LeadManagerBoard/index.tsx</td><td>Per-employee breakdown with expandable rows</td></tr>
+      <tr><td>Daily summary email report</td><td><span class="badge-partial">⚠️ Partial</span></td><td>LeadMyPerformance/index.tsx</td><td>Page exists for manual viewing only. No scheduled email delivery.</td></tr>
+      <tr><td>Telugu WhatsApp messages</td><td><span class="badge-missing">❌ Missing</span></td><td>whatsappWebhookController.ts</td><td>All 4 qualification messages are English only. Zero Telugu support.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 5: AI AUTOMATION ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">5</div>
+    <div class="section-title"><h2>AI Sales Automation Readiness</h2><p>WhatsApp API, Meta webhook, Telugu support, OpenAI scoring</p></div>
+  </div>
+
+  <div class="info-box blue">
+    <h4>Infrastructure Status</h4>
+    <ul>
+      <li>WhatsApp Business API (Meta Cloud) — connected via WHATSAPP_ACCESS_TOKEN + WHATSAPP_PHONE_NUMBER_ID</li>
+      <li>Meta Lead Ads webhook — connected via PAGE_ACCESS_TOKEN + DEFAULT_TENANT_ID</li>
+      <li>OpenAI GPT-4 Turbo — connected via OPENAI_API_KEY (leadAIService.ts), with rule-based fallback</li>
+      <li>Socket.io — configured for tenant-scoped real-time events (tenant_{tenantId} room)</li>
+    </ul>
+  </div>
+
+  <table>
+    <thead><tr><th>AI Feature</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>WhatsApp API integration</td><td><span class="badge-ok">✅ Connected</span></td><td>Meta Cloud API v18.0 via WHATSAPP_ACCESS_TOKEN. Bidirectional messages working.</td></tr>
+      <tr><td>Meta Lead Ads webhook</td><td><span class="badge-ok">✅ Connected</span></td><td>PAGE_ACCESS_TOKEN + DEFAULT_TENANT_ID must be in .env</td></tr>
+      <tr><td>AI lead summary (GPT-4)</td><td><span class="badge-ok">✅ Available</span></td><td>leadAIService.generateSummary() — prompt includes full lead + activity history. 24hr cache.</td></tr>
+      <tr><td>Rule-based quick insights</td><td><span class="badge-ok">✅ Available</span></td><td>generateQuickInsights() — fallback when OPENAI_API_KEY not set</td></tr>
+      <tr><td>Auto lead scoring</td><td><span class="badge-ok">✅ Available</span></td><td>LeadScoringConfig rules engine. scoreAndAssignLead() called on create.</td></tr>
+      <tr><td>Round-robin auto-assignment</td><td><span class="badge-ok">✅ Available</span></td><td>LeadScoringConfig.roundRobinMembers[] + roundRobinIndex tracker</td></tr>
+      <tr><td>Rule-based auto-assignment</td><td><span class="badge-ok">✅ Available</span></td><td>assignmentRules with conditions on lead fields</td></tr>
+      <tr><td>WhatsApp qualification flow</td><td><span class="badge-partial">⚠️ Partial</span></td><td>4-step conversation works. 🚨 State is in-memory Map — server restart destroys all active conversations.</td></tr>
+      <tr><td>WhatsApp conversation persistence</td><td><span class="badge-critical">🚨 Critical Bug</span></td><td><code>const conversationStates = new Map&lt;string, LeadQualificationData&gt;()</code> — in-memory only. Must move to MongoDB/Redis.</td></tr>
+      <tr><td>Reminder automation</td><td><span class="badge-missing">❌ Missing</span></td><td>No cron/scheduler. No push notifications. No reminder emails or WhatsApp reminders.</td></tr>
+      <tr><td>Daily summary report (auto email)</td><td><span class="badge-missing">❌ Missing</span></td><td>No scheduled job. No email automation for daily/weekly reports.</td></tr>
+      <tr><td>Missed follow-up alerts</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Dashboard shows overdue count. No automated alert sent to manager/counselor.</td></tr>
+      <tr><td>Hot lead real-time alert</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Socket.io configured. No specific 'lead:hot_created' event emitted.</td></tr>
+      <tr><td>Lead aging / stuck-stage detection</td><td><span class="badge-missing">❌ Missing</span></td><td>No backend query or cron for leads stuck &gt; X days in same stage.</td></tr>
+      <tr><td>AI-generated Telugu messages</td><td><span class="badge-missing">❌ Missing</span></td><td>OpenAI prompts are English-only. No language parameter in leadAIService.ts.</td></tr>
+      <tr><td>Multi-tenant Meta webhook</td><td><span class="badge-missing">❌ Missing</span></td><td>DEFAULT_TENANT_ID hardcoded in metaLeadAdsController.ts — not real multi-tenancy.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box orange">
+    <h4>🚨 Critical Issue: WhatsApp Conversation State</h4>
+    <ul>
+      <li>Current: <code>const conversationStates = new Map&lt;string, LeadQualificationData&gt;()</code> in whatsappWebhookController.ts</li>
+      <li>Impact: Every server restart (deployment, crash, scaling) destroys all in-progress qualification conversations</li>
+      <li>Fix: Create a <code>WhatsAppConversationState</code> MongoDB collection with phone, tenantId, step, collectedData, lastMessageAt, expiresAt (TTL index)</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== SECTION 6: EMPLOYEE CONTROL ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">6</div>
+    <div class="section-title"><h2>Employee Control &amp; Accountability</h2><p>Tracking, fake update detection, SLA breach, manager approvals</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Accountability Feature</th><th>Status</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Lead assigned timestamp</td><td><span class="badge-ok">✅ Available</span></td><td>assignment.assignedAt + previousAssignees history</td></tr>
+      <tr><td>First call time tracking</td><td><span class="badge-ok">✅ Available</span></td><td>telecallerMetrics.firstCallAt recorded</td></tr>
+      <tr><td>Total call attempts</td><td><span class="badge-ok">✅ Available</span></td><td>telecallerMetrics.totalCalls incremented per call activity</td></tr>
+      <tr><td>First view time (telecaller)</td><td><span class="badge-ok">✅ Available</span></td><td>telecallerMetrics.firstViewedAt — when the counselor first opened the lead</td></tr>
+      <tr><td>Time to first action</td><td><span class="badge-partial">⚠️ Partial</span></td><td>telecallerMetrics.firstActionAt vs assignedAt can be computed but no SLA alert</td></tr>
+      <tr><td>Missed follow-up count</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Overdue count shown in dashboard but not stored on User profile for history</td></tr>
+      <tr><td>Counselor-wise conversion rate</td><td><span class="badge-ok">✅ Available</span></td><td>getManagerBoard API returns stage breakdown per employee</td></tr>
+      <tr><td>Activity audit trail</td><td><span class="badge-ok">✅ Available</span></td><td>AuditLog collection records all mutations with IP address, userId, before/after values</td></tr>
+      <tr><td>Fake status update detection</td><td><span class="badge-partial">⚠️ Partial</span></td><td>AuditLog has all records + IP. No automated fraud scoring or pattern detection.</td></tr>
+      <tr><td>Manager approval for lost/close</td><td><span class="badge-missing">❌ Missing</span></td><td>Anyone with edit_leads can close a lead. No approval workflow.</td></tr>
+      <tr><td>Call recording proof</td><td><span class="badge-partial">⚠️ Partial</span></td><td>Upload supported (multer 100MB), recordingUrl stored in activity. No playback UI in LeadDetail.</td></tr>
+      <tr><td>Daily telecaller report (automated)</td><td><span class="badge-missing">❌ Missing</span></td><td>Manual page visit only. No scheduled daily productivity email.</td></tr>
+      <tr><td>SLA breach flagging</td><td><span class="badge-missing">❌ Missing</span></td><td>LeadStage has SLA config (maxDurationHours, alertAfterHours) but no background job evaluates it</td></tr>
+      <tr><td>Re-assignment on inactivity</td><td><span class="badge-missing">❌ Missing</span></td><td>No auto-reassign if counselor doesn't act within X hours</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box red">
+    <h4>Fake Update Prevention — What's needed</h4>
+    <ul>
+      <li>Require call recording upload before marking call as "connected" in TelecallerConsole</li>
+      <li>Manager approval step before moving lead to "Lost" or "Closed" stages</li>
+      <li>SLA cron: if firstCallAt is null and (now - assignedAt) &gt; 2 hours → alert manager via socket/email</li>
+      <li>Suspicious pattern detection: counselor marking &gt;20 leads as "not_answered" in 1 hour → flag for review</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== SECTION 7: DATABASE GAPS ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">7</div>
+    <div class="section-title"><h2>Database Gap Report</h2><p>Missing fields, indexes, and new collections required</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Collection</th><th>Existing</th><th>Missing / Add</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>Lead</td><td>phone (string, no unique)</td><td>Compound unique index: <code>{tenantId, phone}</code> with softDelete support</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Lead</td><td>interests.demoInterest: boolean</td><td>demoBookedAt: Date, demoMeetingLink: string</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Lead</td><td>telecallerMetrics (basic)</td><td>callSLABreached: boolean, callSLABreachAt: Date, firstCallSLAHours: number</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Lead</td><td>—</td><td>languagePreference: 'english' | 'telugu' | 'hindi'</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Lead</td><td>—</td><td>managerApprovalRequired: boolean, managerApprovedBy: ObjectId, managerApprovedAt: Date</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Lead &gt; activities</td><td>recordingUrl: string</td><td>recordingDurationSeconds: number, recordingFileSizeBytes: number</td><td><span class="badge-low">Low</span></td></tr>
+      <tr><td>WhatsAppConversationState</td><td>❌ Doesn't exist (in-memory Map)</td><td>New collection: phone, tenantId, step, collectedData (name/year/course), lastMessageAt, expiresAt (TTL 24hr)</td><td><span class="badge-critical">Critical</span></td></tr>
+      <tr><td>FollowUpReminder</td><td>❌ Doesn't exist</td><td>New collection: leadId, assignedTo, scheduledAt, reminderType (email/whatsapp/sms), status (pending/sent/cancelled), sentAt</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>DailyPerformanceReport</td><td>❌ Doesn't exist</td><td>New collection: tenantId, date, perUser stats snapshot, totalLeads, conversions, callsMade, followUpsMissed</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>LeadStage</td><td>triggers.onEnter.sendWhatsApp</td><td>triggers.onEnter.whatsappTemplateBody (Telugu + English), triggers.onEnter.whatsappLanguage</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>LeadScoringConfig</td><td>roundRobinMembers[]</td><td>autoReassignAfterHours: number, autoReassignOnSLABreach: boolean</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>User</td><td>leadDataScope: string</td><td>telecallerLanguage: 'english' | 'telugu', dailyCallTarget: number</td><td><span class="badge-medium">Medium</span></td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box orange">
+    <h4>Index Recommendation</h4>
+    <ul>
+      <li><code>Lead: { tenantId: 1, phone: 1 } unique: true</code> — prevents duplicate leads at DB level</li>
+      <li><code>Lead: { tenantId: 1, nextFollowUp: 1, stageId: 1 }</code> — powers overdue query efficiently</li>
+      <li><code>WhatsAppConversationState: { expiresAt: 1 } expireAfterSeconds: 0</code> — TTL auto-cleanup</li>
+      <li><code>FollowUpReminder: { scheduledAt: 1, status: 1 }</code> — cron query performance</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ===== SECTION 8: API GAPS ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">8</div>
+    <div class="section-title"><h2>API Gap Report</h2><p>Required endpoints — existing / missing / changes needed</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Required API</th><th>Status</th><th>File Path</th><th>Changes Needed</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>Duplicate phone check before create</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/controllers/leadController.ts</td><td>Add <code>GET /leads/check-phone?phone=xxx</code> + add {tenantId, phone} unique index</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Overdue leads list endpoint</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/controllers/leadController.ts</td><td>Add filter: nextFollowUp &lt; now AND stage not closed</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Demo booking (date + time)</td><td><span class="badge-missing">❌ Missing</span></td><td>New: server/src/controllers/leadDemoController.ts</td><td>POST /leads/:id/demo-book { scheduledAt, meetingLink, notes }</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Follow-up reminder scheduler</td><td><span class="badge-missing">❌ Missing</span></td><td>New: server/src/schedulers/reminderJob.ts</td><td>node-cron every 15min: find pending reminders, send WhatsApp/email</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Daily summary email (cron)</td><td><span class="badge-missing">❌ Missing</span></td><td>New: server/src/schedulers/dailyReportJob.ts</td><td>node-cron at 8pm: aggregate daily stats per counselor, send email</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Auto WhatsApp on lead creation</td><td><span class="badge-partial">⚠️ Partial</span></td><td>server/src/controllers/leadController.ts</td><td>After createLead: call sendWhatsApp with welcome template if phone available</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Hot lead real-time alert</td><td><span class="badge-partial">⚠️ Partial</span></td><td>server/src/controllers/leadController.ts</td><td>After score: if priority becomes 'hot', emit <code>lead:hot_created</code> socket event</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>WhatsApp state persistence</td><td><span class="badge-critical">🚨 Critical</span></td><td>server/src/controllers/whatsappWebhookController.ts</td><td>Replace in-memory Map with WhatsAppConversationState MongoDB collection</td><td><span class="badge-critical">Critical</span></td></tr>
+      <tr><td>Lead aging report</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/controllers/leadController.ts</td><td>GET /leads/aging?stageId=x&amp;days=7 — find leads stuck &gt; N days</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Manager approval for lost/close</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/controllers/leadController.ts</td><td>POST /leads/:id/request-close + PATCH /leads/:id/approve-close</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Fix LeadAuditLogs API call</td><td><span class="badge-missing">❌ Bug</span></td><td>client/src/pages/LeadAuditLogs/index.tsx</td><td>Remove .ok check — authenticatedFetch returns parsed JSON not Response</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Multi-tenant Meta webhook routing</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/controllers/metaLeadAdsController.ts</td><td>Replace DEFAULT_TENANT_ID with per-tenant config lookup by page_id or form_id</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Telugu AI prompt generation</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/services/leadAIService.ts</td><td>Add language param; include "respond in Telugu" instruction in GPT-4 prompt</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Meta lead calls scoreAndAssignLead</td><td><span class="badge-missing">❌ Missing</span></td><td>server/src/controllers/metaLeadAdsController.ts</td><td>Call scoreAndAssignLead(newLead._id) after Meta lead creation (manual create does this, Meta doesn't)</td><td><span class="badge-high">High</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 9: UI GAPS ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">9</div>
+    <div class="section-title"><h2>UI Gap Report</h2><p>Missing screens, broken pages, mobile issues</p></div>
+  </div>
+
+  <table>
+    <thead><tr><th>Required Screen</th><th>Status</th><th>File Path</th><th>Changes Needed</th><th>Priority</th></tr></thead>
+    <tbody>
+      <tr><td>Walk-in quick-entry form</td><td><span class="badge-partial">⚠️ Partial</span></td><td>client/src/pages/Leads/index.tsx</td><td>Add "Walk-in" quick button → minimal modal (name + phone + course = 3 fields, autofills source='walkin')</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Follow-up calendar — real API</td><td><span class="badge-critical">🚨 Mock Data</span></td><td>client/src/pages/FollowUpCalendar/index.tsx</td><td>Replace getMockFollowUps() with real <code>GET /leads?nextFollowUpFrom=X&amp;nextFollowUpTo=Y</code> API call</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Telugu language toggle</td><td><span class="badge-missing">❌ Missing</span></td><td>New component: LanguageToggle</td><td>Add language switcher in header; save preference to user profile; translate WhatsApp templates</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Demo booking UI</td><td><span class="badge-missing">❌ Missing</span></td><td>New modal in client/src/pages/LeadDetail/</td><td>Date/time picker → POST /leads/:id/demo-book. Show booked demo in activities timeline.</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Mobile-responsive telecaller view</td><td><span class="badge-partial">⚠️ Untested</span></td><td>client/src/pages/TelecallerConsole/index.tsx</td><td>Test on 375px/768px. Fix stacked layout for call action panel and lead queue.</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Hot lead real-time toast notification</td><td><span class="badge-partial">⚠️ Partial</span></td><td>client/src/App.tsx or layout</td><td>Listen for <code>lead:hot_created</code> socket event → show toast with lead name and quick-open link</td><td><span class="badge-high">High</span></td></tr>
+      <tr><td>Call recording playback</td><td><span class="badge-partial">⚠️ Partial</span></td><td>client/src/pages/LeadDetail/index.tsx</td><td>In activity timeline: if activity.recordingUrl → render &lt;audio controls&gt; player</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>LeadAuditLogs bug fix</td><td><span class="badge-missing">❌ Bug</span></td><td>client/src/pages/LeadAuditLogs/index.tsx</td><td>Remove .ok check on authenticatedFetch result (it returns JSON, not Response object)</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Manager approval queue</td><td><span class="badge-missing">❌ Missing</span></td><td>New: client/src/pages/LeadApprovals/index.tsx</td><td>List leads with managerApprovalRequired=true. Approve/reject with reason.</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Lead aging board</td><td><span class="badge-missing">❌ Missing</span></td><td>New: client/src/pages/LeadAging/index.tsx</td><td>Table of leads stuck &gt; N days per stage. Color-coded urgency rows.</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Duplicate lead merge UI</td><td><span class="badge-missing">❌ Missing</span></td><td>New: client/src/pages/LeadDuplicates/index.tsx</td><td>Group by last-10-digits of phone, show duplicates, "Merge" action.</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Daily report dashboard (manager)</td><td><span class="badge-missing">❌ Missing</span></td><td>New: client/src/pages/LeadDailyReport/index.tsx</td><td>Yesterday's performance per agent: calls made, followups completed, conversions.</td><td><span class="badge-medium">Medium</span></td></tr>
+      <tr><td>Walk-in attendance quick log</td><td><span class="badge-missing">❌ Missing</span></td><td>Leads/index.tsx or new page</td><td>Kiosk-style view for front desk: name + phone → auto create walkin lead</td><td><span class="badge-low">Low</span></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ===== SECTION 10: FINAL RECOMMENDATIONS ===== -->
+<div class="page">
+  <div class="section-header">
+    <div class="section-num">10</div>
+    <div class="section-title"><h2>Final Recommendations</h2><p>Strength assessment and phased implementation roadmap</p></div>
+  </div>
+
+  <div class="info-box green">
+    <h4>What Is Already Strong — Don't rebuild, just extend</h4>
+    <ul>
+      <li>Lead data model is <strong>enterprise-grade</strong> — more fields and sub-documents than most commercial CRMs like Zoho or Freshsales</li>
+      <li>Meta Lead Ads webhook is <strong>fully working</strong> — receives, fetches from Graph API, creates lead automatically</li>
+      <li>WhatsApp bidirectional bot with qualification flow (name → graduation year → course interest)</li>
+      <li>AI summaries via OpenAI GPT-4 Turbo with rule-based fallback — already integrated</li>
+      <li>Round-robin AND rule-based auto-assignment engine — already configured</li>
+      <li>TelecallerConsole, ManagerBoard, MyPerformance, Analytics — 4 role-specific views ready</li>
+      <li>Full audit trail via LeadStageHistory + AuditLog collection</li>
+      <li>XLSX import/export, custom form fields, configurable table columns</li>
+      <li>Role-based data scoping (ALL/TEAM/OWN) via leadScope middleware — clean and correct</li>
+    </ul>
+  </div>
+
+  <div class="info-box red">
+    <h4>What Is Weak — Must be fixed before going to production</h4>
+    <ul>
+      <li>🚨 <strong>WhatsApp conversation state is in-memory</strong> — every server restart wipes active bot conversations</li>
+      <li>🚨 <strong>No automated follow-up reminders</strong> — telecallers only see counts, no push/email/WhatsApp reminder is ever sent</li>
+      <li>🚨 <strong>FollowUpCalendar is entirely mock data</strong> — the calendar page shows hardcoded fake events</li>
+      <li>⚠️ <strong>No duplicate phone enforcement</strong> — no DB unique index, no UI warning on manual create</li>
+      <li>⚠️ <strong>Zero Telugu support</strong> — all WhatsApp bot messages are English only</li>
+      <li>⚠️ <strong>No demo booking feature</strong> — critical gap in the admissions funnel</li>
+      <li>⚠️ <strong>Meta webhook single-tenant</strong> — DEFAULT_TENANT_ID hardcoded, not true SaaS</li>
+      <li>⚠️ <strong>Meta lead creation skips scoreAndAssignLead()</strong> — Meta leads not scored or assigned automatically</li>
+    </ul>
+  </div>
+
+  <h3>Implementation Roadmap</h3>
+  <div class="phase-grid">
+    <div class="phase-card p1">
+      <div class="phase-label">Phase 1 — Week 1</div>
+      <h3>Critical Fixes</h3>
+      <ul>
+        <li>Persist WhatsApp state to MongoDB (WhatsAppConversationState collection)</li>
+        <li>Connect FollowUpCalendar to real API</li>
+        <li>Add phone unique index + duplicate check on manual create</li>
+        <li>Auto-WhatsApp welcome message on lead creation</li>
+        <li>Call scoreAndAssignLead after Meta lead creation</li>
+        <li>node-cron follow-up reminder job (15min interval)</li>
+        <li>Walk-in quick-entry modal (3-field form)</li>
+      </ul>
+    </div>
+    <div class="phase-card p2">
+      <div class="phase-label">Phase 2 — Days 8-15</div>
+      <h3>Core Features</h3>
+      <ul>
+        <li>Telugu WhatsApp message templates</li>
+        <li>Demo booking modal + demoBookedAt field</li>
+        <li>Daily summary email (node-cron 8pm)</li>
+        <li>Manager approval workflow for lost/close</li>
+        <li>Call recording &lt;audio&gt; player in LeadDetail</li>
+        <li>Hot lead real-time socket toast</li>
+        <li>Fix LeadAuditLogs .ok bug</li>
+        <li>SLA breach flagging cron</li>
+      </ul>
+    </div>
+    <div class="phase-card p3">
+      <div class="phase-label">Phase 3 — Later</div>
+      <h3>Scale &amp; Polish</h3>
+      <ul>
+        <li>AI-generated Telugu follow-up messages</li>
+        <li>Per-tenant Meta webhook routing</li>
+        <li>Lead aging board + stuck-lead alerts</li>
+        <li>Duplicate merge UI</li>
+        <li>Mobile PWA for telecallers</li>
+        <li>Google Sheets real-time sync</li>
+        <li>Kanban drag-drop board view</li>
+        <li>Advanced conversion analytics</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Monthly Running Cost Estimate</h3>
+  <table>
+    <thead><tr><th>Service</th><th>Usage (200 leads/day)</th><th>Estimated Cost/Month</th></tr></thead>
+    <tbody>
+      <tr><td>WhatsApp Business API (Meta Cloud)</td><td>~6,000 conversations/month (1,000 free)</td><td>₹1,800 – ₹2,400</td></tr>
+      <tr><td>OpenAI GPT-4 Turbo</td><td>200 summaries × ~500 tokens = ~$1/day</td><td>₹2,500 – ₹3,000</td></tr>
+      <tr><td>MongoDB Atlas (M10 or M20)</td><td>Current usage</td><td>₹1,500 – ₹2,000</td></tr>
+      <tr><td><strong>Total Estimate</strong></td><td>—</td><td><strong>₹5,800 – ₹7,400/month</strong></td></tr>
+    </tbody>
+  </table>
+
+  <div class="info-box blue">
+    <h4>Summary Verdict</h4>
+    <ul>
+      <li>The <strong>backend is 75% complete</strong> — schema and most APIs are production-ready</li>
+      <li>The <strong>frontend is 60% complete</strong> — key views exist but FollowUpCalendar is broken and several screens are missing</li>
+      <li>The <strong>automation layer is 40% complete</strong> — WhatsApp bot works but is fragile (in-memory state), no reminder cron, no daily emails</li>
+      <li><strong>Estimated time to production-ready</strong>: 15 working days (Phase 1 + Phase 2)</li>
+      <li><strong>Do NOT rebuild</strong> — the foundation is strong. Focus exclusively on the gaps listed above.</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>

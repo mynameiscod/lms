@@ -112,6 +112,10 @@ const LeadsPage: React.FC = () => {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
+  const [showWalkInModal, setShowWalkInModal] = useState(false);
+  const [walkInForm, setWalkInForm] = useState({ name: '', phone: '', courseInterest: '' });
+  const [walkInSaving, setWalkInSaving] = useState(false);
+
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File|null>(null);
   const [importing, setImporting] = useState(false);
@@ -134,7 +138,7 @@ const LeadsPage: React.FC = () => {
 
   // Prevent background scroll when any modal is open
   useEffect(() => {
-    const anyModalOpen = showModal || showImportModal || showWhatsAppModal || showReasonModal;
+    const anyModalOpen = showModal || showImportModal || showWhatsAppModal || showReasonModal || showWalkInModal;
     if (anyModalOpen) {
       document.body.style.overflow = 'hidden';
     } else {
@@ -312,6 +316,31 @@ const LeadsPage: React.FC = () => {
     catch(error:any){showAlertMsg('error',error.message||'Failed to delete');}
   };
 
+  const handleWalkInSubmit = async () => {
+    if (!walkInForm.name.trim() || !walkInForm.phone.trim()) {
+      showAlertMsg('error', 'Name and phone are required');
+      return;
+    }
+    setWalkInSaving(true);
+    try {
+      await leadApi.createLead({
+        name: walkInForm.name.trim(),
+        phone: walkInForm.phone.trim(),
+        courseInterest: walkInForm.courseInterest ? [walkInForm.courseInterest.trim()] : [],
+        source: 'walkin',
+        priority: 'hot',
+      });
+      showAlertMsg('success', 'Walk-in lead captured!');
+      setShowWalkInModal(false);
+      setWalkInForm({ name: '', phone: '', courseInterest: '' });
+      loadData();
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to create walk-in lead');
+    } finally {
+      setWalkInSaving(false);
+    }
+  };
+
   const handleStageChange = async (leadId:string,newStageId:string) => {
     const targetStage=stages.find(s=>s._id===newStageId);
     if(targetStage?.name==='Not Interested'){
@@ -463,6 +492,7 @@ const LeadsPage: React.FC = () => {
           </button>
           <button className="crm-btn crm-btn-secondary" onClick={()=>setShowImportModal(true)}>&#8679; Import</button>
           <button className="crm-btn crm-btn-secondary" onClick={handleExport}>&#8681; Export</button>
+          <button className="crm-btn crm-btn-secondary" title="Quick-capture walk-in visitor" onClick={()=>setShowWalkInModal(true)}>🚶 Walk-in</button>
           <button className="crm-btn crm-btn-primary" onClick={handleOpenCreate}>+ New Lead</button>
         </div>
       </div>
@@ -1237,6 +1267,74 @@ const LeadsPage: React.FC = () => {
                 <button type="button" className="btn text-white" style={{background: '#25D366'}} onClick={handleSendWhatsApp}>
                   <i className="fa-brands fa-whatsapp me-1"></i>
                   Open WhatsApp ({selectedLeads.size})
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showWalkInModal && (
+        <div className="lead-modal-overlay" onClick={() => setShowWalkInModal(false)}>
+          <div className="modal-dialog modal-dialog-centered" onClick={e => e.stopPropagation()}>
+            <div className="modal-content border-0 shadow">
+              <div className="modal-header" style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)' }}>
+                <h5 className="modal-title text-white">
+                  <i className="fa-solid fa-person-walking me-2"></i>
+                  Walk-in Quick Capture
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setShowWalkInModal(false)}></button>
+              </div>
+              <div className="modal-body p-4">
+                <p className="text-muted small mb-3">
+                  <i className="fa-solid fa-bolt me-1 text-warning"></i>
+                  Quickly capture a walk-in visitor. Lead will be marked <strong>Hot</strong> and auto-scored.
+                </p>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Name <span className="text-danger">*</span></label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    value={walkInForm.name}
+                    onChange={e => setWalkInForm(p => ({ ...p, name: e.target.value }))}
+                    placeholder="Visitor's full name"
+                    autoFocus
+                  />
+                </div>
+                <div className="mb-3">
+                  <label className="form-label fw-semibold">Phone <span className="text-danger">*</span></label>
+                  <input
+                    className="form-control"
+                    type="tel"
+                    value={walkInForm.phone}
+                    onChange={e => setWalkInForm(p => ({ ...p, phone: e.target.value }))}
+                    placeholder="Mobile number"
+                  />
+                </div>
+                <div className="mb-0">
+                  <label className="form-label fw-semibold">Course Interest <span className="text-muted fw-normal">(optional)</span></label>
+                  <input
+                    className="form-control"
+                    type="text"
+                    value={walkInForm.courseInterest}
+                    onChange={e => setWalkInForm(p => ({ ...p, courseInterest: e.target.value }))}
+                    placeholder="e.g. Full Stack, Data Science"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer border-0 bg-light">
+                <button type="button" className="btn btn-outline-secondary" onClick={() => setShowWalkInModal(false)}>Cancel</button>
+                <button
+                  type="button"
+                  className="btn text-white"
+                  style={{ background: 'linear-gradient(135deg, #059669 0%, #047857 100%)', minWidth: 120 }}
+                  onClick={handleWalkInSubmit}
+                  disabled={walkInSaving || !walkInForm.name.trim() || !walkInForm.phone.trim()}
+                >
+                  {walkInSaving
+                    ? <><span className="spinner-border spinner-border-sm me-2" role="status"></span>Saving...</>
+                    : <><i className="fa-solid fa-plus me-1"></i>Capture Lead</>
+                  }
                 </button>
               </div>
             </div>

@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import https from 'https';
 import { getDecryptedTokens } from './leadSourceConfigController';
 import LeadSourceConfig from '../models/LeadSourceConfig';
+import { scoreAndAssignLead } from '../services/leadScoringService';
 
 // ===================== DEBUG LOGGER =====================
 
@@ -487,4 +488,9 @@ async function fetchAndCreateLead(
   debugLog('CREATE', `Name: ${name}`);
   debugLog('CREATE', `Phone: ${cleanPhone}`);
   console.log('✅ New lead created from Meta form:', newLead._id, 'Name:', name, 'Phone:', cleanPhone);
+
+  // Auto-score and assign the new lead
+  scoreAndAssignLead(newLead, new mongoose.Types.ObjectId(tenantId)).catch(err =>
+    console.error('[META-LEAD] Auto-score failed:', err)
+  );
 }

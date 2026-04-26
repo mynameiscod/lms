@@ -2533,3 +2533,49 @@ export const attendanceBulkApi = {
     });
   }
 };
+
+// Follow-up Reminders API
+export const followUpApi = {
+  /** Get calendar events grouped by date.
+   *  @param startDate ISO date string (e.g. "2025-01-01")
+   *  @param endDate   ISO date string (e.g. "2025-01-31")
+   */
+  getCalendar: async (startDate: string, endDate: string, assignedTo?: string) => {
+    const params = new URLSearchParams({ startDate, endDate });
+    if (assignedTo) params.set('assignedTo', assignedTo);
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/calendar?${params.toString()}`);
+  },
+
+  getMyFollowUps: async (page = 1, limit = 20) => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/my?page=${page}&limit=${limit}`);
+  },
+
+  getTodayFollowUps: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/today`);
+  },
+
+  getOverdueFollowUps: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/overdue`);
+  },
+
+  completeFollowUp: async (id: string, data: { outcome?: string; notes?: string; nextAction?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/${id}/complete`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  rescheduleFollowUp: async (id: string, data: { scheduledAt: string; reason?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/${id}/reschedule`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  markAsMissed: async (id: string, reason?: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/${id}/missed`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason })
+    });
+  },
+};

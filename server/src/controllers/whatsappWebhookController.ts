@@ -4,6 +4,7 @@ import LeadStage from '../models/LeadStage';
 import mongoose from 'mongoose';
 import { getDecryptedTokens } from './leadSourceConfigController';
 import LeadSourceConfig from '../models/LeadSourceConfig';
+import { scoreAndAssignLead } from '../services/leadScoringService';
 
 // ===================== TYPES =====================
 
@@ -371,6 +372,11 @@ async function createLeadFromWhatsApp(
     await lead.save();
     console.log(`Created new ${temperature} lead ${lead._id} from WhatsApp: ${data.phone}`);
 
+    // Auto-score and assign
+    scoreAndAssignLead(lead, new mongoose.Types.ObjectId(tenantId)).catch(err =>
+      console.error('[WHATSAPP-LEAD] Auto-score failed:', err)
+    );
+
     // Clear conversation state after lead created
     conversationStates.delete(data.phone);
 
@@ -437,6 +443,11 @@ async function createOrUpdateLeadFromWhatsApp(phoneNumber: string, senderName: s
 
     await lead.save();
     console.log(`✅ Created new lead ${lead._id} from WhatsApp: ${phoneNumber} (${senderName})`);
+
+    // Auto-score and assign
+    scoreAndAssignLead(lead, new mongoose.Types.ObjectId(tenantId)).catch(err =>
+      console.error('[WHATSAPP-LEAD] Auto-score (initial) failed:', err)
+    );
   } catch (error) {
     console.error('❌ Error creating/updating lead from WhatsApp:', error);
   }

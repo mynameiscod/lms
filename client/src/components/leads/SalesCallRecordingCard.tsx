@@ -158,7 +158,7 @@ export default function SalesCallRecordingCard({ leadId }: Props) {
       <div className="card-header d-flex align-items-center justify-content-between">
         <strong><i className="fas fa-phone-alt me-2 text-primary" />Sales Call Recordings</strong>
         <div>
-          <input ref={fileRef} type="file" accept="audio/*,video/mp4,video/webm" style={{ display: 'none' }} onChange={upload} />
+          <input ref={fileRef} type="file" accept="audio/*,video/*" style={{ display: 'none' }} onChange={upload} />
           <button className="btn btn-sm btn-primary" onClick={() => fileRef.current?.click()} disabled={uploading}>
             {uploading ? <><span className="spinner-border spinner-border-sm me-1" />Uploading…</> : <><i className="fas fa-upload me-1" />Upload Recording</>}
           </button>

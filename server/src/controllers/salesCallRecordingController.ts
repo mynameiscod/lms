@@ -9,9 +9,15 @@ import { processCallRecording } from '../services/salesCallRecordingService';
 
 // ── Multer config ─────────────────────────────────────────────────────────────
 const ALLOWED_MIME_TYPES = [
+  // Audio formats
   'audio/mpeg', 'audio/mp3', 'audio/mp4', 'audio/wav', 'audio/x-wav',
-  'audio/ogg', 'audio/webm', 'video/mp4', 'video/webm',
-  'audio/m4a', 'audio/x-m4a',
+  'audio/ogg', 'audio/webm', 'audio/m4a', 'audio/x-m4a', 'audio/aac',
+  'audio/flac', 'audio/x-flac', 'audio/opus', 'audio/3gpp', 'audio/amr',
+  // Video formats (calls recorded as video)
+  'video/mp4', 'video/webm', 'video/mpeg', 'video/quicktime',
+  'video/x-msvideo', 'video/3gpp', 'video/x-matroska',
+  // Generic/fallback types browsers sometimes send
+  'application/octet-stream',
 ];
 const MAX_FILE_SIZE = 200 * 1024 * 1024; // 200 MB
 

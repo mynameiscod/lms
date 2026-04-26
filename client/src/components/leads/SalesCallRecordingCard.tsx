@@ -40,8 +40,8 @@ interface Props {
 function formatDuration(secs?: number) {
   if (!secs) return '--';
   const m = Math.floor(secs / 60);
-  const s = secs % 60;
-  return `${m}m ${s}s`;
+  const s = Math.floor(secs % 60);
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
 function formatBytes(b: number) {
@@ -70,6 +70,7 @@ export default function SalesCallRecordingCard({ leadId }: Props) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [showTranscript, setShowTranscript] = useState<string | null>(null);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -252,11 +253,32 @@ export default function SalesCallRecordingCard({ leadId }: Props) {
                     )}
 
                     {/* Meta */}
-                    <div className="d-flex gap-3 flex-wrap">
+                    <div className="d-flex gap-3 flex-wrap mb-3">
                       <span className="badge bg-light text-dark border">Lead Interest: {rec.analysis.leadInterestLevel}</span>
                       <span className={`badge bg-${rec.analysis.sentimentOverall === 'positive' ? 'success' : rec.analysis.sentimentOverall === 'negative' ? 'danger' : 'secondary'}`}>Sentiment: {rec.analysis.sentimentOverall}</span>
                       {rec.analysis.wordsPerMinute > 0 && <span className="badge bg-light text-dark border">{rec.analysis.wordsPerMinute} WPM</span>}
                     </div>
+
+                    {/* Transcript */}
+                    {rec.analysis.transcript && (
+                      <div>
+                        <button
+                          className="btn btn-sm btn-outline-secondary w-100 mb-2"
+                          onClick={() => setShowTranscript(showTranscript === rec._id ? null : rec._id)}
+                        >
+                          <i className={`fas fa-file-alt me-1`} />
+                          {showTranscript === rec._id ? 'Hide Transcript' : 'Show Full Transcript'}
+                        </button>
+                        {showTranscript === rec._id && (
+                          <div
+                            className="p-3 rounded bg-white border small"
+                            style={{ maxHeight: 320, overflowY: 'auto', whiteSpace: 'pre-wrap', lineHeight: 1.6, fontFamily: 'inherit' }}
+                          >
+                            {rec.analysis.transcript}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
 

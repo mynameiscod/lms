@@ -139,6 +139,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
   sourceKey, sourceData, onClose, onSave, onTest, saving, testing, testResult, copied, setCopied
 }) => {
   const meta = SOURCE_META[sourceKey];
+  const [activeTab, setActiveTab] = useState<'credentials' | 'autoActions'>('credentials');
   const [isConnected, setIsConnected] = useState(sourceData.isConnected);
   const [config, setConfig] = useState<Record<string, any>>(sourceData.config || {});
   const [autoActions, setAutoActions] = useState<AutoActions>(sourceData.autoActions || {
@@ -151,268 +152,442 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 
   const handleSave = () => onSave(sourceKey, isConnected, config, autoActions);
 
+  // darken the brand color for the gradient
+  const headerGradient = `linear-gradient(135deg, ${meta.color} 0%, ${meta.color}cc 100%)`;
+
   return (
-    <div className="modal fade show d-block" style={{ background: 'rgba(0,0,0,0.5)', zIndex: 1055 }}>
-      <div className="modal-dialog modal-lg modal-dialog-scrollable">
-        <div className="modal-content">
-          <div className="modal-header" style={{ borderBottom: '2px solid #f0f0f0' }}>
+    <div className="modal fade show d-block" style={{ background: 'rgba(0,0,0,0.55)', zIndex: 1055 }}>
+      <div className="modal-dialog modal-lg modal-dialog-scrollable" style={{ maxWidth: 680 }}>
+        <div className="modal-content border-0 shadow-lg" style={{ borderRadius: 14, overflow: 'hidden' }}>
+
+          {/* ── Gradient Header ── */}
+          <div className="modal-header border-0 px-4 py-3" style={{ background: headerGradient }}>
             <div className="d-flex align-items-center gap-3">
-              <div className="rounded-circle d-flex align-items-center justify-content-center"
-                style={{ width: 44, height: 44, background: meta.color + '15' }}>
-                <i className={`${meta.icon} fs-5`} style={{ color: meta.color }}></i>
+              <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: 46, height: 46, background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(4px)' }}>
+                <i className={`${meta.icon} fs-5 text-white`}></i>
               </div>
               <div>
-                <h5 className="mb-0 fw-semibold">Configure {meta.label}</h5>
-                <small className="text-muted">{meta.description}</small>
+                <h5 className="mb-0 fw-bold text-white" style={{ fontSize: '1.05rem' }}>
+                  Configure {meta.label}
+                </h5>
+                <div className="text-white opacity-75" style={{ fontSize: '0.78rem' }}>{meta.description}</div>
               </div>
             </div>
-            <button className="btn-close" onClick={onClose}></button>
+            <button className="btn-close btn-close-white" onClick={onClose}></button>
           </div>
 
-          <div className="modal-body p-4">
-            {/* Connection Toggle */}
-            {!meta.alwaysActive && (
-              <div className="d-flex align-items-center justify-content-between p-3 rounded mb-4"
-                style={{ background: isConnected ? '#f0fdf4' : '#fff7ed', border: `1px solid ${isConnected ? '#bbf7d0' : '#fed7aa'}` }}>
-                <div>
-                  <div className="fw-semibold">{isConnected ? '✅ Source Active' : '⚠️ Source Inactive'}</div>
-                  <small className="text-muted">
-                    {isConnected ? 'Leads from this source will be captured automatically' : 'Enable this source to start capturing leads'}
-                  </small>
-                </div>
-                <div className="form-check form-switch mb-0">
-                  <input className="form-check-input" type="checkbox" role="switch"
-                    checked={isConnected} onChange={e => setIsConnected(e.target.checked)}
-                    style={{ width: '3rem', height: '1.5rem', cursor: 'pointer' }} />
-                </div>
-              </div>
-            )}
+          {/* ── Tab Navigation ── */}
+          <div className="px-4 pt-3 pb-0" style={{ background: '#fff', borderBottom: '1px solid #e9ecef' }}>
+            <ul className="nav nav-tabs border-0" style={{ gap: 4 }}>
+              {[
+                { key: 'credentials', label: 'Configuration', icon: 'fa-solid fa-gear' },
+                { key: 'autoActions', label: 'Auto-Actions', icon: 'fa-solid fa-bolt' },
+              ].map(tab => (
+                <li key={tab.key} className="nav-item">
+                  <button
+                    className={`nav-link fw-semibold px-3 py-2 border-0 ${activeTab === tab.key ? 'active' : 'text-secondary'}`}
+                    style={{
+                      fontSize: '0.85rem',
+                      borderBottom: activeTab === tab.key ? `3px solid ${meta.color}` : '3px solid transparent',
+                      color: activeTab === tab.key ? meta.color : undefined,
+                      background: 'transparent',
+                      borderRadius: 0,
+                    }}
+                    onClick={() => setActiveTab(tab.key as any)}
+                  >
+                    <i className={`${tab.icon} me-2`}></i>{tab.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-            {/* Source-specific config fields */}
-            {sourceKey === 'metaAds' && (
-              <FieldGroup title="Meta API Credentials" icon="fa-solid fa-key">
-                <TextField label="Page Access Token" field="pageAccessToken"
-                  value={config.pageAccessToken || ''} onChange={v => setConfig(c => ({ ...c, pageAccessToken: v }))}
-                  type="password" placeholder="EAAxxxxxxxxxx..." hint="Get this from Meta Business Suite → WhatsApp → API Setup" />
-                <TextField label="Facebook Page ID" field="pageId"
-                  value={config.pageId || ''} onChange={v => setConfig(c => ({ ...c, pageId: v }))}
-                  placeholder="123456789012345" hint="Found in your Facebook Page URL or Settings" />
-                <TextField label="Ad Account ID (Optional)" field="adAccountId"
-                  value={config.adAccountId || ''} onChange={v => setConfig(c => ({ ...c, adAccountId: v }))}
-                  placeholder="act_123456789" hint="Optional: Used to pull campaign cost data" />
-                <ReadonlyField label="Webhook URL (paste in Meta Developer Console)"
-                  value={config.webhookUrl || 'Save to generate'} field="metaWebhook" copied={copied} setCopied={setCopied} />
-                <ReadonlyField label="Verify Token (use in Meta Developer Console)"
-                  value={config.verifyToken || 'codebegun_verify'} field="metaVerify" copied={copied} setCopied={setCopied} />
-              </FieldGroup>
-            )}
+          {/* ── Modal Body ── */}
+          <div className="modal-body p-4" style={{ background: '#f8fafc', minHeight: 320 }}>
 
-            {sourceKey === 'whatsApp' && (
-              <FieldGroup title="WhatsApp Cloud API Credentials" icon="fa-solid fa-key">
-                <TextField label="Access Token" field="accessToken"
-                  value={config.accessToken || ''} onChange={v => setConfig(c => ({ ...c, accessToken: v }))}
-                  type="password" placeholder="EAAxxxxxxxxxx..." hint="Get from Meta Developer Console → WhatsApp → API Setup" />
-                <TextField label="Phone Number ID" field="phoneNumberId"
-                  value={config.phoneNumberId || ''} onChange={v => setConfig(c => ({ ...c, phoneNumberId: v }))}
-                  placeholder="1234567890" hint="Found under WhatsApp → Phone Numbers in Developer Console" />
-                <TextField label="WhatsApp Business Account ID" field="businessAccountId"
-                  value={config.businessAccountId || ''} onChange={v => setConfig(c => ({ ...c, businessAccountId: v }))}
-                  placeholder="123456789" hint="Optional: Your WABA ID" />
-                <ReadonlyField label="Webhook URL" value={config.webhookUrl || 'Save to generate'}
-                  field="waWebhook" copied={copied} setCopied={setCopied} />
-                <ReadonlyField label="Verify Token" value={config.verifyToken || 'codebegun_verify'}
-                  field="waVerify" copied={copied} setCopied={setCopied} />
-                <div className="row g-3 mt-1">
-                  <div className="col-md-6">
-                    <label className="form-label fw-medium small">Qualification Language</label>
-                    <select className="form-select" value={config.qualificationLanguage || 'english'}
-                      onChange={e => setConfig(c => ({ ...c, qualificationLanguage: e.target.value }))}>
-                      <option value="english">English</option>
-                      <option value="telugu">Telugu</option>
-                      <option value="hindi">Hindi</option>
-                    </select>
-                  </div>
-                  <div className="col-md-6 d-flex align-items-end">
-                    <div className="form-check form-switch">
+            {/* ── CREDENTIALS TAB ── */}
+            {activeTab === 'credentials' && (
+              <>
+                {/* Connection Toggle — compact inline */}
+                {!meta.alwaysActive && (
+                  <div className="d-flex align-items-center justify-content-between px-3 py-2 rounded-3 mb-4"
+                    style={{
+                      background: isConnected ? '#f0fdf4' : '#f8fafc',
+                      border: `1px solid ${isConnected ? '#bbf7d0' : '#e2e8f0'}`,
+                    }}>
+                    <div className="d-flex align-items-center gap-2">
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', display: 'inline-block',
+                        background: isConnected ? '#16a34a' : '#94a3b8' }}></span>
+                      <span className="fw-semibold" style={{ fontSize: '0.88rem', color: '#1e293b' }}>
+                        {isConnected ? 'Source is Active' : 'Source is Inactive'}
+                      </span>
+                      <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
+                        — {isConnected ? 'leads are being captured' : 'toggle to enable'}
+                      </span>
+                    </div>
+                    <div className="form-check form-switch mb-0">
                       <input className="form-check-input" type="checkbox" role="switch"
-                        checked={config.enableQualificationBot !== false}
-                        onChange={e => setConfig(c => ({ ...c, enableQualificationBot: e.target.checked }))} />
-                      <label className="form-check-label fw-medium small">Enable Qualification Bot</label>
+                        checked={isConnected} onChange={e => setIsConnected(e.target.checked)}
+                        style={{ width: '2.5rem', height: '1.3rem', cursor: 'pointer' }} />
                     </div>
                   </div>
-                </div>
-              </FieldGroup>
-            )}
+                )}
 
-            {sourceKey === 'websiteForm' && (
-              <FieldGroup title="Website Form Settings" icon="fa-solid fa-code">
-                <div className="mb-3">
-                  <label className="form-label fw-medium small">Allowed Domains (one per line)</label>
-                  <textarea className="form-control font-monospace" rows={3}
-                    placeholder="https://yourwebsite.com&#10;https://www.yourwebsite.com"
-                    value={(config.allowedDomains || []).join('\n')}
-                    onChange={e => setConfig(c => ({ ...c, allowedDomains: e.target.value.split('\n').filter(Boolean) }))} />
-                  <small className="text-muted">Leave blank to allow all domains (not recommended for production)</small>
-                </div>
-                <TextField label="Redirect URL after form submission" field="redirectUrl"
-                  value={config.redirectUrl || ''} onChange={v => setConfig(c => ({ ...c, redirectUrl: v }))}
-                  placeholder="https://yourwebsite.com/thank-you" />
-                {config.embedCode && (
-                  <div className="mb-3">
-                    <label className="form-label fw-medium small">Embed Code</label>
-                    <div className="position-relative">
-                      <pre className="rounded p-3 small" style={{ background: '#1e1e2e', color: '#cdd6f4', overflowX: 'auto' }}>
-                        {config.embedCode}
-                      </pre>
-                      <button className="btn btn-sm btn-outline-light position-absolute top-0 end-0 m-2"
-                        onClick={() => copyToClipboard(config.embedCode, setCopied, 'embedCode')}>
-                        <i className={`fa-solid ${copied === 'embedCode' ? 'fa-check text-success' : 'fa-copy'} me-1`}></i>
-                        {copied === 'embedCode' ? 'Copied!' : 'Copy'}
-                      </button>
+                {/* ── Source-specific fields ── */}
+                {sourceKey === 'metaAds' && (
+                  <FieldGroup title="Meta API Credentials" icon="fa-solid fa-key" color={meta.color}>
+                    <TextField label="Page Access Token" value={config.pageAccessToken || ''}
+                      onChange={v => setConfig(c => ({ ...c, pageAccessToken: v }))}
+                      type="password" placeholder="EAAxxxxxxxxxx..."
+                      hint="Get from Meta Business Suite → Apps → Your App → WhatsApp → API Setup" />
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <TextField label="Facebook Page ID" value={config.pageId || ''}
+                          onChange={v => setConfig(c => ({ ...c, pageId: v }))}
+                          placeholder="123456789012345"
+                          hint="Found in Facebook Page Settings → About" />
+                      </div>
+                      <div className="col-md-6">
+                        <TextField label="Ad Account ID (Optional)" value={config.adAccountId || ''}
+                          onChange={v => setConfig(c => ({ ...c, adAccountId: v }))}
+                          placeholder="act_123456789"
+                          hint="Used to pull campaign cost data" />
+                      </div>
                     </div>
-                    <small className="text-muted">Paste this snippet before the &lt;/body&gt; tag on your website</small>
-                  </div>
+                    <ReadonlyField label="Webhook URL" hint="Paste this URL in Meta Developer Console → Your App → Webhooks"
+                      value={config.webhookUrl || 'Save settings to generate URL'}
+                      field="metaWebhook" copied={copied} setCopied={setCopied} />
+                    <ReadonlyField label="Verify Token" hint="Enter this token in Meta Developer Console → Webhooks → Verify Token field"
+                      value={config.verifyToken || 'codebegun_verify'}
+                      field="metaVerify" copied={copied} setCopied={setCopied} />
+                  </FieldGroup>
                 )}
-                {config.webhookUrl && (
-                  <ReadonlyField label="Form Submission Endpoint (for custom integrations)"
-                    value={config.webhookUrl} field="formUrl" copied={copied} setCopied={setCopied} />
+
+                {sourceKey === 'whatsApp' && (
+                  <FieldGroup title="WhatsApp Cloud API Credentials" icon="fa-solid fa-key" color={meta.color}>
+                    <TextField label="Access Token" value={config.accessToken || ''}
+                      onChange={v => setConfig(c => ({ ...c, accessToken: v }))}
+                      type="password" placeholder="EAAxxxxxxxxxx..."
+                      hint="Get from Meta Developer Console → WhatsApp → API Setup" />
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <TextField label="Phone Number ID" value={config.phoneNumberId || ''}
+                          onChange={v => setConfig(c => ({ ...c, phoneNumberId: v }))}
+                          placeholder="1234567890"
+                          hint="WhatsApp → Phone Numbers in Developer Console" />
+                      </div>
+                      <div className="col-md-6">
+                        <TextField label="Business Account ID" value={config.businessAccountId || ''}
+                          onChange={v => setConfig(c => ({ ...c, businessAccountId: v }))}
+                          placeholder="123456789"
+                          hint="Your WABA ID (optional)" />
+                      </div>
+                    </div>
+                    <ReadonlyField label="Webhook URL" hint="Paste this URL in Meta Developer Console → WhatsApp → Configuration → Webhook"
+                      value={config.webhookUrl || 'Save settings to generate URL'}
+                      field="waWebhook" copied={copied} setCopied={setCopied} />
+                    <ReadonlyField label="Verify Token" hint="Enter this token in the Verify Token field when setting up the webhook"
+                      value={config.verifyToken || 'codebegun_verify'}
+                      field="waVerify" copied={copied} setCopied={setCopied} />
+                    <div className="row g-3 mt-1">
+                      <div className="col-md-6">
+                        <label className="form-label fw-semibold" style={{ fontSize: '0.83rem', color: '#374151' }}>
+                          Qualification Language
+                        </label>
+                        <select className="form-select" value={config.qualificationLanguage || 'english'}
+                          onChange={e => setConfig(c => ({ ...c, qualificationLanguage: e.target.value }))}>
+                          <option value="english">🇬🇧 English</option>
+                          <option value="telugu">🇮🇳 Telugu</option>
+                          <option value="hindi">🇮🇳 Hindi</option>
+                        </select>
+                      </div>
+                      <div className="col-md-6 d-flex align-items-end pb-1">
+                        <div className="form-check form-switch mb-0">
+                          <input className="form-check-input" type="checkbox" role="switch"
+                            id="qaBot"
+                            checked={config.enableQualificationBot !== false}
+                            onChange={e => setConfig(c => ({ ...c, enableQualificationBot: e.target.checked }))} />
+                          <label className="form-check-label fw-semibold" htmlFor="qaBot"
+                            style={{ fontSize: '0.83rem', color: '#374151' }}>
+                            Enable Qualification Bot
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </FieldGroup>
                 )}
-              </FieldGroup>
-            )}
 
-            {sourceKey === 'googleSheet' && (
-              <FieldGroup title="Google Sheets Integration" icon="fa-solid fa-table">
-                <div className="alert alert-info d-flex gap-2 align-items-start">
-                  <i className="fa-solid fa-circle-info mt-1"></i>
-                  <div>
-                    <strong>Setup via Google Sheets Integration Page</strong><br />
-                    <small>Go to <strong>Lead Sources → Google Sheets</strong> to link specific spreadsheets.
-                    This toggle controls whether Sheet-imported leads appear in your pipeline.</small>
-                  </div>
-                </div>
-              </FieldGroup>
-            )}
-
-            {sourceKey === 'walkin' && (
-              <FieldGroup title="Walk-in Lead Settings" icon="fa-solid fa-person-walking">
-                <div className="alert alert-success d-flex gap-2 align-items-start mb-3">
-                  <i className="fa-solid fa-circle-check mt-1"></i>
-                  <div><strong>Always Active</strong> — Walk-in leads are always captured, no API setup needed.</div>
-                </div>
-                <div className="form-check form-switch mb-3">
-                  <input className="form-check-input" type="checkbox" role="switch"
-                    checked={config.quickCaptureEnabled !== false}
-                    onChange={e => setConfig(c => ({ ...c, quickCaptureEnabled: e.target.checked }))} />
-                  <label className="form-check-label fw-medium small">Show Quick Capture button on Lead List page</label>
-                </div>
-              </FieldGroup>
-            )}
-
-            {sourceKey === 'referral' && (
-              <FieldGroup title="Referral Settings" icon="fa-solid fa-share-nodes">
-                <div className="alert alert-success d-flex gap-2 align-items-start mb-3">
-                  <i className="fa-solid fa-circle-check mt-1"></i>
-                  <div><strong>Always Active</strong> — Referral leads can be added manually at any time.</div>
-                </div>
-                <div className="form-check form-switch">
-                  <input className="form-check-input" type="checkbox" role="switch"
-                    checked={config.trackReferrerName !== false}
-                    onChange={e => setConfig(c => ({ ...c, trackReferrerName: e.target.checked }))} />
-                  <label className="form-check-label fw-medium small">Prompt staff to enter the referrer's name when adding a referral lead</label>
-                </div>
-              </FieldGroup>
-            )}
-
-            {sourceKey === 'googleAds' && (
-              <FieldGroup title="Google Ads via UTM Tracking" icon="fa-brands fa-google">
-                <div className="alert alert-info d-flex gap-2 align-items-start mb-3">
-                  <i className="fa-solid fa-circle-info mt-1"></i>
-                  <div>
-                    <strong>No API Key needed</strong> — Google Ads leads are captured when visitors fill your website form
-                    with Google Ads UTM parameters in the URL.
-                  </div>
-                </div>
-                <div className="row g-3">
-                  <div className="col-md-6">
-                    <TextField label="UTM Source to track" field="utmSource"
-                      value={config.utmSource || 'google'} onChange={v => setConfig(c => ({ ...c, utmSource: v }))}
-                      placeholder="google" />
-                  </div>
-                  <div className="col-md-6">
-                    <TextField label="UTM Medium to track" field="utmMedium"
-                      value={config.utmMedium || 'cpc'} onChange={v => setConfig(c => ({ ...c, utmMedium: v }))}
-                      placeholder="cpc" />
-                  </div>
-                </div>
-                <small className="text-muted mt-2 d-block">
-                  Example URL: <code>https://yoursite.com?utm_source=google&amp;utm_medium=cpc</code>
-                </small>
-              </FieldGroup>
-            )}
-
-            {/* Auto Actions — all sources */}
-            <FieldGroup title="Auto-Actions for New Leads from This Source" icon="fa-solid fa-bolt">
-              <div className="row g-3">
-                <div className="col-md-4">
-                  <label className="form-label fw-medium small">Default Priority</label>
-                  <select className="form-select" value={autoActions.defaultPriority}
-                    onChange={e => setAutoActions(a => ({ ...a, defaultPriority: e.target.value as any }))}>
-                    <option value="hot">🔴 Hot</option>
-                    <option value="warm">🟡 Warm</option>
-                    <option value="cold">🔵 Cold</option>
-                  </select>
-                </div>
-                <div className="col-md-4 d-flex align-items-end">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" role="switch"
-                      checked={autoActions.autoAssign}
-                      onChange={e => setAutoActions(a => ({ ...a, autoAssign: e.target.checked }))} />
-                    <label className="form-check-label fw-medium small">Auto-assign via Scoring Engine</label>
-                  </div>
-                </div>
-                <div className="col-md-4 d-flex align-items-end">
-                  <div className="form-check form-switch">
-                    <input className="form-check-input" type="checkbox" role="switch"
-                      checked={autoActions.notifyAdminOnNewLead}
-                      onChange={e => setAutoActions(a => ({ ...a, notifyAdminOnNewLead: e.target.checked }))} />
-                    <label className="form-check-label fw-medium small">Notify Admin on New Lead</label>
-                  </div>
-                </div>
-              </div>
-              <div className="mt-3">
-                <div className="form-check form-switch mb-2">
-                  <input className="form-check-input" type="checkbox" role="switch"
-                    checked={autoActions.sendWhatsAppWelcome}
-                    onChange={e => setAutoActions(a => ({ ...a, sendWhatsAppWelcome: e.target.checked }))} />
-                  <label className="form-check-label fw-medium small">Send WhatsApp Welcome Message</label>
-                </div>
-                {autoActions.sendWhatsAppWelcome && (
-                  <textarea className="form-control mt-2" rows={3}
-                    placeholder="Hi {{name}}, thanks for your interest! Our team will contact you shortly."
-                    value={autoActions.whatsAppWelcomeTemplate}
-                    onChange={e => setAutoActions(a => ({ ...a, whatsAppWelcomeTemplate: e.target.value }))} />
+                {sourceKey === 'websiteForm' && (
+                  <FieldGroup title="Website Form Settings" icon="fa-solid fa-code" color={meta.color}>
+                    <div className="mb-3">
+                      <label className="form-label fw-semibold" style={{ fontSize: '0.83rem', color: '#374151' }}>
+                        Allowed Domains <span className="fw-normal text-muted">(one per line)</span>
+                      </label>
+                      <textarea className="form-control font-monospace" rows={3}
+                        style={{ fontSize: '0.82rem' }}
+                        placeholder={'https://yourwebsite.com\nhttps://www.yourwebsite.com'}
+                        value={(config.allowedDomains || []).join('\n')}
+                        onChange={e => setConfig(c => ({ ...c, allowedDomains: e.target.value.split('\n').filter(Boolean) }))} />
+                      <div className="form-text">Leave blank to allow all domains (not recommended for production)</div>
+                    </div>
+                    <TextField label="Redirect URL after form submission" value={config.redirectUrl || ''}
+                      onChange={v => setConfig(c => ({ ...c, redirectUrl: v }))}
+                      placeholder="https://yourwebsite.com/thank-you" />
+                    {config.webhookUrl && (
+                      <ReadonlyField label="Form Submission Endpoint"
+                        hint="Use this URL for custom form integrations or API calls"
+                        value={config.webhookUrl} field="formUrl" copied={copied} setCopied={setCopied} />
+                    )}
+                    {config.embedCode && (
+                      <div className="mb-3">
+                        <label className="form-label fw-semibold" style={{ fontSize: '0.83rem', color: '#374151' }}>
+                          Embed Code
+                        </label>
+                        <div className="position-relative" style={{ borderRadius: 8, overflow: 'hidden' }}>
+                          <pre className="p-3 mb-0" style={{
+                            background: '#1e1e2e', color: '#cdd6f4',
+                            fontSize: '0.76rem', overflowX: 'auto', borderRadius: 8
+                          }}>
+                            {config.embedCode}
+                          </pre>
+                          <button className="btn btn-sm position-absolute top-0 end-0 m-2"
+                            style={{ background: 'rgba(255,255,255,0.15)', color: '#fff', border: '1px solid rgba(255,255,255,0.3)' }}
+                            onClick={() => copyToClipboard(config.embedCode, setCopied, 'embedCode')}>
+                            <i className={`fa-solid ${copied === 'embedCode' ? 'fa-check' : 'fa-copy'} me-1`}></i>
+                            {copied === 'embedCode' ? 'Copied!' : 'Copy'}
+                          </button>
+                        </div>
+                        <div className="form-text">Paste before the &lt;/body&gt; tag on your website</div>
+                      </div>
+                    )}
+                  </FieldGroup>
                 )}
-                <small className="text-muted d-block mt-1">Use <code>{'{{name}}'}</code> to personalise the message</small>
-              </div>
-            </FieldGroup>
+
+                {sourceKey === 'googleSheet' && (
+                  <FieldGroup title="Google Sheets Integration" icon="fa-solid fa-table" color={meta.color}>
+                    <div className="alert alert-info border-0 d-flex gap-3 align-items-start"
+                      style={{ borderRadius: 10, background: '#eff6ff', color: '#1d4ed8' }}>
+                      <i className="fa-solid fa-circle-info mt-1 flex-shrink-0"></i>
+                      <div>
+                        <div className="fw-semibold mb-1">Setup via Google Sheets Integration Page</div>
+                        <div style={{ fontSize: '0.82rem' }}>
+                          Go to <strong>Lead Sources → Google Sheets</strong> to link specific spreadsheets.
+                          This toggle controls whether Sheet-imported leads appear in your pipeline.
+                        </div>
+                      </div>
+                    </div>
+                  </FieldGroup>
+                )}
+
+                {sourceKey === 'walkin' && (
+                  <FieldGroup title="Walk-in Lead Settings" icon="fa-solid fa-person-walking" color={meta.color}>
+                    <div className="alert border-0 d-flex gap-3 align-items-start mb-4"
+                      style={{ borderRadius: 10, background: '#f0fdf4', color: '#15803d' }}>
+                      <i className="fa-solid fa-circle-check mt-1 flex-shrink-0"></i>
+                      <div>
+                        <div className="fw-semibold">Always Active</div>
+                        <div style={{ fontSize: '0.82rem' }}>Walk-in leads are always captured — no API setup needed.</div>
+                      </div>
+                    </div>
+                    <div className="card border-0 p-3" style={{ borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                      <div className="form-check form-switch mb-0">
+                        <input className="form-check-input" type="checkbox" role="switch" id="quickCapture"
+                          checked={config.quickCaptureEnabled !== false}
+                          onChange={e => setConfig(c => ({ ...c, quickCaptureEnabled: e.target.checked }))} />
+                        <label className="form-check-label fw-semibold" htmlFor="quickCapture"
+                          style={{ fontSize: '0.88rem', color: '#374151' }}>
+                          Show Quick Capture button on Lead List page
+                        </label>
+                        <div className="form-text mt-1">Adds a visible shortcut for staff to add walk-in leads in 3 taps</div>
+                      </div>
+                    </div>
+                  </FieldGroup>
+                )}
+
+                {sourceKey === 'referral' && (
+                  <FieldGroup title="Referral Settings" icon="fa-solid fa-share-nodes" color={meta.color}>
+                    <div className="alert border-0 d-flex gap-3 align-items-start mb-4"
+                      style={{ borderRadius: 10, background: '#f0fdf4', color: '#15803d' }}>
+                      <i className="fa-solid fa-circle-check mt-1 flex-shrink-0"></i>
+                      <div>
+                        <div className="fw-semibold">Always Active</div>
+                        <div style={{ fontSize: '0.82rem' }}>Referral leads can be added manually at any time.</div>
+                      </div>
+                    </div>
+                    <div className="card border-0 p-3" style={{ borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                      <div className="form-check form-switch mb-0">
+                        <input className="form-check-input" type="checkbox" role="switch" id="trackReferrer"
+                          checked={config.trackReferrerName !== false}
+                          onChange={e => setConfig(c => ({ ...c, trackReferrerName: e.target.checked }))} />
+                        <label className="form-check-label fw-semibold" htmlFor="trackReferrer"
+                          style={{ fontSize: '0.88rem', color: '#374151' }}>
+                          Prompt staff to enter referrer's name
+                        </label>
+                        <div className="form-text mt-1">When adding a referral lead, staff will be asked for the referrer's name</div>
+                      </div>
+                    </div>
+                  </FieldGroup>
+                )}
+
+                {sourceKey === 'googleAds' && (
+                  <FieldGroup title="Google Ads via UTM Tracking" icon="fa-brands fa-google" color={meta.color}>
+                    <div className="alert border-0 d-flex gap-3 align-items-start mb-4"
+                      style={{ borderRadius: 10, background: '#eff6ff', color: '#1d4ed8' }}>
+                      <i className="fa-solid fa-circle-info mt-1 flex-shrink-0"></i>
+                      <div>
+                        <div className="fw-semibold">No API key needed</div>
+                        <div style={{ fontSize: '0.82rem' }}>
+                          Google Ads leads are captured when visitors fill your website form with Google Ads UTM parameters in the URL.
+                        </div>
+                      </div>
+                    </div>
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <TextField label="UTM Source to track" value={config.utmSource || 'google'}
+                          onChange={v => setConfig(c => ({ ...c, utmSource: v }))} placeholder="google" />
+                      </div>
+                      <div className="col-md-6">
+                        <TextField label="UTM Medium to track" value={config.utmMedium || 'cpc'}
+                          onChange={v => setConfig(c => ({ ...c, utmMedium: v }))} placeholder="cpc" />
+                      </div>
+                    </div>
+                    <div className="form-text mt-1">
+                      Example: <code>https://yoursite.com?utm_source=google&amp;utm_medium=cpc</code>
+                    </div>
+                  </FieldGroup>
+                )}
+              </>
+            )}
+
+            {/* ── AUTO-ACTIONS TAB ── */}
+            {activeTab === 'autoActions' && (
+              <FieldGroup title="Auto-Actions for New Leads from This Source" icon="fa-solid fa-bolt" color={meta.color}>
+                {/* Priority */}
+                <div className="mb-4">
+                  <label className="form-label fw-semibold" style={{ fontSize: '0.83rem', color: '#374151' }}>
+                    Default Priority
+                  </label>
+                  <div className="d-flex gap-2">
+                    {(['hot', 'warm', 'cold'] as const).map(p => {
+                      const styles: Record<string, { bg: string; border: string; text: string }> = {
+                        hot:  { bg: 'linear-gradient(135deg,#ef4444,#dc2626)', border: '#ef4444', text: '#fff' },
+                        warm: { bg: 'linear-gradient(135deg,#f59e0b,#d97706)', border: '#f59e0b', text: '#fff' },
+                        cold: { bg: 'linear-gradient(135deg,#38bdf8,#0891b2)', border: '#38bdf8', text: '#fff' },
+                      };
+                      const isActive = autoActions.defaultPriority === p;
+                      return (
+                        <button key={p} type="button"
+                          className="btn fw-semibold flex-fill"
+                          style={{
+                            padding: '9px 0',
+                            fontSize: '0.85rem',
+                            background: isActive ? styles[p].bg : '#fff',
+                            color: isActive ? styles[p].text : '#64748b',
+                            border: `1px solid ${isActive ? styles[p].border : '#dee2e6'}`,
+                            borderRadius: 8,
+                            boxShadow: isActive ? '0 3px 10px rgba(0,0,0,0.15)' : 'none',
+                            transition: 'all 0.15s',
+                          }}
+                          onClick={() => setAutoActions(a => ({ ...a, defaultPriority: p }))}>
+                          {p === 'hot' && <i className="fa-solid fa-fire me-1"></i>}
+                          {p === 'warm' && <i className="fa-solid fa-sun me-1"></i>}
+                          {p === 'cold' && <i className="fa-solid fa-snowflake me-1"></i>}
+                          {p.charAt(0).toUpperCase() + p.slice(1)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Toggles */}
+                <div className="card border-0 mb-4" style={{ borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <div className="card-body p-0">
+                    {[
+                      { id: 'autoAssign', label: 'Auto-assign via Lead Scoring Engine', desc: 'New leads are automatically assigned to staff based on scoring rules', field: 'autoAssign', value: autoActions.autoAssign },
+                      { id: 'notifyAdmin', label: 'Notify Admin on New Lead', desc: 'Send an email/WhatsApp notification to admin when a new lead arrives', field: 'notifyAdminOnNewLead', value: autoActions.notifyAdminOnNewLead },
+                    ].map((item, idx) => (
+                      <div key={item.id} className={`d-flex align-items-center justify-content-between p-3 ${idx > 0 ? 'border-top' : ''}`}>
+                        <div>
+                          <div className="fw-semibold" style={{ fontSize: '0.88rem', color: '#1e293b' }}>{item.label}</div>
+                          <div className="text-muted" style={{ fontSize: '0.77rem' }}>{item.desc}</div>
+                        </div>
+                        <div className="form-check form-switch mb-0 ms-3">
+                          <input className="form-check-input" type="checkbox" role="switch" id={item.id}
+                            style={{ width: '2.5rem', height: '1.3rem', cursor: 'pointer' }}
+                            checked={item.value}
+                            onChange={e => setAutoActions(a => ({ ...a, [item.field]: e.target.checked }))} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* WhatsApp welcome toggle + template */}
+                <div className="card border-0" style={{ borderRadius: 10, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+                  <div className="card-body p-3">
+                    <div className="d-flex align-items-center justify-content-between mb-2">
+                      <div>
+                        <div className="fw-semibold" style={{ fontSize: '0.88rem', color: '#1e293b' }}>
+                          <i className="fa-brands fa-whatsapp me-2" style={{ color: '#25d366' }}></i>
+                          Send WhatsApp Welcome Message
+                        </div>
+                        <div className="text-muted" style={{ fontSize: '0.77rem' }}>Auto-send a welcome message when a new lead arrives</div>
+                      </div>
+                      <div className="form-check form-switch mb-0 ms-3">
+                        <input className="form-check-input" type="checkbox" role="switch" id="waWelcome"
+                          style={{ width: '2.5rem', height: '1.3rem', cursor: 'pointer' }}
+                          checked={autoActions.sendWhatsAppWelcome}
+                          onChange={e => setAutoActions(a => ({ ...a, sendWhatsAppWelcome: e.target.checked }))} />
+                      </div>
+                    </div>
+                    {autoActions.sendWhatsAppWelcome && (
+                      <div className="mt-3">
+                        <label className="form-label fw-semibold" style={{ fontSize: '0.83rem', color: '#374151' }}>
+                          Message Template
+                        </label>
+                        <textarea className="form-control" rows={3}
+                          placeholder="Hi {{name}}, thanks for your interest! Our team will contact you shortly."
+                          value={autoActions.whatsAppWelcomeTemplate}
+                          onChange={e => setAutoActions(a => ({ ...a, whatsAppWelcomeTemplate: e.target.value }))} />
+                        <div className="form-text">Use <code>{'{{name}}'}</code> to personalise the message</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </FieldGroup>
+            )}
 
             {/* Test Result */}
             {testResult && (
-              <div className={`alert ${testResult.success ? 'alert-success' : 'alert-warning'} d-flex gap-2 align-items-center`}>
-                <i className={`fa-solid ${testResult.success ? 'fa-circle-check' : 'fa-triangle-exclamation'}`}></i>
-                {testResult.message}
+              <div className={`alert border-0 d-flex gap-2 align-items-center mt-3`}
+                style={{
+                  borderRadius: 10,
+                  background: testResult.success ? '#f0fdf4' : '#fff7ed',
+                  color: testResult.success ? '#15803d' : '#c2410c',
+                }}>
+                <i className={`fa-solid ${testResult.success ? 'fa-circle-check' : 'fa-triangle-exclamation'} flex-shrink-0`}></i>
+                <span style={{ fontSize: '0.88rem' }}>{testResult.message}</span>
               </div>
             )}
           </div>
 
-          <div className="modal-footer">
-            <button className="btn btn-outline-secondary" onClick={() => onTest(sourceKey)} disabled={testing}>
-              {testing ? <><span className="spinner-border spinner-border-sm me-2"></span>Testing...</> : <><i className="fa-solid fa-plug me-2"></i>Test Connection</>}
+          {/* ── Footer ── */}
+          <div className="modal-footer border-0 px-4 py-3" style={{ background: '#fff', borderTop: '1px solid #e9ecef' }}>
+            <button className="btn btn-outline-secondary btn-sm px-3" onClick={() => onTest(sourceKey)} disabled={testing}>
+              {testing
+                ? <><span className="spinner-border spinner-border-sm me-2"></span>Testing...</>
+                : <><i className="fa-solid fa-plug me-2"></i>Test Connection</>}
             </button>
-            <button className="btn btn-outline-secondary" onClick={onClose}>Cancel</button>
-            <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-              {saving ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</> : <><i className="fa-solid fa-floppy-disk me-2"></i>Save Changes</>}
-            </button>
+            <div className="ms-auto d-flex gap-2">
+              <button className="btn btn-light btn-sm px-3" onClick={onClose}>Cancel</button>
+              <button className="btn btn-primary btn-sm px-4 fw-semibold" onClick={handleSave} disabled={saving}
+                style={{ background: meta.color, borderColor: meta.color }}>
+                {saving
+                  ? <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</>
+                  : <><i className="fa-solid fa-floppy-disk me-2"></i>Save Changes</>}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -422,39 +597,65 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 
 // ─── Small reusable sub-components ───────────────────────────────────────────
 
-const FieldGroup: React.FC<{ title: string; icon: string; children: React.ReactNode }> = ({ title, icon, children }) => (
+const FieldGroup: React.FC<{ title: string; icon: string; color: string; children: React.ReactNode }> = ({ title, icon, color, children }) => (
   <div className="mb-4">
-    <div className="d-flex align-items-center gap-2 mb-3">
-      <i className={`${icon} text-secondary`}></i>
-      <span className="fw-semibold text-secondary small text-uppercase letter-spacing-1">{title}</span>
+    <div className="d-flex align-items-center gap-2 mb-3 pb-2" style={{ borderBottom: `2px solid ${color}30` }}>
+      <i className={`${icon}`} style={{ color, fontSize: 15 }}></i>
+      <span className="fw-bold" style={{ fontSize: '0.9rem', color: '#1e293b' }}>
+        {title}
+      </span>
     </div>
     {children}
   </div>
 );
 
 const TextField: React.FC<{
-  label: string; field: string; value: string; onChange: (v: string) => void;
+  label: string; field?: string; value: string; onChange: (v: string) => void;
   type?: string; placeholder?: string; hint?: string;
 }> = ({ label, value, onChange, type = 'text', placeholder, hint }) => (
   <div className="mb-3">
-    <label className="form-label fw-medium small">{label}</label>
+    <label className="form-label fw-semibold mb-1" style={{ fontSize: '0.88rem', color: '#1e293b' }}>{label}</label>
     <input className="form-control" type={type} value={value} placeholder={placeholder}
+      style={{ fontSize: '0.9rem', borderColor: '#cbd5e1', color: '#1e293b' }}
       onChange={e => onChange(e.target.value)} />
-    {hint && <small className="text-muted">{hint}</small>}
+    {hint && <div className="form-text" style={{ fontSize: '0.78rem', color: '#64748b' }}>{hint}</div>}
   </div>
 );
 
 const ReadonlyField: React.FC<{
-  label: string; value: string; field: string;
+  label: string; value: string; field: string; hint?: string;
   copied: string; setCopied: (v: string) => void;
-}> = ({ label, value, field, copied, setCopied }) => (
+}> = ({ label, value, field, hint, copied, setCopied }) => (
   <div className="mb-3">
-    <label className="form-label fw-medium small">{label}</label>
-    <div className="input-group">
-      <input className="form-control font-monospace small" readOnly value={value} />
-      <button className="btn btn-outline-secondary" onClick={() => copyToClipboard(value, setCopied, field)}>
-        <i className={`fa-solid ${copied === field ? 'fa-check text-success' : 'fa-copy'}`}></i>
-      </button>
+    <div className="d-flex align-items-center gap-2 mb-1">
+      <span className="fw-semibold" style={{ fontSize: '0.88rem', color: '#1e293b' }}>{label}</span>
+      <span className="badge rounded-pill" style={{ fontSize: '0.7rem', background: '#dbeafe', color: '#1d4ed8', fontWeight: 600 }}>
+        <i className="fa-solid fa-copy me-1"></i>Copy Required
+      </span>
+    </div>
+    {hint && (
+      <div className="d-flex align-items-start gap-1 mb-2">
+        <i className="fa-solid fa-arrow-right-long mt-1 flex-shrink-0" style={{ fontSize: 10, color: '#94a3b8' }}></i>
+        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>{hint}</span>
+      </div>
+    )}
+    <div className="rounded-3 overflow-hidden" style={{ border: '1px solid #334155' }}>
+      <div className="d-flex align-items-center justify-content-between px-3 py-2"
+        style={{ background: '#1e293b' }}>
+        <code className="text-break me-3" style={{ fontSize: '0.78rem', color: '#7dd3fc', wordBreak: 'break-all', lineHeight: 1.6 }}>
+          {value}
+        </code>
+        <button className="btn btn-sm flex-shrink-0 fw-semibold"
+          style={{
+            background: copied === field ? '#16a34a' : '#334155',
+            color: '#fff', border: 'none',
+            fontSize: '0.78rem', whiteSpace: 'nowrap', minWidth: 72,
+          }}
+          onClick={() => copyToClipboard(value, setCopied, field)}>
+          <i className={`fa-solid ${copied === field ? 'fa-check' : 'fa-copy'} me-1`}></i>
+          {copied === field ? 'Copied!' : 'Copy'}
+        </button>
+      </div>
     </div>
   </div>
 );

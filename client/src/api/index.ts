@@ -2565,6 +2565,19 @@ export const attendanceBulkApi = {
 
 // Follow-up Reminders API
 export const followUpApi = {
+  create: async (data: {
+    leadId: string;
+    type: string;
+    title: string;
+    scheduledAt: string;
+    description?: string;
+    priority?: string;
+  }) => {
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
   /** Get calendar events grouped by date.
    *  @param startDate ISO date string (e.g. "2025-01-01")
    *  @param endDate   ISO date string (e.g. "2025-01-31")

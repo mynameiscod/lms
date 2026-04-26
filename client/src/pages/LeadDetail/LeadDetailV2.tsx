@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi, qualificationApi } from '../../api';
+import { leadApi, leadStageApi, qualificationApi, followUpApi } from '../../api';
 import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import './LeadDetailV2.css';
 
@@ -186,7 +186,17 @@ const LeadDetailV2: React.FC = () => {
   const handleSaveFollowUp = async () => {
     if (!followUpDate) return;
     try {
+      // Update lead's nextFollowUp field
       await leadApi.updateLead(leadId!, { nextFollowUp: followUpDate });
+      // Create a FollowUpReminder so it appears on the calendar
+      await followUpApi.create({
+        leadId: leadId!,
+        type: 'call',
+        title: `Follow-up with ${lead?.name || 'lead'}`,
+        scheduledAt: new Date(followUpDate).toISOString(),
+        description: 'Follow-up scheduled from lead detail',
+        priority: 'medium',
+      }).catch(() => {}); // non-blocking
       setLead(prev => prev ? { ...prev, nextFollowUp: followUpDate } : null);
       setShowFollowUpModal(false);
       showToast('Follow-up scheduled');
@@ -200,6 +210,15 @@ const LeadDetailV2: React.FC = () => {
     setDemoSaving(true);
     try {
       await leadApi.updateLead(leadId!, { demoBookedAt: demoDate, demoNotes });
+      // Create a FollowUpReminder of type 'demo' so it appears on the calendar
+      await followUpApi.create({
+        leadId: leadId!,
+        type: 'demo',
+        title: `Demo with ${lead?.name || 'lead'}`,
+        scheduledAt: new Date(demoDate).toISOString(),
+        description: demoNotes || 'Demo booking from lead detail',
+        priority: 'high',
+      }).catch(() => {}); // non-blocking
       setLead(prev => prev ? { ...prev, demoBookedAt: demoDate, demoNotes } : null);
       setShowDemoModal(false);
       showToast('Demo booked successfully');

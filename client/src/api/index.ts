@@ -2204,9 +2204,10 @@ export const leadSourceConfigApi = {
       body: JSON.stringify(data)
     }),
 
-  testConnection: async (sourceKey: string) =>
+  testConnection: async (sourceKey: string, config: Record<string, any> = {}) =>
     authenticatedFetch(`${API_BASE_URL}/lead-source-config/${sourceKey}/test`, {
-      method: 'POST'
+      method: 'POST',
+      body: JSON.stringify({ config })
     }),
 
   addThirdPartySource: async (data: { name: string; fieldMapping?: Record<string, string> }) =>

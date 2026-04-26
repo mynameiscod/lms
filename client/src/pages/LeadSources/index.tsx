@@ -127,7 +127,7 @@ interface ConfigModalProps {
   sourceData: SourceCard;
   onClose: () => void;
   onSave: (sourceKey: SourceKey, isConnected: boolean, config: any, autoActions: AutoActions) => Promise<void>;
-  onTest: (sourceKey: SourceKey) => Promise<void>;
+  onTest: (sourceKey: SourceKey, currentConfig: Record<string, any>) => Promise<void>;
   saving: boolean;
   testing: boolean;
   testResult: { success: boolean; message: string } | null;
@@ -574,7 +574,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
 
           {/* ── Footer ── */}
           <div className="modal-footer border-0 px-4 py-3" style={{ background: '#fff', borderTop: '1px solid #e9ecef' }}>
-            <button className="btn btn-outline-secondary btn-sm px-3" onClick={() => onTest(sourceKey)} disabled={testing}>
+            <button className="btn btn-outline-secondary btn-sm px-3" onClick={() => onTest(sourceKey, config)} disabled={testing}>
               {testing
                 ? <><span className="spinner-border spinner-border-sm me-2"></span>Testing...</>
                 : <><i className="fa-solid fa-plug me-2"></i>Test Connection</>}
@@ -810,11 +810,11 @@ const LeadSourcesPage: React.FC = () => {
     }
   };
 
-  const handleTest = async (sourceKey: SourceKey) => {
+  const handleTest = async (sourceKey: SourceKey, currentConfig: Record<string, any> = {}) => {
     setTesting(true);
     setTestResult(null);
     try {
-      const result = await leadSourceConfigApi.testConnection(sourceKey);
+      const result = await leadSourceConfigApi.testConnection(sourceKey, currentConfig);
       setTestResult({ success: result.success, message: result.message });
     } catch (e: any) {
       setTestResult({ success: false, message: e.message || 'Test failed' });

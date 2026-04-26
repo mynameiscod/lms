@@ -352,31 +352,39 @@ export const testConnection = async (req: AuthenticatedRequest, res: Response) =
   try {
     const { source } = req.params;
     const tenantId = req.tenantId!;
-    const tokens = await getDecryptedTokens(tenantId);
 
-    if (!tokens) {
-      return res.json({ success: false, message: 'No configuration found' });
-    }
+    // Prefer credentials passed from the form (not yet saved) over DB values
+    const bodyConfig: Record<string, any> = req.body?.config || {};
+    const dbTokens = await getDecryptedTokens(tenantId);
 
     if (source === 'metaAds') {
-      if (!tokens.metaAds.pageAccessToken) {
-        return res.json({ success: false, message: 'Page Access Token not configured' });
+      const token = bodyConfig.pageAccessToken && !bodyConfig.pageAccessToken.includes('\u25cf')
+        ? bodyConfig.pageAccessToken
+        : dbTokens?.metaAds?.pageAccessToken || '';
+      if (!token) {
+        return res.json({ success: false, message: 'Page Access Token is required. Enter it above and try again.' });
       }
-      // Basic token validation — check length
-      if (tokens.metaAds.pageAccessToken.length < 20) {
-        return res.json({ success: false, message: 'Page Access Token appears invalid (too short)' });
+      if (token.length < 20) {
+        return res.json({ success: false, message: 'Page Access Token appears too short — please check it.' });
       }
-      return res.json({ success: true, message: 'Token format looks valid. Webhook connection active.' });
+      return res.json({ success: true, message: 'Token format looks valid. Webhook is ready to receive leads.' });
     }
 
     if (source === 'whatsApp') {
-      if (!tokens.whatsApp.accessToken || !tokens.whatsApp.phoneNumberId) {
-        return res.json({ success: false, message: 'Access Token and Phone Number ID are required' });
+      const token = bodyConfig.accessToken && !bodyConfig.accessToken.includes('\u25cf')
+        ? bodyConfig.accessToken
+        : dbTokens?.whatsApp?.accessToken || '';
+      const phoneId = bodyConfig.phoneNumberId || dbTokens?.whatsApp?.phoneNumberId || '';
+      if (!token) {
+        return res.json({ success: false, message: 'Access Token is required. Enter it above and try again.' });
       }
-      return res.json({ success: true, message: 'WhatsApp configuration looks valid. Webhook connection active.' });
+      if (!phoneId) {
+        return res.json({ success: false, message: 'Phone Number ID is required. Enter it above and try again.' });
+      }
+      return res.json({ success: true, message: 'WhatsApp credentials look valid. Webhook is ready.' });
     }
 
-    return res.json({ success: true, message: 'Connection test passed' });
+    return res.json({ success: true, message: 'Connection test passed.' });
   } catch (error: any) {
     console.error('testConnection error:', error);
     return res.status(500).json({ success: false, message: error.message });

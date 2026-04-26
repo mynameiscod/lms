@@ -515,7 +515,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority } = req.body;
+    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
 
@@ -544,7 +544,9 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(interestConcerns !== undefined && { interestConcerns }),
         ...(notInterestedReason !== undefined && { notInterestedReason }),
         ...(customFields !== undefined && { customFields }),
-        ...(priority !== undefined && { priority })
+        ...(priority !== undefined && { priority }),
+        ...(demoBookedAt !== undefined && { demoBookedAt: demoBookedAt || null }),
+        ...(demoNotes !== undefined && { demoNotes })
       },
       { new: true, runValidators: true }
     )

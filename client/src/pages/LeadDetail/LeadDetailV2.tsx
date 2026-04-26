@@ -12,7 +12,7 @@ interface Lead {
   priority: string;
   stage: string;
   source: string;
-  assignedTo?: { name: string };
+  assignedTo?: { _id?: string; name?: string; firstName?: string; lastName?: string } | null;
   courseInterested?: string;
   nextFollowUp?: string;
   demoBookedAt?: string;
@@ -394,7 +394,11 @@ const LeadDetailV2: React.FC = () => {
                 <i className="bi bi-person"></i>
                 <div>
                   <label>Assigned To</label>
-                  <span>{lead.assignedTo?.name || 'Unassigned'}</span>
+                  <span>
+                    {lead.assignedTo
+                      ? (lead.assignedTo.name || `${lead.assignedTo.firstName || ''} ${lead.assignedTo.lastName || ''}`.trim() || 'Unassigned')
+                      : 'Unassigned'}
+                  </span>
                 </div>
               </div>
               <div className="ld2-summary-item">

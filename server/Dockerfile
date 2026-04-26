@@ -12,7 +12,9 @@ WORKDIR /app
 RUN apk add --no-cache fontconfig ttf-dejavu
 COPY package*.json ./
 COPY .env ./
-RUN npm install --production
+# Copy node_modules from builder and prune — no second npm install needed
+COPY --from=builder /app/node_modules ./node_modules
+RUN npm prune --omit=dev
 COPY --from=builder /app/dist ./dist
 EXPOSE 5000
 CMD ["node", "dist/server.js"]

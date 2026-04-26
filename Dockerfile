@@ -45,9 +45,12 @@ RUN ls -la dist/ && \
 FROM node:18-alpine
 WORKDIR /app
 
-# Install production dependencies first
+# Copy package.json
 COPY server/package*.json ./
-RUN npm install --production
+
+# Copy node_modules from build stage and prune dev deps — no network needed
+COPY --from=backend-build /app/node_modules ./node_modules
+RUN npm prune --omit=dev
 
 # Copy backend compiled JS from build stage
 COPY --from=backend-build /app/dist ./dist

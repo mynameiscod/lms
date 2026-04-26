@@ -42,6 +42,7 @@ interface Stage {
 
 interface Question {
   _id: string;
+  id?: string;
   question: string;
   type: string;
   options?: string[];
@@ -68,6 +69,9 @@ const LeadDetailV2: React.FC = () => {
   const [demoDate, setDemoDate] = useState('');
   const [demoNotes, setDemoNotes] = useState('');
   const [demoSaving, setDemoSaving] = useState(false);
+  const [showConvertModal, setShowConvertModal] = useState(false);
+  const [convertPassword, setConvertPassword] = useState('Welcome@123');
+  const [converting, setConverting] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
@@ -215,6 +219,20 @@ const LeadDetailV2: React.FC = () => {
     }
   };
 
+  const handleConvertToStudent = async () => {
+    try {
+      setConverting(true);
+      await leadApi.convertToStudent(leadId!, convertPassword);
+      setShowConvertModal(false);
+      showToast('Lead converted to student successfully!');
+      fetchData();
+    } catch (error: any) {
+      showToast(error?.message || 'Failed to convert lead', 'error');
+    } finally {
+      setConverting(false);
+    }
+  };
+
   const formatDate = (date: string) => {
     if (!date) return '-';
     return new Date(date).toLocaleDateString('en-US', {
@@ -348,7 +366,7 @@ const LeadDetailV2: React.FC = () => {
             <i className="bi bi-camera-video"></i>
             <span>{lead.demoBookedAt ? 'Reschedule Demo' : 'Book Demo'}</span>
           </button>
-          <button className="ld2-action-btn ld2-action-convert" onClick={() => navigate(`/leads/${leadId}/convert`)}>
+          <button className="ld2-action-btn ld2-action-convert" onClick={() => { setConvertPassword('Welcome@123'); setShowConvertModal(true); }}>
             <i className="bi bi-person-check"></i>
             <span>Convert</span>
           </button>
@@ -565,15 +583,17 @@ const LeadDetailV2: React.FC = () => {
                   </span>
                 </div>
                 <div className="ld2-checklist-list">
-                  {questions.map((q, index) => (
-                    <div key={q._id} className="ld2-checklist-item">
+                  {questions.map((q, index) => {
+                    const qid = q._id || q.id || String(index);
+                    return (
+                    <div key={qid} className="ld2-checklist-item">
                       <div className="ld2-checklist-num">{index + 1}</div>
                       <div className="ld2-checklist-content">
                         <label>{q.question}</label>
                         {q.type === 'select' && q.options ? (
                           <select
-                            value={checklistAnswers[q._id] || ''}
-                            onChange={(e) => setChecklistAnswers(prev => ({ ...prev, [q._id]: e.target.value }))}
+                            value={checklistAnswers[qid] || ''}
+                            onChange={(e) => setChecklistAnswers(prev => ({ ...prev, [qid]: e.target.value }))}
                           >
                             <option value="">Select...</option>
                             {q.options.map(opt => (
@@ -584,13 +604,14 @@ const LeadDetailV2: React.FC = () => {
                           <input
                             type="text"
                             placeholder="Enter answer..."
-                            value={checklistAnswers[q._id] || ''}
-                            onChange={(e) => setChecklistAnswers(prev => ({ ...prev, [q._id]: e.target.value }))}
+                            value={checklistAnswers[qid] || ''}
+                            onChange={(e) => setChecklistAnswers(prev => ({ ...prev, [qid]: e.target.value }))}
                           />
                         )}
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
                 {questions.length > 0 && (
                   <button className="ld2-btn-save" onClick={handleSaveChecklist}>
@@ -806,6 +827,44 @@ const LeadDetailV2: React.FC = () => {
               <button className="ld2-btn-cancel" onClick={() => setShowDemoModal(false)}>Cancel</button>
               <button className="ld2-btn-primary" onClick={handleSaveDemo} disabled={!demoDate || demoSaving}>
                 {demoSaving ? 'Saving...' : 'Confirm Demo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert to Student Modal */}
+      {showConvertModal && (
+        <div className="ld2-modal-overlay" onClick={() => setShowConvertModal(false)}>
+          <div className="ld2-modal" onClick={e => e.stopPropagation()}>
+            <div className="ld2-modal-header">
+              <h3>Convert to Student</h3>
+              <button onClick={() => setShowConvertModal(false)}>
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="ld2-modal-body">
+              <p style={{ color: '#6b7280', marginBottom: 16 }}>
+                This will create a student account for <strong>{lead.name}</strong> using their email and the password below.
+              </p>
+              <div className="ld2-form-group">
+                <label>Initial Password</label>
+                <input
+                  type="text"
+                  value={convertPassword}
+                  onChange={(e) => setConvertPassword(e.target.value)}
+                  placeholder="Welcome@123"
+                />
+              </div>
+            </div>
+            <div className="ld2-modal-footer">
+              <button className="ld2-btn-cancel" onClick={() => setShowConvertModal(false)}>Cancel</button>
+              <button
+                className="ld2-btn-primary"
+                onClick={handleConvertToStudent}
+                disabled={converting}
+              >
+                {converting ? 'Converting...' : 'Convert to Student'}
               </button>
             </div>
           </div>

@@ -89,7 +89,17 @@ const LeadAnalytics: React.FC = () => {
       if (dateTo) params.dateTo = dateTo;
       if (assignedTo) params.assignedTo = assignedTo;
       const res = await (leadApi as any).getFunnelAnalytics(params);
-      setData(res);
+      // authenticatedFetch returns the full response object; extract inner data
+      const inner = res?.data ?? res;
+      setData({
+        ...inner,
+        funnelStages: (inner.funnelStages || []).map((s: any) => ({
+          ...s,
+          stage: s.name || s.stage || '',
+          dropOffPct: s.dropOff ?? s.dropOffPct ?? 0,
+          avgAgeDays: s.avgAgeDays ?? 0,
+        })),
+      });
     } catch (err: any) {
       setError(err?.message || 'Failed to load funnel analytics');
     } finally {
@@ -124,8 +134,8 @@ const LeadAnalytics: React.FC = () => {
     );
   }
 
-  const maxStageCount = Math.max(...(data.funnelStages.map(s => s.count)), 1);
-  const maxOutcomeCount = Math.max(...(data.callOutcomes.map(o => o.count)), 1);
+  const maxStageCount = Math.max(...(data.funnelStages?.map(s => s.count) ?? [0]), 1);
+  const maxOutcomeCount = Math.max(...(data.callOutcomes?.map(o => o.count) ?? [0]), 1);
 
   return (
     <div className="lead-analytics">
@@ -154,15 +164,15 @@ const LeadAnalytics: React.FC = () => {
       {/* ── Summary Cards ────────────────────────────────────────────────── */}
       <div className="quick-stats">
         <div className="stat-card primary">
-          <div className="stat-value">{data.summary.totalLeads}</div>
+          <div className="stat-value">{data.summary?.totalLeads ?? 0}</div>
           <div className="stat-label">Total Leads</div>
         </div>
         <div className="stat-card success">
-          <div className="stat-value">{data.summary.converted}</div>
+          <div className="stat-value">{data.summary?.converted ?? 0}</div>
           <div className="stat-label">Converted</div>
         </div>
         <div className="stat-card warning">
-          <div className="stat-value">{data.summary.conversionRate.toFixed(1)}%</div>
+          <div className="stat-value">{(data.summary?.conversionRate ?? 0).toFixed(1)}%</div>
           <div className="stat-label">Conversion Rate</div>
         </div>
       </div>

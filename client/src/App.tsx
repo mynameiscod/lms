@@ -1,10 +1,10 @@
-import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
-import { SocketProvider } from './contexts/SocketContext';
+import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
 
@@ -173,6 +173,51 @@ const FeatureRoute: React.FC<{ feature: keyof StudentFeatures; children: React.R
     return <Navigate to="/dashboard" />;
   }
   return <>{children}</>;
+};
+
+// Hot lead real-time notification toast
+const HotLeadToast: React.FC = () => {
+  const { onHotLeadCreated, offHotLeadCreated } = useSocket();
+  const navigate = useNavigate();
+  const [toasts, setToasts] = useState<Array<{ id: number; leadId: string; leadName: string; source: string }>>([]);
+
+  useEffect(() => {
+    onHotLeadCreated((data: any) => {
+      const id = Date.now();
+      setToasts(prev => [...prev, { id, leadId: data.leadId, leadName: data.leadName, source: data.source }]);
+      setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 8000);
+    });
+    return () => offHotLeadCreated();
+  }, [onHotLeadCreated, offHotLeadCreated]);
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <div style={{ position: 'fixed', top: 16, right: 16, zIndex: 99999, display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {toasts.map(t => (
+        <div
+          key={t.id}
+          onClick={() => navigate(`/leads/${t.leadId}`)}
+          style={{
+            background: '#7f1d1d',
+            color: '#fff',
+            padding: '12px 18px',
+            borderRadius: 8,
+            boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
+            cursor: 'pointer',
+            maxWidth: 320,
+            fontSize: '0.9rem',
+            lineHeight: 1.4,
+            borderLeft: '4px solid #ef4444',
+          }}
+        >
+          <div style={{ fontWeight: 700, marginBottom: 2 }}>🔥 New Hot Lead!</div>
+          <div>{t.leadName}</div>
+          {t.source && <div style={{ opacity: 0.7, fontSize: '0.8rem' }}>Source: {t.source}</div>}
+        </div>
+      ))}
+    </div>
+  );
 };
 
 const AppRoutes: React.FC = () => {
@@ -1340,6 +1385,7 @@ const App: React.FC = () => {
           <TenantModulesProvider>
             <SocketProvider>
               <BrowserRouter>
+                <HotLeadToast />
                 <AppRoutes />
               </BrowserRouter>
             </SocketProvider>

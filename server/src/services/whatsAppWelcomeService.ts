@@ -2,6 +2,13 @@ import mongoose from 'mongoose';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
 
+// Built-in multi-language welcome templates
+const DEFAULT_WELCOME_TEMPLATES: Record<string, string> = {
+  english: 'Hello {{name}}! Thank you for your interest. Our team will get in touch with you shortly to share course details and answer your questions.',
+  telugu: 'నమస్కారం {{name}} గారు! మీ ఆసక్తికి ధన్యవాదాలు. మా బృందం త్వరలో కోర్సు వివరాలు మరియు మీ సందేహాలు తీర్చడానికి మీతో సంప్రదిస్తుంది.',
+  hindi: 'नमस्ते {{name}} जी! आपकी रुचि के लिए धन्यवाद। हमारी टीम जल्द ही आपसे कोर्स विवरण साझा करने और आपके प्रश्नों का उत्तर देने के लिए संपर्क करेगी.',
+};
+
 // Map lead source strings to LeadSourceConfig top-level keys
 function mapSourceKey(source: string): string | null {
   const mapping: Record<string, string> = {
@@ -57,7 +64,12 @@ export async function sendLeadWelcomeWhatsApp(
       template = (sourceConfig as any)[sourceKey].autoActions.whatsAppWelcomeTemplate || '';
     }
 
-    if (!sendWelcome || !template) return;
+    if (!sendWelcome || !template) {
+      // Fall back to language-specific default template
+      const lang = (sourceConfig as any).whatsApp?.config?.qualificationLanguage || 'english';
+      template = DEFAULT_WELCOME_TEMPLATES[lang] || DEFAULT_WELCOME_TEMPLATES['english'];
+      if (!sendWelcome) return; // Only skip if sendWelcome is false; use default template otherwise
+    }
 
     // 3. Check WhatsApp is connected and get credentials
     if (!(sourceConfig as any).whatsApp?.isConnected) return;

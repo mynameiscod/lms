@@ -14,6 +14,8 @@ interface Lead {
   assignedTo?: { name: string };
   courseInterested?: string;
   nextFollowUp?: string;
+  demoBookedAt?: string;
+  demoNotes?: string;
   createdAt: string;
   activities?: Activity[];
   qualificationAnswers?: Record<string, string>;
@@ -61,6 +63,10 @@ const LeadDetailV2: React.FC = () => {
   const [checklistAnswers, setChecklistAnswers] = useState<Record<string, string>>({});
   const [recordingFile, setRecordingFile] = useState<File | null>(null);
   const [callOutcome, setCallOutcome] = useState('');
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoDate, setDemoDate] = useState('');
+  const [demoNotes, setDemoNotes] = useState('');
+  const [demoSaving, setDemoSaving] = useState(false);
   const [toast, setToast] = useState<{ show: boolean; message: string; type: string }>({ show: false, message: '', type: 'success' });
 
   useEffect(() => {
@@ -181,6 +187,21 @@ const LeadDetailV2: React.FC = () => {
       showToast('Follow-up scheduled');
     } catch (error) {
       showToast('Failed to schedule follow-up', 'error');
+    }
+  };
+
+  const handleSaveDemo = async () => {
+    if (!demoDate) return;
+    setDemoSaving(true);
+    try {
+      await leadApi.updateLead(leadId!, { demoBookedAt: demoDate, demoNotes });
+      setLead(prev => prev ? { ...prev, demoBookedAt: demoDate, demoNotes } : null);
+      setShowDemoModal(false);
+      showToast('Demo booked successfully');
+    } catch (error) {
+      showToast('Failed to book demo', 'error');
+    } finally {
+      setDemoSaving(false);
     }
   };
 
@@ -322,6 +343,10 @@ const LeadDetailV2: React.FC = () => {
             <i className="bi bi-whatsapp"></i>
             <span>WhatsApp</span>
           </button>
+          <button className="ld2-action-btn ld2-action-demo" onClick={() => { setDemoDate(lead.demoBookedAt ? lead.demoBookedAt.slice(0,16) : ''); setDemoNotes(lead.demoNotes || ''); setShowDemoModal(true); }}>
+            <i className="bi bi-camera-video"></i>
+            <span>{lead.demoBookedAt ? 'Reschedule Demo' : 'Book Demo'}</span>
+          </button>
           <button className="ld2-action-btn ld2-action-convert" onClick={() => navigate(`/leads/${leadId}/convert`)}>
             <i className="bi bi-person-check"></i>
             <span>Convert</span>
@@ -378,6 +403,15 @@ const LeadDetailV2: React.FC = () => {
                   <span>{formatRelativeTime(lead.activities?.[0]?.createdAt || lead.createdAt)}</span>
                 </div>
               </div>
+              {lead.demoBookedAt && (
+                <div className="ld2-summary-item">
+                  <i className="bi bi-camera-video-fill" style={{ color: '#7c3aed' }}></i>
+                  <div>
+                    <label>Demo Booked</label>
+                    <span style={{ color: '#7c3aed', fontWeight: 600 }}>{formatDate(lead.demoBookedAt)}</span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -720,6 +754,51 @@ const LeadDetailV2: React.FC = () => {
             <div className="ld2-modal-footer">
               <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); }}>Cancel</button>
               <button className="ld2-btn-primary" onClick={handleSaveNote}>Save Activity</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Demo Booking Modal */}
+      {showDemoModal && (
+        <div className="ld2-modal-overlay" onClick={() => setShowDemoModal(false)}>
+          <div className="ld2-modal" onClick={e => e.stopPropagation()}>
+            <div className="ld2-modal-header">
+              <h3>{lead.demoBookedAt ? 'Reschedule Demo' : 'Book a Demo'}</h3>
+              <button onClick={() => setShowDemoModal(false)}>
+                <i className="bi bi-x-lg"></i>
+              </button>
+            </div>
+            <div className="ld2-modal-body">
+              <div className="ld2-form-group">
+                <label>Demo Date & Time *</label>
+                <input
+                  type="datetime-local"
+                  value={demoDate}
+                  onChange={(e) => setDemoDate(e.target.value)}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+              </div>
+              <div className="ld2-form-group">
+                <label>Notes (optional)</label>
+                <textarea
+                  rows={3}
+                  value={demoNotes}
+                  onChange={(e) => setDemoNotes(e.target.value)}
+                  placeholder="Add any notes about this demo..."
+                />
+              </div>
+              {lead.demoBookedAt && (
+                <p style={{ fontSize: '0.8rem', color: '#6b7280' }}>
+                  Currently booked: <strong>{formatDate(lead.demoBookedAt)}</strong>
+                </p>
+              )}
+            </div>
+            <div className="ld2-modal-footer">
+              <button className="ld2-btn-cancel" onClick={() => setShowDemoModal(false)}>Cancel</button>
+              <button className="ld2-btn-primary" onClick={handleSaveDemo} disabled={!demoDate || demoSaving}>
+                {demoSaving ? 'Saving...' : 'Confirm Demo'}
+              </button>
             </div>
           </div>
         </div>

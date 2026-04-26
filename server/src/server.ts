@@ -7,6 +7,8 @@ import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { syncAllActiveSheets } from './services/googleSheetSyncService';
 import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
+import { startDailySummaryScheduler } from './jobs/dailySummaryCron';
+import { startSlaCronScheduler } from './jobs/slaCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -85,6 +87,12 @@ const startServer = async () => {
     // Fire once immediately after startup to catch anything missed during downtime
     setTimeout(() => fireFollowUpReminders(io).catch(console.error), 10_000);
     console.log(`🔔 Follow-up reminder cron scheduled every ${CRON_INTERVAL_MS / 60000} minutes`);
+
+    // Start daily summary email scheduler (fires at 8:00 PM)
+    startDailySummaryScheduler();
+
+    // Start SLA breach checker (runs every 30 minutes)
+    startSlaCronScheduler(io);
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

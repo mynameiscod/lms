@@ -11,6 +11,8 @@ interface SocketContextType {
   offContentCreated: () => void;
   offContentUpdated: () => void;
   offContentDeleted: () => void;
+  onHotLeadCreated: (callback: (data: any) => void) => void;
+  offHotLeadCreated: () => void;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -103,6 +105,18 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, [socket]);
 
+  const onHotLeadCreated = useCallback((callback: (data: any) => void) => {
+    if (socket) {
+      socket.on('hot_lead_created', callback);
+    }
+  }, [socket]);
+
+  const offHotLeadCreated = useCallback(() => {
+    if (socket) {
+      socket.off('hot_lead_created');
+    }
+  }, [socket]);
+
   const value: SocketContextType = {
     socket,
     isConnected,
@@ -112,6 +126,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     offContentCreated,
     offContentUpdated,
     offContentDeleted,
+    onHotLeadCreated,
+    offHotLeadCreated,
   };
 
   return (

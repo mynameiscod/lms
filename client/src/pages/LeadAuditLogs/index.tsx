@@ -38,10 +38,9 @@ const LeadAuditLogsPage: React.FC = () => {
       const filters: any = { page, limit: 50 };
       if (leadIdFilter.trim()) filters.leadId = leadIdFilter.trim();
       const res = await leadApi.getAuditLogs(filters);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const json = await res.json();
-      setLogs(json.logs || []);
-      setTotalPages(json.totalPages || 1);
+      const data = res?.data || res;
+      setLogs(data?.logs || []);
+      setTotalPages(data?.totalPages || 1);
     } catch {
       setLogs([]);
     } finally {

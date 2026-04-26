@@ -408,6 +408,20 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     // Real-time notification
     emitLeadEvent(req, 'lead_created', populated);
 
+    // Hot lead real-time alert
+    if (lead.priority === 'hot') {
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`tenant_${req.tenantId}`).emit('hot_lead_created', {
+          leadId: lead._id,
+          leadName: name,
+          phone,
+          source,
+          score: lead.score,
+        });
+      }
+    }
+
     // Notify assigned user if different from creator
     if (assignedTo && String(assignedTo) !== String(req.user!.id)) {
       const io = req.app.get('io');
@@ -509,7 +523,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { stageId, notInterestedReason } = req.body;
+    const { stageId, notInterestedReason, reason } = req.body;
 
     if (!stageId) {
       return res.status(400).json({ success: false, message: 'stageId is required' });
@@ -532,12 +546,45 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
+    // Manager approval gate: non-admin users moving to a lost stage need approval
+    const userRole = req.user!.role;
+    const isAdminUser = ['TENANT_ADMIN', 'SUPER_ADMIN'].includes(userRole);
+    if ((newStage as any).isLostStage && !isAdminUser) {
+      (lead as any).pendingApproval = {
+        stageId: newStage._id,
+        stageName: newStage.name,
+        requestedBy: req.user!.id,
+        requestedAt: new Date(),
+        reason: reason?.trim() || notInterestedReason?.trim() || '',
+      };
+      await lead.save();
+
+      // Notify managers via socket
+      const io = req.app.get('io');
+      if (io) {
+        io.to(`tenant_${req.tenantId}`).emit('stage_approval_requested', {
+          leadId: lead._id,
+          leadName: lead.name,
+          requestedStage: newStage.name,
+          requestedBy: req.user!.id,
+          reason: (lead as any).pendingApproval.reason,
+        });
+      }
+      return res.status(202).json({
+        success: true,
+        message: `Stage change to "${newStage.name}" requires manager approval`,
+        data: { pendingApproval: true },
+      });
+    }
+
     const oldStageId = (lead.stageId as any)?._id;
     const oldStageName = (lead.stageId as any)?.name || 'Unknown';
     lead.stageId = newStage._id;
+    // Clear any pending approval when admin applies the stage change
+    (lead as any).pendingApproval = undefined;
     
     if (newStage.name === 'Not Interested') {
-      lead.notInterestedReason = notInterestedReason.trim();
+      lead.notInterestedReason = (notInterestedReason || reason || '').trim();
     }
 
     lead.activities.push({
@@ -570,6 +617,74 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
     res.json({ success: true, message: 'Lead stage updated', data: populated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to change stage', error: error.message });
+  }
+};
+
+// Approve (or reject) a pending stage change requested by a non-admin user
+export const approveStageChange = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { leadId } = req.params;
+    const { approved, rejectReason } = req.body;
+
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId }).populate('stageId', 'name');
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    const pending = (lead as any).pendingApproval;
+    if (!pending?.stageId) {
+      return res.status(400).json({ success: false, message: 'No pending stage change for this lead' });
+    }
+
+    if (!approved) {
+      (lead as any).pendingApproval = undefined;
+      lead.activities.push({
+        type: 'status_change',
+        description: `Stage change to "${pending.stageName}" was rejected by manager${rejectReason ? `: ${rejectReason}` : ''}`,
+        createdBy: req.user!.id as any,
+        createdAt: new Date(),
+      });
+      await lead.save();
+      emitLeadEvent(req, 'lead_stage_approval_rejected', { leadId: lead._id, leadName: lead.name, stageName: pending.stageName });
+      return res.json({ success: true, message: 'Stage change rejected', data: {} });
+    }
+
+    // Apply the approved stage change
+    const newStage = await LeadStage.findOne({ _id: pending.stageId, tenantId: req.tenantId });
+    if (!newStage) return res.status(404).json({ success: false, message: 'Target stage no longer exists' });
+
+    const oldStageId = (lead.stageId as any)?._id;
+    const oldStageName = (lead.stageId as any)?.name || 'Unknown';
+    lead.stageId = newStage._id;
+    (lead as any).pendingApproval = undefined;
+
+    lead.activities.push({
+      type: 'status_change',
+      description: `Stage changed from "${oldStageName}" to "${newStage.name}" (approved by manager)`,
+      createdBy: req.user!.id as any,
+      createdAt: new Date(),
+      metadata: { from: oldStageName, to: newStage.name, approvedBy: req.user!.id },
+    });
+    await lead.save();
+
+    await recordStageTransition(
+      lead._id as mongoose.Types.ObjectId,
+      oldStageId,
+      newStage._id,
+      newStage.name,
+      req.user!.id as unknown as mongoose.Types.ObjectId,
+      req.tenantId as unknown as mongoose.Types.ObjectId
+    );
+
+    const populated = await Lead.findById(lead._id)
+      .populate('stageId', 'name color order')
+      .populate('assignedTo', 'firstName lastName email')
+      .populate('createdBy', 'firstName lastName');
+
+    await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved to "${newStage.name}" (manager approved)`, lead._id, { from: oldStageName, to: newStage.name });
+    emitLeadEvent(req, 'lead_stage_changed', populated);
+
+    res.json({ success: true, message: `Stage change to "${newStage.name}" approved`, data: populated });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to approve stage change', error: error.message });
   }
 };
 

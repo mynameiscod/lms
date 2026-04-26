@@ -174,6 +174,23 @@ export interface ILead extends Document {
   lostAt?: Date;
   reEngagementDate?: Date;
   
+  // NEW: Demo booking
+  demoBookedAt?: Date;
+  demoNotes?: string;
+  
+  // NEW: Manager approval for stage change
+  pendingApproval?: {
+    stageId: mongoose.Types.ObjectId;
+    stageName: string;
+    requestedBy: mongoose.Types.ObjectId;
+    requestedAt: Date;
+    reason?: string;
+  };
+  
+  // NEW: SLA breach flag
+  slaBreach?: boolean;
+  slaBreachAt?: Date;
+  
   // NEW: AI Summary
   aiSummary?: IAISummary;
   
@@ -452,6 +469,23 @@ const LeadSchema: Schema = new Schema(
     lostReasonDetail: { type: String, trim: true },
     lostAt: { type: Date },
     reEngagementDate: { type: Date },
+    
+    // NEW: Demo booking
+    demoBookedAt: { type: Date },
+    demoNotes: { type: String, trim: true },
+    
+    // NEW: Manager approval pending
+    pendingApproval: {
+      stageId: { type: mongoose.Types.ObjectId, ref: 'LeadStage' },
+      stageName: { type: String },
+      requestedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+      requestedAt: { type: Date },
+      reason: { type: String, trim: true },
+    },
+    
+    // NEW: SLA breach
+    slaBreach: { type: Boolean, default: false },
+    slaBreachAt: { type: Date },
     
     // NEW: AI Summary
     aiSummary: {

@@ -8,6 +8,7 @@ import {
   createLead,
   updateLead,
   changeLeadStage,
+  approveStageChange,
   addLeadActivity,
   deleteLead,
   getLeadAnalytics,
@@ -70,6 +71,9 @@ router.patch('/:leadId/quick-update', authMiddleware, tenantResolver, roleGuard(
 
 // Stage change (need edit permission or create_leads for telecallers)
 router.patch('/:leadId/stage', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads', 'create_leads']), changeLeadStage);
+
+// Approve pending stage change (admins/managers only)
+router.post('/:leadId/approve-stage', authMiddleware, tenantResolver, roleGuard(['manage_leads']), approveStageChange);
 
 // Activities (anyone who can view or edit can add activities)
 router.post('/:leadId/activities', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'view_leads', 'manage_leads']), uploadRecording.single('recording'), addLeadActivity);

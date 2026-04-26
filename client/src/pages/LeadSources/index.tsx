@@ -671,57 +671,85 @@ const SourceCardComponent: React.FC<{
   const isActive = meta.alwaysActive || data.isConnected;
 
   return (
-    <div className="col-sm-6 col-xl-4">
-      <div className="card h-100 border-0 shadow-sm" style={{ borderRadius: 12, overflow: 'hidden' }}>
-        <div style={{ height: 4, background: isActive ? meta.color : '#e5e7eb' }}></div>
-        <div className="card-body p-4">
-          {/* Header row */}
-          <div className="d-flex align-items-start justify-content-between mb-3">
-            <div className="d-flex align-items-center gap-3">
-              <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
-                style={{ width: 48, height: 48, background: meta.color + '15' }}>
-                <i className={`${meta.icon} fs-4`} style={{ color: meta.color }}></i>
+    <div className="col-12 col-sm-6 col-lg-4">
+      <div className="card h-100 border-0 shadow-sm" style={{
+        borderRadius: 10,
+        borderLeft: `4px solid ${isActive ? meta.color : '#e2e8f0'}`,
+      }}>
+        <div className="card-body p-3 d-flex flex-column">
+
+          {/* ── Header: icon + name + badge ── */}
+          <div className="d-flex align-items-center gap-3 mb-3">
+            <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+              style={{ width: 44, height: 44, background: meta.color + '15' }}>
+              <i className={meta.icon} style={{ color: meta.color, fontSize: 20 }}></i>
+            </div>
+            <div className="flex-grow-1" style={{ minWidth: 0 }}>
+              <div className="fw-bold text-truncate mb-1" style={{ fontSize: '0.95rem', color: '#1e293b' }}>
+                {meta.label}
               </div>
-              <div>
-                <h6 className="mb-0 fw-semibold">{meta.label}</h6>
-                <span className={`badge rounded-pill small ${isActive ? 'text-bg-success' : 'text-bg-secondary'}`}>
-                  {meta.alwaysActive ? 'Always Active' : (isActive ? 'Connected' : 'Not connected')}
-                </span>
+              <span className="d-inline-flex align-items-center gap-1 rounded-pill px-2 py-0"
+                style={{
+                  fontSize: '0.7rem', fontWeight: 600,
+                  background: isActive ? '#dcfce7' : '#f1f5f9',
+                  color: isActive ? '#15803d' : '#64748b',
+                  lineHeight: '1.6',
+                }}>
+                <span style={{
+                  width: 6, height: 6, borderRadius: '50%', display: 'inline-block', flexShrink: 0,
+                  background: isActive ? '#16a34a' : '#94a3b8',
+                }}></span>
+                {meta.alwaysActive ? 'Always Active' : (isActive ? 'Connected' : 'Not connected')}
+              </span>
+            </div>
+          </div>
+
+          {/* ── Description ── */}
+          <p className="text-muted mb-3" style={{ fontSize: '0.8rem', lineHeight: 1.55, flexGrow: 1 }}>
+            {meta.description}
+          </p>
+
+          {/* ── Stats: 3-col Bootstrap grid ── */}
+          <div className="row g-2 mb-3">
+            <div className="col-4">
+              <div className="text-center rounded-2 py-2" style={{ background: '#f8fafc' }}>
+                <div className="fw-bold lh-1 mb-1" style={{ color: meta.color, fontSize: '1.15rem' }}>
+                  {data.stats?.leadsThisMonth ?? 0}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>This month</div>
+              </div>
+            </div>
+            <div className="col-4">
+              <div className="text-center rounded-2 py-2" style={{ background: '#f8fafc' }}>
+                <div className="fw-bold lh-1 mb-1" style={{ color: '#1e293b', fontSize: '1.15rem' }}>
+                  {data.stats?.leadsTotal ?? 0}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>All time</div>
+              </div>
+            </div>
+            <div className="col-4">
+              <div className="text-center rounded-2 py-2" style={{ background: '#f8fafc' }}>
+                <div className="fw-bold lh-1 mb-1 text-truncate px-1" style={{ color: '#1e293b', fontSize: '0.75rem' }}>
+                  {timeAgo(data.stats?.lastLeadAt ?? null)}
+                </div>
+                <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Last lead</div>
               </div>
             </div>
           </div>
 
-          {/* Description */}
-          <p className="text-muted small mb-3" style={{ lineHeight: 1.5 }}>{meta.description}</p>
-
-          {/* Stats row */}
-          <div className="d-flex gap-3 mb-4">
-            <div className="text-center px-3 py-2 rounded" style={{ background: '#f8fafc', flex: 1 }}>
-              <div className="fw-bold fs-5" style={{ color: meta.color }}>{data.stats?.leadsThisMonth ?? 0}</div>
-              <div className="text-muted" style={{ fontSize: 11 }}>This month</div>
-            </div>
-            <div className="text-center px-3 py-2 rounded" style={{ background: '#f8fafc', flex: 1 }}>
-              <div className="fw-bold fs-5">{data.stats?.leadsTotal ?? 0}</div>
-              <div className="text-muted" style={{ fontSize: 11 }}>Total</div>
-            </div>
-            <div className="text-center px-3 py-2 rounded" style={{ background: '#f8fafc', flex: 1 }}>
-              <div className="fw-semibold" style={{ fontSize: 11, color: '#64748b' }}>Last lead</div>
-              <div style={{ fontSize: 11, color: '#64748b' }}>{timeAgo(data.stats?.lastLeadAt ?? null)}</div>
-            </div>
-          </div>
-
-          {/* Action row */}
-          <button className="btn btn-sm w-100 fw-medium"
+          {/* ── Configure button ── */}
+          <button className="btn btn-sm w-100 fw-semibold" onClick={onConfigure}
             style={{
-              background: isActive ? meta.color + '15' : '#f8fafc',
-              color: isActive ? meta.color : '#64748b',
-              border: `1px solid ${isActive ? meta.color + '30' : '#e2e8f0'}`,
-              borderRadius: 8,
-            }}
-            onClick={onConfigure}>
-            <i className="fa-solid fa-sliders me-2"></i>
-            Configure
+              background: isActive ? meta.color : '#f8fafc',
+              color: isActive ? '#fff' : '#64748b',
+              border: `1px solid ${isActive ? meta.color : '#e2e8f0'}`,
+              borderRadius: 6,
+              fontSize: '0.83rem',
+              letterSpacing: '0.01em',
+            }}>
+            <i className="fa-solid fa-gear me-2"></i>Configure
           </button>
+
         </div>
       </div>
     </div>
@@ -831,39 +859,40 @@ const LeadSourcesPage: React.FC = () => {
 
   return (
     <div className="container-fluid py-4 px-4">
-      {/* Page header */}
-      <div className="d-flex flex-wrap align-items-start justify-content-between gap-3 mb-4">
+
+      {/* ── Page header ── */}
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
-          <h3 className="fw-bold mb-1">
-            <i className="fa-solid fa-plug-circle-bolt me-2 text-primary"></i>
+          <h4 className="fw-bold mb-1" style={{ color: '#1e293b' }}>
+            <i className="fa-solid fa-plug-circle-bolt me-2" style={{ color: '#6366f1' }}></i>
             Lead Sources & Integrations
-          </h3>
-          <p className="text-muted mb-0">
-            Configure every channel that brings leads into your pipeline. Each source is per-tenant and stored securely in your database.
+          </h4>
+          <p className="text-muted mb-0" style={{ fontSize: '0.88rem' }}>
+            Manage every channel that brings leads into your CRM pipeline.
           </p>
         </div>
-        <button className="btn btn-outline-primary btn-sm" onClick={load} disabled={loading}>
-          <i className="fa-solid fa-arrows-rotate me-2"></i>Refresh
+        <button className="btn btn-outline-secondary btn-sm px-3" onClick={load} disabled={loading}>
+          <i className={`fa-solid fa-arrows-rotate me-2 ${loading ? 'fa-spin' : ''}`}></i>Refresh
         </button>
       </div>
 
-      {/* Summary stats */}
+      {/* ── Summary stats ── */}
       <div className="row g-3 mb-4">
         {[
-          { label: 'Active Sources', value: connectedCount, icon: 'fa-solid fa-plug', color: '#6366f1' },
-          { label: 'Leads This Month', value: totalLeadsThisMonth, icon: 'fa-solid fa-users', color: '#10b981' },
-          { label: 'Total Sources Available', value: sourceKeys.length + (config?.thirdParty?.length ?? 0), icon: 'fa-solid fa-layer-group', color: '#f59e0b' },
+          { label: 'Active Sources',          value: connectedCount,                                          icon: 'fa-solid fa-circle-dot',    color: '#6366f1' },
+          { label: 'Leads This Month',         value: totalLeadsThisMonth,                                     icon: 'fa-solid fa-user-plus',     color: '#10b981' },
+          { label: 'Total Sources Available',  value: sourceKeys.length + (config?.thirdParty?.length ?? 0),  icon: 'fa-solid fa-layer-group',   color: '#f59e0b' },
         ].map(s => (
-          <div key={s.label} className="col-sm-4">
-            <div className="card border-0 shadow-sm" style={{ borderRadius: 10 }}>
-              <div className="card-body py-3 px-4 d-flex align-items-center gap-3">
-                <div className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
-                  style={{ width: 44, height: 44, background: s.color + '15' }}>
-                  <i className={`${s.icon}`} style={{ color: s.color }}></i>
+          <div key={s.label} className="col-12 col-sm-4">
+            <div className="card border-0 shadow-sm" style={{ borderRadius: 10, borderLeft: `3px solid ${s.color}` }}>
+              <div className="card-body py-3 px-3 d-flex align-items-center gap-3">
+                <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                  style={{ width: 40, height: 40, background: s.color + '15' }}>
+                  <i className={s.icon} style={{ color: s.color, fontSize: 16 }}></i>
                 </div>
                 <div>
-                  <div className="fw-bold fs-4 lh-1">{s.value}</div>
-                  <div className="text-muted small">{s.label}</div>
+                  <div className="fw-bold mb-0" style={{ fontSize: '1.5rem', color: '#1e293b', lineHeight: 1.1 }}>{s.value}</div>
+                  <div className="text-muted" style={{ fontSize: '0.78rem' }}>{s.label}</div>
                 </div>
               </div>
             </div>
@@ -910,7 +939,16 @@ const LeadSourcesPage: React.FC = () => {
       {/* Source cards */}
       {!loading && config && (
         <>
-          <div className="row g-4 mb-5">
+          {/* Section label */}
+          <div className="d-flex align-items-center gap-2 mb-3">
+            <span className="fw-bold" style={{ fontSize: '0.78rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: '#94a3b8' }}>
+              Lead Channels
+            </span>
+            <span className="badge rounded-pill" style={{ background: '#f1f5f9', color: '#64748b', fontSize: '0.7rem', fontWeight: 600 }}>
+              {sourceKeys.length}
+            </span>
+          </div>
+          <div className="row g-3 mb-4">
             {sourceKeys.map(key => (
               <SourceCardComponent
                 key={key}

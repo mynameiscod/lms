@@ -1004,3 +1004,39 @@
     border-color: #3b82f6;
   }
 }
+
+/* P5: Call sub-outcome quick-buttons */
+.tc-sub-outcome-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+  margin-top: 0.25rem;
+}
+
+.tc-sub-outcome-btn {
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--sub-color, #6c757d);
+  background: transparent;
+  color: var(--sub-color, #6c757d);
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tc-sub-outcome-btn:hover {
+  background: var(--sub-color, #6c757d);
+  color: white;
+}
+
+.tc-sub-outcome-btn.active {
+  background: var(--sub-color, #6c757d);
+  color: white;
+  font-weight: 700;
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.12);
+}

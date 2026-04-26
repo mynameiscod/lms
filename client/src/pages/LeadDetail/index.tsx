@@ -1,10 +1,11 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi } from '../../api';
+import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi, meetingApi, leadFeeApi } from '../../api';
 import MeetingScheduler from '../../components/leads/MeetingScheduler';
 import PaymentLinkModal from '../../components/leads/PaymentLinkModal';
 import LostReasonModal from '../../components/leads/LostReasonModal';
+import MeetingSchedulerModal from '../../components/leads/MeetingSchedulerModal';
 import LeadDetailModern from './LeadDetailModern';
 import LeadDetailV2 from './LeadDetailV2';
 import './LeadDetailNew.css';
@@ -146,6 +147,201 @@ const formatTime = (date: string) =>
 
 const isOverdue = (date?: string) =>
   date ? new Date(date) < new Date(new Date().setHours(0,0,0,0)) : false;
+
+// ─── P5: Fee & Payment Card ──────────────────────────────────────────────────
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  not_started: '⬜ Not Started',
+  deposit_pending: '⏳ Deposit Pending',
+  deposit_paid: '💚 Deposit Paid',
+  full_pending: '🟡 Full Payment Pending',
+  full_paid: '✅ Fully Paid',
+  refunded: '🔄 Refunded',
+};
+
+const LeadFeeCard: React.FC<{ lead: any; onUpdated: () => void; showAlert: (t: 'success'|'error', m: string) => void }> = ({ lead, onUpdated, showAlert }) => {
+  const [editing, setEditing] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [feeQuote, setFeeQuote] = useState<string>(lead.feeQuote?.toString() || '');
+  const [feeDiscount, setFeeDiscount] = useState<string>(lead.feeDiscount?.toString() || '0');
+  const [paymentStatus, setPaymentStatus] = useState<string>(lead.paymentStatus || 'not_started');
+  const [depositAmount, setDepositAmount] = useState<string>(lead.depositAmount?.toString() || '');
+  const [paymentNotes, setPaymentNotes] = useState<string>(lead.paymentNotes || '');
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await leadFeeApi.update(lead._id, {
+        feeQuote: feeQuote ? Number(feeQuote) : undefined,
+        feeDiscount: feeDiscount ? Number(feeDiscount) : 0,
+        paymentStatus,
+        depositAmount: depositAmount ? Number(depositAmount) : undefined,
+        paymentNotes,
+      });
+      setEditing(false);
+      onUpdated();
+      showAlert('success', 'Fee information saved');
+    } catch (err: any) {
+      showAlert('error', err.message || 'Failed to save fee');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const netFee = (Number(feeQuote) || 0) - (Number(feeDiscount) || 0);
+
+  return (
+    <div className="crm-card">
+      <div className="crm-card-header">
+        <div className="crm-card-title">💰 Fee & Payment</div>
+        <button className="crm-card-action" onClick={() => setEditing(!editing)}>
+          {editing ? 'Cancel' : 'Edit'}
+        </button>
+      </div>
+      <div className="crm-card-body">
+        {editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                Fee Quote (₹)
+                <input type="number" className="crm-checklist-input" value={feeQuote} onChange={e => setFeeQuote(e.target.value)} placeholder="e.g. 25000" style={{ marginTop: 4 }} />
+              </label>
+              <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                Discount (₹)
+                <input type="number" className="crm-checklist-input" value={feeDiscount} onChange={e => setFeeDiscount(e.target.value)} placeholder="0" style={{ marginTop: 4 }} />
+              </label>
+            </div>
+            {feeQuote && <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#059669' }}>Net: ₹{netFee.toLocaleString()}</div>}
+            <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+              Payment Status
+              <select className="crm-checklist-input" value={paymentStatus} onChange={e => setPaymentStatus(e.target.value)} style={{ marginTop: 4 }}>
+                {Object.entries(PAYMENT_STATUS_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </label>
+            {(paymentStatus === 'deposit_pending' || paymentStatus === 'deposit_paid') && (
+              <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                Deposit Amount (₹)
+                <input type="number" className="crm-checklist-input" value={depositAmount} onChange={e => setDepositAmount(e.target.value)} style={{ marginTop: 4 }} />
+              </label>
+            )}
+            <label style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+              Notes
+              <textarea className="crm-checklist-input" value={paymentNotes} onChange={e => setPaymentNotes(e.target.value)} rows={2} style={{ marginTop: 4 }} />
+            </label>
+            <button className="crm-btn crm-btn-primary" onClick={handleSave} disabled={saving} style={{ width: '100%' }}>
+              {saving ? 'Saving...' : '💾 Save'}
+            </button>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {lead.feeQuote ? (
+              <>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase' }}>Quote</div>
+                    <div style={{ fontWeight: 700, color: '#111827' }}>₹{lead.feeQuote.toLocaleString()}</div>
+                  </div>
+                  {lead.feeDiscount > 0 && (
+                    <div>
+                      <div style={{ fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase' }}>Discount</div>
+                      <div style={{ fontWeight: 700, color: '#dc2626' }}>-₹{lead.feeDiscount.toLocaleString()}</div>
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ fontSize: '0.68rem', color: '#9ca3af', textTransform: 'uppercase' }}>Net</div>
+                    <div style={{ fontWeight: 700, color: '#059669' }}>₹{(lead.feeQuote - (lead.feeDiscount || 0)).toLocaleString()}</div>
+                  </div>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.78rem', padding: '3px 8px', borderRadius: 12, background: '#f3f4f6', color: '#374151' }}>
+                    {PAYMENT_STATUS_LABELS[lead.paymentStatus || 'not_started']}
+                  </span>
+                </div>
+                {lead.paymentNotes && <div style={{ fontSize: '0.78rem', color: '#6b7280' }}>{lead.paymentNotes}</div>}
+              </>
+            ) : (
+              <button className="crm-add-deal-btn" onClick={() => setEditing(true)}>+ Add Fee Quote</button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// ─── P5: Meetings Card ───────────────────────────────────────────────────────
+const LeadMeetingsCard: React.FC<{ leadId: string; leadName: string; onScheduled: () => void; showAlert: (t: 'success'|'error', m: string) => void }> = ({ leadId, leadName, onScheduled, showAlert }) => {
+  const [meetings, setMeetings] = useState<any[]>([]);
+  const [showScheduler, setShowScheduler] = useState(false);
+
+  const loadMeetings = useCallback(async () => {
+    try {
+      const res = await meetingApi.list({ leadId });
+      setMeetings((res.data || []).filter((m: any) => m.status === 'scheduled').slice(0, 5));
+    } catch {}
+  }, [leadId]);
+
+  useEffect(() => { loadMeetings(); }, [loadMeetings]);
+
+  const MEETING_TYPE_LABELS: Record<string, string> = {
+    online_demo: '🖥️ Online Demo',
+    trainer_call: '📞 Trainer Call',
+    campus_visit: '🏫 Campus Visit',
+    payment_discussion: '💳 Payment Discussion',
+  };
+
+  const handleMarkComplete = async (meetingId: string) => {
+    try {
+      await meetingApi.update(meetingId, { status: 'completed' });
+      loadMeetings();
+      showAlert('success', 'Meeting marked as complete');
+    } catch (err: any) {
+      showAlert('error', err.message || 'Failed to update meeting');
+    }
+  };
+
+  return (
+    <div className="crm-card">
+      <div className="crm-card-header">
+        <div className="crm-card-title">📅 Meetings</div>
+        <button className="crm-card-action" onClick={() => setShowScheduler(true)}>+ Schedule</button>
+      </div>
+      <div className="crm-card-body">
+        {meetings.length === 0 ? (
+          <div style={{ color: '#9ca3af', fontSize: '0.84rem', textAlign: 'center', padding: '8px 0' }}>No upcoming meetings</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {meetings.map((m: any) => (
+              <div key={m._id} style={{ padding: '8px 10px', borderRadius: 8, background: '#f9fafb', border: '1px solid #e5e7eb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.82rem', color: '#111827' }}>{m.title || MEETING_TYPE_LABELS[m.type]}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                      {new Date(m.scheduledAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                  <button
+                    style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: 6, border: '1px solid #16a34a', color: '#16a34a', background: 'transparent', cursor: 'pointer' }}
+                    onClick={() => handleMarkComplete(m._id)}
+                  >
+                    ✓ Done
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      {showScheduler && (
+        <MeetingSchedulerModal
+          leadId={leadId}
+          leadName={leadName}
+          onClose={() => setShowScheduler(false)}
+          onCreated={() => { setShowScheduler(false); loadMeetings(); onScheduled(); }}
+        />
+      )}
+    </div>
+  );
+};
 
 const LeadDetail: React.FC = () => {
   const { leadId } = useParams<{ leadId: string }>();
@@ -1093,6 +1289,13 @@ const LeadDetail: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* P5: Fee & Payment Card */}
+          <LeadFeeCard lead={lead} onUpdated={loadData} showAlert={showAlertMsg} />
+
+          {/* P5: Upcoming Meetings Card */}
+          <LeadMeetingsCard leadId={lead._id} leadName={lead.name} onScheduled={loadData} showAlert={showAlertMsg} />
+
         </div>
       </div>
 

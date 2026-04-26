@@ -15,6 +15,7 @@ import { scoreAndAssignLead } from '../services/leadScoringService';
 import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
 import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
+import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -125,25 +126,52 @@ export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
 
     const leads = await Lead.find(filter)
       .populate('stageId', 'name')
-      .populate('assignedTo', 'firstName lastName')
+      .populate('assignedTo', 'firstName lastName email')
       .populate('createdBy', 'firstName lastName')
       .sort({ createdAt: -1 })
       .lean();
 
-    const headers = ['Name', 'Email', 'Phone', 'Source', 'Course Interest', 'Stage', 'Assigned To', 'Demo Schedule / Next Follow-up', 'Notes', 'Created At'];
+    // P5: Enhanced export headers
+    const headers = [
+      'Name', 'Email', 'Phone', 'Source', 'Course Interest',
+      'Stage', 'Priority', 'Score',
+      'Assigned To', 'Next Follow-up', 'Notes',
+      'Language', 'Payment Status', 'Fee Quote (₹)', 'Discount (₹)',
+      'Activity Count', 'Last Contact Date',
+      'Total Calls', 'Connected Calls',
+      'Created At', 'Updated At',
+    ];
 
-    const rows = leads.map((lead: any) => [
-      lead.name || '',
-      lead.email || '',
-      lead.phone || '',
-      lead.source || '',
-      (lead.courseInterest || []).join('; '),
-      lead.stageId?.name || '',
-      lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : '',
-      lead.nextFollowUp ? new Date(lead.nextFollowUp).toISOString().split('T')[0] : '',
-      lead.notes || '',
-      new Date(lead.createdAt).toISOString().split('T')[0]
-    ]);
+    const rows = leads.map((lead: any) => {
+      const activities = lead.activities || [];
+      const callActivities = activities.filter((a: any) => a.type === 'call');
+      const connectedCalls = callActivities.filter((a: any) => a.callOutcome === 'connected').length;
+      const lastActivity = activities.length > 0 ? activities[activities.length - 1]?.createdAt : undefined;
+
+      return [
+        lead.name || '',
+        lead.email || '',
+        lead.phone || '',
+        lead.source || '',
+        (lead.courseInterest || []).join('; '),
+        lead.stageId?.name || '',
+        lead.priority || '',
+        lead.score || 0,
+        lead.assignedTo ? `${lead.assignedTo.firstName} ${lead.assignedTo.lastName}` : '',
+        lead.nextFollowUp ? new Date(lead.nextFollowUp).toISOString().split('T')[0] : '',
+        lead.notes || '',
+        lead.language || 'english',
+        lead.paymentStatus || 'not_started',
+        lead.feeQuote || '',
+        lead.feeDiscount || '',
+        activities.length,
+        lastActivity ? new Date(lastActivity).toISOString().split('T')[0] : '',
+        callActivities.length,
+        connectedCalls,
+        new Date(lead.createdAt).toISOString().split('T')[0],
+        new Date(lead.updatedAt).toISOString().split('T')[0],
+      ];
+    });
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
@@ -154,11 +182,34 @@ export const exportLeads = async (req: AuthenticatedRequest, res: Response) => {
     }));
     ws['!cols'] = colWidths;
 
+    // P5: Add a summary sheet
+    const total = leads.length;
+    const converted = leads.filter((l: any) => l.convertedStudentId).length;
+    const byStage: Record<string, number> = {};
+    leads.forEach((l: any) => {
+      const s = l.stageId?.name || 'Unknown';
+      byStage[s] = (byStage[s] || 0) + 1;
+    });
+    const summaryData = [
+      ['Export Summary', ''],
+      ['Generated At', new Date().toISOString()],
+      ['Total Leads', total],
+      ['Converted', converted],
+      ['Conversion Rate', total > 0 ? `${((converted / total) * 100).toFixed(1)}%` : '0%'],
+      ['', ''],
+      ['Stage Breakdown', ''],
+      ...Object.entries(byStage).map(([stage, count]) => [stage, count]),
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+    wsSummary['!cols'] = [{ wch: 25 }, { wch: 20 }];
+
     XLSX.utils.book_append_sheet(wb, ws, 'Leads');
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', 'attachment; filename=leads_export.xlsx');
+    res.setHeader('Content-Disposition', `attachment; filename=leads_export_${new Date().toISOString().split('T')[0]}.xlsx`);
     res.end(buf);
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to export leads', error: error.message });
@@ -626,6 +677,10 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
     pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
       .catch(err => console.error('[LEAD] pushLeadStageChange failed:', err));
 
+    // P5: Schedule WhatsApp drip messages for new stage
+    scheduleDripOnStageEntry(req.tenantId!, lead._id.toString(), newStage.name)
+      .catch(err => console.error('[LEAD] scheduleDripOnStageEntry failed:', err));
+
     res.json({ success: true, message: 'Lead stage updated', data: populated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to change stage', error: error.message });
@@ -697,6 +752,10 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
     // Push stage change to Google Sheet if tenant has push-back configured
     pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
       .catch(err => console.error('[LEAD] pushLeadStageChange (approved) failed:', err));
+
+    // P5: Schedule WhatsApp drip messages for approved stage
+    scheduleDripOnStageEntry(req.tenantId!, lead._id.toString(), newStage.name)
+      .catch(err => console.error('[LEAD] scheduleDripOnStageEntry (approved) failed:', err));
 
     res.json({ success: true, message: `Stage change to "${newStage.name}" approved`, data: populated });
   } catch (error: any) {
@@ -1561,5 +1620,45 @@ export const getFunnelAnalytics = async (req: AuthenticatedRequest, res: Respons
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch funnel analytics', error: error.message });
+  }
+};
+
+// ─── P5: Update fee & payment info ──────────────────────────────────────────
+export const updateLeadFee = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const { leadId } = req.params;
+    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId });
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    const allowed = ['feeQuote', 'feeDiscount', 'feeDiscountApproved', 'paymentStatus', 'paymentNotes', 'depositAmount', 'depositPaidAt'];
+    const update: any = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) update[key] = req.body[key];
+    }
+
+    // Track discount approvals
+    if (update.feeDiscountApproved === true) {
+      update.feeDiscountApprovedBy = req.user!.id;
+    }
+
+    Object.assign(lead, update);
+
+    // Log payment status changes as activity
+    if (update.paymentStatus) {
+      lead.activities.push({
+        type: 'status_change',
+        description: `Payment status updated to: ${update.paymentStatus}`,
+        createdBy: req.user!.id as any,
+        createdAt: new Date(),
+      });
+    }
+
+    await lead.save();
+    await auditLog(req, 'UPDATE', `Lead fee/payment updated for "${lead.name}"`, lead._id, update);
+    emitLeadEvent(req, 'lead_updated', { _id: lead._id, ...update });
+
+    res.json({ success: true, message: 'Fee updated', data: lead });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to update fee', error: error.message });
   }
 };

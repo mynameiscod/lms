@@ -576,3 +576,154 @@
     padding: 6px 8px;
   }
 }
+
+/* P5: Widget Row */
+.mb-widgets-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.mb-widget-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 16px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+}
+
+.mb-widget-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.mb-widget-title {
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #374151;
+}
+
+.mb-widget-badge {
+  padding: 2px 10px;
+  border-radius: 12px;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-weight: 700;
+  font-size: 0.82rem;
+}
+.mb-widget-badge.danger { background: #fee2e2; color: #dc2626; }
+.mb-widget-badge.success { background: #dcfce7; color: #16a34a; }
+
+.mb-widget-empty {
+  color: #9ca3af;
+  font-size: 0.82rem;
+  text-align: center;
+  padding: 12px 0;
+}
+
+.mb-widget-ok {
+  font-size: 0.85rem;
+  color: #16a34a;
+  font-weight: 600;
+  text-align: center;
+  padding: 8px 0;
+}
+
+.mb-widget-warn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #dc2626;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 0 8px;
+}
+
+.mb-widget-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mb-widget-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: #f9fafb;
+  border-radius: 6px;
+  border: 1px solid #f3f4f6;
+}
+
+.mb-widget-item-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.mb-widget-item-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #111827;
+  text-transform: capitalize;
+}
+
+.mb-widget-item-sub {
+  font-size: 0.72rem;
+  color: #9ca3af;
+}
+
+.mb-widget-item-time {
+  font-size: 0.78rem;
+  color: #6b7280;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* 7-day trend micro-chart */
+.mb-trend-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 60px;
+  padding: 0 4px;
+}
+
+.mb-trend-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+}
+
+.mb-trend-bar-wrap {
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  width: 100%;
+}
+
+.mb-trend-bar-fill {
+  width: 100%;
+  background: linear-gradient(180deg, #6366f1, #8b5cf6);
+  border-radius: 3px 3px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.mb-trend-label {
+  font-size: 0.65rem;
+  color: #9ca3af;
+}
+
+@media (max-width: 900px) {
+  .mb-widgets-row {
+    grid-template-columns: 1fr;
+  }
+}

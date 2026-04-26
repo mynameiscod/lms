@@ -8,6 +8,7 @@ import path from 'path';
 
 import apiRoutes from './routes';
 import { ApiResponse, AuthenticatedRequest } from './types';
+import { processDueMessages } from './services/whatsAppDripService';
 
 dotenv.config();
 
@@ -231,5 +232,10 @@ app.use((err: any, req: Request, res: Response<ApiResponse<any>>, next: NextFunc
     error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
   });
 });
+
+// P5: WhatsApp drip sequence runner — every 60 minutes
+setInterval(() => {
+  processDueMessages().catch(err => console.error('[DRIP-INTERVAL]', err));
+}, 60 * 60 * 1000);
 
 export default app;

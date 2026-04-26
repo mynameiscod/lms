@@ -196,6 +196,16 @@ export interface ILead extends Document {
   // NEW: SLA breach flag
   slaBreach?: boolean;
   slaBreachAt?: Date;
+
+  // P5: Fee & Payment tracking
+  feeQuote?: number;
+  feeDiscount?: number;
+  feeDiscountApproved?: boolean;
+  feeDiscountApprovedBy?: mongoose.Types.ObjectId;
+  paymentStatus?: 'not_started' | 'deposit_pending' | 'deposit_paid' | 'full_pending' | 'full_paid' | 'refunded';
+  paymentNotes?: string;
+  depositAmount?: number;
+  depositPaidAt?: Date;
   
   // NEW: AI Summary
   aiSummary?: IAISummary;
@@ -503,6 +513,20 @@ const LeadSchema: Schema = new Schema(
     // NEW: SLA breach
     slaBreach: { type: Boolean, default: false },
     slaBreachAt: { type: Date },
+
+    // P5: Fee & Payment tracking
+    feeQuote: { type: Number },
+    feeDiscount: { type: Number, default: 0 },
+    feeDiscountApproved: { type: Boolean, default: false },
+    feeDiscountApprovedBy: { type: mongoose.Types.ObjectId, ref: 'User' },
+    paymentStatus: {
+      type: String,
+      enum: ['not_started', 'deposit_pending', 'deposit_paid', 'full_pending', 'full_paid', 'refunded'],
+      default: 'not_started',
+    },
+    paymentNotes: { type: String, trim: true },
+    depositAmount: { type: Number },
+    depositPaidAt: { type: Date },
     
     // NEW: AI Summary
     aiSummary: {

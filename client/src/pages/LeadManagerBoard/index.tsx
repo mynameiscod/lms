@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { leadApi, leadStageApi } from '../../api';
+import { leadApi, leadStageApi, meetingApi } from '../../api';
 import { useAuth } from '../../contexts/AuthContext';
 import './LeadManagerBoard.css';
 
@@ -79,6 +79,11 @@ const LeadManagerBoardPage: React.FC = () => {
     }
   });
 
+  // P5: New widget state
+  const [todayMeetings, setTodayMeetings] = useState<any[]>([]);
+  const [slaBreaches, setSlaBreaches] = useState<number>(0);
+  const [conversionTrend, setConversionTrend] = useState<{ date: string; converted: number }[]>([]);
+
   const showAlertMsg = (type: 'success' | 'error', message: string) => {
     setAlert({ type, message });
     setTimeout(() => setAlert(null), 3000);
@@ -87,9 +92,34 @@ const LeadManagerBoardPage: React.FC = () => {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await leadApi.getManagerBoard();
-      setEmployees(res.data?.employees || []);
-      setStages(res.data?.stages || []);
+      const [boardRes] = await Promise.all([
+        leadApi.getManagerBoard(),
+      ]);
+      setEmployees(boardRes.data?.employees || []);
+      setStages(boardRes.data?.stages || []);
+
+      // P5: Load today's meetings
+      const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+      const todayEnd = new Date(); todayEnd.setHours(23,59,59,999);
+      meetingApi.list({
+        status: 'scheduled',
+        from: todayStart.toISOString(),
+        to: todayEnd.toISOString(),
+      }).then(res => setTodayMeetings(res.data || [])).catch(() => {});
+
+      // P5: Load SLA breach count via funnel analytics
+      leadApi.getFunnelAnalytics({}).then((res: any) => {
+        const breachCount = (res.data?.teamSLA || []).filter((t: any) => t.slaStatus === 'critical').length;
+        setSlaBreaches(breachCount);
+        // Build 7-day conversion trend from stage data
+        const now = new Date();
+        const trend = Array.from({ length: 7 }, (_, i) => {
+          const d = new Date(now);
+          d.setDate(d.getDate() - (6 - i));
+          return { date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), converted: 0 };
+        });
+        setConversionTrend(trend);
+      }).catch(() => {});
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to load data');
     } finally {
@@ -222,6 +252,84 @@ const LeadManagerBoardPage: React.FC = () => {
             </div>
           );
         })}
+      </div>
+
+      {/* P5: Widgets Row */}
+      <div className="mb-widgets-row">
+        {/* Today's Meetings */}
+        <div className="mb-widget-card">
+          <div className="mb-widget-header">
+            <span className="mb-widget-title">📅 Today's Meetings</span>
+            <span className="mb-widget-badge">{todayMeetings.length}</span>
+          </div>
+          {todayMeetings.length === 0 ? (
+            <div className="mb-widget-empty">No meetings scheduled today</div>
+          ) : (
+            <div className="mb-widget-list">
+              {todayMeetings.slice(0, 5).map((m: any) => (
+                <div key={m._id} className="mb-widget-item">
+                  <div className="mb-widget-item-main">
+                    <span className="mb-widget-item-title">{m.title || m.type?.replace('_', ' ')}</span>
+                    {m.leadId?.name && <span className="mb-widget-item-sub">{m.leadId.name}</span>}
+                  </div>
+                  <span className="mb-widget-item-time">
+                    {new Date(m.scheduledAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* SLA Breaches */}
+        <div className="mb-widget-card">
+          <div className="mb-widget-header">
+            <span className="mb-widget-title">🚨 SLA Breaches</span>
+            <span className={`mb-widget-badge ${slaBreaches > 0 ? 'danger' : 'success'}`}>{slaBreaches}</span>
+          </div>
+          <div className="mb-widget-body">
+            {slaBreaches === 0 ? (
+              <div className="mb-widget-ok">✅ All team members within SLA</div>
+            ) : (
+              <div className="mb-widget-warn">
+                <span style={{ fontSize: '2rem' }}>⚠️</span>
+                <span>{slaBreaches} agent{slaBreaches > 1 ? 's' : ''} in critical SLA breach</span>
+              </div>
+            )}
+            <div style={{ marginTop: 12 }}>
+              <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginBottom: 4 }}>SLA Rules</div>
+              <div style={{ fontSize: '0.78rem', color: '#374151' }}>🟢 &lt; 2h avg response = Good</div>
+              <div style={{ fontSize: '0.78rem', color: '#374151' }}>🟡 2–4h avg response = Warning</div>
+              <div style={{ fontSize: '0.78rem', color: '#374151' }}>🔴 &gt; 4h avg response = Critical</div>
+            </div>
+          </div>
+        </div>
+
+        {/* 7-day Conversion Trend */}
+        <div className="mb-widget-card">
+          <div className="mb-widget-header">
+            <span className="mb-widget-title">📈 7-Day Trend</span>
+          </div>
+          <div className="mb-widget-body">
+            <div className="mb-trend-chart">
+              {conversionTrend.map((d, i) => (
+                <div key={i} className="mb-trend-bar-col">
+                  <div className="mb-trend-bar-wrap">
+                    <div
+                      className="mb-trend-bar-fill"
+                      style={{ height: `${Math.max(d.converted * 8, 4)}px` }}
+                      title={`${d.converted} converted`}
+                    />
+                  </div>
+                  <div className="mb-trend-label">{d.date.split(' ')[1]}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ fontSize: '0.72rem', color: '#9ca3af', marginTop: 6, textAlign: 'center' }}>
+              Conversions per day (live data coming soon)
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Employee Cards */}

@@ -23,6 +23,7 @@ import {
   getDuplicateLeads,
   mergeDuplicateLeads,
   getFunnelAnalytics,
+  updateLeadFee,
 } from '../controllers/leadController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -92,5 +93,8 @@ router.get('/aging', authMiddleware, tenantResolver, roleGuard(['view_leads', 'm
 // Duplicate lead detection + merge
 router.get('/duplicates', authMiddleware, tenantResolver, roleGuard(['manage_leads']), getDuplicateLeads);
 router.post('/duplicates/merge', authMiddleware, tenantResolver, roleGuard(['manage_leads']), mergeDuplicateLeads);
+
+// P5: Fee & Payment
+router.patch('/:leadId/fee', authMiddleware, tenantResolver, roleGuard(['edit_leads', 'manage_leads']), updateLeadFee);
 
 export default router;

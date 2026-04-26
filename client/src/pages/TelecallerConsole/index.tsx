@@ -65,6 +65,7 @@ const TelecallerConsole: React.FC = () => {
   // Quick Action State
   const [activityType, setActivityType] = useState<'call' | 'whatsapp' | 'note'>('call');
   const [callOutcome, setCallOutcome] = useState('');
+  const [callSubOutcome, setCallSubOutcome] = useState('');
   const [activityNote, setActivityNote] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [newStageId, setNewStageId] = useState('');
@@ -260,6 +261,7 @@ const TelecallerConsole: React.FC = () => {
     setSelectedLead(lead);
     setActivityNote('');
     setCallOutcome('');
+    setCallSubOutcome('');
   };
 
   const handleQuickUpdate = async () => {
@@ -281,6 +283,7 @@ const TelecallerConsole: React.FC = () => {
         updateData.activityDescription = activityNote || `${activityType} - ${callOutcome}`;
         if (callOutcome) {
           updateData.callOutcome = callOutcome;
+          if (callSubOutcome) updateData.callSubOutcome = callSubOutcome;
         }
       }
       
@@ -291,6 +294,7 @@ const TelecallerConsole: React.FC = () => {
       // Clear form
       setActivityNote('');
       setCallOutcome('');
+      setCallSubOutcome('');
       setNextFollowUpDate('');
       setNewStageId('');
       
@@ -612,16 +616,43 @@ const TelecallerConsole: React.FC = () => {
                     <label>Call Outcome</label>
                     <select 
                       value={callOutcome} 
-                      onChange={(e) => setCallOutcome(e.target.value)}
+                      onChange={(e) => { setCallOutcome(e.target.value); setCallSubOutcome(''); }}
                     >
                       <option value="">Select outcome...</option>
                       <option value="connected">Connected</option>
                       <option value="no_answer">No Answer</option>
                       <option value="busy">Busy</option>
                       <option value="wrong_number">Wrong Number</option>
+                      <option value="switched_off">Switched Off</option>
                       <option value="callback_requested">Callback Requested</option>
                       <option value="not_interested">Not Interested</option>
                     </select>
+                  </div>
+                )}
+
+                {activityType === 'call' && callOutcome === 'connected' && (
+                  <div className="tc-form-row">
+                    <label>Interest Level</label>
+                    <div className="tc-sub-outcome-grid">
+                      {[
+                        { value: 'interested_follow_up', label: '✅ Follow Up', color: '#28a745' },
+                        { value: 'interested_demo', label: '🎥 Demo', color: '#007bff' },
+                        { value: 'interested_visit', label: '🏫 Visit', color: '#17a2b8' },
+                        { value: 'interested_payment', label: '💳 Payment', color: '#fd7e14' },
+                        { value: 'need_time', label: '⏳ Need Time', color: '#6c757d' },
+                        { value: 'not_interested', label: '❌ Not Interested', color: '#dc3545' },
+                      ].map(opt => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          className={`tc-sub-outcome-btn${callSubOutcome === opt.value ? ' active' : ''}`}
+                          style={{ '--sub-color': opt.color } as any}
+                          onClick={() => setCallSubOutcome(callSubOutcome === opt.value ? '' : opt.value)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 )}
 

@@ -2688,3 +2688,54 @@ export const leadDistributionApi = {
     body: JSON.stringify(data),
   }),
 };
+
+// Seat Reservation API (P5)
+export const seatReservationApi = {
+  getByLead: async (leadId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/lead/${leadId}`),
+  create: async (data: {
+    leadId: string;
+    courseName: string;
+    batchName?: string;
+    courseId?: string;
+    batchId?: string;
+    originalPrice: number;
+    discountAmount?: number;
+    discountReason?: string;
+    finalPrice: number;
+    notes?: string;
+  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  addPayment: async (reservationId: string, data: {
+    amount: number;
+    method: string;
+    transactionId?: string;
+    notes?: string;
+  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/payments`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  cancel: async (reservationId: string, reason?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/cancel`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
+};
+
+// Lead Fee API (P5)
+export const leadFeeApi = {
+  update: async (leadId: string, data: {
+    feeQuote?: number;
+    feeDiscount?: number;
+    feeDiscountApproved?: boolean;
+    paymentStatus?: string;
+    paymentNotes?: string;
+    depositAmount?: number;
+    depositPaidAt?: string;
+  }) => authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/fee`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  }),
+};

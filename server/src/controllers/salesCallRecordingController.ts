@@ -47,43 +47,41 @@ function relPath(absPath: string): string {
 // ── Controllers ───────────────────────────────────────────────────────────────
 
 // POST /api/v1/sales-call-recordings
+// Note: multer middleware (handleUpload) runs in the route before this handler
 export const uploadRecording = async (req: AuthenticatedRequest, res: Response) => {
-  uploadMiddleware(req as any, res as any, async (err) => {
-    if (err) return res.status(400).json({ success: false, message: err.message });
-    const file = (req as any).file;
-    if (!file) return res.status(400).json({ success: false, message: 'No audio file provided' });
+  const file = (req as any).file;
+  if (!file) return res.status(400).json({ success: false, message: 'No audio file provided' });
 
-    const { leadId, notes } = req.body;
-    if (!leadId) {
-      fs.unlinkSync(file.path);
-      return res.status(400).json({ success: false, message: 'leadId is required' });
-    }
+  const { leadId, notes } = req.body;
+  if (!leadId) {
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    return res.status(400).json({ success: false, message: 'leadId is required' });
+  }
 
-    try {
-      const recording = await SalesCallRecording.create({
-        tenantId: new mongoose.Types.ObjectId(req.tenantId!),
-        leadId: new mongoose.Types.ObjectId(leadId),
-        recordedBy: new mongoose.Types.ObjectId(req.user!.id),
-        audioUrl: relPath(file.path),
-        fileName: file.originalname,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-        notes,
-        status: 'uploaded',
-        processingProgress: 0,
-      });
+  try {
+    const recording = await SalesCallRecording.create({
+      tenantId: new mongoose.Types.ObjectId(req.tenantId!),
+      leadId: new mongoose.Types.ObjectId(leadId),
+      recordedBy: new mongoose.Types.ObjectId(req.user!.id),
+      audioUrl: relPath(file.path),
+      fileName: file.originalname,
+      fileSize: file.size,
+      mimeType: file.mimetype,
+      notes,
+      status: 'uploaded',
+      processingProgress: 0,
+    });
 
-      // Fire-and-forget transcription + analysis
-      processCallRecording(recording._id.toString()).catch((e) =>
-        console.error('[SALES-CALL] Async processing error:', e.message)
-      );
+    // Fire-and-forget transcription + analysis
+    processCallRecording(recording._id.toString()).catch((e) =>
+      console.error('[SALES-CALL] Async processing error:', e.message)
+    );
 
-      res.status(201).json({ success: true, data: recording, message: 'Recording uploaded and queued for analysis' });
-    } catch (error: any) {
-      fs.unlinkSync(file.path);
-      res.status(500).json({ success: false, message: error.message });
-    }
-  });
+    res.status(201).json({ success: true, data: recording, message: 'Recording uploaded and queued for analysis' });
+  } catch (error: any) {
+    if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    res.status(500).json({ success: false, message: error.message });
+  }
 };
 
 // GET /api/v1/sales-call-recordings?leadId=xxx

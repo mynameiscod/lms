@@ -100,6 +100,14 @@ export default function SalesCallRecordingCard({ leadId }: Props) {
   const upload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Client-side size guard (100 MB)
+    if (file.size > 100 * 1024 * 1024) {
+      setError('File is too large (max 100 MB). Please compress or trim the recording.');
+      if (fileRef.current) fileRef.current.value = '';
+      return;
+    }
+
     setUploading(true); setError('');
     try {
       const form = new FormData();
@@ -110,6 +118,18 @@ export default function SalesCallRecordingCard({ leadId }: Props) {
         headers: getHeaders(),
         body: form,
       });
+
+      if (!res.ok) {
+        if (res.status === 413) {
+          setError('File is too large for the server. Ask your admin to increase nginx client_max_body_size.');
+        } else {
+          let msg = `Upload failed (HTTP ${res.status})`;
+          try { const d = await res.json(); msg = d.message || msg; } catch { /* html error page */ }
+          setError(msg);
+        }
+        return;
+      }
+
       const data = await res.json();
       if (data.success) { await load(); }
       else setError(data.message || 'Upload failed');

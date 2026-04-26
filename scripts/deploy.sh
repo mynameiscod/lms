@@ -70,8 +70,28 @@ if [ -f "/tmp/.env.backup" ]; then
     echo "   ✅ .env restored"
 fi
 
+# Step 6: Ensure nginx allows large uploads (call recordings up to 100 MB)
+echo "🔧 Step 6a: Updating nginx upload limit..."
+NGINX_SITE=$(ls /etc/nginx/sites-enabled/ 2>/dev/null | head -1)
+if [ -n "$NGINX_SITE" ]; then
+    SITE_CONF="/etc/nginx/sites-enabled/$NGINX_SITE"
+    if ! grep -q 'client_max_body_size' "$SITE_CONF"; then
+        # Insert client_max_body_size inside the first server { block
+        sed -i 's/server {/server {\n    client_max_body_size 200m;/' "$SITE_CONF"
+        echo "   ✅ Added client_max_body_size 200m to $SITE_CONF"
+        nginx -t 2>/dev/null && systemctl reload nginx 2>/dev/null || true
+    else
+        # Update existing value
+        sed -i 's/client_max_body_size [^;]*/client_max_body_size 200m/' "$SITE_CONF"
+        echo "   ✅ Updated client_max_body_size to 200m in $SITE_CONF"
+        nginx -t 2>/dev/null && systemctl reload nginx 2>/dev/null || true
+    fi
+else
+    echo "   ℹ️  No nginx sites-enabled found, skipping (nginx may not be on this host)"
+fi
+
 # Step 6: Rebuild and restart
-echo "🚀 Step 6: Rebuilding containers..."
+echo "🚀 Step 6b: Rebuilding containers..."
 docker-compose down --timeout 30 2>/dev/null || true
 docker-compose build --no-cache
 docker-compose up -d

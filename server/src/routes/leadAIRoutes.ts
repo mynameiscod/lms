@@ -7,7 +7,8 @@ import {
   checkAIStatus,
   getLeadsNeedingSummary,
   getNextBestAction,
-  generateFollowUpMessage
+  generateFollowUpMessage,
+  getTalkTrack,
 } from '../controllers/leadAIController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -84,6 +85,15 @@ router.get(
   tenantResolver,
   roleGuard(['view_leads', 'manage_leads', 'create_leads', 'edit_leads']),
   generateFollowUpMessage
+);
+
+// Generate talk track for a lead (opening, points, objection handlers, closing)
+router.get(
+  '/leads/:leadId/talk-track',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_leads', 'manage_leads', 'create_leads']),
+  getTalkTrack
 );
 
 export default router;

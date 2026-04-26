@@ -2,15 +2,24 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export type ConversationStep =
   | 'initial'
+  | 'in_progress'
+  | 'qualified'
+  // Legacy steps kept for backward-compat
   | 'asked_name'
   | 'asked_year'
-  | 'asked_course'
-  | 'qualified';
+  | 'asked_course';
 
 export interface IWhatsAppConversationState extends Document {
   phone: string;
   tenantId: string;
   conversationStep: ConversationStep;
+  /** Index of the current question being asked (0-based into sorted question list) */
+  currentQuestionIndex: number;
+  /** All collected answers keyed by question.id */
+  answers: Map<string, string>;
+  /** Accumulated score from answer-scoring rules */
+  scoreSoFar: number;
+  /** Legacy fields kept for backward-compat */
   name?: string;
   yearOfGraduation?: string;
   interestedCourse?: string;
@@ -24,9 +33,12 @@ const WhatsAppConversationStateSchema: Schema = new Schema(
     tenantId: { type: String, required: true },
     conversationStep: {
       type: String,
-      enum: ['initial', 'asked_name', 'asked_year', 'asked_course', 'qualified'],
+      enum: ['initial', 'in_progress', 'qualified', 'asked_name', 'asked_year', 'asked_course'],
       default: 'initial',
     },
+    currentQuestionIndex: { type: Number, default: 0 },
+    answers: { type: Map, of: String, default: {} },
+    scoreSoFar: { type: Number, default: 0 },
     name: { type: String, trim: true },
     yearOfGraduation: { type: String, trim: true },
     interestedCourse: { type: String, trim: true },

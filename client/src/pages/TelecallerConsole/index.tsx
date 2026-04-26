@@ -83,6 +83,11 @@ const TelecallerConsole: React.FC = () => {
   // AI Insights State
   const [aiInsights, setAiInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
+
+  // Talk Track State
+  const [talkTrack, setTalkTrack] = useState<any>(null);
+  const [loadingTalkTrack, setLoadingTalkTrack] = useState(false);
+  const [talkTrackExpanded, setTalkTrackExpanded] = useState(false);
   
   // Lost Reason State
   const [showLostModal, setShowLostModal] = useState(false);
@@ -230,12 +235,39 @@ const TelecallerConsole: React.FC = () => {
   const loadAIInsights = async (leadId: string) => {
     try {
       setLoadingInsights(true);
+      setTalkTrack(null); // Reset talk track when lead changes
       const res = await leadAIApi.getQuickInsights(leadId);
       setAiInsights(res);
     } catch (error) {
       console.error('Error loading AI insights:', error);
     } finally {
       setLoadingInsights(false);
+    }
+  };
+
+  const loadTalkTrack = async (leadId: string) => {
+    if (loadingTalkTrack) return;
+    try {
+      setLoadingTalkTrack(true);
+      const API_BASE = process.env.REACT_APP_API_URL || '/api/v1';
+      const token = localStorage.getItem('token');
+      const tenantId = localStorage.getItem('tenantId');
+      const res = await fetch(`${API_BASE}/lead-ai/leads/${leadId}/talk-track`, {
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` }),
+          ...(tenantId && { 'X-Tenant-Id': tenantId }),
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTalkTrack(data.data);
+        setTalkTrackExpanded(true);
+      }
+    } catch (err) {
+      console.error('Error loading talk track:', err);
+    } finally {
+      setLoadingTalkTrack(false);
     }
   };
 
@@ -580,6 +612,91 @@ const TelecallerConsole: React.FC = () => {
                         </div>
                       )}
                     </>
+                  )}
+                </div>
+              )}
+
+              {/* Talk Track Panel */}
+              {selectedLead && (
+                <div className="tc-ai-panel" style={{ marginTop: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }} onClick={() => setTalkTrackExpanded(!talkTrackExpanded)}>
+                    <h3 style={{ margin: 0 }}>🗣️ Talk Track</h3>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                      {!talkTrack && (
+                        <button
+                          className="tc-type-btn active"
+                          style={{ padding: '4px 10px', fontSize: '0.78rem' }}
+                          onClick={(e) => { e.stopPropagation(); loadTalkTrack(selectedLead._id); }}
+                          disabled={loadingTalkTrack}
+                        >
+                          {loadingTalkTrack ? '⏳ Generating…' : '✨ Generate'}
+                        </button>
+                      )}
+                      <span>{talkTrackExpanded ? '▲' : '▼'}</span>
+                    </div>
+                  </div>
+                  {talkTrackExpanded && talkTrack && (
+                    <div style={{ marginTop: 10 }}>
+                      <div style={{ background: '#f0f9ff', borderLeft: '3px solid #0ea5e9', padding: '8px 12px', borderRadius: 4, marginBottom: 10 }}>
+                        <strong style={{ fontSize: '0.8rem', color: '#0369a1' }}>Opening Line</strong>
+                        <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>{talkTrack.opening}</p>
+                      </div>
+                      {talkTrack.pointsToCover?.length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          <strong style={{ fontSize: '0.8rem' }}>Key Points to Cover</strong>
+                          <ul style={{ marginTop: 4, paddingLeft: 16, fontSize: '0.82rem' }}>
+                            {talkTrack.pointsToCover.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                          </ul>
+                        </div>
+                      )}
+                      {talkTrack.objectionHandlers && Object.keys(talkTrack.objectionHandlers).length > 0 && (
+                        <div style={{ marginBottom: 10 }}>
+                          <strong style={{ fontSize: '0.8rem' }}>Objection Handlers</strong>
+                          <div style={{ marginTop: 4 }}>
+                            {Object.entries(talkTrack.objectionHandlers).map(([obj, resp]: [string, any]) => (
+                              <div key={obj} style={{ marginBottom: 6, fontSize: '0.8rem' }}>
+                                <span style={{ color: '#dc2626', fontStyle: 'italic' }}>"{obj}"</span>
+                                <span style={{ color: '#374151' }}> → {resp}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {talkTrack.closingAsk && (
+                        <div style={{ background: '#f0fdf4', borderLeft: '3px solid #22c55e', padding: '8px 12px', borderRadius: 4, marginBottom: 10 }}>
+                          <strong style={{ fontSize: '0.8rem', color: '#166534' }}>Closing Ask</strong>
+                          <p style={{ margin: '4px 0 0', fontSize: '0.85rem' }}>{talkTrack.closingAsk}</p>
+                        </div>
+                      )}
+                      {(talkTrack.dos?.length > 0 || talkTrack.donts?.length > 0) && (
+                        <div style={{ display: 'flex', gap: 12 }}>
+                          {talkTrack.dos?.length > 0 && (
+                            <div style={{ flex: 1 }}>
+                              <strong style={{ fontSize: '0.78rem', color: '#16a34a' }}>✅ Do</strong>
+                              <ul style={{ marginTop: 4, paddingLeft: 14, fontSize: '0.78rem' }}>
+                                {talkTrack.dos.map((d: string, i: number) => <li key={i}>{d}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                          {talkTrack.donts?.length > 0 && (
+                            <div style={{ flex: 1 }}>
+                              <strong style={{ fontSize: '0.78rem', color: '#dc2626' }}>❌ Don't</strong>
+                              <ul style={{ marginTop: 4, paddingLeft: 14, fontSize: '0.78rem' }}>
+                                {talkTrack.donts.map((d: string, i: number) => <li key={i}>{d}</li>)}
+                              </ul>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      <button
+                        className="tc-type-btn"
+                        style={{ fontSize: '0.75rem', padding: '4px 10px', marginTop: 8 }}
+                        onClick={() => loadTalkTrack(selectedLead._id)}
+                        disabled={loadingTalkTrack}
+                      >
+                        {loadingTalkTrack ? '⏳ Refreshing…' : '🔄 Refresh'}
+                      </button>
+                    </div>
                   )}
                 </div>
               )}

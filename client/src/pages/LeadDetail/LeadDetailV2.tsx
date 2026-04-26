@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { leadApi, leadStageApi, qualificationApi } from '../../api';
+import SalesCallRecordingCard from '../../components/leads/SalesCallRecordingCard';
 import './LeadDetailV2.css';
 
 interface Lead {
@@ -652,6 +653,9 @@ const LeadDetailV2: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Sales Call Recordings */}
+          <SalesCallRecordingCard leadId={lead._id} />
         </div>
       </div>
 

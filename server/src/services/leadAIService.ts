@@ -336,6 +336,82 @@ The message should re-engage them and invite them to schedule a free demo.`,
       return FALLBACKS[lang] || FALLBACKS.english;
     }
   }
+
+  /**
+   * Generate a talk track for a telecaller before calling this lead.
+   * Returns structured guidance: opening, key points, objection handlers, closing ask.
+   */
+  async generateTalkTrack(leadId: mongoose.Types.ObjectId): Promise<{
+    opening: string;
+    pointsToCover: string[];
+    objectionHandlers: Record<string, string>;
+    closingAsk: string;
+    dos: string[];
+    donts: string[];
+  } | null> {
+    if (!this.openai) return null;
+
+    const lead = await Lead.findById(leadId)
+      .populate('stageId', 'name category')
+      .lean();
+    if (!lead) return null;
+
+    const stage = (lead.stageId as any)?.name || 'Unknown';
+    const courses = (lead.courseInterest || []).join(', ') || 'not specified';
+    const recentActivities = (lead.activities || [])
+      .slice(-5)
+      .map((a: any) => `${a.type}: ${a.description}`)
+      .join('\n');
+
+    try {
+      const completion = await this.openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert EdTech sales coach. Given a lead's profile, produce a concise talk track for the telecaller to use on a call. Return valid JSON ONLY.`,
+          },
+          {
+            role: 'user',
+            content: `Lead profile:
+Name: ${(lead as any).name}
+Source: ${(lead as any).source}
+Stage: ${stage}
+Course interest: ${courses}
+Training mode preference: ${(lead as any).interests?.mode || 'unknown'}
+Urgency: ${(lead as any).interests?.urgency || 'unknown'}
+Affordability: ${(lead as any).interests?.affordability || 'unknown'}
+Concerns: ${((lead as any).interestConcerns || []).join(', ') || 'none noted'}
+Recent activities:
+${recentActivities || 'none'}
+
+Return JSON exactly matching:
+{
+  "opening": "Single sentence opening line to use at the start of the call",
+  "pointsToCover": ["point 1", "point 2", "point 3"],
+  "objectionHandlers": {
+    "too expensive": "response",
+    "need to think": "response",
+    "not right time": "response"
+  },
+  "closingAsk": "The exact closing statement / CTA to use at the end",
+  "dos": ["do 1", "do 2"],
+  "donts": ["dont 1", "dont 2"]
+}`,
+          },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.5,
+        max_tokens: 900,
+      });
+
+      const raw = completion.choices[0]?.message?.content || '{}';
+      return JSON.parse(raw);
+    } catch (err) {
+      console.error('[LeadAI] generateTalkTrack error:', err);
+      return null;
+    }
+  }
 }
 
 export default new LeadAIService();

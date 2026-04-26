@@ -295,3 +295,23 @@ export const generateFollowUpMessage = async (req: AuthRequest, res: Response) =
     res.status(500).json({ message: 'Failed to generate follow-up message' });
   }
 };
+
+// ===================== GENERATE TALK TRACK =====================
+
+export const getTalkTrack = async (req: AuthRequest, res: Response) => {
+  try {
+    const { leadId } = req.params;
+    const lead = await Lead.findById(leadId);
+    if (!lead) return res.status(404).json({ success: false, message: 'Lead not found' });
+
+    const talkTrack = await leadAIService.generateTalkTrack(lead._id as mongoose.Types.ObjectId);
+    if (!talkTrack) {
+      return res.status(503).json({ success: false, message: 'AI service unavailable — OPENAI_API_KEY not configured' });
+    }
+
+    res.json({ success: true, data: talkTrack });
+  } catch (error: any) {
+    console.error('Error generating talk track:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -16,6 +16,7 @@ import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
 import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
+import leadAIService from '../services/leadAIService';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -343,6 +344,16 @@ export const getLeadById = async (req: AuthenticatedRequest, res: Response<ApiRe
 
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
+    }
+
+    // Track first telecaller view + fire-and-forget AI summary on first view
+    const isFirstView = !lead.telecallerMetrics?.firstViewedAt;
+    if (isFirstView) {
+      Lead.findByIdAndUpdate(lead._id, {
+        $set: { 'telecallerMetrics.firstViewedAt': new Date() },
+      }).exec().catch(console.error);
+      // Generate AI summary asynchronously on first view
+      leadAIService.getOrGenerateSummary(lead._id as mongoose.Types.ObjectId).catch(console.error);
     }
 
     res.json({ success: true, message: 'Lead fetched', data: lead });

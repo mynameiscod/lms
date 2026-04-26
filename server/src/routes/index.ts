@@ -56,6 +56,9 @@ import alumniRoutes from '../alumni/alumniRoutes';
 import notificationRoutes from '../notifications/notificationRoutes';
 import meetingRoutes from './meetingRoutes';
 import leadDistributionRoutes from './leadDistributionRoutes';
+import whatsappDripConfigRoutes from './whatsappDripConfigRoutes';
+import salesCallRecordingRoutes from './salesCallRecordingRoutes';
+import googleAdsRoutes from './googleAdsRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -122,5 +125,8 @@ router.use('/college/alumni', alumniRoutes);
 router.use('/notifications', notificationRoutes);
 router.use('/meetings', meetingRoutes);
 router.use('/lead-distribution-config', leadDistributionRoutes);
+router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
+router.use('/sales-call-recordings', salesCallRecordingRoutes);
+router.use('/google-leads', googleAdsRoutes);
 
 export default router;

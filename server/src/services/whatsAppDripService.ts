@@ -11,34 +11,32 @@
 import mongoose from 'mongoose';
 import Lead from '../models/Lead';
 import LeadSourceConfig from '../models/LeadSourceConfig';
+import WhatsAppDripConfig, { DEFAULT_DRIP_SEQUENCES, IDripSequence } from '../models/WhatsAppDripConfig';
 import { getDecryptedTokens } from '../controllers/leadSourceConfigController';
 
-// ─── Drip message templates per stage ────────────────────────────────────────
-const DRIP_TEMPLATES: Record<string, { daysAfter: number; message: string }[]> = {
-  // Stage name patterns (case-insensitive match)
-  'new': [
-    { daysAfter: 1, message: 'Hi {{name}}! Just checking in — do you have any questions about our programs? We are here to help! 😊' },
-    { daysAfter: 3, message: 'Hello {{name}}! We would love to walk you through our courses. Would you be available for a quick call or demo this week?' },
-    { daysAfter: 7, message: 'Hi {{name}}, we noticed you have not connected with us yet. Our next batch starts soon — shall we reserve a spot for you? 🎓' },
-  ],
-  'contacted': [
-    { daysAfter: 1, message: 'Hi {{name}}! Following up on our last conversation. Did you get a chance to review the course details we shared?' },
-    { daysAfter: 3, message: 'Hello {{name}}, we have limited seats available for the upcoming batch. Let us know if you have any questions!' },
-  ],
-  'interested': [
-    { daysAfter: 1, message: 'Hi {{name}}! Great to know you are interested 🎉. Would you like to schedule a free demo class?' },
-    { daysAfter: 3, message: 'Hello {{name}}, our demo sessions are filling up fast. Would you like us to book one for you?' },
-    { daysAfter: 7, message: 'Hi {{name}}! Just a reminder — enrollment for our next batch closes soon. Lock in your seat today! 🔒' },
-  ],
-  'demo_scheduled': [
-    { daysAfter: 1, message: 'Hi {{name}}! Looking forward to your demo session. Do let us know if you need to reschedule.' },
-  ],
-  'proposal_sent': [
-    { daysAfter: 1, message: 'Hi {{name}}! Did you get a chance to review the proposal we sent? Happy to clarify any details.' },
-    { daysAfter: 3, message: 'Hello {{name}}, seats are filling up for the upcoming batch. When would be a good time to discuss?' },
-    { daysAfter: 7, message: 'Hi {{name}}! Last reminder — enrollment closes this week. Let us know if you would like to proceed! 🎓' },
-  ],
-};
+// ─── Drip message templates (DB-backed, falls back to defaults) ───────────────
+
+async function getSequencesForTenant(tenantId: string): Promise<IDripSequence[]> {
+  try {
+    const config = await WhatsAppDripConfig.findOne({
+      tenantId: new mongoose.Types.ObjectId(tenantId),
+      isActive: true,
+    }).lean() as any;
+    if (config?.sequences?.length) return config.sequences as IDripSequence[];
+  } catch {
+    // Fall through to defaults
+  }
+  return DEFAULT_DRIP_SEQUENCES;
+}
+
+function findSequenceForStage(sequences: IDripSequence[], stageName: string): IDripSequence | null {
+  const normalized = stageName.toLowerCase().replace(/[\s-]/g, '_');
+  return sequences.find((s) => {
+    if (!s.enabled) return false;
+    const sn = s.stageName.toLowerCase().replace(/[\s-]/g, '_');
+    return normalized.includes(sn) || sn.includes(normalized);
+  }) ?? null;
+}
 
 // ─── Track what has been sent (in-memory per process; DB-backed below) ──────
 // We add a custom field to the lead activities to avoid re-sending
@@ -84,14 +82,6 @@ async function sendWhatsApp(phone: string, message: string, creds: { phoneNumber
   }
 }
 
-function findTemplatesForStage(stageName: string): { daysAfter: number; message: string }[] {
-  const normalized = stageName.toLowerCase().replace(/[\s-]/g, '_');
-  for (const [key, templates] of Object.entries(DRIP_TEMPLATES)) {
-    if (normalized.includes(key)) return templates;
-  }
-  return [];
-}
-
 function activityTag(stageName: string, daysAfter: number): string {
   return `drip:${stageName.toLowerCase()}:d${daysAfter}`;
 }
@@ -105,14 +95,15 @@ export async function scheduleDripOnStageEntry(
   leadId: string,
   stageName: string
 ): Promise<void> {
-  const templates = findTemplatesForStage(stageName);
-  if (!templates.length) return;
+  // Check if this stage has any drip sequences configured
+  const sequences = await getSequencesForTenant(tenantId);
+  const seq = findSequenceForStage(sequences, stageName);
+  if (!seq?.messages?.length) return;
 
   try {
     const lead = await Lead.findOne({ _id: leadId, tenantId });
     if (!lead) return;
 
-    // Mark stage entry time for this drip by adding a marker activity
     lead.activities.push({
       type: 'status_change',
       description: `drip_entry:${stageName}:${new Date().toISOString()}`,
@@ -131,19 +122,15 @@ export async function scheduleDripOnStageEntry(
  */
 export async function processDueMessages(): Promise<void> {
   const now = new Date();
-
   try {
-    // Find all leads that have drip_entry markers but have not been marked as lost/converted
-    const leads = await Lead.find({
-      'activities.description': /^drip_entry:/,
-    })
+    const leads = await Lead.find({ 'activities.description': /^drip_entry:/ })
       .select('_id name phone tenantId activities')
       .lean();
 
     for (const lead of leads) {
       if (!lead.phone) continue;
-
       const tenantId = lead.tenantId.toString();
+      const sequences = await getSequencesForTenant(tenantId);
       let creds: { phoneNumberId: string; accessToken: string } | null = null;
 
       for (const activity of lead.activities) {
@@ -156,38 +143,39 @@ export async function processDueMessages(): Promise<void> {
         const entryTime = new Date(parts[2]);
         if (isNaN(entryTime.getTime())) continue;
 
-        const templates = findTemplatesForStage(stageName);
-        for (const tpl of templates) {
-          const dueAt = new Date(entryTime.getTime() + tpl.daysAfter * 24 * 60 * 60 * 1000);
+        const seq = findSequenceForStage(sequences, stageName);
+        if (!seq) continue;
+
+        for (const msg of seq.messages) {
+          if (!msg.enabled) continue;
+          const dueAt = new Date(entryTime.getTime() + msg.daysAfter * 24 * 60 * 60 * 1000);
           if (now < dueAt) continue;
 
-          const tag = activityTag(stageName, tpl.daysAfter);
+          const tag = activityTag(stageName, msg.daysAfter);
           const alreadySent = lead.activities.some((a: any) => (a.description || '').includes(tag));
           if (alreadySent) continue;
 
-          // Lazy-load credentials
           if (!creds) creds = await getWhatsAppCredentials(tenantId);
           if (!creds) break;
 
-          const message = tpl.message.replace(/\{\{name\}\}/gi, lead.name || 'there');
+          const message = msg.message.replace(/\{\{name\}\}/gi, lead.name || 'there');
           const ok = await sendWhatsApp(lead.phone, message, creds);
 
           if (ok) {
-            // Mark as sent in DB
             await Lead.updateOne(
               { _id: lead._id },
               {
                 $push: {
                   activities: {
                     type: 'whatsapp',
-                    description: `[AUTO DRIP] ${tag}: ${message.substring(0, 60)}...`,
+                    description: `[AUTO DRIP] ${tag}: ${message.substring(0, 80)}`,
                     createdBy: null,
                     createdAt: new Date(),
                   },
                 },
               }
             );
-            console.log(`[DRIP] Sent D+${tpl.daysAfter} drip to lead ${lead._id} (${lead.name})`);
+            console.log(`[DRIP] Sent D+${msg.daysAfter} drip to lead ${lead._id} (${lead.name})`);
           }
         }
       }

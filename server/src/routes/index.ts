@@ -54,6 +54,8 @@ import crtRoutes from '../crt/crtRoutes';
 import placementDriveRoutes from '../placement/placementDriveRoutes';
 import alumniRoutes from '../alumni/alumniRoutes';
 import notificationRoutes from '../notifications/notificationRoutes';
+import meetingRoutes from './meetingRoutes';
+import leadDistributionRoutes from './leadDistributionRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -118,5 +120,7 @@ router.use('/college/crt', crtRoutes);
 router.use('/college/placement', placementDriveRoutes);
 router.use('/college/alumni', alumniRoutes);
 router.use('/notifications', notificationRoutes);
+router.use('/meetings', meetingRoutes);
+router.use('/lead-distribution-config', leadDistributionRoutes);
 
 export default router;

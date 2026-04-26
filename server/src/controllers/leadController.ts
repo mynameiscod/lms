@@ -13,6 +13,8 @@ import { initializeLeadStageHistory, recordStageTransition } from './leadStageHi
 import { linkLeadToCampaign } from './adCampaignController';
 import { scoreAndAssignLead } from '../services/leadScoringService';
 import { sendLeadWelcomeWhatsApp } from '../services/whatsAppWelcomeService';
+import { autoAssignLead } from '../services/leadDistributionService';
+import { pushLeadStageChange } from '../services/googleSheetSyncService';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -397,6 +399,11 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       console.error('[LEAD-CREATE] WhatsApp welcome failed:', err)
     );
 
+    // Auto-distribute lead if tenant has distribution enabled (fire-and-forget)
+    autoAssignLead(req.tenantId!, lead._id.toString()).catch(err =>
+      console.error('[LEAD-CREATE] autoAssignLead failed:', err)
+    );
+
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')
       .populate('assignedTo', 'firstName lastName email')
@@ -615,6 +622,10 @@ export const changeLeadStage = async (req: AuthenticatedRequest, res: Response<A
     await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved from "${oldStageName}" to "${newStage.name}"`, lead._id, { from: oldStageName, to: newStage.name });
     emitLeadEvent(req, 'lead_stage_changed', populated);
 
+    // Push stage change to Google Sheet if tenant has push-back configured
+    pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
+      .catch(err => console.error('[LEAD] pushLeadStageChange failed:', err));
+
     res.json({ success: true, message: 'Lead stage updated', data: populated });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to change stage', error: error.message });
@@ -682,6 +693,10 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
 
     await auditLog(req, 'STAGE_CHANGE', `Lead "${lead.name}" moved to "${newStage.name}" (manager approved)`, lead._id, { from: oldStageName, to: newStage.name });
     emitLeadEvent(req, 'lead_stage_changed', populated);
+
+    // Push stage change to Google Sheet if tenant has push-back configured
+    pushLeadStageChange(req.tenantId!, { _id: lead._id, name: lead.name, phone: (lead as any).phone, email: (lead as any).email, assignedTo: (lead as any).assignedTo?.toString() }, oldStageName, newStage.name)
+      .catch(err => console.error('[LEAD] pushLeadStageChange (approved) failed:', err));
 
     res.json({ success: true, message: `Stage change to "${newStage.name}" approved`, data: populated });
   } catch (error: any) {
@@ -1358,5 +1373,193 @@ export const mergeDuplicateLeads = async (req: AuthenticatedRequest, res: Respon
     res.json({ success: true, message: `Merged ${duplicates.length} lead(s) into primary`, data: { primaryLeadId } });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to merge leads', error: error.message });
+  }
+};
+
+// ===================== DEEP FUNNEL ANALYTICS =====================
+// GET /api/v1/leads/funnel-analytics?dateFrom=&dateTo=&assignedTo=
+
+export const getFunnelAnalytics = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const scopeFilter = await buildLeadScopeFilter(req);
+    const { dateFrom, dateTo, assignedTo } = req.query;
+
+    const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
+    if (dateFrom) baseMatch.createdAt = { ...baseMatch.createdAt, $gte: new Date(String(dateFrom)) };
+    if (dateTo) {
+      const end = new Date(String(dateTo)); end.setHours(23, 59, 59, 999);
+      baseMatch.createdAt = { ...baseMatch.createdAt, $lte: end };
+    }
+    if (assignedTo) baseMatch.assignedTo = new mongoose.Types.ObjectId(String(assignedTo));
+
+    const stages = await LeadStage.find({ tenantId: req.tenantId, isActive: true }).sort({ order: 1 }).lean();
+
+    const [
+      stageCountsRaw,
+      sourceStatsRaw,
+      priorityStats,
+      conversionRate,
+      avgDaysInStage,
+      callOutcomesRaw,
+      teamSLARaw,
+    ] = await Promise.all([
+      // Per-stage lead counts
+      Lead.aggregate([
+        { $match: baseMatch },
+        { $group: { _id: '$stageId', count: { $sum: 1 } } },
+      ]),
+
+      // Per-source conversion snapshot
+      Lead.aggregate([
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: '$source',
+            total: { $sum: 1 },
+            converted: { $sum: { $cond: [{ $ifNull: ['$convertedStudentId', false] }, 1, 0] } },
+            hot: { $sum: { $cond: [{ $eq: ['$priority', 'hot'] }, 1, 0] } },
+          },
+        },
+        { $sort: { total: -1 } },
+      ]),
+
+      // Priority distribution
+      Lead.aggregate([
+        { $match: baseMatch },
+        { $group: { _id: '$priority', count: { $sum: 1 } } },
+      ]),
+
+      // Overall conversion count
+      Lead.countDocuments({ ...baseMatch, convertedStudentId: { $exists: true, $ne: null } }),
+
+      // Average age (createdAt → now) per stage in days
+      Lead.aggregate([
+        { $match: baseMatch },
+        {
+          $group: {
+            _id: '$stageId',
+            avgAgeDays: {
+              $avg: {
+                $divide: [
+                  { $subtract: [new Date(), '$createdAt'] },
+                  1000 * 60 * 60 * 24,
+                ],
+              },
+            },
+          },
+        },
+      ]),
+
+      // Call outcome distribution
+      Lead.aggregate([
+        { $match: baseMatch },
+        { $unwind: '$activities' },
+        { $match: { 'activities.type': 'call', 'activities.callOutcome': { $exists: true } } },
+        { $group: { _id: '$activities.callOutcome', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]),
+
+      // Team SLA — avg hours from createdAt to first activity per assignee
+      Lead.aggregate([
+        { $match: { ...baseMatch, 'telecallerMetrics.firstActionAt': { $exists: true } } },
+        {
+          $addFields: {
+            responseHours: {
+              $divide: [
+                { $subtract: ['$telecallerMetrics.firstActionAt', '$createdAt'] },
+                1000 * 60 * 60,
+              ],
+            },
+          },
+        },
+        {
+          $group: {
+            _id: '$assignedTo',
+            avgResponseHours: { $avg: '$responseHours' },
+            total: { $sum: 1 },
+          },
+        },
+        { $sort: { avgResponseHours: 1 } },
+        { $limit: 20 },
+      ]),
+    ]);
+
+    // Build stage funnel with drop-off
+    const stageMap: Record<string, any> = {};
+    stages.forEach((s: any) => { stageMap[s._id.toString()] = s; });
+
+    const stageCounts: Record<string, number> = {};
+    stageCountsRaw.forEach((s: any) => { stageCounts[s._id?.toString()] = s.count; });
+
+    const totalLeads = Object.values(stageCounts).reduce((a, b) => a + b, 0);
+
+    const funnelStages = stages.map((s: any, idx: number) => {
+      const count = stageCounts[s._id.toString()] || 0;
+      const prevCount = idx > 0 ? (stageCounts[stages[idx - 1]._id.toString()] || 0) : totalLeads;
+      const dropOff = prevCount > 0 ? Math.round(((prevCount - count) / prevCount) * 100) : 0;
+      return {
+        stageId: s._id,
+        name: s.name,
+        color: s.color,
+        category: s.category,
+        count,
+        percentage: totalLeads > 0 ? Math.round((count / totalLeads) * 100) : 0,
+        dropOff: idx === 0 ? 0 : dropOff,
+        isBottleneck: dropOff > 50 && idx > 0,
+      };
+    });
+
+    // Avg age per stage
+    const avgAgeMap: Record<string, number> = {};
+    avgDaysInStage.forEach((s: any) => { avgAgeMap[s._id?.toString()] = Math.round(s.avgAgeDays || 0); });
+
+    // Populate team SLA with names
+    const teamUserIds = teamSLARaw.map((t: any) => t._id).filter(Boolean);
+    const teamUsers = await User.find({ _id: { $in: teamUserIds } }).select('firstName lastName').lean();
+    const userNameMap: Record<string, string> = {};
+    teamUsers.forEach((u: any) => { userNameMap[u._id.toString()] = `${u.firstName} ${u.lastName}`; });
+
+    const teamSLA = teamSLARaw.map((t: any) => ({
+      userId: t._id,
+      name: userNameMap[String(t._id)] || 'Unknown',
+      avgResponseHours: Math.round((t.avgResponseHours || 0) * 10) / 10,
+      totalLeads: t.total,
+      slaStatus: t.avgResponseHours <= 2 ? 'good' : t.avgResponseHours <= 8 ? 'warning' : 'critical',
+    }));
+
+    res.json({
+      success: true,
+      message: 'Funnel analytics fetched',
+      data: {
+        summary: {
+          totalLeads,
+          converted: conversionRate,
+          conversionRate: totalLeads > 0 ? Math.round((conversionRate / totalLeads) * 100) : 0,
+        },
+        funnelStages: funnelStages.map((s) => ({
+          ...s,
+          avgAgeDays: avgAgeMap[s.stageId?.toString()] || 0,
+        })),
+        sourcePerformance: sourceStatsRaw.map((s: any) => ({
+          source: s._id || 'other',
+          total: s.total,
+          converted: s.converted,
+          hot: s.hot,
+          conversionRate: s.total > 0 ? Math.round((s.converted / s.total) * 100) : 0,
+          hotRate: s.total > 0 ? Math.round((s.hot / s.total) * 100) : 0,
+        })),
+        priorityDistribution: priorityStats.map((p: any) => ({
+          priority: p._id || 'cold',
+          count: p.count,
+        })),
+        callOutcomes: callOutcomesRaw.map((c: any) => ({
+          outcome: c._id,
+          count: c.count,
+        })),
+        teamSLA,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch funnel analytics', error: error.message });
   }
 };

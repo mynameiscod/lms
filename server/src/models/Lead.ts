@@ -1,7 +1,9 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
-export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected';
+export type CallOutcome = 'not_answered' | 'not_connected' | 'busy' | 'rejected' | 'connected' | 'wrong_number' | 'switched_off';
 export type CallStatus = 'scheduled' | 'completed' | 'missed' | 'rescheduled' | 'cancelled';
+export type CallSubOutcome = 'interested_follow_up' | 'interested_demo' | 'interested_visit' | 'interested_payment' | 'need_time' | 'not_interested';
+export type LeadLanguage = 'english' | 'telugu' | 'hindi';
 export type InterestConcern = 'only_online' | 'placements' | 'check_with_parents' | 'fee_issue' | 'timing_issue' | 'other';
 export type LeadPriority = 'hot' | 'warm' | 'cold';
 export type LeadEligibility = 'eligible' | 'not_eligible' | 'needs_review';
@@ -106,9 +108,10 @@ export interface IAISummary {
 }
 
 export interface ILeadActivity {
-  type: 'note' | 'call' | 'email' | 'whatsapp' | 'status_change' | 'assignment' | 'created';
+  type: 'note' | 'call' | 'email' | 'whatsapp' | 'status_change' | 'assignment' | 'created' | 'meeting' | 'content_shared';
   description: string;
   callOutcome?: CallOutcome;
+  callSubOutcome?: CallSubOutcome;
   callStatus?: CallStatus;
   callDuration?: number;  // Duration in seconds
   recordingUrl?: string;
@@ -167,6 +170,9 @@ export interface ILead extends Document {
   // NEW: Structured interests
   interests?: ILeadInterests;
   
+  // NEW: Language preference
+  language?: LeadLanguage;
+
   // NEW: Lost reason
   lostReason?: string;
   lostReasonCategory?: string;
@@ -204,7 +210,7 @@ const LeadActivitySchema: Schema = new Schema(
   {
     type: {
       type: String,
-      enum: ['note', 'call', 'email', 'whatsapp', 'status_change', 'assignment', 'created'],
+      enum: ['note', 'call', 'email', 'whatsapp', 'status_change', 'assignment', 'created', 'meeting', 'content_shared'],
       required: true
     },
     description: {
@@ -223,7 +229,11 @@ const LeadActivitySchema: Schema = new Schema(
     },
     callOutcome: {
       type: String,
-      enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected']
+      enum: ['not_answered', 'not_connected', 'busy', 'rejected', 'connected', 'wrong_number', 'switched_off']
+    },
+    callSubOutcome: {
+      type: String,
+      enum: ['interested_follow_up', 'interested_demo', 'interested_visit', 'interested_payment', 'need_time', 'not_interested']
     },
     callStatus: {
       type: String,
@@ -460,6 +470,13 @@ const LeadSchema: Schema = new Schema(
       technologies: [{ type: String, trim: true }]
     },
     
+    // NEW: Language preference
+    language: {
+      type: String,
+      enum: ['english', 'telugu', 'hindi'],
+      default: 'english'
+    },
+
     // NEW: Lost reason tracking
     lostReason: { type: String, trim: true },
     lostReasonCategory: {

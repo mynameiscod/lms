@@ -1,6 +1,7 @@
 {
-  "short_name": "Codebegun",
-  "name": "Codebegun LMS",
+  "short_name": "CRM",
+  "name": "Codebegun CRM",
+  "description": "Admissions CRM for telecallers",
   "icons": [
     {
       "src": "assets/logo.png",
@@ -15,11 +16,24 @@
     {
       "src": "assets/logo.png",
       "type": "image/png",
-      "sizes": "512x512"
+      "sizes": "512x512",
+      "purpose": "any maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/telecaller-console",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait-primary",
   "theme_color": "#1e3a5f",
-  "background_color": "#ffffff"
+  "background_color": "#f3f4f6",
+  "categories": ["productivity", "business"],
+  "shortcuts": [
+    {
+      "name": "My Lead Queue",
+      "short_name": "Queue",
+      "description": "Open your telecaller lead queue",
+      "url": "/telecaller-console",
+      "icons": [{ "src": "assets/logo.png", "sizes": "192x192" }]
+    }
+  ]
 }

@@ -33,6 +33,9 @@ export interface IGoogleSheetIntegration extends Document {
   syncLogs: ISyncLog[];
   lastSyncAt?: Date;
   lastError?: string;
+  /** Optional push-back: Google Apps Script Web App URL to call on stage changes */
+  pushBackEnabled: boolean;
+  pushWebhookUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -69,7 +72,9 @@ const GoogleSheetIntegrationSchema = new Schema<IGoogleSheetIntegration>({
   createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
   syncLogs: { type: [SyncLogSchema], default: [] },
   lastSyncAt: { type: Date },
-  lastError: { type: String }
+  lastError: { type: String },
+  pushBackEnabled: { type: Boolean, default: false },
+  pushWebhookUrl: { type: String, trim: true },
 }, {
   timestamps: true
 });

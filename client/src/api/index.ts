@@ -1850,7 +1850,11 @@ export const leadApi = {
       method: 'POST',
       body: JSON.stringify({ approved, rejectReason })
     });
-  }
+  },
+  getFunnelAnalytics: async (params?: { dateFrom?: string; dateTo?: string; assignedTo?: string }) => {
+    const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as any).toString() : '';
+    return authenticatedFetch(`${API_BASE_URL}/leads/funnel-analytics${qs}`);
+  },
 };
 
 // Lead Form Config API
@@ -2603,4 +2607,84 @@ export const followUpApi = {
       body: JSON.stringify({ reason })
     });
   },
+};
+
+// Meeting API
+export const meetingApi = {
+  create: async (data: {
+    leadId: string;
+    type: string;
+    title: string;
+    scheduledAt: string;
+    durationMinutes?: number;
+    attendees?: string[];
+    meetingLink?: string;
+    location?: string;
+    notes?: string;
+    sendWhatsApp?: boolean;
+    sendEmail?: boolean;
+  }) => {
+    return authenticatedFetch(`${API_BASE_URL}/meetings`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
+  list: async (params?: {
+    leadId?: string;
+    status?: string;
+    type?: string;
+    from?: string;
+    to?: string;
+    assignedTo?: string;
+  }) => {
+    const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as any).toString() : '';
+    return authenticatedFetch(`${API_BASE_URL}/meetings${qs}`);
+  },
+
+  getById: async (id: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/meetings/${id}`);
+  },
+
+  update: async (id: string, data: Partial<{
+    title: string;
+    scheduledAt: string;
+    durationMinutes: number;
+    attendees: string[];
+    meetingLink: string;
+    location: string;
+    notes: string;
+    sendWhatsApp: boolean;
+    sendEmail: boolean;
+    status: string;
+    cancellationReason: string;
+  }>) => {
+    return authenticatedFetch(`${API_BASE_URL}/meetings/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+  },
+
+  delete: async (id: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/meetings/${id}`, { method: 'DELETE' });
+  },
+
+  getMyUpcoming: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/meetings/upcoming-mine`);
+  },
+};
+
+// Lead Distribution Config API
+export const leadDistributionApi = {
+  get: async () => authenticatedFetch(`${API_BASE_URL}/lead-distribution-config`),
+  update: async (data: {
+    mode?: 'round_robin' | 'weighted' | 'manual';
+    enabled?: boolean;
+    eligibleRoles?: string[];
+    maxLeadsPerDayDefault?: number;
+    weights?: { userId: string; weight: number; maxLeadsPerDay?: number }[];
+  }) => authenticatedFetch(`${API_BASE_URL}/lead-distribution-config`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  }),
 };

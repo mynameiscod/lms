@@ -1,0 +1,170 @@
+.dist-settings {
+  padding: 24px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.dist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 28px;
+}
+
+.dist-header h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #1a1a2e;
+  margin: 0;
+}
+
+.toggle-switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-switch input { display: none; }
+
+.toggle-slider {
+  width: 44px;
+  height: 24px;
+  background: #d1d5db;
+  border-radius: 12px;
+  position: relative;
+  transition: background 0.2s;
+}
+
+.toggle-slider::after {
+  content: '';
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  top: 3px;
+  left: 3px;
+  transition: left 0.2s;
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #6366f1;
+}
+
+.toggle-switch input:checked + .toggle-slider::after {
+  left: 23px;
+}
+
+.toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.dist-disabled-notice {
+  background: #fef9c3;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: #78350f;
+  margin-bottom: 24px;
+}
+
+.dist-section {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.dist-section h2 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 16px 0;
+}
+
+.dist-hint {
+  font-size: 12px;
+  color: #9ca3af;
+  margin: 6px 0 0;
+}
+
+.mode-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.mode-card {
+  border: 2px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.mode-card:hover { border-color: #a5b4fc; }
+.mode-card.active { border-color: #6366f1; background: #eef2ff; }
+
+.mode-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 4px;
+}
+
+.mode-card-desc {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.agent-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.agent-table th,
+.agent-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #f3f4f6;
+  text-align: left;
+}
+
+.agent-table th {
+  font-weight: 600;
+  color: #6b7280;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.agent-table input[type="number"] {
+  padding: 4px 8px;
+  border: 1px solid #e0e0e0;
+  border-radius: 5px;
+  font-size: 13px;
+}
+
+.dist-error {
+  color: #ef4444;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.dist-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.dist-loading {
+  padding: 48px;
+  text-align: center;
+  color: #9ca3af;
+}

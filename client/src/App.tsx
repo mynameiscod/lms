@@ -97,6 +97,8 @@ import LeadPrioritySettingsPage from './pages/LeadPrioritySettings';
 import QualificationSettingsPage from './pages/QualificationSettings';
 import SalesContentLibraryPage from './pages/SalesContentLibrary';
 import LeadAnalyticsPage from './pages/LeadAnalytics';
+import MeetingsPage from './pages/Meetings';
+import LeadDistributionSettingsPage from './pages/LeadDistributionSettings';
 import FollowUpCalendarPage from './pages/FollowUpCalendar';
 import LeadAgingPage from './pages/LeadAging';
 import LeadDuplicatesPage from './pages/LeadDuplicates';
@@ -1093,6 +1095,16 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
+        path="/lead-distribution-settings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <LeadDistributionSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/qualification-settings"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
@@ -1118,6 +1130,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadAnalyticsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/meetings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <MeetingsPage />
             </Layout>
           </ProtectedRoute>
         }

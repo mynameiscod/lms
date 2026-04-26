@@ -277,21 +277,25 @@ Please analyze and respond with this JSON structure:
    */
   async generateFollowUpMessage(
     leadId: mongoose.Types.ObjectId,
-    language: 'english' | 'telugu' | 'hindi' = 'english'
+    language?: 'english' | 'telugu' | 'hindi'
   ): Promise<string | null> {
     const lead = await Lead.findById(leadId)
       .populate('stageId', 'name')
       .lean();
     if (!lead) return null;
 
+    // Use per-lead language preference when caller doesn't specify
+    const lang: 'english' | 'telugu' | 'hindi' =
+      language || (lead as any).language || 'english';
+
     const FALLBACKS: Record<string, string> = {
       english: `Hi ${lead.name}! 👋 We noticed you were interested in ${(lead.courseInterest || []).join(', ') || 'our courses'}. Would you like to know more? Reply YES to schedule a free demo!`,
       telugu: `నమస్కారం ${lead.name} గారు! 👋 మీరు ${(lead.courseInterest || []).join(', ') || 'మా కోర్సులు'}లో ఆసక్తి చూపారు. ఒక ఉచిత డెమో షెడ్యూల్ చేయాలంటే YES అని రిప్లై చేయండి!`,
-      hindi: `नमस्ते ${lead.name} जी! 👋 आप ${(lead.courseInterest || []).join(', ') || 'हमारे courses'}में रुचि रखते हैं। एक मुफ्त डेमो बुक करने के लिए YES लिखें!`,
+      hindi: `నమస్ते ${lead.name} జీ! 👋 आप ${(lead.courseInterest || []).join(', ') || 'हमारे courses'}में रुचि रखते हैं। एक मुफ्त डेमो बुक करने के लिए YES लिखें!`,
     };
 
     if (!this.openai) {
-      return FALLBACKS[language] || FALLBACKS.english;
+      return FALLBACKS[lang] || FALLBACKS.english;
     }
 
     const languageInstructions: Record<string, string> = {
@@ -309,7 +313,7 @@ Please analyze and respond with this JSON structure:
         messages: [
           {
             role: 'system',
-            content: `You are a friendly EdTech sales assistant crafting WhatsApp follow-up messages. ${languageInstructions[language] || languageInstructions.english} Keep the message under 200 characters. Use a single relevant emoji. Never use markdown. Return only the message text.`,
+            content: `You are a friendly EdTech sales assistant crafting WhatsApp follow-up messages. ${languageInstructions[lang] || languageInstructions.english} Keep the message under 200 characters. Use a single relevant emoji. Never use markdown. Return only the message text.`,
           },
           {
             role: 'user',
@@ -326,10 +330,10 @@ The message should re-engage them and invite them to schedule a free demo.`,
         max_tokens: 200,
       });
 
-      return completion.choices[0]?.message?.content?.trim() || FALLBACKS[language] || FALLBACKS.english;
+      return completion.choices[0]?.message?.content?.trim() || FALLBACKS[lang] || FALLBACKS.english;
     } catch (err) {
       console.error('[LeadAI] generateFollowUpMessage error:', err);
-      return FALLBACKS[language] || FALLBACKS.english;
+      return FALLBACKS[lang] || FALLBACKS.english;
     }
   }
 }

@@ -479,3 +479,75 @@ export async function syncAllActiveSheets(): Promise<void> {
     console.error('[GSHEET-SYNC] Fatal error in syncAllActiveSheets:', err.message);
   }
 }
+
+/**
+ * Push a lead stage-change event to any active Google Sheet integration for the tenant
+ * that has `pushBackEnabled=true` and a `pushWebhookUrl` configured.
+ *
+ * The webhook (a Google Apps Script Web App) receives a POST body:
+ * {
+ *   event: 'stage_change',
+ *   leadId, phone, email, name,
+ *   oldStage, newStage, changedAt, assignedTo
+ * }
+ *
+ * If you don't have a webhook set up yet, enable pushBackEnabled in the integration
+ * settings and deploy a Google Apps Script that reads the POST body and updates the sheet.
+ */
+export async function pushLeadStageChange(
+  tenantId: string,
+  lead: { _id: any; name?: string; phone?: string; email?: string; assignedTo?: string },
+  oldStage: string,
+  newStage: string
+): Promise<void> {
+  try {
+    const integration = await GoogleSheetIntegration.findOne({
+      tenantId,
+      isActive: true,
+      pushBackEnabled: true,
+      pushWebhookUrl: { $exists: true, $ne: '' },
+    }).lean();
+
+    if (!integration?.pushWebhookUrl) return;
+
+    const payload = JSON.stringify({
+      event: 'stage_change',
+      leadId: lead._id?.toString(),
+      name: lead.name || '',
+      phone: lead.phone || '',
+      email: lead.email || '',
+      oldStage,
+      newStage,
+      changedAt: new Date().toISOString(),
+      assignedTo: lead.assignedTo || '',
+    });
+
+    // Fire-and-forget HTTP POST
+    const url = new URL(integration.pushWebhookUrl);
+    const isHttps = url.protocol === 'https:';
+    const httpModule = isHttps ? require('https') : require('http');
+
+    const options = {
+      hostname: url.hostname,
+      port: url.port || (isHttps ? 443 : 80),
+      path: url.pathname + url.search,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
+      },
+    };
+
+    const reqHttp = httpModule.request(options, (res: any) => {
+      // Consume response to free the socket
+      res.resume();
+    });
+    reqHttp.on('error', (err: any) => {
+      console.error('[GSHEET-PUSH] Webhook error:', err.message);
+    });
+    reqHttp.write(payload);
+    reqHttp.end();
+  } catch (err: any) {
+    console.error('[GSHEET-PUSH] pushLeadStageChange failed:', err.message);
+  }
+}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { classRecordingApi, ClassRecording } from '../../api/classRecordingApi';
 import { Spinner } from '../../components/common';
@@ -44,10 +44,14 @@ interface ClassProgress {
 const StudentMyClasses: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [recordings, setRecordings] = useState<ClassRecording[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSubject, setActiveSubject] = useState<string>('all');
-  const [navTab, setNavTab] = useState<NavTab>('classes');
+  const [navTab, setNavTab] = useState<NavTab>(() => {
+    const t = searchParams.get('tab') as NavTab;
+    return ['classes', 'tasks', 'progress'].includes(t) ? t : 'classes';
+  });
 
   // Progress stored in localStorage keyed by recordingId
   const [progress, setProgress] = useState<Record<string, ClassProgress>>({});
@@ -100,7 +104,11 @@ const StudentMyClasses: React.FC = () => {
       {/* Top Bar */}
       <div className="sch-topbar">
         <div className="sch-breadcrumb">
-          <span>Student › </span><strong>My Classes</strong>
+          <button className="sch-back-home" onClick={() => navigate('/dashboard')}>
+            <span className="sch-back-arrow">←</span> Dashboard
+          </button>
+          <span className="sch-breadcrumb-sep">›</span>
+          <strong>My Classes</strong>
         </div>
         <div className="sch-user-badge">
           <span className="sch-role-pill">Student</span>
@@ -286,11 +294,18 @@ const StudentMyClasses: React.FC = () => {
 
       {/* Bottom Nav */}
       <div className="sch-bottom-nav">
-        {(['classes', 'tasks', 'progress'] as NavTab[]).map(tab => (
-          <button key={tab} className={`sch-nav-item ${navTab === tab ? 'active' : ''}`} onClick={() => setNavTab(tab)}>
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </button>
-        ))}
+        <button className={`sch-nav-item ${navTab === 'classes' ? 'active' : ''}`} onClick={() => setNavTab('classes')}>
+          🎓 Classes
+        </button>
+        <button className={`sch-nav-item ${navTab === 'tasks' ? 'active' : ''}`} onClick={() => setNavTab('tasks')}>
+          📋 Tasks
+        </button>
+        <button className={`sch-nav-item ${navTab === 'progress' ? 'active' : ''}`} onClick={() => setNavTab('progress')}>
+          📊 Progress
+        </button>
+        <button className="sch-nav-item" onClick={() => navigate('/dashboard')}>
+          🏠 Home
+        </button>
       </div>
     </div>
   );

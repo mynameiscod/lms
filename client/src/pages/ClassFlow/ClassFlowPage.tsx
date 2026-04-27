@@ -13,6 +13,65 @@ type Step = 1 | 2 | 3 | 4;
 type SessionMode = 'record' | 'upload';
 type ReviewTab = 'summary' | 'quiz' | 'notes' | 'practice' | 'assignment';
 
+// ── IndexedDB helpers for local chunk backup (survives page reload) ──
+const IDB_DB = 'cf_rec_backup';
+const IDB_STORE = 'chunks';
+function idbOpen(): Promise<IDBDatabase> {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(IDB_DB, 1);
+    r.onupgradeneeded = () => r.result.createObjectStore(IDB_STORE);
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+async function idbAppend(idx: number, chunk: Blob): Promise<void> {
+  try {
+    const db = await idbOpen();
+    await new Promise<void>((res, rej) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).put(chunk, idx);
+      tx.oncomplete = () => res();
+      tx.onerror = () => rej(tx.error);
+    });
+  } catch { /* non-blocking — don't interrupt recording */ }
+}
+async function idbLoadAll(): Promise<Blob[]> {
+  try {
+    const db = await idbOpen();
+    return new Promise(res => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const store = tx.objectStore(IDB_STORE);
+      const items: { key: number; val: Blob }[] = [];
+      store.openCursor().onsuccess = (ev: Event) => {
+        const cursor = (ev.target as IDBRequest<IDBCursorWithValue | null>).result;
+        if (cursor) { items.push({ key: cursor.key as number, val: cursor.value as Blob }); cursor.continue(); }
+        else res(items.sort((a, b) => a.key - b.key).map(i => i.val));
+      };
+    });
+  } catch { return []; }
+}
+async function idbClear(): Promise<void> {
+  try {
+    const db = await idbOpen();
+    await new Promise<void>(res => {
+      const tx = db.transaction(IDB_STORE, 'readwrite');
+      tx.objectStore(IDB_STORE).clear();
+      tx.oncomplete = () => res();
+    });
+  } catch {}
+}
+async function idbCount(): Promise<number> {
+  try {
+    const db = await idbOpen();
+    return new Promise(res => {
+      const tx = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).count();
+      req.onsuccess = () => res(req.result);
+      req.onerror = () => res(0);
+    });
+  } catch { return 0; }
+}
+
 const PIPELINE_STEPS = [
   { status: 'transcribing',           label: 'Transcribing audio',       icon: '🎙️' },
   { status: 'summarizing',            label: 'Generating summary',        icon: '📋' },
@@ -75,6 +134,23 @@ const ClassFlowPage: React.FC = () => {
   const previewRef = useRef<HTMLVideoElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  // Step 2 — device selection
+  const [availableMics, setAvailableMics] = useState<MediaDeviceInfo[]>([]);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedMicId, setSelectedMicId] = useState('default');
+  const [selectedCameraId, setSelectedCameraId] = useState('none');
+  const [showCameraPip, setShowCameraPip] = useState(false);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const cameraPreviewRef = useRef<HTMLVideoElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const chunkIdxRef = useRef(0);
+  const pendingUploadRef = useRef<File | null>(null);
+
+  // Step 2 — online / recovery
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [hasRecovery, setHasRecovery] = useState(false);
+  const [uploadPaused, setUploadPaused] = useState(false);
+
   // Step 3 — processing
   const [recordingId, setRecordingId] = useState('');
   const [processingStatus, setProcessingStatus] = useState('uploaded');
@@ -135,6 +211,49 @@ const ClassFlowPage: React.FC = () => {
       .catch(() => {});
   }, [authHeaders]);
 
+  // Enumerate media devices (mics, cameras — including external USB)
+  useEffect(() => {
+    const enumerate = async () => {
+      try {
+        // Request permission first so labels are populated
+        await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => {});
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        setAvailableMics(devices.filter(d => d.kind === 'audioinput'));
+        setAvailableCameras(devices.filter(d => d.kind === 'videoinput'));
+      } catch {}
+    };
+    enumerate();
+    navigator.mediaDevices.addEventListener('devicechange', enumerate);
+    return () => navigator.mediaDevices.removeEventListener('devicechange', enumerate);
+  }, []);
+
+  // Online / offline detection
+  useEffect(() => {
+    const onOnline = () => {
+      setIsOnline(true);
+      // Auto-retry upload if one was paused
+      if (pendingUploadRef.current && uploadPaused) {
+        setUploadPaused(false);
+        setUploading(true);
+        setRecordingError('');
+        doUpload(pendingUploadRef.current);
+      }
+    };
+    const onOffline = () => setIsOnline(false);
+    window.addEventListener('online', onOnline);
+    window.addEventListener('offline', onOffline);
+    return () => {
+      window.removeEventListener('online', onOnline);
+      window.removeEventListener('offline', onOffline);
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadPaused]);
+
+  // Check IDB for unfinished recording on mount
+  useEffect(() => {
+    idbCount().then(n => { if (n > 0) setHasRecovery(true); });
+  }, []);
+
   // Poll processing status in step 3
   useEffect(() => {
     if (step !== 3 || !recordingId) return;
@@ -185,33 +304,79 @@ const ClassFlowPage: React.FC = () => {
   // ── Step 2: Start recording ──
   const startRecording = useCallback(async () => {
     setRecordingError('');
+    chunkIdxRef.current = 0;
     try {
+      // 1. Screen share
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
         video: { width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
         audio: true,
       });
       screenStreamRef.current = screenStream;
 
-      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true }).catch(() => null);
+      // 2. Microphone (selected device or default)
+      const micConstraints: MediaStreamConstraints = selectedMicId === 'default'
+        ? { audio: true }
+        : { audio: { deviceId: { exact: selectedMicId } } };
+      const micStream = await navigator.mediaDevices.getUserMedia(micConstraints).catch(() => null);
       micStreamRef.current = micStream;
 
-      const tracks = [...screenStream.getTracks(), ...(micStream ? micStream.getAudioTracks() : [])];
-      const combined = new MediaStream(tracks);
+      // 3. Camera / external device (if selected)
+      let cameraStream: MediaStream | null = null;
+      if (selectedCameraId !== 'none') {
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: { deviceId: { exact: selectedCameraId }, width: { ideal: 320 }, height: { ideal: 240 } }
+        }).catch(() => null);
+      }
+      cameraStreamRef.current = cameraStream;
+      if (cameraStream && cameraPreviewRef.current) {
+        cameraPreviewRef.current.srcObject = cameraStream;
+        setShowCameraPip(true);
+      }
+
+      // 4. Mix audio sources (system + mic) via AudioContext
+      const audioCtx = new AudioContext();
+      audioCtxRef.current = audioCtx;
+      const dest = audioCtx.createMediaStreamDestination();
+      screenStream.getAudioTracks().forEach(t =>
+        audioCtx.createMediaStreamSource(new MediaStream([t])).connect(dest)
+      );
+      if (micStream) {
+        micStream.getAudioTracks().forEach(t =>
+          audioCtx.createMediaStreamSource(new MediaStream([t])).connect(dest)
+        );
+      }
+
+      // 5. Combined stream: screen video + mixed audio
+      const combined = new MediaStream([
+        ...screenStream.getVideoTracks(),
+        ...dest.stream.getAudioTracks(),
+      ]);
       combinedStreamRef.current = combined;
 
+      // 6. MediaRecorder
       const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
         ? 'video/webm;codecs=vp9,opus'
         : 'video/webm';
       const mr = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 2500000 });
       chunksRef.current = [];
-      mr.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.ondataavailable = e => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          // Persist chunk to IDB for crash/disconnect recovery (fire-and-forget)
+          idbAppend(chunkIdxRef.current++, e.data);
+        }
+      };
       mr.start(1000);
       mediaRecorderRef.current = mr;
+
+      // Auto-stop if user clicks "Stop sharing" in browser
+      screenStream.getVideoTracks()[0]?.addEventListener('ended', () => {
+        if (mediaRecorderRef.current?.state !== 'inactive') stopRecordingAndUpload();
+      });
 
       setRecording(true);
       timerRef.current = setInterval(() => setElapsed(e => e + 1), 1000);
 
-      // Set preview after state update — ref is always in DOM now
       requestAnimationFrame(() => {
         if (previewRef.current) {
           previewRef.current.srcObject = screenStream;
@@ -221,7 +386,8 @@ const ClassFlowPage: React.FC = () => {
     } catch (err: any) {
       setRecordingError(err.message || 'Could not start recording. Please allow screen access.');
     }
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMicId, selectedCameraId]);
 
   const pauseRecording = () => {
     if (!mediaRecorderRef.current) return;
@@ -235,7 +401,16 @@ const ClassFlowPage: React.FC = () => {
     setPaused(p => !p);
   };
 
-  const doUpload = useCallback(async (file: File) => {
+  const doUpload = useCallback(async (file: File, attempt = 0) => {
+    // If offline, pause and wait for reconnect
+    if (!navigator.onLine) {
+      pendingUploadRef.current = file;
+      setUploadPaused(true);
+      setUploading(false);
+      setRecordingError('📶 No internet — recording is saved locally and will upload automatically when you reconnect.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('video', file);
     formData.append('title', classTitle);
@@ -251,7 +426,6 @@ const ClassFlowPage: React.FC = () => {
     }
 
     try {
-      // Use XMLHttpRequest for upload progress
       const token = localStorage.getItem('token') || '';
       const tenantId = localStorage.getItem('tenantId') || '';
       const xhr = new XMLHttpRequest();
@@ -265,20 +439,36 @@ const ClassFlowPage: React.FC = () => {
         xhr.onload = () => {
           try { resolve(JSON.parse(xhr.responseText)); } catch { reject(new Error('Upload failed')); }
         };
-        xhr.onerror = () => reject(new Error('Upload failed'));
+        xhr.onerror = () => reject(new Error('Network error'));
+        xhr.ontimeout = () => reject(new Error('Upload timed out'));
+        xhr.timeout = 0; // no timeout for large files
         xhr.send(formData);
       });
 
       if (!result.success) throw new Error(result.message || 'Upload failed');
+      // Success — clear IDB backup
+      await idbClear();
+      pendingUploadRef.current = null;
+      setHasRecovery(false);
       setRecordingId(result.data._id);
       setProcessingStatus('uploaded');
       setProcessingProgress(0);
       setRecording(false);
       setUploading(false);
+      setUploadPaused(false);
       setStep(3);
     } catch (err: any) {
-      setRecordingError(err.message || 'Upload failed.');
-      setUploading(false);
+      if (attempt < 3) {
+        const delay = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s
+        setRecordingError(`Upload failed — retrying in ${delay / 1000}s… (${attempt + 1}/3)`);
+        setTimeout(() => doUpload(file, attempt + 1), delay);
+      } else {
+        // Store for reconnect retry
+        pendingUploadRef.current = file;
+        setUploadPaused(true);
+        setUploading(false);
+        setRecordingError('⚠️ Upload failed after 3 attempts. Your recording is saved locally — reconnect internet to retry.');
+      }
     }
   }, [classTitle, courseId, subjectId, chapterId, durationMinutes, learningObjectives, batchId, classDate, classMode, classTime]);
 
@@ -294,19 +484,38 @@ const ClassFlowPage: React.FC = () => {
       mr.stop();
     });
 
-    [screenStreamRef, micStreamRef, combinedStreamRef].forEach(ref => {
+    // Stop all streams
+    [screenStreamRef, micStreamRef, combinedStreamRef, cameraStreamRef].forEach(ref => {
       ref.current?.getTracks().forEach(t => t.stop());
       ref.current = null;
     });
     if (previewRef.current) previewRef.current.srcObject = null;
+    if (cameraPreviewRef.current) cameraPreviewRef.current.srcObject = null;
+    audioCtxRef.current?.close().catch(() => {});
+    audioCtxRef.current = null;
+    setShowCameraPip(false);
 
     const blob = new Blob(chunksRef.current, { type: 'video/webm' });
     const file = new File([blob], `class-recording-${Date.now()}.webm`, { type: 'video/webm' });
+    pendingUploadRef.current = file;
     await doUpload(file);
   }, [doUpload]);
 
-  const handleFileSelect = (file: File) => {
-    if (!file.type.startsWith('video/')) return setRecordingError('Please select a video file.');
+  // Recover from IDB after crash / disconnect during recording
+  const handleRecoverFromIDB = async () => {
+    setRecordingError('');
+    setUploading(true);
+    setUploadProgress(0);
+    const chunks = await idbLoadAll();
+    if (chunks.length === 0) { setHasRecovery(false); setUploading(false); return; }
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const file = new File([blob], `recovered-recording-${Date.now()}.webm`, { type: 'video/webm' });
+    pendingUploadRef.current = file;
+    await doUpload(file);
+    setHasRecovery(false);
+  };
+
+  const handleFileSelect = (file: File) => {    if (!file.type.startsWith('video/')) return setRecordingError('Please select a video file.');
     setUploadFile(file);
     setRecordingError('');
   };
@@ -559,22 +768,132 @@ const ClassFlowPage: React.FC = () => {
             <div className={`cf-mode-tab ${sessionMode === 'upload' ? 'active' : ''}`} onClick={() => { setSessionMode('upload'); setRecordingError(''); }}>📁 Upload Video</div>
           </div>
 
+          {/* Offline/paused upload banner */}
+          {!isOnline && (
+            <div className="cf-offline-banner">
+              <span>📶</span>
+              <strong>You're offline.</strong>
+              <span>Recording continues locally. Upload will auto-resume when internet is restored.</span>
+            </div>
+          )}
+          {isOnline && uploadPaused && pendingUploadRef.current && (
+            <div className="cf-recovery-banner" style={{ background: '#fff7ed', borderColor: '#fb923c' }}>
+              <span>🔄</span>
+              <strong>Ready to resume upload.</strong>
+              <button className="cf-btn-primary" style={{ padding: '6px 16px', fontSize: 13 }} onClick={() => {
+                setUploadPaused(false); setUploading(true); setRecordingError('');
+                doUpload(pendingUploadRef.current!);
+              }}>Upload Now</button>
+            </div>
+          )}
+
+          {/* Recovery from crashed/disconnected session */}
+          {hasRecovery && !recording && !uploading && (
+            <div className="cf-recovery-banner">
+              <span>💾</span>
+              <strong>Unsaved recording found!</strong>
+              <span>Looks like a previous recording was interrupted. Recover and upload it?</span>
+              <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+                <button className="cf-btn-primary" style={{ padding: '6px 16px', fontSize: 13 }} onClick={handleRecoverFromIDB}>Recover &amp; Upload</button>
+                <button className="btn btn-outline-secondary btn-sm" onClick={() => { idbClear(); setHasRecovery(false); }}>Discard</button>
+              </div>
+            </div>
+          )}
+
           {/* Record Live */}
           {sessionMode === 'record' && (
             <div className="cf-card">
-              <div className="cf-recorder">
-                {/* Always in DOM so ref is ready before setRecording(true) */}
+              {/* Device setup — shown before recording starts */}
+              {!recording && !uploading && (
+                <div className="cf-device-setup">
+                  <div className="cf-device-setup-title">🎛️ Configure Recording Sources</div>
+                  <div className="cf-device-grid">
+
+                    <div className="cf-device-row">
+                      <div className="cf-device-icon">🖥️</div>
+                      <div className="cf-device-info">
+                        <div className="cf-device-label">Screen / Whiteboard</div>
+                        <div className="cf-device-sub">Share your entire screen, a window, or a browser tab. External HDMI whiteboards appear as a display.</div>
+                      </div>
+                      <span className="cf-device-badge ready">Auto</span>
+                    </div>
+
+                    <div className="cf-device-row">
+                      <div className="cf-device-icon">🎙️</div>
+                      <div className="cf-device-info">
+                        <div className="cf-device-label">Microphone</div>
+                        <select
+                          className="cf-device-select"
+                          value={selectedMicId}
+                          onChange={e => setSelectedMicId(e.target.value)}
+                        >
+                          <option value="default">Default microphone</option>
+                          {availableMics.map(m => (
+                            <option key={m.deviceId} value={m.deviceId}>
+                              {m.label || `Microphone ${m.deviceId.slice(0, 6)}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <span className="cf-device-badge ready">✓</span>
+                    </div>
+
+                    <div className="cf-device-row">
+                      <div className="cf-device-icon">📷</div>
+                      <div className="cf-device-info">
+                        <div className="cf-device-label">Camera (PiP overlay)</div>
+                        <div className="cf-device-sub" style={{ marginBottom: 6 }}>Front camera, USB webcam, or document camera (whiteboard cam)</div>
+                        <select
+                          className="cf-device-select"
+                          value={selectedCameraId}
+                          onChange={e => setSelectedCameraId(e.target.value)}
+                        >
+                          <option value="none">No camera</option>
+                          {availableCameras.map(c => (
+                            <option key={c.deviceId} value={c.deviceId}>
+                              {c.label || `Camera ${c.deviceId.slice(0, 6)}`}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <span className={`cf-device-badge ${selectedCameraId !== 'none' ? 'ready' : 'off'}`}>
+                        {selectedCameraId !== 'none' ? '✓' : 'Off'}
+                      </span>
+                    </div>
+
+                    {availableMics.length === 0 && availableCameras.length === 0 && (
+                      <div className="alert alert-info py-2 small mb-0" style={{ borderRadius: 10 }}>
+                        🔌 No external devices detected. Connect a USB microphone, webcam, or document camera — they'll appear in the lists above automatically.
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="cf-record-hint">
+                    <span>💡</span>
+                    <span>For best quality, share <strong>Entire Screen</strong> when prompted. The camera overlay will be visible in the recording if sharing the full screen.</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="cf-recorder" style={{ position: 'relative' }}>
                 <video
                   ref={previewRef}
                   className="cf-recorder-preview"
                   muted
                   style={{ display: recording ? 'block' : 'none' }}
                 />
+                {/* Camera PiP overlay */}
+                {showCameraPip && (
+                  <div className="cf-camera-pip">
+                    <video ref={cameraPreviewRef} autoPlay muted playsInline className="cf-camera-pip-video" />
+                    <div className="cf-camera-pip-label">📷 Camera</div>
+                  </div>
+                )}
                 {!recording && (
                   <>
                     <div style={{ fontSize: 48 }}>🎬</div>
                     <div className="cf-recorder-timer">00:00</div>
-                    <div className="cf-recorder-hint">Click to start recording</div>
+                    <div className="cf-recorder-hint">Configure sources above, then click Start Recording</div>
                   </>
                 )}
                 {recording && (
@@ -582,19 +901,20 @@ const ClassFlowPage: React.FC = () => {
                     {!paused && <span className="cf-recorder-dot" />}
                     <span style={{ color: '#fff', fontWeight: 700, fontSize: 15 }}>{formatTime(elapsed)}</span>
                     {paused && <span style={{ color: '#fbbf24', fontSize: 12, fontWeight: 600 }}>PAUSED</span>}
+                    {!isOnline && <span style={{ color: '#fb923c', fontSize: 12, fontWeight: 600 }}>📶 OFFLINE — saving locally</span>}
                   </div>
                 )}
               </div>
 
               <div style={{ marginTop: 14 }} className="text-center">
                 <div className="cf-recorder-hint" style={{ color: '#64748b', marginBottom: 16 }}>
-                  Recorded locally in your browser · No data leaves your network until you publish
+                  Recorded locally in your browser · Saved to disk if connection drops
                 </div>
                 {!recording && !uploading && (
                   <button className="cf-btn-primary" onClick={startRecording}>▶ Start Recording</button>
                 )}
                 {recording && !uploading && (
-                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
                     <button className="btn btn-outline-secondary" style={{ borderRadius: 10 }} onClick={pauseRecording}>
                       {paused ? '▶ Resume' : '⏸ Pause'}
                     </button>
@@ -605,14 +925,18 @@ const ClassFlowPage: React.FC = () => {
                 )}
                 {uploading && (
                   <div className="cf-upload-progress">
-                    <div className="cf-upload-label">Uploading… {uploadProgress}%</div>
-                    <div className="cf-progress-bar-wrap">
-                      <div className="cf-progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
+                    <div className="cf-upload-label">
+                      {uploadPaused ? '📶 Waiting for internet…' : `Uploading… ${uploadProgress}%`}
                     </div>
+                    {!uploadPaused && (
+                      <div className="cf-progress-bar-wrap">
+                        <div className="cf-progress-bar-fill" style={{ width: `${uploadProgress}%` }} />
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
-              {recordingError && <div className="alert alert-danger mt-3 py-2 small">{recordingError}</div>}
+              {recordingError && <div className="alert alert-warning mt-3 py-2 small">{recordingError}</div>}
             </div>
           )}
 

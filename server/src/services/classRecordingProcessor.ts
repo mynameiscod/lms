@@ -37,12 +37,31 @@ async function transcribeVideo(filePath: string): Promise<string> {
       headers: { ...form.getHeaders(), Authorization: `Bearer ${apiKey}` },
       maxBodyLength: Infinity,
       maxContentLength: Infinity,
+      timeout: 120000, // 2 min timeout
     });
     return response.data as string;
   };
 
+  // Retry with exponential backoff for transient network failures
+  const sendToWhisperWithRetry = async (audioPath: string, maxRetries = 3): Promise<string> => {
+    let lastError: any;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        return await sendToWhisper(audioPath);
+      } catch (err: any) {
+        lastError = err;
+        const isRetryable = err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'ECONNREFUSED' || (err.response?.status >= 500);
+        if (!isRetryable || attempt === maxRetries) throw err;
+        const delay = Math.min(1000 * 2 ** (attempt - 1), 30000); // 1s, 2s, 4s ... max 30s
+        console.log(`[ClassRecording] Whisper attempt ${attempt} failed (${err.code}), retrying in ${delay}ms...`);
+        await new Promise(r => setTimeout(r, delay));
+      }
+    }
+    throw lastError;
+  };
+
   if (stats.size <= MAX_SIZE) {
-    return sendToWhisper(filePath);
+    return sendToWhisperWithRetry(filePath);
   }
 
   // For large files: truncate to first 24MB and send as a chunk.
@@ -56,7 +75,7 @@ async function transcribeVideo(filePath: string): Promise<string> {
   fs.writeFileSync(tempPath, buffer);
 
   try {
-    return await sendToWhisper(tempPath);
+    return await sendToWhisperWithRetry(tempPath);
   } finally {
     fs.unlinkSync(tempPath);
   }

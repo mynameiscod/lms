@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { classRecordingApi, ClassRecording } from '../../api/classRecordingApi';
 import { courseApi } from '../../api';
+import LiveClassroom from './LiveClassroom';
 import './ClassFlow.css';
 
 interface Course { _id: string; title: string; }
@@ -118,6 +119,9 @@ const ClassFlowPage: React.FC = () => {
 
   // Step 2 — recording
   const [recording, setRecording] = useState(false);
+  // Step 2 — live session
+  const [liveSessionActive, setLiveSessionActive] = useState(false);
+  const [liveSessionId, setLiveSessionId] = useState('');
   const [paused, setPaused] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [uploading, setUploading] = useState(false);
@@ -292,6 +296,12 @@ const ClassFlowPage: React.FC = () => {
     return `${String(m).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   };
 
+  // ── Generate a short, human-readable session ID ──
+  const generateSessionId = () => {
+    const chars = 'abcdefghjkmnpqrstuvwxyz23456789';
+    return Array.from({ length: 8 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+  };
+
   // ── Step 1 → 2 ──
   const handleStartSetup = () => {
     setFormError('');
@@ -388,6 +398,19 @@ const ClassFlowPage: React.FC = () => {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMicId, selectedCameraId]);
+
+  // ── Start live session + recording together ──
+  const startLiveSession = useCallback(async () => {
+    setRecordingError('');
+    const sid = generateSessionId();
+    setLiveSessionId(sid);
+    // Start recording (screen share) — open live overlay only if it succeeded
+    await startRecording();
+    // mediaRecorderRef is set only when recording starts successfully
+    if (mediaRecorderRef.current) {
+      setLiveSessionActive(true);
+    }
+  }, [startRecording]);
 
   const pauseRecording = () => {
     if (!mediaRecorderRef.current) return;
@@ -911,7 +934,17 @@ const ClassFlowPage: React.FC = () => {
                   Recorded locally in your browser · Saved to disk if connection drops
                 </div>
                 {!recording && !uploading && (
-                  <button className="cf-btn-primary" onClick={startRecording}>▶ Start Recording</button>
+                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+                    <button className="cf-btn-primary" onClick={startRecording}>▶ Start Recording</button>
+                    <button
+                      className="cf-btn-primary"
+                      style={{ background: 'linear-gradient(135deg,#ef4444,#f97316)' }}
+                      onClick={startLiveSession}
+                      title="Record + invite students to join live"
+                    >
+                      🔴 Go Live + Record
+                    </button>
+                  </div>
                 )}
                 {recording && !uploading && (
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -1380,6 +1413,21 @@ const ClassFlowPage: React.FC = () => {
         </div>
       )}
 
+      {/* ── Live Classroom overlay ── */}
+      {liveSessionActive && liveSessionId && (
+        <LiveClassroom
+          sessionId={liveSessionId}
+          classTitle={classTitle || 'Live Class'}
+          role="host"
+          recordingState={paused ? 'paused' : recording ? 'recording' : 'stopped'}
+          elapsed={elapsed}
+          onRecordingAction={(action) => {
+            if (action === 'pause' || action === 'resume') pauseRecording();
+            if (action === 'stop') stopRecordingAndUpload();
+          }}
+          onClose={() => setLiveSessionActive(false)}
+        />
+      )}
     </div>
   );
 };

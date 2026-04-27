@@ -124,6 +124,8 @@ import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList'
 import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
 import StudentMyClasses from './pages/StudentClassHub/StudentMyClasses';
 import StudentClassHub from './pages/StudentClassHub/StudentClassHub';
+// Live classroom join page (for participants via invite link)
+import LiveJoinPage from './pages/LiveJoin/LiveJoinPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -1359,6 +1361,16 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <ClassFlowPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Live classroom join — participants access via invite link */}
+      <Route
+        path="/live/:sessionId"
+        element={
+          <ProtectedRoute>
+            <LiveJoinPage />
           </ProtectedRoute>
         }
       />

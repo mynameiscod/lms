@@ -43,6 +43,26 @@ const startServer = async () => {
     app.set('io', io);
 
     console.log('🔌 Setting up WebSocket handlers...');
+
+    // ── Live Classroom session state (in-memory, single instance) ──
+    interface LiveParticipant {
+      socketId: string;
+      userId: string;
+      name: string;
+      initials: string;
+      role: 'host' | 'speaker' | 'viewer';
+      audioEnabled: boolean;
+      videoEnabled: boolean;
+    }
+    interface LiveSession {
+      hostSocketId: string;
+      participants: Map<string, LiveParticipant>;
+      chatEnabled: boolean;
+      recordingState: 'recording' | 'paused' | 'stopped';
+      createdAt: number;
+    }
+    const liveSessions = new Map<string, LiveSession>();
+
     // WebSocket connection handlers
     io.on('connection', (socket) => {
       console.log(`✅ Client connected: ${socket.id}`);
@@ -59,9 +79,167 @@ const startServer = async () => {
         console.log(`📚 Socket ${socket.id} joined course_${courseId}`);
       });
 
+      // ── Live Classroom signaling ──
+
+      socket.on('live_class:join', ({ sessionId, userId, name, initials, role }: {
+        sessionId: string; userId: string; name: string; initials: string; role: 'host' | 'viewer';
+      }) => {
+        if (!sessionId || !userId || !name) return;
+
+        if (role === 'host') {
+          // Create session (or reclaim if host reconnects)
+          if (!liveSessions.has(sessionId)) {
+            liveSessions.set(sessionId, {
+              hostSocketId: socket.id,
+              participants: new Map(),
+              chatEnabled: true,
+              recordingState: 'recording',
+              createdAt: Date.now(),
+            });
+          } else {
+            liveSessions.get(sessionId)!.hostSocketId = socket.id;
+          }
+        }
+
+        const session = liveSessions.get(sessionId);
+        if (!session) {
+          socket.emit('live_class:error', { message: 'Session not found. Ask the host to start the session first.' });
+          return;
+        }
+
+        const participant: LiveParticipant = {
+          socketId: socket.id,
+          userId,
+          name: name.trim().substring(0, 60),
+          initials: (initials || name.substring(0, 2)).toUpperCase().substring(0, 2),
+          role: role === 'host' ? 'host' : 'viewer',
+          audioEnabled: false,
+          videoEnabled: false,
+        };
+
+        session.participants.set(socket.id, participant);
+        socket.join(`live_${sessionId}`);
+        console.log(`🎓 ${name} (${role}) joined live session ${sessionId}`);
+
+        // Send current state to the new joiner
+        socket.emit('live_class:participant_list', {
+          participants: Array.from(session.participants.values()),
+          chatEnabled: session.chatEnabled,
+          recordingState: session.recordingState,
+          hostSocketId: session.hostSocketId,
+        });
+
+        // Notify everyone else in the room
+        socket.to(`live_${sessionId}`).emit('live_class:participant_joined', participant);
+      });
+
+      socket.on('live_class:leave', ({ sessionId }: { sessionId: string }) => {
+        const session = liveSessions.get(sessionId);
+        if (!session) return;
+        session.participants.delete(socket.id);
+        socket.leave(`live_${sessionId}`);
+        socket.to(`live_${sessionId}`).emit('live_class:participant_left', { socketId: socket.id });
+        if (session.participants.size === 0) liveSessions.delete(sessionId);
+      });
+
+      // WebRTC signaling — relay between peers
+      socket.on('live_class:offer', ({ sessionId, to, sdp }: { sessionId: string; to: string; sdp: object }) => {
+        if (liveSessions.has(sessionId)) {
+          io.to(to).emit('live_class:offer', { from: socket.id, sdp });
+        }
+      });
+
+      socket.on('live_class:answer', ({ sessionId, to, sdp }: { sessionId: string; to: string; sdp: object }) => {
+        if (liveSessions.has(sessionId)) {
+          io.to(to).emit('live_class:answer', { from: socket.id, sdp });
+        }
+      });
+
+      socket.on('live_class:ice', ({ sessionId, to, candidate }: { sessionId: string; to: string; candidate: object }) => {
+        if (liveSessions.has(sessionId)) {
+          io.to(to).emit('live_class:ice', { from: socket.id, candidate });
+        }
+      });
+
+      // Chat
+      socket.on('live_class:chat', ({ sessionId, text }: { sessionId: string; text: string }) => {
+        const session = liveSessions.get(sessionId);
+        if (!session || !session.chatEnabled) return;
+        const participant = session.participants.get(socket.id);
+        if (!participant) return;
+        const message = {
+          id: `${Date.now()}_${socket.id.slice(-4)}`,
+          senderId: participant.userId,
+          senderName: participant.name,
+          initials: participant.initials,
+          role: participant.role,
+          text: (text || '').trim().substring(0, 500),
+          timestamp: Date.now(),
+        };
+        io.to(`live_${sessionId}`).emit('live_class:chat', message);
+      });
+
+      // Participant updates (mic/video toggle)
+      socket.on('live_class:update', ({ sessionId, audioEnabled, videoEnabled }: {
+        sessionId: string; audioEnabled: boolean; videoEnabled: boolean;
+      }) => {
+        const session = liveSessions.get(sessionId);
+        if (!session) return;
+        const p = session.participants.get(socket.id);
+        if (!p) return;
+        p.audioEnabled = !!audioEnabled;
+        p.videoEnabled = !!videoEnabled;
+        socket.to(`live_${sessionId}`).emit('live_class:participant_updated', {
+          socketId: socket.id, audioEnabled: p.audioEnabled, videoEnabled: p.videoEnabled,
+        });
+      });
+
+      // Host actions (mute/promote/remove/chat toggle/recording state)
+      socket.on('live_class:host_action', ({ sessionId, action, targetSocketId, value }: {
+        sessionId: string;
+        action: 'mute' | 'unmute' | 'promote' | 'remove' | 'chat_toggle' | 'recording_state';
+        targetSocketId?: string;
+        value?: any;
+      }) => {
+        const session = liveSessions.get(sessionId);
+        if (!session || session.hostSocketId !== socket.id) return;
+
+        if (action === 'chat_toggle') {
+          session.chatEnabled = !!value;
+        } else if (action === 'recording_state') {
+          session.recordingState = value;
+        } else if (action === 'promote' && targetSocketId) {
+          const p = session.participants.get(targetSocketId);
+          if (p) p.role = value === 'speaker' ? 'speaker' : 'viewer';
+        } else if (action === 'remove' && targetSocketId) {
+          session.participants.delete(targetSocketId);
+          io.to(targetSocketId).emit('live_class:removed');
+        } else if ((action === 'mute' || action === 'unmute') && targetSocketId) {
+          const p = session.participants.get(targetSocketId);
+          if (p) p.audioEnabled = action === 'unmute';
+        }
+
+        io.to(`live_${sessionId}`).emit('live_class:host_action', {
+          action,
+          targetSocketId,
+          value,
+          participants: Array.from(session.participants.values()),
+          chatEnabled: session.chatEnabled,
+          recordingState: session.recordingState,
+        });
+      });
+
       // Handle disconnection
       socket.on('disconnect', () => {
         console.log(`❌ Client disconnected: ${socket.id}`);
+        // Clean up any live sessions this socket was part of
+        liveSessions.forEach((session, sessionId) => {
+          if (session.participants.has(socket.id)) {
+            session.participants.delete(socket.id);
+            io.to(`live_${sessionId}`).emit('live_class:participant_left', { socketId: socket.id });
+            if (session.participants.size === 0) liveSessions.delete(sessionId);
+          }
+        });
       });
     });
 

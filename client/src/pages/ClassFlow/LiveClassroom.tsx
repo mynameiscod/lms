@@ -162,6 +162,7 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
     externalRecordingState || 'recording'
   );
   const [isJoining, setIsJoining] = useState(true);
+  const [joinStep, setJoinStep] = useState<'media'|'connecting'|'joining'>('media');
   const [joinError, setJoinError] = useState('');
   const [linkCopied, setLinkCopied] = useState(false);
 
@@ -228,40 +229,48 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
     let mounted = true;
 
     const init = async () => {
-      // Get local mic + camera (camera optional — fallback to audio-only if denied)
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-        localStreamRef.current = stream;
-        // Camera track starts disabled until user turns it on
-        stream.getVideoTracks().forEach(t => { t.enabled = false; });
-        // Attach to local preview
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = stream;
-        }
-      } catch {
-        // Try audio-only if camera denied
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          localStreamRef.current = stream;
-        } catch {
-          // No devices — continue with empty stream
-          localStreamRef.current = new MediaStream();
-        }
-      }
-
-      if (!mounted) return;
-
+      // ── Start socket IMMEDIATELY — don't wait for camera permission ──
+      setJoinStep('connecting');
       const socket = io(window.location.origin, {
         auth: { token: localStorage.getItem('token') },
+        transports: ['websocket', 'polling'],
         reconnection: true,
         reconnectionAttempts: 5,
         reconnectionDelay: 1500,
       });
       socketRef.current = socket;
 
+      // ── Get mic + camera in parallel (non-blocking) ──
+      const getMedia = async () => {
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+          if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
+          localStreamRef.current = stream;
+          stream.getVideoTracks().forEach(t => { t.enabled = false; });
+          if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+          // Add tracks to any peer connections already created
+          peerConnectionsRef.current.forEach(pc => {
+            stream.getTracks().forEach(t => pc.addTrack(t, stream));
+          });
+        } catch {
+          try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+            if (!mounted) { stream.getTracks().forEach(t => t.stop()); return; }
+            localStreamRef.current = stream;
+            peerConnectionsRef.current.forEach(pc => {
+              stream.getTracks().forEach(t => pc.addTrack(t, stream));
+            });
+          } catch {
+            if (mounted) localStreamRef.current = new MediaStream();
+          }
+        }
+      };
+      getMedia(); // fire-and-forget — socket connects in parallel
+
       socket.on('connect', () => {
         if (!mounted) return;
         setMySocketId(socket.id);
+        setJoinStep('joining');
         // Start 25-second timeout AFTER socket connects — if no participant_list arrives it means
         // the session doesn't exist or the server is not responding to the join event
         joinTimeoutRef.current = setTimeout(() => {
@@ -420,6 +429,38 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
         setIsJoining(false);
       });
 
+      // If socket disconnects while still in joining state, clear the timeout so it doesn't
+      // fire the wrong message — reconnection will re-join automatically
+      socket.on('disconnect', (reason) => {
+        if (!mounted) return;
+        if (reason === 'io server disconnect' || reason === 'io client disconnect') return;
+        if (joinTimeoutRef.current) {
+          clearTimeout(joinTimeoutRef.current);
+          joinTimeoutRef.current = null;
+        }
+        // Re-set joining step so UI reflects reconnection
+        setJoinStep('connecting');
+        setIsJoining(true);
+      });
+
+      socket.on('reconnect', () => {
+        if (!mounted) return;
+        // Re-emit join after reconnection
+        setJoinStep('joining');
+        joinTimeoutRef.current = setTimeout(() => {
+          if (!mounted) return;
+          setJoinError('Could not reconnect to the live session. Please try again.');
+          setIsJoining(false);
+        }, 20000);
+        socket.emit('live_class:join', {
+          sessionId,
+          userId: (user as any)?._id || (user as any)?.id || socket.id,
+          name: myName,
+          initials: myInitials,
+          role,
+        });
+      });
+
       socket.on('live_class:error', ({ message }: { message: string }) => {
         if (!mounted) return;
         if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
@@ -525,11 +566,17 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
 
   // ── Loading state ──
   if (isJoining) {
+    const stepLabel = joinStep === 'media'
+      ? 'Requesting microphone…'
+      : joinStep === 'connecting'
+      ? 'Connecting to server…'
+      : 'Joining live session…';
     return (
       <div className="lc-overlay">
         <div className="lc-center-card">
           <div className="lc-spinner" />
-          <div className="lc-center-text">Joining live session…</div>
+          <div className="lc-center-text">{stepLabel}</div>
+          <div style={{ fontSize: 12, color: '#64748b', marginTop: 8 }}>This may take a few seconds</div>
         </div>
       </div>
     );

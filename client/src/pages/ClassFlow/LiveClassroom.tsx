@@ -140,8 +140,10 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
   const socketRef = useRef<Socket | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const localStreamRef = useRef<MediaStream | null>(null);
+  const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
+  const joinTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [mySocketId, setMySocketId] = useState('');
@@ -152,6 +154,7 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [localAudioEnabled, setLocalAudioEnabled] = useState(true);
+  const [localVideoEnabled, setLocalVideoEnabled] = useState(false);
   const [recordingState, setRecordingState] = useState<'recording' | 'paused' | 'stopped'>(
     externalRecordingState || 'recording'
   );
@@ -222,17 +225,35 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
     let mounted = true;
 
     const init = async () => {
-      // Get local microphone
+      // Get local mic + camera (camera optional — fallback to audio-only if denied)
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
         localStreamRef.current = stream;
-        // Default: mic enabled
+        // Camera track starts disabled until user turns it on
+        stream.getVideoTracks().forEach(t => { t.enabled = false; });
+        // Attach to local preview
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
       } catch {
-        // No mic available — continue with empty stream
-        localStreamRef.current = new MediaStream();
+        // Try audio-only if camera denied
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          localStreamRef.current = stream;
+        } catch {
+          // No devices — continue with empty stream
+          localStreamRef.current = new MediaStream();
+        }
       }
 
       if (!mounted) return;
+
+      // 12-second join timeout — shows error if server never responds
+      joinTimeoutRef.current = setTimeout(() => {
+        if (!mounted) return;
+        setJoinError('Could not join the session — the server may be offline or the session ID is invalid. Please check your connection and try again.');
+        setIsJoining(false);
+      }, 12000);
 
       const socket = io(window.location.origin, {
         auth: { token: localStorage.getItem('token') },
@@ -262,6 +283,8 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
         hostSocketId: hId,
       }) => {
         if (!mounted) return;
+        // Clear the join timeout
+        if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
         setParticipants(list.map((p: Participant) => ({ ...p, stream: undefined })));
         setChatEnabled(ce);
         setRecordingState(rs);
@@ -381,8 +404,16 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
         handleClose();
       });
 
+      socket.on('connect_error', (err) => {
+        if (!mounted) return;
+        if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
+        setJoinError(`Connection failed: ${err.message}. Make sure the server is running and try again.`);
+        setIsJoining(false);
+      });
+
       socket.on('live_class:error', ({ message }: { message: string }) => {
         if (!mounted) return;
+        if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
         setJoinError(message);
         setIsJoining(false);
       });
@@ -392,6 +423,7 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
 
     return () => {
       mounted = false;
+      if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
       socketRef.current?.emit('live_class:leave', { sessionId });
       socketRef.current?.disconnect();
       localStreamRef.current?.getTracks().forEach(t => t.stop());
@@ -413,7 +445,24 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
     socketRef.current?.emit('live_class:update', {
       sessionId,
       audioEnabled: enabled,
-      videoEnabled: false,
+      videoEnabled: localVideoEnabled,
+    });
+  };
+
+  const toggleLocalVideo = () => {
+    const videoTracks = localStreamRef.current?.getVideoTracks() || [];
+    if (videoTracks.length === 0) return; // no camera available
+    const enabled = !localVideoEnabled;
+    videoTracks.forEach(t => { t.enabled = enabled; });
+    setLocalVideoEnabled(enabled);
+    // Attach stream to local preview once enabled
+    if (enabled && localVideoRef.current && localStreamRef.current) {
+      localVideoRef.current.srcObject = localStreamRef.current;
+    }
+    socketRef.current?.emit('live_class:update', {
+      sessionId,
+      audioEnabled: localAudioEnabled,
+      videoEnabled: enabled,
     });
   };
 
@@ -574,7 +623,14 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
             <div className={`lc-grid lc-grid-${Math.min(participants.length, 6)}`}>
               {/* Local (self) tile */}
               <div className={`lc-tile lc-tile-self ${localAudioEnabled ? 'speaking' : ''}`}>
-                <div className="lc-tile-avatar">{myInitials}</div>
+                {localVideoEnabled
+                  ? <video ref={localVideoRef} autoPlay muted playsInline className="lc-tile-video" />
+                  : <div className="lc-tile-avatar">{myInitials}</div>
+                }
+                {/* hidden video element so stream is always attached */}
+                {!localVideoEnabled && (
+                  <video ref={localVideoRef} autoPlay muted playsInline style={{ display: 'none' }} />
+                )}
                 <div className="lc-tile-footer">
                   <span className="lc-tile-name">
                     You
@@ -619,6 +675,15 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
               >
                 <span className="lc-ctrl-icon">{localAudioEnabled ? '🎙' : '🔇'}</span>
                 <span className="lc-ctrl-label">{localAudioEnabled ? 'Mute' : 'Unmute'}</span>
+              </button>
+
+              <button
+                className={`lc-ctrl-btn ${localVideoEnabled ? '' : 'muted'}`}
+                onClick={toggleLocalVideo}
+                title={localVideoEnabled ? 'Turn off camera' : 'Turn on camera'}
+              >
+                <span className="lc-ctrl-icon">{localVideoEnabled ? '📷' : '🚫'}</span>
+                <span className="lc-ctrl-label">{localVideoEnabled ? 'Camera' : 'No Cam'}</span>
               </button>
 
               {isHost && (

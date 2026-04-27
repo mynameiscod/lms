@@ -838,8 +838,9 @@ const ClassFlowPage: React.FC = () => {
           )}
 
           {!showPostUploadChoice && (
+            <>
 
-          {/* Meta row */}
+          {/* Meta row */
           <div className="cf-meta-row">
             {courseName && <span className="cf-chip">📚 {courseName}</span>}
             {subjectName && <span className="cf-chip">🗂 {subjectName}</span>}
@@ -1080,6 +1081,7 @@ const ClassFlowPage: React.FC = () => {
               {recordingError && <div className="alert alert-danger mt-3 py-2 small">{recordingError}</div>}
             </div>
           )}
+            </>
           )} {/* end !showPostUploadChoice */}
         </div>
       )}

@@ -6,7 +6,7 @@ import './ClassRecording.css';
 
 const statusLabels: Record<string, { label: string; color: string; icon: string }> = {
   uploading: { label: 'Uploading', color: '#f59e0b', icon: 'fa-cloud-arrow-up' },
-  uploaded: { label: 'Queued', color: '#6366f1', icon: 'fa-clock' },
+  uploaded:  { label: 'Saved', color: '#6366f1', icon: 'fa-floppy-disk' },
   transcribing: { label: 'Transcribing', color: '#359aad', icon: 'fa-microphone' },
   summarizing: { label: 'Summarizing', color: '#8b5cf6', icon: 'fa-brain' },
   generating_quiz: { label: 'Generating Quiz', color: '#ec4899', icon: 'fa-clipboard-question' },
@@ -79,6 +79,15 @@ const RecordingsList: React.FC = () => {
       setRecordings(prev => prev.map(r => r._id === id ? { ...r, isPublished: res.data.isPublished } : r));
     } catch (err: any) {
       alert(err.message || 'Failed to update');
+    }
+  };
+
+  const handleProcessWithAI = async (id: string) => {
+    try {
+      await classRecordingApi.reprocess(id);
+      fetchRecordings();
+    } catch (err: any) {
+      alert(err.message || 'Failed to start processing');
     }
   };
 
@@ -161,18 +170,24 @@ const RecordingsList: React.FC = () => {
 
                     {/* Action buttons */}
                     <div className="cr-card-actions" onClick={e => e.stopPropagation()}>
-                      {rec.status === 'completed' && (
+                      {/* Process with AI — for saved/failed recordings */}
+                      {(rec.status === 'uploaded' || rec.status === 'failed') && (
+                        <button
+                          className="cr-action-btn cr-process"
+                          onClick={() => handleProcessWithAI(rec._id)}
+                          title="Process with AI"
+                        >
+                          <i className="fa-solid fa-robot"></i>
+                        </button>
+                      )}
+                      {/* Publish / Unpublish — available for saved and completed recordings */}
+                      {(rec.status === 'uploaded' || rec.status === 'completed') && (
                         <button
                           className={`cr-action-btn ${rec.isPublished ? 'cr-published' : ''}`}
                           onClick={() => handleTogglePublish(rec._id)}
                           title={rec.isPublished ? 'Unpublish' : 'Publish'}
                         >
                           <i className={`fa-solid ${rec.isPublished ? 'fa-eye' : 'fa-eye-slash'}`}></i>
-                        </button>
-                      )}
-                      {rec.status === 'failed' && (
-                        <button className="cr-action-btn cr-retry" onClick={() => classRecordingApi.reprocess(rec._id).then(fetchRecordings)} title="Retry processing">
-                          <i className="fa-solid fa-rotate-right"></i>
                         </button>
                       )}
                       <button className="cr-action-btn cr-delete" onClick={() => handleDelete(rec._id)} title="Delete">

@@ -467,6 +467,8 @@
 .cr-action-btn.cr-published { color: #10b981; border-color: #10b981; background: #ecfdf5; }
 .cr-action-btn.cr-retry { color: #f59e0b; }
 .cr-action-btn.cr-retry:hover { border-color: #f59e0b; }
+.cr-action-btn.cr-process { color: #6650d8; }
+.cr-action-btn.cr-process:hover { border-color: #6650d8; background: #ede9ff; }
 .cr-action-btn.cr-delete:hover { border-color: #ef4444; color: #ef4444; }
 
 /* ---- Pagination ---- */

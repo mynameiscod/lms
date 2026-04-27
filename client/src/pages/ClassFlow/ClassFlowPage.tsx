@@ -155,9 +155,6 @@ const ClassFlowPage: React.FC = () => {
   const [hasRecovery, setHasRecovery] = useState(false);
   const [uploadPaused, setUploadPaused] = useState(false);
 
-  // Step 2 — post-upload decision
-  const [showPostUploadChoice, setShowPostUploadChoice] = useState(false);
-
   // Step 3 — processing
   const [recordingId, setRecordingId] = useState('');
   const [processingStatus, setProcessingStatus] = useState('uploaded');
@@ -482,8 +479,8 @@ const ClassFlowPage: React.FC = () => {
       setRecording(false);
       setUploading(false);
       setUploadPaused(false);
-      // Show choice instead of jumping straight to Step 3
-      setShowPostUploadChoice(true);
+      // Recording saved — go back to all recordings list
+      navigate('/admin/class-recordings');
     } catch (err: any) {
       if (attempt < 3) {
         const delay = Math.pow(2, attempt) * 2000; // 2s, 4s, 8s
@@ -551,23 +548,6 @@ const ClassFlowPage: React.FC = () => {
     if (!uploadFile) return;
     setUploading(true);
     await doUpload(uploadFile);
-  };
-
-  // ── Post-upload: Process Now vs Save for Later ──
-  const handleProcessNow = () => {
-    setShowPostUploadChoice(false);
-    setStep(3);
-  };
-
-  const handleSaveForLater = async () => {
-    setShowPostUploadChoice(false);
-    // Load the raw recording (no AI content yet) and go straight to Step 4
-    try {
-      const res = await classRecordingApi.getById(recordingId);
-      setRecordingData(res.data);
-      if (res.data.isPublished) setPublished(true);
-    } catch {}
-    setStep(4);
   };
 
   // ── Step 4: Publish ──
@@ -798,49 +778,7 @@ const ClassFlowPage: React.FC = () => {
           <div className="cf-step-title">Record or Upload</div>
           <div className="cf-step-sub">Record live in the browser or upload a saved video — no third-party tools needed</div>
 
-          {/* ── Post-upload choice ── */}
-          {showPostUploadChoice && (
-            <div className="cf-card" style={{ textAlign: 'center', padding: '32px 24px' }}>
-              <div style={{ fontSize: 48, marginBottom: 12 }}>🎉</div>
-              <div style={{ fontSize: 20, fontWeight: 800, color: '#0b1437', marginBottom: 8 }}>
-                Recording uploaded successfully!
-              </div>
-              <div style={{ fontSize: 14, color: '#64748b', marginBottom: 32, lineHeight: 1.6 }}>
-                What would you like to do next?
-              </div>
-
-              <div className="cf-post-upload-grid">
-                {/* Option A — Process Now */}
-                <div className="cf-post-upload-card" onClick={handleProcessNow}>
-                  <div className="cf-post-upload-icon">🤖</div>
-                  <div className="cf-post-upload-title">Process with AI Now</div>
-                  <div className="cf-post-upload-desc">
-                    Auto-generate transcript, summary, notes, quiz, practice problems and assignment immediately.
-                    You can review and publish when ready.
-                  </div>
-                  <button className="cf-btn-primary w-100 mt-3">🚀 Start AI Processing →</button>
-                </div>
-
-                {/* Option B — Save for Later */}
-                <div className="cf-post-upload-card" onClick={handleSaveForLater}>
-                  <div className="cf-post-upload-icon">💾</div>
-                  <div className="cf-post-upload-title">Save &amp; Process Later</div>
-                  <div className="cf-post-upload-desc">
-                    Skip AI processing for now. Go to the review page where you can publish the raw video immediately
-                    or trigger AI processing at any time.
-                  </div>
-                  <button className="btn btn-outline-secondary w-100 mt-3" style={{ borderRadius: 10 }}>
-                    💾 Save &amp; Go to Publish →
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {!showPostUploadChoice && (
-            <>
-
-          {/* Meta row */}
+          {/* Meta row */}}
           <div className="cf-meta-row">
             {courseName && <span className="cf-chip">📚 {courseName}</span>}
             {subjectName && <span className="cf-chip">🗂 {subjectName}</span>}
@@ -1066,7 +1004,7 @@ const ClassFlowPage: React.FC = () => {
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <button className="btn btn-outline-secondary btn-sm" onClick={() => setUploadFile(null)}>Remove</button>
-                    <button className="cf-btn-primary" onClick={handleUploadSelected}>Upload &amp; Process →</button>
+                    <button className="cf-btn-primary" onClick={handleUploadSelected}>💾 Save Recording →</button>
                   </div>
                 </div>
               )}
@@ -1081,8 +1019,6 @@ const ClassFlowPage: React.FC = () => {
               {recordingError && <div className="alert alert-danger mt-3 py-2 small">{recordingError}</div>}
             </div>
           )}
-            </>
-          )} {/* end !showPostUploadChoice */}
         </div>
       )}
 

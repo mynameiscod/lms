@@ -778,7 +778,7 @@ const ClassFlowPage: React.FC = () => {
           <div className="cf-step-title">Record or Upload</div>
           <div className="cf-step-sub">Record live in the browser or upload a saved video — no third-party tools needed</div>
 
-          {/* Meta row */}}
+          {/* Meta row */}
           <div className="cf-meta-row">
             {courseName && <span className="cf-chip">📚 {courseName}</span>}
             {subjectName && <span className="cf-chip">🗂 {subjectName}</span>}

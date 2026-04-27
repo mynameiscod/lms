@@ -840,7 +840,7 @@ const ClassFlowPage: React.FC = () => {
           {!showPostUploadChoice && (
             <>
 
-          {/* Meta row */
+          {/* Meta row */}
           <div className="cf-meta-row">
             {courseName && <span className="cf-chip">📚 {courseName}</span>}
             {subjectName && <span className="cf-chip">🗂 {subjectName}</span>}

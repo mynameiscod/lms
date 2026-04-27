@@ -72,6 +72,7 @@ const LiveJoinPage: React.FC = () => {
       classTitle="Live Class"
       role="viewer"
       onClose={() => navigate('/')}
+      onRetry={() => setJoined(false)}
     />
   );
 };

@@ -41,6 +41,8 @@ export interface LiveClassroomProps {
   /** Elapsed seconds from ClassFlowPage timer */
   elapsed?: number;
   onClose: () => void;
+  /** Called when the user wants to retry joining (e.g. after an error) */
+  onRetry?: () => void;
 }
 
 // ── Remote audio element helper (keeps audio playing on stream update) ──
@@ -134,6 +136,7 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
   recordingState: externalRecordingState,
   elapsed = 0,
   onClose,
+  onRetry,
 }) => {
   const { user } = useAuth();
 
@@ -248,13 +251,6 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
 
       if (!mounted) return;
 
-      // 12-second join timeout — shows error if server never responds
-      joinTimeoutRef.current = setTimeout(() => {
-        if (!mounted) return;
-        setJoinError('Could not join the session — the server may be offline or the session ID is invalid. Please check your connection and try again.');
-        setIsJoining(false);
-      }, 12000);
-
       const socket = io(window.location.origin, {
         auth: { token: localStorage.getItem('token') },
         reconnection: true,
@@ -266,6 +262,16 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
       socket.on('connect', () => {
         if (!mounted) return;
         setMySocketId(socket.id);
+        // Start 25-second timeout AFTER socket connects — if no participant_list arrives it means
+        // the session doesn't exist or the server is not responding to the join event
+        joinTimeoutRef.current = setTimeout(() => {
+          if (!mounted) return;
+          setJoinError(
+            'The host may not have started the live session yet, or the server is temporarily unavailable. ' +
+            'Please ask the host to check their session and try joining again.'
+          );
+          setIsJoining(false);
+        }, 25000);
         socket.emit('live_class:join', {
           sessionId,
           userId: (user as any)?._id || (user as any)?.id || socket.id,
@@ -407,7 +413,10 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
       socket.on('connect_error', (err) => {
         if (!mounted) return;
         if (joinTimeoutRef.current) clearTimeout(joinTimeoutRef.current);
-        setJoinError(`Connection failed: ${err.message}. Make sure the server is running and try again.`);
+        setJoinError(
+          `Could not reach the server (${err.message}). ` +
+          'Please check your internet connection and try again.'
+        );
         setIsJoining(false);
       });
 
@@ -527,12 +536,33 @@ const LiveClassroom: React.FC<LiveClassroomProps> = ({
   }
 
   if (joinError) {
+    const isNotFound = /not found|not started|no session/i.test(joinError);
     return (
       <div className="lc-overlay">
-        <div className="lc-center-card">
-          <div style={{ fontSize: 40, marginBottom: 12 }}>⚠️</div>
-          <div className="lc-center-text" style={{ color: '#ef4444' }}>{joinError}</div>
-          <button className="lc-btn-primary" style={{ marginTop: 20 }} onClick={handleClose}>Close</button>
+        <div className="lc-center-card" style={{ maxWidth: 420 }}>
+          <div style={{ fontSize: 40, marginBottom: 12 }}>{isNotFound ? '⏳' : '⚠️'}</div>
+          <div className="lc-center-text" style={{ color: '#ef4444', marginBottom: 8 }}>
+            {isNotFound ? 'Session not available yet' : 'Could not join session'}
+          </div>
+          <div style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', lineHeight: 1.6, marginBottom: 20 }}>
+            {joinError}
+          </div>
+          <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+            {(onRetry || isNotFound) && (
+              <button
+                className="lc-btn-primary"
+                onClick={onRetry || handleClose}
+              >
+                🔄 Try Again
+              </button>
+            )}
+            <button
+              className="lc-btn-secondary"
+              onClick={handleClose}
+            >
+              ✕ Close
+            </button>
+          </div>
         </div>
       </div>
     );

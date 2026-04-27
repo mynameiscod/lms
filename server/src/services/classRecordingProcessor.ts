@@ -3,6 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import ClassRecording from '../models/ClassRecording';
 
+// Polyfill for Node < 20: OpenAI SDK requires globalThis.File for file uploads
+if (!globalThis.File) {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  (globalThis as any).File = require('node:buffer').File;
+}
+
 /**
  * Background processor for class recordings.
  * Pipeline: transcribe → summarize → generate quiz → generate assignment

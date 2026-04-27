@@ -1,13 +1,9 @@
 import OpenAI from 'openai';
+import axios from 'axios';
+import FormData from 'form-data';
 import fs from 'fs';
 import path from 'path';
 import ClassRecording from '../models/ClassRecording';
-
-// Polyfill for Node < 20: OpenAI SDK requires globalThis.File for file uploads
-if (!globalThis.File) {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  (globalThis as any).File = require('node:buffer').File;
-}
 
 /**
  * Background processor for class recordings.
@@ -19,30 +15,38 @@ async function updateStatus(recordingId: string, status: string, progress: numbe
 }
 
 /**
- * Transcribe audio/video using OpenAI Whisper API.
+ * Transcribe audio/video using OpenAI Whisper API via axios (works on any Node version).
  * Whisper supports mp4, webm, mp3, wav, etc. up to 25MB.
- * For larger files we chunk by splitting (simplified: send first 25MB).
+ * For larger files we chunk by splitting (simplified: send first 24MB).
  */
 async function transcribeVideo(filePath: string): Promise<string> {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error('OPENAI_API_KEY not configured');
 
-  const openai = new OpenAI({ apiKey });
-  const stats = fs.statSync(filePath);
+  const WHISPER_URL = 'https://api.openai.com/v1/audio/transcriptions';
   const MAX_SIZE = 24 * 1024 * 1024; // 24MB to stay under 25MB limit
+  const stats = fs.statSync(filePath);
+
+  const sendToWhisper = async (audioPath: string): Promise<string> => {
+    const form = new FormData();
+    form.append('file', fs.createReadStream(audioPath), path.basename(audioPath));
+    form.append('model', 'whisper-1');
+    form.append('language', 'en');
+    form.append('response_format', 'text');
+    const response = await axios.post(WHISPER_URL, form, {
+      headers: { ...form.getHeaders(), Authorization: `Bearer ${apiKey}` },
+      maxBodyLength: Infinity,
+      maxContentLength: Infinity,
+    });
+    return response.data as string;
+  };
 
   if (stats.size <= MAX_SIZE) {
-    const response = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(filePath),
-      model: 'whisper-1',
-      language: 'en',
-      response_format: 'text'
-    });
-    return response as unknown as string;
+    return sendToWhisper(filePath);
   }
 
-  // For large files, we need to chunk. Read first chunk.
-  // In production, use ffmpeg to split audio. For now, truncate.
+  // For large files: truncate to first 24MB and send as a chunk.
+  // In production, prefer ffmpeg to split at a proper audio boundary.
   console.log(`[ClassRecording] File ${stats.size} bytes exceeds Whisper limit, sending first ${MAX_SIZE} bytes`);
   const tempPath = filePath + '.chunk.webm';
   const buffer = Buffer.alloc(MAX_SIZE);
@@ -52,13 +56,7 @@ async function transcribeVideo(filePath: string): Promise<string> {
   fs.writeFileSync(tempPath, buffer);
 
   try {
-    const response = await openai.audio.transcriptions.create({
-      file: fs.createReadStream(tempPath),
-      model: 'whisper-1',
-      language: 'en',
-      response_format: 'text'
-    });
-    return response as unknown as string;
+    return await sendToWhisper(tempPath);
   } finally {
     fs.unlinkSync(tempPath);
   }

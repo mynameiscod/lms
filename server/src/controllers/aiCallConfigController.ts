@@ -14,10 +14,14 @@ import Lead from '../models/Lead';
  */
 export const getConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    let config = await AICallConfig.findOne({ tenantId: req.tenantId });
+    const tenantId = req.tenantId || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant ID required' });
+    }
+    let config = await AICallConfig.findOne({ tenantId });
     if (!config) {
       config = await AICallConfig.create({
-        tenantId: req.tenantId,
+        tenantId,
         enabled: false,
         questions: [
           { id: 'q1', text: 'Hi! This is an automated call from our admissions team. Are you interested in joining our course?', key: 'interested', order: 1, required: true },
@@ -43,6 +47,10 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response<ApiResp
  */
 export const updateConfig = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
+    const tenantId = req.tenantId || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant ID required' });
+    }
     const allowedFields = [
       'enabled', 'exotelAccountSid', 'exotelApiKey', 'exotelApiToken',
       'exotelVirtualNumber', 'exotelAppId', 'questions', 'retry',
@@ -54,8 +62,8 @@ export const updateConfig = async (req: AuthenticatedRequest, res: Response<ApiR
     });
 
     const config = await AICallConfig.findOneAndUpdate(
-      { tenantId: req.tenantId },
-      { $set: update, $setOnInsert: { tenantId: req.tenantId } },
+      { tenantId },
+      { $set: update, $setOnInsert: { tenantId } },
       { new: true, upsert: true, runValidators: true }
     );
     res.json({ success: true, message: 'Config updated', data: config });
@@ -70,17 +78,21 @@ export const updateConfig = async (req: AuthenticatedRequest, res: Response<ApiR
  */
 export const getStats = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
-    const config = await AICallConfig.findOne({ tenantId: req.tenantId });
+    const tenantId = req.tenantId || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant ID required' });
+    }
+    const config = await AICallConfig.findOne({ tenantId });
 
     const [total, pending, answered, completed, failed, hot, warm, cold] = await Promise.all([
-      Lead.countDocuments({ tenantId: req.tenantId, aiCallStatus: { $exists: true } }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCallStatus: 'pending' }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCallStatus: 'answered' }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCallStatus: 'completed' }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCallStatus: 'failed' }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCategory: 'HOT' }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCategory: 'WARM' }),
-      Lead.countDocuments({ tenantId: req.tenantId, aiCategory: 'COLD' })
+      Lead.countDocuments({ tenantId, aiCallStatus: { $exists: true } }),
+      Lead.countDocuments({ tenantId, aiCallStatus: 'pending' }),
+      Lead.countDocuments({ tenantId, aiCallStatus: 'answered' }),
+      Lead.countDocuments({ tenantId, aiCallStatus: 'completed' }),
+      Lead.countDocuments({ tenantId, aiCallStatus: 'failed' }),
+      Lead.countDocuments({ tenantId, aiCategory: 'HOT' }),
+      Lead.countDocuments({ tenantId, aiCategory: 'WARM' }),
+      Lead.countDocuments({ tenantId, aiCategory: 'COLD' })
     ]);
 
     const answeredRate = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -110,11 +122,15 @@ export const getStats = async (req: AuthenticatedRequest, res: Response<ApiRespo
  */
 export const getAICallLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
+    const tenantId = req.tenantId || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant ID required' });
+    }
     const { page = '1', limit = '20', status, category } = req.query;
     const pageNum = parseInt(page as string, 10);
     const limitNum = parseInt(limit as string, 10);
 
-    const filter: any = { tenantId: req.tenantId, aiCallStatus: { $exists: true } };
+    const filter: any = { tenantId, aiCallStatus: { $exists: true } };
     if (status) filter.aiCallStatus = status;
     if (category) filter.aiCategory = category;
 
@@ -144,20 +160,24 @@ export const getAICallLeads = async (req: AuthenticatedRequest, res: Response<Ap
  */
 export const triggerCallManually = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
+    const tenantId = req.tenantId || req.user?.tenantId;
+    if (!tenantId) {
+      return res.status(400).json({ success: false, message: 'Tenant ID required' });
+    }
     const { leadId } = req.params;
-    const lead = await Lead.findOne({ _id: leadId, tenantId: req.tenantId });
+    const lead = await Lead.findOne({ _id: leadId, tenantId });
     if (!lead) {
       return res.status(404).json({ success: false, message: 'Lead not found' });
     }
 
-    const config = await AICallConfig.findOne({ tenantId: req.tenantId, enabled: true });
+    const config = await AICallConfig.findOne({ tenantId, enabled: true });
     if (!config) {
       return res.status(400).json({ success: false, message: 'AI calling is not enabled. Configure it in AI Call Settings.' });
     }
 
     const { enqueueAICall } = await import('../services/aiCallQueueService');
     const nextAttempt = (lead.aiCallAttempts || 0) + 1;
-    await enqueueAICall(leadId, req.tenantId!, nextAttempt);
+    await enqueueAICall(leadId, tenantId, nextAttempt);
 
     await Lead.findByIdAndUpdate(leadId, { aiCallStatus: 'pending', nextAICallAt: new Date() });
 

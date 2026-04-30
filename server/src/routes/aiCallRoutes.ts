@@ -14,6 +14,7 @@
  */
 import express from 'express';
 import { authMiddleware as authenticateToken } from '../middleware/auth';
+import { tenantResolver } from '../middleware/tenantResolver';
 import {
   getConfig,
   updateConfig,
@@ -29,7 +30,7 @@ const router = express.Router();
 router.post('/webhook/exotel', handleExotelWebhook);
 
 // ── AUTHENTICATED ──
-router.use(authenticateToken);
+router.use(authenticateToken, tenantResolver);
 
 router.get('/config', getConfig);
 router.put('/config', updateConfig);

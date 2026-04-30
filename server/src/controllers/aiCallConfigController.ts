@@ -55,7 +55,7 @@ export const updateConfig = async (req: AuthenticatedRequest, res: Response<ApiR
 
     const config = await AICallConfig.findOneAndUpdate(
       { tenantId: req.tenantId },
-      { $set: update },
+      { $set: update, $setOnInsert: { tenantId: req.tenantId } },
       { new: true, upsert: true, runValidators: true }
     );
     res.json({ success: true, message: 'Config updated', data: config });

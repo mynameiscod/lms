@@ -53,7 +53,7 @@ export const initiateExotelCall = async (
   attemptNumber: number
 ): Promise<ExotelCallResult> => {
   // Exotel API base URL (India cluster)
-  const baseUrl = `https://api.exotel.com/v1/Accounts/${accountSid}`;
+  const baseUrl = `https://api.in.exotel.com/v1/Accounts/${accountSid}`;
 
   // Format phone: Exotel expects 0 + 10-digit or +91...
   const formattedPhone = formatPhone(toPhone);
@@ -104,7 +104,7 @@ export const getExotelCallDetails = async (
   apiToken: string,
   callSid: string
 ): Promise<{ status: string; duration?: number; recordingUrl?: string }> => {
-  const baseUrl = `https://api.exotel.com/v1/Accounts/${accountSid}`;
+  const baseUrl = `https://api.in.exotel.com/v1/Accounts/${accountSid}`;
 
   const response = await axios.get(
     `${baseUrl}/Calls/${callSid}`,

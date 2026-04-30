@@ -113,6 +113,7 @@ import AdminLearningRequestsPage from './pages/AdminLearningRequests';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
 import LeadSourcesPage from './pages/LeadSources';
+import AICallConfigPage from './pages/AICallConfig';
 
 // Class Recording Pages
 import StartRecording from './pages/ClassRecording/StartRecording';
@@ -1102,6 +1103,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadDistributionSettingsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-call-config"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <AICallConfigPage />
             </Layout>
           </ProtectedRoute>
         }

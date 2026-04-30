@@ -6,6 +6,8 @@ import https from 'https';
 import { getDecryptedTokens } from './leadSourceConfigController';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import { scoreAndAssignLead } from '../services/leadScoringService';
+import { enqueueAICall } from '../services/aiCallQueueService';
+import AICallConfig from '../models/AICallConfig';
 
 // ===================== DEBUG LOGGER =====================
 
@@ -509,4 +511,16 @@ async function fetchAndCreateLead(
   scoreAndAssignLead(newLead, new mongoose.Types.ObjectId(tenantId)).catch(err =>
     console.error('[META-LEAD] Auto-score failed:', err)
   );
+
+  // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
+  AICallConfig.findOne({ tenantId: tenantObjectId, enabled: true })
+    .then(cfg => {
+      if (cfg) {
+        Lead.findByIdAndUpdate(newLead._id, { aiCallStatus: 'pending' }).exec().catch(() => {});
+        enqueueAICall(newLead._id.toString(), tenantId!, 1).catch(err =>
+          console.error('[META-LEAD] AI call enqueue failed:', err)
+        );
+      }
+    })
+    .catch(err => console.error('[META-LEAD] AI config lookup failed:', err));
 }

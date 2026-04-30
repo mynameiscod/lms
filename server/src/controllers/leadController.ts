@@ -17,6 +17,8 @@ import { autoAssignLead } from '../services/leadDistributionService';
 import { pushLeadStageChange } from '../services/googleSheetSyncService';
 import { scheduleDripOnStageEntry } from '../services/whatsAppDripService';
 import leadAIService from '../services/leadAIService';
+import { enqueueAICall } from '../services/aiCallQueueService';
+import AICallConfig from '../models/AICallConfig';
 
 // Helper to create audit log entries
 const auditLog = async (
@@ -465,6 +467,18 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     autoAssignLead(req.tenantId!, lead._id.toString()).catch(err =>
       console.error('[LEAD-CREATE] autoAssignLead failed:', err)
     );
+
+    // AI Voice Qualification call — enqueue if enabled for this tenant (fire-and-forget)
+    AICallConfig.findOne({ tenantId: req.tenantId, enabled: true })
+      .then(cfg => {
+        if (cfg) {
+          Lead.findByIdAndUpdate(lead._id, { aiCallStatus: 'pending' }).exec().catch(() => {});
+          enqueueAICall(lead._id.toString(), req.tenantId!, 1).catch(err =>
+            console.error('[LEAD-CREATE] AI call enqueue failed:', err)
+          );
+        }
+      })
+      .catch(err => console.error('[LEAD-CREATE] AI config lookup failed:', err));
 
     const populated = await Lead.findById(lead._id)
       .populate('stageId', 'name color order')

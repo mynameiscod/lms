@@ -59,6 +59,7 @@ import leadDistributionRoutes from './leadDistributionRoutes';
 import whatsappDripConfigRoutes from './whatsappDripConfigRoutes';
 import salesCallRecordingRoutes from './salesCallRecordingRoutes';
 import googleAdsRoutes from './googleAdsRoutes';
+import aiCallRoutes from './aiCallRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -128,5 +129,6 @@ router.use('/lead-distribution-config', leadDistributionRoutes);
 router.use('/whatsapp-drip-config', whatsappDripConfigRoutes);
 router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
+router.use('/ai-calls', aiCallRoutes);
 
 export default router;

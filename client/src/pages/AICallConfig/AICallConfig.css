@@ -1,0 +1,68 @@
+.ai-call-config-page {
+  padding: 1.5rem;
+}
+.ai-call-config-page .section-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+.ai-call-config-page .section-card h5 {
+  color: #6650d8;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ai-call-config-page .stat-box {
+  background: #f8f7ff;
+  border: 1px solid #d4cef7;
+  border-radius: 10px;
+  padding: 1rem;
+  text-align: center;
+}
+.ai-call-config-page .stat-box .stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #6650d8;
+}
+.ai-call-config-page .stat-box .stat-label {
+  font-size: 0.8rem;
+  color: #6c757d;
+  margin-top: 0.25rem;
+}
+.ai-call-config-page .question-row {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ai-call-config-page .question-row .q-order {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #6650d8;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.ai-call-config-page .working-days label {
+  margin-right: 1rem;
+  font-size: 0.9rem;
+}
+.ai-call-config-page .badge-hot { background-color: #ef4444; }
+.ai-call-config-page .badge-warm { background-color: #f97316; }
+.ai-call-config-page .badge-cold { background-color: #3b82f6; }
+.ai-call-config-page .badge-junk { background-color: #9ca3af; }
+.ai-call-config-page .leads-table th { font-size: 0.8rem; color: #6c757d; font-weight: 600; border-bottom: 2px solid #e2e8f0; }
+.ai-call-config-page .leads-table td { font-size: 0.85rem; vertical-align: middle; }

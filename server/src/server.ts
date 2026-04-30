@@ -9,6 +9,7 @@ import { syncAllActiveSheets } from './services/googleSheetSyncService';
 import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
 import { startDailySummaryScheduler } from './jobs/dailySummaryCron';
 import { startSlaCronScheduler } from './jobs/slaCron';
+import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -264,6 +265,10 @@ const startServer = async () => {
     // Start SLA breach checker (runs every 30 minutes)
     startSlaCronScheduler(io);
 
+    // Start AI Voice Call worker (BullMQ)
+    startAICallWorker();
+    console.log('🤖 AI Call Worker started');
+
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server
     httpServer.listen(PORT, () => {
@@ -278,3 +283,15 @@ const startServer = async () => {
 };
 
 startServer();
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('[SERVER] SIGTERM received — stopping AI call worker...');
+  await stopAICallWorker().catch(console.error);
+  process.exit(0);
+});
+process.on('SIGINT', async () => {
+  console.log('[SERVER] SIGINT received — stopping AI call worker...');
+  await stopAICallWorker().catch(console.error);
+  process.exit(0);
+});

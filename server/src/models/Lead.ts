@@ -107,6 +107,21 @@ export interface IAISummary {
   generatedBy: string;
 }
 
+export type AICallStatus = 'pending' | 'in_progress' | 'answered' | 'not_answered' | 'failed' | 'completed' | 'skipped';
+export type AICategory = 'HOT' | 'WARM' | 'COLD' | 'JUNK';
+
+export interface IAICallLog {
+  attemptNumber: number;
+  callSid?: string;
+  startedAt: Date;
+  endedAt?: Date;
+  duration?: number;          // seconds
+  outcome: 'answered' | 'not_answered' | 'busy' | 'failed' | 'in_progress';
+  recordingUrl?: string;
+  transcript?: string;
+  error?: string;
+}
+
 export interface ILeadActivity {
   type: 'note' | 'call' | 'email' | 'whatsapp' | 'status_change' | 'assignment' | 'created' | 'meeting' | 'content_shared';
   description: string;
@@ -209,7 +224,15 @@ export interface ILead extends Document {
   
   // NEW: AI Summary
   aiSummary?: IAISummary;
-  
+
+  // AI Voice Call fields
+  aiCallStatus?: AICallStatus;
+  aiCallAttempts?: number;
+  aiCallLogs?: IAICallLog[];
+  aiQualificationScore?: number;  // 0-100
+  aiCategory?: AICategory;
+  nextAICallAt?: Date;
+
   tenantId: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -541,7 +564,35 @@ const LeadSchema: Schema = new Schema(
       },
       generatedBy: { type: String, trim: true }
     },
-    
+
+    // AI Voice Call tracking
+    aiCallStatus: {
+      type: String,
+      enum: ['pending', 'in_progress', 'answered', 'not_answered', 'failed', 'completed', 'skipped']
+    },
+    aiCallAttempts: { type: Number, default: 0 },
+    aiCallLogs: [{
+      attemptNumber: { type: Number, required: true },
+      callSid: { type: String, trim: true },
+      startedAt: { type: Date, required: true },
+      endedAt: { type: Date },
+      duration: { type: Number },
+      outcome: {
+        type: String,
+        enum: ['answered', 'not_answered', 'busy', 'failed', 'in_progress'],
+        required: true
+      },
+      recordingUrl: { type: String, trim: true },
+      transcript: { type: String },
+      error: { type: String, trim: true }
+    }],
+    aiQualificationScore: { type: Number, min: 0, max: 100 },
+    aiCategory: {
+      type: String,
+      enum: ['HOT', 'WARM', 'COLD', 'JUNK']
+    },
+    nextAICallAt: { type: Date },
+
     tenantId: {
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',
@@ -569,5 +620,7 @@ LeadSchema.index({ tenantId: 1, score: -1 });
 LeadSchema.index({ tenantId: 1, whatsappStatus: 1 });
 LeadSchema.index({ tenantId: 1, 'assignment.assignedTo': 1 });
 LeadSchema.index({ tenantId: 1, 'telecallerMetrics.lastActionAt': -1 });
+LeadSchema.index({ tenantId: 1, aiCallStatus: 1 });
+LeadSchema.index({ tenantId: 1, nextAICallAt: 1 });
 
 export default mongoose.model<ILead>('Lead', LeadSchema);

@@ -14,6 +14,15 @@ services:
       - lms-network
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: lms-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - lms-network
+    restart: unless-stopped
+
   server:
     build:
       context: .
@@ -32,11 +41,15 @@ services:
       FRONTEND_URL: https://platform.codebegun.com
       # Code execution engine
       PISTON_URL: http://piston:2000/api/v2
+      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
     volumes:
       - uploads_data:/app/uploads
     depends_on:
       - mongodb
       - piston
+      - redis
     networks:
       - lms-network
     restart: unless-stopped
@@ -57,6 +70,7 @@ volumes:
   mongodb_data:
   uploads_data:
   piston_data:
+  redis_data:
 
 networks:
   lms-network:

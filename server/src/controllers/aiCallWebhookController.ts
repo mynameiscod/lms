@@ -51,10 +51,20 @@ export const handleExotelWebhook = async (req: Request, res: Response): Promise<
     let tenantId: string | undefined;
     let attemptNumber = 1;
     try {
-      const custom = JSON.parse(payload.CustomField || '{}');
-      leadId = custom.leadId;
-      tenantId = custom.tenantId;
-      attemptNumber = parseInt(custom.attemptNumber || '1', 10);
+      const cf = payload.CustomField || '';
+      if (cf.includes('|')) {
+        // New pipe format: leadId|tenantId|attemptNumber
+        const parts = cf.split('|');
+        leadId = parts[0];
+        tenantId = parts[1];
+        attemptNumber = parseInt(parts[2] || '1', 10);
+      } else {
+        // Legacy JSON format
+        const custom = JSON.parse(cf || '{}');
+        leadId = custom.leadId;
+        tenantId = custom.tenantId;
+        attemptNumber = parseInt(custom.attemptNumber || '1', 10);
+      }
     } catch {
       // Fallback: search by callSid
     }

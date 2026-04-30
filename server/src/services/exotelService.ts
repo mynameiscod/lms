@@ -63,25 +63,33 @@ export const initiateExotelCall = async (
     To: formattedPhone,
     CallerId: virtualNumber,
     // Custom data passed back in webhook
-    CustomField: JSON.stringify({ leadId, tenantId, attemptNumber }),
+    CustomField: `${leadId}|${tenantId}|${attemptNumber}`,
     // Connect to the IVR App
-    Url: `https://my.exotel.com/${accountSid}/exoml/start_voice/${appId}`,
-    // Webhook for status updates (set in Exotel dashboard, or override here)
+    Url: `http://my.exotel.com/${accountSid}/exoml/start_voice/${appId}`,
+    // Webhook for status updates
     StatusCallback: `${process.env.API_BASE_URL || ''}/api/v1/ai-calls/webhook/exotel`,
-    StatusCallbackEvents: 'terminal',
     TimeLimit: '300',   // Max call duration 5 minutes
     TimeOut: '40'       // Ring timeout 40 seconds
   });
 
-  const response = await axios.post(
-    `${baseUrl}/Calls/connect`,
-    params.toString(),
-    {
-      auth: { username: apiKey, password: apiToken },
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      timeout: 15000
-    }
-  );
+  console.log(`[ExotelService] Calling: From=${virtualNumber}, To=${formattedPhone}, AppId=${appId}`);
+
+  let response: any;
+  try {
+    response = await axios.post(
+      `${baseUrl}/Calls/connect`,
+      params.toString(),
+      {
+        auth: { username: apiKey, password: apiToken },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        timeout: 15000
+      }
+    );
+  } catch (err: any) {
+    const errData = err?.response?.data;
+    console.error(`[ExotelService] API error ${err?.response?.status}:`, JSON.stringify(errData));
+    throw new Error(`Exotel API ${err?.response?.status}: ${JSON.stringify(errData)}`);
+  }
 
   const call = response.data?.Call;
   if (!call?.Sid) {

@@ -1368,64 +1368,319 @@
 }
 
 @media (max-width: 1024px) {
+  /* Show all panels stacked vertically on tablet/mobile */
   .crm-main {
     grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    overflow: visible;
   }
-  
+
+  /* Show sidebars on mobile — stacked below center */
   .crm-sidebar-left,
   .crm-sidebar-right {
-    display: none;
+    display: flex;
+    border: none;
+    border-top: 1px solid var(--border);
+    overflow-y: visible;
   }
-  
+
+  /* Left sidebar: compact horizontal layout on tablet */
+  .crm-sidebar-left {
+    order: 2;
+  }
+
+  .crm-center {
+    order: 1;
+    overflow: visible;
+    min-height: 0;
+  }
+
+  .crm-sidebar-right {
+    order: 3;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  /* Profile section: horizontal on tablet */
+  .crm-profile-section {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .crm-avatar {
+    width: 64px;
+    height: 64px;
+    font-size: 1.3rem;
+    margin-bottom: 10px;
+  }
+
   .crm-topbar {
     flex-wrap: wrap;
     height: auto;
     padding: 12px 16px;
-    gap: 12px;
+    gap: 10px;
   }
-  
+
+  .crm-topbar-left {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .crm-topbar-title {
+    font-size: 0.95rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 200px;
+  }
+
   .crm-topbar-actions {
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
   }
-  
+
   .crm-topbar-btn {
-    padding: 6px 12px;
-    font-size: 0.8rem;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+  }
+
+  .crm-activity-feed {
+    overflow-y: visible;
+    max-height: none;
   }
 }
 
 @media (max-width: 640px) {
-  .crm-center-header {
+  .crm-topbar {
+    padding: 10px 12px;
+  }
+
+  .crm-topbar-title {
+    font-size: 0.88rem;
+    max-width: 150px;
+  }
+
+  .crm-topbar-btn {
+    padding: 5px 8px;
+    font-size: 0.75rem;
+    gap: 4px;
+  }
+
+  /* Stack all topbar actions on one row, scrollable */
+  .crm-topbar-actions {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+
+  .crm-topbar-btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Profile: hide avatar, show compact header */
+  .crm-profile-section {
     padding: 16px;
   }
-  
-  .crm-activity-tabs {
-    padding: 0 16px;
+
+  .crm-avatar {
+    width: 52px;
+    height: 52px;
+    font-size: 1.1rem;
+    margin-bottom: 8px;
   }
-  
-  .crm-activity-tab {
-    padding: 14px 16px;
+
+  .crm-profile-name {
+    font-size: 1rem;
+  }
+
+  /* Quick actions: grid 4-col */
+  .crm-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    width: 100%;
+    margin-top: 12px;
+    padding: 0;
+  }
+
+  .crm-quick-action {
+    padding: 8px 4px;
+    font-size: 0.68rem;
+    min-width: unset;
+  }
+
+  .crm-quick-action-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 0.9rem;
+  }
+
+  .crm-convert-btn {
+    width: 100%;
+    margin-top: 12px;
+    padding: 10px 16px;
     font-size: 0.85rem;
   }
-  
+
+  /* Info list: 2-column grid for key-value pairs */
+  .crm-info-list {
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+  }
+
+  .crm-info-item {
+    padding: 10px 0;
+  }
+
+  /* Notes item: full width */
+  .crm-info-item:has(.crm-notes-area),
+  .crm-info-item:has(textarea) {
+    grid-column: 1 / -1;
+  }
+
+  .crm-center-header {
+    padding: 12px 14px;
+  }
+
+  .crm-search-bar {
+    padding: 10px 12px;
+  }
+
+  .crm-activity-tabs {
+    padding: 0 12px;
+    gap: 0;
+  }
+
+  .crm-activity-tab {
+    padding: 12px 12px;
+    font-size: 0.8rem;
+  }
+
+  .crm-filters-row {
+    padding: 10px 14px;
+    gap: 8px;
+  }
+
+  .crm-filter-select {
+    font-size: 0.8rem;
+    padding: 7px 28px 7px 10px;
+  }
+
   .crm-activity-feed {
-    padding: 16px;
+    padding: 12px 14px;
   }
-  
+
+  .crm-add-activity-header {
+    padding: 12px 14px;
+  }
+
   .crm-add-activity-types {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
   }
-  
+
   .crm-add-type-btn {
-    width: 100%;
     justify-content: center;
+    padding: 8px 6px;
+    font-size: 0.82rem;
   }
-  
+
+  .crm-add-activity-body {
+    padding: 12px 14px;
+  }
+
+  .crm-add-activity-footer {
+    padding: 12px 14px;
+  }
+
+  .crm-add-activity-footer .crm-btn {
+    width: 100%;
+  }
+
+  .crm-activity-card-header {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .crm-activity-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+
+  .crm-activity-title {
+    font-size: 0.85rem;
+  }
+
+  .crm-activity-desc {
+    font-size: 0.82rem;
+  }
+
+  .crm-activity-meta {
+    font-size: 0.75rem;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  /* Right sidebar: single column */
+  .crm-sidebar-right {
+    padding: 12px;
+  }
+
+  /* Priority buttons: full width 3-col */
+  .crm-priority-btns {
+    gap: 6px;
+  }
+
+  .crm-priority-btn {
+    padding: 10px 6px;
+    font-size: 0.8rem;
+  }
+
+  /* Checklist: compact */
+  .crm-checklist {
+    max-height: none;
+    overflow-y: visible;
+  }
+
+  .crm-checklist-item {
+    padding: 10px 10px;
+    gap: 8px;
+  }
+
+  /* Modal: bottom sheet */
+  .crm-modal-overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
   .crm-modal {
-    margin: 16px;
-    max-height: calc(100vh - 32px);
+    width: 100%;
+    max-width: 100%;
+    border-radius: 20px 20px 0 0;
+    margin: 0;
+    max-height: 90vh;
     overflow-y: auto;
+  }
+
+  /* Call pills: 2-col grid */
+  .crm-call-pills {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+
+  .crm-call-pill {
+    text-align: center;
+    justify-content: center;
   }
 }
 

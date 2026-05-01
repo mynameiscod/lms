@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi, meetingApi, leadFeeApi } from '../../api';
@@ -392,6 +392,9 @@ const LeadDetail: React.FC = () => {
   const [showPaymentLinkModal, setShowPaymentLinkModal] = useState(false);
   const [showLostReasonModal, setShowLostReasonModal] = useState(false);
 
+  // Ref guard to prevent duplicate note submissions (double-tap on mobile)
+  const addActivityInFlight = useRef(false);
+
   const showAlertMsg = (type:'success'|'error', message:string) => {
     setAlert({type,message});
     setTimeout(()=>setAlert(null),3000);
@@ -466,6 +469,9 @@ const LeadDetail: React.FC = () => {
 
   const handleAddActivity = async () => {
     if(!lead||!activityDesc.trim()){showAlertMsg('error','Please enter a description');return;}
+    // Guard against double-tap / duplicate submission
+    if (addActivityInFlight.current) return;
+    addActivityInFlight.current = true;
     try{
       setUploadingActivity(true);
       const data:any={type:activityType,description:activityDesc};
@@ -474,7 +480,7 @@ const LeadDetail: React.FC = () => {
       setActivityDesc('');setCallOutcome('');setRecordingFile(null);
       await loadData();
     }catch(error:any){showAlertMsg('error',error.message||'Failed to add activity');}
-    finally{setUploadingActivity(false);}
+    finally{setUploadingActivity(false); addActivityInFlight.current = false;}
   };
 
   const handleDelete = async () => {

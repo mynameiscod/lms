@@ -1510,21 +1510,44 @@
   /* Header */
   .crm-header { flex-direction: column; gap: 12px; }
   .crm-header-title { font-size: 1.2rem; }
-  .crm-header-actions { width: 100%; gap: 6px; }
-  .crm-header-actions .crm-btn { flex: 1 1 auto; justify-content: center; font-size: 0.79rem; padding: 8px 10px; }
-  .crm-view-toggle { width: 100%; }
-  .crm-view-toggle button { flex: 1; justify-content: center; }
+  .crm-header-actions {
+    width: 100%;
+    gap: 6px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 2px;
+  }
+  .crm-header-actions .crm-btn { flex-shrink: 0; font-size: 0.79rem; padding: 8px 10px; }
+  .crm-view-toggle { flex-shrink: 0; }
+  .crm-view-toggle button { padding: 8px 12px; }
 
   /* Stats */
   .crm-stats { grid-template-columns: repeat(2, 1fr); gap: 8px; }
   .crm-stat-value { font-size: 1.4rem; }
+  .crm-stat-card { padding: 12px 14px; }
 
-  /* Toolbar */
-  .crm-toolbar { padding: 12px; }
-  .crm-toolbar-row { gap: 8px; }
+  /* Toolbar — filter row scrollable */
+  .crm-toolbar { padding: 10px 12px; gap: 10px; }
+  .crm-toolbar-row {
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 2px;
+  }
+  /* Search bar always full width on its own row */
+  .crm-toolbar-row:first-child { flex-wrap: wrap; }
   .crm-search-wrap { min-width: 0; width: 100%; flex: none; }
   .crm-search-input { font-size: 0.85rem; }
-  .crm-filter-select { width: 100%; }
+  /* Filters scroll horizontally */
+  .crm-filter-select { min-width: 120px; flex-shrink: 0; font-size: 0.82rem; }
+
+  /* Date presets — scrollable */
+  .crm-date-presets { flex-wrap: nowrap; overflow-x: auto; gap: 5px; padding-bottom: 2px; }
+  .crm-date-preset { white-space: nowrap; flex-shrink: 0; padding: 6px 10px; font-size: 0.8rem; }
+
+  /* Active filter chips */
+  .crm-active-filters { flex-wrap: nowrap; overflow-x: auto; gap: 6px; padding-bottom: 2px; }
+  .crm-filter-chip { white-space: nowrap; flex-shrink: 0; }
 
   /* Stage tabs */
   .crm-stage-tabs { gap: 5px; }
@@ -1533,17 +1556,23 @@
   .crm-table-wrap { display: none; }
   .crm-mobile-cards { display: flex; flex-direction: column; gap: 8px; }
 
+  /* Mobile card improvements */
+  .crm-mcard { padding: 13px 14px; }
+  .crm-mcard-name { font-size: 0.92rem; }
+
   /* Kanban */
   .crm-kanban { grid-template-columns: repeat(var(--kanban-cols, 5), 240px); }
 
   /* Modal bottom sheet */
-  .crm-modal-overlay { align-items: flex-end; }
+  .crm-modal-overlay { align-items: flex-end; padding: 0; }
   .crm-modal {
     width: 100%;
     max-width: 100%;
     border-radius: var(--radius-xl) var(--radius-xl) 0 0;
     padding: 22px 16px 28px;
     margin: 0;
+    max-height: 90vh;
+    overflow-y: auto;
   }
   .crm-form-grid { grid-template-columns: 1fr; max-height: 52vh; }
 }

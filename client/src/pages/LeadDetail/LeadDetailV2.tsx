@@ -754,50 +754,49 @@ const LeadDetailV2: React.FC = () => {
                 />
               </div>
               {noteType === 'call' && (
-                <>
-                  <div className="ld2-form-group">
-                    <label>Call Outcome</label>
-                    <select
-                      value={callOutcome}
-                      onChange={(e) => setCallOutcome(e.target.value)}
-                      className="ld2-select"
-                    >
-                      <option value="">Select outcome...</option>
-                      <option value="connected">Connected</option>
-                      <option value="no_answer">No Answer</option>
-                      <option value="busy">Busy</option>
-                      <option value="voicemail">Voicemail</option>
-                      <option value="wrong_number">Wrong Number</option>
-                      <option value="callback_requested">Callback Requested</option>
-                    </select>
-                  </div>
-                  <div className="ld2-form-group">
-                    <label>
-                      <i className="bi bi-mic"></i> Upload Call Recording
-                    </label>
-                    <div className="ld2-file-upload">
-                      <input
-                        type="file"
-                        accept="audio/*"
-                        id="recording-upload"
-                        onChange={(e) => setRecordingFile(e.target.files?.[0] || null)}
-                      />
-                      <label htmlFor="recording-upload" className="ld2-file-label">
-                        <i className="bi bi-cloud-upload"></i>
-                        {recordingFile ? recordingFile.name : 'Choose audio file...'}
-                      </label>
-                      {recordingFile && (
-                        <button 
-                          className="ld2-file-remove"
-                          onClick={() => setRecordingFile(null)}
-                        >
-                          <i className="bi bi-x"></i>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </>
+                <div className="ld2-form-group">
+                  <label>Call Outcome</label>
+                  <select
+                    value={callOutcome}
+                    onChange={(e) => setCallOutcome(e.target.value)}
+                    className="ld2-select"
+                  >
+                    <option value="">Select outcome...</option>
+                    <option value="connected">Connected</option>
+                    <option value="no_answer">No Answer</option>
+                    <option value="busy">Busy</option>
+                    <option value="voicemail">Voicemail</option>
+                    <option value="wrong_number">Wrong Number</option>
+                    <option value="callback_requested">Callback Requested</option>
+                  </select>
+                </div>
               )}
+              {/* Upload recording — always available for all activity types */}
+              <div className="ld2-form-group">
+                <label>
+                  <i className="bi bi-mic"></i> Upload Recording (optional)
+                </label>
+                <div className="ld2-file-upload">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    id="recording-upload"
+                    onChange={(e) => setRecordingFile(e.target.files?.[0] || null)}
+                  />
+                  <label htmlFor="recording-upload" className="ld2-file-label">
+                    <i className="bi bi-cloud-upload"></i>
+                    {recordingFile ? recordingFile.name : 'Choose audio file...'}
+                  </label>
+                  {recordingFile && (
+                    <button
+                      className="ld2-file-remove"
+                      onClick={() => setRecordingFile(null)}
+                    >
+                      <i className="bi bi-x"></i>
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="ld2-modal-footer">
               <button className="ld2-btn-cancel" onClick={() => { setShowNoteModal(false); setRecordingFile(null); setCallOutcome(''); }}>Cancel</button>

@@ -1158,7 +1158,16 @@
     gap: 16px;
   }
   
+  /* Show right column below left column on mobile (Quick Stats, Sales Call Recordings, etc.) */
   .ld2-right-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+  }
+
+  /* Hide priority card in right-col on mobile (we already show it in the mobile-priority row) */
+  .ld2-right-col .ld2-card:first-child {
     display: none;
   }
   
@@ -1557,7 +1566,7 @@
 }
 
 /* ============================================
-   MOBILE OVERFLOW FIX — global guard against
+   MOBILE OVERFLOW FIX ï¿½ global guard against
    horizontal overflow + full-width cards
    ============================================ */
 @media (max-width: 1024px) {
@@ -1600,14 +1609,14 @@
     box-sizing: border-box;
   }
 
-  /* Fixed grid columns for stage row — let it scroll horizontally cleanly */
+  /* Fixed grid columns for stage row ï¿½ let it scroll horizontally cleanly */
   .ld2-stages {
     width: 100%;
     overflow-x: auto;
     flex-wrap: nowrap;
   }
 
-  /* Tab content — no max-width clipping */
+  /* Tab content ï¿½ no max-width clipping */
   .ld2-tab-content {
     overflow-x: hidden;
   }

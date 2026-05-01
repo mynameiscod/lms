@@ -531,6 +531,24 @@ const LeadDetailV2: React.FC = () => {
                     <i className="bi bi-plus"></i> Add Note
                   </button>
                 </div>
+                {/* Mobile-only quick upload button */}
+                <label className="ld2-quick-upload" htmlFor="quick-recording-upload">
+                  <i className="bi bi-mic-fill"></i>
+                  <span>{recordingFile ? recordingFile.name : 'Tap to upload call recording'}</span>
+                  <input
+                    type="file"
+                    id="quick-recording-upload"
+                    accept="audio/*"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0] || null;
+                      setRecordingFile(f);
+                      if (f) {
+                        setNoteType('call');
+                        setShowNoteModal(true);
+                      }
+                    }}
+                  />
+                </label>
                 {lead.activities && lead.activities.length > 0 ? (
                   <div className="ld2-timeline-list">
                     {(() => {

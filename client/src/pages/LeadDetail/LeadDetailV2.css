@@ -1555,3 +1555,118 @@
   margin-right: 6px;
   color: var(--ld2-primary);
 }
+
+/* ============================================
+   MOBILE OVERFLOW FIX — global guard against
+   horizontal overflow + full-width cards
+   ============================================ */
+@media (max-width: 1024px) {
+  html, body { overflow-x: hidden; }
+
+  .ld2-container {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+
+  /* Force every direct card / panel to fit viewport */
+  .ld2-main,
+  .ld2-left-col,
+  .ld2-summary-card,
+  .ld2-stage-pipeline,
+  .ld2-mobile-priority,
+  .ld2-tabs,
+  .ld2-tab-content,
+  .ld2-modal {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Universal box-sizing for all ld2 elements */
+  [class^="ld2-"], [class*=" ld2-"] {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+
+  /* Ensure all inputs/textareas/selects fit width */
+  .ld2-form-group input,
+  .ld2-form-group textarea,
+  .ld2-form-group select,
+  .ld2-select,
+  .ld2-checklist input,
+  .ld2-checklist select {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Fixed grid columns for stage row — let it scroll horizontally cleanly */
+  .ld2-stages {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  /* Tab content — no max-width clipping */
+  .ld2-tab-content {
+    overflow-x: hidden;
+  }
+
+  /* Checklist items full width */
+  .ld2-checklist-item {
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .ld2-checklist-content {
+    flex: 1;
+    min-width: 0;
+  }
+  .ld2-checklist-content label {
+    white-space: normal;
+    word-break: break-word;
+  }
+
+  /* Details rows wrap properly */
+  .ld2-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    word-break: break-word;
+  }
+
+  /* Bottom bar safe-area */
+  .ld2-bottom-bar {
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+  }
+}
+
+/* ============================================
+   INLINE QUICK-UPLOAD BAR (mobile)
+   Shows recording upload directly in timeline tab
+   ============================================ */
+.ld2-quick-upload {
+  display: none;
+}
+@media (max-width: 1024px) {
+  .ld2-quick-upload {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 14px 0;
+    padding: 12px 14px;
+    background: linear-gradient(135deg, #ede9fe 0%, #f3e8ff 100%);
+    border: 1.5px dashed #a78bfa;
+    border-radius: 10px;
+    cursor: pointer;
+    color: #5b21b6;
+    font-size: 13px;
+    font-weight: 600;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .ld2-quick-upload i { font-size: 18px; }
+  .ld2-quick-upload input[type="file"] {
+    position: absolute;
+    width: 1px; height: 1px; opacity: 0;
+  }
+}

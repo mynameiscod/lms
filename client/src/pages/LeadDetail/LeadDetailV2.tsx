@@ -99,7 +99,18 @@ const LeadDetailV2: React.FC = () => {
       });
       setStages(stagesRes.data || []);
       setQuestions(configRes.data?.questions || []);
-      setChecklistAnswers(leadData.qualificationAnswers || {});
+      // qualificationAnswers comes back as { qid: { questionId, answer, answeredBy, ... } }
+      // Extract just the answer string for each question
+      const rawAnswers = leadData.qualificationAnswers || {};
+      const flatAnswers: Record<string, string> = {};
+      Object.entries(rawAnswers).forEach(([qid, val]: [string, any]) => {
+        if (val && typeof val === 'object' && 'answer' in val) {
+          flatAnswers[qid] = String(val.answer ?? '');
+        } else if (typeof val === 'string') {
+          flatAnswers[qid] = val;
+        }
+      });
+      setChecklistAnswers(flatAnswers);
     } catch (error) {
       console.error('Error fetching data:', error);
       showToast('Failed to load lead details', 'error');
@@ -231,10 +242,30 @@ const LeadDetailV2: React.FC = () => {
 
   const handleSaveChecklist = async () => {
     try {
-      await leadApi.updateLead(leadId!, { qualificationAnswers: checklistAnswers });
+      // Build answers array in the format the qualificationApi expects
+      const answers = Object.entries(checklistAnswers)
+        .filter(([_, ans]) => ans !== undefined && ans !== null && String(ans).trim() !== '')
+        .map(([questionId, answer]) => ({
+          questionId,
+          answer,
+          skipped: false,
+        }));
+
+      if (answers.length === 0) {
+        showToast('Please answer at least one question before saving', 'error');
+        return;
+      }
+
+      const total = questions.length || answers.length;
+      const progress = total > 0 ? Math.round((answers.length / total) * 100) : 0;
+
+      await qualificationApi.saveLeadAnswers(leadId!, { answers, progress });
       showToast('Checklist saved');
-    } catch (error) {
-      showToast('Failed to save checklist', 'error');
+      // Reload to confirm persistence
+      fetchData();
+    } catch (error: any) {
+      console.error('Save checklist error:', error);
+      showToast(error?.message || 'Failed to save checklist', 'error');
     }
   };
 

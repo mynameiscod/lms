@@ -468,6 +468,11 @@
   padding-right: 8px;
 }
 
+/* Mobile-only priority row — hidden on desktop */
+.ld2-mobile-priority {
+  display: none;
+}
+
 .ld2-timeline-list::-webkit-scrollbar {
   width: 6px;
 }
@@ -1314,6 +1319,45 @@
     white-space: nowrap;
   }
 
+  /* Remove inner scroll on timeline — let whole page scroll */
+  .ld2-timeline-list {
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+
+  /* Tab content — natural height, no clipping */
+  .ld2-tab-content {
+    padding: 16px;
+    min-height: unset;
+  }
+
+  /* Show mobile-only priority row */
+  .ld2-mobile-priority {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: var(--ld2-radius);
+    box-shadow: var(--ld2-shadow);
+    padding: 14px 16px;
+  }
+  .ld2-mobile-priority-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ld2-gray-700);
+    margin-bottom: 10px;
+  }
+  .ld2-mobile-priority .ld2-priority-btns {
+    gap: 8px;
+  }
+  .ld2-mobile-priority .ld2-priority-btn {
+    flex-direction: row;
+    justify-content: center;
+    padding: 10px 8px;
+    gap: 6px;
+    font-size: 16px;
+  }
+
   /* Recording player — full width on mobile */
   .ld2-recording {
     flex-wrap: wrap;
@@ -1324,14 +1368,11 @@
     min-width: 0;
   }
 
-  .ld2-tab-content {
-    padding: 16px;
-  }
-
   .ld2-timeline-item {
     padding: 12px;
   }
 
+  /* Modal — bottom sheet, fully scrollable */
   .ld2-modal {
     max-width: 100%;
     margin: 0;
@@ -1340,14 +1381,24 @@
     bottom: 0;
     left: 0;
     right: 0;
-    max-height: 90vh;
+    max-height: 92vh;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
-  /* Modal body scrollable */
+  /* Modal body — scrollable, shows all fields including upload */
   .ld2-modal-body {
-    max-height: 60vh;
+    flex: 1;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: 65vh;
+  }
+
+  /* Make upload label clearly tappable */
+  .ld2-file-label {
+    min-height: 48px;
+    font-size: 13px;
   }
 }
 

@@ -479,6 +479,25 @@ const LeadDetailV2: React.FC = () => {
             </div>
           </div>
 
+          {/* Priority Row — mobile only (hidden on desktop via CSS) */}
+          <div className="ld2-mobile-priority">
+            <div className="ld2-mobile-priority-title">🎯 Priority</div>
+            <div className="ld2-priority-btns">
+              {['hot', 'warm', 'cold'].map(p => (
+                <button
+                  key={p}
+                  className={`ld2-priority-btn ld2-priority-${p} ${lead.priority === p ? 'active' : ''}`}
+                  onClick={() => handlePriorityChange(p)}
+                >
+                  {p === 'hot' && '🔥'}
+                  {p === 'warm' && '☀️'}
+                  {p === 'cold' && '❄️'}
+                  <span>{p}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Tabs */}
           <div className="ld2-tabs">
             <button 

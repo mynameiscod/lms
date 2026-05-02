@@ -475,6 +475,18 @@
   color: white;
   border-color: var(--crm-blue);
 }
+.crm-date-preset-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.28); color: inherit;
+  font-size: 11px; font-weight: 800;
+  min-width: 20px; height: 18px; padding: 0 5px;
+  border-radius: 20px; margin-left: 6px; line-height: 1;
+}
+.crm-results-count {
+  padding: 7px 4px 2px;
+  font-size: 13px; color: #64748b;
+}
+.crm-results-count strong { color: var(--crm-dark); }
 
 .crm-date-custom {
   display: flex;

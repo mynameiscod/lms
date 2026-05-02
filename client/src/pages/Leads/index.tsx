@@ -88,6 +88,7 @@ const LeadsPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const [todayFollowUps, setTodayFollowUps] = useState(0);
+  const [filteredTotal, setFilteredTotal] = useState<number | null>(null);
 
   const [visibleStageIds, setVisibleStageIds] = useState<Set<string>>(new Set());
   const [stagesInitialized, setStagesInitialized] = useState(false);
@@ -197,8 +198,10 @@ const LeadsPage: React.FC = () => {
       ]);
       const loadedStages = stagesRes.data||[];
       setStages(loadedStages);
-      setLeads(leadsRes.data?.leads||[]);
+      const fetchedLeads = (leadsRes.data?.leads || []).sort((a: Lead, b: Lead) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setLeads(fetchedLeads);
       setTotalPages(leadsRes.data?.totalPages||1);
+      setFilteredTotal(leadsRes.data?.total ?? null);
       if (!stagesInitialized&&loadedStages.length>0) {
         const defaultVisible=loadedStages.slice(0,5).map((s:Stage)=>s._id);
         setVisibleStageIds(new Set(defaultVisible));
@@ -608,9 +611,13 @@ const LeadsPage: React.FC = () => {
           <div className="crm-date-presets">
             {(['all','today','week','month','custom'] as const).map(k=>(
               <button key={k} className={`crm-date-preset${dateRange===k?' active':''}`}
-                onClick={()=>{setDateRange(k);if(k!=='custom'){setDateFrom('');setDateTo('');}}}>{
-                  k==='all'?'All Time':k==='today'?'Today':k==='week'?'This Week':k==='month'?'This Month':'Custom'
-                }</button>
+                onClick={()=>{setDateRange(k);if(k!=='custom'){setDateFrom('');setDateTo('');}}}
+              >
+                {k==='all'?'All Time':k==='today'?'Today':k==='week'?'This Week':k==='month'?'This Month':'Custom'}
+                {dateRange===k && k!=='all' && filteredTotal !== null && (
+                  <span className="crm-date-preset-count">{filteredTotal}</span>
+                )}
+              </button>
             ))}
           </div>
           {dateRange==='custom'&&(
@@ -633,6 +640,16 @@ const LeadsPage: React.FC = () => {
               onClick={()=>{setFilterStage('');setFilterSource('');setFilterAssignee('');setFilterPriority('');setActiveStageFilter('');setDateRange('all');setDateFrom('');setDateTo('');}}>
               Clear all
             </button>
+          </div>
+        )}
+        {filteredTotal !== null && (
+          <div className="crm-results-count">
+            {loading ? '⌛ Loading...' : (
+              <>
+                <strong>{filteredTotal}</strong> lead{filteredTotal !== 1 ? 's' : ''}
+                {(filterStage || filterSource || filterAssignee || filterPriority || dateRange !== 'all' || search) ? ' matching current filters' : ' total'}
+              </>
+            )}
           </div>
         )}
       </div>

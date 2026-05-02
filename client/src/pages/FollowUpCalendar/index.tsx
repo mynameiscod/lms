@@ -318,16 +318,23 @@ const FollowUpCalendar: React.FC = () => {
 
   return (
     <div className="followup-calendar">
+      {/* Alert banner */}
+      {alertMsg && (
+        <div className={`fuc-alert ${alertMsg.type}`}>
+          {alertMsg.type === 'success' ? '✓ ' : '✕ '}{alertMsg.message}
+        </div>
+      )}
+
       <div className="followup-header">
         <h1>Follow-up Calendar</h1>
         <div className="view-toggles">
-          <button 
+          <button
             className={`view-toggle ${view === 'month' ? 'active' : ''}`}
             onClick={() => setView('month')}
           >
             Month
           </button>
-          <button 
+          <button
             className={`view-toggle ${view === 'day' ? 'active' : ''}`}
             onClick={() => setView('day')}
           >
@@ -335,7 +342,7 @@ const FollowUpCalendar: React.FC = () => {
           </button>
         </div>
       </div>
-      
+
       <div className="followup-stats">
         <div className="stat-pill overdue">
           <span className="count">{stats.overdue}</span> Overdue
@@ -347,23 +354,23 @@ const FollowUpCalendar: React.FC = () => {
           <span className="count">{stats.upcoming}</span> Upcoming
         </div>
       </div>
-      
+
       <div className="calendar-container">
         <div className="calendar-header">
           <div className="calendar-nav">
-            <button onClick={goToPreviousMonth}>← Prev</button>
+            <button onClick={goToPreviousMonth}>&#8249; Prev</button>
             <h2>
               {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
             </h2>
-            <button onClick={goToNextMonth}>Next →</button>
+            <button onClick={goToNextMonth}>Next &#8250;</button>
           </div>
           <button className="btn-today" onClick={goToToday}>Today</button>
         </div>
-        
+
         {view === 'month' ? (
           <div className="calendar-grid">
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-              <div key={day} className="calendar-weekday">{day}</div>
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+              <div key={i} className="calendar-weekday">{day}</div>
             ))}
             {renderCalendarDays()}
           </div>

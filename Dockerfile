@@ -8,8 +8,8 @@ COPY client/package*.json ./
 # Clear cache and install dependencies with ajv fix
 RUN npm cache clean --force && \
     rm -rf node_modules package-lock.json && \
-    npm install --legacy-peer-deps && \
-    npm install ajv@^8.12.0 ajv-keywords@^5.1.0 --save-dev --legacy-peer-deps
+    npm install --legacy-peer-deps --no-audit --prefer-offline || npm install --legacy-peer-deps --no-audit && \
+    npm install ajv@^8.12.0 ajv-keywords@^5.1.0 --save-dev --legacy-peer-deps --no-audit
 
 # Copy all client source files
 COPY client ./
@@ -31,7 +31,7 @@ COPY server/package*.json ./
 COPY server/tsconfig.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm install --no-audit --prefer-offline || npm install --no-audit
 
 # Copy source code and build
 COPY server/src ./src

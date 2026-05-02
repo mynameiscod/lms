@@ -13,6 +13,12 @@ import {
   cancelReservation,
   getReservationStats
 } from '../controllers/seatReservationController';
+import {
+  sendConfirmationEmail,
+  sendPaymentReminderEmail,
+  sendPreJoiningInfoEmail,
+  sendJoiningDayEmail
+} from '../controllers/seatReservationController';
 
 const router = express.Router();
 
@@ -96,6 +102,20 @@ router.post(
   roleGuard(['manage_leads', 'manage_tenant_users']),
   convertToStudent
 );
+
+// ===================== EMAIL ACTIONS =====================
+
+// Send booking confirmation
+router.post('/:id/send-confirmation', authMiddleware, tenantResolver, roleGuard(leadPermissions), sendConfirmationEmail);
+
+// Send payment reminder
+router.post('/:id/send-payment-reminder', authMiddleware, tenantResolver, roleGuard(leadPermissions), sendPaymentReminderEmail);
+
+// Send pre-joining info
+router.post('/:id/send-prejoining', authMiddleware, tenantResolver, roleGuard(leadPermissions), sendPreJoiningInfoEmail);
+
+// Send joining day email
+router.post('/:id/send-joining-day', authMiddleware, tenantResolver, roleGuard(leadPermissions), sendJoiningDayEmail);
 
 // ===================== CANCEL =====================
 

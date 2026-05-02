@@ -2704,8 +2704,19 @@ export const leadDistributionApi = {
 
 // Seat Reservation API (P5)
 export const seatReservationApi = {
+  getAll: async (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page)   q.set('page', String(params.page));
+    if (params?.limit)  q.set('limit', String(params.limit));
+    return authenticatedFetch(`${API_BASE_URL}/seat-reservations?${q.toString()}`);
+  },
+  getStats: async () =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/stats`),
   getByLead: async (leadId: string) =>
     authenticatedFetch(`${API_BASE_URL}/seat-reservations/lead/${leadId}`),
+  getById: async (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${id}`),
   create: async (data: {
     leadId: string;
     courseName: string;
@@ -2716,6 +2727,8 @@ export const seatReservationApi = {
     discountAmount?: number;
     discountReason?: string;
     finalPrice: number;
+    seatNumber?: string;
+    expiresAt?: string;
     notes?: string;
   }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations`, {
     method: 'POST',
@@ -2726,13 +2739,47 @@ export const seatReservationApi = {
     method: string;
     transactionId?: string;
     notes?: string;
-  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/payments`, {
+  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/payment`, {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  sendReceipt: async (reservationId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-receipt`, { method: 'POST', body: JSON.stringify({}) }),
+  sendConfirmation: async (reservationId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-confirmation`, { method: 'POST', body: JSON.stringify({}) }),
+  sendPaymentReminder: async (reservationId: string, data?: { dueDate?: string; customMessage?: string }) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-payment-reminder`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+  sendPreJoiningInfo: async (reservationId: string, data: {
+    batchStartDate?: string;
+    batchStartTime?: string;
+    venue?: string;
+    onlineLink?: string;
+    documentsNeeded?: string[];
+    customMessage?: string;
+  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-prejoining`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  sendJoiningDay: async (reservationId: string, data?: {
+    loginEmail?: string;
+    tempPassword?: string;
+    onlineLink?: string;
+    customMessage?: string;
+  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-joining-day`, {
+    method: 'POST',
+    body: JSON.stringify(data || {}),
+  }),
+  convertToStudent: async (reservationId: string, data?: { batchId?: string; password?: string }) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/convert-to-student`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
   cancel: async (reservationId: string, reason?: string) =>
     authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/cancel`, {
-      method: 'POST',
+      method: 'PUT',
       body: JSON.stringify({ reason }),
     }),
 };

@@ -100,6 +100,7 @@ import LeadAnalyticsPage from './pages/LeadAnalytics';
 import MeetingsPage from './pages/Meetings';
 import LeadDistributionSettingsPage from './pages/LeadDistributionSettings';
 import FollowUpCalendarPage from './pages/FollowUpCalendar';
+import SeatReservationsPage from './pages/SeatReservations';
 import LeadAgingPage from './pages/LeadAging';
 import LeadDuplicatesPage from './pages/LeadDuplicates';
 import LeadApprovalsPage from './pages/LeadApprovals';
@@ -1163,6 +1164,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <FollowUpCalendarPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/seat-reservations"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <SeatReservationsPage />
             </Layout>
           </ProtectedRoute>
         }

@@ -11,9 +11,7 @@ import {
   getReservationById,
   getLeadReservation,
   cancelReservation,
-  getReservationStats
-} from '../controllers/seatReservationController';
-import {
+  getReservationStats,
   sendConfirmationEmail,
   sendPaymentReminderEmail,
   sendPreJoiningInfoEmail,

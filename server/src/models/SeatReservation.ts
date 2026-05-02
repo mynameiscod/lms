@@ -35,7 +35,12 @@ export interface IPayment {
 
 export interface ISeatReservation extends Document {
   tenantId: mongoose.Types.ObjectId;
-  leadId: mongoose.Types.ObjectId;
+  leadId?: mongoose.Types.ObjectId;
+
+  // Direct student contact (used in standalone reservations without a lead)
+  studentName?: string;
+  studentEmail?: string;
+  studentPhone?: string;
   
   // Course info
   courseId?: mongoose.Types.ObjectId;
@@ -130,9 +135,12 @@ const SeatReservationSchema: Schema = new Schema(
     },
     leadId: {
       type: mongoose.Types.ObjectId,
-      ref: 'Lead',
-      required: true
+      ref: 'Lead'
     },
+    // Direct student contact fields (standalone reservations)
+    studentName: { type: String, trim: true },
+    studentEmail: { type: String, trim: true, lowercase: true },
+    studentPhone: { type: String, trim: true },
     courseId: {
       type: mongoose.Types.ObjectId,
       ref: 'Course'

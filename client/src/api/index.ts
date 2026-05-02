@@ -2718,7 +2718,9 @@ export const seatReservationApi = {
   getById: async (id: string) =>
     authenticatedFetch(`${API_BASE_URL}/seat-reservations/${id}`),
   create: async (data: {
-    leadId: string;
+    studentName: string;
+    studentEmail: string;
+    studentPhone: string;
     courseName: string;
     batchName?: string;
     courseId?: string;
@@ -2726,7 +2728,6 @@ export const seatReservationApi = {
     originalPrice: number;
     discountAmount?: number;
     discountReason?: string;
-    finalPrice: number;
     seatNumber?: string;
     expiresAt?: string;
     notes?: string;

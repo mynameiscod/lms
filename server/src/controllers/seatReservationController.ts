@@ -1,14 +1,10 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import SeatReservation from '../models/SeatReservation';
-import Lead from '../models/Lead';
-import LeadStage from '../models/LeadStage';
 import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
-import { EmailService } from '../services/emailService';
 import crypto from 'crypto';
 
-const emailService = new EmailService();
 
 // Helper to send custom emails
 async function sendCustomEmail(to: string, subject: string, html: string) {
@@ -33,48 +29,88 @@ async function sendCustomEmail(to: string, subject: string, html: string) {
   }
 }
 
-// ===================== CREATE SEAT RESERVATION =====================
+// ===================== CREATE SEAT RESERVATION (STANDALONE — no lead required) =====================
 
 export const createReservation = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { tenantId, userId } = req;
     const {
-      leadId, courseId, batchId, courseName, batchName,
+      studentName, studentEmail, studentPhone,
+      courseId, batchId, courseName, batchName,
       originalPrice, discountAmount, discountReason, seatNumber, expiresAt, notes
     } = req.body;
 
-    // Validate lead
-    const lead = await Lead.findOne({ _id: leadId, tenantId }).populate('stageId');
-    if (!lead) {
-      return res.status(404).json({ success: false, message: 'Lead not found' });
-    }
+    // Validate required fields
+    if (!studentName?.trim()) return res.status(400).json({ success: false, message: 'Student name is required' });
+    if (!studentEmail?.trim()) return res.status(400).json({ success: false, message: 'Student email is required' });
+    if (!studentPhone?.trim()) return res.status(400).json({ success: false, message: 'Student mobile is required' });
+    if (!courseName?.trim()) return res.status(400).json({ success: false, message: 'Course name is required' });
+    if (originalPrice == null || isNaN(Number(originalPrice))) return res.status(400).json({ success: false, message: 'Original price is required' });
 
-    // Check for existing active reservation
+    const emailNorm = studentEmail.trim().toLowerCase();
+
+    // Check for existing active reservation for this email + course in this tenant
     const existingReservation = await SeatReservation.findOne({
       tenantId,
-      leadId,
-      status: { $in: ['pending', 'partial_paid', 'paid', 'confirmed'] }
+      studentEmail: emailNorm,
+      courseName,
+      status: { $in: ['pending', 'partial_paid', 'paid', 'confirmed', 'enrolled'] }
     });
-
     if (existingReservation) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Lead already has an active reservation',
+      return res.status(400).json({
+        success: false,
+        message: 'An active reservation already exists for this student and course',
         data: existingReservation
       });
     }
 
-    const finalPrice = originalPrice - (discountAmount || 0);
+    // ── Create or fetch user account ──────────────────────────────────────
+    let student = await User.findOne({ email: emailNorm, tenantId });
+    let isNewUser = false;
+    const tempPassword = crypto.randomBytes(6).toString('hex'); // 12-char hex
+    const setupTokenRaw = crypto.randomBytes(32).toString('hex');
+    const setupTokenHashed = crypto.createHash('sha256').update(setupTokenRaw).digest('hex');
+    const nameParts = studentName.trim().split(' ');
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(' ') || firstName;
 
+    if (!student) {
+      student = new User({
+        email: emailNorm,
+        firstName,
+        lastName,
+        password: tempPassword,
+        role: 'STUDENT',
+        tenantId,
+        phone: studentPhone.trim(),
+        profileComplete: false,
+        isActive: true,
+        resetToken: setupTokenHashed,
+        resetTokenExpires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days to set up
+      });
+      await student.save();
+      isNewUser = true;
+    } else {
+      // Existing user — refresh the setup token so they can re-set password
+      student.resetToken = setupTokenHashed;
+      student.resetTokenExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await student.save();
+    }
+
+    // ── Create reservation ────────────────────────────────────────────────
+    const finalPrice = Number(originalPrice) - (Number(discountAmount) || 0);
     const reservation = new SeatReservation({
       tenantId,
-      leadId,
+      studentName: studentName.trim(),
+      studentEmail: emailNorm,
+      studentPhone: studentPhone.trim(),
+      studentId: student._id,
       courseId,
       batchId,
-      courseName,
-      batchName,
-      originalPrice,
-      discountAmount: discountAmount || 0,
+      courseName: courseName.trim(),
+      batchName: batchName?.trim(),
+      originalPrice: Number(originalPrice),
+      discountAmount: Number(discountAmount) || 0,
       discountReason,
       finalPrice,
       seatNumber,
@@ -82,58 +118,70 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       notes,
       createdBy: userId
     });
-
     await reservation.save();
 
-    // Update lead stage to "Seat Reserved"
-    const reservedStage = await LeadStage.findOne({ 
-      tenantId, 
-      name: { $regex: /seat.*reserved|reserved/i } 
-    });
-    
-    if (reservedStage) {
-      lead.stageId = reservedStage._id;
-    }
-
-    // Add activity
-    lead.activities.push({
-      type: 'note',
-      description: `Seat reserved for ${courseName}${batchName ? ' - ' + batchName : ''}. Price: ₹${finalPrice}`,
-      createdBy: new mongoose.Types.ObjectId(userId as string),
-      createdAt: new Date()
-    });
-    await lead.save();
-
-    // Auto-send confirmation email
+    // ── Auto-send confirmation + account setup email ──────────────────────
     try {
-      const populatedLead = await lead.populate ? lead : await Lead.findById(reservation.leadId);
-      if ((populatedLead as any).email) {
-        const r = reservation;
-        const seatInfo = r.seatNumber ? `<div class="info-row"><span class="info-label">Seat Number</span><span class="info-value">${r.seatNumber}</span></div>` : '';
-        const body = `
-          <p class="greeting">🎉 Congratulations, ${(populatedLead as any).firstName || (populatedLead as any).name?.split(' ')[0] || 'there'}!</p>
-          <p class="intro">Your seat has been successfully reserved for <strong>${courseName}</strong>. We're excited to have you join us!</p>
-          <div class="info-card">
-            <div class="info-card-title">📋 Reservation Summary</div>
-            <div class="info-row"><span class="info-label">Booking ID</span><span class="info-value">#${(r._id as any).toString().slice(-8).toUpperCase()}</span></div>
-            <div class="info-row"><span class="info-label">Course</span><span class="info-value">${courseName}</span></div>
-            ${batchName ? `<div class="info-row"><span class="info-label">Batch</span><span class="info-value">${batchName}</span></div>` : ''}
-            ${seatInfo}
-            <div class="info-row"><span class="info-label">Total Fee</span><span class="info-value">₹${finalPrice.toLocaleString('en-IN')}</span></div>
-            <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge badge-purple">Seat Reserved ✓</span></span></div>
-          </div>
-          <div class="highlight-box"><p>💡 Our team will reach out with payment and batch details shortly. Congratulations on taking this step!</p></div>
-          <a class="btn" href="${process.env.CLIENT_URL || 'https://platform.codebegun.com'}">View Details</a>
-        `;
-        await sendCustomEmail((populatedLead as any).email, `✅ Seat Reserved — ${courseName} | CodeBegun`, emailWrapper(body));
-      }
+      const frontendUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://platform.codebegun.com';
+      const setupLink = `${frontendUrl}/setup-password?token=${setupTokenRaw}&email=${encodeURIComponent(emailNorm)}`;
+      const greeting = isNewUser
+        ? `🎉 Congratulations, ${firstName}! Your seat is reserved and your student account has been created.`
+        : `🎉 Congratulations, ${firstName}! Your seat has been successfully reserved.`;
+      const seatInfo = reservation.seatNumber ? `<div class="info-row"><span class="info-label">Seat Number</span><span class="info-value">${reservation.seatNumber}</span></div>` : '';
+      const body = `
+        <p class="greeting">${greeting}</p>
+        <p class="intro">Welcome to <strong>CodeBegun</strong>! Here's everything you need about your reservation for <strong>${courseName}</strong>.</p>
+
+        <div class="info-card">
+          <div class="info-card-title">📋 Reservation Details</div>
+          <div class="info-row"><span class="info-label">Booking ID</span><span class="info-value">#${(reservation._id as any).toString().slice(-8).toUpperCase()}</span></div>
+          <div class="info-row"><span class="info-label">Student</span><span class="info-value">${studentName.trim()}</span></div>
+          <div class="info-row"><span class="info-label">Course</span><span class="info-value">${courseName}</span></div>
+          ${batchName ? `<div class="info-row"><span class="info-label">Batch</span><span class="info-value">${batchName}</span></div>` : ''}
+          ${seatInfo}
+          <div class="info-row"><span class="info-label">Reserved On</span><span class="info-value">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</span></div>
+          <div class="info-row"><span class="info-label">Status</span><span class="info-value"><span class="badge badge-purple">Seat Reserved ✓</span></span></div>
+        </div>
+
+        <div class="info-card">
+          <div class="info-card-title">💰 Payment Summary</div>
+          <div class="info-row"><span class="info-label">Course Fee</span><span class="info-value">₹${Number(originalPrice).toLocaleString('en-IN')}</span></div>
+          ${Number(discountAmount) > 0 ? `<div class="info-row"><span class="info-label">Discount</span><span class="info-value" style="color:#15803d;">- ₹${Number(discountAmount).toLocaleString('en-IN')}</span></div>` : ''}
+          <div class="info-row"><span class="info-label">Total Fee</span><span class="info-value" style="font-size:15px;font-weight:900;">₹${finalPrice.toLocaleString('en-IN')}</span></div>
+        </div>
+
+        ${isNewUser ? `
+        <div class="info-card">
+          <div class="info-card-title">🔐 Your Student Account</div>
+          <div class="info-row"><span class="info-label">Login Email</span><span class="info-value">${emailNorm}</span></div>
+          <div class="info-row"><span class="info-label">Temporary Password</span><span class="info-value" style="font-family:monospace;font-size:15px;">${tempPassword}</span></div>
+          <div class="info-row"><span class="info-label">Portal URL</span><span class="info-value"><a href="${frontendUrl}">${frontendUrl}</a></span></div>
+        </div>
+        ` : ''}
+
+        <div class="highlight-box">
+          <p>👇 <strong>Important: Set up your profile!</strong> Click the button below to set your permanent password and complete your profile. This link is valid for 7 days.</p>
+        </div>
+
+        <a class="btn" href="${setupLink}">🔑 Set Password &amp; Complete Profile</a>
+
+        <ol class="steps">
+          <li class="step"><span class="step-num">1</span><span class="step-text"><strong>Set Your Password</strong> — Use the button above to set a permanent password for your account.</span></li>
+          <li class="step"><span class="step-num">2</span><span class="step-text"><strong>Complete Payment</strong> — Pay the remaining balance to confirm your enrollment.</span></li>
+          <li class="step"><span class="step-num">3</span><span class="step-text"><strong>Get Batch Details</strong> — We'll send start date, timings, and venue before your first class.</span></li>
+          <li class="step"><span class="step-num">4</span><span class="step-text"><strong>Start Learning!</strong> — Begin your journey with CodeBegun. 🚀</span></li>
+        </ol>
+
+        <p style="color:#64748b;font-size:13px;">Questions? Reply to this email or call us — we respond within 2 hours.</p>
+      `;
+      await sendCustomEmail(emailNorm, `✅ Seat Reserved — ${courseName} | Welcome to CodeBegun`, emailWrapper(body));
     } catch (emailErr) {
       console.error('Auto-confirmation email failed:', emailErr);
     }
 
     res.status(201).json({
       success: true,
-      message: 'Seat reserved successfully',
+      message: `Seat reserved successfully. ${isNewUser ? 'Student account created and setup email sent.' : 'Setup email sent to existing account.'}`,
       data: reservation
     });
   } catch (error: any) {
@@ -170,30 +218,6 @@ export const addPayment = async (req: AuthenticatedRequest, res: Response) => {
 
     await reservation.save();
 
-    // Update lead activity
-    const lead = await Lead.findById(reservation.leadId);
-    if (lead) {
-      lead.activities.push({
-        type: 'note',
-        description: `Payment received: ₹${amount} via ${method}. Receipt: ${receiptNumber}. Balance: ₹${reservation.balanceAmount}`,
-        createdBy: new mongoose.Types.ObjectId(userId as string),
-        createdAt: new Date()
-      });
-
-      // Update stage if fully paid
-      if (reservation.status === 'paid') {
-        const paidStage = await LeadStage.findOne({ 
-          tenantId, 
-          name: { $regex: /payment.*done|paid|payment.*received/i } 
-        });
-        if (paidStage) {
-          lead.stageId = paidStage._id;
-        }
-      }
-
-      await lead.save();
-    }
-
     res.json({
       success: true,
       message: 'Payment added',
@@ -211,211 +235,99 @@ export const sendReceiptEmail = async (req: AuthenticatedRequest, res: Response)
     const { tenantId } = req;
     const { id } = req.params;
 
-    const reservation = await SeatReservation.findOne({ _id: id, tenantId })
-      .populate('leadId');
-    
-    if (!reservation) {
-      return res.status(404).json({ success: false, message: 'Reservation not found' });
-    }
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
+    if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
 
-    const lead = reservation.leadId as any;
-    if (!lead.email) {
-      return res.status(400).json({ success: false, message: 'Lead has no email address' });
-    }
+    const toEmail = reservation.studentEmail;
+    const toName = reservation.studentName || 'Student';
+    if (!toEmail) return res.status(400).json({ success: false, message: 'No email address on this reservation' });
 
-    // Generate receipt HTML
-    const paymentsHtml = reservation.payments.map(p => 
+    const paymentsHtml = reservation.payments.map(p =>
       `<tr>
-        <td>${new Date(p.paidAt).toLocaleDateString()}</td>
-        <td>₹${p.amount}</td>
-        <td>${p.method}</td>
-        <td>${p.receiptNumber || 'N/A'}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${new Date(p.paidAt).toLocaleDateString('en-IN')}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">₹${p.amount.toLocaleString('en-IN')}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.method}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.receiptNumber || 'N/A'}</td>
       </tr>`
     ).join('');
 
-    const receiptHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Payment Receipt</h2>
-        <p>Dear ${lead.name || lead.firstName},</p>
-        <p>Thank you for your payment. Here are your payment details:</p>
-        
-        <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-          <h3 style="margin-top: 0;">Course: ${reservation.courseName}</h3>
-          ${reservation.batchName ? `<p>Batch: ${reservation.batchName}</p>` : ''}
-          <p><strong>Total Amount:</strong> ₹${reservation.finalPrice}</p>
-          <p><strong>Paid Amount:</strong> ₹${reservation.paidAmount}</p>
-          <p><strong>Balance:</strong> ₹${reservation.balanceAmount}</p>
-        </div>
-
-        <h4>Payment History:</h4>
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead>
-            <tr style="background: #2563eb; color: white;">
-              <th style="padding: 10px; text-align: left;">Date</th>
-              <th style="padding: 10px; text-align: left;">Amount</th>
-              <th style="padding: 10px; text-align: left;">Method</th>
-              <th style="padding: 10px; text-align: left;">Receipt #</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${paymentsHtml}
-          </tbody>
-        </table>
-
-        <p style="margin-top: 20px;">If you have any questions, please contact us.</p>
-        <p>Best regards,<br>Team CodeBegun</p>
+    const body = `
+      <p class="greeting">Hi ${toName},</p>
+      <p class="intro">Thank you for your payment! Here is your receipt for <strong>${reservation.courseName}</strong>.</p>
+      <div class="info-card">
+        <div class="info-card-title">📋 Reservation Summary</div>
+        <div class="info-row"><span class="info-label">Booking ID</span><span class="info-value">#${(reservation._id as any).toString().slice(-8).toUpperCase()}</span></div>
+        <div class="info-row"><span class="info-label">Course</span><span class="info-value">${reservation.courseName}</span></div>
+        ${reservation.batchName ? `<div class="info-row"><span class="info-label">Batch</span><span class="info-value">${reservation.batchName}</span></div>` : ''}
+        <div class="info-row"><span class="info-label">Total Fee</span><span class="info-value">₹${reservation.finalPrice.toLocaleString('en-IN')}</span></div>
+        <div class="info-row"><span class="info-label">Paid</span><span class="info-value"><span class="badge badge-green">₹${reservation.paidAmount.toLocaleString('en-IN')}</span></span></div>
+        ${reservation.balanceAmount > 0 ? `<div class="info-row"><span class="info-label">Balance Due</span><span class="info-value" style="color:#d97706;">₹${reservation.balanceAmount.toLocaleString('en-IN')}</span></div>` : ''}
       </div>
+      <div class="info-card">
+        <div class="info-card-title">💳 Payment History</div>
+        <table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="background:#7c3aed;color:white;">
+            <th style="padding:8px;text-align:left;">Date</th>
+            <th style="padding:8px;text-align:left;">Amount</th>
+            <th style="padding:8px;text-align:left;">Method</th>
+            <th style="padding:8px;text-align:left;">Receipt #</th>
+          </tr></thead>
+          <tbody>${paymentsHtml}</tbody>
+        </table>
+      </div>
+      <p style="color:#64748b;font-size:13px;">Keep this email as your payment receipt. Questions? Reply here anytime.</p>
     `;
 
-    await sendCustomEmail(
-      lead.email,
-      `Payment Receipt - ${reservation.courseName}`,
-      receiptHtml
-    );
+    await sendCustomEmail(toEmail, `🧾 Payment Receipt — ${reservation.courseName} | CodeBegun`, emailWrapper(body));
 
     reservation.receiptSent = true;
     reservation.receiptSentAt = new Date();
     await reservation.save();
 
-    res.json({
-      success: true,
-      message: 'Receipt sent to ' + lead.email
-    });
+    res.json({ success: true, message: `Receipt sent to ${toEmail}` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-// ===================== CONVERT TO STUDENT =====================
+// ===================== CONVERT TO STUDENT (mark as enrolled — user already exists) =====================
 
 export const convertToStudent = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { tenantId, userId } = req;
+    const { tenantId } = req;
     const { id } = req.params;
-    const { password, batchId } = req.body;
+    const { batchId } = req.body;
 
-    const reservation = await SeatReservation.findOne({ _id: id, tenantId })
-      .populate('leadId');
-    
-    if (!reservation) {
-      return res.status(404).json({ success: false, message: 'Reservation not found' });
-    }
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
+    if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
 
     if (reservation.status === 'enrolled') {
-      return res.status(400).json({ success: false, message: 'Already converted to student' });
+      return res.status(400).json({ success: false, message: 'Already enrolled' });
     }
 
-    if (reservation.balanceAmount > 0 && reservation.status !== 'paid') {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Full payment required before enrollment',
-        data: { balanceAmount: reservation.balanceAmount }
-      });
-    }
+    const student = await User.findById(reservation.studentId);
+    if (!student) return res.status(404).json({ success: false, message: 'Student account not found for this reservation' });
 
-    const lead = reservation.leadId as any;
-
-    // Check if user already exists with this email
-    let student = await User.findOne({ email: lead.email, tenantId });
-
-    if (!student) {
-      // Create new student user
-      const tempPassword = password || crypto.randomBytes(8).toString('hex');
-      
-      student = new User({
-        email: lead.email,
-        password: tempPassword,
-        firstName: lead.firstName || lead.name?.split(' ')[0] || 'Student',
-        lastName: lead.lastName || lead.name?.split(' ').slice(1).join(' ') || '',
-        phone: lead.phone,
-        role: 'STUDENT',
-        tenantId,
-        isActive: true,
-        isEmailVerified: false,
-        batches: batchId ? [batchId] : [],
-        createdBy: userId
-      });
-
+    // Update batch if provided
+    if (batchId) {
+      student.batchId = batchId;
+      student.batchJoinedDate = new Date();
       await student.save();
-
-      // Send welcome email with credentials
-      const welcomeHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">🎉 Welcome to CodeBegun!</h2>
-          <p>Dear ${student.firstName},</p>
-          <p>Congratulations! Your enrollment is complete. Here are your login details:</p>
-          
-          <div style="background: #f3f4f6; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>Course:</strong> ${reservation.courseName}</p>
-            <p><strong>Email:</strong> ${student.email}</p>
-            <p><strong>Temporary Password:</strong> ${tempPassword}</p>
-          </div>
-
-          <p style="color: #dc2626;">Please change your password after first login.</p>
-
-          <a href="${process.env.CLIENT_URL || 'http://localhost:3000'}/login" 
-             style="display: inline-block; background: #2563eb; color: white; padding: 12px 24px; 
-                    text-decoration: none; border-radius: 6px; margin: 20px 0;">
-            Login Now
-          </a>
-
-          <p>If you have any questions, please reach out to us.</p>
-          <p>Happy Learning! 🚀<br>Team CodeBegun</p>
-        </div>
-      `;
-
-      await sendCustomEmail(
-        student.email,
-        `Welcome to CodeBegun - Your Learning Journey Begins!`,
-        welcomeHtml
-      );
-
-      reservation.welcomeEmailSent = true;
-      reservation.welcomeEmailSentAt = new Date();
     }
 
-    // Update reservation
     reservation.status = 'enrolled';
     reservation.enrolledAt = new Date();
-    reservation.studentId = student._id;
     if (batchId) reservation.batchId = batchId;
+    reservation.welcomeEmailSent = true;
+    reservation.welcomeEmailSentAt = new Date();
     await reservation.save();
-
-    // Update lead
-    const leadDoc = await Lead.findById(lead._id);
-    if (leadDoc) {
-      leadDoc.convertedStudentId = student._id;
-      
-      // Update stage to "Converted"
-      const convertedStage = await LeadStage.findOne({ 
-        tenantId, 
-        name: { $regex: /converted|enrolled|student/i } 
-      });
-      if (convertedStage) {
-        leadDoc.stageId = convertedStage._id;
-      }
-
-      leadDoc.activities.push({
-        type: 'status_change',
-        description: `Converted to student. Student ID: ${student._id}. Email: ${student.email}`,
-        createdBy: new mongoose.Types.ObjectId(userId as string),
-        createdAt: new Date()
-      });
-
-      await leadDoc.save();
-    }
 
     res.json({
       success: true,
-      message: 'Lead converted to student successfully',
+      message: 'Student enrolled successfully',
       data: {
         reservation,
-        student: {
-          _id: student._id,
-          email: student.email,
-          firstName: student.firstName,
-          lastName: student.lastName
-        }
+        student: { _id: student._id, email: student.email, firstName: student.firstName, lastName: student.lastName }
       }
     });
   } catch (error: any) {
@@ -437,7 +349,7 @@ export const getReservations = async (req: AuthenticatedRequest, res: Response) 
 
     const [reservations, total] = await Promise.all([
       SeatReservation.find(query)
-        .populate('leadId', 'name phone email')
+        .populate('studentId', 'email firstName lastName phone profileComplete')
         .populate('createdBy', 'firstName lastName')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -464,9 +376,8 @@ export const getReservationById = async (req: AuthenticatedRequest, res: Respons
     const { id } = req.params;
 
     const reservation = await SeatReservation.findOne({ _id: id, tenantId })
-      .populate('leadId', 'name phone email activities')
       .populate('createdBy', 'firstName lastName')
-      .populate('studentId', 'email firstName lastName');
+      .populate('studentId', 'email firstName lastName phone profileComplete');
 
     if (!reservation) {
       return res.status(404).json({ success: false, message: 'Reservation not found' });
@@ -523,18 +434,6 @@ export const cancelReservation = async (req: AuthenticatedRequest, res: Response
     reservation.status = 'cancelled';
     reservation.notes = (reservation.notes || '') + `\nCancelled: ${reason || 'No reason provided'}`;
     await reservation.save();
-
-    // Update lead
-    const lead = await Lead.findById(reservation.leadId);
-    if (lead) {
-      lead.activities.push({
-        type: 'note',
-        description: `Seat reservation cancelled. Reason: ${reason || 'N/A'}`,
-        createdBy: new mongoose.Types.ObjectId(userId as string),
-        createdAt: new Date()
-      });
-      await lead.save();
-    }
 
     res.json({
       success: true,
@@ -616,11 +515,12 @@ export const sendConfirmationEmail = async (req: AuthenticatedRequest, res: Resp
     const { tenantId } = req;
     const { id } = req.params;
 
-    const reservation = await SeatReservation.findOne({ _id: id, tenantId }).populate('leadId');
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
 
-    const lead = reservation.leadId as any;
-    if (!lead?.email) return res.status(400).json({ success: false, message: 'Lead has no email address' });
+    const toEmail = reservation.studentEmail;
+    const toFirstName = (reservation.studentName || 'there').split(' ')[0];
+    if (!toEmail) return res.status(400).json({ success: false, message: 'No email address on this reservation' });
 
     const seatInfo = reservation.seatNumber ? `<div class="info-row"><span class="info-label">Seat Number</span><span class="info-value">${reservation.seatNumber}</span></div>` : '';
     const expiryInfo = reservation.expiresAt
@@ -628,7 +528,7 @@ export const sendConfirmationEmail = async (req: AuthenticatedRequest, res: Resp
       : '';
 
     const body = `
-      <p class="greeting">🎉 Congratulations, ${lead.firstName || lead.name?.split(' ')[0] || 'there'}!</p>
+      <p class="greeting">🎉 Congratulations, ${toFirstName}!</p>
       <p class="intro">Your seat has been successfully reserved at <strong>CodeBegun</strong>. We're excited to have you join us! Here's a summary of your reservation.</p>
 
       <div class="info-card">
@@ -666,9 +566,9 @@ export const sendConfirmationEmail = async (req: AuthenticatedRequest, res: Resp
       <p style="color:#64748b;font-size:13px;">Questions? Call us or reply to this email — we respond within 2 hours.</p>
     `;
 
-    await sendCustomEmail(lead.email, `✅ Seat Reserved — ${reservation.courseName} | CodeBegun`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `✅ Seat Reserved — ${reservation.courseName} | CodeBegun`, emailWrapper(body));
 
-    res.json({ success: true, message: `Confirmation sent to ${lead.email}` });
+    res.json({ success: true, message: `Confirmation sent to ${toEmail}` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -682,11 +582,12 @@ export const sendPaymentReminderEmail = async (req: AuthenticatedRequest, res: R
     const { id } = req.params;
     const { dueDate, customMessage } = req.body;
 
-    const reservation = await SeatReservation.findOne({ _id: id, tenantId }).populate('leadId');
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
 
-    const lead = reservation.leadId as any;
-    if (!lead?.email) return res.status(400).json({ success: false, message: 'Lead has no email address' });
+    const toEmail = reservation.studentEmail;
+    const toFirstName = (reservation.studentName || 'there').split(' ')[0];
+    if (!toEmail) return res.status(400).json({ success: false, message: 'No email address on this reservation' });
 
     if (reservation.balanceAmount <= 0) {
       return res.status(400).json({ success: false, message: 'No outstanding balance for this reservation' });
@@ -697,7 +598,7 @@ export const sendPaymentReminderEmail = async (req: AuthenticatedRequest, res: R
       : 'As soon as possible';
 
     const body = `
-      <p class="greeting">Hi ${lead.firstName || lead.name?.split(' ')[0] || 'there'},</p>
+      <p class="greeting">Hi ${toFirstName},</p>
       <p class="intro">Your seat is reserved for <strong>${reservation.courseName}</strong>. This is a friendly reminder about the pending balance for your reservation.</p>
 
       ${customMessage ? `<div class="highlight-box"><p>${customMessage}</p></div>` : ''}
@@ -727,9 +628,9 @@ export const sendPaymentReminderEmail = async (req: AuthenticatedRequest, res: R
       <p style="color:#64748b;font-size:13px;">After payment, please share the transaction ID with your counsellor for quick confirmation.</p>
     `;
 
-    await sendCustomEmail(lead.email, `⏰ Payment Reminder — ₹${reservation.balanceAmount.toLocaleString('en-IN')} Due | ${reservation.courseName}`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `⏰ Payment Reminder — ₹${reservation.balanceAmount.toLocaleString('en-IN')} Due | ${reservation.courseName}`, emailWrapper(body));
 
-    res.json({ success: true, message: `Payment reminder sent to ${lead.email}` });
+    res.json({ success: true, message: `Payment reminder sent to ${toEmail}` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -743,11 +644,12 @@ export const sendPreJoiningInfoEmail = async (req: AuthenticatedRequest, res: Re
     const { id } = req.params;
     const { batchStartDate, batchStartTime, venue, onlineLink, documentsNeeded, customMessage } = req.body;
 
-    const reservation = await SeatReservation.findOne({ _id: id, tenantId }).populate('leadId');
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
 
-    const lead = reservation.leadId as any;
-    if (!lead?.email) return res.status(400).json({ success: false, message: 'Lead has no email address' });
+    const toEmail = reservation.studentEmail;
+    const toFirstName = (reservation.studentName || 'there').split(' ')[0];
+    if (!toEmail) return res.status(400).json({ success: false, message: 'No email address on this reservation' });
 
     const startDateStr = batchStartDate
       ? new Date(batchStartDate).toLocaleDateString('en-IN', { weekday:'long', day:'2-digit', month:'long', year:'numeric' })
@@ -760,7 +662,7 @@ export const sendPreJoiningInfoEmail = async (req: AuthenticatedRequest, res: Re
     const docsHtml = docs.map((d: string) => `<li class="step"><span class="step-num">📄</span><span class="step-text">${d}</span></li>`).join('');
 
     const body = `
-      <p class="greeting">Great news, ${lead.firstName || lead.name?.split(' ')[0] || 'there'}! 🎊</p>
+      <p class="greeting">Great news, ${toFirstName}! 🎊</p>
       <p class="intro">Your batch is starting soon! Here's everything you need to know before Day 1 of <strong>${reservation.courseName}</strong>.</p>
 
       ${customMessage ? `<div class="highlight-box"><p>${customMessage}</p></div>` : ''}
@@ -799,9 +701,9 @@ export const sendPreJoiningInfoEmail = async (req: AuthenticatedRequest, res: Re
       <p style="color:#64748b;font-size:13px;">Portal login credentials will be sent separately before the start date.</p>
     `;
 
-    await sendCustomEmail(lead.email, `🗓️ Joining Details — ${reservation.courseName} Starts ${startDateStr}`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `🗓️ Joining Details — ${reservation.courseName} Starts ${startDateStr}`, emailWrapper(body));
 
-    res.json({ success: true, message: `Pre-joining info sent to ${lead.email}` });
+    res.json({ success: true, message: `Pre-joining info sent to ${toEmail}` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -815,11 +717,12 @@ export const sendJoiningDayEmail = async (req: AuthenticatedRequest, res: Respon
     const { id } = req.params;
     const { loginEmail, tempPassword, onlineLink, customMessage } = req.body;
 
-    const reservation = await SeatReservation.findOne({ _id: id, tenantId }).populate('leadId');
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
     if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
 
-    const lead = reservation.leadId as any;
-    if (!lead?.email) return res.status(400).json({ success: false, message: 'Lead has no email address' });
+    const toEmail = reservation.studentEmail;
+    const toFirstName = (reservation.studentName || 'there').split(' ')[0];
+    if (!toEmail) return res.status(400).json({ success: false, message: 'No email address on this reservation' });
 
     const credentialsSection = (loginEmail || tempPassword) ? `
       <div class="info-card">
@@ -832,7 +735,7 @@ export const sendJoiningDayEmail = async (req: AuthenticatedRequest, res: Respon
     ` : '';
 
     const body = `
-      <p class="greeting">Welcome to CodeBegun, ${lead.firstName || lead.name?.split(' ')[0] || 'there'}! 🚀</p>
+      <p class="greeting">Welcome to CodeBegun, ${toFirstName}! 🚀</p>
       <p class="intro">Today is a big day — <strong>Day 1 of ${reservation.courseName}</strong>! We're thrilled to have you with us. Here's everything you need to get started today.</p>
 
       ${customMessage ? `<div class="highlight-box"><p>${customMessage}</p></div>` : ''}
@@ -867,9 +770,9 @@ export const sendJoiningDayEmail = async (req: AuthenticatedRequest, res: Respon
       <p style="color:#64748b;font-size:13px;">We're with you every step of the way. Let's build something great together!</p>
     `;
 
-    await sendCustomEmail(lead.email, `🎉 Welcome Aboard! Your CodeBegun Journey Starts Today — ${reservation.courseName}`, emailWrapper(body));
+    await sendCustomEmail(toEmail, `🎉 Welcome Aboard! Your CodeBegun Journey Starts Today — ${reservation.courseName}`, emailWrapper(body));
 
-    res.json({ success: true, message: `Joining day email sent to ${lead.email}` });
+    res.json({ success: true, message: `Joining day email sent to ${toEmail}` });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

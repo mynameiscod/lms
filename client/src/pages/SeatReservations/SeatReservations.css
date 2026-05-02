@@ -131,6 +131,10 @@
 @media (min-width: 640px) { .sr-modal-overlay { align-items: center; } }
 .sr-modal { background: #fff; border-radius: 20px 20px 0 0; width: 100%; max-width: 520px; padding: 28px 24px; max-height: 92vh; overflow-y: auto; }
 @media (min-width: 640px) { .sr-modal { border-radius: 20px; } }
+.sr-modal-wide { max-width: 680px; }
+.sr-modal-notice { background: #ede9ff; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: #4c1d95; margin-bottom: 20px; line-height: 1.5; }
+.sr-form-section-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: var(--sr-purple); border-bottom: 2px solid var(--sr-purple-light); padding-bottom: 6px; margin-bottom: 14px; }
+.sr-fee-preview { background: #f0fdf4; border: 1.5px solid #86efac; border-radius: 10px; padding: 10px 14px; font-size: 14px; color: #166534; margin-bottom: 14px; }
 .sr-modal-title { font-size: 17px; font-weight: 800; color: var(--sr-dark); margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .sr-modal-close { background: #f1f5f9; border: none; border-radius: 8px; padding: 6px 10px; cursor: pointer; font-size: 16px; color: var(--sr-gray); }
 .sr-form-group { margin-bottom: 16px; }

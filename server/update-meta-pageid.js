@@ -9,11 +9,21 @@ if (!uri.includes('@')) {
 }
 
 mongoose.connect(uri).then(async () => {
+  // First trim any existing pageId values across all docs
+  const docs = await mongoose.connection.collection('leadsourceconfigs').find({}).toArray();
+  for (const doc of docs) {
+    const existing = doc.metaAds?.config?.pageId || '';
+    const trimmed = existing.trim();
+    if (existing !== trimmed) {
+      console.log(`  Trimming pageId from "${existing}" to "${trimmed}"`);
+    }
+  }
+
   const r = await mongoose.connection.collection('leadsourceconfigs').updateMany(
     {},
     { $set: { 'metaAds.config.pageId': '862759496824378' } }
   );
   console.log('✅ pageId updated in', r.modifiedCount, 'document(s)');
-  console.log('New pageId: 862759496824378');
+  console.log('New pageId: "862759496824378" (no trailing spaces)');
   await mongoose.disconnect();
 }).catch(e => { console.error('❌', e.message); process.exit(1); });

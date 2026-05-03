@@ -308,10 +308,16 @@ async function fetchAndCreateLead(
     });
     if (tenantConfig) {
       const tokens = await getDecryptedTokens(tenantConfig.tenantId.toString());
-      if (tokens?.metaAds.pageAccessToken) {
-        accessToken = tokens.metaAds.pageAccessToken;
+      // Validate decrypted token looks like a real Facebook token (starts with EAA)
+      const dbToken = tokens?.metaAds.pageAccessToken;
+      if (dbToken && dbToken.startsWith('EAA')) {
+        accessToken = dbToken;
         tenantId = tenantConfig.tenantId.toString();
         debugLog('CREATE', `✅ Resolved tenant from DB by pageId: ${tenantId}`);
+      } else if (dbToken) {
+        // Token decrypted but looks invalid — encryption key mismatch; fall through to env
+        errorLog('CREATE', `⚠️ DB token for tenant ${tenantConfig.tenantId} does not start with EAA (len=${dbToken.length}) — possible encryption key mismatch, trying .env fallback`);
+        tenantId = tenantConfig.tenantId.toString(); // keep tenantId even if token is bad
       }
     }
   }
@@ -324,18 +330,28 @@ async function fetchAndCreateLead(
     });
     if (tenantConfig) {
       const tokens = await getDecryptedTokens(tenantConfig.tenantId.toString());
-      if (tokens?.metaAds.pageAccessToken) {
-        accessToken = tokens.metaAds.pageAccessToken;
+      const dbToken = tokens?.metaAds.pageAccessToken;
+      if (dbToken && dbToken.startsWith('EAA')) {
+        accessToken = dbToken;
         tenantId = tenantConfig.tenantId.toString();
         debugLog('CREATE', `✅ Resolved tenant from DB by formId: ${tenantId}`);
+      } else if (dbToken) {
+        errorLog('CREATE', `⚠️ DB token for tenant ${tenantConfig.tenantId} looks invalid — trying .env fallback`);
+        tenantId = tenantConfig.tenantId.toString();
       }
     }
   }
 
-  // .env fallback (legacy support)
+  // .env fallback (legacy support, or when DB token has encryption key mismatch)
   if (!accessToken) {
-    accessToken = process.env.PAGE_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
-    debugLog('CREATE', `⚠️ Using .env fallback for accessToken`);
+    const envToken = process.env.PAGE_ACCESS_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN;
+    if (envToken && envToken.startsWith('EAA')) {
+      accessToken = envToken;
+      debugLog('CREATE', `⚠️ Using .env PAGE_ACCESS_TOKEN fallback`);
+    } else if (envToken) {
+      accessToken = envToken; // use anyway, let Meta API reject if bad
+      debugLog('CREATE', `⚠️ Using .env fallback (token may not start with EAA)`);
+    }
   }
   if (!tenantId) {
     tenantId = process.env.DEFAULT_TENANT_ID;

@@ -10,7 +10,20 @@ const mongoose = require('mongoose');
 const https    = require('https');
 const crypto   = require('crypto');
 
-const MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+// When running directly on VPS (not in Docker), the container hostname 'mongodb'
+// won't resolve — use localhost instead, and include auth credentials.
+let MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
+
+// Auto-fix Docker internal URI for direct (non-container) execution
+if (MONGO_URI && MONGO_URI.includes('@mongodb:')) {
+  MONGO_URI = MONGO_URI.replace('@mongodb:', '@localhost:');
+  console.log('ℹ️  Docker URI detected — replaced "mongodb" host with "localhost" for direct VPS run');
+}
+// If URI has no auth and MongoDB has auth enabled, inject default credentials
+if (MONGO_URI && !MONGO_URI.includes('@')) {
+  MONGO_URI = MONGO_URI.replace('mongodb://', 'mongodb://admin:password123@') + (MONGO_URI.includes('?') ? '&authSource=admin' : '?authSource=admin');
+  console.log('ℹ️  No credentials in URI — injected default admin credentials');
+}
 const ENC_KEY   = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'fallback-key-32-chars-minimum!!';
 
 // ── Decrypt helper (mirrors leadSourceConfigController) ──────────────────────

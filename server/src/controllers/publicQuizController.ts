@@ -344,7 +344,7 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
 
     // Lock submission from re-taking and store result
     submission.canTakeQuiz = false;
-    submission.quizAttemptId = attempt._id as mongoose.Types.ObjectId;
+    submission.quizAttemptId = attempt._id as unknown as mongoose.Types.ObjectId;
     submission.score = obtainedMarks;
     submission.totalMarks = quiz.totalMarks;
     submission.percentage = percentage;

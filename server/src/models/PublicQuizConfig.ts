@@ -81,6 +81,9 @@ export interface IPublicQuizConfig extends Document {
   resultSettings: IResultSettings;
   certificateTemplate?: string; // HTML with {{name}} {{score}} etc.
   totalSubmissions: number;
+  scheduledAt?: Date;    // quiz becomes available (null = immediately)
+  closesAt?: Date;       // quiz link expires (null = never)
+  metaPixelId?: string;  // Meta / Facebook Pixel ID for ad tracking
   createdBy: string;
   createdAt: Date;
   updatedAt: Date;
@@ -145,6 +148,9 @@ const publicQuizConfigSchema = new Schema<IPublicQuizConfig>(
 
     certificateTemplate: String,
     totalSubmissions: { type: Number, default: 0 },
+    scheduledAt: Date,
+    closesAt: Date,
+    metaPixelId: String,
     createdBy: { type: String, required: true }
   },
   { timestamps: true }

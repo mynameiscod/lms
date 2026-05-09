@@ -164,6 +164,43 @@ const PublicQuizEditor: React.FC = () => {
               <label className="form-check-label">{config.isActive ? 'Active' : 'Inactive'}</label>
             </div>
           </div>
+
+          {/* Scheduling row */}
+          <div className="col-12">
+            <hr className="my-1" />
+            <div className="row g-3 align-items-end">
+              <div className="col-md-3">
+                <label className="form-label fw-semibold">📅 Quiz Opens (optional)</label>
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  value={config.scheduledAt ? new Date(config.scheduledAt).toISOString().slice(0, 16) : ''}
+                  onChange={e => setConfig((p: any) => ({ ...p, scheduledAt: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                />
+                <div className="form-text">Students can pre-register before this date</div>
+              </div>
+              <div className="col-md-3">
+                <label className="form-label fw-semibold">🔒 Quiz Closes (optional)</label>
+                <input
+                  type="datetime-local"
+                  className="form-control"
+                  value={config.closesAt ? new Date(config.closesAt).toISOString().slice(0, 16) : ''}
+                  onChange={e => setConfig((p: any) => ({ ...p, closesAt: e.target.value ? new Date(e.target.value).toISOString() : null }))}
+                />
+                <div className="form-text">Link stops accepting after this date</div>
+              </div>
+              <div className="col-md-4">
+                <label className="form-label fw-semibold">📣 Meta Pixel ID (optional)</label>
+                <input
+                  className="form-control"
+                  placeholder="e.g. 1234567890123456"
+                  value={config.metaPixelId || ''}
+                  onChange={e => setConfig((p: any) => ({ ...p, metaPixelId: e.target.value }))}
+                />
+                <div className="form-text">Tracks form fills from Meta / Instagram / Facebook ads</div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

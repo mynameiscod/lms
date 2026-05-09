@@ -58,23 +58,34 @@ function gradeAnswer(question: any, selectedOptions: string[]): { isCorrect: boo
     return { isCorrect: false, marksAwarded: 0 };
   }
 
+  // Helper: resolve an option reference (index number or text) to its text value
+  const resolveOption = (ref: any): string => {
+    const s = String(ref || '').trim();
+    if (!isNaN(Number(s)) && Array.isArray(question.options)) {
+      const idx = parseInt(s);
+      const opt = question.options[idx];
+      if (opt !== undefined) return typeof opt === 'string' ? opt.trim() : (opt?.text?.trim() || s);
+    }
+    return s;
+  };
+
+  // Resolve selected option indices to their text values (frontend sends index strings like "0")
   const normalizedSelected = selectedOptions
-    .map(o => String(o || '').trim())
+    .map(o => resolveOption(o))
     .filter(Boolean)
     .sort();
 
   let correctAnswerTexts: string[] = [];
   if (question.correctAnswers && question.correctAnswers.length > 0) {
     correctAnswerTexts = question.correctAnswers
-      .map((ans: any) => {
-        const ansStr = String(ans).trim();
-        if (!isNaN(Number(ansStr))) {
-          const idx = parseInt(ansStr);
-          const opt = Array.isArray(question.options) ? question.options[idx] : undefined;
-          return typeof opt === 'string' ? opt.trim() : (opt?.text?.trim() || '');
-        }
-        return ansStr;
-      })
+      .map((ans: any) => resolveOption(ans))
+      .filter(Boolean)
+      .sort();
+  } else if (Array.isArray(question.options)) {
+    // Fallback: derive correct answers from options with isCorrect flag
+    correctAnswerTexts = question.options
+      .filter((o: any) => typeof o === 'object' && o.isCorrect)
+      .map((o: any) => o.text?.trim() || '')
       .filter(Boolean)
       .sort();
   }
@@ -119,10 +130,19 @@ export const getPublicQuizPage = async (req: Request, res: Response) => {
     const quiz = await Quiz.findById(config.quizId).select('title totalQuestions totalMarks totalTime description');
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
 
+    const now = new Date();
+    const scheduledAt = config.scheduledAt;
+    const closesAt = config.closesAt;
+    const isOpen = (!scheduledAt || now >= scheduledAt) && (!closesAt || now <= closesAt);
+
     res.json({
       configId: config._id,
       slug: config.slug,
       title: config.title,
+      metaPixelId: config.metaPixelId,
+      isOpen,
+      scheduledAt: scheduledAt || null,
+      closesAt: closesAt || null,
       quiz: {
         title: quiz.title,
         description: quiz.description,
@@ -153,6 +173,12 @@ export const registerForPublicQuiz = async (req: Request, res: Response) => {
 
     const config = await PublicQuizConfig.findOne({ slug, isActive: true });
     if (!config) return res.status(404).json({ message: 'Quiz not found or not available' });
+
+    // Check scheduling
+    const now = new Date();
+    if (config.closesAt && now > config.closesAt) {
+      return res.status(410).json({ message: 'This quiz has closed and is no longer accepting submissions.' });
+    }
 
     // Extract name + email from registrationData (fields labeled 'name'/'email' or first text/email field)
     let email = '';
@@ -203,6 +229,17 @@ export const registerForPublicQuiz = async (req: Request, res: Response) => {
         canTakeQuiz: false,
         message: 'You have already taken this quiz. Your form submission has been recorded.',
         submissionId: submission._id
+      });
+    }
+
+    // Pre-registration: quiz not yet open
+    if (config.scheduledAt && now < config.scheduledAt) {
+      return res.status(200).json({
+        canTakeQuiz: false,
+        reason: 'not_open_yet',
+        opensAt: config.scheduledAt,
+        submissionId: submission._id,
+        message: `Registration successful! The quiz opens on ${config.scheduledAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}. Bookmark this page and return when the quiz opens.`
       });
     }
 
@@ -417,6 +454,11 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
       .replace('{{name}}', submission.name)
       .replace('{{hashtags}}', (social.hashtags || []).map((h: string) => `#${h}`).join(' '));
 
+    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
+    const instagramCaption = social.instagramHandle
+      ? `${shareMsg} Follow @${social.instagramHandle.replace('@', '')} for more!`
+      : shareMsg;
+
     res.json({
       submission: {
         id: submission._id,
@@ -432,14 +474,13 @@ export const getPublicQuizResults = async (req: Request, res: Response) => {
       quiz: { title: quiz?.title },
       resultSettings,
       answers: resultSettings.showAnswers ? answers : (resultSettings.showScore ? answers.map(a => ({ ...a, correctAnswer: undefined, explanation: undefined })) : []),
-      socialShare: {
+      shareUrls: {
         message: shareMsg,
         hashtags: social.hashtags || [],
-        instagramHandle: social.instagramHandle,
-        twitterHandle: social.twitterHandle,
-        linkedinCompanyUrl: social.linkedinCompanyUrl,
-        twitterUrl: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}${social.twitterHandle ? `&via=${social.twitterHandle.replace('@', '')}` : ''}`,
-        linkedinUrl: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(social.linkedinCompanyUrl || 'https://codebegun.com')}&summary=${encodeURIComponent(shareMsg)}`
+        instagramCaption,
+        twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}${social.twitterHandle ? `&via=${social.twitterHandle.replace('@', '')}` : ''}`,
+        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(social.linkedinCompanyUrl || 'https://codebegun.com')}&summary=${encodeURIComponent(shareMsg)}`,
+        whatsapp: whatsappUrl
       }
     });
   } catch (err: any) {

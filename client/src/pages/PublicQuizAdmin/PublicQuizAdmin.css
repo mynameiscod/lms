@@ -225,3 +225,24 @@
 .btn-xs {
   padding: 2px 8px; font-size: 0.78rem; border-radius: 4px; line-height: 1.5;
 }
+
+/* ─── Embed Code Modal ───────────────────────────────────────────────────── */
+.pq-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,.55);
+  display: flex; align-items: center; justify-content: center; z-index: 9999;
+}
+.pq-modal-box {
+  background: #fff; border-radius: 12px; width: 640px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,.2);
+}
+.pq-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 20px; border-bottom: 1px solid #e5e7eb;
+}
+.pq-modal-header h5 { margin: 0; font-size: 1.1rem; }
+.pq-modal-body { padding: 20px; }
+.pq-embed-code {
+  background: #1e2530; color: #e2e8f0; border-radius: 8px;
+  padding: 14px 16px; font-size: 0.8rem; line-height: 1.6;
+  white-space: pre-wrap; word-break: break-all; margin: 0;
+}

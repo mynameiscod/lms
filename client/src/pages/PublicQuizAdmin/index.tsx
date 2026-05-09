@@ -7,9 +7,10 @@ const PublicQuizListPage: React.FC = () => {
   const [configs, setConfigs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [embedSlug, setEmbedSlug] = useState<string | null>(null);
+  const [copiedEmbed, setCopiedEmbed] = useState(false);
   const navigate = useNavigate();
 
-  const API_BASE = process.env.REACT_APP_API_URL || '/api/v1';
   const origin = window.location.origin;
 
   useEffect(() => {
@@ -30,6 +31,14 @@ const PublicQuizListPage: React.FC = () => {
 
   const copyLink = (slug: string) => {
     navigator.clipboard.writeText(`${origin}/public-quiz/${slug}`);
+  };
+
+  const embedCode = embedSlug
+    ? `<iframe\n  src="${origin}/public-quiz/${embedSlug}"\n  width="100%"\n  height="700"\n  frameborder="0"\n  allow="fullscreen"\n  style="border:none; border-radius:8px;"\n  title="Quiz"\n></iframe>`
+    : '';
+
+  const copyEmbed = () => {
+    navigator.clipboard.writeText(embedCode).then(() => { setCopiedEmbed(true); setTimeout(() => setCopiedEmbed(false), 2000); });
   };
 
   if (loading) return <div className="pq-loading">Loading...</div>;
@@ -100,6 +109,9 @@ const PublicQuizListPage: React.FC = () => {
                 <button className="btn btn-sm btn-outline-info" onClick={() => navigate(`/public-quiz-admin/${c._id}/submissions`)}>
                   📊 Submissions ({c.totalSubmissions})
                 </button>
+                <button className="btn btn-sm btn-outline-secondary" onClick={() => setEmbedSlug(c.slug)}>
+                  🔗 Embed
+                </button>
                 <button
                   className="btn btn-sm btn-outline-danger"
                   onClick={() => handleDelete(c._id, c.title)}
@@ -110,6 +122,33 @@ const PublicQuizListPage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Embed Code Modal */}
+      {embedSlug && (
+        <div className="pq-modal-overlay" onClick={() => setEmbedSlug(null)}>
+          <div className="pq-modal-box" onClick={e => e.stopPropagation()}>
+            <div className="pq-modal-header">
+              <h5>🔗 Embed on Your Website</h5>
+              <button className="btn-close" onClick={() => setEmbedSlug(null)} />
+            </div>
+            <div className="pq-modal-body">
+              <p className="text-muted mb-2">Paste this code anywhere on your website — in a landing page, blog post, or after an ad click. Students fill the form directly on your site.</p>
+              <pre className="pq-embed-code">{embedCode}</pre>
+              <div className="d-flex gap-2 mt-3">
+                <button className="btn btn-primary" onClick={copyEmbed}>
+                  {copiedEmbed ? '✅ Copied!' : '📋 Copy Code'}
+                </button>
+                <a href={`${origin}/public-quiz/${embedSlug}`} target="_blank" rel="noreferrer" className="btn btn-outline-secondary">
+                  👁️ Preview Page
+                </a>
+              </div>
+              <hr />
+              <p className="small text-muted mb-1"><strong>Meta / Facebook Ads tip:</strong></p>
+              <p className="small text-muted">Use <code>{`${origin}/public-quiz/${embedSlug}`}</code> as your ad destination URL. Students who click the ad will land directly on this quiz registration page. Enable Meta Pixel in the quiz settings to track conversions.</p>
+            </div>
+          </div>
         </div>
       )}
     </div>

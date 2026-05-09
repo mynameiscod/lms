@@ -88,7 +88,7 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
   );
 
   const q = questions[currentIdx];
-  const isMulti = q?.questionType === 'multiple_correct';
+  const isMulti = q?.type === 'mcq_multiple';
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60); const sec = s % 60;
@@ -140,7 +140,7 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
                 <span className="pq-question-marks">{q.marks || 1} mark{q.marks !== 1 ? 's' : ''}</span>
               </div>
               <div className="pq-question-text"
-                dangerouslySetInnerHTML={{ __html: q.questionText }} />
+                dangerouslySetInnerHTML={{ __html: q.question }} />
 
               <div className="pq-options-list">
                 {(q.options || []).map((opt: string, idx: number) => {

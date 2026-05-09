@@ -37,6 +37,10 @@
 .pq-public-already-icon { font-size: 3.5rem; margin-bottom: 20px; }
 .pq-public-already-taken h2 { color: #1e293b; }
 .pq-public-already-taken p { color: #64748b; max-width: 440px; }
+.pq-opens-at-box {
+  background: #f0fdf4; border: 1px solid #86efac; border-radius: 10px;
+  padding: 16px 28px; margin-top: 18px; font-size: 1.05rem; color: #15803d;
+}
 
 /* ─── Public Page wrapper ────────────────────────────────────────────────── */
 .pq-public-page {

@@ -17,7 +17,7 @@ interface Props {
   form?: { fields: Field[] };
   primaryColor: string;
   slug: string;
-  onRegistered: (submissionId: string, canTakeQuiz: boolean) => void;
+  onRegistered: (submissionId: string, canTakeQuiz: boolean, reason?: string, opensAt?: string, message?: string) => void;
   backToHomeUrl?: string;
 }
 
@@ -60,7 +60,7 @@ const RegistrationForm: React.FC<Props> = ({ title, quizInfo, form, primaryColor
     try {
       const res = await publicQuizApi.register(slug, values);
       if (res.submissionId) {
-        onRegistered(res.submissionId, res.canTakeQuiz !== false);
+        onRegistered(res.submissionId, res.canTakeQuiz !== false, res.reason, res.opensAt, res.message);
       } else {
         setApiError(res.message || 'Registration failed. Please try again.');
       }

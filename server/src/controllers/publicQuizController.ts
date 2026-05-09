@@ -18,29 +18,34 @@ function evaluateEligibility(fields: any[], registrationData: Record<string, any
   const flags: any[] = [];
 
   for (const field of fields) {
-    if (!field.eligibilityRule) continue;
-    const { operator, value: ruleValue } = field.eligibilityRule;
+    const rules: any[] = field.eligibilityRules || (field.eligibilityRule ? [field.eligibilityRule] : []);
+    if (!rules.length) continue;
+
     const userValue = String(registrationData[field.id] ?? '').trim();
-    let passes = false;
 
-    switch (operator) {
-      case 'eq': passes = userValue.toLowerCase() === String(ruleValue).toLowerCase(); break;
-      case 'neq': passes = userValue.toLowerCase() !== String(ruleValue).toLowerCase(); break;
-      case 'contains': passes = userValue.toLowerCase().includes(String(ruleValue).toLowerCase()); break;
-      case 'lt': passes = parseFloat(userValue) < parseFloat(ruleValue); break;
-      case 'lte': passes = parseFloat(userValue) <= parseFloat(ruleValue); break;
-      case 'gt': passes = parseFloat(userValue) > parseFloat(ruleValue); break;
-      case 'gte': passes = parseFloat(userValue) >= parseFloat(ruleValue); break;
-      default: passes = true;
-    }
+    for (const rule of rules) {
+      const { operator, value: ruleValue } = rule;
+      let passes = false;
 
-    if (!passes) {
-      flags.push({
-        fieldId: field.id,
-        fieldLabel: field.label,
-        value: userValue,
-        rule: `must be ${operator} "${ruleValue}"`
-      });
+      switch (operator) {
+        case 'eq': passes = userValue.toLowerCase() === String(ruleValue).toLowerCase(); break;
+        case 'neq': passes = userValue.toLowerCase() !== String(ruleValue).toLowerCase(); break;
+        case 'contains': passes = userValue.toLowerCase().includes(String(ruleValue).toLowerCase()); break;
+        case 'lt': passes = parseFloat(userValue) < parseFloat(ruleValue); break;
+        case 'lte': passes = parseFloat(userValue) <= parseFloat(ruleValue); break;
+        case 'gt': passes = parseFloat(userValue) > parseFloat(ruleValue); break;
+        case 'gte': passes = parseFloat(userValue) >= parseFloat(ruleValue); break;
+        default: passes = true;
+      }
+
+      if (!passes) {
+        flags.push({
+          fieldId: field.id,
+          fieldLabel: field.label,
+          value: userValue,
+          rule: `must be ${operator} "${ruleValue}"`
+        });
+      }
     }
   }
 
@@ -546,7 +551,7 @@ export const listPublicQuizConfigs = async (req: Request, res: Response) => {
 export const createPublicQuizConfig = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const userId = (req as any).user?.userId;
+    const userId = (req as any).user?.id;
 
     // Generate slug from title if not provided
     let slug = req.body.slug || req.body.title
@@ -641,7 +646,7 @@ export const getPublicQuizSubmissions = async (req: Request, res: Response) => {
 export const convertSubmissionToLead = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const userId = (req as any).user?.userId;
+    const userId = (req as any).user?.id;
 
     const submission = await PublicQuizSubmission.findOne({
       _id: req.params.subId,

@@ -25,10 +25,11 @@ export interface ILandingPage {
 }
 
 // ─── Registration Form ───────────────────────────────────────────────────────
-export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'select' | 'radio' | 'checkbox' | 'date' | 'textarea';
+export type FieldType = 'text' | 'email' | 'phone' | 'number' | 'select' | 'radio' | 'checkbox' | 'date' | 'textarea' | 'upload';
 export type EligibilityOperator = 'eq' | 'neq' | 'contains' | 'lt' | 'lte' | 'gt' | 'gte';
 
 export interface IEligibilityRule {
+  id?: string;
   operator: EligibilityOperator;
   value: string;
 }
@@ -40,7 +41,7 @@ export interface IFormField {
   placeholder?: string;
   required: boolean;
   options?: string[]; // for select/radio/checkbox
-  eligibilityRule?: IEligibilityRule; // if set, field value is checked
+  eligibilityRules?: IEligibilityRule[]; // multiple rules, all checked
 }
 
 export interface IRegistrationForm {
@@ -95,14 +96,15 @@ const LandingBlockSchema = new Schema<ILandingBlock>({
 const FormFieldSchema = new Schema<IFormField>({
   id: { type: String, required: true },
   label: { type: String, required: true },
-  type: { type: String, enum: ['text', 'email', 'phone', 'number', 'select', 'radio', 'checkbox', 'date', 'textarea'], required: true },
+  type: { type: String, enum: ['text', 'email', 'phone', 'number', 'select', 'radio', 'checkbox', 'date', 'textarea', 'upload'], required: true },
   placeholder: String,
   required: { type: Boolean, default: false },
   options: [String],
-  eligibilityRule: {
+  eligibilityRules: [{
+    id: String,
     operator: { type: String, enum: ['eq', 'neq', 'contains', 'lt', 'lte', 'gt', 'gte'] },
     value: String
-  }
+  }]
 }, { _id: false });
 
 const publicQuizConfigSchema = new Schema<IPublicQuizConfig>(

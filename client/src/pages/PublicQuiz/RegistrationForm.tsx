@@ -156,6 +156,14 @@ const FieldInput: React.FC<FieldInputProps> = ({ field, value, onChange, error }
       {field.type === 'textarea' && (
         <textarea {...sharedProps} rows={3} value={value} onChange={e => onChange(e.target.value)} />
       )}
+      {field.type === 'upload' && (
+        <input
+          type="file"
+          className={`form-control${error ? ' is-invalid' : ''}`}
+          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+          onChange={e => onChange(e.target.files?.[0] || null)}
+        />
+      )}
       {field.type === 'select' && (
         <select className={`form-select${error ? ' is-invalid' : ''}`} value={value} onChange={e => onChange(e.target.value)}>
           <option value="">— Select —</option>

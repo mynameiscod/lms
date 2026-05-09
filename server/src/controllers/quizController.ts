@@ -349,10 +349,30 @@ export const getStudentAttemptResults = async (req: Request, res: Response) => {
     const showAnswers = quiz?.showAnswersAfterSubmit !== false;
     const answers = submissions.map(sub => {
       const question = questionMap.get(sub.questionId);
-      const correctOption = question?.options?.find(o => o.isCorrect);
-      const correctAnswerText = correctOption?.text ||
-        question?.correctAnswers?.join(', ') ||
-        question?.correctAnswerText || '';
+
+      // Resolve correct answer text with index-fallback for legacy CSV questions
+      let correctAnswerText = '';
+      if (showAnswers && question) {
+        const opts: any[] = question.options || [];
+        // 1. Try isCorrect flag on option objects
+        const correctOpt = opts.find((o: any) => typeof o === 'object' && o.isCorrect);
+        if (correctOpt) {
+          correctAnswerText = correctOpt.text || '';
+        } else if (question.correctAnswers && question.correctAnswers.length > 0) {
+          // 2. Try to resolve each correctAnswer entry as index or text
+          const resolved = question.correctAnswers.map((ans: string) => {
+            const idx = parseInt(ans);
+            if (!isNaN(idx) && opts[idx] !== undefined) {
+              const opt = opts[idx];
+              return typeof opt === 'string' ? opt : (opt?.text || ans);
+            }
+            return ans; // already text
+          }).filter(Boolean);
+          correctAnswerText = resolved.join(', ');
+        } else if (question.correctAnswerText) {
+          correctAnswerText = question.correctAnswerText;
+        }
+      }
 
       return {
         questionId: sub.questionId,
@@ -435,26 +455,22 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
     // Filter quizzes based on access level and enrollment
     const availableQuizzes = await Promise.all(
       allQuizzes.map(async (quiz) => {
-        // Public quizzes - everyone can see
+        // Check access based on accessibleTo (always respected, regardless of public/private)
         let hasAccess = false;
-        
-        if (quiz.access === 'public') {
-          hasAccess = true;
-        } else if (quiz.access === 'private') {
-          // Private quizzes - check access based on accessibleTo
-          if (quiz.accessibleTo === 'everyone') {
+
+        if (quiz.accessibleTo === 'batch_wise') {
+          // Batch-wise: only students whose batchId is in selectedBatches
+          if (user.batchId && quiz.selectedBatches && quiz.selectedBatches.includes(user.batchId.toString())) {
             hasAccess = true;
-          } else if (quiz.accessibleTo === 'batch_wise' && quiz.selectedBatches) {
-            // Check if user's batch is in the selected batches
-            if (user.batchId && quiz.selectedBatches.includes(user.batchId.toString())) {
-              hasAccess = true;
-            }
-          } else if (quiz.accessibleTo === 'individual' && quiz.selectedStudents) {
-            // Check if user is in the selected students
-            if (quiz.selectedStudents.includes(userId)) {
-              hasAccess = true;
-            }
           }
+        } else if (quiz.accessibleTo === 'individual') {
+          // Individual: only selected students
+          if (quiz.selectedStudents && quiz.selectedStudents.includes(userId)) {
+            hasAccess = true;
+          }
+        } else {
+          // 'everyone' or no accessibleTo set — fall back to access field
+          hasAccess = quiz.access === 'public' || quiz.accessibleTo === 'everyone';
         }
 
         if (!hasAccess) {
@@ -608,5 +624,80 @@ export const uploadAttemptRecording = async (req: Request, res: Response) => {
     res.json({ success: true, message: 'Recording saved', path: file.path });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Clone an existing quiz (with its linked questions) into a new quiz for a different batch
+export const cloneQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const tenantId = (req as any).tenantId;
+    const userId = (req as any).userId;
+    const { title, startDate, endDate, startTime, endTime, selectedBatches, selectedStudents, accessibleTo } = req.body;
+
+    const sourceQuiz = await Quiz.findById(quizId);
+    if (!sourceQuiz) {
+      return res.status(404).json({ message: 'Source quiz not found' });
+    }
+
+    if (!title || !startDate || !endDate || !startTime || !endTime) {
+      return res.status(400).json({ message: 'title, startDate, endDate, startTime, endTime are required' });
+    }
+
+    // Build new quiz from source, overriding date/access fields
+    const clonedData: any = {
+      title,
+      description: sourceQuiz.description,
+      instructions: sourceQuiz.instructions,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      startTime,
+      endTime,
+      access: sourceQuiz.access,
+      accessibleTo: accessibleTo || sourceQuiz.accessibleTo,
+      selectedBatches: selectedBatches || [],
+      selectedStudents: selectedStudents || [],
+      questionIds: sourceQuiz.questionIds || [],
+      totalQuestions: sourceQuiz.totalQuestions,
+      totalMarks: sourceQuiz.totalMarks,
+      totalTime: sourceQuiz.totalTime,
+      questionCount: sourceQuiz.questionCount,
+      passingMarks: sourceQuiz.passingMarks,
+      passPercentage: sourceQuiz.passPercentage,
+      negativeMarking: sourceQuiz.negativeMarking,
+      negativeMarkingValue: sourceQuiz.negativeMarkingValue,
+      shuffleQuestions: sourceQuiz.shuffleQuestions,
+      showAnswersAfterSubmit: sourceQuiz.showAnswersAfterSubmit,
+      showScoreAfterSubmit: sourceQuiz.showScoreAfterSubmit,
+      allowReview: sourceQuiz.allowReview,
+      multipleAttempts: sourceQuiz.multipleAttempts,
+      maxAttempts: sourceQuiz.maxAttempts,
+      canCopyPaste: sourceQuiz.canCopyPaste,
+      requireFullScreen: sourceQuiz.requireFullScreen,
+      tabSwitchWarnings: sourceQuiz.tabSwitchWarnings,
+      enableCamera: sourceQuiz.enableCamera,
+      enableMicrophone: sourceQuiz.enableMicrophone,
+      warningCount: sourceQuiz.warningCount,
+      courseId: sourceQuiz.courseId,
+      subjectId: sourceQuiz.subjectId,
+      chapterId: sourceQuiz.chapterId,
+      createdBy: userId,
+      isActive: true
+    };
+
+    const newQuiz = new Quiz({ ...clonedData, tenantId });
+    await newQuiz.save();
+
+    // Increment usageCount for each linked question
+    if (sourceQuiz.questionIds && sourceQuiz.questionIds.length > 0) {
+      await Question.updateMany(
+        { _id: { $in: sourceQuiz.questionIds } },
+        { $inc: { usageCount: 1 }, $addToSet: { usedInQuizzes: newQuiz._id.toString() } }
+      );
+    }
+
+    res.status(201).json(newQuiz);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
   }
 };

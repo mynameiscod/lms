@@ -18,6 +18,17 @@ const QuizManagementPage: React.FC = () => {
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const [linkingQuizId, setLinkingQuizId] = useState<string>('');
   const [linkingQuizTitle, setLinkingQuizTitle] = useState('');
+  const [cloningQuiz, setCloningQuiz] = useState<Quiz | null>(null);
+  const [cloneForm, setCloneForm] = useState({
+    title: '',
+    startDate: '',
+    endDate: '',
+    startTime: '09:00',
+    endTime: '10:00',
+    accessibleTo: 'batch_wise',
+    selectedBatches: [] as string[]
+  });
+  const [cloning, setCloning] = useState(false);
 
   useEffect(() => {
     fetchQuizzes();
@@ -90,6 +101,44 @@ const QuizManagementPage: React.FC = () => {
   const handleLinkQuestions = (quiz: Quiz) => {
     setLinkingQuizId(quiz._id);
     setLinkingQuizTitle(quiz.title);
+  };
+
+  const handleOpenClone = (quiz: Quiz) => {
+    setCloningQuiz(quiz);
+    const today = new Date().toISOString().split('T')[0];
+    const nextWeek = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    setCloneForm({
+      title: `${quiz.title} (Copy)`,
+      startDate: today,
+      endDate: nextWeek,
+      startTime: quiz.startTime || '09:00',
+      endTime: quiz.endTime || '10:00',
+      accessibleTo: 'batch_wise',
+      selectedBatches: []
+    });
+  };
+
+  const handleCloneQuiz = async () => {
+    if (!cloningQuiz) return;
+    try {
+      setCloning(true);
+      await quizApi.cloneQuiz(cloningQuiz._id, {
+        title: cloneForm.title,
+        startDate: cloneForm.startDate,
+        endDate: cloneForm.endDate,
+        startTime: cloneForm.startTime,
+        endTime: cloneForm.endTime,
+        accessibleTo: cloneForm.accessibleTo,
+        selectedBatches: cloneForm.selectedBatches
+      });
+      setSuccess(`Quiz cloned successfully as "${cloneForm.title}"`);
+      setCloningQuiz(null);
+      fetchQuizzes();
+    } catch (err: any) {
+      setError(err.message || 'Failed to clone quiz');
+    } finally {
+      setCloning(false);
+    }
   };
 
   const getQuizStatus = (quiz: Quiz): string => {
@@ -196,6 +245,68 @@ const QuizManagementPage: React.FC = () => {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
+      {/* Clone Quiz Modal */}
+      {cloningQuiz && (
+        <div className="modal-overlay" style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <div className="modal-content" style={{ background:'#fff', borderRadius:12, padding:32, minWidth:420, maxWidth:560, width:'100%' }}>
+            <h3 style={{ marginBottom:16 }}>📋 Clone Quiz: {cloningQuiz.title}</h3>
+            <p style={{ color:'#666', marginBottom:20, fontSize:14 }}>All questions will be copied to the new quiz. Set new dates and batch below.</p>
+            <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
+              <div>
+                <label style={{ fontWeight:600, fontSize:13 }}>New Quiz Title</label>
+                <input className="form-control" value={cloneForm.title} onChange={e => setCloneForm({...cloneForm, title: e.target.value})} style={{ marginTop:4 }} />
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                <div>
+                  <label style={{ fontWeight:600, fontSize:13 }}>Start Date</label>
+                  <input type="date" className="form-control" value={cloneForm.startDate} onChange={e => setCloneForm({...cloneForm, startDate: e.target.value})} style={{ marginTop:4 }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight:600, fontSize:13 }}>End Date</label>
+                  <input type="date" className="form-control" value={cloneForm.endDate} onChange={e => setCloneForm({...cloneForm, endDate: e.target.value})} style={{ marginTop:4 }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight:600, fontSize:13 }}>Start Time</label>
+                  <input type="time" className="form-control" value={cloneForm.startTime} onChange={e => setCloneForm({...cloneForm, startTime: e.target.value})} style={{ marginTop:4 }} />
+                </div>
+                <div>
+                  <label style={{ fontWeight:600, fontSize:13 }}>End Time</label>
+                  <input type="time" className="form-control" value={cloneForm.endTime} onChange={e => setCloneForm({...cloneForm, endTime: e.target.value})} style={{ marginTop:4 }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ fontWeight:600, fontSize:13 }}>Access</label>
+                <select className="form-select" value={cloneForm.accessibleTo} onChange={e => setCloneForm({...cloneForm, accessibleTo: e.target.value})} style={{ marginTop:4 }}>
+                  <option value="everyone">Everyone</option>
+                  <option value="batch_wise">Batch Wise</option>
+                  <option value="individual">Individual</option>
+                </select>
+              </div>
+              {cloneForm.accessibleTo === 'batch_wise' && (
+                <div>
+                  <label style={{ fontWeight:600, fontSize:13 }}>Select Batch(es)</label>
+                  <select multiple className="form-select" style={{ marginTop:4, minHeight:80 }}
+                    value={cloneForm.selectedBatches}
+                    onChange={e => {
+                      const selected = Array.from(e.target.selectedOptions).map(o => o.value);
+                      setCloneForm({...cloneForm, selectedBatches: selected});
+                    }}>
+                    {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                  </select>
+                  <small style={{ color:'#888' }}>Hold Ctrl/Cmd to select multiple</small>
+                </div>
+              )}
+            </div>
+            <div style={{ display:'flex', gap:12, marginTop:24, justifyContent:'flex-end' }}>
+              <Button onClick={() => setCloningQuiz(null)} className="btn-secondary" disabled={cloning}>Cancel</Button>
+              <Button onClick={handleCloneQuiz} className="btn-primary" disabled={cloning || !cloneForm.title || !cloneForm.startDate || !cloneForm.endDate}>
+                {cloning ? 'Cloning...' : '📋 Clone Quiz'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Quizzes List */}
       <div className="quizzes-container">
         {quizzes.length === 0 ? (
@@ -270,6 +381,13 @@ const QuizManagementPage: React.FC = () => {
                           title="Delete quiz"
                         >
                           🗑️
+                        </Button>
+                        <Button
+                          onClick={() => handleOpenClone(quiz)}
+                          className="btn-action btn-clone"
+                          title="Clone quiz for another batch"
+                        >
+                          📋
                         </Button>
                       </div>
                     </td>

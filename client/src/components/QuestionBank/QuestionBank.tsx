@@ -40,6 +40,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [difficultyFilter, setDifficultyFilter] = useState('');
+  const [dateQuickFilter, setDateQuickFilter] = useState<'all' | 'today' | 'week'>('all');
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -113,7 +114,7 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     fetchQuestionBank();
   }, [fetchQuestionBank]);
 
-  // Apply filters whenever search term, tags, or difficulty changes
+  // Apply filters whenever search term, tags, difficulty, or date changes
   useEffect(() => {
     let filtered = questions;
 
@@ -135,9 +136,18 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
       );
     }
 
+    if (dateQuickFilter === 'today') {
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(q => new Date(q.createdAt) >= todayStart);
+    } else if (dateQuickFilter === 'week') {
+      const weekStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      filtered = filtered.filter(q => new Date(q.createdAt) >= weekStart);
+    }
+
     setFilteredQuestions(filtered);
-    setCurrentPage(1); // Reset to first page when filters change
-  }, [searchTerm, selectedTags, difficultyFilter, questions]);
+    setCurrentPage(1);
+  }, [searchTerm, selectedTags, difficultyFilter, dateQuickFilter, questions]);
 
   // Handle manual question creation
   const handleManualSubmit = async (e: React.FormEvent) => {
@@ -158,10 +168,16 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
         topic: manualForm.topic || undefined,
         source: 'manual',
         options: manualForm.type.startsWith('mcq')
-          ? manualForm.options.filter(o => o.trim() !== '')
+          ? manualForm.options
+              .filter(o => o.trim() !== '')
+              .map((text, idx) => ({ text, isCorrect: idx === parseInt(manualForm.correctAnswer) }))
           : undefined,
         correctAnswers: manualForm.type.startsWith('mcq')
-          ? [manualForm.correctAnswer]
+          ? (() => {
+              const opts = manualForm.options.filter(o => o.trim() !== '');
+              const idx = parseInt(manualForm.correctAnswer);
+              return [opts[idx] || opts[0] || ''];
+            })()
           : undefined
       };
 
@@ -254,17 +270,26 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
           continue;
         }
 
-        // Convert to the format expected by the API
+        // Convert to the format expected by the API — store options as {text, isCorrect}
+        const rawOptions = [
+          questionData['Option A'],
+          questionData['Option B'],
+          questionData['Option C'],
+          questionData['Option D']
+        ].filter(Boolean);
+
+        const correctRaw = (questionData['Correct Answer'] || '0').toString().trim();
+        const correctIdx = parseInt(correctRaw);
+        // Resolve correct answer text: if numeric index, map to option text; else treat as text
+        const correctText = (!isNaN(correctIdx) && rawOptions[correctIdx] !== undefined)
+          ? rawOptions[correctIdx]
+          : correctRaw;
+
         const newQuestion = {
           question: questionText,
           type: 'mcq_single' as const,
-          options: [
-            questionData['Option A'],
-            questionData['Option B'],
-            questionData['Option C'],
-            questionData['Option D']
-          ].filter(Boolean),
-          correctAnswers: [questionData['Correct Answer'] || '0'],
+          options: rawOptions.map((text, idx) => ({ text, isCorrect: idx === correctIdx || text === correctText })),
+          correctAnswers: [correctText],
           marks: parseInt(questionData.Marks || questionData.marks) || 1,
           difficultyLevel: normalizeDifficulty(questionData.Difficulty || questionData.difficulty),
           tags: (questionData.Tags || questionData.tags || '').split(';').map((t: string) => t.trim()).filter(Boolean),
@@ -507,6 +532,20 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
                 <option value="medium">Medium</option>
                 <option value="hard">Hard</option>
               </select>
+
+              {/* Date Quick Filter */}
+              <div className="qb-date-quick-filter">
+                <span style={{ fontSize: 13, color: '#666', marginRight: 6 }}>Created:</span>
+                {(['all', 'today', 'week'] as const).map(f => (
+                  <button
+                    key={f}
+                    className={`qb-date-btn${dateQuickFilter === f ? ' active' : ''}`}
+                    onClick={() => setDateQuickFilter(f)}
+                  >
+                    {f === 'all' ? 'All' : f === 'today' ? 'Today' : 'This Week'}
+                  </button>
+                ))}
+              </div>
 
               {/* Tag filter */}
               <div className="qb-tag-filter">

@@ -1344,6 +1344,14 @@ export const quizApi = {
     });
   },
 
+  // Clone an existing quiz into a new quiz for a different batch
+  cloneQuiz: async (quizId: string, data: { title: string; startDate: string; endDate: string; startTime: string; endTime: string; selectedBatches?: string[]; selectedStudents?: string[]; accessibleTo?: string }) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/clone`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
+
   // Add a single question to a quiz
   addQuestionToQuiz: async (quizId: string, questionId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/add-question/${questionId}`, {

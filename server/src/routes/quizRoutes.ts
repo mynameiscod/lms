@@ -71,6 +71,9 @@ router.get('/:quizId/access', quizController.checkQuizAccess);
 
 router.get('/:quizId/availability', quizController.checkQuizAvailability);
 
+// Clone quiz route
+router.post('/:quizId/clone', roleGuard(['create_quiz']), quizController.cloneQuiz);
+
 // Quiz Attempt Routes
 router.post('/:quizId/start', quizController.startQuizAttempt);
 

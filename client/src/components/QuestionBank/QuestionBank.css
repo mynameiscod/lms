@@ -116,14 +116,15 @@
 /* View Tab */
 .qb-filters {
   margin-bottom: 2rem;
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  display: flex;
+  flex-wrap: wrap;
   gap: 1rem;
-  align-items: end;
+  align-items: center;
 }
 
 .qb-search {
-  min-width: 300px;
+  min-width: 240px;
+  flex: 1;
 }
 
 .qb-filter-select {
@@ -140,6 +141,38 @@
 .qb-filter-select:focus {
   border-color: #005897;
   outline: none;
+}
+
+/* Date quick filter */
+.qb-date-quick-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+.qb-date-btn {
+  padding: 6px 14px;
+  border: 1.5px solid #ddd;
+  border-radius: 20px;
+  background: #fff;
+  color: #555;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.qb-date-btn:hover {
+  border-color: #005897;
+  color: #005897;
+}
+
+.qb-date-btn.active {
+  border-color: #005897;
+  background: #005897;
+  color: #fff;
 }
 
 .qb-tag-filter {

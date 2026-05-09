@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { publicQuizApi } from '../../api';
 
 interface Props {
@@ -32,10 +32,12 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
     if (timeLeft <= 0) { handleSubmit(); return; }
     timerRef.current = setInterval(() => setTimeLeft(t => (t !== null ? t - 1 : null)), 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [timeLeft === null ? null : Math.floor(timeLeft / 60)]);  // restart if minutes changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft === null ? null : Math.floor(timeLeft / 60)]);  // restart only when minute changes
 
   useEffect(() => {
     if (timeLeft === 0) handleSubmit();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timeLeft]);
 
   const selectAnswer = (qId: string, optIdx: string, multi: boolean) => {
@@ -48,7 +50,7 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
     });
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (submitting) return;
     if (timerRef.current) clearInterval(timerRef.current);
     setSubmitting(true);
@@ -64,7 +66,8 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
       setError(e.message);
       setSubmitting(false);
     }
-  };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submitting, answers, submissionId, onCompleted]);
 
   const confirmSubmit = () => {
     const unanswered = questions.filter(q => !(answers[q._id]?.length));

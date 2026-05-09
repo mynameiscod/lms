@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { publicQuizAdminApi } from '../../api';
 import LandingPageBuilder from './LandingPageBuilder';

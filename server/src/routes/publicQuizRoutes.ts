@@ -1,7 +1,4 @@
 import express from 'express';
-import { authMiddleware } from '../middleware/authMiddleware';
-import { tenantMiddleware } from '../middleware/tenantMiddleware';
-import { roleGuard } from '../middleware/roleGuard';
 import * as ctrl from '../controllers/publicQuizController';
 
 const router = express.Router();

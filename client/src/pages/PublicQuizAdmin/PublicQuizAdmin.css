@@ -1,0 +1,227 @@
+/* ─── Public Quiz Admin — shared styles ─────────────────────────────────── */
+
+.pq-loading {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 300px; color: #888; font-size: 1.1rem;
+}
+
+/* ─── List page ─────────────────────────────────────────────────────────── */
+.pq-page {
+  padding: 24px;
+  max-width: 1200px;
+}
+
+.pq-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.pq-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+}
+
+.pq-subtitle {
+  color: #64748b;
+  margin: 4px 0 0;
+}
+
+.pq-empty {
+  text-align: center;
+  padding: 80px 20px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #e2e8f0;
+}
+
+.pq-empty-icon { font-size: 3rem; margin-bottom: 16px; }
+.pq-empty h3 { color: #475569; margin-bottom: 8px; }
+.pq-empty p { color: #94a3b8; max-width: 400px; margin: 0 auto 20px; }
+
+.pq-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 20px;
+}
+
+.pq-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  padding: 20px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s;
+}
+
+.pq-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+
+.pq-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.pq-card-title { font-weight: 700; font-size: 1.05rem; color: #1e293b; }
+
+.pq-badge { font-size: 0.75rem; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.pq-badge.active { background: #dcfce7; color: #166534; }
+.pq-badge.inactive { background: #f1f5f9; color: #64748b; }
+
+.pq-card-meta {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  font-size: 0.82rem; color: #64748b; margin-bottom: 14px;
+}
+
+.pq-link-row { display: flex; gap: 6px; margin-bottom: 14px; }
+.pq-link-input { font-size: 0.8rem; color: #475569; background: #f8fafc; flex: 1; }
+
+.pq-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* ─── Stat cards ─────────────────────────────────────────────────────────── */
+.pq-stat-card {
+  background: #fff;
+  border-radius: 10px;
+  border: 1px solid #e2e8f0;
+  padding: 16px 20px;
+  text-align: center;
+}
+.pq-stat-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+.pq-stat-label { font-size: 0.82rem; color: #64748b; margin-top: 4px; }
+
+/* ─── Editor page ────────────────────────────────────────────────────────── */
+.pq-editor-page { padding: 24px; max-width: 1200px; }
+
+.pq-editor-header {
+  display: flex; align-items: center; gap: 16px; margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.pq-editor-header h2 { flex: 1; margin: 0; font-size: 1.4rem; }
+
+.pq-tabs .nav-link { font-size: 0.9rem; }
+.pq-tab-content { min-height: 400px; }
+
+.pq-editor-footer {
+  margin-top: 40px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+  text-align: right;
+}
+
+/* ─── Landing Page Builder ───────────────────────────────────────────────── */
+.lpb-wrap { }
+
+.lpb-empty {
+  text-align: center; padding: 40px;
+  background: #f8fafc; border-radius: 10px;
+  border: 2px dashed #e2e8f0; color: #94a3b8;
+}
+
+.lpb-block-row {
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 10px; margin-bottom: 10px;
+  overflow: hidden; transition: border-color 0.2s;
+  cursor: pointer;
+}
+.lpb-block-row.editing { border-color: #005897; }
+.lpb-block-row:hover { border-color: #cbd5e1; }
+
+.lpb-block-info {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px;
+}
+.lpb-block-type-icon { font-size: 1.4rem; }
+.lpb-block-label { font-weight: 600; font-size: 0.9rem; color: #1e293b; }
+.lpb-block-preview { font-size: 0.8rem; color: #94a3b8; margin-top: 1px; }
+.lpb-block-controls { margin-left: auto; display: flex; gap: 4px; }
+
+.lpb-block-editor {
+  border-top: 1px solid #e2e8f0; padding: 16px;
+  background: #fafafa; cursor: default;
+}
+
+.lpb-array-item {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 12px; margin-bottom: 8px;
+}
+
+.lpb-palette { display: flex; flex-direction: column; gap: 8px; }
+.lpb-palette-item {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 12px 16px; cursor: pointer; transition: all 0.2s;
+}
+.lpb-palette-item:hover { border-color: #005897; background: #eff6ff; }
+.lpb-palette-label { font-weight: 600; font-size: 0.9rem; color: #1e293b; }
+.lpb-palette-desc { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
+
+/* ─── Registration Form Builder ─────────────────────────────────────────── */
+.rfb-wrap { }
+
+.rfb-empty {
+  text-align: center; padding: 40px;
+  background: #f8fafc; border-radius: 10px;
+  border: 2px dashed #e2e8f0; color: #94a3b8;
+  margin-bottom: 20px;
+}
+
+.rfb-field-row {
+  background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 10px; margin-bottom: 8px;
+  overflow: hidden; transition: border-color 0.2s;
+}
+.rfb-field-row.editing { border-color: #005897; }
+
+.rfb-field-summary {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 16px; cursor: pointer; flex-wrap: wrap;
+}
+
+.rfb-field-type-badge {
+  background: #e2e8f0; color: #475569; font-size: 0.72rem;
+  font-weight: 700; padding: 2px 8px; border-radius: 4px;
+  text-transform: uppercase;
+}
+.rfb-field-label { font-weight: 600; font-size: 0.9rem; }
+.rfb-required { font-size: 0.72rem; color: #dc2626; font-weight: 600; }
+.rfb-eligibility-badge { font-size: 0.75rem; background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 4px; }
+.rfb-field-controls { display: flex; gap: 4px; }
+.rfb-field-editor { border-top: 1px solid #e2e8f0; padding: 16px; background: #fafafa; cursor: default; }
+
+.rfb-eligibility-section {
+  background: #fffbeb; border: 1px solid #fde68a;
+  border-radius: 8px; padding: 12px;
+}
+.rfb-eligibility-title { font-weight: 600; font-size: 0.85rem; color: #92400e; margin-bottom: 8px; }
+
+/* ─── Certificate Editor ─────────────────────────────────────────────────── */
+.ce-wrap { }
+
+.ce-placeholder-guide {
+  background: #f8fafc; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 12px;
+}
+.ce-placeholder-title { font-weight: 600; font-size: 0.85rem; color: #475569; margin-bottom: 8px; }
+.ce-placeholder-chip {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 6px;
+  padding: 4px 10px; font-size: 0.8rem; color: #475569;
+}
+.ce-placeholder-chip code { color: #005897; font-size: 0.82rem; }
+
+.ce-editor { resize: vertical; }
+
+.ce-preview-wrap { }
+.ce-preview-label { font-weight: 600; color: #64748b; font-size: 0.85rem; margin-bottom: 8px; }
+.ce-preview-frame {
+  width: 100%; height: 600px;
+  border: 1px solid #e2e8f0; border-radius: 10px;
+  background: #fff;
+}
+
+/* ─── Submissions Table ──────────────────────────────────────────────────── */
+.pq-table th { font-size: 0.78rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
+.pq-table td { font-size: 0.87rem; vertical-align: middle; }
+
+/* ─── Utility ────────────────────────────────────────────────────────────── */
+.btn-xs {
+  padding: 2px 8px; font-size: 0.78rem; border-radius: 4px; line-height: 1.5;
+}

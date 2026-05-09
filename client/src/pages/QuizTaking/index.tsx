@@ -706,11 +706,7 @@ const QuizTakingPage: React.FC = () => {
                 ) : null}
               </div>
 
-              {currentQuestion.explanation && (
-                <div className="question-explanation">
-                  <p><strong>Explanation:</strong> {currentQuestion.explanation}</p>
-                </div>
-              )}
+              {/* Explanation is intentionally hidden during quiz — shown only in results */}
             </div>
           )}
 

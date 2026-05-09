@@ -272,6 +272,7 @@ export class QuizService {
       }
       delete qObj.correctAnswers;
       delete qObj.correctAnswerText;
+      delete qObj.explanation; // Don't expose explanation to students during quiz
       return qObj;
     });
   }

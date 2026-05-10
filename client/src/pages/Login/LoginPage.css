@@ -1,23 +1,22 @@
 .login-container {
-  display: flex;
-  height: 100vh;
-  max-height: 100vh;
-  overflow: hidden;
+  width: 100%;
+  min-height: 100vh;
   background: white;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
+  padding: 0;
 }
 
 /* Left Section - White Background with Logo & Branding */
 .login-left {
-  flex: 1;
   background: white;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 30px 40px;
+  padding: 3rem 2.5rem;
   position: relative;
   overflow: hidden;
+  min-height: 100vh;
 }
 
 .login-left::before {
@@ -179,11 +178,10 @@
 
 /* Right Section - Primary Color Background with Login Form */
 .login-right {
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 40px;
+  padding: 60px 40px;
   background: linear-gradient(135deg, #001f52 0%, #003d82 100%);
   position: relative;
   overflow: hidden;
@@ -215,30 +213,42 @@
 
 .login-form-wrapper {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   position: relative;
   z-index: 1;
+  padding: 2rem;
+  border-radius: 30px;
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px);
 }
 
-.form-header {
-  margin-bottom: 40px;
+.login-right .form-header {
+    /* background: linear-gradient(135deg, #6c63ff, #5a52ff); */
+    background: transparent !important;
+    background-color: transparent !important;
+    color: white;
+    padding: 0;
+    text-align: center;
+    margin-bottom: 32px;
 }
 
 .form-header h2 {
-  font-size: 32px;
-  font-weight: 700;
-  color: white;
-  margin: 0 0 12px 0;
+    font-size: 32px;
+    font-weight: 700;
+    color: white;
+    margin: 0 0 12px 0;
 }
 
 .form-header p {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.9);
-  margin: 0;
-  line-height: 1.5;
+    margin: 1rem 0 0 0;
+    opacity: 0.9;
+    font-size: 1.1rem;
+    color: white;
 }
 
 .login-form {
+
   display: flex;
   flex-direction: column;
   gap: 24px;
@@ -252,11 +262,11 @@
 }
 
 .login-right .form-group label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #ffffff;
-  text-transform: capitalize;
-  letter-spacing: 0.5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: white;
+    text-transform: capitalize;
+    letter-spacing: 0.5px;
 }
 
 .input-wrapper {

@@ -54,15 +54,15 @@ const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="login-container">
-      {/* Left Section - Logo & Branding with White Background */}
-      <div className="login-left">
-        <div className="logo-section">
-          <div className="logo">
-            <img src="/assets/logo.png" alt="CODEBEGUN Logo" className="logo-image" />
+    <div className="login-container container-fluid">
+      <div className="row gx-0 min-vh-100 align-items-center">
+        {/* Left Section - Logo & Branding with White Background */}
+        <div className="login-left col-12 col-lg-6 order-2 order-lg-1 d-flex align-items-center justify-content-center">
+          <div className="logo-section">
+            <div className="logo">
+              <img src="/assets/logo.png" alt="CODEBEGUN Logo" className="logo-image" />
+            </div>
           </div>
-          <div className="logo-tagline">SOFTWARE TRAINING & CAREER SOLUTIONS</div>
-        </div>
 
         <div className="branding-content">
           <h1 className="main-tagline">
@@ -85,15 +85,15 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
+        </div>
 
-      {/* Right Section - Login Form with Primary Color */}
-      <div className="login-right">
-        <div className="login-form-wrapper">
-          <div className="form-header">
-            <h2>Login</h2>
-            <p>Enter your email and password to continue your journey with Codebegun</p>
-          </div>
+        {/* Right Section - Login Form with Primary Color */}
+        <div className="login-right col-12 col-lg-6 order-1 order-lg-2 d-flex align-items-center justify-content-center">
+          <div className="login-form-wrapper">
+            <div className="form-header">
+              <h2>Login</h2>
+              <p>Enter your email and password to continue your journey with Codebegun</p>
+            </div>
 
           {infoMessage && (
             <Alert 
@@ -177,6 +177,7 @@ const LoginPage: React.FC = () => {
               </Link>
             </p>
           </div>
+        </div>
         </div>
       </div>
     </div>

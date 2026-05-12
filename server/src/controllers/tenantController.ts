@@ -176,13 +176,15 @@ export const getStudentFeatures = async (
       attendance: true,
       quizzes: true,
       assignments: true,
-      mockInterviews: true
+      mockInterviews: true,
+      feeDetails: true
     };
 
+    const featureData = { ...defaults, ...(tenant.studentFeatures || {}) };
     res.status(200).json({
       success: true,
       message: 'Student features fetched successfully',
-      data: tenant.studentFeatures || defaults
+      data: featureData
     });
   } catch (error: any) {
     res.status(400).json({
@@ -202,7 +204,7 @@ export const updateStudentFeatures = async (
     const features = req.body as Partial<IStudentFeatures>;
 
     const allowedKeys: (keyof IStudentFeatures)[] = [
-      'dashboard', 'myCourse', 'attendance', 'quizzes', 'assignments', 'mockInterviews'
+      'dashboard', 'myCourse', 'attendance', 'quizzes', 'assignments', 'mockInterviews', 'feeDetails'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {

@@ -88,6 +88,13 @@ const LeadsPage: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalLeads, setTotalLeads] = useState(0);
   const [todayFollowUps, setTodayFollowUps] = useState(0);
+  const [callsToday, setCallsToday] = useState(0);
+  const [stageCounts, setStageCounts] = useState<Record<string, number>>({});
+  const [priorityCounts, setPriorityCounts] = useState<Record<string, number>>({});
+  const [sourceCounts, setSourceCounts] = useState<Record<string, number>>({});
+  const [newLeadsToday, setNewLeadsToday] = useState(0);
+  const [newLeadsTodayBySource, setNewLeadsTodayBySource] = useState<{ source: string; count: number }[]>([]);
+  const [callsTodayByAssignee, setCallsTodayByAssignee] = useState<Record<string, number>>({});
   const [filteredTotal, setFilteredTotal] = useState<number | null>(null);
 
   const [visibleStageIds, setVisibleStageIds] = useState<Set<string>>(new Set());
@@ -237,9 +244,28 @@ const LeadsPage: React.FC = () => {
         setStaff(users.filter((u:any)=>['TENANT_ADMIN','INSTRUCTOR','STAFF'].includes(u.role) || u.customRoleId));
       } catch {}
       try {
-        const analyticsRes=await leadApi.getAnalytics();
-        setTotalLeads(analyticsRes.data?.totalLeads||0);
-        setTodayFollowUps(analyticsRes.data?.todayFollowUps||0);
+        const analyticsRes = await leadApi.getAnalytics();
+        setTotalLeads(analyticsRes.data?.totalLeads || 0);
+        setTodayFollowUps(analyticsRes.data?.todayFollowUps || 0);
+        setCallsToday(analyticsRes.data?.callsToday || 0);
+        setStageCounts((analyticsRes.data?.stageData || []).reduce((acc: Record<string, number>, item: any) => {
+          if (item?.stageId) acc[String(item.stageId)] = item.count;
+          return acc;
+        }, {}));
+        setPriorityCounts((analyticsRes.data?.priorityStats || []).reduce((acc: Record<string, number>, item: any) => {
+          if (item?.priority) acc[item.priority] = item.count;
+          return acc;
+        }, {}));
+        setSourceCounts((analyticsRes.data?.sourceStats || []).reduce((acc: Record<string, number>, item: any) => {
+          if (item?.source) acc[item.source] = item.count;
+          return acc;
+        }, {}));
+        setNewLeadsToday(analyticsRes.data?.newLeadsToday || 0);
+        setNewLeadsTodayBySource(analyticsRes.data?.newLeadsTodayBySource || []);
+        setCallsTodayByAssignee((analyticsRes.data?.callsTodayByAssignee || []).reduce((acc: Record<string, number>, item: any) => {
+          if (item?.assignedTo) acc[item.assignedTo] = item.count;
+          return acc;
+        }, {}));
       } catch {}
     } catch(error:any){
       showAlertMsg('error',error.message||'Failed to load data');
@@ -521,13 +547,17 @@ const LeadsPage: React.FC = () => {
                 onClick = () => { setActiveStageFilter(''); setFilterStage(''); };
               } else if (card.key === 'todayFollowUps') {
                 count = todayFollowUps;
+              } else if (card.key === 'callsToday') {
+                count = callsToday;
               }
             } else if (card.type === 'stage' && card.stageId) {
-              count = leads.filter(l => getStage(l)?._id === card.stageId).length;
+              count = stageCounts[card.stageId] ?? leads.filter(l => getStage(l)?._id === card.stageId).length;
               isActive = activeStageFilter === card.stageId;
               onClick = () => setActiveStageFilter(isActive ? '' : card.stageId!);
             } else if (card.type === 'priority' && card.priority) {
-              count = leads.filter(l => l.priority === card.priority).length;
+              count = priorityCounts[card.priority] ?? leads.filter(l => l.priority === card.priority).length;
+            } else if (card.type === 'source' && card.source) {
+              count = sourceCounts[card.source] ?? leads.filter(l => l.source === card.source).length;
             }
             
             return (
@@ -559,8 +589,13 @@ const LeadsPage: React.FC = () => {
               <div className="crm-stat-value">{todayFollowUps}</div>
               <div className="crm-stat-label">Follow-ups Today</div>
             </div>
+            <div className="crm-stat-card" style={{'--stat-accent':'#10b981'} as React.CSSProperties}>
+              <span className="crm-stat-icon">&#128222;</span>
+              <div className="crm-stat-value">{callsToday}</div>
+              <div className="crm-stat-label">Calls Today</div>
+            </div>
             {stages.slice(0,6).map(stage=>{
-              const count=leads.filter(l=>getStage(l)?._id===stage._id).length;
+              const count=stageCounts[stage._id] ?? leads.filter(l=>getStage(l)?._id===stage._id).length;
               const isActive=activeStageFilter===stage._id;
               return (
                 <div key={stage._id}
@@ -576,6 +611,36 @@ const LeadsPage: React.FC = () => {
           </>
         )}
       </div>
+      {(newLeadsToday > 0 || newLeadsTodayBySource.length > 0 || Object.keys(callsTodayByAssignee).length > 0) && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12, margin: '16px 0' }}>
+          <div style={{ padding: 14, border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff' }}>
+            <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>New Leads Today</div>
+            <div style={{ fontSize: 28, fontWeight: 700 }}>{newLeadsToday}</div>
+          </div>
+          {newLeadsTodayBySource.map(entry => (
+            <div key={entry.source} style={{ padding: 14, border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff' }}>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>{SOURCE_LABELS[entry.source] || entry.source.replace(/_/g, ' ')}</div>
+              <div style={{ fontSize: 28, fontWeight: 700 }}>{entry.count}</div>
+            </div>
+          ))}
+          {Object.keys(callsTodayByAssignee).length > 0 && (
+            <div style={{ padding: 14, border: '1px solid #e5e7eb', borderRadius: 10, background: '#fff', gridColumn: 'span 1' }}>
+              <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 6 }}>Calls Today by Assignee</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {Object.entries(callsTodayByAssignee).map(([assigneeId, count]) => {
+                  const assignee = staff.find(u => u._id === assigneeId);
+                  return (
+                    <div key={assigneeId} style={{ display: 'flex', justifyContent: 'space-between', color: '#111827' }}>
+                      <span>{assignee ? `${assignee.firstName} ${assignee.lastName}` : 'Unassigned'}</span>
+                      <strong>{count}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="crm-toolbar">
         <div className="crm-toolbar-row">
@@ -839,6 +904,7 @@ const LeadsPage: React.FC = () => {
                                   <div>
                                     <div className="crm-lead-info-name">{lead.name}</div>
                                     <div className="crm-lead-info-phone">{lead.phone}</div>
+                                    <div className="crm-lead-info-date">{formatShort(lead.createdAt)}</div>
                                     {lead.email&&<div className="crm-lead-info-email">{lead.email}</div>}
                                   </div>
                                 </div>

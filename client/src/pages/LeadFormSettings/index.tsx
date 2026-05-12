@@ -53,6 +53,7 @@ const FIELD_TYPES = [
   { value: 'date', label: 'Date' },
   { value: 'time', label: 'Time' },
   { value: 'select', label: 'Dropdown' },
+  { value: 'multiselect', label: 'Multi Select' },
   { value: 'textarea', label: 'Text Area' },
   { value: 'checkbox', label: 'Checkbox' },
 ];
@@ -115,9 +116,10 @@ const LeadFormSettings: React.FC = () => {
         const defaultCards: StatsCard[] = [
           { key: 'totalLeads', type: 'system', label: 'Total Leads', icon: '📋', color: '#2563eb', enabled: true, order: 0 },
           { key: 'todayFollowUps', type: 'system', label: "Follow-ups Today", icon: '🔔', color: '#ea580c', enabled: true, order: 1 },
-          { key: 'priority_hot', type: 'priority', label: 'Hot Leads', icon: '🔥', color: '#dc2626', enabled: true, order: 2, priority: 'hot' },
-          { key: 'priority_warm', type: 'priority', label: 'Warm Leads', icon: '☀️', color: '#d97706', enabled: true, order: 3, priority: 'warm' },
-          { key: 'priority_cold', type: 'priority', label: 'Cold Leads', icon: '❄️', color: '#2563eb', enabled: true, order: 4, priority: 'cold' },
+          { key: 'callsToday', type: 'system', label: 'Calls Today', icon: '📞', color: '#10b981', enabled: true, order: 2 },
+          { key: 'priority_hot', type: 'priority', label: 'Hot Leads', icon: '🔥', color: '#dc2626', enabled: true, order: 3, priority: 'hot' },
+          { key: 'priority_warm', type: 'priority', label: 'Warm Leads', icon: '☀️', color: '#d97706', enabled: true, order: 4, priority: 'warm' },
+          { key: 'priority_cold', type: 'priority', label: 'Cold Leads', icon: '❄️', color: '#2563eb', enabled: true, order: 5, priority: 'cold' },
           ...loadedStages.slice(0, 6).map((stage: Stage, i: number) => ({
             key: `stage_${stage._id}`,
             type: 'stage' as const,
@@ -125,7 +127,7 @@ const LeadFormSettings: React.FC = () => {
             icon: '●',
             color: stage.color,
             enabled: true,
-            order: 5 + i,
+            order: 6 + i,
             stageId: stage._id
           }))
         ];
@@ -187,10 +189,10 @@ const LeadFormSettings: React.FC = () => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
         const updated: FormField = { ...f, type: newType };
-        if (newType === 'select' && (!f.options || f.options.length === 0)) {
+        if (['select', 'multiselect'].includes(newType) && (!f.options || f.options.length === 0)) {
           updated.options = [];
         }
-        if (newType !== 'select') {
+        if (!['select', 'multiselect'].includes(newType)) {
           delete updated.options;
         }
         return updated;
@@ -636,7 +638,7 @@ const LeadFormSettings: React.FC = () => {
                             </button>
                           </td>
                         </tr>
-                        {field.type === 'select' && (
+                        {['select', 'multiselect'].includes(field.type) && (
                           <tr className="lfs-options-row">
                             <td></td>
                             <td colSpan={5}>

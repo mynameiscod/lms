@@ -873,7 +873,22 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
     const scopeFilter = await buildLeadScopeFilter(req);
     const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
 
-    const [stageStats, sourceStats, totalLeads, todayFollowUps] = await Promise.all([
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const todayEnd = new Date();
+    todayEnd.setHours(23, 59, 59, 999);
+
+    const [
+      stageStats,
+      sourceStats,
+      priorityStats,
+      totalLeads,
+      todayFollowUps,
+      newLeadsToday,
+      newLeadsTodayBySource,
+      callsTodayResult,
+      callsTodayByAssigneeResult
+    ] = await Promise.all([
       Lead.aggregate([
         { $match: baseMatch },
         { $group: { _id: '$stageId', count: { $sum: 1 } } }
@@ -882,15 +897,41 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
         { $match: baseMatch },
         { $group: { _id: '$source', count: { $sum: 1 } } }
       ]),
+      Lead.aggregate([
+        { $match: baseMatch },
+        { $group: { _id: '$priority', count: { $sum: 1 } } }
+      ]),
       Lead.countDocuments(baseMatch),
       Lead.countDocuments({
         ...baseMatch,
         nextFollowUp: {
-          $gte: new Date(new Date().setHours(0, 0, 0, 0)),
-          $lte: new Date(new Date().setHours(23, 59, 59, 999))
+          $gte: todayStart,
+          $lte: todayEnd
         }
-      })
+      }),
+      Lead.countDocuments({
+        ...baseMatch,
+        createdAt: {
+          $gte: todayStart,
+          $lte: todayEnd
+        }
+      }),
+      Lead.aggregate([
+        { $match: { ...baseMatch, createdAt: { $gte: todayStart, $lte: todayEnd } } },
+        { $group: { _id: '$source', count: { $sum: 1 } } }
+      ]),
+      Lead.aggregate([
+        { $match: baseMatch },
+        { $unwind: '$activities' },
+        { $match: {
+          'activities.type': 'call',
+          'activities.createdAt': { $gte: todayStart, $lte: todayEnd }
+        } },
+        { $group: { _id: { $ifNull: ['$assignedTo', 'unassigned'] }, count: { $sum: 1 } } }
+      ])
     ]);
+
+    const callsToday = (callsTodayResult && callsTodayResult[0] && callsTodayResult[0].count) || 0;
 
     // Get stages to map names
     const stages = await LeadStage.find({ tenantId: req.tenantId }).sort({ order: 1 });
@@ -912,8 +953,13 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
       data: {
         totalLeads,
         todayFollowUps,
+        callsToday,
+        newLeadsToday,
         stageData,
-        sourceStats: sourceStats.map((s: any) => ({ source: s._id || 'other', count: s.count }))
+        sourceStats: sourceStats.map((s: any) => ({ source: s._id || 'other', count: s.count })),
+        priorityStats: priorityStats.map((p: any) => ({ priority: p._id || 'unknown', count: p.count })),
+        newLeadsTodayBySource: newLeadsTodayBySource.map((s: any) => ({ source: s._id || 'other', count: s.count })),
+        callsTodayByAssignee: callsTodayByAssigneeResult.map((c: any) => ({ assignedTo: c._id ? String(c._id) : 'unassigned', count: c.count }))
       }
     });
   } catch (error: any) {

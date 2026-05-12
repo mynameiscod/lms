@@ -22,7 +22,8 @@ const CreateOrganizationPage: React.FC = () => {
     attendance: true,
     quizzes: true,
     assignments: true,
-    mockInterviews: true
+    mockInterviews: true,
+    feeDetails: true
   });
   const { setUser } = useAuth();
   const navigate = useNavigate();
@@ -34,7 +35,8 @@ const CreateOrganizationPage: React.FC = () => {
     { key: 'attendance', label: 'Attendance', icon: 'fa-solid fa-calendar-check', desc: 'View personal attendance records and summaries' },
     { key: 'quizzes', label: 'Quizzes', icon: 'fa-solid fa-circle-question', desc: 'Take assigned quizzes and view results' },
     { key: 'assignments', label: 'Assignments', icon: 'fa-solid fa-file-pen', desc: 'Submit coding and written assignments' },
-    { key: 'mockInterviews', label: 'Mock Interviews', icon: 'fa-solid fa-comments', desc: 'Practice AI-powered mock interview sessions' }
+    { key: 'mockInterviews', label: 'Mock Interviews', icon: 'fa-solid fa-comments', desc: 'Practice AI-powered mock interview sessions' },
+    { key: 'feeDetails', label: 'Fee Details', icon: 'fa-solid fa-wallet', desc: 'View payment ledger, receipts, and reservation balances' }
   ];
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

@@ -6,6 +6,8 @@ import './SeatReservations.css';
 // ── Types ────────────────────────────────────────────────────────────────────
 
 type ReservationStatus = 'pending' | 'partial_paid' | 'paid' | 'confirmed' | 'enrolled' | 'cancelled' | 'expired';
+type DemoStatus = 'none' | 'active' | 'satisfied' | 'refunded';
+type InstallmentStatus = 'pending' | 'paid' | 'overdue';
 
 interface Payment {
   _id: string;
@@ -14,6 +16,17 @@ interface Payment {
   transactionId?: string;
   paidAt: string;
   receiptNumber?: string;
+  installmentLabel?: string;
+  proofUrl?: string;
+}
+
+interface Installment {
+  _id?: string;
+  label: string;
+  amount: number;
+  dueDate?: string;
+  status: InstallmentStatus;
+  paidAt?: string;
 }
 
 interface Reservation {
@@ -27,6 +40,7 @@ interface Reservation {
   seatNumber?: string;
   originalPrice: number;
   discountAmount: number;
+  discountReason?: string;
   finalPrice: number;
   paidAmount: number;
   balanceAmount: number;
@@ -35,6 +49,12 @@ interface Reservation {
   reservedAt: string;
   expiresAt?: string;
   createdBy?: { firstName?: string; lastName?: string; };
+  demoEnabled: boolean;
+  demoPeriodDays: number;
+  demoStartDate?: string;
+  demoEndDate?: string;
+  demoStatus: DemoStatus;
+  installmentPlan: Installment[];
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -89,7 +109,10 @@ const SeatReservationsPage: React.FC = () => {
   const [paymentModal, setPaymentModal] = useState<Reservation | null>(null);
   const [emailModal, setEmailModal] = useState<Reservation | null>(null);
   const [cancelModal, setCancelModal] = useState<Reservation | null>(null);
-  const [emailTab, setEmailTab] = useState<'confirmation' | 'reminder' | 'prejoining' | 'joiningday'>('confirmation');
+  const [emailTab, setEmailTab] = useState<'confirmation' | 'reminder' | 'prejoining' | 'joiningday' | 'whatsapp'>('confirmation');
+  const [installmentModal, setInstallmentModal] = useState<Reservation | null>(null);
+  const [demoModal, setDemoModal] = useState<Reservation | null>(null);
+  const [detailModal, setDetailModal] = useState<Reservation | null>(null);
 
   // New Reservation form
   const [newForm, setNewForm] = useState({
@@ -97,9 +120,18 @@ const SeatReservationsPage: React.FC = () => {
     courseName: '', batchName: '',
     originalPrice: '', discountAmount: '', discountReason: '',
     seatNumber: '', notes: '', expiresAt: '',
+    demoEnabled: false, demoPeriodDays: '3',
+    installmentType: 'single' as 'single' | 'two' | 'custom',
+    inst1Label: '1st Installment', inst1Amount: '', inst1DueDate: '',
+    inst2Label: '2nd Installment', inst2Amount: '', inst2DueDate: '',
   });
+  const [installmentRows, setInstallmentRows] = useState<Installment[]>([]);
+  const [whatsappMsg, setWhatsappMsg] = useState('');
+  const [demoStatusVal, setDemoStatusVal] = useState<'active' | 'satisfied' | 'refunded'>('active');
 
-  const [payForm, setPayForm] = useState({ amount: '', method: 'upi', transactionId: '', notes: '' });
+  const [payForm, setPayForm] = useState({ amount: '', method: 'upi', transactionId: '', installmentLabel: '', proofUrl: '', notes: '' });
+  const [refundModal, setRefundModal] = useState<Reservation | null>(null);
+  const [refundForm, setRefundForm] = useState({ amount: '', reason: '' });
   const [emailForm, setEmailForm] = useState({
     dueDate: '', customMessage: '',
     batchStartDate: '', batchStartTime: '', venue: '', onlineLink: '',
@@ -173,6 +205,15 @@ const SeatReservationsPage: React.FC = () => {
     if (!newForm.originalPrice || isNaN(Number(newForm.originalPrice))) { showAlert('error', 'Enter a valid course fee'); return; }
     setSubmitting(true);
     try {
+      // Build installment plan from form
+      let installmentPlan: Installment[] = [];
+      if (newForm.installmentType === 'two') {
+        if (newForm.inst1Amount) installmentPlan.push({ label: newForm.inst1Label, amount: Number(newForm.inst1Amount), dueDate: newForm.inst1DueDate || undefined, status: 'pending' });
+        if (newForm.inst2Amount) installmentPlan.push({ label: newForm.inst2Label, amount: Number(newForm.inst2Amount), dueDate: newForm.inst2DueDate || undefined, status: 'pending' });
+      } else if (newForm.installmentType === 'custom') {
+        installmentPlan = installmentRows;
+      }
+
       await seatReservationApi.create({
         studentName: newForm.studentName.trim(),
         studentEmail: newForm.studentEmail.trim().toLowerCase(),
@@ -185,10 +226,14 @@ const SeatReservationsPage: React.FC = () => {
         seatNumber: newForm.seatNumber.trim() || undefined,
         notes: newForm.notes.trim() || undefined,
         expiresAt: newForm.expiresAt || undefined,
+        demoEnabled: newForm.demoEnabled,
+        demoPeriodDays: Number(newForm.demoPeriodDays) || 3,
+        installmentPlan,
       });
       showAlert('success', '✅ Seat reserved! Student account created and confirmation email sent.');
       setNewModal(false);
-      setNewForm({ studentName: '', studentEmail: '', studentPhone: '', courseName: '', batchName: '', originalPrice: '', discountAmount: '', discountReason: '', seatNumber: '', notes: '', expiresAt: '' });
+      setNewForm({ studentName: '', studentEmail: '', studentPhone: '', courseName: '', batchName: '', originalPrice: '', discountAmount: '', discountReason: '', seatNumber: '', notes: '', expiresAt: '', demoEnabled: false, demoPeriodDays: '3', installmentType: 'single', inst1Label: '1st Installment', inst1Amount: '', inst1DueDate: '', inst2Label: '2nd Installment', inst2Amount: '', inst2DueDate: '' });
+      setInstallmentRows([]);
       fetchData();
     } catch (err: any) {
       showAlert('error', err?.response?.data?.message || 'Failed to create reservation');
@@ -202,10 +247,17 @@ const SeatReservationsPage: React.FC = () => {
     if (!payForm.amount || isNaN(Number(payForm.amount))) { showAlert('error', 'Enter a valid amount'); return; }
     setSubmitting(true);
     try {
-      await seatReservationApi.addPayment(paymentModal._id, { amount: Number(payForm.amount), method: payForm.method, transactionId: payForm.transactionId || undefined, notes: payForm.notes || undefined });
+      await seatReservationApi.addPayment(paymentModal._id, {
+        amount: Number(payForm.amount),
+        method: payForm.method,
+        transactionId: payForm.transactionId || undefined,
+        installmentLabel: payForm.installmentLabel || undefined,
+        proofUrl: payForm.proofUrl || undefined,
+        notes: payForm.notes || undefined
+      });
       showAlert('success', 'Payment recorded');
       setPaymentModal(null);
-      setPayForm({ amount: '', method: 'upi', transactionId: '', notes: '' });
+      setPayForm({ amount: '', method: 'upi', transactionId: '', installmentLabel: '', proofUrl: '', notes: '' });
       fetchData();
     } catch { showAlert('error', 'Failed to add payment'); }
     finally { setSubmitting(false); }
@@ -246,6 +298,29 @@ const SeatReservationsPage: React.FC = () => {
     finally { setSubmitting(false); }
   };
 
+  const handleRefund = async () => {
+    if (!refundModal) return;
+    if (!refundForm.amount || isNaN(Number(refundForm.amount))) {
+      showAlert('error', 'Enter a valid refund amount');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await seatReservationApi.refundReservation(refundModal._id, {
+        amount: Number(refundForm.amount),
+        reason: refundForm.reason || undefined
+      });
+      showAlert('success', 'Refund recorded');
+      setRefundModal(null);
+      setRefundForm({ amount: '', reason: '' });
+      fetchData();
+    } catch {
+      showAlert('error', 'Failed to record refund');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const handleEnroll = async (r: Reservation) => {
     if (!window.confirm(`Mark ${getStudentName(r)} as enrolled in ${r.courseName}?`)) return;
     try {
@@ -257,11 +332,58 @@ const SeatReservationsPage: React.FC = () => {
     }
   };
 
+  const handleSendWhatsApp = async () => {
+    if (!emailModal) return;
+    setSubmitting(true);
+    try {
+      const resp = await seatReservationApi.sendWhatsAppReminder(emailModal._id, { customMessage: whatsappMsg || undefined });
+      showAlert('success', resp?.data?.message || 'WhatsApp reminder sent');
+      setEmailModal(null);
+      setWhatsappMsg('');
+    } catch (err: any) {
+      showAlert('error', err?.response?.data?.message || 'Failed to send WhatsApp reminder');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleUpdateDemoStatus = async () => {
+    if (!demoModal) return;
+    setSubmitting(true);
+    try {
+      await seatReservationApi.updateDemoStatus(demoModal._id, demoStatusVal);
+      showAlert('success', `Demo status updated to "${demoStatusVal}"`);
+      setDemoModal(null);
+      fetchData();
+    } catch (err: any) {
+      showAlert('error', err?.response?.data?.message || 'Failed to update demo status');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleSaveInstallmentPlan = async () => {
+    if (!installmentModal) return;
+    setSubmitting(true);
+    try {
+      await seatReservationApi.setInstallmentPlan(installmentModal._id, installmentRows);
+      showAlert('success', 'Installment plan saved');
+      setInstallmentModal(null);
+      setInstallmentRows([]);
+      fetchData();
+    } catch (err: any) {
+      showAlert('error', err?.response?.data?.message || 'Failed to save installment plan');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   const EMAIL_DESC: Record<string, string> = {
     confirmation: '📩 Resend booking confirmation with course, seat, and payment summary.',
     reminder: '⏰ Send payment reminder with outstanding balance and payment options.',
     prejoining: '🗓️ Send batch start date, timings, venue/link, documents needed, and pre-joining checklist.',
     joiningday: '🎉 Welcome email with portal login credentials and class schedule.',
+    whatsapp: '💬 Send WhatsApp payment reminder directly to the student\'s phone number.',
   };
 
   return (
@@ -354,13 +476,25 @@ const SeatReservationsPage: React.FC = () => {
                         <button className="sr-actions-btn" onClick={() => setOpenDropdown(openDropdown === r._id ? null : r._id)}>Actions ▾</button>
                         {openDropdown === r._id && (
                           <div className="sr-dropdown">
+                            <button className="sr-dropdown-item" onClick={() => { setDetailModal(r); setOpenDropdown(null); }}>🔍 View Details</button>
+                            <div className="sr-dropdown-divider" />
                             {!['enrolled', 'cancelled', 'expired'].includes(r.status) && (
                               <button className="sr-dropdown-item" onClick={() => { setPaymentModal(r); setOpenDropdown(null); }}>💳 Add Payment</button>
+                            )}
+                            {!['enrolled', 'cancelled', 'expired'].includes(r.status) && (
+                              <button className="sr-dropdown-item" onClick={() => { setInstallmentModal(r); setInstallmentRows(r.installmentPlan?.length ? r.installmentPlan : []); setOpenDropdown(null); }}>📋 Installment Plan</button>
+                            )}
+                            {r.paidAmount > 0 && (
+                              <button className="sr-dropdown-item" onClick={() => { setRefundModal(r); setOpenDropdown(null); }}>↩️ Record Refund</button>
                             )}
                             {r.paidAmount > 0 && (
                               <button className="sr-dropdown-item" onClick={() => { handleSendReceipt(r._id); setOpenDropdown(null); }}>🧾 Send Receipt</button>
                             )}
                             <button className="sr-dropdown-item" onClick={() => { setEmailModal(r); setEmailTab('confirmation'); setOpenDropdown(null); }}>📧 Send Email</button>
+                            <button className="sr-dropdown-item" onClick={() => { setEmailModal(r); setEmailTab('whatsapp'); setOpenDropdown(null); }}>💬 WhatsApp Reminder</button>
+                            {r.demoEnabled && !['enrolled', 'cancelled'].includes(r.status) && (
+                              <button className="sr-dropdown-item" onClick={() => { setDemoModal(r); setDemoStatusVal(r.demoStatus === 'active' || r.demoStatus === 'none' ? 'satisfied' : 'active'); setOpenDropdown(null); }}>🔬 Update Demo Status</button>
+                            )}
                             <div className="sr-dropdown-divider" />
                             {isAdmin && !['enrolled', 'cancelled'].includes(r.status) && (
                               <button className="sr-dropdown-item" onClick={() => { handleEnroll(r); setOpenDropdown(null); }}>🎓 Mark as Enrolled</button>
@@ -453,6 +587,62 @@ const SeatReservationsPage: React.FC = () => {
                 {Number(newForm.discountAmount) > 0 && <span style={{ color: '#15803d', marginLeft: 8 }}>(₹{Number(newForm.discountAmount).toLocaleString('en-IN')} discount)</span>}
               </div>
             )}
+
+            <div className="sr-form-section-title" style={{ marginTop: 18 }}>Demo Period</div>
+            <div className="sr-form-group">
+              <label className="sr-form-label" style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
+                <input type="checkbox" checked={newForm.demoEnabled} onChange={e => setNewForm(f => ({ ...f, demoEnabled: e.target.checked }))} style={{ width: 16, height: 16 }} />
+                Enable demo period (student can request refund if not satisfied)
+              </label>
+            </div>
+            {newForm.demoEnabled && (
+              <div className="sr-form-group">
+                <label className="sr-form-label">Demo Days *</label>
+                <input className="sr-form-input" type="number" min="1" max="30" placeholder="3" value={newForm.demoPeriodDays} onChange={e => setNewForm(f => ({ ...f, demoPeriodDays: e.target.value }))} style={{ maxWidth: 120 }} />
+                <span style={{ fontSize: 12, color: '#64748b', marginLeft: 8 }}>days from reservation date</span>
+              </div>
+            )}
+
+            <div className="sr-form-section-title" style={{ marginTop: 18 }}>Payment Plan</div>
+            <div className="sr-form-group">
+              <label className="sr-form-label">Installment Type</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {(['single', 'two', 'custom'] as const).map(t => (
+                  <label key={t} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13 }}>
+                    <input type="radio" name="installmentType" value={t} checked={newForm.installmentType === t} onChange={() => { setNewForm(f => ({ ...f, installmentType: t })); setInstallmentRows(t === 'custom' ? [{ label: '1st Installment', amount: 0, status: 'pending' }] : []); }} />
+                    {t === 'single' ? 'Single Payment' : t === 'two' ? '2 Installments' : 'Custom Plan'}
+                  </label>
+                ))}
+              </div>
+            </div>
+            {newForm.installmentType === 'two' && (
+              <>
+                <div className="sr-form-row">
+                  <div className="sr-form-group"><label className="sr-form-label">1st Installment Label</label><input className="sr-form-input" value={newForm.inst1Label} onChange={e => setNewForm(f => ({ ...f, inst1Label: e.target.value }))} /></div>
+                  <div className="sr-form-group"><label className="sr-form-label">Amount (₹)</label><input className="sr-form-input" type="number" placeholder="e.g. 20000" value={newForm.inst1Amount} onChange={e => setNewForm(f => ({ ...f, inst1Amount: e.target.value }))} /></div>
+                  <div className="sr-form-group"><label className="sr-form-label">Due Date</label><input className="sr-form-input" type="date" value={newForm.inst1DueDate} onChange={e => setNewForm(f => ({ ...f, inst1DueDate: e.target.value }))} /></div>
+                </div>
+                <div className="sr-form-row">
+                  <div className="sr-form-group"><label className="sr-form-label">2nd Installment Label</label><input className="sr-form-input" value={newForm.inst2Label} onChange={e => setNewForm(f => ({ ...f, inst2Label: e.target.value }))} /></div>
+                  <div className="sr-form-group"><label className="sr-form-label">Amount (₹)</label><input className="sr-form-input" type="number" placeholder="e.g. 30000" value={newForm.inst2Amount} onChange={e => setNewForm(f => ({ ...f, inst2Amount: e.target.value }))} /></div>
+                  <div className="sr-form-group"><label className="sr-form-label">Due Date</label><input className="sr-form-input" type="date" value={newForm.inst2DueDate} onChange={e => setNewForm(f => ({ ...f, inst2DueDate: e.target.value }))} /></div>
+                </div>
+              </>
+            )}
+            {newForm.installmentType === 'custom' && (
+              <div style={{ marginBottom: 12 }}>
+                {installmentRows.map((row, i) => (
+                  <div key={i} className="sr-form-row" style={{ alignItems: 'flex-end' }}>
+                    <div className="sr-form-group"><label className="sr-form-label">Label</label><input className="sr-form-input" value={row.label} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, label: e.target.value } : r))} /></div>
+                    <div className="sr-form-group"><label className="sr-form-label">Amount (₹)</label><input className="sr-form-input" type="number" value={row.amount || ''} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, amount: Number(e.target.value) } : r))} /></div>
+                    <div className="sr-form-group"><label className="sr-form-label">Due Date</label><input className="sr-form-input" type="date" value={row.dueDate || ''} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, dueDate: e.target.value } : r))} /></div>
+                    <button className="sr-btn sr-btn-outline" style={{ marginBottom: 4, padding: '6px 10px' }} onClick={() => setInstallmentRows(rows => rows.filter((_, ri) => ri !== i))}>✕</button>
+                  </div>
+                ))}
+                <button className="sr-btn sr-btn-outline" style={{ marginTop: 4 }} onClick={() => setInstallmentRows(rows => [...rows, { label: `Installment ${rows.length + 1}`, amount: 0, status: 'pending' }])}>+ Add Installment</button>
+              </div>
+            )}
+
             <div className="sr-form-group">
               <label className="sr-form-label">Notes</label>
               <textarea className="sr-form-textarea" placeholder="Internal notes..." value={newForm.notes} onChange={e => setNewForm(f => ({ ...f, notes: e.target.value }))} />
@@ -490,9 +680,21 @@ const SeatReservationsPage: React.FC = () => {
                 </select>
               </div>
             </div>
-            <div className="sr-form-group">
-              <label className="sr-form-label">Transaction ID</label>
-              <input className="sr-form-input" type="text" placeholder="UTR / Reference" value={payForm.transactionId} onChange={e => setPayForm(f => ({ ...f, transactionId: e.target.value }))} />
+            <div className="sr-form-row">
+              <div className="sr-form-group">
+                <label className="sr-form-label">Transaction ID</label>
+                <input className="sr-form-input" type="text" placeholder="UTR / Reference" value={payForm.transactionId} onChange={e => setPayForm(f => ({ ...f, transactionId: e.target.value }))} />
+              </div>
+              <div className="sr-form-group">
+                <label className="sr-form-label">Installment / Label</label>
+                <input className="sr-form-input" type="text" placeholder="First installment, Demo fee, etc." value={payForm.installmentLabel} onChange={e => setPayForm(f => ({ ...f, installmentLabel: e.target.value }))} />
+              </div>
+            </div>
+            <div className="sr-form-row">
+              <div className="sr-form-group">
+                <label className="sr-form-label">Payment Proof URL</label>
+                <input className="sr-form-input" type="url" placeholder="https://drive.google.com/..." value={payForm.proofUrl} onChange={e => setPayForm(f => ({ ...f, proofUrl: e.target.value }))} />
+              </div>
             </div>
             <div className="sr-form-group">
               <label className="sr-form-label">Notes</label>
@@ -517,9 +719,9 @@ const SeatReservationsPage: React.FC = () => {
               </div>
             )}
             <div className="sr-email-tabs">
-              {(['confirmation', 'reminder', 'prejoining', 'joiningday'] as const).map(tab => (
+              {(['confirmation', 'reminder', 'prejoining', 'joiningday', 'whatsapp'] as const).map(tab => (
                 <button key={tab} className={`sr-email-tab ${emailTab === tab ? 'active' : ''}`} onClick={() => setEmailTab(tab)}>
-                  {tab === 'confirmation' ? '✅ Confirm' : tab === 'reminder' ? '⏰ Reminder' : tab === 'prejoining' ? '🗓️ Pre-Join' : '🎉 Day 1'}
+                  {tab === 'confirmation' ? '✅ Confirm' : tab === 'reminder' ? '⏰ Reminder' : tab === 'prejoining' ? '🗓️ Pre-Join' : tab === 'joiningday' ? '🎉 Day 1' : '💬 WhatsApp'}
                 </button>
               ))}
             </div>
@@ -551,10 +753,57 @@ const SeatReservationsPage: React.FC = () => {
                 <div className="sr-form-group"><label className="sr-form-label">Custom Message</label><textarea className="sr-form-textarea" placeholder="Welcome message..." value={emailForm.customMessage} onChange={e => setEmailForm(f => ({ ...f, customMessage: e.target.value }))} /></div>
               </>
             )}
+            {emailTab === 'whatsapp' && (
+              <>
+                {!emailModal.studentPhone && (
+                  <div style={{ background: '#fff1f2', border: '1.5px solid #fca5a5', borderRadius: 10, padding: '12px 14px', fontSize: 13, color: '#dc2626', marginBottom: 16 }}>
+                    ⚠️ No phone number on this reservation.
+                  </div>
+                )}
+                <p style={{ fontSize: 13, color: '#64748b', marginBottom: 10 }}>
+                  Phone: <strong>{emailModal.studentPhone || '—'}</strong> &nbsp;|&nbsp; Balance: <strong style={{ color: '#dc2626' }}>₹{emailModal.balanceAmount?.toLocaleString('en-IN')}</strong>
+                </p>
+                <div className="sr-form-group">
+                  <label className="sr-form-label">Custom Message (optional)</label>
+                  <textarea className="sr-form-textarea" rows={5} placeholder="Leave blank to use default reminder message..." value={whatsappMsg} onChange={e => setWhatsappMsg(e.target.value)} />
+                </div>
+              </>
+            )}
             <div className="sr-modal-actions">
               <button className="sr-btn sr-btn-outline" onClick={() => setEmailModal(null)}>Cancel</button>
-              <button className="sr-btn sr-btn-primary" onClick={handleSendEmail} disabled={submitting || !getStudentEmail(emailModal)}>
-                {submitting ? 'Sending...' : '📤 Send Email'}
+              {emailTab === 'whatsapp' ? (
+                <button className="sr-btn sr-btn-primary" onClick={handleSendWhatsApp} disabled={submitting || !emailModal.studentPhone}>
+                  {submitting ? 'Sending...' : '💬 Send WhatsApp'}
+                </button>
+              ) : (
+                <button className="sr-btn sr-btn-primary" onClick={handleSendEmail} disabled={submitting || !getStudentEmail(emailModal)}>
+                  {submitting ? 'Sending...' : '📤 Send Email'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {refundModal && (
+        <div className="sr-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setRefundModal(null); }}>
+          <div className="sr-modal">
+            <div className="sr-modal-title">↩️ Record Refund<button className="sr-modal-close" onClick={() => setRefundModal(null)}>✕</button></div>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 18 }}>
+              {getStudentName(refundModal)} — <strong>{refundModal.courseName}</strong>
+            </p>
+            <div className="sr-form-group">
+              <label className="sr-form-label">Refund Amount (₹) *</label>
+              <input className="sr-form-input" type="number" value={refundForm.amount} onChange={e => setRefundForm(f => ({ ...f, amount: e.target.value }))} placeholder="Enter refund amount" />
+            </div>
+            <div className="sr-form-group">
+              <label className="sr-form-label">Refund Reason</label>
+              <textarea className="sr-form-textarea" value={refundForm.reason} onChange={e => setRefundForm(f => ({ ...f, reason: e.target.value }))} placeholder="Reason for refund (optional)" />
+            </div>
+            <div className="sr-modal-actions">
+              <button className="sr-btn sr-btn-outline" onClick={() => setRefundModal(null)}>Cancel</button>
+              <button className="sr-btn sr-btn-success" onClick={handleRefund} disabled={submitting || !refundForm.amount}>
+                {submitting ? 'Recording...' : '↩️ Record Refund'}
               </button>
             </div>
           </div>
@@ -574,6 +823,150 @@ const SeatReservationsPage: React.FC = () => {
             <div className="sr-modal-actions">
               <button className="sr-btn sr-btn-outline" onClick={() => setCancelModal(null)}>Go Back</button>
               <button className="sr-btn sr-btn-danger" onClick={handleCancel} disabled={submitting || !cancelReason.trim()}>{submitting ? 'Cancelling...' : '❌ Confirm Cancel'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── INSTALLMENT PLAN MODAL ─────────────────────────────────────── */}
+      {installmentModal && (
+        <div className="sr-modal-overlay" onClick={e => { if (e.target === e.currentTarget) { setInstallmentModal(null); setInstallmentRows([]); } }}>
+          <div className="sr-modal sr-modal-wide">
+            <div className="sr-modal-title">📋 Installment Plan — {getStudentName(installmentModal)}<button className="sr-modal-close" onClick={() => { setInstallmentModal(null); setInstallmentRows([]); }}>✕</button></div>
+            <p style={{ fontSize: 13, color: '#64748b', marginBottom: 16 }}>
+              {installmentModal.courseName} &nbsp;|&nbsp; Total: <strong>₹{installmentModal.finalPrice?.toLocaleString('en-IN')}</strong> &nbsp;|&nbsp; Paid: <strong style={{ color: '#15803d' }}>₹{installmentModal.paidAmount?.toLocaleString('en-IN')}</strong> &nbsp;|&nbsp; Balance: <strong style={{ color: '#dc2626' }}>₹{installmentModal.balanceAmount?.toLocaleString('en-IN')}</strong>
+            </p>
+            {installmentRows.map((row, i) => (
+              <div key={i} className="sr-form-row" style={{ alignItems: 'flex-end', background: row.status === 'paid' ? '#f0fdf4' : row.status === 'overdue' ? '#fff1f2' : '#f8fafc', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+                <div className="sr-form-group"><label className="sr-form-label">Label</label><input className="sr-form-input" value={row.label} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, label: e.target.value } : r))} /></div>
+                <div className="sr-form-group"><label className="sr-form-label">Amount (₹)</label><input className="sr-form-input" type="number" value={row.amount || ''} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, amount: Number(e.target.value) } : r))} /></div>
+                <div className="sr-form-group"><label className="sr-form-label">Due Date</label><input className="sr-form-input" type="date" value={row.dueDate ? row.dueDate.split('T')[0] : ''} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, dueDate: e.target.value } : r))} /></div>
+                <div className="sr-form-group"><label className="sr-form-label">Status</label>
+                  <select className="sr-form-select" value={row.status} onChange={e => setInstallmentRows(rows => rows.map((r, ri) => ri === i ? { ...r, status: e.target.value as InstallmentStatus } : r))}>
+                    <option value="pending">Pending</option>
+                    <option value="paid">Paid</option>
+                    <option value="overdue">Overdue</option>
+                  </select>
+                </div>
+                <button className="sr-btn sr-btn-outline" style={{ padding: '6px 10px', marginBottom: 4 }} onClick={() => setInstallmentRows(rows => rows.filter((_, ri) => ri !== i))}>✕</button>
+              </div>
+            ))}
+            <button className="sr-btn sr-btn-outline" style={{ marginTop: 4, marginBottom: 16 }} onClick={() => setInstallmentRows(rows => [...rows, { label: `Installment ${rows.length + 1}`, amount: 0, status: 'pending' }])}>+ Add Installment</button>
+            <div className="sr-modal-actions">
+              <button className="sr-btn sr-btn-outline" onClick={() => { setInstallmentModal(null); setInstallmentRows([]); }}>Cancel</button>
+              <button className="sr-btn sr-btn-primary" onClick={handleSaveInstallmentPlan} disabled={submitting}>{submitting ? 'Saving...' : '💾 Save Plan'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DEMO STATUS MODAL ──────────────────────────────────────────── */}
+      {demoModal && (
+        <div className="sr-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDemoModal(null); }}>
+          <div className="sr-modal">
+            <div className="sr-modal-title">🔬 Demo Period — {getStudentName(demoModal)}<button className="sr-modal-close" onClick={() => setDemoModal(null)}>✕</button></div>
+            <div style={{ background: '#f8fafc', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ color: '#64748b', fontSize: 13 }}>Course</span><strong>{demoModal.courseName}</strong></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ color: '#64748b', fontSize: 13 }}>Demo Days</span><strong>{demoModal.demoPeriodDays} days</strong></div>
+              {demoModal.demoStartDate && <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}><span style={{ color: '#64748b', fontSize: 13 }}>Demo Started</span><strong>{new Date(demoModal.demoStartDate).toLocaleDateString('en-IN')}</strong></div>}
+              {demoModal.demoEndDate && <div style={{ display: 'flex', justifyContent: 'space-between' }}><span style={{ color: '#64748b', fontSize: 13 }}>Demo Ends</span><strong>{new Date(demoModal.demoEndDate).toLocaleDateString('en-IN')}</strong></div>}
+            </div>
+            <div className="sr-form-group">
+              <label className="sr-form-label">Update Demo Status</label>
+              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                {(['active', 'satisfied', 'refunded'] as const).map(s => (
+                  <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, padding: '6px 12px', borderRadius: 8, border: `2px solid ${demoStatusVal === s ? '#7c3aed' : '#e2e8f0'}`, background: demoStatusVal === s ? '#ede9fe' : '#fff' }}>
+                    <input type="radio" name="demoStatus" value={s} checked={demoStatusVal === s} onChange={() => setDemoStatusVal(s)} style={{ display: 'none' }} />
+                    {s === 'active' ? '🔬 Active' : s === 'satisfied' ? '✅ Satisfied' : '↩️ Refunded'}
+                  </label>
+                ))}
+              </div>
+            </div>
+            {demoStatusVal === 'refunded' && <div style={{ background: '#fff1f2', border: '1.5px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#dc2626', marginBottom: 12 }}>⚠️ Mark demo as refunded after recording the actual refund using "Record Refund" on the reservation.</div>}
+            <div className="sr-modal-actions">
+              <button className="sr-btn sr-btn-outline" onClick={() => setDemoModal(null)}>Cancel</button>
+              <button className="sr-btn sr-btn-primary" onClick={handleUpdateDemoStatus} disabled={submitting}>{submitting ? 'Saving...' : '✅ Update Status'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── DETAIL VIEW MODAL ─────────────────────────────────────────── */}
+      {detailModal && (
+        <div className="sr-modal-overlay" onClick={e => { if (e.target === e.currentTarget) setDetailModal(null); }}>
+          <div className="sr-modal sr-modal-wide">
+            <div className="sr-modal-title">🔍 Reservation Details<button className="sr-modal-close" onClick={() => setDetailModal(null)}>✕</button></div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#7c3aed', textTransform: 'uppercase', marginBottom: 10 }}>Student</div>
+                <div style={{ fontSize: 13, marginBottom: 4 }}><strong>{getStudentName(detailModal)}</strong></div>
+                <div style={{ fontSize: 13, color: '#64748b' }}>{getStudentEmail(detailModal)}</div>
+                <div style={{ fontSize: 13, color: '#64748b' }}>{getStudentPhone(detailModal)}</div>
+              </div>
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#7c3aed', textTransform: 'uppercase', marginBottom: 10 }}>Course</div>
+                <div style={{ fontSize: 13, marginBottom: 4 }}><strong>{detailModal.courseName}</strong></div>
+                {detailModal.batchName && <div style={{ fontSize: 13, color: '#64748b' }}>{detailModal.batchName}</div>}
+                {detailModal.seatNumber && <div style={{ fontSize: 13, color: '#64748b' }}>Seat: {detailModal.seatNumber}</div>}
+              </div>
+              <div style={{ background: '#f8fafc', borderRadius: 10, padding: 14 }}>
+                <div style={{ fontWeight: 700, fontSize: 12, color: '#7c3aed', textTransform: 'uppercase', marginBottom: 10 }}>Fee Breakdown</div>
+                <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Original Fee</span><strong>₹{detailModal.originalPrice?.toLocaleString('en-IN')}</strong></div>
+                {detailModal.discountAmount > 0 && <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Discount {detailModal.discountReason ? `(${detailModal.discountReason})` : ''}</span><strong style={{ color: '#15803d' }}>-₹{detailModal.discountAmount?.toLocaleString('en-IN')}</strong></div>}
+                <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4, borderTop: '1px solid #e2e8f0', paddingTop: 4 }}><span>Net Payable</span><strong>₹{detailModal.finalPrice?.toLocaleString('en-IN')}</strong></div>
+                <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Paid</span><strong style={{ color: '#15803d' }}>₹{detailModal.paidAmount?.toLocaleString('en-IN')}</strong></div>
+                <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between' }}><span>Balance</span><strong style={{ color: detailModal.balanceAmount > 0 ? '#dc2626' : '#15803d' }}>₹{detailModal.balanceAmount?.toLocaleString('en-IN')}</strong></div>
+              </div>
+              {detailModal.demoEnabled && (
+                <div style={{ background: '#fdf4ff', borderRadius: 10, padding: 14, border: '1.5px solid #e9d5ff' }}>
+                  <div style={{ fontWeight: 700, fontSize: 12, color: '#7c3aed', textTransform: 'uppercase', marginBottom: 10 }}>Demo Period</div>
+                  <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Duration</span><strong>{detailModal.demoPeriodDays} days</strong></div>
+                  {detailModal.demoStartDate && <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Started</span><strong>{new Date(detailModal.demoStartDate).toLocaleDateString('en-IN')}</strong></div>}
+                  {detailModal.demoEndDate && <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}><span>Ends</span><strong>{new Date(detailModal.demoEndDate).toLocaleDateString('en-IN')}</strong></div>}
+                  <div style={{ fontSize: 13, display: 'flex', justifyContent: 'space-between' }}><span>Status</span><strong>{detailModal.demoStatus}</strong></div>
+                </div>
+              )}
+            </div>
+            {detailModal.payments?.length > 0 && (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Payment History</div>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', marginBottom: 16 }}>
+                  <thead><tr style={{ background: '#f1f5f9' }}>{['Date','Amount','Method','TXN ID','Installment','Proof'].map(h => <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {detailModal.payments.map((p, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f0f4f8' }}>
+                        <td style={{ padding: '8px 10px' }}>{new Date(p.paidAt).toLocaleDateString('en-IN')}</td>
+                        <td style={{ padding: '8px 10px', fontWeight: 700 }}>₹{p.amount?.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 10px' }}>{p.method}</td>
+                        <td style={{ padding: '8px 10px', color: '#64748b' }}>{p.transactionId || '—'}</td>
+                        <td style={{ padding: '8px 10px' }}>{p.installmentLabel || '—'}</td>
+                        <td style={{ padding: '8px 10px' }}>{p.proofUrl ? <a href={p.proofUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#7c3aed' }}>View</a> : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+            {detailModal.installmentPlan?.length > 0 && (
+              <>
+                <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 8 }}>Installment Plan</div>
+                <table style={{ width: '100%', fontSize: 12, borderCollapse: 'collapse', marginBottom: 16 }}>
+                  <thead><tr style={{ background: '#f1f5f9' }}>{['Label','Amount','Due Date','Status'].map(h => <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700 }}>{h}</th>)}</tr></thead>
+                  <tbody>
+                    {detailModal.installmentPlan.map((inst, i) => (
+                      <tr key={i} style={{ borderBottom: '1px solid #f0f4f8', background: inst.status === 'paid' ? '#f0fdf4' : inst.status === 'overdue' ? '#fff1f2' : '' }}>
+                        <td style={{ padding: '8px 10px', fontWeight: 600 }}>{inst.label}</td>
+                        <td style={{ padding: '8px 10px', fontWeight: 700 }}>₹{inst.amount?.toLocaleString('en-IN')}</td>
+                        <td style={{ padding: '8px 10px', color: '#64748b' }}>{inst.dueDate ? new Date(inst.dueDate).toLocaleDateString('en-IN') : '—'}</td>
+                        <td style={{ padding: '8px 10px' }}><span style={{ padding: '3px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700, background: inst.status === 'paid' ? '#dcfce7' : inst.status === 'overdue' ? '#fee2e2' : '#fef3c7', color: inst.status === 'paid' ? '#15803d' : inst.status === 'overdue' ? '#dc2626' : '#d97706' }}>{inst.status}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </>
+            )}
+            <div className="sr-modal-actions">
+              <button className="sr-btn sr-btn-outline" onClick={() => setDetailModal(null)}>Close</button>
             </div>
           </div>
         </div>

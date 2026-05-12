@@ -10,12 +10,17 @@ import {
   getReservations,
   getReservationById,
   getLeadReservation,
+  getMyReservations,
   cancelReservation,
+  refundReservation,
   getReservationStats,
   sendConfirmationEmail,
   sendPaymentReminderEmail,
   sendPreJoiningInfoEmail,
-  sendJoiningDayEmail
+  sendJoiningDayEmail,
+  sendWhatsAppPaymentReminder,
+  updateDemoStatus,
+  setInstallmentPlan
 } from '../controllers/seatReservationController';
 
 const router = express.Router();
@@ -30,6 +35,15 @@ router.get(
   tenantResolver,
   roleGuard(['manage_leads']),
   getReservationStats
+);
+
+// ===================== STUDENT ACCESS =====================
+
+router.get(
+  '/me',
+  authMiddleware,
+  tenantResolver,
+  getMyReservations
 );
 
 // ===================== CRUD =====================
@@ -125,5 +139,23 @@ router.put(
   roleGuard(['manage_leads']),
   cancelReservation
 );
+
+// Record refund for reservation
+router.post(
+  '/:id/refund',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['manage_leads']),
+  refundReservation
+);
+
+// Send WhatsApp payment reminder
+router.post('/:id/send-whatsapp-reminder', authMiddleware, tenantResolver, roleGuard(leadPermissions), sendWhatsAppPaymentReminder);
+
+// Update demo period status
+router.patch('/:id/demo-status', authMiddleware, tenantResolver, roleGuard(leadPermissions), updateDemoStatus);
+
+// Set / update installment plan
+router.put('/:id/installment-plan', authMiddleware, tenantResolver, roleGuard(leadPermissions), setInstallmentPlan);
 
 export default router;

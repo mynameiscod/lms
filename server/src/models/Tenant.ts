@@ -16,6 +16,7 @@ export interface IStudentFeatures {
   assignments: boolean;
   mockInterviews: boolean;
   classHub?: boolean;
+  feeDetails?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -30,6 +31,7 @@ export interface ITenantModules {
   placement: boolean;        // CRT: Placement drives, alumni, student applications
   leads: boolean;            // CRM / Leads module
   marketing: boolean;        // Marketing module
+  feeManagement: boolean;    // Fee Management — seat reservations, payments, receipts
 }
 
 // College-specific information (only populated when type = 'college')
@@ -137,7 +139,8 @@ const TenantSchema: Schema = new Schema(
       quizzes: { type: Boolean, default: true },
       assignments: { type: Boolean, default: true },
       mockInterviews: { type: Boolean, default: true },
-      classHub: { type: Boolean, default: true }
+      classHub: { type: Boolean, default: true },
+      feeDetails: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
     modules: {
@@ -150,7 +153,8 @@ const TenantSchema: Schema = new Schema(
       mockInterviews:   { type: Boolean, default: true },
       placement:        { type: Boolean, default: true },
       leads:            { type: Boolean, default: true },
-      marketing:        { type: Boolean, default: true }
+      marketing:        { type: Boolean, default: true },
+      feeManagement:    { type: Boolean, default: true }
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

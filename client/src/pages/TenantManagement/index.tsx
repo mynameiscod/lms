@@ -13,6 +13,7 @@ interface TenantModules {
   placement: boolean;
   leads: boolean;
   marketing: boolean;
+  feeManagement: boolean;
 }
 
 interface TenantRow {
@@ -37,6 +38,7 @@ const MODULE_DEFS: { key: keyof TenantModules; label: string; icon: string; desc
   { key: 'placement',       label: 'CRT / Placement',      icon: 'fa-solid fa-briefcase',         desc: 'Placement drives, alumni, applications' },
   { key: 'leads',           label: 'Leads / CRM',          icon: 'fa-solid fa-user-tag',          desc: 'Lead management & telecaller' },
   { key: 'marketing',       label: 'Marketing',            icon: 'fa-solid fa-bullhorn',          desc: 'Campaigns, analytics, insights' },
+  { key: 'feeManagement',   label: 'Fee Management',       icon: 'fa-solid fa-wallet',            desc: 'Seat reservations, payments, receipts, installments' },
 ];
 
 const STUDENT_FEATURES = [
@@ -47,17 +49,18 @@ const STUDENT_FEATURES = [
   { key: 'quizzes',        label: 'Quizzes',          icon: 'fa-solid fa-circle-question' },
   { key: 'assignments',    label: 'Assignments',      icon: 'fa-solid fa-file-pen' },
   { key: 'mockInterviews', label: 'Mock Interviews',  icon: 'fa-solid fa-comments' },
+  { key: 'feeDetails',     label: 'Fee Details',      icon: 'fa-solid fa-wallet' },
 ];
 
 const DEFAULT_MODULES: TenantModules = {
   courses: true, attendance: true, quizzes: true, assignments: true,
   classRecordings: true, codeAssessments: true, mockInterviews: true,
-  placement: true, leads: true, marketing: true,
+  placement: true, leads: true, marketing: true, feeManagement: true,
 };
 
 const DEFAULT_STUDENT_FEATURES: Record<string, boolean> = {
   dashboard: true, myCourse: true, classHub: true,
-  attendance: true, quizzes: true, assignments: true, mockInterviews: true,
+  attendance: true, quizzes: true, assignments: true, mockInterviews: true, feeDetails: true,
 };
 
 // ── Create Tenant Modal ────────────────────────────────────────────────────
@@ -69,7 +72,7 @@ interface CreateModalProps {
 const DEFAULT_CREATE_MODULES: TenantModules = {
   courses: true, attendance: true, quizzes: true, assignments: true,
   classRecordings: false, codeAssessments: false, mockInterviews: false,
-  placement: false, leads: false, marketing: false,
+  placement: false, leads: false, marketing: false, feeManagement: true,
 };
 
 const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {

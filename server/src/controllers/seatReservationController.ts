@@ -37,7 +37,8 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
     const {
       studentName, studentEmail, studentPhone,
       courseId, batchId, courseName, batchName,
-      originalPrice, discountAmount, discountReason, seatNumber, expiresAt, notes
+      originalPrice, discountAmount, discountReason, seatNumber, expiresAt, notes,
+      demoEnabled, demoPeriodDays, installmentPlan
     } = req.body;
 
     // Validate required fields
@@ -99,6 +100,10 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
 
     // ── Create reservation ────────────────────────────────────────────────
     const finalPrice = Number(originalPrice) - (Number(discountAmount) || 0);
+    const demoDays = demoEnabled ? (Number(demoPeriodDays) || 3) : 3;
+    const demoStart = demoEnabled ? new Date() : undefined;
+    const demoEnd = demoStart ? new Date(demoStart.getTime() + demoDays * 24 * 60 * 60 * 1000) : undefined;
+
     const reservation = new SeatReservation({
       tenantId,
       studentName: studentName.trim(),
@@ -116,6 +121,12 @@ export const createReservation = async (req: AuthenticatedRequest, res: Response
       seatNumber,
       expiresAt: expiresAt ? new Date(expiresAt) : undefined,
       notes,
+      demoEnabled: !!demoEnabled,
+      demoPeriodDays: demoDays,
+      demoStartDate: demoStart,
+      demoEndDate: demoEnd,
+      demoStatus: demoEnabled ? 'active' : 'none',
+      installmentPlan: Array.isArray(installmentPlan) ? installmentPlan : [],
       createdBy: userId
     });
     await reservation.save();
@@ -195,24 +206,24 @@ export const addPayment = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { tenantId, userId } = req;
     const { id } = req.params;
-    const { amount, method, transactionId, notes } = req.body;
+    const { amount, method, transactionId, paidAt, notes, proofUrl, installmentLabel } = req.body;
 
     const reservation = await SeatReservation.findOne({ _id: id, tenantId });
     if (!reservation) {
       return res.status(404).json({ success: false, message: 'Reservation not found' });
     }
 
-    // Generate receipt number
     const receiptNumber = `RCP-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
 
-    // Add payment
     reservation.payments.push({
       amount,
       method,
       transactionId,
-      paidAt: new Date(),
+      paidAt: paidAt ? new Date(paidAt) : new Date(),
       receiptNumber,
       notes,
+      proofUrl,
+      installmentLabel,
       createdBy: new mongoose.Types.ObjectId(userId as string)
     });
 
@@ -247,7 +258,10 @@ export const sendReceiptEmail = async (req: AuthenticatedRequest, res: Response)
         <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${new Date(p.paidAt).toLocaleDateString('en-IN')}</td>
         <td style="padding:8px;border-bottom:1px solid #e2e8f0;">₹${p.amount.toLocaleString('en-IN')}</td>
         <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.method}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.transactionId || 'N/A'}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.installmentLabel || '—'}</td>
         <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.receiptNumber || 'N/A'}</td>
+        <td style="padding:8px;border-bottom:1px solid #e2e8f0;">${p.proofUrl ? `<a href="${p.proofUrl}" target="_blank">Receipt/Proof</a>` : '—'}</td>
       </tr>`
     ).join('');
 
@@ -414,13 +428,31 @@ export const getLeadReservation = async (req: AuthenticatedRequest, res: Respons
   }
 };
 
+export const getMyReservations = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tenantId, userId } = req;
+
+    const reservations = await SeatReservation.find({ tenantId, studentId: userId })
+      .populate('createdBy', 'firstName lastName')
+      .sort({ reservedAt: -1 });
+
+    res.json({
+      success: true,
+      message: 'Student reservations retrieved',
+      data: reservations
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 // ===================== CANCEL RESERVATION =====================
 
 export const cancelReservation = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { tenantId, userId } = req;
     const { id } = req.params;
-    const { reason } = req.body;
+    const { reason, refundAmount, refundReason } = req.body;
 
     const reservation = await SeatReservation.findOne({ _id: id, tenantId });
     if (!reservation) {
@@ -431,13 +463,61 @@ export const cancelReservation = async (req: AuthenticatedRequest, res: Response
       return res.status(400).json({ success: false, message: 'Cannot cancel enrolled reservation' });
     }
 
+    if (refundAmount && refundAmount > 0) {
+      reservation.refunds = reservation.refunds || [];
+      reservation.refunds.push({
+        amount: refundAmount,
+        reason: refundReason,
+        refundedAt: new Date(),
+        createdBy: new mongoose.Types.ObjectId(userId as string)
+      });
+    }
+
     reservation.status = 'cancelled';
     reservation.notes = (reservation.notes || '') + `\nCancelled: ${reason || 'No reason provided'}`;
+    if (refundAmount && refundAmount > 0) {
+      reservation.notes += `\nRefund processed: ₹${refundAmount} ${refundReason ? `(${refundReason})` : ''}`;
+    }
     await reservation.save();
 
     res.json({
       success: true,
       message: 'Reservation cancelled',
+      data: reservation
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const refundReservation = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tenantId, userId } = req;
+    const { id } = req.params;
+    const { amount, reason } = req.body;
+
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
+    if (!reservation) {
+      return res.status(404).json({ success: false, message: 'Reservation not found' });
+    }
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Refund amount must be greater than zero' });
+    }
+
+    reservation.refunds = reservation.refunds || [];
+    reservation.refunds.push({
+      amount,
+      reason,
+      refundedAt: new Date(),
+      createdBy: new mongoose.Types.ObjectId(userId as string)
+    });
+
+    await reservation.save();
+
+    res.json({
+      success: true,
+      message: 'Refund recorded successfully',
       data: reservation
     });
   } catch (error: any) {
@@ -818,6 +898,129 @@ export const getReservationStats = async (req: AuthenticatedRequest, res: Respon
         totals: totals[0] || { totalReservations: 0, totalRevenue: 0, pendingRevenue: 0, averagePrice: 0 }
       }
     });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== SEND WHATSAPP PAYMENT REMINDER =====================
+
+export const sendWhatsAppPaymentReminder = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tenantId } = req;
+    const { id } = req.params;
+    const { customMessage } = req.body;
+
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
+    if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
+
+    const phone = reservation.studentPhone;
+    if (!phone) return res.status(400).json({ success: false, message: 'No phone number on this reservation' });
+
+    const firstName = (reservation.studentName || 'there').split(' ')[0];
+    const message = customMessage?.trim() ||
+      `Hi ${firstName}! 👋\n\nThis is a reminder about your pending payment for *${reservation.courseName}*.\n\n` +
+      `💰 *Total Fee:* ₹${reservation.finalPrice.toLocaleString('en-IN')}\n` +
+      `✅ *Paid:* ₹${reservation.paidAmount.toLocaleString('en-IN')}\n` +
+      `⚠️ *Balance Due:* ₹${reservation.balanceAmount.toLocaleString('en-IN')}\n\n` +
+      `Please complete your payment to confirm your seat. Contact us if you need help with payment options.\n\nThank you! 🙏`;
+
+    // Get WhatsApp credentials from tenant source config
+    const LeadSourceConfig = require('../models/LeadSourceConfig').default;
+    const { getDecryptedTokens } = require('./leadSourceConfigController');
+
+    const sourceConfig = await LeadSourceConfig.findOne({ tenantId }).lean();
+    const wa = sourceConfig?.whatsApp;
+    if (!wa?.isConnected || !wa?.config?.phoneNumberId) {
+      return res.status(400).json({ success: false, message: 'WhatsApp is not configured for this tenant. Please configure it in Lead Sources settings.' });
+    }
+
+    const tokens = await getDecryptedTokens(tenantId);
+    const accessToken = tokens?.whatsApp?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
+    if (!accessToken) {
+      return res.status(400).json({ success: false, message: 'WhatsApp access token not found' });
+    }
+
+    const cleanPhone = phone.replace(/[^0-9+]/g, '');
+    const waRes = await fetch(
+      `https://graph.facebook.com/v18.0/${wa.config.phoneNumberId}/messages`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messaging_product: 'whatsapp', to: cleanPhone, type: 'text', text: { body: message } })
+      }
+    );
+
+    if (!waRes.ok) {
+      const errText = await waRes.text();
+      return res.status(502).json({ success: false, message: `WhatsApp API error: ${errText}` });
+    }
+
+    res.json({ success: true, message: `WhatsApp reminder sent to ${cleanPhone}` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== UPDATE DEMO STATUS =====================
+
+export const updateDemoStatus = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tenantId } = req;
+    const { id } = req.params;
+    const { demoStatus } = req.body;
+
+    if (!['active', 'satisfied', 'refunded'].includes(demoStatus)) {
+      return res.status(400).json({ success: false, message: 'Invalid demoStatus. Use: active, satisfied, refunded' });
+    }
+
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
+    if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
+    if (!reservation.demoEnabled) return res.status(400).json({ success: false, message: 'Demo period is not enabled for this reservation' });
+
+    reservation.demoStatus = demoStatus;
+    await reservation.save();
+
+    res.json({ success: true, message: `Demo status updated to "${demoStatus}"`, data: reservation });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== SET / UPDATE INSTALLMENT PLAN =====================
+
+export const setInstallmentPlan = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tenantId } = req;
+    const { id } = req.params;
+    const { installmentPlan } = req.body;
+
+    if (!Array.isArray(installmentPlan)) {
+      return res.status(400).json({ success: false, message: 'installmentPlan must be an array' });
+    }
+
+    const reservation = await SeatReservation.findOne({ _id: id, tenantId });
+    if (!reservation) return res.status(404).json({ success: false, message: 'Reservation not found' });
+
+    // Auto-mark installments as paid if a matching payment exists
+    const updatedPlan = installmentPlan.map((inst: any) => {
+      const matchingPayment = reservation.payments.find((p: any) =>
+        p.installmentLabel && p.installmentLabel.toLowerCase().includes((inst.label || '').toLowerCase()) && p.amount >= inst.amount
+      );
+      return {
+        label: inst.label,
+        amount: inst.amount,
+        dueDate: inst.dueDate ? new Date(inst.dueDate) : undefined,
+        status: matchingPayment ? 'paid' : inst.status || 'pending',
+        paidAt: matchingPayment ? matchingPayment.paidAt : undefined,
+        paymentId: matchingPayment ? matchingPayment._id : undefined
+      };
+    });
+
+    reservation.installmentPlan = updatedPlan;
+    await reservation.save();
+
+    res.json({ success: true, message: 'Installment plan updated', data: reservation });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

@@ -2739,6 +2739,9 @@ export const seatReservationApi = {
     seatNumber?: string;
     expiresAt?: string;
     notes?: string;
+    demoEnabled?: boolean;
+    demoPeriodDays?: number;
+    installmentPlan?: Array<{ label: string; amount: number; dueDate?: string; status: string }>;
   }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations`, {
     method: 'POST',
     body: JSON.stringify(data),
@@ -2747,11 +2750,23 @@ export const seatReservationApi = {
     amount: number;
     method: string;
     transactionId?: string;
+    paidAt?: string;
     notes?: string;
+    proofUrl?: string;
+    installmentLabel?: string;
   }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/payment`, {
     method: 'POST',
     body: JSON.stringify(data),
   }),
+  refundReservation: async (reservationId: string, data: {
+    amount: number;
+    reason?: string;
+  }) => authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/refund`, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
+  getMyReservations: async () =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/me`),
   sendReceipt: async (reservationId: string) =>
     authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-receipt`, { method: 'POST', body: JSON.stringify({}) }),
   sendConfirmation: async (reservationId: string) =>
@@ -2790,6 +2805,21 @@ export const seatReservationApi = {
     authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/cancel`, {
       method: 'PUT',
       body: JSON.stringify({ reason }),
+    }),
+  sendWhatsAppReminder: async (reservationId: string, data?: { customMessage?: string }) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/send-whatsapp-reminder`, {
+      method: 'POST',
+      body: JSON.stringify(data || {}),
+    }),
+  updateDemoStatus: async (reservationId: string, demoStatus: 'active' | 'satisfied' | 'refunded') =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/demo-status`, {
+      method: 'PATCH',
+      body: JSON.stringify({ demoStatus }),
+    }),
+  setInstallmentPlan: async (reservationId: string, installmentPlan: Array<{ label: string; amount: number; dueDate?: string; status: string }>) =>
+    authenticatedFetch(`${API_BASE_URL}/seat-reservations/${reservationId}/installment-plan`, {
+      method: 'PUT',
+      body: JSON.stringify({ installmentPlan }),
     }),
 };
 

@@ -55,6 +55,7 @@ import TenantManagementPage from './pages/TenantManagement';
 import AlumniDirectoryPage from './pages/AlumniDirectory';
 import NotificationCenterPage from './pages/NotificationCenter';
 import StudentCollegePortal from './pages/StudentCollegePortal';
+import StudentFeeDetailsPage from './pages/StudentFeeDetails';
 import DeptReportsPage from './pages/DeptReports';
 import BulkUploadPage from './pages/BulkUpload';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
@@ -566,6 +567,19 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <StudentCollegePortal />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/student/fee-details"
+        element={
+          <ProtectedRoute>
+            <FeatureRoute feature="feeDetails">
+              <Layout>
+                <StudentFeeDetailsPage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />
@@ -1176,6 +1190,16 @@ const AppRoutes: React.FC = () => {
       />
       <Route
         path="/seat-reservations"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <SeatReservationsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/fee-management"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>

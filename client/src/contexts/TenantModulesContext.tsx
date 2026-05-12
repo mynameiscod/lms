@@ -13,6 +13,7 @@ export interface TenantModules {
   placement: boolean;
   leads: boolean;
   marketing: boolean;
+  feeManagement: boolean;
 }
 
 const DEFAULT_MODULES: TenantModules = {
@@ -26,6 +27,7 @@ const DEFAULT_MODULES: TenantModules = {
   placement: true,
   leads: true,
   marketing: true,
+  feeManagement: true,
 };
 
 const ALL_DISABLED_MODULES: TenantModules = {
@@ -39,6 +41,7 @@ const ALL_DISABLED_MODULES: TenantModules = {
   placement: false,
   leads: false,
   marketing: false,
+  feeManagement: false,
 };
 
 interface TenantModulesContextType {

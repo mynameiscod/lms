@@ -30,7 +30,28 @@ export interface IPayment {
   receiptNumber?: string;
   receiptUrl?: string;
   notes?: string;
+  proofUrl?: string;
+  installmentLabel?: string;
   createdBy: mongoose.Types.ObjectId;
+}
+
+export interface IRefund {
+  amount: number;
+  reason?: string;
+  refundedAt: Date;
+  createdBy: mongoose.Types.ObjectId;
+}
+
+export type DemoStatus = 'none' | 'active' | 'satisfied' | 'refunded';
+export type InstallmentStatus = 'pending' | 'paid' | 'overdue';
+
+export interface IInstallment {
+  label: string;
+  amount: number;
+  dueDate?: Date;
+  status: InstallmentStatus;
+  paidAt?: Date;
+  paymentId?: mongoose.Types.ObjectId;
 }
 
 export interface ISeatReservation extends Document {
@@ -58,6 +79,7 @@ export interface ISeatReservation extends Document {
   
   // Payments
   payments: IPayment[];
+  refunds: IRefund[];
   
   // Status
   status: ReservationStatus;
@@ -77,9 +99,19 @@ export interface ISeatReservation extends Document {
   welcomeEmailSent: boolean;
   welcomeEmailSentAt?: Date;
   
+  // Demo period
+  demoEnabled: boolean;
+  demoPeriodDays: number;
+  demoStartDate?: Date;
+  demoEndDate?: Date;
+  demoStatus: DemoStatus;
+
+  // Installment plan
+  installmentPlan: IInstallment[];
+
   // Notes
   notes?: string;
-  
+
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -114,6 +146,14 @@ const PaymentSchema: Schema = new Schema(
       trim: true
     },
     notes: {
+      type: String,
+      trim: true
+    },
+    proofUrl: {
+      type: String,
+      trim: true
+    },
+    installmentLabel: {
       type: String,
       trim: true
     },
@@ -188,6 +228,14 @@ const SeatReservationSchema: Schema = new Schema(
       min: 0
     },
     payments: [PaymentSchema],
+    refunds: [
+      {
+        amount: { type: Number, required: true, min: 0 },
+        reason: { type: String, trim: true },
+        refundedAt: { type: Date, default: Date.now },
+        createdBy: { type: mongoose.Types.ObjectId, ref: 'User', required: true }
+      }
+    ],
     status: {
       type: String,
       enum: ['pending', 'partial_paid', 'paid', 'confirmed', 'enrolled', 'cancelled', 'expired'],
@@ -225,6 +273,33 @@ const SeatReservationSchema: Schema = new Schema(
     welcomeEmailSentAt: {
       type: Date
     },
+    // Demo period
+    demoEnabled: { type: Boolean, default: false },
+    demoPeriodDays: { type: Number, default: 3, min: 1 },
+    demoStartDate: { type: Date },
+    demoEndDate: { type: Date },
+    demoStatus: {
+      type: String,
+      enum: ['none', 'active', 'satisfied', 'refunded'],
+      default: 'none'
+    },
+
+    // Installment plan
+    installmentPlan: [
+      {
+        label: { type: String, required: true, trim: true },
+        amount: { type: Number, required: true, min: 0 },
+        dueDate: { type: Date },
+        status: {
+          type: String,
+          enum: ['pending', 'paid', 'overdue'],
+          default: 'pending'
+        },
+        paidAt: { type: Date },
+        paymentId: { type: mongoose.Types.ObjectId }
+      }
+    ],
+
     notes: {
       type: String,
       trim: true
@@ -241,18 +316,24 @@ const SeatReservationSchema: Schema = new Schema(
 // Pre-save hook to calculate amounts
 SeatReservationSchema.pre('save', function(next) {
   this.finalPrice = this.originalPrice - this.discountAmount;
-  this.paidAmount = this.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
-  this.balanceAmount = this.finalPrice - this.paidAmount;
-  
-  // Update status based on payment
-  if (this.paidAmount === 0) {
-    this.status = 'pending';
-  } else if (this.paidAmount < this.finalPrice) {
-    this.status = 'partial_paid';
-  } else if (this.paidAmount >= this.finalPrice && this.status !== 'enrolled') {
-    this.status = 'paid';
+  const totalPayments = this.payments.reduce((sum: number, p: any) => sum + p.amount, 0);
+  const totalRefunds = (this.refunds || []).reduce((sum: number, r: any) => sum + r.amount, 0);
+  const netPaid = Math.max(0, totalPayments - totalRefunds);
+
+  this.paidAmount = netPaid;
+  this.balanceAmount = Math.max(0, this.finalPrice - netPaid);
+
+  // Update status based on net payment and enrollment state
+  if (this.status !== 'cancelled' && this.status !== 'enrolled') {
+    if (netPaid === 0) {
+      this.status = 'pending';
+    } else if (netPaid < this.finalPrice) {
+      this.status = 'partial_paid';
+    } else if (netPaid >= this.finalPrice) {
+      this.status = 'paid';
+    }
   }
-  
+
   next();
 });
 

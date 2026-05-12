@@ -10,7 +10,9 @@ interface FeatureConfig {
   quizzes: boolean;
   assignments: boolean;
   mockInterviews: boolean;
+  codingSnippets: boolean;
   classHub: boolean;
+  feeDetails: boolean;
 }
 
 // Map each student feature to the module that must be enabled for it
@@ -22,16 +24,20 @@ const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
   quizzes:        'quizzes',
   assignments:    'assignments',
   mockInterviews: 'mockInterviews',
+  codingSnippets: 'codeEditor',
+  feeDetails:     null,
 };
 
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
-  { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and quick actions', icon: 'âŒ‚' },
-  { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: 'ðŸ“š' },
-  { key: 'classHub',       label: 'ðŸŽ“ My Classes (Class Hub)',        description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: 'ðŸŽ¬' },
-  { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: 'â˜‘' },
-  { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: 'âœŽ' },
-  { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: 'ðŸ“' },
-  { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: 'ðŸŽ¯' },
+  { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and quick actions', icon: '☑' },
+  { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: '📚' },
+  { key: 'classHub',       label: '🎥 My Classes (Class Hub)',        description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: '🎬' },
+  { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: '📊' },
+  { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: '✍' },
+  { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: '📝' },
+  { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: '🎙' },
+  { key: 'codingSnippets', label: 'Coding Snippets',                 description: 'Code editor access with snippet manager and practice problems', icon: '💻' },
+  { key: 'feeDetails',     label: 'Fee Details',                      description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰' },
 ];
 
 const StudentFeaturesPage: React.FC = () => {
@@ -43,7 +49,9 @@ const StudentFeaturesPage: React.FC = () => {
     quizzes: true,
     assignments: true,
     mockInterviews: true,
-    classHub: true
+    codingSnippets: true,
+    classHub: true,
+    feeDetails: true,
   });
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [modulesLoaded, setModulesLoaded] = useState(false);

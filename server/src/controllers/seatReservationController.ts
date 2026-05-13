@@ -1013,7 +1013,7 @@ export const setInstallmentPlan = async (req: AuthenticatedRequest, res: Respons
         dueDate: inst.dueDate ? new Date(inst.dueDate) : undefined,
         status: matchingPayment ? 'paid' : inst.status || 'pending',
         paidAt: matchingPayment ? matchingPayment.paidAt : undefined,
-        paymentId: matchingPayment ? matchingPayment._id : undefined
+        paymentId: matchingPayment ? (matchingPayment as any)._id : undefined
       };
     });
 

@@ -886,7 +886,6 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
       todayFollowUps,
       newLeadsToday,
       newLeadsTodayBySource,
-      callsTodayResult,
       callsTodayByAssigneeResult
     ] = await Promise.all([
       Lead.aggregate([
@@ -931,7 +930,7 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
       ])
     ]);
 
-    const callsToday = (callsTodayResult && callsTodayResult[0] && callsTodayResult[0].count) || 0;
+    const callsToday = (callsTodayByAssigneeResult || []).reduce((sum: number, c: any) => sum + (c.count || 0), 0);
 
     // Get stages to map names
     const stages = await LeadStage.find({ tenantId: req.tenantId }).sort({ order: 1 });
@@ -959,7 +958,7 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
         sourceStats: sourceStats.map((s: any) => ({ source: s._id || 'other', count: s.count })),
         priorityStats: priorityStats.map((p: any) => ({ priority: p._id || 'unknown', count: p.count })),
         newLeadsTodayBySource: newLeadsTodayBySource.map((s: any) => ({ source: s._id || 'other', count: s.count })),
-        callsTodayByAssignee: callsTodayByAssigneeResult.map((c: any) => ({ assignedTo: c._id ? String(c._id) : 'unassigned', count: c.count }))
+        callsTodayByAssignee: (callsTodayByAssigneeResult || []).map((c: any) => ({ assignedTo: c._id ? String(c._id) : 'unassigned', count: c.count }))
       }
     });
   } catch (error: any) {

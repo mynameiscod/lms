@@ -270,7 +270,7 @@ export const getTenantModules = async (
     const defaults: ITenantModules = {
       courses: true, attendance: true, quizzes: true, assignments: true,
       classRecordings: true, codeAssessments: true, mockInterviews: true,
-      placement: true, leads: true, marketing: true
+      placement: true, leads: true, marketing: true, feeManagement: true
     };
     res.status(200).json({ success: true, message: 'Modules fetched', data: tenant.modules || defaults });
   } catch (error: any) {

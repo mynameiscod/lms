@@ -1104,7 +1104,7 @@ const LeadFormSettings: React.FC = () => {
             onClick={e => e.stopPropagation()}
             onKeyDown={e => {
               // Allow Enter in textareas, but prevent form submission on Enter for other elements
-              if (e.key === 'Enter' && e.target?.tagName !== 'TEXTAREA') {
+              if (e.key === 'Enter' && (e.target as HTMLElement)?.tagName !== 'TEXTAREA') {
                 e.preventDefault();
               }
             }}

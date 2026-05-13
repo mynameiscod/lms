@@ -204,7 +204,9 @@ const LeadFormSettings: React.FC = () => {
   const handleOptionsChange = (fieldKey: string, optionsStr: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        return { ...f, options: optionsStr.split('\n').map(o => o.trim()).filter(Boolean) };
+        // Keep empty trailing lines so the cursor can move to a new line while typing.
+        // filter(Boolean) is applied only on save.
+        return { ...f, options: optionsStr.split('\n').map(o => o.trim()) };
       }
       return f;
     }));
@@ -230,7 +232,11 @@ const LeadFormSettings: React.FC = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      await leadFormConfigApi.updateConfig({ fields, sources });
+      const cleanedFields = fields.map(f => ({
+        ...f,
+        options: f.options ? f.options.filter(Boolean) : f.options,
+      }));
+      await leadFormConfigApi.updateConfig({ fields: cleanedFields, sources });
       showAlertMsg('success', 'Form configuration saved!');
     } catch (error: any) {
       showAlertMsg('error', error.message || 'Failed to save');

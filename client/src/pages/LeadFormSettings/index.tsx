@@ -652,12 +652,6 @@ const LeadFormSettings: React.FC = () => {
                                   style={{maxWidth: '400px', minHeight: '80px', fontFamily: 'monospace'}}
                                   value={(field.options || []).join('\n')}
                                   onChange={e => handleOptionsChange(field.fieldKey, e.target.value)}
-                                  onKeyDown={e => {
-                                    // Allow Enter key to create new lines in textarea
-                                    if (e.key === 'Enter') {
-                                      e.stopPropagation();
-                                    }
-                                  }}
                                   placeholder="Enter each option on a new line:&#10;Option 1&#10;Option 2&#10;Option 3"
                                 />
                               </div>
@@ -1105,7 +1099,16 @@ const LeadFormSettings: React.FC = () => {
       {/* Add Custom Field Modal */}
       {showAddModal && (
         <div className="lfs-modal-backdrop" onClick={() => setShowAddModal(false)}>
-          <div className="modal-dialog" onClick={e => e.stopPropagation()}>
+          <div 
+            className="modal-dialog" 
+            onClick={e => e.stopPropagation()}
+            onKeyDown={e => {
+              // Allow Enter in textareas, but prevent form submission on Enter for other elements
+              if (e.key === 'Enter' && e.target?.tagName !== 'TEXTAREA') {
+                e.preventDefault();
+              }
+            }}
+          >
             <div className="modal-content">
               <div className="modal-header">
                 <h5 className="modal-title">Add Custom Field</h5>
@@ -1159,12 +1162,6 @@ const LeadFormSettings: React.FC = () => {
                       className="form-control"
                       value={newField.options}
                       onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
-                      onKeyDown={e => {
-                        // Allow Enter key to create new lines in textarea
-                        if (e.key === 'Enter') {
-                          e.stopPropagation();
-                        }
-                      }}
                       placeholder="Enter each option on a new line:&#10;Option 1&#10;Option 2&#10;Option 3"
                       style={{minHeight: '100px', fontFamily: 'monospace'}}
                     />

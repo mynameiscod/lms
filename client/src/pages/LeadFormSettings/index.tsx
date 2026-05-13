@@ -204,7 +204,7 @@ const LeadFormSettings: React.FC = () => {
   const handleOptionsChange = (fieldKey: string, optionsStr: string) => {
     setFields(prev => prev.map(f => {
       if (f.fieldKey === fieldKey) {
-        return { ...f, options: optionsStr.split(',').map(o => o.trim()).filter(Boolean) };
+        return { ...f, options: optionsStr.split('\n').map(o => o.trim()).filter(Boolean) };
       }
       return f;
     }));
@@ -256,7 +256,7 @@ const LeadFormSettings: React.FC = () => {
         placeholder: newField.placeholder
       };
       if (newField.type === 'select') {
-        payload.options = newField.options.split(',').map(s => s.trim()).filter(Boolean);
+        payload.options = newField.options.split('\n').map(s => s.trim()).filter(Boolean);
       }
       await leadFormConfigApi.addCustomField(payload);
       setShowAddModal(false);
@@ -642,16 +642,17 @@ const LeadFormSettings: React.FC = () => {
                           <tr className="lfs-options-row">
                             <td></td>
                             <td colSpan={5}>
-                              <div className="d-flex align-items-center gap-2 py-1">
-                                <i className="fa fa-list-ul text-muted small"></i>
-                                <span className="small fw-semibold text-muted">Options:</span>
-                                <input
-                                  type="text"
+                              <div className="py-1">
+                                <div className="d-flex align-items-center gap-2 mb-2">
+                                  <i className="fa fa-list-ul text-muted small"></i>
+                                  <span className="small fw-semibold text-muted">Options (one per line):</span>
+                                </div>
+                                <textarea
                                   className="form-control form-control-sm"
-                                  style={{maxWidth: '400px'}}
-                                  value={(field.options || []).join(', ')}
+                                  style={{maxWidth: '400px', minHeight: '80px', fontFamily: 'monospace'}}
+                                  value={(field.options || []).join('\n')}
                                   onChange={e => handleOptionsChange(field.fieldKey, e.target.value)}
-                                  placeholder="Enter options separated by commas, e.g., Option 1, Option 2"
+                                  placeholder="Enter each option on a new line:\nOption 1\nOption 2\nOption 3"
                                 />
                               </div>
                             </td>
@@ -1147,14 +1148,15 @@ const LeadFormSettings: React.FC = () => {
                 </div>
                 {newField.type === 'select' && (
                   <div className="mb-3">
-                    <label className="form-label small fw-semibold">Options (comma separated) *</label>
-                    <input
-                      type="text"
+                    <label className="form-label small fw-semibold">Options (one per line) *</label>
+                    <textarea
                       className="form-control"
                       value={newField.options}
                       onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
-                      placeholder="e.g., Option 1, Option 2"
+                      placeholder="Enter each option on a new line:\nOption 1\nOption 2\nOption 3"
+                      style={{minHeight: '100px', fontFamily: 'monospace'}}
                     />
+                    <small className="text-muted d-block mt-2">Tip: You can now use commas in option values (e.g., 'Apple, Inc.' will be treated as a single option)</small>
                   </div>
                 )}
               </div>

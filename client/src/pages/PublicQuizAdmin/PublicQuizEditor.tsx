@@ -189,7 +189,17 @@ const PublicQuizEditor: React.FC = () => {
                 />
                 <div className="form-text">Link stops accepting after this date</div>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-2">
+                <label className="form-label fw-semibold">📅 Week Label</label>
+                <input
+                  className="form-control"
+                  placeholder="e.g. Week 1"
+                  value={config.weekLabel || ''}
+                  onChange={e => setConfig((p: any) => ({ ...p, weekLabel: e.target.value }))}
+                />
+                <div className="form-text">Shown in registrations table</div>
+              </div>
+              <div className="col-md-2">
                 <label className="form-label fw-semibold">📣 Meta Pixel ID (optional)</label>
                 <input
                   className="form-control"
@@ -197,7 +207,7 @@ const PublicQuizEditor: React.FC = () => {
                   value={config.metaPixelId || ''}
                   onChange={e => setConfig((p: any) => ({ ...p, metaPixelId: e.target.value }))}
                 />
-                <div className="form-text">Tracks form fills from Meta / Instagram / Facebook ads</div>
+                <div className="form-text">Tracks Meta / Instagram ads</div>
               </div>
             </div>
           </div>

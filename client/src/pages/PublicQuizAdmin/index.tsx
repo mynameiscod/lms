@@ -101,6 +101,9 @@ if (result.canTakeQuiz) {
           <button className="btn btn-outline-secondary" onClick={() => setShowApiDocs(true)}>
             🔌 Website API Docs
           </button>
+          <button className="btn btn-outline-primary" onClick={() => navigate('/public-quiz-admin/all-registrations')}>
+            👥 All Registrations
+          </button>
           <button className="btn btn-primary" onClick={() => navigate('/public-quiz-admin/new')}>
             + Create Public Quiz
           </button>

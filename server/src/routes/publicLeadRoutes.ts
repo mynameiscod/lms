@@ -4,7 +4,7 @@ import { submitPublicLeadForm, getPublicFormConfig } from '../controllers/public
 import { registerForWeeklyQuizFromWebsite } from '../controllers/publicQuizController';
 
 const router = express.Router();
-const multipart = multer().any(); // parse multipart/form-data; files are received but not stored
+const multipart = multer({ limits: { fileSize: 100 * 1024 * 1024 } }).any(); // 100 MB per file
 
 // PUBLIC ROUTES — No authentication required
 // These are used by external forms, landing pages, and embeddable forms

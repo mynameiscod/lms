@@ -10,6 +10,7 @@ const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
 
 router.get('/available-quizzes', ctrl.getAvailableQuizzesForPublic);
+router.get('/all-registrations', ctrl.getAllRegistrations);
 router.get('/', ctrl.listPublicQuizConfigs);
 router.post('/', roleGuard(['create_quiz']), ctrl.createPublicQuizConfig);
 router.get('/:id', ctrl.getPublicQuizConfig);

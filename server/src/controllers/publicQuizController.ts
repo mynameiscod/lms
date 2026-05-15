@@ -684,6 +684,43 @@ export const getPublicQuizSubmissions = async (req: Request, res: Response) => {
   }
 };
 
+/** GET /api/public-quizzes/all-registrations  — all submissions across all weeks for tenant */
+export const getAllRegistrations = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const { page = 1, limit = 100, search = '', week = '' } = req.query;
+
+    const query: any = { tenantId };
+    if (search) {
+      const re = new RegExp(String(search), 'i');
+      query.$or = [{ name: re }, { email: re }];
+    }
+
+    // Filter by week: find the config with that weekLabel then filter by its ID
+    if (week && week !== '__pre__') {
+      const cfg = await PublicQuizConfig.findOne({ tenantId, weekLabel: week });
+      if (cfg) query.publicQuizConfigId = cfg._id;
+      else query.publicQuizConfigId = null; // no results
+    } else if (week === '__pre__') {
+      query.isPreRegistration = true;
+    }
+
+    const total = await PublicQuizSubmission.countDocuments(query);
+    const submissions = await PublicQuizSubmission.find(query)
+      .populate('publicQuizConfigId', 'title weekLabel slug isFeatured')
+      .sort({ createdAt: -1 })
+      .skip((Number(page) - 1) * Number(limit))
+      .limit(Number(limit));
+
+    // Get distinct week labels for filter dropdown
+    const allConfigs = await PublicQuizConfig.find({ tenantId }, 'title weekLabel').sort({ createdAt: -1 });
+
+    res.json({ submissions, total, page: Number(page), limit: Number(limit), configs: allConfigs });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 /** POST /api/public-quizzes/:id/submissions/:subId/convert-to-lead  — convert to lead */
 export const convertSubmissionToLead = async (req: Request, res: Response) => {
   try {

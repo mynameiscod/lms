@@ -80,6 +80,7 @@ export interface IPublicQuizConfig extends Document {
   landingPage: ILandingPage;
   registrationForm: IRegistrationForm;
   resultSettings: IResultSettings;
+  weekLabel?: string; // e.g. "Week 1", "Week of May 19 2026" — shown in admin tables
   certificateTemplate?: string; // HTML with {{name}} {{score}} etc.
   totalSubmissions: number;
   scheduledAt?: Date;    // quiz becomes available (null = immediately)
@@ -148,6 +149,7 @@ const publicQuizConfigSchema = new Schema<IPublicQuizConfig>(
       }
     },
 
+    weekLabel: { type: String, trim: true },
     certificateTemplate: String,
     totalSubmissions: { type: Number, default: 0 },
     scheduledAt: Date,

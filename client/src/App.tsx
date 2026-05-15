@@ -128,6 +128,7 @@ import PublicQuizPage from './pages/PublicQuiz';
 import PublicQuizListPage from './pages/PublicQuizAdmin';
 import PublicQuizEditor from './pages/PublicQuizAdmin/PublicQuizEditor';
 import SubmissionsDashboard from './pages/PublicQuizAdmin/SubmissionsDashboard';
+import AllRegistrations from './pages/PublicQuizAdmin/AllRegistrations';
 
 // Class Flow (new unified flow)
 import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
@@ -1537,6 +1538,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><SubmissionsDashboard /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/public-quiz-admin/all-registrations"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><AllRegistrations /></Layout>
           </ProtectedRoute>
         }
       />

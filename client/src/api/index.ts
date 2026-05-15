@@ -2857,6 +2857,10 @@ export const publicQuizAdminApi = {
   setFeatured: (id: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/feature`, { method: 'PUT', body: JSON.stringify({}) }),
   getAvailableQuizzes: () => authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
+  getAllRegistrations: (params?: { page?: number; limit?: number; search?: string; week?: string }) => {
+    const qs = new URLSearchParams(params as any).toString();
+    return authenticatedFetch(`${API_BASE_URL}/public-quizzes/all-registrations${qs ? `?${qs}` : ''}`);
+  },
 };
 
 /** Public-side: no auth needed */

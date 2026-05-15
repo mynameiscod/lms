@@ -1,10 +1,24 @@
 import express from 'express';
 import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 import { submitPublicLeadForm, getPublicFormConfig } from '../controllers/publicLeadController';
 import { registerForWeeklyQuizFromWebsite } from '../controllers/publicQuizController';
 
 const router = express.Router();
-const multipart = multer({ limits: { fileSize: 100 * 1024 * 1024 } }).any(); // 100 MB per file
+
+const uploadDir = path.join(__dirname, '..', '..', 'uploads', 'registrations');
+fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname) || '';
+    cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`);
+  }
+});
+
+const multipart = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } }).any();
 
 // PUBLIC ROUTES — No authentication required
 // These are used by external forms, landing pages, and embeddable forms

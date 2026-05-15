@@ -2858,9 +2858,20 @@ export const publicQuizAdminApi = {
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/feature`, { method: 'PUT', body: JSON.stringify({}) }),
   getAvailableQuizzes: () => authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
   getAllRegistrations: (params?: { page?: number; limit?: number; search?: string; week?: string }) => {
-    const qs = new URLSearchParams(params as any).toString();
+    const clean: Record<string, string> = {};
+    if (params?.page != null) clean.page = String(params.page);
+    if (params?.limit != null) clean.limit = String(params.limit);
+    if (params?.search) clean.search = params.search;
+    if (params?.week) clean.week = params.week;
+    const qs = new URLSearchParams(clean).toString();
     return authenticatedFetch(`${API_BASE_URL}/public-quizzes/all-registrations${qs ? `?${qs}` : ''}`);
   },
+  getRegistrationDetail: (subId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}`),
+  approveRegistration: (subId: string, note?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({ note }) }),
+  rejectRegistration: (subId: string, reason: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
 };
 
 /** Public-side: no auth needed */

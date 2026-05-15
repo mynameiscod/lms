@@ -35,6 +35,15 @@ export interface IPublicQuizSubmission extends Document {
   passed?: boolean;
   completedAt?: Date;
 
+  // Admin approval
+  isApproved?: boolean;
+  approvedBy?: string;
+  approvedAt?: Date;
+  rejectionReason?: string;
+
+  // Uploaded files (photo, ID card, etc.)
+  uploadedFiles?: Array<{ fieldName: string; filePath: string; mimeType: string; originalName: string }>;
+
   // Share token for certificate access
   shareToken?: string;
 
@@ -80,6 +89,19 @@ const publicQuizSubmissionSchema = new Schema<IPublicQuizSubmission>(
     percentage: Number,
     passed: Boolean,
     completedAt: Date,
+
+    isApproved: { type: Boolean },
+    approvedBy: { type: String },
+    approvedAt: { type: Date },
+    rejectionReason: { type: String },
+
+    uploadedFiles: [{
+      fieldName: { type: String },
+      filePath: { type: String },
+      mimeType: { type: String },
+      originalName: { type: String },
+      _id: false
+    }],
 
     shareToken: { type: String, index: true },
     ipAddress: String,

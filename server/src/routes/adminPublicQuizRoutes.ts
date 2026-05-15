@@ -11,6 +11,9 @@ router.use(authMiddleware, tenantMiddleware);
 
 router.get('/available-quizzes', ctrl.getAvailableQuizzesForPublic);
 router.get('/all-registrations', ctrl.getAllRegistrations);
+router.get('/registrations/:subId', ctrl.getRegistrationDetail);
+router.put('/registrations/:subId/approve', ctrl.approveRegistration);
+router.put('/registrations/:subId/reject', ctrl.rejectRegistration);
 router.get('/', ctrl.listPublicQuizConfigs);
 router.post('/', roleGuard(['create_quiz']), ctrl.createPublicQuizConfig);
 router.get('/:id', ctrl.getPublicQuizConfig);

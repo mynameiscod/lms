@@ -140,7 +140,7 @@ const AllRegistrations: React.FC = () => {
               <th>Score</th>
               <th>%</th>
               <th>Registered At</th>
-              <th>Actions</th>
+              <th>Approval</th>
             </tr>
           </thead>
           <tbody>
@@ -152,7 +152,11 @@ const AllRegistrations: React.FC = () => {
               const hasAttempt = !!s.quizAttemptId;
 
               return (
-                <tr key={s._id}>
+                <tr
+                  key={s._id}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => navigate(`/public-quiz-admin/registration/${s._id}`)}
+                >
                   <td className="text-muted">{(page - 1) * limit + i + 1}</td>
                   <td>
                     {isPreReg ? (
@@ -184,16 +188,12 @@ const AllRegistrations: React.FC = () => {
                     ) : '—'}
                   </td>
                   <td className="text-muted small">{new Date(s.createdAt).toLocaleDateString('en-IN')}</td>
-                  <td>
-                    {cfg?._id && (
-                      <button
-                        className="btn btn-xs btn-outline-info"
-                        onClick={() => navigate(`/public-quiz-admin/${cfg._id}/submissions`)}
-                        title="View quiz submissions"
-                      >
-                        📊
-                      </button>
-                    )}
+                  <td onClick={e => e.stopPropagation()}>
+                    {s.isApproved === true
+                      ? <span className="badge bg-success">Approved</span>
+                      : s.isApproved === false
+                      ? <span className="badge bg-danger">Rejected</span>
+                      : <span className="badge bg-warning text-dark">Pending</span>}
                   </td>
                 </tr>
               );

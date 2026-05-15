@@ -721,6 +721,61 @@ export const getAllRegistrations = async (req: Request, res: Response) => {
   }
 };
 
+/** GET /api/public-quizzes/registrations/:subId  — full detail for one registration */
+export const getRegistrationDetail = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId })
+      .populate('publicQuizConfigId', 'title weekLabel slug');
+    if (!submission) return res.status(404).json({ message: 'Not found' });
+    res.json(submission);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** PUT /api/public-quizzes/registrations/:subId/approve  — admin approves registration */
+export const approveRegistration = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const userId = (req as any).user?.id;
+
+    const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId });
+    if (!submission) return res.status(404).json({ message: 'Not found' });
+
+    submission.isApproved = true;
+    submission.approvedBy = userId;
+    submission.approvedAt = new Date();
+    submission.rejectionReason = undefined;
+    submission.canTakeQuiz = true; // allow quiz access on approval
+
+    await submission.save();
+    res.json({ success: true, message: 'Registration approved.' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** PUT /api/public-quizzes/registrations/:subId/reject  — admin rejects registration */
+export const rejectRegistration = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const { reason } = req.body;
+
+    const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId });
+    if (!submission) return res.status(404).json({ message: 'Not found' });
+
+    submission.isApproved = false;
+    submission.rejectionReason = reason || 'Rejected by admin';
+    submission.canTakeQuiz = false;
+
+    await submission.save();
+    res.json({ success: true, message: 'Registration rejected.' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 /** POST /api/public-quizzes/:id/submissions/:subId/convert-to-lead  — convert to lead */
 export const convertSubmissionToLead = async (req: Request, res: Response) => {
   try {
@@ -823,6 +878,15 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
     const registrationData: Record<string, any> = { name, email: normalizedEmail, phone: phone || '', ...extraFields };
     const now = new Date();
 
+    // Collect uploaded files saved to disk by multer
+    const files = (req as any).files as Array<{ fieldname: string; filename: string; mimetype: string; originalname: string }> || [];
+    const uploadedFiles = files.map(f => ({
+      fieldName: f.fieldname,
+      filePath: `/uploads/registrations/${f.filename}`,
+      mimeType: f.mimetype,
+      originalName: f.originalname
+    }));
+
     // Find the current featured quiz for this tenant
     const config = await PublicQuizConfig.findOne({
       tenantId: tenant._id.toString(),
@@ -844,6 +908,7 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
           email: normalizedEmail,
           name: name.trim(),
           registrationData,
+          uploadedFiles,
           isPreRegistration: true,
           eligibilityStatus: 'qualified',
           eligibilityFlags: [],
@@ -898,6 +963,7 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
       email: normalizedEmail,
       name: name.trim(),
       registrationData: mappedData,
+      uploadedFiles,
       eligibilityStatus,
       eligibilityFlags,
       attemptNumber,

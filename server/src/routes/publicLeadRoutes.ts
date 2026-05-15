@@ -4,7 +4,7 @@ import { submitPublicLeadForm, getPublicFormConfig } from '../controllers/public
 import { registerForWeeklyQuizFromWebsite } from '../controllers/publicQuizController';
 
 const router = express.Router();
-const multipart = multer().none(); // parse multipart/form-data text fields, discard any files
+const multipart = multer().any(); // parse multipart/form-data; files are received but not stored
 
 // PUBLIC ROUTES — No authentication required
 // These are used by external forms, landing pages, and embeddable forms

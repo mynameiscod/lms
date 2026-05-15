@@ -2854,6 +2854,8 @@ export const publicQuizAdminApi = {
   },
   convertToLead: (id: string, subId: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/submissions/${subId}/convert-to-lead`, { method: 'POST', body: JSON.stringify({}) }),
+  setFeatured: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/feature`, { method: 'PUT', body: JSON.stringify({}) }),
   getAvailableQuizzes: () => authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
 };
 

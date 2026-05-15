@@ -24,6 +24,8 @@ const allowedOrigins = [
   'http://127.0.0.1:3002',
   'http://localhost:5000',
   'http://127.0.0.1:5000',
+  'https://codebegun.com',
+  'https://www.codebegun.com',
   process.env.CLIENT_URL, // Production URL from env (e.g., http://187.124.97.56:5000)
 ].filter(Boolean);
 

@@ -15,6 +15,7 @@ router.post('/', roleGuard(['create_quiz']), ctrl.createPublicQuizConfig);
 router.get('/:id', ctrl.getPublicQuizConfig);
 router.put('/:id', roleGuard(['create_quiz']), ctrl.updatePublicQuizConfig);
 router.delete('/:id', roleGuard(['create_quiz']), ctrl.deletePublicQuizConfig);
+router.put('/:id/feature', roleGuard(['create_quiz']), ctrl.setFeaturedQuiz);
 router.get('/:id/submissions', ctrl.getPublicQuizSubmissions);
 router.post('/:id/submissions/:subId/convert-to-lead', ctrl.convertSubmissionToLead);
 

@@ -8,6 +8,7 @@ import Question from '../models/Question';
 import QuizAttempt from '../models/QuizAttempt';
 import QuizSubmission from '../models/QuizSubmission';
 import Lead from '../models/Lead';
+import Tenant from '../models/Tenant';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -727,6 +728,157 @@ export const getAvailableQuizzesForPublic = async (req: Request, res: Response) 
       .select('title totalQuestions totalMarks totalTime')
       .sort({ createdAt: -1 });
     res.json(quizzes);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** PUT /api/public-quizzes/:id/feature  — mark this config as current weekly quiz */
+export const setFeaturedQuiz = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const config = await PublicQuizConfig.findOne({ _id: req.params.id, tenantId });
+    if (!config) return res.status(404).json({ message: 'Not found' });
+
+    // Unfeature any previously featured quiz for this tenant
+    await PublicQuizConfig.updateMany({ tenantId, isFeatured: true }, { $set: { isFeatured: false } });
+    config.isFeatured = true;
+    await config.save();
+
+    res.json({ message: 'Set as current weekly quiz', config });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WEBSITE INTEGRATION ENDPOINT (public, for external site like codebegun.com)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/v1/public/:tenantSlug/weekly-quiz-register
+ *
+ * Called directly from an external website form. The website does not need to
+ * know the quiz slug — the currently featured public quiz for the tenant is
+ * used automatically.
+ *
+ * Body: { name, email, phone?, [any extra form fields] }
+ * Response: { submissionId, quizUrl, canTakeQuiz, eligibilityStatus, message }
+ */
+export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Response) => {
+  try {
+    const { tenantSlug } = req.params;
+
+    // Resolve tenant
+    const tenant = await Tenant.findOne({ slug: tenantSlug });
+    if (!tenant) return res.status(404).json({ message: 'Organization not found' });
+
+    // Find the current featured quiz for this tenant
+    const config = await PublicQuizConfig.findOne({
+      tenantId: tenant._id.toString(),
+      isFeatured: true,
+      isActive: true
+    });
+    if (!config) {
+      return res.status(404).json({
+        message: 'No active weekly quiz is currently set. Please check back soon.',
+        code: 'NO_FEATURED_QUIZ'
+      });
+    }
+
+    // Check schedule
+    const now = new Date();
+    if (config.closesAt && now > config.closesAt) {
+      return res.status(410).json({ message: 'The weekly quiz has closed.', code: 'QUIZ_CLOSED' });
+    }
+
+    const { name, email, phone, ...extraFields } = req.body as Record<string, any>;
+
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'email is required' });
+    }
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ message: 'name is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const registrationData: Record<string, any> = { name, email: normalizedEmail, phone: phone || '', ...extraFields };
+
+    // Map flat body into the config's form field IDs so eligibility rules still work
+    const mappedData: Record<string, any> = { ...registrationData };
+    for (const field of config.registrationForm.fields) {
+      const label = field.label.toLowerCase();
+      if (!mappedData[field.id]) {
+        if (label.includes('email')) mappedData[field.id] = normalizedEmail;
+        else if (label.includes('name')) mappedData[field.id] = name;
+        else if (label.includes('phone') || label.includes('mobile')) mappedData[field.id] = phone || '';
+      }
+    }
+
+    // Prior submission check
+    const priorSubmissions = await PublicQuizSubmission.find({
+      publicQuizConfigId: config._id,
+      email: normalizedEmail
+    }).sort({ createdAt: 1 });
+
+    const attemptNumber = priorSubmissions.length + 1;
+    const canTakeQuiz = priorSubmissions.filter(s => !s.canTakeQuiz || s.quizAttemptId).length === 0;
+
+    // Eligibility
+    const eligibilityFlags = evaluateEligibility(config.registrationForm.fields, mappedData);
+    const eligibilityStatus = eligibilityFlags.length > 0 ? 'flagged' : 'qualified';
+
+    const submission = new PublicQuizSubmission({
+      publicQuizConfigId: config._id,
+      quizId: config.quizId.toString(),
+      tenantId: tenant._id.toString(),
+      email: normalizedEmail,
+      name: name.trim(),
+      registrationData: mappedData,
+      eligibilityStatus,
+      eligibilityFlags,
+      attemptNumber,
+      canTakeQuiz,
+      ipAddress: req.ip,
+      userAgent: req.headers['user-agent'] || ''
+    });
+    await submission.save();
+    await PublicQuizConfig.findByIdAndUpdate(config._id, { $inc: { totalSubmissions: 1 } });
+
+    // Build the quiz URL — frontend path that the website can redirect the user to
+    const frontendBase = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
+    const quizUrl = `${frontendBase}/public-quiz/${config.slug}?session=${submission._id}`;
+
+    if (!canTakeQuiz) {
+      return res.status(200).json({
+        canTakeQuiz: false,
+        submissionId: submission._id,
+        quizUrl,
+        message: 'You have already taken this quiz. Your entry has been recorded.'
+      });
+    }
+
+    if (config.scheduledAt && now < config.scheduledAt) {
+      return res.status(200).json({
+        canTakeQuiz: false,
+        reason: 'not_open_yet',
+        opensAt: config.scheduledAt,
+        submissionId: submission._id,
+        quizUrl,
+        message: `Registration successful! The quiz opens on ${config.scheduledAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
+      });
+    }
+
+    res.json({
+      canTakeQuiz: true,
+      submissionId: submission._id,
+      quizUrl,
+      eligibilityStatus,
+      slug: config.slug,
+      message: eligibilityStatus === 'flagged'
+        ? 'Registered! Note: some eligibility criteria were not met.'
+        : 'Registration successful! Click the quiz link to begin.'
+    });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

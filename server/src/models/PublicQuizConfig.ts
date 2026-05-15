@@ -76,6 +76,7 @@ export interface IPublicQuizConfig extends Document {
   slug: string; // unique URL key e.g. "java-placement-test-2026"
   title: string; // public-facing display title
   isActive: boolean;
+  isFeatured: boolean; // marks this as the current "weekly" quiz for website API registration
   landingPage: ILandingPage;
   registrationForm: IRegistrationForm;
   resultSettings: IResultSettings;
@@ -117,6 +118,7 @@ const publicQuizConfigSchema = new Schema<IPublicQuizConfig>(
     slug: { type: String, required: true, unique: true, lowercase: true, trim: true },
     title: { type: String, required: true },
     isActive: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false, index: true },
 
     landingPage: {
       blocks: [LandingBlockSchema],

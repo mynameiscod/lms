@@ -773,25 +773,6 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
     const tenant = await Tenant.findOne({ slug: tenantSlug });
     if (!tenant) return res.status(404).json({ message: 'Organization not found' });
 
-    // Find the current featured quiz for this tenant
-    const config = await PublicQuizConfig.findOne({
-      tenantId: tenant._id.toString(),
-      isFeatured: true,
-      isActive: true
-    });
-    if (!config) {
-      return res.status(404).json({
-        message: 'No active weekly quiz is currently set. Please check back soon.',
-        code: 'NO_FEATURED_QUIZ'
-      });
-    }
-
-    // Check schedule
-    const now = new Date();
-    if (config.closesAt && now > config.closesAt) {
-      return res.status(410).json({ message: 'The weekly quiz has closed.', code: 'QUIZ_CLOSED' });
-    }
-
     const { name, email, phone, ...extraFields } = req.body as Record<string, any>;
 
     if (!email || typeof email !== 'string') {
@@ -803,6 +784,51 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
 
     const normalizedEmail = email.trim().toLowerCase();
     const registrationData: Record<string, any> = { name, email: normalizedEmail, phone: phone || '', ...extraFields };
+    const now = new Date();
+
+    // Find the current featured quiz for this tenant
+    const config = await PublicQuizConfig.findOne({
+      tenantId: tenant._id.toString(),
+      isFeatured: true,
+      isActive: true
+    });
+
+    // No featured quiz — save as pre-registration and return success
+    if (!config) {
+      const existing = await PublicQuizSubmission.findOne({
+        tenantId: tenant._id.toString(),
+        email: normalizedEmail,
+        isPreRegistration: true,
+        publicQuizConfigId: { $exists: false }
+      });
+      if (!existing) {
+        const preReg = new PublicQuizSubmission({
+          tenantId: tenant._id.toString(),
+          email: normalizedEmail,
+          name: name.trim(),
+          registrationData,
+          isPreRegistration: true,
+          eligibilityStatus: 'qualified',
+          eligibilityFlags: [],
+          attemptNumber: 1,
+          canTakeQuiz: false,
+          ipAddress: req.ip,
+          userAgent: req.headers['user-agent'] || ''
+        });
+        await preReg.save();
+      }
+      return res.status(200).json({
+        success: true,
+        registered: true,
+        quizUrl: null,
+        message: 'You are registered! We will notify you when the quiz goes live.'
+      });
+    }
+
+    // Check schedule
+    if (config.closesAt && now > config.closesAt) {
+      return res.status(410).json({ message: 'The weekly quiz has closed.', code: 'QUIZ_CLOSED' });
+    }
 
     // Map flat body into the config's form field IDs so eligibility rules still work
     const mappedData: Record<string, any> = { ...registrationData };

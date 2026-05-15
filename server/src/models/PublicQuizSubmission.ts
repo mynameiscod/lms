@@ -9,9 +9,10 @@ export interface IEligibilityFlag {
 
 export interface IPublicQuizSubmission extends Document {
   _id: string;
-  publicQuizConfigId: mongoose.Types.ObjectId;
-  quizId: string;
+  publicQuizConfigId?: mongoose.Types.ObjectId;
+  quizId?: string;
   tenantId: string;
+  isPreRegistration?: boolean; // true when registered before a quiz is featured
 
   // Registrant identity
   email: string;
@@ -46,9 +47,10 @@ export interface IPublicQuizSubmission extends Document {
 
 const publicQuizSubmissionSchema = new Schema<IPublicQuizSubmission>(
   {
-    publicQuizConfigId: { type: Schema.Types.ObjectId, ref: 'PublicQuizConfig', required: true, index: true },
-    quizId: { type: String, required: true },
+    publicQuizConfigId: { type: Schema.Types.ObjectId, ref: 'PublicQuizConfig', index: true },
+    quizId: { type: String },
     tenantId: { type: String, required: true, index: true },
+    isPreRegistration: { type: Boolean, default: false },
 
     email: { type: String, required: true, lowercase: true, trim: true },
     name: { type: String, required: true },

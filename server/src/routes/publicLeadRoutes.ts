@@ -1,5 +1,5 @@
-import express from 'express';
-import multer from 'multer';
+import express, { Request, Response, NextFunction } from 'express';
+import multer, { MulterError } from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
@@ -18,7 +18,23 @@ const storage = multer.diskStorage({
   }
 });
 
-const multipart = multer({ storage, limits: { fileSize: 100 * 1024 * 1024 } }).any();
+// 50 MB per file — applies to all file upload fields (College ID Card, Passport-size Photo, etc.)
+const MAX_FILE_SIZE_BYTES = 50 * 1024 * 1024;
+
+const upload = multer({ storage, limits: { fileSize: MAX_FILE_SIZE_BYTES } });
+
+// Wraps multer.any() and converts MulterError into a clean 413 JSON response
+const multipart = (req: Request, res: Response, next: NextFunction) => {
+  upload.any()(req, res, (err: any) => {
+    if (err instanceof MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        message: `File too large. Each file must be 50 MB or smaller. Please reduce the file size and try again.`,
+      });
+    }
+    if (err) return next(err);
+    next();
+  });
+};
 
 // PUBLIC ROUTES — No authentication required
 // These are used by external forms, landing pages, and embeddable forms

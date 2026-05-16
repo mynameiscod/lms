@@ -2858,5 +2858,41 @@ export const publicQuizAdminApi = {
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({}) }),
   rejectRegistration: (subId: string, reason: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+  getAvailableQuizzes: () =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
+  getWeekConfig: (weekLabel: string) => {
+    const qs = new URLSearchParams({ weekLabel }).toString();
+    return authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config?${qs}`);
+  },
+  setWeekConfig: (weekLabel: string, quizId: string, topperCount: number) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config`, {
+      method: 'PUT',
+      body: JSON.stringify({ weekLabel, quizId, topperCount }),
+    }),
+  getLeaderboard: (weekLabel: string) => {
+    const qs = new URLSearchParams({ weekLabel }).toString();
+    return authenticatedFetch(`${API_BASE_URL}/public-quizzes/leaderboard?${qs}`);
+  },
+};
+
+// ─── Public Quiz Session (no auth — token-based) ──────────────────────────────
+
+export const publicQuizSessionApi = {
+  getQuiz: (token: string) =>
+    fetch(`${API_BASE_URL}/public/quiz/${token}`).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to load quiz');
+      return data;
+    }),
+  submitQuiz: (token: string, answers: Record<string, string[]>) =>
+    fetch(`${API_BASE_URL}/public/quiz/${token}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers }),
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to submit quiz');
+      return data;
+    }),
 };
 

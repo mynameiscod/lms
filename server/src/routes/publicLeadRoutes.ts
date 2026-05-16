@@ -3,7 +3,7 @@ import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
-import { registerForWeeklyQuizFromWebsite } from '../controllers/publicQuizController';
+import { registerForWeeklyQuizFromWebsite, getQuizByToken, submitQuizByToken } from '../controllers/publicQuizController';
 
 const router = express.Router();
 
@@ -36,5 +36,11 @@ router.post('/:tenantSlug/website-lead', multipart, submitWebsiteLead);
 // Register for the current weekly/featured public quiz (called from external website)
 // POST /api/v1/public/:tenantSlug/weekly-quiz-register
 router.post('/:tenantSlug/weekly-quiz-register', multipart, registerForWeeklyQuizFromWebsite);
+
+// Public quiz-taking routes — authenticated via token only (no login required)
+// GET  /api/v1/public/quiz/:token       — fetch quiz questions (sets quizStartedAt on first call)
+// POST /api/v1/public/quiz/:token/submit — submit answers, get score + rank
+router.get('/quiz/:token', getQuizByToken);
+router.post('/quiz/:token/submit', express.json(), submitQuizByToken);
 
 export default router;

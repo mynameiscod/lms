@@ -127,6 +127,9 @@ import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList'
 import AllRegistrations from './pages/PublicQuizAdmin/AllRegistrations';
 import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 
+// Public quiz session (no auth required — token-based)
+import QuizSession from './pages/QuizSession';
+
 // Class Flow (new unified flow)
 import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
 import StudentMyClasses from './pages/StudentClassHub/StudentMyClasses';
@@ -244,6 +247,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />
+      <Route path="/quiz/:token" element={<QuizSession />} />
 
       <Route
         path="/dashboard"

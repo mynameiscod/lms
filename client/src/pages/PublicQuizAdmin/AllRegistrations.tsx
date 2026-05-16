@@ -8,6 +8,26 @@ const APPROVAL_BADGE: Record<string, { cls: string; label: string }> = {
   pending:  { cls: 'badge rounded-pill bg-warning text-dark', label: 'Pending' },
 };
 
+interface WeekCfg {
+  quizId: string;
+  topperCount: number;
+  quiz?: { title: string };
+}
+
+interface LeaderEntry {
+  _id: string;
+  name: string;
+  email: string;
+  rank: number;
+  score: number;
+  totalMarks: number;
+  percentage: number;
+  timeSpentSeconds: number;
+  passed: boolean;
+}
+
+interface AvailQuiz { _id: string; title: string; }
+
 const AllRegistrations: React.FC = () => {
   const navigate = useNavigate();
   const [submissions, setSubmissions] = useState<any[]>([]);
@@ -17,6 +37,20 @@ const AllRegistrations: React.FC = () => {
   const [search,     setSearch]       = useState('');
   const [weekFilter, setWeekFilter]   = useState('');
   const [loading,    setLoading]      = useState(true);
+
+  // Week settings panel
+  const [weekCfg,        setWeekCfg]        = useState<WeekCfg | null>(null);
+  const [cfgLoading,     setCfgLoading]     = useState(false);
+  const [cfgSaving,      setCfgSaving]      = useState(false);
+  const [cfgQuizId,      setCfgQuizId]      = useState('');
+  const [cfgTopperCount, setCfgTopperCount] = useState(3);
+  const [cfgMsg,         setCfgMsg]         = useState('');
+  const [availQuizzes,   setAvailQuizzes]   = useState<AvailQuiz[]>([]);
+
+  // Leaderboard
+  const [leaderboard,   setLeaderboard]   = useState<LeaderEntry[]>([]);
+  const [lbLoading,     setLbLoading]     = useState(false);
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
 
   const limit = 100;
 
@@ -37,6 +71,62 @@ const AllRegistrations: React.FC = () => {
   }, [page, search, weekFilter]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
+
+  // Load week config + available quizzes when a real week is selected
+  useEffect(() => {
+    if (!weekFilter || weekFilter === '__pre__') {
+      setWeekCfg(null);
+      setLeaderboard([]);
+      setShowLeaderboard(false);
+      return;
+    }
+    setCfgLoading(true);
+    setCfgMsg('');
+    Promise.all([
+      publicQuizAdminApi.getWeekConfig(weekFilter),
+      publicQuizAdminApi.getAvailableQuizzes(),
+    ]).then(([cfg, quizzes]) => {
+      setAvailQuizzes(quizzes.quizzes || []);
+      if (cfg && cfg.quizId) {
+        setWeekCfg(cfg);
+        setCfgQuizId(cfg.quizId);
+        setCfgTopperCount(cfg.topperCount ?? 3);
+      } else {
+        setWeekCfg(null);
+        setCfgQuizId('');
+        setCfgTopperCount(3);
+      }
+    }).catch(console.error).finally(() => setCfgLoading(false));
+  }, [weekFilter]);
+
+  const saveWeekConfig = async () => {
+    if (!weekFilter || !cfgQuizId) return;
+    setCfgSaving(true);
+    setCfgMsg('');
+    try {
+      await publicQuizAdminApi.setWeekConfig(weekFilter, cfgQuizId, cfgTopperCount);
+      setCfgMsg('Saved successfully!');
+      // Reload config
+      const cfg = await publicQuizAdminApi.getWeekConfig(weekFilter);
+      setWeekCfg(cfg);
+    } catch (e: any) {
+      setCfgMsg('Save failed: ' + (e.message || 'Unknown error'));
+    }
+    setCfgSaving(false);
+  };
+
+  const loadLeaderboard = async () => {
+    if (!weekFilter) return;
+    setLbLoading(true);
+    try {
+      const data = await publicQuizAdminApi.getLeaderboard(weekFilter);
+      setLeaderboard(data.leaderboard || []);
+      setShowLeaderboard(true);
+    } catch (e: any) {
+      console.error(e);
+    }
+    setLbLoading(false);
+  };
 
   const exportCSV = () => {
     if (!submissions.length) return;
@@ -66,6 +156,8 @@ const AllRegistrations: React.FC = () => {
     { label: 'Pending Review',      value: pending,   icon: 'fa-clock',        color: '#fd7e14' },
     { label: 'Weeks',               value: weekLabels.length, icon: 'fa-calendar-week', color: '#6f42c1' },
   ];
+
+  const isRealWeek = weekFilter && weekFilter !== '__pre__';
 
   return (
     <div style={{ padding: '24px 28px', maxWidth: 1280, width: '100%' }}>
@@ -142,6 +234,137 @@ const AllRegistrations: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* ── Week Settings Panel (shown when a real week is selected) ── */}
+      {isRealWeek && (
+        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 12 }}>
+          <div className="card-header fw-semibold d-flex align-items-center justify-content-between bg-white border-bottom" style={{ borderRadius: '12px 12px 0 0' }}>
+            <span>
+              <i className="fa-solid fa-gear me-2 text-primary" />
+              Week Settings — <em>{weekFilter}</em>
+            </span>
+            <button
+              className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+              onClick={loadLeaderboard}
+              disabled={lbLoading}
+            >
+              {lbLoading
+                ? <><span className="spinner-border spinner-border-sm" /> Loading…</>
+                : <><i className="fa-solid fa-trophy" /> View Leaderboard</>}
+            </button>
+          </div>
+          <div className="card-body px-4 py-3">
+            {cfgLoading ? (
+              <div className="text-center py-3 text-muted">
+                <span className="spinner-border spinner-border-sm me-2" />Loading config…
+              </div>
+            ) : (
+              <div className="row g-3 align-items-end">
+                <div className="col-12 col-md-5">
+                  <label className="form-label small fw-semibold mb-1">Quiz for this week</label>
+                  <select
+                    className="form-select form-select-sm"
+                    value={cfgQuizId}
+                    onChange={e => setCfgQuizId(e.target.value)}
+                  >
+                    <option value="">— Select a quiz —</option>
+                    {availQuizzes.map(q => (
+                      <option key={q._id} value={q._id}>{q.title}</option>
+                    ))}
+                  </select>
+                  <div className="form-text">Approved candidates will receive a link to this quiz.</div>
+                </div>
+                <div className="col-12 col-md-3">
+                  <label className="form-label small fw-semibold mb-1">Topper count</label>
+                  <input
+                    type="number"
+                    className="form-control form-control-sm"
+                    min={1}
+                    max={50}
+                    value={cfgTopperCount}
+                    onChange={e => setCfgTopperCount(Number(e.target.value))}
+                  />
+                  <div className="form-text">How many top positions to track (1st, 2nd…)</div>
+                </div>
+                <div className="col-12 col-md-4 d-flex align-items-end gap-2">
+                  <button
+                    className="btn btn-primary btn-sm px-4"
+                    disabled={cfgSaving || !cfgQuizId}
+                    onClick={saveWeekConfig}
+                  >
+                    {cfgSaving ? <><span className="spinner-border spinner-border-sm me-1" />Saving…</> : 'Save Config'}
+                  </button>
+                  {cfgMsg && (
+                    <span className={`small ${cfgMsg.startsWith('Saved') ? 'text-success' : 'text-danger'}`}>
+                      {cfgMsg}
+                    </span>
+                  )}
+                </div>
+                {weekCfg?.quiz && (
+                  <div className="col-12">
+                    <div className="alert alert-info py-2 mb-0 small">
+                      <i className="fa-solid fa-circle-info me-1" />
+                      Currently configured quiz: <strong>{weekCfg.quiz.title}</strong> — {cfgTopperCount} topper position{cfgTopperCount !== 1 ? 's' : ''} tracked.
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Leaderboard ─────────────────────────────────────────── */}
+      {showLeaderboard && isRealWeek && (
+        <div className="card border-0 shadow-sm mb-4" style={{ borderRadius: 12 }}>
+          <div className="card-header fw-semibold d-flex align-items-center justify-content-between bg-white border-bottom" style={{ borderRadius: '12px 12px 0 0' }}>
+            <span><i className="fa-solid fa-trophy me-2 text-warning" />Leaderboard — {weekFilter}</span>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setShowLeaderboard(false)}>Hide</button>
+          </div>
+          <div className="table-responsive">
+            <table className="table table-hover mb-0 align-middle" style={{ fontSize: 13 }}>
+              <thead style={{ background: '#f8f9fa' }}>
+                <tr>
+                  <th className="ps-4 text-muted fw-semibold" style={{ fontSize: 12, width: 60 }}>RANK</th>
+                  <th className="text-muted fw-semibold" style={{ fontSize: 12 }}>NAME</th>
+                  <th className="text-muted fw-semibold" style={{ fontSize: 12 }}>EMAIL</th>
+                  <th className="text-muted fw-semibold" style={{ fontSize: 12 }}>SCORE</th>
+                  <th className="text-muted fw-semibold" style={{ fontSize: 12 }}>%</th>
+                  <th className="text-muted fw-semibold pe-4" style={{ fontSize: 12 }}>TIME</th>
+                </tr>
+              </thead>
+              <tbody>
+                {leaderboard.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="text-center text-muted py-4">
+                      No completed quiz attempts yet for this week.
+                    </td>
+                  </tr>
+                ) : leaderboard.map(entry => {
+                  const medal = entry.rank === 1 ? '🥇' : entry.rank === 2 ? '🥈' : entry.rank === 3 ? '🥉' : `#${entry.rank}`;
+                  const mins  = Math.floor(entry.timeSpentSeconds / 60);
+                  const secs  = entry.timeSpentSeconds % 60;
+                  const timeStr = `${mins}m ${secs}s`;
+                  return (
+                    <tr key={entry._id} className={entry.rank <= 3 ? 'table-warning' : ''}>
+                      <td className="ps-4 fw-bold" style={{ fontSize: 16 }}>{medal}</td>
+                      <td className="fw-semibold">{entry.name}</td>
+                      <td className="text-muted">{entry.email}</td>
+                      <td>{entry.score}/{entry.totalMarks}</td>
+                      <td>
+                        <span className={`badge ${entry.passed ? 'bg-success' : 'bg-secondary'}`}>
+                          {entry.percentage?.toFixed(1)}%
+                        </span>
+                      </td>
+                      <td className="pe-4 text-muted">{timeStr}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* ── Table ───────────────────────────────────────────────── */}
       <div className="card border-0 shadow-sm" style={{ borderRadius: 12 }}>

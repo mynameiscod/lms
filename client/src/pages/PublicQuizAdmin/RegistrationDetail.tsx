@@ -17,6 +17,7 @@ const RegistrationDetail: React.FC = () => {
   const [rejectReason, setRejectReason] = useState('');
   const [showRejectBox, setShowRejectBox] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
+  const [quizUrl, setQuizUrl] = useState<string>('');
 
   useEffect(() => {
     publicQuizAdminApi.getRegistrationDetail(subId!)
@@ -28,9 +29,10 @@ const RegistrationDetail: React.FC = () => {
   const handleApprove = async () => {
     setActionLoading(true);
     try {
-      await publicQuizAdminApi.approveRegistration(subId!);
-      setSub((prev: any) => ({ ...prev, isApproved: true, rejectionReason: undefined }));
-      setMessage({ text: 'Registration approved.', type: 'success' });
+      const res = await publicQuizAdminApi.approveRegistration(subId!);
+      setSub((prev: any) => ({ ...prev, isApproved: true, rejectionReason: undefined, quizToken: res.quizToken }));
+      if (res.quizUrl) setQuizUrl(res.quizUrl);
+      setMessage({ text: 'Registration approved. Quiz link generated.', type: 'success' });
     } catch (e: any) {
       setMessage({ text: e.message, type: 'danger' });
     }
@@ -185,6 +187,34 @@ const RegistrationDetail: React.FC = () => {
               )}
             </div>
           </div>
+
+          {/* Quiz link (shown after approval if quizToken exists) */}
+          {(sub.isApproved === true && (quizUrl || sub.quizToken)) && (
+            <div className="card mb-4 border-primary">
+              <div className="card-header fw-semibold text-primary">
+                <i className="fa-solid fa-link me-2" />Quiz Link
+              </div>
+              <div className="card-body">
+                <p className="text-muted small mb-2">Send this link to the candidate. They can take the quiz without logging in.</p>
+                <div className="input-group">
+                  <input
+                    className="form-control form-control-sm font-monospace"
+                    readOnly
+                    value={quizUrl || `${window.location.origin}/quiz/${sub.quizToken}`}
+                  />
+                  <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => {
+                      const url = quizUrl || `${window.location.origin}/quiz/${sub.quizToken}`;
+                      navigator.clipboard.writeText(url);
+                    }}
+                  >
+                    <i className="fa-solid fa-copy" /> Copy
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Approval actions */}
           <div className="card">

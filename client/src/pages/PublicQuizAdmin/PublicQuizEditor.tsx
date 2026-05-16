@@ -209,6 +209,62 @@ const PublicQuizEditor: React.FC = () => {
                 />
                 <div className="form-text">Tracks Meta / Instagram ads</div>
               </div>
+
+              {/* Approval + Toppers row */}
+              <div className="col-12">
+                <hr className="my-1" />
+                <div className="row g-3 align-items-end">
+                  <div className="col-md-4">
+                    <label className="form-label fw-semibold">✅ Admin Approval Required</label>
+                    <div className="form-check form-switch mt-1">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={config.requiresApproval || false}
+                        onChange={e => setConfig((p: any) => ({ ...p, requiresApproval: e.target.checked }))}
+                      />
+                      <label className="form-check-label">
+                        {config.requiresApproval ? 'Enabled — only approved candidates can take the quiz' : 'Disabled — all registrants can take the quiz immediately'}
+                      </label>
+                    </div>
+                    <div className="form-text">When enabled, admin must approve each registration from the All Registrations page before the candidate can access the quiz.</div>
+                  </div>
+                  <div className="col-md-3">
+                    <label className="form-label fw-semibold">🏆 Topper Rankings</label>
+                    <div className="form-check form-switch mt-1">
+                      <input
+                        className="form-check-input"
+                        type="checkbox"
+                        checked={config.topperConfig?.enabled || false}
+                        onChange={e => setConfig((p: any) => ({
+                          ...p,
+                          topperConfig: { ...(p.topperConfig || { count: 3 }), enabled: e.target.checked }
+                        }))}
+                      />
+                      <label className="form-check-label">
+                        {config.topperConfig?.enabled ? 'Enabled' : 'Disabled'}
+                      </label>
+                    </div>
+                  </div>
+                  {config.topperConfig?.enabled && (
+                    <div className="col-md-2">
+                      <label className="form-label fw-semibold">Number of Toppers</label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        min={1}
+                        max={50}
+                        value={config.topperConfig?.count || 3}
+                        onChange={e => setConfig((p: any) => ({
+                          ...p,
+                          topperConfig: { ...(p.topperConfig || { enabled: true }), count: parseInt(e.target.value) || 3 }
+                        }))}
+                      />
+                      <div className="form-text">How many positions to track (1st, 2nd, 3rd…)</div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

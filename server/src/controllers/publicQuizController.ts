@@ -14,6 +14,23 @@ import Tenant from '../models/Tenant';
 // Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** Recompute ranks for all finished submissions of a config (sorted by score desc, then earliest completedAt) */
+async function computeRanks(configId: string): Promise<void> {
+  const submissions = await PublicQuizSubmission.find({
+    publicQuizConfigId: configId,
+    quizAttemptId: { $exists: true },
+    completedAt: { $exists: true }
+  }).sort({ score: -1, completedAt: 1 }).select('_id');
+
+  const bulkOps = submissions.map((s, i) => ({
+    updateOne: {
+      filter: { _id: s._id },
+      update: { $set: { rank: i + 1 } }
+    }
+  }));
+  if (bulkOps.length) await PublicQuizSubmission.bulkWrite(bulkOps);
+}
+
 /** Evaluate soft eligibility for a registration form submission */
 function evaluateEligibility(fields: any[], registrationData: Record<string, any>) {
   const flags: any[] = [];
@@ -192,14 +209,38 @@ export const registerForPublicQuiz = async (req: Request, res: Response) => {
     if (!email) return res.status(400).json({ message: 'Email is required in registration form' });
     if (!name) name = email;
 
-    // Check prior submissions
-    const priorSubmissions = await PublicQuizSubmission.find({
+    // Duplicate detection — return existing active session instead of creating new one
+    const existingActive = await PublicQuizSubmission.findOne({
       publicQuizConfigId: config._id,
-      email
-    }).sort({ createdAt: 1 });
+      email,
+      canTakeQuiz: true,
+      quizAttemptId: { $exists: false }
+    });
+    if (existingActive) {
+      return res.json({
+        canTakeQuiz: true,
+        submissionId: existingActive._id,
+        eligibilityStatus: existingActive.eligibilityStatus,
+        message: 'You are already registered. Proceed to take the quiz.'
+      });
+    }
 
-    const attemptNumber = priorSubmissions.length + 1;
-    const canTakeQuiz = priorSubmissions.filter(s => s.canTakeQuiz === false || s.quizAttemptId).length === 0;
+    // Check if already completed
+    const existingCompleted = await PublicQuizSubmission.findOne({
+      publicQuizConfigId: config._id,
+      email,
+      quizAttemptId: { $exists: true }
+    });
+    if (existingCompleted) {
+      return res.status(200).json({
+        canTakeQuiz: false,
+        message: 'You have already taken this quiz. Your form submission has been recorded.',
+        submissionId: existingCompleted._id
+      });
+    }
+
+    const attemptNumber = 1;
+    const canTakeQuiz = true;
 
     // Soft eligibility check
     const eligibilityFlags = evaluateEligibility(config.registrationForm.fields, registrationData);
@@ -225,11 +266,15 @@ export const registerForPublicQuiz = async (req: Request, res: Response) => {
     // Increment config total
     await PublicQuizConfig.findByIdAndUpdate(config._id, { $inc: { totalSubmissions: 1 } });
 
-    if (!canTakeQuiz) {
+    // If approval is required, mark canTakeQuiz=false until admin approves
+    if ((config as any).requiresApproval) {
+      submission.canTakeQuiz = false;
+      await submission.save();
       return res.status(200).json({
         canTakeQuiz: false,
-        message: 'You have already taken this quiz. Your form submission has been recorded.',
-        submissionId: submission._id
+        reason: 'pending_approval',
+        submissionId: submission._id,
+        message: 'Registration successful! Your details are under review. You will be notified once approved.'
       });
     }
 
@@ -262,10 +307,19 @@ export const getPublicQuizQuestions = async (req: Request, res: Response) => {
   try {
     const submission = await PublicQuizSubmission.findById(req.params.submissionId);
     if (!submission) return res.status(404).json({ message: 'Session not found' });
-    if (!submission.canTakeQuiz) return res.status(403).json({ message: 'You have already completed this quiz' });
 
     const config = await PublicQuizConfig.findById(submission.publicQuizConfigId);
     if (!config || !config.isActive) return res.status(404).json({ message: 'Quiz not available' });
+
+    // Approval gate
+    if ((config as any).requiresApproval && submission.isApproved !== true) {
+      if (submission.isApproved === false) {
+        return res.status(403).json({ message: 'Your registration has been rejected.', code: 'REJECTED' });
+      }
+      return res.status(403).json({ message: 'Your registration is pending admin approval. Please wait.', code: 'PENDING_APPROVAL' });
+    }
+
+    if (!submission.canTakeQuiz) return res.status(403).json({ message: 'You have already completed this quiz', code: 'ALREADY_COMPLETED' });
 
     const quiz = await Quiz.findById(submission.quizId);
     if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
@@ -396,6 +450,13 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
     submission.shareToken = attempt.shareToken;
     await submission.save();
 
+    // Recompute ranks for all finishers of this quiz config
+    if (submission.publicQuizConfigId) {
+      await computeRanks(submission.publicQuizConfigId.toString());
+      const updated = await PublicQuizSubmission.findById(submission._id).select('rank');
+      (submission as any).rank = updated?.rank;
+    }
+
     res.json({
       submissionId: submission._id,
       shareToken: attempt.shareToken,
@@ -403,6 +464,7 @@ export const submitPublicQuiz = async (req: Request, res: Response) => {
       totalMarks: quiz.totalMarks,
       percentage: Math.round(percentage),
       passed,
+      rank: (submission as any).rank ?? null,
       message: 'Quiz submitted successfully'
     });
   } catch (err: any) {
@@ -943,14 +1005,36 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
       }
     }
 
-    // Prior submission check
-    const priorSubmissions = await PublicQuizSubmission.find({
+    // Duplicate detection — return existing active session
+    const existingActive = await PublicQuizSubmission.findOne({
       publicQuizConfigId: config._id,
-      email: normalizedEmail
-    }).sort({ createdAt: 1 });
+      email: normalizedEmail,
+      canTakeQuiz: true,
+      quizAttemptId: { $exists: false }
+    });
+    if (existingActive) {
+      const quizUrl = `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/public-quiz/${config.slug}?session=${existingActive._id}`;
+      return res.json({
+        canTakeQuiz: true,
+        submissionId: existingActive._id,
+        quizUrl,
+        eligibilityStatus: existingActive.eligibilityStatus,
+        message: 'You are already registered. Use your quiz link to take the exam.'
+      });
+    }
 
-    const attemptNumber = priorSubmissions.length + 1;
-    const canTakeQuiz = priorSubmissions.filter(s => !s.canTakeQuiz || s.quizAttemptId).length === 0;
+    // Already completed
+    const existingCompleted = await PublicQuizSubmission.findOne({
+      publicQuizConfigId: config._id,
+      email: normalizedEmail,
+      quizAttemptId: { $exists: true }
+    });
+    if (existingCompleted) {
+      return res.status(200).json({
+        canTakeQuiz: false,
+        message: 'You have already completed this quiz. Your entry has been recorded.'
+      });
+    }
 
     // Eligibility
     const eligibilityFlags = evaluateEligibility(config.registrationForm.fields, mappedData);
@@ -966,24 +1050,27 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
       uploadedFiles,
       eligibilityStatus,
       eligibilityFlags,
-      attemptNumber,
-      canTakeQuiz,
+      attemptNumber: 1,
+      canTakeQuiz: true,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] || ''
     });
     await submission.save();
     await PublicQuizConfig.findByIdAndUpdate(config._id, { $inc: { totalSubmissions: 1 } });
 
-    // Build the quiz URL — frontend path that the website can redirect the user to
+    // Build the quiz URL
     const frontendBase = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
     const quizUrl = `${frontendBase}/public-quiz/${config.slug}?session=${submission._id}`;
 
-    if (!canTakeQuiz) {
+    // If approval required, block quiz access until admin approves
+    if ((config as any).requiresApproval) {
+      submission.canTakeQuiz = false;
+      await submission.save();
       return res.status(200).json({
         canTakeQuiz: false,
+        reason: 'pending_approval',
         submissionId: submission._id,
-        quizUrl,
-        message: 'You have already taken this quiz. Your entry has been recorded.'
+        message: 'Registration successful! Your details are under review. We will notify you once approved.'
       });
     }
 
@@ -1012,3 +1099,58 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
     res.status(500).json({ message: err.message });
   }
 };
+
+/** POST /api/public-quiz/session/:submissionId/recording  — upload recorded video/audio after quiz */
+export const uploadQuizRecording = async (req: Request, res: Response) => {
+  try {
+    const { submissionId } = req.params;
+    const submission = await PublicQuizSubmission.findById(submissionId);
+    if (!submission) return res.status(404).json({ message: 'Session not found' });
+
+    const files = (req as any).files as any[] || [];
+    const file = files[0] || (req as any).file;
+    if (!file) return res.status(400).json({ message: 'No recording file provided' });
+
+    submission.recordingPath = `/uploads/recordings/${file.filename}`;
+    await submission.save();
+
+    res.json({ success: true, recordingPath: submission.recordingPath });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** GET /api/public-quiz/:slug/leaderboard  — top N finishers (public, by slug) */
+export const getPublicQuizLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const config = await PublicQuizConfig.findOne({ slug: req.params.slug, isActive: true });
+    if (!config) return res.status(404).json({ message: 'Quiz not found' });
+    await sendLeaderboard(config, res);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/** GET /api/public-quizzes/:id/leaderboard  — top N finishers (admin, by ID) */
+export const getAdminLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const config = await PublicQuizConfig.findOne({ _id: req.params.id, tenantId });
+    if (!config) return res.status(404).json({ message: 'Quiz not found' });
+    await sendLeaderboard(config, res);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+async function sendLeaderboard(config: any, res: Response) {
+  const count = config.topperConfig?.count || 10;
+  const toppers = await PublicQuizSubmission.find({
+    publicQuizConfigId: config._id,
+    quizAttemptId: { $exists: true },
+    rank: { $exists: true, $lte: count }
+  })
+    .sort({ rank: 1 })
+    .select('name rank score totalMarks percentage passed completedAt');
+  res.json({ toppers, count, title: config.title, weekLabel: config.weekLabel });
+}

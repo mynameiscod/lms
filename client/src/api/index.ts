@@ -2906,5 +2906,15 @@ export const publicQuizApi = {
   getResults: (submissionId: string) =>
     fetch(`${API_BASE_URL}/public-quiz/session/${submissionId}/results`).then(r => r.json()),
   getCertificateUrl: (shareToken: string) => `${API_BASE_URL}/public-quiz/certificate/${shareToken}`,
+  uploadRecording: (submissionId: string, blob: Blob) => {
+    const form = new FormData();
+    form.append('recording', blob, 'recording.webm');
+    return fetch(`${API_BASE_URL}/public-quiz/session/${submissionId}/recording`, {
+      method: 'POST',
+      body: form
+    }).then(r => r.json());
+  },
+  getLeaderboard: (slug: string) =>
+    fetch(`${API_BASE_URL}/public-quiz/${slug}/leaderboard`).then(r => r.json()),
 };
 

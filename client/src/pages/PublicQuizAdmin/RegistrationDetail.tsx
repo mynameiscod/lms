@@ -182,6 +182,23 @@ const RegistrationDetail: React.FC = () => {
 
         {/* Right: Files + Approval */}
         <div className="col-lg-5">
+          {/* Recording */}
+          {sub.recordingPath && (
+            <div className="card mb-4">
+              <div className="card-header fw-semibold">Quiz Recording</div>
+              <div className="card-body">
+                <video
+                  src={sub.recordingPath}
+                  controls
+                  style={{ width: '100%', borderRadius: 8, maxHeight: 320 }}
+                />
+                <a href={sub.recordingPath} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-secondary mt-2">
+                  Download Recording
+                </a>
+              </div>
+            </div>
+          )}
+
           {/* Uploaded files */}
           <div className="card mb-4">
             <div className="card-header fw-semibold">Uploaded Documents</div>
@@ -218,6 +235,22 @@ const RegistrationDetail: React.FC = () => {
               {sub.isApproved === true && (
                 <div className="alert alert-success mb-0 py-2">
                   ✅ Approved — student can take the quiz.
+                  {cfg?.slug && sub._id && (
+                    <div className="mt-2">
+                      <div className="text-muted small mb-1">Quiz link to send to student:</div>
+                      <div className="d-flex gap-2 align-items-center">
+                        <code className="flex-grow-1 text-break" style={{ fontSize: 12, background: '#f0fdf4', padding: '4px 8px', borderRadius: 4, display: 'block' }}>
+                          {`${window.location.origin}/public-quiz/${cfg.slug}?session=${sub._id}`}
+                        </code>
+                        <button
+                          className="btn btn-sm btn-outline-success flex-shrink-0"
+                          onClick={() => navigator.clipboard.writeText(`${window.location.origin}/public-quiz/${cfg.slug}?session=${sub._id}`)}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
               {sub.isApproved === false && (

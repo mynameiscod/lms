@@ -44,6 +44,12 @@ export interface IPublicQuizSubmission extends Document {
   // Uploaded files (photo, ID card, etc.)
   uploadedFiles?: Array<{ fieldName: string; filePath: string; mimeType: string; originalName: string }>;
 
+  // Rank among all finishers for this config (1 = top scorer, recomputed after each submission)
+  rank?: number;
+
+  // Path to the recorded video/audio file uploaded after quiz submission
+  recordingPath?: string;
+
   // Share token for certificate access
   shareToken?: string;
 
@@ -103,6 +109,8 @@ const publicQuizSubmissionSchema = new Schema<IPublicQuizSubmission>(
       _id: false
     }],
 
+    rank: { type: Number },
+    recordingPath: { type: String },
     shareToken: { type: String, index: true },
     ipAddress: String,
     userAgent: String

@@ -81,6 +81,11 @@ export interface IPublicQuizConfig extends Document {
   registrationForm: IRegistrationForm;
   resultSettings: IResultSettings;
   weekLabel?: string; // e.g. "Week 1", "Week of May 19 2026" — shown in admin tables
+  requiresApproval?: boolean; // admin must approve each registration before they can take the quiz
+  topperConfig?: {
+    enabled: boolean;
+    count: number; // how many topper positions to track (1st, 2nd, 3rd, ...)
+  };
   certificateTemplate?: string; // HTML with {{name}} {{score}} etc.
   totalSubmissions: number;
   scheduledAt?: Date;    // quiz becomes available (null = immediately)
@@ -150,6 +155,11 @@ const publicQuizConfigSchema = new Schema<IPublicQuizConfig>(
     },
 
     weekLabel: { type: String, trim: true },
+    requiresApproval: { type: Boolean, default: false },
+    topperConfig: {
+      enabled: { type: Boolean, default: false },
+      count: { type: Number, default: 3 }
+    },
     certificateTemplate: String,
     totalSubmissions: { type: Number, default: 0 },
     scheduledAt: Date,

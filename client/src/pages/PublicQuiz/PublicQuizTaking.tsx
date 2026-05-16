@@ -15,16 +15,73 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [recordingStatus, setRecordingStatus] = useState<'idle' | 'active' | 'denied' | 'uploading'>('idle');
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(Date.now());
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordingChunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     publicQuizApi.getQuestions(submissionId).then(data => {
-      if (data.message) { setError(data.message); setLoading(false); return; }
+      if (data.message && !data.questions) { setError(data.message); setLoading(false); return; }
       setQuestions(data.questions || []);
-      if (data.totalTime) setTimeLeft(data.totalTime * 60);
+      if (data.quiz?.totalTime) setTimeLeft(data.quiz.totalTime * 60);
+      else if (data.totalTime) setTimeLeft(data.totalTime * 60);
       setLoading(false);
     }).catch(e => { setError(e.message); setLoading(false); });
+  }, [submissionId]);
+
+  // Start camera+mic recording when quiz loads
+  useEffect(() => {
+    if (loading) return;
+    startRecording();
+    return () => stopStream();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      streamRef.current = stream;
+      recordingChunksRef.current = [];
+
+      const mimeType = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
+        ? 'video/webm;codecs=vp9,opus'
+        : 'video/webm';
+
+      const recorder = new MediaRecorder(stream, { mimeType });
+      recorder.ondataavailable = e => { if (e.data.size > 0) recordingChunksRef.current.push(e.data); };
+      recorder.start(5000); // collect chunks every 5s
+      mediaRecorderRef.current = recorder;
+      setRecordingStatus('active');
+    } catch {
+      setRecordingStatus('denied');
+    }
+  };
+
+  const stopStream = () => {
+    streamRef.current?.getTracks().forEach(t => t.stop());
+  };
+
+  const stopRecordingAndUpload = useCallback((): Promise<void> => {
+    return new Promise(resolve => {
+      const recorder = mediaRecorderRef.current;
+      if (!recorder || recorder.state === 'inactive') { resolve(); return; }
+
+      recorder.onstop = async () => {
+        stopStream();
+        if (recordingChunksRef.current.length === 0) { resolve(); return; }
+        try {
+          setRecordingStatus('uploading');
+          const blob = new Blob(recordingChunksRef.current, { type: 'video/webm' });
+          await publicQuizApi.uploadRecording(submissionId, blob);
+        } catch { /* recording upload failure is non-fatal */ }
+        resolve();
+      };
+      recorder.stop();
+    });
   }, [submissionId]);
 
   useEffect(() => {
@@ -33,7 +90,7 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
     timerRef.current = setInterval(() => setTimeLeft(t => (t !== null ? t - 1 : null)), 1000);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft === null ? null : Math.floor(timeLeft / 60)]);  // restart only when minute changes
+  }, [timeLeft === null ? null : Math.floor(timeLeft / 60)]);
 
   useEffect(() => {
     if (timeLeft === 0) handleSubmit();
@@ -55,6 +112,9 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
     if (timerRef.current) clearInterval(timerRef.current);
     setSubmitting(true);
     try {
+      // Stop recording and upload before submitting quiz result
+      await stopRecordingAndUpload();
+
       const timeSpent = Math.floor((Date.now() - startTimeRef.current) / 1000);
       const answersArray = Object.entries(answers).map(([questionId, selectedOptions]) => ({
         questionId,
@@ -67,7 +127,7 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
       setSubmitting(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [submitting, answers, submissionId, onCompleted]);
+  }, [submitting, answers, submissionId, onCompleted, stopRecordingAndUpload]);
 
   const confirmSubmit = () => {
     const unanswered = questions.filter(q => !(answers[q._id]?.length));
@@ -108,11 +168,26 @@ const PublicQuizTaking: React.FC<Props> = ({ submissionId, primaryColor, onCompl
           <span>{currentIdx + 1} / {questions.length}</span>
           <span className="pq-quiz-answered">{answered} answered</span>
         </div>
-        {timeLeft !== null && (
-          <div className={`pq-quiz-timer ${timeLeft < 120 ? 'pq-timer-warning' : ''}`}>
-            ⏱ {formatTime(timeLeft)}
-          </div>
-        )}
+        <div className="d-flex align-items-center gap-3">
+          {/* Recording indicator */}
+          {recordingStatus === 'active' && (
+            <span style={{ fontSize: 12, opacity: 0.9, display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ff4444', display: 'inline-block', animation: 'blink 1s infinite' }} />
+              Recording
+            </span>
+          )}
+          {recordingStatus === 'denied' && (
+            <span style={{ fontSize: 11, opacity: 0.8 }}>⚠ Camera denied</span>
+          )}
+          {recordingStatus === 'uploading' && (
+            <span style={{ fontSize: 11, opacity: 0.8 }}>Uploading…</span>
+          )}
+          {timeLeft !== null && (
+            <div className={`pq-quiz-timer ${timeLeft < 120 ? 'pq-timer-warning' : ''}`}>
+              ⏱ {formatTime(timeLeft)}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="pq-quiz-body">

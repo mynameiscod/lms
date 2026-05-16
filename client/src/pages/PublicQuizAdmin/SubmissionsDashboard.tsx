@@ -126,12 +126,12 @@ const SubmissionsDashboard: React.FC = () => {
           <thead>
             <tr>
               <th>#</th>
+              <th>Rank</th>
               <th>Name</th>
               <th>Email</th>
               <th>Score</th>
               <th>%</th>
               <th>Eligibility</th>
-              <th>Attempts</th>
               <th>Completed</th>
               <th>Submitted</th>
               <th>Actions</th>
@@ -141,6 +141,20 @@ const SubmissionsDashboard: React.FC = () => {
             {submissions.map((s, i) => (
               <tr key={s._id}>
                 <td>{(page - 1) * limit + i + 1}</td>
+                <td>
+                  {s.rank != null ? (
+                    <span
+                      className="badge rounded-pill fw-bold"
+                      style={{
+                        background: s.rank === 1 ? '#ffd700' : s.rank === 2 ? '#c0c0c0' : s.rank === 3 ? '#cd7f32' : '#e9ecef',
+                        color: s.rank <= 3 ? '#333' : '#666',
+                        fontSize: 12
+                      }}
+                    >
+                      #{s.rank}
+                    </span>
+                  ) : <span className="text-muted">—</span>}
+                </td>
                 <td><strong>{s.name}</strong></td>
                 <td>{s.email}</td>
                 <td>{s.quizAttemptId ? `${s.score ?? '-'}/${s.totalMarks ?? '-'}` : <span className="text-muted">Not taken</span>}</td>
@@ -153,18 +167,19 @@ const SubmissionsDashboard: React.FC = () => {
                   <span className={`badge ${s.eligibilityStatus === 'qualified' ? 'bg-success' : 'bg-warning text-dark'}`}>
                     {s.eligibilityStatus}
                   </span>
-                  {s.eligibilityFlags?.length > 0 && (
-                    <div className="small text-muted mt-1">
-                      {s.eligibilityFlags.map((f: any, fi: number) => (
-                        <div key={fi}>⚠ {f.fieldLabel}: "{f.value}" ({f.rule})</div>
-                      ))}
-                    </div>
-                  )}
                 </td>
-                <td>{s.attemptNumber}</td>
                 <td>{s.quizAttemptId ? '✅' : '—'}</td>
                 <td className="text-muted small">{new Date(s.createdAt).toLocaleDateString('en-IN')}</td>
                 <td>
+                  {s.recordingPath && (
+                    <a
+                      href={s.recordingPath}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="btn btn-xs btn-outline-secondary me-1"
+                      title="View Recording"
+                    >🎥</a>
+                  )}
                   {s.shareToken && (
                     <a
                       href={`/api/v1/public-quiz/certificate/${s.shareToken}`}

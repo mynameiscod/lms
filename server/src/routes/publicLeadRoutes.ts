@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import fs from 'fs';
 import path from 'path';
-import { submitPublicLeadForm, getPublicFormConfig } from '../controllers/publicLeadController';
+import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
 import { registerForWeeklyQuizFromWebsite } from '../controllers/publicQuizController';
 
 const router = express.Router();
@@ -28,6 +28,10 @@ router.get('/form/:tenantSlug', getPublicFormConfig);
 
 // Submit a lead from an external form
 router.post('/form/:tenantSlug', multipart, submitPublicLeadForm);
+
+// Simple hot-lead capture for website contact/enquiry forms (no config needed)
+// POST /api/v1/public/:tenantSlug/website-lead
+router.post('/:tenantSlug/website-lead', multipart, submitWebsiteLead);
 
 // Register for the current weekly/featured public quiz (called from external website)
 // POST /api/v1/public/:tenantSlug/weekly-quiz-register

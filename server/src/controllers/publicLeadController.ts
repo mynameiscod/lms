@@ -21,6 +21,93 @@ function checkRateLimit(ip: string): boolean {
   return true;
 }
 
+// POST /api/v1/public/:tenantSlug/website-lead
+// Simple dedicated endpoint for website contact/enquiry forms.
+// Always creates a HOT lead with source = website. No form config required.
+export const submitWebsiteLead = async (req: Request, res: Response) => {
+  try {
+    const { tenantSlug } = req.params;
+    const clientIp = req.ip || req.socket.remoteAddress || 'unknown';
+
+    if (!checkRateLimit(clientIp)) {
+      return res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+    }
+
+    const tenant = await Tenant.findOne({ slug: tenantSlug, isActive: true });
+    if (!tenant) {
+      return res.status(404).json({ success: false, message: 'Invalid form endpoint.' });
+    }
+
+    const { name, phone, mobile, email, courseInterest, course, message, notes,
+            utm_source, utm_medium, utm_campaign, utm_content, utm_term } = req.body;
+
+    const contactPhone = (phone || mobile || '').toString().replace(/[^\d+]/g, '');
+    const contactName  = (name || '').toString().trim().substring(0, 200);
+    const contactEmail = (email || '').toString().trim().substring(0, 200);
+    const course_interest = courseInterest || course || '';
+
+    if (!contactName) {
+      return res.status(400).json({ success: false, message: 'Name is required.' });
+    }
+    if (!contactPhone && !contactEmail) {
+      return res.status(400).json({ success: false, message: 'Phone number or email is required.' });
+    }
+
+    // Duplicate check by phone, then email
+    const dupQuery: any[] = [];
+    if (contactPhone) dupQuery.push({ tenantId: tenant._id, phone: contactPhone });
+    if (contactEmail) dupQuery.push({ tenantId: tenant._id, email: contactEmail });
+
+    const existing = dupQuery.length ? await Lead.findOne({ $or: dupQuery }) : null;
+
+    if (existing) {
+      existing.activities = existing.activities || [];
+      existing.activities.push({
+        type: 'form_submission',
+        description: `Re-enquired via website.${message || notes ? ' Message: ' + (message || notes) : ''}`,
+        performedBy: (tenant as any).adminId,
+        createdAt: new Date(),
+      } as any);
+      // Upgrade to hot if currently cold/warm
+      if (existing.priority === 'cold' || existing.priority === 'warm') {
+        existing.priority = 'hot';
+      }
+      await existing.save();
+      return res.status(200).json({ success: true, message: 'Thank you! We will contact you shortly.', isExisting: true });
+    }
+
+    const defaultStage = await LeadStage.findOne({ tenantId: tenant._id, isDefault: true });
+
+    const lead = new Lead({
+      tenantId:  tenant._id,
+      name:      contactName,
+      phone:     contactPhone || undefined,
+      email:     contactEmail || undefined,
+      source:    'website',
+      sourceDetails: { platform: 'website', referrerUrl: req.headers.referer || '' },
+      priority:  'hot',
+      stageId:   defaultStage?._id,
+      courseInterest: course_interest
+        ? (Array.isArray(course_interest) ? course_interest : [course_interest])
+        : [],
+      activities: [{
+        type: 'form_submission',
+        description: `Hot lead from website.${message || notes ? ' Message: ' + (message || notes) : ''}`,
+        performedBy: (tenant as any).adminId,
+        createdAt: new Date(),
+      }],
+      utmParams: { source: utm_source, medium: utm_medium, campaign: utm_campaign, content: utm_content, term: utm_term },
+    });
+
+    await lead.save();
+
+    return res.status(201).json({ success: true, message: 'Thank you! We will contact you shortly.', isExisting: false });
+  } catch (error) {
+    console.error('[website-lead]', error);
+    return res.status(500).json({ success: false, message: 'Something went wrong. Please try again.' });
+  }
+};
+
 // GET /api/v1/public/form/:tenantSlug — Get form fields for embedding
 export const getPublicFormConfig = async (req: Request, res: Response) => {
   try {

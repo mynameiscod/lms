@@ -2843,20 +2843,6 @@ export const leadFeeApi = {
 
 /** Admin-side: manage public quiz configurations */
 export const publicQuizAdminApi = {
-  listConfigs: () => authenticatedFetch(`${API_BASE_URL}/public-quizzes`),
-  getConfig: (id: string) => authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}`),
-  createConfig: (data: any) => authenticatedFetch(`${API_BASE_URL}/public-quizzes`, { method: 'POST', body: JSON.stringify(data) }),
-  updateConfig: (id: string, data: any) => authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-  deleteConfig: (id: string) => authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}`, { method: 'DELETE' }),
-  getSubmissions: (id: string, params?: { page?: number; limit?: number; eligibility?: string }) => {
-    const qs = new URLSearchParams(params as any).toString();
-    return authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/submissions${qs ? `?${qs}` : ''}`);
-  },
-  convertToLead: (id: string, subId: string) =>
-    authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/submissions/${subId}/convert-to-lead`, { method: 'POST', body: JSON.stringify({}) }),
-  setFeatured: (id: string) =>
-    authenticatedFetch(`${API_BASE_URL}/public-quizzes/${id}/feature`, { method: 'PUT', body: JSON.stringify({}) }),
-  getAvailableQuizzes: () => authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
   getAllRegistrations: (params?: { page?: number; limit?: number; search?: string; week?: string }) => {
     const clean: Record<string, string> = {};
     if (params?.page != null) clean.page = String(params.page);
@@ -2868,53 +2854,9 @@ export const publicQuizAdminApi = {
   },
   getRegistrationDetail: (subId: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}`),
-  approveRegistration: (subId: string, note?: string) =>
-    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({ note }) }),
+  approveRegistration: (subId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({}) }),
   rejectRegistration: (subId: string, reason: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
-};
-
-/** Public-side: no auth needed */
-export const publicQuizApi = {
-  getPage: (slug: string) => fetch(`${API_BASE_URL}/public-quiz/${slug}`).then(r => r.json()),
-  register: (slug: string, data: any) =>
-    fetch(`${API_BASE_URL}/public-quiz/${slug}/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).then(async r => {
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.message || 'Registration failed');
-      return json;
-    }),
-  getQuestions: (submissionId: string) =>
-    fetch(`${API_BASE_URL}/public-quiz/session/${submissionId}/questions`).then(async r => {
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.message || 'Failed to load quiz');
-      return json;
-    }),
-  submitQuiz: (submissionId: string, data: { answers: any[]; timeSpent: number }) =>
-    fetch(`${API_BASE_URL}/public-quiz/session/${submissionId}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    }).then(async r => {
-      const json = await r.json();
-      if (!r.ok) throw new Error(json.message || 'Submission failed');
-      return json;
-    }),
-  getResults: (submissionId: string) =>
-    fetch(`${API_BASE_URL}/public-quiz/session/${submissionId}/results`).then(r => r.json()),
-  getCertificateUrl: (shareToken: string) => `${API_BASE_URL}/public-quiz/certificate/${shareToken}`,
-  uploadRecording: (submissionId: string, blob: Blob) => {
-    const form = new FormData();
-    form.append('recording', blob, 'recording.webm');
-    return fetch(`${API_BASE_URL}/public-quiz/session/${submissionId}/recording`, {
-      method: 'POST',
-      body: form
-    }).then(r => r.json());
-  },
-  getLeaderboard: (slug: string) =>
-    fetch(`${API_BASE_URL}/public-quiz/${slug}/leaderboard`).then(r => r.json()),
 };
 

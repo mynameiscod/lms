@@ -1,794 +1,132 @@
 import { Request, Response } from 'express';
-import crypto from 'crypto';
-import mongoose from 'mongoose';
-import PublicQuizConfig from '../models/PublicQuizConfig';
 import PublicQuizSubmission from '../models/PublicQuizSubmission';
-import Quiz from '../models/Quiz';
-import Question from '../models/Question';
-import QuizAttempt from '../models/QuizAttempt';
-import QuizSubmission from '../models/QuizSubmission';
-import Lead from '../models/Lead';
 import Tenant from '../models/Tenant';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Helpers
+// WEBSITE INTEGRATION ENDPOINT (public, for external site like codebegun.com)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** Recompute ranks for all finished submissions of a config (sorted by score desc, then earliest completedAt) */
-async function computeRanks(configId: string): Promise<void> {
-  const submissions = await PublicQuizSubmission.find({
-    publicQuizConfigId: configId,
-    quizAttemptId: { $exists: true },
-    completedAt: { $exists: true }
-  }).sort({ score: -1, completedAt: 1 }).select('_id');
-
-  const bulkOps = submissions.map((s, i) => ({
-    updateOne: {
-      filter: { _id: s._id },
-      update: { $set: { rank: i + 1 } }
-    }
-  }));
-  if (bulkOps.length) await PublicQuizSubmission.bulkWrite(bulkOps);
-}
-
-/** Evaluate soft eligibility for a registration form submission */
-function evaluateEligibility(fields: any[], registrationData: Record<string, any>) {
-  const flags: any[] = [];
-
-  for (const field of fields) {
-    const rules: any[] = field.eligibilityRules || (field.eligibilityRule ? [field.eligibilityRule] : []);
-    if (!rules.length) continue;
-
-    const userValue = String(registrationData[field.id] ?? '').trim();
-
-    for (const rule of rules) {
-      const { operator, value: ruleValue } = rule;
-      let passes = false;
-
-      switch (operator) {
-        case 'eq': passes = userValue.toLowerCase() === String(ruleValue).toLowerCase(); break;
-        case 'neq': passes = userValue.toLowerCase() !== String(ruleValue).toLowerCase(); break;
-        case 'contains': passes = userValue.toLowerCase().includes(String(ruleValue).toLowerCase()); break;
-        case 'lt': passes = parseFloat(userValue) < parseFloat(ruleValue); break;
-        case 'lte': passes = parseFloat(userValue) <= parseFloat(ruleValue); break;
-        case 'gt': passes = parseFloat(userValue) > parseFloat(ruleValue); break;
-        case 'gte': passes = parseFloat(userValue) >= parseFloat(ruleValue); break;
-        default: passes = true;
-      }
-
-      if (!passes) {
-        flags.push({
-          fieldId: field.id,
-          fieldLabel: field.label,
-          value: userValue,
-          rule: `must be ${operator} "${ruleValue}"`
-        });
-      }
-    }
-  }
-
-  return flags;
-}
-
-/** Grade a single MCQ answer — mirrors quizService.submitQuizAttempt logic */
-function gradeAnswer(question: any, selectedOptions: string[]): { isCorrect: boolean; marksAwarded: number } {
-  if (question.type !== 'mcq_single' && question.type !== 'mcq_multiple') {
-    return { isCorrect: false, marksAwarded: 0 };
-  }
-
-  // Helper: resolve an option reference (index number or text) to its text value
-  const resolveOption = (ref: any): string => {
-    const s = String(ref || '').trim();
-    if (!isNaN(Number(s)) && Array.isArray(question.options)) {
-      const idx = parseInt(s);
-      const opt = question.options[idx];
-      if (opt !== undefined) return typeof opt === 'string' ? opt.trim() : (opt?.text?.trim() || s);
-    }
-    return s;
-  };
-
-  // Resolve selected option indices to their text values (frontend sends index strings like "0")
-  const normalizedSelected = selectedOptions
-    .map(o => resolveOption(o))
-    .filter(Boolean)
-    .sort();
-
-  let correctAnswerTexts: string[] = [];
-  if (question.correctAnswers && question.correctAnswers.length > 0) {
-    correctAnswerTexts = question.correctAnswers
-      .map((ans: any) => resolveOption(ans))
-      .filter(Boolean)
-      .sort();
-  } else if (Array.isArray(question.options)) {
-    // Fallback: derive correct answers from options with isCorrect flag
-    correctAnswerTexts = question.options
-      .filter((o: any) => typeof o === 'object' && o.isCorrect)
-      .map((o: any) => o.text?.trim() || '')
-      .filter(Boolean)
-      .sort();
-  }
-
-  const isCorrect =
-    normalizedSelected.length > 0 &&
-    correctAnswerTexts.length > 0 &&
-    JSON.stringify(normalizedSelected) === JSON.stringify(correctAnswerTexts);
-
-  return { isCorrect, marksAwarded: isCorrect ? question.marks : 0 };
-}
-
-/** Resolve correct answer text for display (index-safe) */
-function resolveCorrectAnswerText(question: any): string {
-  const opts: any[] = question.options || [];
-  const correctOpt = opts.find((o: any) => typeof o === 'object' && o.isCorrect);
-  if (correctOpt) return correctOpt.text || '';
-
-  if (question.correctAnswers && question.correctAnswers.length > 0) {
-    return question.correctAnswers.map((ans: any) => {
-      const idx = parseInt(String(ans));
-      if (!isNaN(idx) && opts[idx] !== undefined) {
-        const opt = opts[idx];
-        return typeof opt === 'string' ? opt : (opt?.text || ans);
-      }
-      return ans;
-    }).join(', ');
-  }
-  return question.correctAnswerText || '';
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// PUBLIC ENDPOINTS (no auth)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** GET /api/public-quiz/:slug  — landing page + form config */
-export const getPublicQuizPage = async (req: Request, res: Response) => {
+/**
+ * POST /api/v1/public/:tenantSlug/weekly-quiz-register
+ *
+ * Called from external website registration form.
+ * Body: { name, email, phone?, weekLabel?, [any extra form fields + files] }
+ */
+export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Response) => {
   try {
-    const config = await PublicQuizConfig.findOne({ slug: req.params.slug, isActive: true });
-    if (!config) return res.status(404).json({ message: 'Quiz not found or not available' });
+    const { tenantSlug } = req.params;
 
-    const quiz = await Quiz.findById(config.quizId).select('title totalQuestions totalMarks totalTime description');
-    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+    const tenant = await Tenant.findOne({ slug: tenantSlug });
+    if (!tenant) return res.status(404).json({ message: 'Organization not found' });
 
-    const now = new Date();
-    const scheduledAt = config.scheduledAt;
-    const closesAt = config.closesAt;
-    const isOpen = (!scheduledAt || now >= scheduledAt) && (!closesAt || now <= closesAt);
+    const { name, email, phone, weekLabel, ...extraFields } = req.body as Record<string, any>;
 
-    res.json({
-      configId: config._id,
-      slug: config.slug,
-      title: config.title,
-      metaPixelId: config.metaPixelId,
-      isOpen,
-      scheduledAt: scheduledAt || null,
-      closesAt: closesAt || null,
-      quiz: {
-        title: quiz.title,
-        description: quiz.description,
-        totalQuestions: quiz.totalQuestions,
-        totalMarks: quiz.totalMarks,
-        totalTime: quiz.totalTime
-      },
-      landingPage: config.landingPage,
-      registrationForm: config.registrationForm,
-      resultSettings: {
-        showScore: config.resultSettings.showScore,
-        showAnswers: config.resultSettings.showAnswers,
-        showCertificate: config.resultSettings.showCertificate,
-        showThankYouMessage: config.resultSettings.showThankYouMessage,
-        thankYouMessage: config.resultSettings.thankYouMessage
-      }
-    });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** POST /api/public-quiz/:slug/register  — submit registration form */
-export const registerForPublicQuiz = async (req: Request, res: Response) => {
-  try {
-    const { slug } = req.params;
-    const registrationData: Record<string, any> = req.body;
-
-    const config = await PublicQuizConfig.findOne({ slug, isActive: true });
-    if (!config) return res.status(404).json({ message: 'Quiz not found or not available' });
-
-    // Check scheduling
-    const now = new Date();
-    if (config.closesAt && now > config.closesAt) {
-      return res.status(410).json({ message: 'This quiz has closed and is no longer accepting submissions.' });
+    if (!email || typeof email !== 'string') {
+      return res.status(400).json({ message: 'email is required' });
+    }
+    if (!name || typeof name !== 'string') {
+      return res.status(400).json({ message: 'name is required' });
     }
 
-    // Extract name + email from registrationData (fields labeled 'name'/'email' or first text/email field)
-    let email = '';
-    let name = '';
-    for (const field of config.registrationForm.fields) {
-      const val = registrationData[field.id] || '';
-      if (field.type === 'email' || field.label.toLowerCase().includes('email')) email = String(val).trim().toLowerCase();
-      if (field.label.toLowerCase().includes('name') && !name) name = String(val).trim();
-    }
-    if (!email) return res.status(400).json({ message: 'Email is required in registration form' });
-    if (!name) name = email;
+    const normalizedEmail = email.trim().toLowerCase();
+    const tenantId = tenant._id.toString();
 
-    // Duplicate detection — return existing active session instead of creating new one
-    const existingActive = await PublicQuizSubmission.findOne({
-      publicQuizConfigId: config._id,
-      email,
-      canTakeQuiz: true,
-      quizAttemptId: { $exists: false }
-    });
-    if (existingActive) {
-      return res.json({
-        canTakeQuiz: true,
-        submissionId: existingActive._id,
-        eligibilityStatus: existingActive.eligibilityStatus,
-        message: 'You are already registered. Proceed to take the quiz.'
-      });
-    }
+    // Collect uploaded files saved to disk by multer
+    const files = (req as any).files as Array<{ fieldname: string; filename: string; mimetype: string; originalname: string }> || [];
+    const uploadedFiles = files.map(f => ({
+      fieldName: f.fieldname,
+      filePath: `/uploads/registrations/${f.filename}`,
+      mimeType: f.mimetype,
+      originalName: f.originalname
+    }));
 
-    // Check if already completed
-    const existingCompleted = await PublicQuizSubmission.findOne({
-      publicQuizConfigId: config._id,
-      email,
-      quizAttemptId: { $exists: true }
-    });
-    if (existingCompleted) {
-      return res.status(200).json({
-        canTakeQuiz: false,
-        message: 'You have already taken this quiz. Your form submission has been recorded.',
-        submissionId: existingCompleted._id
-      });
-    }
-
-    const attemptNumber = 1;
-    const canTakeQuiz = true;
-
-    // Soft eligibility check
-    const eligibilityFlags = evaluateEligibility(config.registrationForm.fields, registrationData);
-    const eligibilityStatus = eligibilityFlags.length > 0 ? 'flagged' : 'qualified';
-
-    // Create submission record
-    const submission = new PublicQuizSubmission({
-      publicQuizConfigId: config._id,
-      quizId: config.quizId.toString(),
-      tenantId: config.tenantId,
-      email,
+    const registrationData: Record<string, any> = {
       name,
+      email: normalizedEmail,
+      phone: phone || '',
+      ...extraFields
+    };
+
+    // Duplicate detection — same email + same weekLabel = already registered
+    const existingQuery: any = { tenantId, email: normalizedEmail };
+    if (weekLabel) existingQuery.weekLabel = weekLabel.trim();
+
+    const existing = await PublicQuizSubmission.findOne(existingQuery);
+    if (existing) {
+      return res.status(200).json({
+        success: true,
+        registered: true,
+        alreadyRegistered: true,
+        message: 'You are already registered. We will contact you shortly.'
+      });
+    }
+
+    const submission = new PublicQuizSubmission({
+      tenantId,
+      email: normalizedEmail,
+      name: name.trim(),
       registrationData,
-      eligibilityStatus,
-      eligibilityFlags,
-      attemptNumber,
-      canTakeQuiz,
+      weekLabel: weekLabel ? weekLabel.trim() : undefined,
+      isPreRegistration: !weekLabel,
+      uploadedFiles,
       ipAddress: req.ip,
       userAgent: req.headers['user-agent'] || ''
     });
     await submission.save();
 
-    // Increment config total
-    await PublicQuizConfig.findByIdAndUpdate(config._id, { $inc: { totalSubmissions: 1 } });
-
-    // If approval is required, mark canTakeQuiz=false until admin approves
-    if ((config as any).requiresApproval) {
-      submission.canTakeQuiz = false;
-      await submission.save();
-      return res.status(200).json({
-        canTakeQuiz: false,
-        reason: 'pending_approval',
-        submissionId: submission._id,
-        message: 'Registration successful! Your details are under review. You will be notified once approved.'
-      });
-    }
-
-    // Pre-registration: quiz not yet open
-    if (config.scheduledAt && now < config.scheduledAt) {
-      return res.status(200).json({
-        canTakeQuiz: false,
-        reason: 'not_open_yet',
-        opensAt: config.scheduledAt,
-        submissionId: submission._id,
-        message: `Registration successful! The quiz opens on ${config.scheduledAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}. Bookmark this page and return when the quiz opens.`
-      });
-    }
-
-    res.json({
-      canTakeQuiz: true,
-      submissionId: submission._id,
-      eligibilityStatus,
-      message: eligibilityStatus === 'flagged'
-        ? 'You can proceed with the quiz. Note: some eligibility criteria were not met.'
-        : 'Registration successful. You may now begin the quiz.'
+    return res.status(201).json({
+      success: true,
+      registered: true,
+      message: 'Registration successful! We will review your details and contact you soon.'
     });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 };
-
-/** GET /api/public-quiz/session/:submissionId/questions  — get quiz questions */
-export const getPublicQuizQuestions = async (req: Request, res: Response) => {
-  try {
-    const submission = await PublicQuizSubmission.findById(req.params.submissionId);
-    if (!submission) return res.status(404).json({ message: 'Session not found' });
-
-    const config = await PublicQuizConfig.findById(submission.publicQuizConfigId);
-    if (!config || !config.isActive) return res.status(404).json({ message: 'Quiz not available' });
-
-    // Approval gate
-    if ((config as any).requiresApproval && submission.isApproved !== true) {
-      if (submission.isApproved === false) {
-        return res.status(403).json({ message: 'Your registration has been rejected.', code: 'REJECTED' });
-      }
-      return res.status(403).json({ message: 'Your registration is pending admin approval. Please wait.', code: 'PENDING_APPROVAL' });
-    }
-
-    if (!submission.canTakeQuiz) return res.status(403).json({ message: 'You have already completed this quiz', code: 'ALREADY_COMPLETED' });
-
-    const quiz = await Quiz.findById(submission.quizId);
-    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
-
-    // Get questions — either from questionIds or legacy
-    let questions: any[] = [];
-    if (quiz.questionIds && quiz.questionIds.length > 0) {
-      questions = await Question.find({ _id: { $in: quiz.questionIds } })
-        .select('-explanation -__v');
-    } else {
-      questions = await Question.find({ quizId: quiz._id }).select('-explanation -__v');
-    }
-
-    if (quiz.shuffleQuestions) {
-      questions = questions.sort(() => Math.random() - 0.5);
-    }
-
-    // Strip isCorrect from options
-    const sanitized = questions.map(q => {
-      const qObj = q.toObject();
-      delete qObj.explanation;
-      if (Array.isArray(qObj.options)) {
-        qObj.options = qObj.options.map((o: any) =>
-          typeof o === 'string' ? o : (o?.text || '')
-        );
-      }
-      if (qObj.correctAnswers) delete qObj.correctAnswers;
-      if (qObj.correctAnswerText) delete qObj.correctAnswerText;
-      return qObj;
-    });
-
-    res.json({
-      questions: sanitized,
-      quiz: {
-        title: quiz.title,
-        totalTime: quiz.totalTime,
-        totalMarks: quiz.totalMarks,
-        shuffleQuestions: quiz.shuffleQuestions,
-        showAnswersAfterSubmit: quiz.showAnswersAfterSubmit
-      }
-    });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** POST /api/public-quiz/session/:submissionId/submit  — submit quiz */
-export const submitPublicQuiz = async (req: Request, res: Response) => {
-  try {
-    const submission = await PublicQuizSubmission.findById(req.params.submissionId);
-    if (!submission) return res.status(404).json({ message: 'Session not found' });
-    if (!submission.canTakeQuiz) return res.status(403).json({ message: 'Already submitted' });
-    if (submission.quizAttemptId) return res.status(403).json({ message: 'Already submitted' });
-
-    const { answers, timeSpent } = req.body; // answers: [{questionId, selectedOptions: []}]
-
-    const quiz = await Quiz.findById(submission.quizId);
-    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
-
-    // Create a QuizAttempt record (studentId = submissionId since no user account)
-    const attempt = new QuizAttempt({
-      quizId: quiz._id.toString(),
-      studentId: submission._id.toString(), // virtual student identifier
-      tenantId: submission.tenantId,
-      attemptNo: 1,
-      startedAt: new Date(Date.now() - (timeSpent || 0) * 1000),
-      submittedAt: new Date(),
-      status: 'submitted',
-      totalMarks: quiz.totalMarks,
-      timeSpent: timeSpent || 0,
-      questionsAnswered: answers.length,
-      shareToken: crypto.randomUUID()
-    });
-
-    let obtainedMarks = 0;
-    const gradedAnswers: any[] = [];
-
-    for (const answer of answers) {
-      const question = await Question.findById(answer.questionId);
-      if (!question) continue;
-
-      const selectedOptions: string[] = Array.isArray(answer.selectedOptions)
-        ? answer.selectedOptions.map((o: any) => String(o).trim())
-        : [];
-
-      const { isCorrect, marksAwarded } = gradeAnswer(question, selectedOptions);
-      obtainedMarks += marksAwarded;
-
-      gradedAnswers.push({
-        questionId: answer.questionId,
-        isCorrect,
-        marksAwarded,
-        selectedOptions,
-        correctAnswer: resolveCorrectAnswerText(question)
-      });
-
-      await new QuizSubmission({
-        quizAttemptId: attempt._id.toString(),
-        quizId: quiz._id.toString(),
-        questionId: answer.questionId,
-        studentId: submission._id.toString(),
-        tenantId: submission.tenantId,
-        questionNo: answer.questionNo || 1,
-        questionType: question.type,
-        studentAnswer: selectedOptions.join(', '),
-        selectedOptions,
-        isCorrect,
-        marksAwarded
-      }).save();
-    }
-
-    const percentage = quiz.totalMarks > 0 ? (obtainedMarks / quiz.totalMarks) * 100 : 0;
-    const passed = quiz.passPercentage ? percentage >= quiz.passPercentage : (quiz.passingMarks ? obtainedMarks >= quiz.passingMarks : false);
-
-    attempt.obtainedMarks = obtainedMarks;
-    attempt.percentage = percentage;
-    attempt.passed = passed;
-    await attempt.save();
-
-    // Lock submission from re-taking and store result
-    submission.canTakeQuiz = false;
-    submission.quizAttemptId = attempt._id as unknown as mongoose.Types.ObjectId;
-    submission.score = obtainedMarks;
-    submission.totalMarks = quiz.totalMarks;
-    submission.percentage = percentage;
-    submission.passed = passed;
-    submission.completedAt = new Date();
-    submission.shareToken = attempt.shareToken;
-    await submission.save();
-
-    // Recompute ranks for all finishers of this quiz config
-    if (submission.publicQuizConfigId) {
-      await computeRanks(submission.publicQuizConfigId.toString());
-      const updated = await PublicQuizSubmission.findById(submission._id).select('rank');
-      (submission as any).rank = updated?.rank;
-    }
-
-    res.json({
-      submissionId: submission._id,
-      shareToken: attempt.shareToken,
-      score: obtainedMarks,
-      totalMarks: quiz.totalMarks,
-      percentage: Math.round(percentage),
-      passed,
-      rank: (submission as any).rank ?? null,
-      message: 'Quiz submitted successfully'
-    });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quiz/session/:submissionId/results  — get detailed results */
-export const getPublicQuizResults = async (req: Request, res: Response) => {
-  try {
-    const submission = await PublicQuizSubmission.findById(req.params.submissionId).lean();
-    if (!submission) return res.status(404).json({ message: 'Session not found' });
-    if (!submission.quizAttemptId) return res.status(404).json({ message: 'Quiz not yet submitted' });
-
-    const config = await PublicQuizConfig.findById(submission.publicQuizConfigId).lean();
-    if (!config) return res.status(404).json({ message: 'Config not found' });
-
-    const quiz = await Quiz.findById(submission.quizId).select('title totalMarks passPercentage passingMarks').lean();
-
-    const resultSettings = config.resultSettings;
-
-    // Build answer review if allowed
-    let answers: any[] = [];
-    if (resultSettings.showAnswers || resultSettings.showScore) {
-      const quizSubs = await QuizSubmission.find({ quizAttemptId: submission.quizAttemptId.toString() }).lean();
-      const questionIds = quizSubs.map(s => s.questionId);
-      const questions = await Question.find({ _id: { $in: questionIds } }).lean();
-      const qMap = new Map(questions.map(q => [q._id.toString(), q]));
-
-      answers = quizSubs.map(sub => {
-        const q = qMap.get(sub.questionId?.toString() || '');
-        return {
-          questionId: sub.questionId,
-          questionText: q?.question || '',
-          isCorrect: sub.isCorrect,
-          selectedAnswer: sub.studentAnswer || '',
-          correctAnswer: resultSettings.showAnswers ? resolveCorrectAnswerText(q) : undefined,
-          marksAwarded: sub.marksAwarded || 0,
-          maxMarks: q?.marks || 0,
-          explanation: resultSettings.showAnswers ? (q as any)?.explanation || '' : undefined
-        };
-      });
-    }
-
-    // Build social share config
-    const social = resultSettings.social || {};
-    const shareMsg = (social.shareMessage || 'I scored {{score}}% on {{quizTitle}}! {{hashtags}}')
-      .replace('{{score}}', String(Math.round(submission.percentage || 0)))
-      .replace('{{quizTitle}}', quiz?.title || '')
-      .replace('{{name}}', submission.name)
-      .replace('{{hashtags}}', (social.hashtags || []).map((h: string) => `#${h}`).join(' '));
-
-    const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(shareMsg)}`;
-    const instagramCaption = social.instagramHandle
-      ? `${shareMsg} Follow @${social.instagramHandle.replace('@', '')} for more!`
-      : shareMsg;
-
-    res.json({
-      submission: {
-        id: submission._id,
-        name: submission.name,
-        email: submission.email,
-        score: submission.score,
-        totalMarks: submission.totalMarks,
-        percentage: Math.round(submission.percentage || 0),
-        passed: submission.passed,
-        completedAt: submission.completedAt,
-        shareToken: submission.shareToken
-      },
-      quiz: { title: quiz?.title },
-      resultSettings,
-      answers: resultSettings.showAnswers ? answers : (resultSettings.showScore ? answers.map(a => ({ ...a, correctAnswer: undefined, explanation: undefined })) : []),
-      shareUrls: {
-        message: shareMsg,
-        hashtags: social.hashtags || [],
-        instagramCaption,
-        twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareMsg)}${social.twitterHandle ? `&via=${social.twitterHandle.replace('@', '')}` : ''}`,
-        linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(social.linkedinCompanyUrl || 'https://codebegun.com')}&summary=${encodeURIComponent(shareMsg)}`,
-        whatsapp: whatsappUrl
-      }
-    });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quiz/certificate/:shareToken  — render certificate HTML */
-export const getPublicCertificate = async (req: Request, res: Response) => {
-  try {
-    const submission = await PublicQuizSubmission.findOne({ shareToken: req.params.shareToken }).lean();
-    if (!submission) return res.status(404).json({ message: 'Certificate not found' });
-
-    const config = await PublicQuizConfig.findById(submission.publicQuizConfigId).lean();
-    if (!config) return res.status(404).json({ message: 'Config not found' });
-
-    const quiz = await Quiz.findById(submission.quizId).select('title').lean();
-
-    // Check passing requirement
-    if (config.resultSettings.passingPercentage && (submission.percentage || 0) < config.resultSettings.passingPercentage) {
-      return res.status(403).json({ message: 'Certificate is only available for passing scores' });
-    }
-
-    const date = submission.completedAt
-      ? new Date(submission.completedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })
-      : new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-
-    // Use custom template or default
-    const template = config.certificateTemplate || getDefaultCertificateTemplate();
-
-    const html = template
-      .replace(/{{name}}/g, submission.name)
-      .replace(/{{score}}/g, String(submission.score ?? 0))
-      .replace(/{{maxScore}}/g, String(submission.totalMarks ?? 0))
-      .replace(/{{percentage}}/g, String(Math.round(submission.percentage ?? 0)))
-      .replace(/{{quizTitle}}/g, quiz?.title || config.title)
-      .replace(/{{date}}/g, date)
-      .replace(/{{tenantName}}/g, config.title);
-
-    res.setHeader('Content-Type', 'text/html');
-    res.send(html);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-function getDefaultCertificateTemplate(): string {
-  return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8"/>
-<title>Certificate of Achievement</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@400;600&display=swap');
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Open Sans', sans-serif; background: #f8fafc; display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
-  .cert { width: 800px; background: #fff; border: 12px solid #005897; padding: 60px; text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
-  .cert-inner { border: 2px solid #e2c96e; padding: 40px; }
-  .badge { font-size: 3rem; margin-bottom: 16px; }
-  .cert-title { font-family: 'Playfair Display', serif; font-size: 2.2rem; color: #005897; letter-spacing: 4px; text-transform: uppercase; margin-bottom: 8px; }
-  .cert-subtitle { font-size: 0.9rem; color: #888; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 32px; }
-  .cert-presented { font-size: 1rem; color: #555; margin-bottom: 12px; }
-  .cert-name { font-family: 'Playfair Display', serif; font-size: 2.8rem; color: #1a1a1a; border-bottom: 2px solid #e2c96e; display: inline-block; padding-bottom: 8px; margin-bottom: 24px; }
-  .cert-body { font-size: 1rem; color: #555; line-height: 1.8; margin-bottom: 28px; }
-  .cert-quiz { font-weight: 700; color: #005897; font-size: 1.2rem; }
-  .cert-score { display: inline-block; background: #005897; color: #fff; padding: 10px 28px; border-radius: 40px; font-size: 1.1rem; font-weight: 600; margin-bottom: 28px; }
-  .cert-date { font-size: 0.9rem; color: #888; margin-top: 24px; }
-  .cert-footer { margin-top: 32px; border-top: 1px solid #eee; padding-top: 20px; font-size: 0.8rem; color: #aaa; }
-</style>
-</head>
-<body>
-<div class="cert">
-  <div class="cert-inner">
-    <div class="badge">🏆</div>
-    <div class="cert-title">Certificate of Achievement</div>
-    <div class="cert-subtitle">This certifies that</div>
-    <div class="cert-name">{{name}}</div>
-    <div class="cert-body">
-      has successfully completed<br/>
-      <span class="cert-quiz">{{quizTitle}}</span>
-    </div>
-    <div class="cert-score">Score: {{score}} / {{maxScore}} ({{percentage}}%)</div>
-    <div class="cert-date">Issued on {{date}}</div>
-    <div class="cert-footer">{{tenantName}} &nbsp;|&nbsp; Powered by CodeBegun LMS</div>
-  </div>
-</div>
-</body>
-</html>`;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN ENDPOINTS (authenticated)
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** GET /api/public-quizzes  — list all configs for tenant */
-export const listPublicQuizConfigs = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const configs = await PublicQuizConfig.find({ tenantId })
-      .populate('quizId', 'title totalQuestions totalMarks')
-      .sort({ createdAt: -1 });
-    res.json(configs);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** POST /api/public-quizzes  — create new config */
-export const createPublicQuizConfig = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const userId = (req as any).user?.id;
-
-    // Generate slug from title if not provided
-    let slug = req.body.slug || req.body.title
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/(^-|-$)/g, '');
-
-    // Ensure uniqueness
-    const existing = await PublicQuizConfig.findOne({ slug });
-    if (existing) slug = `${slug}-${Date.now()}`;
-
-    const config = new PublicQuizConfig({
-      ...req.body,
-      slug,
-      tenantId,
-      createdBy: userId
-    });
-    await config.save();
-    res.status(201).json(config);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quizzes/:id  — get one config */
-export const getPublicQuizConfig = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const config = await PublicQuizConfig.findOne({ _id: req.params.id, tenantId })
-      .populate('quizId', 'title totalQuestions totalMarks totalTime');
-    if (!config) return res.status(404).json({ message: 'Not found' });
-    res.json(config);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** PUT /api/public-quizzes/:id  — update config */
-export const updatePublicQuizConfig = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const { slug, ...rest } = req.body; // prevent slug change via this endpoint
-
-    const config = await PublicQuizConfig.findOneAndUpdate(
-      { _id: req.params.id, tenantId },
-      { $set: rest },
-      { new: true }
-    );
-    if (!config) return res.status(404).json({ message: 'Not found' });
-    res.json(config);
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-/** DELETE /api/public-quizzes/:id  — delete config */
-export const deletePublicQuizConfig = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    await PublicQuizConfig.findOneAndDelete({ _id: req.params.id, tenantId });
-    await PublicQuizSubmission.deleteMany({ publicQuizConfigId: req.params.id });
-    res.json({ message: 'Deleted' });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quizzes/:id/submissions  — list all submissions */
-export const getPublicQuizSubmissions = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const config = await PublicQuizConfig.findOne({ _id: req.params.id, tenantId });
-    if (!config) return res.status(404).json({ message: 'Not found' });
-
-    const { page = 1, limit = 50, eligibility } = req.query;
-    const query: any = { publicQuizConfigId: config._id };
-    if (eligibility) query.eligibilityStatus = eligibility;
-
-    const total = await PublicQuizSubmission.countDocuments(query);
-    const submissions = await PublicQuizSubmission.find(query)
-      .sort({ createdAt: -1 })
-      .skip((Number(page) - 1) * Number(limit))
-      .limit(Number(limit));
-
-    res.json({ submissions, total, page: Number(page), limit: Number(limit) });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quizzes/all-registrations  — all submissions across all weeks for tenant */
+/** GET /api/public-quizzes/all-registrations — all registrations for tenant */
 export const getAllRegistrations = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
     const { page = 1, limit = 100, search = '', week = '' } = req.query;
 
     const query: any = { tenantId };
+
     if (search) {
       const re = new RegExp(String(search), 'i');
       query.$or = [{ name: re }, { email: re }];
     }
 
-    // Filter by week: find the config with that weekLabel then filter by its ID
-    if (week && week !== '__pre__') {
-      const cfg = await PublicQuizConfig.findOne({ tenantId, weekLabel: week });
-      if (cfg) query.publicQuizConfigId = cfg._id;
-      else query.publicQuizConfigId = null; // no results
-    } else if (week === '__pre__') {
+    if (week === '__pre__') {
       query.isPreRegistration = true;
+    } else if (week) {
+      query.weekLabel = String(week);
     }
 
     const total = await PublicQuizSubmission.countDocuments(query);
     const submissions = await PublicQuizSubmission.find(query)
-      .populate('publicQuizConfigId', 'title weekLabel slug isFeatured')
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit));
 
     // Get distinct week labels for filter dropdown
-    const allConfigs = await PublicQuizConfig.find({ tenantId }, 'title weekLabel').sort({ createdAt: -1 });
+    const weekLabels = await PublicQuizSubmission.distinct('weekLabel', { tenantId, weekLabel: { $exists: true, $ne: '' } });
 
-    res.json({ submissions, total, page: Number(page), limit: Number(limit), configs: allConfigs });
+    res.json({ submissions, total, page: Number(page), limit: Number(limit), weekLabels });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 };
 
-/** GET /api/public-quizzes/registrations/:subId  — full detail for one registration */
+/** GET /api/public-quizzes/registrations/:subId — full detail for one registration */
 export const getRegistrationDetail = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId })
-      .populate('publicQuizConfigId', 'title weekLabel slug');
+    const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId });
     if (!submission) return res.status(404).json({ message: 'Not found' });
     res.json(submission);
   } catch (err: any) {
@@ -796,7 +134,7 @@ export const getRegistrationDetail = async (req: Request, res: Response) => {
   }
 };
 
-/** PUT /api/public-quizzes/registrations/:subId/approve  — admin approves registration */
+/** PUT /api/public-quizzes/registrations/:subId/approve — admin approves registration */
 export const approveRegistration = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
@@ -809,16 +147,15 @@ export const approveRegistration = async (req: Request, res: Response) => {
     submission.approvedBy = userId;
     submission.approvedAt = new Date();
     submission.rejectionReason = undefined;
-    submission.canTakeQuiz = true; // allow quiz access on approval
-
     await submission.save();
+
     res.json({ success: true, message: 'Registration approved.' });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 };
 
-/** PUT /api/public-quizzes/registrations/:subId/reject  — admin rejects registration */
+/** PUT /api/public-quizzes/registrations/:subId/reject — admin rejects registration */
 export const rejectRegistration = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
@@ -829,328 +166,10 @@ export const rejectRegistration = async (req: Request, res: Response) => {
 
     submission.isApproved = false;
     submission.rejectionReason = reason || 'Rejected by admin';
-    submission.canTakeQuiz = false;
-
     await submission.save();
+
     res.json({ success: true, message: 'Registration rejected.' });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
 };
-
-/** POST /api/public-quizzes/:id/submissions/:subId/convert-to-lead  — convert to lead */
-export const convertSubmissionToLead = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const userId = (req as any).user?.id;
-
-    const submission = await PublicQuizSubmission.findOne({
-      _id: req.params.subId,
-      tenantId
-    });
-    if (!submission) return res.status(404).json({ message: 'Submission not found' });
-
-    // Check if lead already exists with this email
-    const existing = await Lead.findOne({ email: submission.email, tenantId });
-    if (existing) return res.status(409).json({ message: 'Lead already exists for this email', leadId: existing._id });
-
-    const lead = new Lead({
-      tenantId,
-      name: submission.name,
-      email: submission.email,
-      phone: submission.registrationData?.phone || submission.registrationData?.mobile || '',
-      source: 'public_quiz',
-      sourceDetails: { platform: 'website' },
-      notes: `Converted from Public Quiz submission. Score: ${submission.score}/${submission.totalMarks} (${Math.round(submission.percentage || 0)}%). Eligibility: ${submission.eligibilityStatus}.`,
-      assignedTo: userId,
-      createdBy: userId,
-      status: 'new'
-    });
-    await lead.save();
-
-    res.json({ message: 'Lead created', leadId: lead._id });
-  } catch (err: any) {
-    res.status(400).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quizzes/available-quizzes  — quizzes available to make public */
-export const getAvailableQuizzesForPublic = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const quizzes = await Quiz.find({ tenantId, isActive: true })
-      .select('title totalQuestions totalMarks totalTime')
-      .sort({ createdAt: -1 });
-    res.json(quizzes);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** PUT /api/public-quizzes/:id/feature  — mark this config as current weekly quiz */
-export const setFeaturedQuiz = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const config = await PublicQuizConfig.findOne({ _id: req.params.id, tenantId });
-    if (!config) return res.status(404).json({ message: 'Not found' });
-
-    // Unfeature any previously featured quiz for this tenant
-    await PublicQuizConfig.updateMany({ tenantId, isFeatured: true }, { $set: { isFeatured: false } });
-    config.isFeatured = true;
-    await config.save();
-
-    res.json({ message: 'Set as current weekly quiz', config });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-// ─────────────────────────────────────────────────────────────────────────────
-// WEBSITE INTEGRATION ENDPOINT (public, for external site like codebegun.com)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * POST /api/v1/public/:tenantSlug/weekly-quiz-register
- *
- * Called directly from an external website form. The website does not need to
- * know the quiz slug — the currently featured public quiz for the tenant is
- * used automatically.
- *
- * Body: { name, email, phone?, [any extra form fields] }
- * Response: { submissionId, quizUrl, canTakeQuiz, eligibilityStatus, message }
- */
-export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Response) => {
-  try {
-    const { tenantSlug } = req.params;
-
-    // Resolve tenant
-    const tenant = await Tenant.findOne({ slug: tenantSlug });
-    if (!tenant) return res.status(404).json({ message: 'Organization not found' });
-
-    const { name, email, phone, ...extraFields } = req.body as Record<string, any>;
-
-    if (!email || typeof email !== 'string') {
-      return res.status(400).json({ message: 'email is required' });
-    }
-    if (!name || typeof name !== 'string') {
-      return res.status(400).json({ message: 'name is required' });
-    }
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const registrationData: Record<string, any> = { name, email: normalizedEmail, phone: phone || '', ...extraFields };
-    const now = new Date();
-
-    // Collect uploaded files saved to disk by multer
-    const files = (req as any).files as Array<{ fieldname: string; filename: string; mimetype: string; originalname: string }> || [];
-    const uploadedFiles = files.map(f => ({
-      fieldName: f.fieldname,
-      filePath: `/uploads/registrations/${f.filename}`,
-      mimeType: f.mimetype,
-      originalName: f.originalname
-    }));
-
-    // Find the current featured quiz for this tenant
-    const config = await PublicQuizConfig.findOne({
-      tenantId: tenant._id.toString(),
-      isFeatured: true,
-      isActive: true
-    });
-
-    // No featured quiz — save as pre-registration and return success
-    if (!config) {
-      const existing = await PublicQuizSubmission.findOne({
-        tenantId: tenant._id.toString(),
-        email: normalizedEmail,
-        isPreRegistration: true,
-        publicQuizConfigId: { $exists: false }
-      });
-      if (!existing) {
-        const preReg = new PublicQuizSubmission({
-          tenantId: tenant._id.toString(),
-          email: normalizedEmail,
-          name: name.trim(),
-          registrationData,
-          uploadedFiles,
-          isPreRegistration: true,
-          eligibilityStatus: 'qualified',
-          eligibilityFlags: [],
-          attemptNumber: 1,
-          canTakeQuiz: false,
-          ipAddress: req.ip,
-          userAgent: req.headers['user-agent'] || ''
-        });
-        await preReg.save();
-      }
-      return res.status(200).json({
-        success: true,
-        registered: true,
-        quizUrl: null,
-        message: 'You are registered! We will notify you when the quiz goes live.'
-      });
-    }
-
-    // Check schedule
-    if (config.closesAt && now > config.closesAt) {
-      return res.status(410).json({ message: 'The weekly quiz has closed.', code: 'QUIZ_CLOSED' });
-    }
-
-    // Map flat body into the config's form field IDs so eligibility rules still work
-    const mappedData: Record<string, any> = { ...registrationData };
-    for (const field of config.registrationForm.fields) {
-      const label = field.label.toLowerCase();
-      if (!mappedData[field.id]) {
-        if (label.includes('email')) mappedData[field.id] = normalizedEmail;
-        else if (label.includes('name')) mappedData[field.id] = name;
-        else if (label.includes('phone') || label.includes('mobile')) mappedData[field.id] = phone || '';
-      }
-    }
-
-    // Duplicate detection — return existing active session
-    const existingActive = await PublicQuizSubmission.findOne({
-      publicQuizConfigId: config._id,
-      email: normalizedEmail,
-      canTakeQuiz: true,
-      quizAttemptId: { $exists: false }
-    });
-    if (existingActive) {
-      const quizUrl = `${process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`}/public-quiz/${config.slug}?session=${existingActive._id}`;
-      return res.json({
-        canTakeQuiz: true,
-        submissionId: existingActive._id,
-        quizUrl,
-        eligibilityStatus: existingActive.eligibilityStatus,
-        message: 'You are already registered. Use your quiz link to take the exam.'
-      });
-    }
-
-    // Already completed
-    const existingCompleted = await PublicQuizSubmission.findOne({
-      publicQuizConfigId: config._id,
-      email: normalizedEmail,
-      quizAttemptId: { $exists: true }
-    });
-    if (existingCompleted) {
-      return res.status(200).json({
-        canTakeQuiz: false,
-        message: 'You have already completed this quiz. Your entry has been recorded.'
-      });
-    }
-
-    // Eligibility
-    const eligibilityFlags = evaluateEligibility(config.registrationForm.fields, mappedData);
-    const eligibilityStatus = eligibilityFlags.length > 0 ? 'flagged' : 'qualified';
-
-    const submission = new PublicQuizSubmission({
-      publicQuizConfigId: config._id,
-      quizId: config.quizId.toString(),
-      tenantId: tenant._id.toString(),
-      email: normalizedEmail,
-      name: name.trim(),
-      registrationData: mappedData,
-      uploadedFiles,
-      eligibilityStatus,
-      eligibilityFlags,
-      attemptNumber: 1,
-      canTakeQuiz: true,
-      ipAddress: req.ip,
-      userAgent: req.headers['user-agent'] || ''
-    });
-    await submission.save();
-    await PublicQuizConfig.findByIdAndUpdate(config._id, { $inc: { totalSubmissions: 1 } });
-
-    // Build the quiz URL
-    const frontendBase = process.env.FRONTEND_URL || `${req.protocol}://${req.get('host')}`;
-    const quizUrl = `${frontendBase}/public-quiz/${config.slug}?session=${submission._id}`;
-
-    // If approval required, block quiz access until admin approves
-    if ((config as any).requiresApproval) {
-      submission.canTakeQuiz = false;
-      await submission.save();
-      return res.status(200).json({
-        canTakeQuiz: false,
-        reason: 'pending_approval',
-        submissionId: submission._id,
-        message: 'Registration successful! Your details are under review. We will notify you once approved.'
-      });
-    }
-
-    if (config.scheduledAt && now < config.scheduledAt) {
-      return res.status(200).json({
-        canTakeQuiz: false,
-        reason: 'not_open_yet',
-        opensAt: config.scheduledAt,
-        submissionId: submission._id,
-        quizUrl,
-        message: `Registration successful! The quiz opens on ${config.scheduledAt.toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}.`
-      });
-    }
-
-    res.json({
-      canTakeQuiz: true,
-      submissionId: submission._id,
-      quizUrl,
-      eligibilityStatus,
-      slug: config.slug,
-      message: eligibilityStatus === 'flagged'
-        ? 'Registered! Note: some eligibility criteria were not met.'
-        : 'Registration successful! Click the quiz link to begin.'
-    });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** POST /api/public-quiz/session/:submissionId/recording  — upload recorded video/audio after quiz */
-export const uploadQuizRecording = async (req: Request, res: Response) => {
-  try {
-    const { submissionId } = req.params;
-    const submission = await PublicQuizSubmission.findById(submissionId);
-    if (!submission) return res.status(404).json({ message: 'Session not found' });
-
-    const files = (req as any).files as any[] || [];
-    const file = files[0] || (req as any).file;
-    if (!file) return res.status(400).json({ message: 'No recording file provided' });
-
-    submission.recordingPath = `/uploads/recordings/${file.filename}`;
-    await submission.save();
-
-    res.json({ success: true, recordingPath: submission.recordingPath });
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quiz/:slug/leaderboard  — top N finishers (public, by slug) */
-export const getPublicQuizLeaderboard = async (req: Request, res: Response) => {
-  try {
-    const config = await PublicQuizConfig.findOne({ slug: req.params.slug, isActive: true });
-    if (!config) return res.status(404).json({ message: 'Quiz not found' });
-    await sendLeaderboard(config, res);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-/** GET /api/public-quizzes/:id/leaderboard  — top N finishers (admin, by ID) */
-export const getAdminLeaderboard = async (req: Request, res: Response) => {
-  try {
-    const tenantId = (req as any).user?.tenantId;
-    const config = await PublicQuizConfig.findOne({ _id: req.params.id, tenantId });
-    if (!config) return res.status(404).json({ message: 'Quiz not found' });
-    await sendLeaderboard(config, res);
-  } catch (err: any) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
-async function sendLeaderboard(config: any, res: Response) {
-  const count = config.topperConfig?.count || 10;
-  const toppers = await PublicQuizSubmission.find({
-    publicQuizConfigId: config._id,
-    quizAttemptId: { $exists: true },
-    rank: { $exists: true, $lte: count }
-  })
-    .sort({ rank: 1 })
-    .select('name rank score totalMarks percentage passed completedAt');
-  res.json({ toppers, count, title: config.title, weekLabel: config.weekLabel });
-}

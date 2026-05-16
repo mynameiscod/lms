@@ -60,7 +60,6 @@ import whatsappDripConfigRoutes from './whatsappDripConfigRoutes';
 import salesCallRecordingRoutes from './salesCallRecordingRoutes';
 import googleAdsRoutes from './googleAdsRoutes';
 import aiCallRoutes from './aiCallRoutes';
-import publicQuizRoutes from './publicQuizRoutes';
 import adminPublicQuizRoutes from './adminPublicQuizRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
@@ -69,7 +68,6 @@ const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
 router.use('/public', publicLeadRoutes);
-router.use('/public-quiz', publicQuizRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
 
 router.use('/auth', authRoutes);

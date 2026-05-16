@@ -123,11 +123,7 @@ import RecordingsList from './pages/ClassRecording/RecordingsList';
 import RecordingView from './pages/ClassRecording/RecordingView';
 import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList';
 
-// Public Quiz
-import PublicQuizPage from './pages/PublicQuiz';
-import PublicQuizListPage from './pages/PublicQuizAdmin';
-import PublicQuizEditor from './pages/PublicQuizAdmin/PublicQuizEditor';
-import SubmissionsDashboard from './pages/PublicQuizAdmin/SubmissionsDashboard';
+// Registrations
 import AllRegistrations from './pages/PublicQuizAdmin/AllRegistrations';
 import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 
@@ -1506,44 +1502,9 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Public Quiz — no auth required */}
-      <Route path="/public-quiz/:slug" element={<PublicQuizPage />} />
-
-      {/* Public Quiz Admin */}
+      {/* Website Registrations */}
       <Route
-        path="/public-quiz-admin"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout><PublicQuizListPage /></Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/public-quiz-admin/new"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout><PublicQuizEditor /></Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/public-quiz-admin/:id/edit"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout><PublicQuizEditor /></Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/public-quiz-admin/:id/submissions"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout><SubmissionsDashboard /></Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/public-quiz-admin/all-registrations"
+        path="/registrations"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><AllRegistrations /></Layout>
@@ -1551,7 +1512,7 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/public-quiz-admin/registration/:subId"
+        path="/registrations/:subId"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><RegistrationDetail /></Layout>

@@ -59,16 +59,16 @@ export const submitWebsiteLead = async (req: Request, res: Response) => {
     if (contactEmail) dupQuery.push({ tenantId: tenant._id, email: contactEmail });
 
     const existing = dupQuery.length ? await Lead.findOne({ $or: dupQuery }) : null;
+    const adminId  = (tenant as any).adminId;
+    const noteText = message || notes || '';
 
     if (existing) {
-      existing.activities = existing.activities || [];
       existing.activities.push({
-        type: 'form_submission',
-        description: `Re-enquired via website.${message || notes ? ' Message: ' + (message || notes) : ''}`,
-        performedBy: (tenant as any).adminId,
-        createdAt: new Date(),
+        type: 'note',
+        description: `Re-enquired via website.${noteText ? ' Message: ' + noteText : ''}`,
+        createdBy:   adminId,
+        createdAt:   new Date(),
       } as any);
-      // Upgrade to hot if currently cold/warm
       if (existing.priority === 'cold' || existing.priority === 'warm') {
         existing.priority = 'hot';
       }
@@ -76,25 +76,33 @@ export const submitWebsiteLead = async (req: Request, res: Response) => {
       return res.status(200).json({ success: true, message: 'Thank you! We will contact you shortly.', isExisting: true });
     }
 
-    const defaultStage = await LeadStage.findOne({ tenantId: tenant._id, isDefault: true });
+    // Find default stage — fall back to first stage if none marked default
+    const defaultStage = await LeadStage.findOne({ tenantId: tenant._id, isDefault: true })
+      || await LeadStage.findOne({ tenantId: tenant._id });
+
+    if (!defaultStage) {
+      console.error('[website-lead] No lead stage found for tenant', tenantSlug);
+      return res.status(500).json({ success: false, message: 'Lead pipeline not configured. Please contact support.' });
+    }
 
     const lead = new Lead({
       tenantId:  tenant._id,
+      createdBy: adminId,
       name:      contactName,
       phone:     contactPhone || undefined,
       email:     contactEmail || undefined,
       source:    'website',
       sourceDetails: { platform: 'website', referrerUrl: req.headers.referer || '' },
       priority:  'hot',
-      stageId:   defaultStage?._id,
+      stageId:   defaultStage._id,
       courseInterest: course_interest
         ? (Array.isArray(course_interest) ? course_interest : [course_interest])
         : [],
       activities: [{
-        type: 'form_submission',
-        description: `Hot lead from website.${message || notes ? ' Message: ' + (message || notes) : ''}`,
-        performedBy: (tenant as any).adminId,
-        createdAt: new Date(),
+        type:        'created',
+        description: `Hot lead from website.${noteText ? ' Message: ' + noteText : ''}`,
+        createdBy:   adminId,
+        createdAt:   new Date(),
       }],
       utmParams: { source: utm_source, medium: utm_medium, campaign: utm_campaign, content: utm_content, term: utm_term },
     });

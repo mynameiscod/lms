@@ -27,15 +27,19 @@ const AllRegistrations: React.FC = () => {
   const [loading,    setLoading]      = useState(true);
 
   // Week config panel (always visible)
-  const [showWeekPanel, setShowWeekPanel]   = useState(false);
-  const [cfgWeekLabel,  setCfgWeekLabel]    = useState('');
-  const [cfgQuizId,     setCfgQuizId]       = useState('');
-  const [cfgTopperCount,setCfgTopperCount]  = useState(3);
-  const [cfgSaving,     setCfgSaving]       = useState(false);
-  const [cfgLoading,    setCfgLoading]      = useState(false);
-  const [cfgMsg,        setCfgMsg]          = useState('');
-  const [availQuizzes,  setAvailQuizzes]    = useState<AvailQuiz[]>([]);
-  const [quizzesLoaded, setQuizzesLoaded]   = useState(false);
+  const [showWeekPanel,  setShowWeekPanel]   = useState(false);
+  const [cfgWeekLabel,   setCfgWeekLabel]    = useState('');
+  const [cfgQuizId,      setCfgQuizId]       = useState('');
+  const [cfgTopperCount, setCfgTopperCount]  = useState(3);
+  const [cfgEventTitle,  setCfgEventTitle]   = useState('');
+  const [cfgEventDate,   setCfgEventDate]    = useState('');
+  const [cfgEventTime,   setCfgEventTime]    = useState('');
+  const [cfgBattleUrl,   setCfgBattleUrl]    = useState('');
+  const [cfgSaving,      setCfgSaving]       = useState(false);
+  const [cfgLoading,     setCfgLoading]      = useState(false);
+  const [cfgMsg,         setCfgMsg]          = useState('');
+  const [availQuizzes,   setAvailQuizzes]    = useState<AvailQuiz[]>([]);
+  const [quizzesLoaded,  setQuizzesLoaded]   = useState(false);
 
   // Leaderboard
   const [leaderboard,     setLeaderboard]     = useState<LeaderEntry[]>([]);
@@ -84,9 +88,13 @@ const AllRegistrations: React.FC = () => {
       if (cfg?.quizId) {
         setCfgQuizId(cfg.quizId);
         setCfgTopperCount(cfg.topperCount ?? 3);
+        setCfgEventTitle(cfg.eventTitle || '');
+        setCfgEventTime(cfg.eventTimeIST || '');
+        setCfgBattleUrl(cfg.techBattleUrl || '');
+        if (cfg.eventDate) setCfgEventDate(cfg.eventDate.slice(0, 16)); // datetime-local format
       } else {
-        setCfgQuizId('');
-        setCfgTopperCount(3);
+        setCfgQuizId(''); setCfgTopperCount(3);
+        setCfgEventTitle(''); setCfgEventDate(''); setCfgEventTime(''); setCfgBattleUrl('');
       }
     } catch { /* no config yet */ }
     setCfgLoading(false);
@@ -97,7 +105,12 @@ const AllRegistrations: React.FC = () => {
     setCfgSaving(true);
     setCfgMsg('');
     try {
-      await publicQuizAdminApi.setWeekConfig(cfgWeekLabel.trim(), cfgQuizId, cfgTopperCount);
+      await publicQuizAdminApi.setWeekConfig(cfgWeekLabel.trim(), cfgQuizId, cfgTopperCount, {
+        eventTitle:   cfgEventTitle || undefined,
+        eventDate:    cfgEventDate  || undefined,
+        eventTimeIST: cfgEventTime  || undefined,
+        techBattleUrl:cfgBattleUrl  || undefined,
+      });
       setCfgMsg('✅ Week config saved! Approving students in this week will now auto-generate quiz links.');
       // Refresh week labels in dropdown
       fetchData();
@@ -244,6 +257,50 @@ const AllRegistrations: React.FC = () => {
                   onChange={e => setCfgTopperCount(Number(e.target.value))}
                 />
                 <div className="form-text">Top N positions tracked</div>
+              </div>
+
+              {/* Event details — used in approval email */}
+              <div className="col-12">
+                <hr className="my-1" />
+                <p className="small fw-semibold text-muted mb-2">Email details (sent to students on approval)</p>
+              </div>
+              <div className="col-12 col-md-4">
+                <label className="form-label small fw-semibold mb-1">Event Title</label>
+                <input
+                  className="form-control form-control-sm"
+                  placeholder="e.g. Weekly Tech Battle 2026"
+                  value={cfgEventTitle}
+                  onChange={e => setCfgEventTitle(e.target.value)}
+                />
+              </div>
+              <div className="col-12 col-md-3">
+                <label className="form-label small fw-semibold mb-1">Event Date &amp; Time</label>
+                <input
+                  type="datetime-local"
+                  className="form-control form-control-sm"
+                  value={cfgEventDate}
+                  onChange={e => setCfgEventDate(e.target.value)}
+                />
+                <div className="form-text">Used for "Add to Calendar" link</div>
+              </div>
+              <div className="col-12 col-md-2">
+                <label className="form-label small fw-semibold mb-1">Display Time</label>
+                <input
+                  className="form-control form-control-sm"
+                  placeholder="e.g. 7:00 PM IST"
+                  value={cfgEventTime}
+                  onChange={e => setCfgEventTime(e.target.value)}
+                />
+                <div className="form-text">Shown in the email</div>
+              </div>
+              <div className="col-12 col-md-3">
+                <label className="form-label small fw-semibold mb-1">Tech Battle Page URL</label>
+                <input
+                  className="form-control form-control-sm"
+                  placeholder="https://codebegun.com/battle"
+                  value={cfgBattleUrl}
+                  onChange={e => setCfgBattleUrl(e.target.value)}
+                />
               </div>
 
               {/* Save */}

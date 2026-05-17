@@ -747,6 +747,257 @@ This is an automated message from CodeBegun Learning Management System.
     }
   }
 
+  async sendTechBattleApprovalEmail(opts: {
+    email: string;
+    name: string;
+    quizUrl: string;
+    eventTitle: string;
+    eventDate?: Date;
+    eventTimeIST?: string;
+    techBattleUrl?: string;
+  }): Promise<void> {
+    const { email, name, quizUrl, eventTitle, eventDate, eventTimeIST, techBattleUrl } = opts;
+    const firstName = name.split(' ')[0];
+
+    // ── Format display date/time ──────────────────────────────────────────
+    const displayDate = eventDate
+      ? eventDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+      : '';
+    const displayTime = eventTimeIST || '';
+
+    // ── Google Calendar link ──────────────────────────────────────────────
+    let googleCalUrl = '';
+    if (eventDate) {
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const fmtDate = (d: Date) =>
+        `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
+      const start = fmtDate(eventDate);
+      const end   = fmtDate(new Date(eventDate.getTime() + 60 * 60 * 1000)); // +1 hr
+      const params = new URLSearchParams({
+        action: 'TEMPLATE',
+        text: eventTitle,
+        dates: `${start}/${end}`,
+        details: `Weekly Tech Battle — solve timed interview questions from top tech companies.\n\nYour quiz link: ${quizUrl}`,
+        location: 'Online',
+      });
+      googleCalUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
+    const techBattleLink = techBattleUrl || `${frontendUrl}/tech-battle`;
+    const logoUrl = 'https://platform.codebegun.com/assets/logo.png';
+
+    const subject = `✓ Registration Confirmed — ${eventTitle}`;
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${subject}</title>
+</head>
+<body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1a2332;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f8;padding:32px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+
+  <!-- LOGO HEADER -->
+  <tr><td style="background:#ffffff;padding:28px 32px 20px;border-bottom:1px solid #e8edf3;text-align:left;">
+    <img src="${logoUrl}" alt="CodeBegun" style="height:44px;width:auto;display:block;" onerror="this.style.display='none'" />
+  </td></tr>
+
+  <!-- HERO BODY -->
+  <tr><td style="padding:36px 40px 28px;">
+
+    <!-- Badge -->
+    <div style="display:inline-block;border:1.5px solid #00b8a9;border-radius:20px;padding:5px 16px;margin-bottom:20px;">
+      <span style="color:#00b8a9;font-size:12px;font-weight:700;letter-spacing:1px;">✓ REGISTRATION CONFIRMED</span>
+    </div>
+
+    <!-- Headline -->
+    <h1 style="margin:0 0 16px;font-size:32px;font-weight:800;color:#0d1b2a;line-height:1.2;">You're in, ${firstName}!</h1>
+
+    <!-- Body copy -->
+    <p style="margin:0 0 28px;font-size:16px;color:#4a5568;line-height:1.7;">
+      Your spot is confirmed for <strong style="color:#0d1b2a;">${eventTitle}</strong>.
+      ${quizUrl
+        ? `Your personal quiz link is ready — use the button below to take the quiz when the battle goes live.`
+        : `We'll send your quiz link to <strong style="color:#00b8a9;">${email}</strong> right when the battle goes live.`}
+      ${displayDate ? `<br><br>See you on <strong style="color:#0d1b2a;">${displayDate}${displayTime ? ` at <strong>${displayTime}</strong>` : ''}</strong>.` : ''}
+    </p>
+
+    <!-- Event detail pills -->
+    ${(displayDate || displayTime) ? `
+    <table cellpadding="0" cellspacing="0" style="margin-bottom:32px;">
+      <tr>
+        ${displayDate ? `<td style="padding-right:10px;">
+          <div style="border:1.5px solid #dbe4f0;border-radius:8px;padding:10px 16px;font-size:14px;color:#2d3748;white-space:nowrap;">
+            📅 ${displayDate}
+          </div>
+        </td>` : ''}
+        ${displayTime ? `<td style="padding-right:10px;">
+          <div style="border:1.5px solid #dbe4f0;border-radius:8px;padding:10px 16px;font-size:14px;color:#2d3748;white-space:nowrap;">
+            🕖 ${displayTime}
+          </div>
+        </td>` : ''}
+        <td>
+          <div style="border:1.5px solid #dbe4f0;border-radius:8px;padding:10px 16px;font-size:14px;color:#2d3748;white-space:nowrap;">
+            💻 Online
+          </div>
+        </td>
+      </tr>
+    </table>` : ''}
+
+    <!-- WHAT TO DO NEXT -->
+    <p style="margin:0 0 16px;font-size:11px;font-weight:700;letter-spacing:2px;color:#8896ab;text-transform:uppercase;">What to do next</p>
+
+    <!-- Step 1 -->
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:16px;">
+      <tr>
+        <td width="40" valign="top">
+          <div style="width:32px;height:32px;border-radius:50%;background:#0d1b2a;text-align:center;line-height:32px;font-size:14px;font-weight:700;color:#ffffff;">1</div>
+        </td>
+        <td style="padding-left:12px;vertical-align:middle;">
+          ${quizUrl
+            ? `<p style="margin:0;font-size:15px;color:#1a2332;"><strong>Use your quiz link</strong> — click the button below to open your personal quiz. Keep it safe — it's unique to you.</p>`
+            : `<p style="margin:0;font-size:15px;color:#1a2332;"><strong>Watch for the quiz link</strong> — sent to your email &amp; WhatsApp ${displayTime ? `at ${displayTime} sharp` : 'when the battle goes live'}.</p>`}
+        </td>
+      </tr>
+    </table>
+
+    <!-- Step 2 -->
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:16px;">
+      <tr>
+        <td width="40" valign="top">
+          <div style="width:32px;height:32px;border-radius:50%;background:#00b8a9;text-align:center;line-height:32px;font-size:14px;font-weight:700;color:#ffffff;">2</div>
+        </td>
+        <td style="padding-left:12px;vertical-align:middle;">
+          <p style="margin:0;font-size:15px;color:#1a2332;"><strong>Solve the timed questions</strong> — real interview questions from top tech companies.</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- Step 3 -->
+    <table cellpadding="0" cellspacing="0" style="width:100%;margin-bottom:36px;">
+      <tr>
+        <td width="40" valign="top">
+          <div style="width:32px;height:32px;border-radius:50%;background:#0d1b2a;text-align:center;line-height:32px;font-size:14px;font-weight:700;color:#ffffff;">3</div>
+        </td>
+        <td style="padding-left:12px;vertical-align:middle;">
+          <p style="margin:0;font-size:15px;color:#1a2332;"><strong>Win prizes up to ₹1000</strong> — Myntra vouchers, certificates &amp; a surprise gadget for top 3.</p>
+        </td>
+      </tr>
+    </table>
+
+    <!-- CTA Buttons -->
+    <table cellpadding="0" cellspacing="0" style="margin-bottom:8px;">
+      <tr>
+        ${quizUrl ? `
+        <td style="padding-right:12px;">
+          <a href="${quizUrl}" style="display:inline-block;background:#0d1b2a;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.2px;">
+            Open My Quiz Link →
+          </a>
+        </td>` : `
+        <td style="padding-right:12px;">
+          <a href="${techBattleLink}" style="display:inline-block;background:#0d1b2a;color:#ffffff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;letter-spacing:0.2px;">
+            Visit Tech Battle Page →
+          </a>
+        </td>`}
+        ${googleCalUrl ? `
+        <td>
+          <a href="${googleCalUrl}" style="display:inline-block;background:#ffffff;color:#0d1b2a;padding:14px 20px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;border:1.5px solid #dbe4f0;">
+            📅 Add to Calendar
+          </a>
+        </td>` : ''}
+      </tr>
+    </table>
+
+  </td></tr>
+
+  <!-- FOOTER -->
+  <tr><td style="background:#0d1b2a;padding:36px 40px;">
+
+    <!-- Footer Logo -->
+    <table cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+      <tr>
+        <td>
+          <img src="${logoUrl}" alt="CodeBegun" style="height:36px;width:auto;display:block;filter:brightness(0) invert(1);opacity:0.9;" onerror="this.style.display='none'" />
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 6px;font-size:12px;color:#8896ab;">Hyderabad-based talent pipeline · Building engineers companies want to hire.</p>
+
+    <!-- Footer columns -->
+    <table cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;border-top:1px solid #1e3050;padding-top:20px;">
+      <tr valign="top">
+        <td width="33%" style="padding-right:16px;">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#8896ab;letter-spacing:1px;text-transform:uppercase;">Programs</p>
+          <p style="margin:0;font-size:12px;color:#64748b;line-height:1.8;">Java Full Stack<br>Python Full Stack<br>Data Science<br>Generative AI</p>
+        </td>
+        <td width="33%" style="padding-right:16px;">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#8896ab;letter-spacing:1px;text-transform:uppercase;">Resources</p>
+          <p style="margin:0;font-size:12px;color:#64748b;line-height:1.8;">JavaScript Q&amp;A<br>Java Q&amp;A<br>React Q&amp;A<br>SQL Q&amp;A</p>
+        </td>
+        <td width="33%">
+          <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#8896ab;letter-spacing:1px;text-transform:uppercase;">Contact</p>
+          <p style="margin:0;font-size:12px;color:#64748b;line-height:1.8;">hr@codebegun.com<br>contact@codebegun.com<br>+91 63010 99587<br>Madhapur, Hyderabad</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0;font-size:11px;color:#4a5568;border-top:1px solid #1e3050;padding-top:16px;">
+      © 2026 CodeBegun · All rights reserved ·
+      <a href="${frontendUrl}/privacy" style="color:#8896ab;text-decoration:none;">Privacy</a> ·
+      <a href="${frontendUrl}/terms" style="color:#8896ab;text-decoration:none;">Terms</a>
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>`;
+
+    const text = `Registration Confirmed — ${eventTitle}
+
+You're in, ${firstName}!
+
+Your spot is confirmed for ${eventTitle}.
+${quizUrl ? `\nYour quiz link: ${quizUrl}\n` : ''}
+${displayDate ? `Date: ${displayDate}` : ''}
+${displayTime ? `Time: ${displayTime}` : ''}
+Platform: Online
+
+What to do next:
+1. ${quizUrl ? `Use your quiz link: ${quizUrl}` : `Watch for the quiz link — sent to your email at ${displayTime || 'event start'}`}
+2. Solve the timed questions — real interview questions from top tech companies.
+3. Win prizes up to ₹1000 — Myntra vouchers, certificates & surprise gadget for top 3.
+
+${techBattleLink ? `Visit Tech Battle Page: ${techBattleLink}` : ''}
+${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
+
+© 2026 CodeBegun | contact@codebegun.com | +91 63010 99587`;
+
+    console.log('\n📧 [EMAIL SERVICE] Tech Battle Approval Email');
+    console.log('   Recipient:', email);
+    console.log('   Event:', eventTitle);
+    try {
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, html, text);
+      } else {
+        await this.transporter!.sendMail({
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email, subject, html, text,
+        });
+      }
+      console.log('   ✅ Tech battle approval email sent\n');
+    } catch (err: any) {
+      console.error('❌ sendTechBattleApprovalEmail failed:', err.message);
+      // Non-fatal — approval still succeeds even if email fails
+    }
+  }
+
   async sendTenantAdminWelcomeEmail(data: TenantAdminEmailData): Promise<void> {
     const subject = `🎉 Your Organization "${data.organizationName}" is Ready — CodeBegun`;
     const html = getTenantAdminWelcomeEmailHtml(data);

@@ -5,6 +5,9 @@ import WeekConfig from '../models/WeekConfig';
 import Tenant from '../models/Tenant';
 import Quiz from '../models/Quiz';
 import Question from '../models/Question';
+import { EmailService } from '../services/emailService';
+
+const emailService = new EmailService();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Helpers
@@ -301,12 +304,18 @@ export const getWeekConfig = async (req: Request, res: Response) => {
 export const setWeekConfig = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const { weekLabel, quizId, topperCount } = req.body;
+    const { weekLabel, quizId, topperCount, eventTitle, eventDate, eventTimeIST, techBattleUrl } = req.body;
     if (!weekLabel || !quizId) return res.status(400).json({ message: 'weekLabel and quizId are required' });
+
+    const update: any = { quizId, topperCount: topperCount || 3 };
+    if (eventTitle)    update.eventTitle    = eventTitle;
+    if (eventDate)     update.eventDate     = new Date(eventDate);
+    if (eventTimeIST)  update.eventTimeIST  = eventTimeIST;
+    if (techBattleUrl) update.techBattleUrl = techBattleUrl;
 
     const config = await WeekConfig.findOneAndUpdate(
       { tenantId, weekLabel },
-      { $set: { quizId, topperCount: topperCount || 3 } },
+      { $set: update },
       { upsert: true, new: true }
     );
     res.json(config);
@@ -435,7 +444,22 @@ export const approveRegistration = async (req: Request, res: Response) => {
     const frontendBase = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
     const quizUrl = quizToken ? `${frontendBase}/quiz/${quizToken}` : null;
 
-    res.json({ success: true, message: 'Registration approved.', quizUrl, hasQuiz: !!quizToken });
+    // Send approval confirmation email (non-blocking)
+    const weekConfig = submission.weekLabel
+      ? await WeekConfig.findOne({ tenantId, weekLabel: submission.weekLabel })
+      : null;
+
+    emailService.sendTechBattleApprovalEmail({
+      email:        submission.email,
+      name:         submission.name,
+      quizUrl:      quizUrl || '',
+      eventTitle:   weekConfig?.eventTitle || 'Weekly Tech Battle',
+      eventDate:    weekConfig?.eventDate,
+      eventTimeIST: weekConfig?.eventTimeIST,
+      techBattleUrl:weekConfig?.techBattleUrl,
+    }).catch(() => {/* non-fatal */});
+
+    res.json({ success: true, message: 'Registration approved.', quizUrl, quizToken, hasQuiz: !!quizToken });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -498,6 +522,20 @@ export const generateQuizLink = async (req: Request, res: Response) => {
 
     const frontendBase = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
     const quizUrl      = `${frontendBase}/quiz/${quizToken}`;
+
+    // Look up week config for event details (non-blocking email)
+    const wkLabel = weekLabel || submission.weekLabel;
+    const wCfg    = wkLabel ? await WeekConfig.findOne({ tenantId, weekLabel: wkLabel }) : null;
+
+    emailService.sendTechBattleApprovalEmail({
+      email:        submission.email,
+      name:         submission.name,
+      quizUrl,
+      eventTitle:   wCfg?.eventTitle || 'Weekly Tech Battle',
+      eventDate:    wCfg?.eventDate,
+      eventTimeIST: wCfg?.eventTimeIST,
+      techBattleUrl:wCfg?.techBattleUrl,
+    }).catch(() => {/* non-fatal */});
 
     res.json({ success: true, quizUrl, quizToken });
   } catch (err: any) {

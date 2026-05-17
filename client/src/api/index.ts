@@ -2869,10 +2869,10 @@ export const publicQuizAdminApi = {
     const qs = new URLSearchParams({ weekLabel }).toString();
     return authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config?${qs}`);
   },
-  setWeekConfig: (weekLabel: string, quizId: string, topperCount: number) =>
+  setWeekConfig: (weekLabel: string, quizId: string, topperCount: number, extras?: { eventTitle?: string; eventDate?: string; eventTimeIST?: string; techBattleUrl?: string }) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config`, {
       method: 'PUT',
-      body: JSON.stringify({ weekLabel, quizId, topperCount }),
+      body: JSON.stringify({ weekLabel, quizId, topperCount, ...extras }),
     }),
   getLeaderboard: (weekLabel: string) => {
     const qs = new URLSearchParams({ weekLabel }).toString();

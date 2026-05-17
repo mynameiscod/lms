@@ -19,12 +19,34 @@ const RegistrationDetail: React.FC = () => {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
   const [quizUrl, setQuizUrl] = useState<string>('');
 
+  // Quiz assignment panel state
+  const [availQuizzes, setAvailQuizzes] = useState<{ _id: string; title: string }[]>([]);
+  const [assignQuizId, setAssignQuizId] = useState('');
+  const [assignWeekLabel, setAssignWeekLabel] = useState('');
+  const [assignLoading, setAssignLoading] = useState(false);
+  const [quizzesLoaded, setQuizzesLoaded] = useState(false);
+
   useEffect(() => {
     publicQuizAdminApi.getRegistrationDetail(subId!)
-      .then(setSub)
+      .then((data: any) => {
+        setSub(data);
+        // Pre-fill week label from existing registration
+        if (data?.weekLabel) setAssignWeekLabel(data.weekLabel);
+      })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [subId]);
+
+  // Load available quizzes once on mount
+  useEffect(() => {
+    publicQuizAdminApi.getAvailableQuizzes()
+      .then((data: any) => {
+        const list = Array.isArray(data) ? data : (data?.quizzes || []);
+        setAvailQuizzes(list);
+        setQuizzesLoaded(true);
+      })
+      .catch(console.error);
+  }, []);
 
   const handleApprove = async () => {
     setActionLoading(true);
@@ -32,7 +54,10 @@ const RegistrationDetail: React.FC = () => {
       const res = await publicQuizAdminApi.approveRegistration(subId!);
       setSub((prev: any) => ({ ...prev, isApproved: true, rejectionReason: undefined, quizToken: res.quizToken }));
       if (res.quizUrl) setQuizUrl(res.quizUrl);
-      setMessage({ text: 'Registration approved. Quiz link generated.', type: 'success' });
+      const msg = res.quizUrl
+        ? 'Registration approved. Quiz link generated — copy and send to candidate.'
+        : 'Registration approved. Configure the Week Settings in All Registrations to auto-generate a quiz link.';
+      setMessage({ text: msg, type: 'success' });
     } catch (e: any) {
       setMessage({ text: e.message, type: 'danger' });
     }
@@ -54,6 +79,27 @@ const RegistrationDetail: React.FC = () => {
     setActionLoading(false);
   };
 
+  // Directly assign a quiz and generate/regenerate a quiz link
+  const handleGenerateLink = async () => {
+    if (!assignQuizId) { setMessage({ text: 'Please select a quiz first.', type: 'danger' }); return; }
+    setAssignLoading(true);
+    try {
+      const res = await publicQuizAdminApi.generateQuizLink(subId!, assignQuizId, assignWeekLabel || undefined);
+      setSub((prev: any) => ({
+        ...prev,
+        isApproved: true,
+        quizToken: res.quizToken,
+        weekLabel: assignWeekLabel || prev.weekLabel,
+        isPreRegistration: assignWeekLabel ? false : prev.isPreRegistration,
+      }));
+      setQuizUrl(res.quizUrl);
+      setMessage({ text: 'Quiz link generated! Copy and send it to the candidate.', type: 'success' });
+    } catch (e: any) {
+      setMessage({ text: e.message, type: 'danger' });
+    }
+    setAssignLoading(false);
+  };
+
   if (loading) return <div className="pq-loading">Loading...</div>;
   if (!sub) return <div className="pq-page"><p className="text-danger">Registration not found.</p></div>;
 
@@ -66,6 +112,10 @@ const RegistrationDetail: React.FC = () => {
     : sub.isApproved === false
     ? { label: 'Rejected', color: '#ef4444', bg: '#fef2f2' }
     : { label: 'Pending Review', color: '#f59e0b', bg: '#fffbeb' };
+
+  const activeQuizUrl = quizUrl || (sub.quizToken ? `${window.location.origin}/quiz/${sub.quizToken}` : '');
+  // Show the quiz assignment panel when: no quiz link yet, OR approved but no token
+  const needsQuizAssignment = !sub.quizToken && !quizUrl;
 
   return (
     <div className="pq-page">
@@ -80,7 +130,7 @@ const RegistrationDetail: React.FC = () => {
             {sub.weekLabel && (
               <span className="badge me-2" style={{ background: '#e8f0fe', color: '#1a56db' }}>{sub.weekLabel}</span>
             )}
-            {sub.isPreRegistration && (
+            {sub.isPreRegistration && !sub.weekLabel && (
               <span className="badge bg-warning text-dark">Pre-Registration</span>
             )}
           </p>
@@ -157,7 +207,7 @@ const RegistrationDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Files + Approval */}
+        {/* Right: Files + Quiz + Approval */}
         <div className="col-lg-5">
           {/* Uploaded files */}
           <div className="card mb-4">
@@ -188,35 +238,109 @@ const RegistrationDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Quiz link (shown after approval if quizToken exists) */}
-          {(sub.isApproved === true && (quizUrl || sub.quizToken)) && (
+          {/* ── Quiz Link (if already generated) ── */}
+          {activeQuizUrl && (
             <div className="card mb-4 border-primary">
-              <div className="card-header fw-semibold text-primary">
-                <i className="fa-solid fa-link me-2" />Quiz Link
+              <div className="card-header fw-semibold text-primary d-flex align-items-center justify-content-between">
+                <span><i className="fa-solid fa-link me-2" />Quiz Link</span>
+                {quizzesLoaded && (
+                  <button
+                    className="btn btn-sm btn-outline-secondary"
+                    style={{ fontSize: 11 }}
+                    onClick={() => setAssignQuizId('__reassign__')}
+                    title="Reassign a different quiz"
+                  >
+                    Reassign
+                  </button>
+                )}
               </div>
               <div className="card-body">
-                <p className="text-muted small mb-2">Send this link to the candidate. They can take the quiz without logging in.</p>
+                <p className="text-muted small mb-2">Send this link to the candidate. No login required.</p>
                 <div className="input-group">
                   <input
                     className="form-control form-control-sm font-monospace"
                     readOnly
-                    value={quizUrl || `${window.location.origin}/quiz/${sub.quizToken}`}
+                    value={activeQuizUrl}
                   />
                   <button
                     className="btn btn-outline-primary btn-sm"
-                    onClick={() => {
-                      const url = quizUrl || `${window.location.origin}/quiz/${sub.quizToken}`;
-                      navigator.clipboard.writeText(url);
-                    }}
+                    onClick={() => navigator.clipboard.writeText(activeQuizUrl)}
                   >
                     <i className="fa-solid fa-copy" /> Copy
                   </button>
+                </div>
+                {sub.quizInfo && (
+                  <div className="text-muted small mt-2">
+                    Quiz: <strong>{sub.quizInfo.title}</strong>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── Assign Quiz panel (always show when no quiz link OR reassigning) ── */}
+          {(needsQuizAssignment || assignQuizId === '__reassign__') && (
+            <div className="card mb-4 border-warning">
+              <div className="card-header fw-semibold text-warning-emphasis d-flex align-items-center gap-2" style={{ background: '#fffbeb' }}>
+                <i className="fa-solid fa-wand-magic-sparkles" />
+                {activeQuizUrl ? 'Reassign Quiz' : 'Assign Quiz & Generate Link'}
+              </div>
+              <div className="card-body d-flex flex-column gap-3">
+                {needsQuizAssignment && (
+                  <div className="alert alert-warning py-2 small mb-0">
+                    {sub.isApproved === true
+                      ? 'This student was approved but no quiz link was generated (Week Config was not set at the time). Select a quiz below to generate a link now.'
+                      : 'Select a quiz to assign to this student. Approving will generate a unique quiz link.'}
+                  </div>
+                )}
+
+                <div>
+                  <label className="form-label small fw-semibold mb-1">Week Label <span className="text-muted fw-normal">(optional — e.g. "Week 1")</span></label>
+                  <input
+                    className="form-control form-control-sm"
+                    placeholder="e.g. Week 1"
+                    value={assignWeekLabel}
+                    onChange={e => setAssignWeekLabel(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="form-label small fw-semibold mb-1">Select Quiz <span className="text-danger">*</span></label>
+                  <select
+                    className="form-select form-select-sm"
+                    value={assignQuizId === '__reassign__' ? '' : assignQuizId}
+                    onChange={e => setAssignQuizId(e.target.value)}
+                  >
+                    <option value="">— Choose a quiz —</option>
+                    {availQuizzes.map(q => (
+                      <option key={q._id} value={q._id}>{q.title}</option>
+                    ))}
+                  </select>
+                  {!quizzesLoaded && <div className="text-muted small mt-1">Loading quizzes…</div>}
+                  {quizzesLoaded && availQuizzes.length === 0 && (
+                    <div className="text-danger small mt-1">No active quizzes found. Create one in Manage Quizzes first.</div>
+                  )}
+                </div>
+
+                <div className="d-flex gap-2">
+                  <button
+                    className="btn btn-warning flex-grow-1 fw-semibold"
+                    disabled={assignLoading || !assignQuizId || assignQuizId === '__reassign__'}
+                    onClick={handleGenerateLink}
+                  >
+                    {assignLoading
+                      ? <><span className="spinner-border spinner-border-sm me-1" />Generating…</>
+                      : <><i className="fa-solid fa-link me-1" />Generate Quiz Link</>}
+                  </button>
+                  {assignQuizId === '__reassign__' && (
+                    <button className="btn btn-outline-secondary" onClick={() => setAssignQuizId('')}>Cancel</button>
+                  )}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Approval actions */}
+          {/* ── Approval actions ── */}
           <div className="card">
             <div className="card-header fw-semibold">Admin Decision</div>
             <div className="card-body d-flex flex-column gap-3">

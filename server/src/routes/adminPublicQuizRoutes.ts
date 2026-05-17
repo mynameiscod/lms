@@ -6,6 +6,7 @@ import * as ctrl from '../controllers/publicQuizController';
 const router = express.Router();
 
 router.use(authMiddleware, tenantMiddleware);
+router.use(express.json());
 
 // Available quizzes (for week-config dropdown)
 router.get('/available-quizzes', ctrl.getAvailableQuizzes);
@@ -20,9 +21,10 @@ router.get('/leaderboard', ctrl.getLeaderboard);
 // All registrations across all weeks
 router.get('/all-registrations', ctrl.getAllRegistrations);
 
-// Individual registration detail + approve/reject
+// Individual registration detail + approve/reject/generate-link
 router.get('/registrations/:subId', ctrl.getRegistrationDetail);
 router.put('/registrations/:subId/approve', ctrl.approveRegistration);
 router.put('/registrations/:subId/reject', ctrl.rejectRegistration);
+router.put('/registrations/:subId/generate-link', ctrl.generateQuizLink);
 
 export default router;

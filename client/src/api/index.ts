@@ -2858,6 +2858,11 @@ export const publicQuizAdminApi = {
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({}) }),
   rejectRegistration: (subId: string, reason: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
+  generateQuizLink: (subId: string, quizId: string, weekLabel?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/generate-link`, {
+      method: 'PUT',
+      body: JSON.stringify({ quizId, weekLabel }),
+    }),
   getAvailableQuizzes: () =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
   getWeekConfig: (weekLabel: string) => {

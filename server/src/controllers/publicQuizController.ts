@@ -460,6 +460,51 @@ export const rejectRegistration = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * PUT /api/public-quizzes/registrations/:subId/generate-link
+ * Directly assigns a quiz to any registration (approved or not) and generates/regenerates a quiz token.
+ * Body: { quizId, weekLabel? }
+ * Used when:
+ *  - Student was approved before week config was saved (no token generated)
+ *  - Student is Pre-Reg and admin wants to assign a quiz directly
+ */
+export const generateQuizLink = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const userId   = (req as any).user?.id;
+    const { quizId, weekLabel } = req.body;
+
+    if (!quizId) return res.status(400).json({ message: 'quizId is required' });
+
+    const quiz = await Quiz.findOne({ _id: quizId, tenantId });
+    if (!quiz) return res.status(404).json({ message: 'Quiz not found' });
+
+    const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId });
+    if (!submission) return res.status(404).json({ message: 'Registration not found' });
+
+    const quizToken = crypto.randomUUID();
+
+    submission.isApproved = true;
+    submission.approvedBy = userId;
+    submission.approvedAt = new Date();
+    submission.quizId     = quizId;
+    submission.quizToken  = quizToken;
+    if (weekLabel) {
+      submission.weekLabel        = String(weekLabel).trim();
+      submission.isPreRegistration = false;
+    }
+
+    await submission.save();
+
+    const frontendBase = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
+    const quizUrl      = `${frontendBase}/quiz/${quizToken}`;
+
+    res.json({ success: true, quizUrl, quizToken });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ADMIN — Available quizzes list (for week-config dropdown)
 // ─────────────────────────────────────────────────────────────────────────────

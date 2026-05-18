@@ -144,7 +144,7 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
         const re = { $regex: search, $options: 'i' };
         filter.$or = [{ name: re }, { email: re }];
       }
-      users = await User.find(filter).select('_id name email role batchId').lean();
+      users = await User.find(filter).select('_id firstName lastName email role batchId').lean();
     } else {
       users = await userService.getUsersByTenant(req.tenantId!);
     }

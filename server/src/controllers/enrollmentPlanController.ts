@@ -116,7 +116,7 @@ export const enrollStudent = async (req: Request, res: Response) => {
     if (!curriculum.isPublished) return res.status(400).json({ message: 'Curriculum is not published' });
 
     // Get student info
-    const student = await User.findById(studentId).select('name email').lean() as any;
+    const student = await User.findById(studentId).select('firstName lastName email').lean() as any;
     if (!student) return res.status(404).json({ message: 'Student not found' });
 
     const enrollment = await CurriculumEnrollment.create({
@@ -124,7 +124,7 @@ export const enrollStudent = async (req: Request, res: Response) => {
       curriculumId,
       curriculumTitle: curriculum.title,
       studentId,
-      studentName: student.name,
+      studentName: `${student.firstName} ${student.lastName}`.trim(),
       studentEmail: student.email,
       batchId: batchId || undefined,
       batchName: batchName || undefined,
@@ -166,8 +166,7 @@ export const enrollBatch = async (req: Request, res: Response) => {
     const batchStudents = await User.find({
       batchId: new mongoose.Types.ObjectId(batchId),
       tenantId: tId,
-      role: 'STUDENT',
-    }).select('name email').lean() as any[];
+    }).select('firstName lastName email').lean() as any[];
 
     if (batchStudents.length === 0) {
       return res.status(400).json({ message: 'No students found in this batch' });
@@ -179,7 +178,7 @@ export const enrollBatch = async (req: Request, res: Response) => {
       curriculumId,
       curriculumTitle: curriculum.title,
       studentId: student._id,
-      studentName: student.name,
+      studentName: `${student.firstName} ${student.lastName}`.trim(),
       studentEmail: student.email,
       batchId,
       batchName: batch.name,
@@ -197,13 +196,16 @@ export const enrollBatch = async (req: Request, res: Response) => {
       message: `Enrolled ${result.length} students`,
     });
   } catch (err: any) {
-    if (err.writeErrors) {
-      const ok = (err.result?.nInserted || 0);
+    const writeErrors = err.writeErrors || err.result?.result?.writeErrors || [];
+    if (writeErrors.length > 0 || err.code === 11000) {
+      const ok = err.result?.nInserted ?? err.result?.insertedCount ?? 0;
       await LearningCurriculum.updateOne({ _id: req.body.curriculumId }, { $inc: { enrollmentCount: ok } });
       return res.status(207).json({
         enrolled: ok,
-        skipped: err.writeErrors.length,
-        message: `Enrolled ${ok} students (${err.writeErrors.length} already enrolled)`,
+        skipped: writeErrors.length,
+        message: ok > 0
+          ? `Enrolled ${ok} students (${writeErrors.length} already enrolled)`
+          : `All ${writeErrors.length} student(s) already enrolled in this curriculum`,
       });
     }
     res.status(500).json({ message: 'Failed to enroll batch', error: err });

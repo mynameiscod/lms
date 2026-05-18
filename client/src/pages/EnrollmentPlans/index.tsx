@@ -194,7 +194,7 @@ function EnrollModal({
                       {students.map((s: any) => (
                         <div
                           key={s._id}
-                          onClick={() => { setSelStudent(s._id); setStudentSearch(`${s.name} (${s.email})`); setStudents([]); }}
+                          onClick={() => { setSelStudent(s._id); setStudentSearch(`${s.firstName} ${s.lastName} (${s.email})`); setStudents([]); }}
                           style={{
                             padding: '8px 12px', cursor: 'pointer', fontSize: '13px',
                             background: selStudent === s._id ? '#f0f9ff' : '#fff',
@@ -203,7 +203,7 @@ function EnrollModal({
                           onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                           onMouseLeave={e => (e.currentTarget.style.background = selStudent === s._id ? '#f0f9ff' : '#fff')}
                         >
-                          <strong>{s.name}</strong> · <span style={{ color: '#64748b' }}>{s.email}</span>
+                          <strong>{s.firstName} {s.lastName}</strong> · <span style={{ color: '#64748b' }}>{s.email}</span>
                         </div>
                       ))}
                     </div>

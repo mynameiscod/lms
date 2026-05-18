@@ -44,19 +44,24 @@ export class EmailService {
       });
       console.log('   Status: ✅ SMTP Transporter Created\n');
     } else {
-      // Gmail configuration
-      console.log('   Service Type: Gmail');
+      // Gmail — use explicit port 465 (SSL) instead of service:'gmail' which defaults
+      // to port 587 (STARTTLS). Port 465 is rarely blocked by VPS/cloud firewalls.
+      console.log('   Service Type: Gmail (port 465 SSL)');
       console.log('   Email User:', process.env.EMAIL_USER);
-      console.log('   Password Length:', (process.env.EMAIL_PASSWORD || '').length, 'characters');
-      
+
       this.transporter = nodemailer.createTransport({
-        service: emailService,
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,          // true = SSL on port 465
         auth: {
           user: process.env.EMAIL_USER || 'your-email@gmail.com',
           pass: process.env.EMAIL_PASSWORD || 'your-app-password'
+        },
+        tls: {
+          rejectUnauthorized: false  // avoid cert errors on some servers
         }
       });
-      console.log('   Status: ✅ Gmail Transporter Created\n');
+      console.log('   Status: ✅ Gmail Transporter Created (port 465)\n');
     }
   }
 

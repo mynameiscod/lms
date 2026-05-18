@@ -504,6 +504,16 @@ export default function EnrollmentPlansPage() {
                             ✕
                           </button>
                         )}
+                        {['completed', 'dropped'].includes(e.status) && (
+                          <button
+                            onClick={() => { if (window.confirm('Reactivate this enrollment?')) changeStatus(e._id, 'active'); }}
+                            disabled={updating === e._id}
+                            title="Reactivate"
+                            style={{ padding: '4px 8px', border: '1px solid #86efac', borderRadius: '5px', background: '#fff', color: '#15803d', cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            {updating === e._id ? '...' : '↺'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>

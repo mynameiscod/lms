@@ -766,7 +766,7 @@ This is an automated message from CodeBegun Learning Management System.
 
     // ── Format display date/time ──────────────────────────────────────────
     const displayDate = eventDate
-      ? eventDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' })
+      ? eventDate.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' })
       : '';
     const displayTime = eventTimeIST || '';
 
@@ -776,8 +776,33 @@ This is an automated message from CodeBegun Learning Management System.
       const pad = (n: number) => String(n).padStart(2, '0');
       const fmtDate = (d: Date) =>
         `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}00Z`;
-      const start = fmtDate(eventDate);
-      const end   = fmtDate(new Date(eventDate.getTime() + 60 * 60 * 1000)); // +1 hr
+
+      // The date part (year/month/day) is what the admin entered — treat it as IST date.
+      // The time comes from eventTimeIST (e.g. "07:00 PM IST"). Parse it and convert to UTC.
+      let startUtc: Date;
+      if (eventTimeIST) {
+        const timeMatch = eventTimeIST.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+        if (timeMatch) {
+          let hours = parseInt(timeMatch[1]);
+          const minutes = parseInt(timeMatch[2]);
+          if (timeMatch[3].toUpperCase() === 'PM' && hours !== 12) hours += 12;
+          if (timeMatch[3].toUpperCase() === 'AM' && hours === 12) hours = 0;
+          // Combine stored UTC date (which carries the IST calendar date) with IST time,
+          // then subtract IST offset (5h30m) to get true UTC.
+          const istOffsetMs = 5.5 * 60 * 60 * 1000;
+          const year  = eventDate.getUTCFullYear();
+          const month = eventDate.getUTCMonth();
+          const day   = eventDate.getUTCDate();
+          startUtc = new Date(Date.UTC(year, month, day, hours, minutes, 0) - istOffsetMs);
+        } else {
+          startUtc = eventDate;
+        }
+      } else {
+        startUtc = eventDate;
+      }
+
+      const start = fmtDate(startUtc);
+      const end   = fmtDate(new Date(startUtc.getTime() + 60 * 60 * 1000)); // +1 hr
       const params = new URLSearchParams({
         action: 'TEMPLATE',
         text: eventTitle,

@@ -59,7 +59,7 @@ function EnrollModal({
           `/api/v1/users?search=${encodeURIComponent(studentSearch)}&role=STUDENT`,
           { headers: authHeader() }
         );
-        setStudents(data.users || data || []);
+        setStudents(data.data || data.users || []);
       } catch { setStudents([]); }
     }, 350);
     return () => clearTimeout(t);

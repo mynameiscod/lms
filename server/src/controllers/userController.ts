@@ -134,17 +134,24 @@ export const createUser = async (req: AuthenticatedRequest, res: Response) => {
 
 export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const users = await userService.getUsersByTenant(req.tenantId!);
-    res.json({
-      success: true,
-      message: 'Users fetched successfully',
-      data: users
-    });
+    const { search, role } = req.query as { search?: string; role?: string };
+
+    let users;
+    if (search || role) {
+      const filter: any = { tenantId: req.tenantId };
+      if (role) filter.role = role;
+      if (search) {
+        const re = { $regex: search, $options: 'i' };
+        filter.$or = [{ name: re }, { email: re }];
+      }
+      users = await User.find(filter).select('_id name email role batchId').lean();
+    } else {
+      users = await userService.getUsersByTenant(req.tenantId!);
+    }
+
+    res.json({ success: true, message: 'Users fetched successfully', data: users });
   } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to fetch users'
-    });
+    res.status(500).json({ success: false, message: error.message || 'Failed to fetch users' });
   }
 };
 

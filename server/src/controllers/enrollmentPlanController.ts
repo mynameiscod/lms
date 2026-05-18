@@ -157,29 +157,30 @@ export const enrollBatch = async (req: Request, res: Response) => {
     if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });
     if (!curriculum.isPublished) return res.status(400).json({ message: 'Curriculum is not published' });
 
-    // Get batch info and its students
-    const Batch = mongoose.model('Batch');
-    const batch = await Batch.findOne({ _id: batchId, tenantId: tId }).lean() as any;
+    // Get batch info
+    const BatchModel = mongoose.model('Batch');
+    const batch = await BatchModel.findOne({ _id: batchId, tenantId: tId }).lean() as any;
     if (!batch) return res.status(404).json({ message: 'Batch not found' });
 
-    // Get all active students in the batch
-    const Enrollment = mongoose.model('Enrollment');
-    const batchEnrollments = await Enrollment.find({ batchId, tenantId: tId, status: 'active' })
-      .populate('userId', 'name email')
-      .lean() as any[];
+    // Get all students in the batch via User.batchId
+    const batchStudents = await User.find({
+      batchId: new mongoose.Types.ObjectId(batchId),
+      tenantId: tId,
+      role: 'STUDENT',
+    }).select('name email').lean() as any[];
 
-    if (batchEnrollments.length === 0) {
-      return res.status(400).json({ message: 'No active students found in batch' });
+    if (batchStudents.length === 0) {
+      return res.status(400).json({ message: 'No students found in this batch' });
     }
 
     const start = new Date(startDate);
-    const docs = batchEnrollments.map((be: any) => ({
+    const docs = batchStudents.map((student: any) => ({
       tenantId: tId,
       curriculumId,
       curriculumTitle: curriculum.title,
-      studentId: be.userId._id,
-      studentName: be.userId.name,
-      studentEmail: be.userId.email,
+      studentId: student._id,
+      studentName: student.name,
+      studentEmail: student.email,
       batchId,
       batchName: batch.name,
       startDate: start,

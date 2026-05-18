@@ -135,6 +135,9 @@ import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditCont
 import CurriculumListPage from './pages/CurriculumBuilder';
 import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
 
+// Enrollment Plans
+import EnrollmentPlansPage from './pages/EnrollmentPlans';
+
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
 
@@ -1580,6 +1583,16 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><CurriculumBuilderPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Enrollment Plans ── */}
+      <Route
+        path="/enrollment-plans"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><EnrollmentPlansPage /></Layout>
           </ProtectedRoute>
         }
       />

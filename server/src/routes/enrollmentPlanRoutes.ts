@@ -3,12 +3,14 @@ import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import * as ctrl from '../controllers/enrollmentPlanController';
 
+
 const router = express.Router();
 
 router.use(authMiddleware, tenantMiddleware);
 
 // Student routes
 router.get('/my',                                   ctrl.getMyEnrollments);
+router.get('/:id/day/:day',                         ctrl.getStudentDayPlan);
 router.patch('/:id/complete-item',                  ctrl.markContentComplete);
 
 // Admin routes

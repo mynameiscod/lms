@@ -126,6 +126,11 @@ export const enrollmentPlanApi = {
   },
 
   // Student
+  getDayPlan: async (enrollmentId: string, day: number): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/${enrollmentId}/day/${day}`, { headers: authHeader() });
+    return data;
+  },
+
   getMyEnrollments: async (): Promise<CurriculumEnrollment[]> => {
     const { data } = await axios.get(`${BASE}/my`, { headers: authHeader() });
     return data;

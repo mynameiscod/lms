@@ -138,6 +138,10 @@ import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
 // Enrollment Plans
 import EnrollmentPlansPage from './pages/EnrollmentPlans';
 
+// My Learning Plan (student)
+import MyLearningPlanPage from './pages/MyLearningPlan';
+import DayViewPage from './pages/MyLearningPlan/DayView';
+
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
 
@@ -1587,12 +1591,30 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* ── Enrollment Plans ── */}
+      {/* ── Enrollment Plans (admin) ── */}
       <Route
         path="/enrollment-plans"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><EnrollmentPlansPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── My Learning Plan (student) ── */}
+      <Route
+        path="/my-learning"
+        element={
+          <ProtectedRoute>
+            <Layout><MyLearningPlanPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-learning/:enrollmentId/day/:day"
+        element={
+          <ProtectedRoute>
+            <Layout><DayViewPage /></Layout>
           </ProtectedRoute>
         }
       />

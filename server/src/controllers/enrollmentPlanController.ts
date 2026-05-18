@@ -3,6 +3,8 @@ import mongoose from 'mongoose';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
+import WeekendPlan from '../models/WeekendPlan';
+import LearningContentLibrary from '../models/LearningContentLibrary';
 import User from '../models/User';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
@@ -381,5 +383,95 @@ export const getCurriculumEnrollmentStats = async (req: Request, res: Response) 
     res.json({ total, active, paused, completed, dropped });
   } catch (err) {
     res.status(500).json({ message: 'Failed to get stats', error: err });
+  }
+};
+
+// ─── Student: get a specific day's plan with full content populated ──────────
+
+export const getStudentDayPlan = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const sId = userId(req);
+    const { id: enrollmentId, day } = req.params;
+    const dayNumber = parseInt(day, 10);
+
+    const enrollment = await CurriculumEnrollment.findOne({ _id: enrollmentId, tenantId: tId, studentId: sId }).lean();
+    if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
+
+    const curriculum = await LearningCurriculum.findById(enrollment.curriculumId).lean();
+    if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });
+
+    if (dayNumber < 1 || dayNumber > curriculum.totalDays) {
+      return res.status(400).json({ message: 'Invalid day number' });
+    }
+
+    // Sequential lock check: if enforceSequential, previous day must be completed
+    let isLocked = false;
+    if (enrollment.settings.enforceSequential && dayNumber > 1) {
+      const prevDayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: dayNumber - 1 }).lean();
+      if (prevDayPlan) {
+        const gatingItems = prevDayPlan.items.filter(i => i.isGating);
+        if (gatingItems.length > 0) {
+          const allGatingDone = gatingItems.every(gi =>
+            enrollment.completedItems.some(ci => ci.contentId === gi.contentId.toString() && ci.dayNumber === dayNumber - 1)
+          );
+          isLocked = !allGatingDone;
+        }
+      }
+    }
+
+    // Compute calendar date for this day
+    const dayDate = weekdayForDay(enrollment.startDate, dayNumber);
+
+    // Find topic for this day
+    const topic = curriculum.topics.find(t => dayNumber >= t.startDay && dayNumber <= t.endDay);
+
+    // Fetch day plan
+    const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
+
+    // Populate content items
+    let populatedItems: any[] = [];
+    if (dayPlan && dayPlan.items.length > 0) {
+      const contentIds = dayPlan.items.map(i => i.contentId);
+      const contents = await LearningContentLibrary.find({ _id: { $in: contentIds } }).lean();
+      const contentMap: Record<string, any> = {};
+      contents.forEach(c => { contentMap[c._id.toString()] = c; });
+
+      populatedItems = dayPlan.items.map(item => ({
+        ...item,
+        content: contentMap[item.contentId.toString()] || null,
+        isCompleted: enrollment.completedItems.some(
+          ci => ci.contentId === item.contentId.toString() && ci.dayNumber === dayNumber
+        ),
+      }));
+    }
+
+    // Get completion info
+    const isDayCompleted = enrollment.completedDays.includes(dayNumber);
+    const todayPlanDay   = currentPlanDay(enrollment.startDate, curriculum.totalDays);
+
+    res.json({
+      enrollment: {
+        _id: enrollment._id,
+        curriculumId: enrollment.curriculumId,
+        curriculumTitle: enrollment.curriculumTitle,
+        status: enrollment.status,
+        settings: enrollment.settings,
+        currentDay: enrollment.currentDay,
+        completedDays: enrollment.completedDays,
+        totalDays: curriculum.totalDays,
+        startDate: enrollment.startDate,
+      },
+      curriculum: { title: curriculum.title, totalDays: curriculum.totalDays, topics: curriculum.topics },
+      dayNumber,
+      dayDate: dayDate.toISOString(),
+      topic: topic || null,
+      items: populatedItems,
+      isDayCompleted,
+      isLocked,
+      todayPlanDay,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to get day plan', error: err });
   }
 };

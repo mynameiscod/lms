@@ -62,6 +62,7 @@ import googleAdsRoutes from './googleAdsRoutes';
 import aiCallRoutes from './aiCallRoutes';
 import adminPublicQuizRoutes from './adminPublicQuizRoutes';
 import learningContentLibraryRoutes from './learningContentLibraryRoutes';
+import learningCurriculumRoutes from './curriculumRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -136,5 +137,6 @@ router.use('/public-quizzes', adminPublicQuizRoutes);
 
 // ─── Learning Plan Module ──────────────────────────────────────────────────────
 router.use('/learning-library', learningContentLibraryRoutes);
+router.use('/curricula', learningCurriculumRoutes);
 
 export default router;

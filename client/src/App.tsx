@@ -131,6 +131,10 @@ import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 import LearningContentLibraryPage from './pages/LearningContentLibrary';
 import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditContent';
 
+// Curriculum Builder
+import CurriculumListPage from './pages/CurriculumBuilder';
+import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
+
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
 
@@ -1550,6 +1554,32 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><CreateEditContentPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Curriculum Builder ── */}
+      <Route
+        path="/curriculum-builder"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><CurriculumListPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/curriculum-builder/create"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><CurriculumBuilderPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/curriculum-builder/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><CurriculumBuilderPage /></Layout>
           </ProtectedRoute>
         }
       />

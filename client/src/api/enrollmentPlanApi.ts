@@ -3,8 +3,12 @@ import axios from 'axios';
 const BASE = '/api/v1/enrollment-plans';
 
 const authHeader = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const token    = localStorage.getItem('token');
+  const tenantId = localStorage.getItem('tenantId');
+  return {
+    ...(token    && { Authorization: `Bearer ${token}` }),
+    ...(tenantId && { 'X-Tenant-Id': tenantId }),
+  };
 };
 
 export type EnrollmentStatus = 'active' | 'paused' | 'completed' | 'dropped';

@@ -11,8 +11,12 @@ import { curriculumApi, Curriculum } from '../../api/curriculumApi';
 import { batchApi } from '../../api/index';
 
 const authHeader = () => {
-  const token = localStorage.getItem('token');
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  const token    = localStorage.getItem('token');
+  const tenantId = localStorage.getItem('tenantId');
+  return {
+    ...(token    && { Authorization: `Bearer ${token}` }),
+    ...(tenantId && { 'X-Tenant-Id': tenantId }),
+  };
 };
 
 type EnrollMode = 'batch' | 'individual';
@@ -44,7 +48,7 @@ function EnrollModal({
 
   useEffect(() => {
     curriculumApi.list({ published: 'true' }).then(r => setCurricula(r.curricula)).catch(() => {});
-    batchApi.getBatches().then(r => setBatches(r || [])).catch(() => {});
+    batchApi.getBatches().then(r => setBatches(r.data || r.batches || r || [])).catch(() => {});
   }, []);
 
   useEffect(() => {

@@ -127,6 +127,10 @@ import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList'
 import AllRegistrations from './pages/PublicQuizAdmin/AllRegistrations';
 import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 
+// Learning Content Library
+import LearningContentLibraryPage from './pages/LearningContentLibrary';
+import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditContent';
+
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
 
@@ -1520,6 +1524,32 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><RegistrationDetail /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Learning Content Library ── */}
+      <Route
+        path="/learning-library"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><LearningContentLibraryPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning-library/create"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><CreateEditContentPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning-library/edit/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><CreateEditContentPage /></Layout>
           </ProtectedRoute>
         }
       />

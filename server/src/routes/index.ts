@@ -61,6 +61,7 @@ import salesCallRecordingRoutes from './salesCallRecordingRoutes';
 import googleAdsRoutes from './googleAdsRoutes';
 import aiCallRoutes from './aiCallRoutes';
 import adminPublicQuizRoutes from './adminPublicQuizRoutes';
+import learningContentLibraryRoutes from './learningContentLibraryRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -132,5 +133,8 @@ router.use('/sales-call-recordings', salesCallRecordingRoutes);
 router.use('/google-leads', googleAdsRoutes);
 router.use('/ai-calls', aiCallRoutes);
 router.use('/public-quizzes', adminPublicQuizRoutes);
+
+// ─── Learning Plan Module ──────────────────────────────────────────────────────
+router.use('/learning-library', learningContentLibraryRoutes);
 
 export default router;

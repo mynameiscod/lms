@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ReactQuill from 'react-quill';
+import SlideBuilder from '../../components/SlideBuilder';
 import 'react-quill/dist/quill.snow.css';
 import {
   learningContentLibraryApi,
@@ -43,6 +44,7 @@ export default function CreateEditContent() {
   const isEdit     = !!id;
 
   const [step,        setStep]        = useState<'type' | 'form'>(isEdit ? 'form' : 'type');
+  const [activeTab,   setActiveTab]   = useState<'content' | 'lesson'>('content');
   const [saving,      setSaving]      = useState(false);
   const [loading,     setLoading]     = useState(isEdit);
   const [videoFile,   setVideoFile]   = useState<File | null>(null);
@@ -266,6 +268,41 @@ export default function CreateEditContent() {
       <button onClick={() => isEdit ? navigate('/learning-library') : setStep('type')} style={backBtnStyle}>
         ← {isEdit ? 'Back to Library' : 'Change Type'}
       </button>
+
+      {/* Tab header (edit mode only) */}
+      {isEdit && (
+        <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid #e2e8f0', margin: '16px 0 0' }}>
+          {[
+            { key: 'content', label: '📄 Content' },
+            { key: 'lesson',  label: '🎬 Interactive Lesson' },
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as 'content' | 'lesson')}
+              style={{
+                padding: '10px 20px', border: 'none', background: 'none', cursor: 'pointer',
+                fontWeight: 700, fontSize: '14px',
+                color: activeTab === tab.key ? '#0f172a' : '#64748b',
+                borderBottom: activeTab === tab.key ? '2px solid #0f172a' : '2px solid transparent',
+                marginBottom: '-2px',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Interactive Lesson tab */}
+      {isEdit && activeTab === 'lesson' && (
+        <div style={{ paddingTop: '24px' }}>
+          <SlideBuilder contentId={id!} />
+        </div>
+      )}
+
+      {/* Content tab (hidden when on lesson tab) */}
+      {activeTab === 'content' && (
+        <div>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '16px 0 24px' }}>
         <div>
@@ -701,6 +738,10 @@ export default function CreateEditContent() {
           {saving ? 'Saving...' : '💾 Save Content'}
         </button>
       </div>
+
+        </div>
+      )}
+
     </div>
   );
 }

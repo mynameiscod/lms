@@ -64,6 +64,7 @@ import adminPublicQuizRoutes from './adminPublicQuizRoutes';
 import learningContentLibraryRoutes from './learningContentLibraryRoutes';
 import learningCurriculumRoutes from './curriculumRoutes';
 import enrollmentPlanRoutes from './enrollmentPlanRoutes';
+import conceptLessonRoutes from './conceptLessonRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -140,5 +141,6 @@ router.use('/public-quizzes', adminPublicQuizRoutes);
 router.use('/learning-library', learningContentLibraryRoutes);
 router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
+router.use('/concept-lessons', conceptLessonRoutes);
 
 export default router;

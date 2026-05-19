@@ -74,6 +74,7 @@ export interface ILearningContentLibrary extends Document {
   practiceQuestions: IPracticeQuestion[];
 
   isPublished: boolean;
+  conceptLessonId?: mongoose.Types.ObjectId;
   createdBy: string;
   viewCount: number;
   usageCount: number;
@@ -159,8 +160,9 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     // Practice / Aptitude
     practiceQuestions: [PracticeQuestionSchema],
 
-    isPublished: { type: Boolean, default: false },
-    createdBy:   { type: String, required: true },
+    isPublished:     { type: Boolean, default: false },
+    conceptLessonId: { type: Schema.Types.ObjectId, ref: 'ConceptLesson', default: null },
+    createdBy:       { type: String, required: true },
     viewCount:   { type: Number, default: 0 },
     usageCount:  { type: Number, default: 0 },
   },

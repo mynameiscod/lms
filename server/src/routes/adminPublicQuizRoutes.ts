@@ -21,6 +21,9 @@ router.get('/leaderboard', ctrl.getLeaderboard);
 // All registrations across all weeks
 router.get('/all-registrations', ctrl.getAllRegistrations);
 
+// Send quiz links to all approved students in a week
+router.post('/send-quiz-links', ctrl.sendWeekQuizLinks);
+
 // Individual registration detail + approve/reject/generate-link
 router.get('/registrations/:subId', ctrl.getRegistrationDetail);
 router.put('/registrations/:subId/approve', ctrl.approveRegistration);

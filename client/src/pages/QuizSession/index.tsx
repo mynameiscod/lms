@@ -40,7 +40,7 @@ interface ResultData {
   timeSpentSeconds: number;
 }
 
-type Phase = 'loading' | 'intro' | 'taking' | 'submitting' | 'result' | 'error' | 'already_done';
+type Phase = 'loading' | 'intro' | 'taking' | 'submitting' | 'result' | 'error' | 'already_done' | 'not_yet';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -68,6 +68,8 @@ const QuizSession: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [result, setResult] = useState<ResultData | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [opensAt, setOpensAt] = useState<string>('');
+  const [eventTimeIST, setEventTimeIST] = useState<string>('');
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasSubmitted = useRef(false);
 
@@ -89,12 +91,15 @@ const QuizSession: React.FC = () => {
           setPhase('intro');
         }
       })
-      .catch((err: Error) => {
-        const msg = err.message || 'Failed to load quiz';
-        if (msg.toLowerCase().includes('already completed') || msg.toLowerCase().includes('already submitted')) {
+      .catch((err: any) => {
+        if (err.code === 'NOT_YET') {
+          setOpensAt(err.opensAt || '');
+          setEventTimeIST(err.eventTimeIST || '');
+          setPhase('not_yet');
+        } else if ((err.message || '').toLowerCase().includes('already')) {
           setPhase('already_done');
         } else {
-          setErrorMsg(msg);
+          setErrorMsg(err.message || 'Failed to load quiz');
           setPhase('error');
         }
       });
@@ -185,6 +190,40 @@ const QuizSession: React.FC = () => {
         <div className="text-center">
           <div className="spinner-border text-primary mb-3" />
           <p className="text-muted">Loading quiz…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'not_yet') {
+    const openDate = opensAt ? new Date(opensAt) : null;
+    const displayDate = openDate
+      ? openDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      : '';
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: '#f0f4f8' }}>
+        <div className="card shadow p-4 text-center" style={{ maxWidth: 480, borderRadius: 16, border: 'none' }}>
+          <div style={{ fontSize: 52, marginBottom: 12 }}>⏰</div>
+          <h4 className="mb-2 fw-bold" style={{ color: '#0d1b2a' }}>Quiz Not Open Yet</h4>
+          <p className="text-muted mb-3" style={{ fontSize: 15 }}>
+            Your quiz link is confirmed but the quiz hasn't opened yet.
+          </p>
+          {(displayDate || eventTimeIST) && (
+            <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '14px 20px', marginBottom: 20 }}>
+              <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: 15 }}>
+                {displayDate && <span>📅 {displayDate}</span>}
+                {displayDate && eventTimeIST && ' · '}
+                {eventTimeIST && <span>🕖 {eventTimeIST}</span>}
+              </div>
+              <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>Come back at this time to take the quiz</div>
+            </div>
+          )}
+          <p className="text-muted" style={{ fontSize: 13 }}>
+            Keep this page link — it will unlock automatically at the scheduled time.
+          </p>
+          <button className="btn btn-primary btn-sm mt-2" onClick={() => window.location.reload()}>
+            Refresh to Check
+          </button>
         </div>
       </div>
     );

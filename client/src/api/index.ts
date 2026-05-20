@@ -2878,6 +2878,11 @@ export const publicQuizAdminApi = {
     const qs = new URLSearchParams({ weekLabel }).toString();
     return authenticatedFetch(`${API_BASE_URL}/public-quizzes/leaderboard?${qs}`);
   },
+  sendWeekQuizLinks: (weekLabel: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/send-quiz-links`, {
+      method: 'POST',
+      body: JSON.stringify({ weekLabel }),
+    }),
 };
 
 // ─── Public Quiz Session (no auth — token-based) ──────────────────────────────
@@ -2886,7 +2891,13 @@ export const publicQuizSessionApi = {
   getQuiz: (token: string) =>
     fetch(`${API_BASE_URL}/public/quiz/${token}`).then(async (res) => {
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to load quiz');
+      if (!res.ok) {
+        const err: any = new Error(data.message || 'Failed to load quiz');
+        err.code = data.code;
+        err.opensAt = data.opensAt;
+        err.eventTimeIST = data.eventTimeIST;
+        throw err;
+      }
       return data;
     }),
   submitQuiz: (token: string, answers: Record<string, string[]>) =>

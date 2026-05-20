@@ -146,6 +146,19 @@ export const getQuizByToken = async (req: Request, res: Response) => {
     if (submission.isApproved !== true) return res.status(403).json({ message: 'Your registration is not yet approved.', code: 'NOT_APPROVED' });
     if (submission.quizCompletedAt) return res.status(403).json({ message: 'You have already submitted this quiz.', code: 'ALREADY_SUBMITTED' });
 
+    // Time-lock: check if quiz is scheduled for a future time
+    if (submission.weekLabel) {
+      const weekConfig = await WeekConfig.findOne({ tenantId: submission.tenantId, weekLabel: submission.weekLabel });
+      if (weekConfig?.eventDate && new Date() < weekConfig.eventDate) {
+        return res.status(403).json({
+          code: 'NOT_YET',
+          message: 'Quiz is not open yet.',
+          opensAt: weekConfig.eventDate,
+          eventTimeIST: weekConfig.eventTimeIST || '',
+        });
+      }
+    }
+
     const quiz = await Quiz.findById(submission.quizId).select('title totalMarks totalTime passPercentage passingMarks shuffleQuestions instructions');
     if (!quiz) return res.status(404).json({ message: 'Quiz not found.', code: 'QUIZ_NOT_FOUND' });
 
@@ -449,10 +462,11 @@ export const approveRegistration = async (req: Request, res: Response) => {
       ? await WeekConfig.findOne({ tenantId, weekLabel: submission.weekLabel })
       : null;
 
+    // Send confirmation email WITHOUT quiz link (quiz opens at scheduled time)
     emailService.sendTechBattleApprovalEmail({
       email:        submission.email,
       name:         submission.name,
-      quizUrl:      quizUrl || '',
+      quizUrl:      '',  // No link yet — student will receive it when quiz goes live
       eventTitle:   weekConfig?.eventTitle || 'Weekly Tech Battle',
       eventDate:    weekConfig?.eventDate,
       eventTimeIST: weekConfig?.eventTimeIST,
@@ -555,6 +569,55 @@ export const getAvailableQuizzes = async (req: Request, res: Response) => {
       .select('title totalQuestions totalMarks totalTime')
       .sort({ createdAt: -1 });
     res.json(quizzes);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN — Send quiz links to all approved students in a week
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * POST /api/public-quizzes/send-quiz-links
+ * Body: { weekLabel }
+ * Sends the quiz URL to every approved student in the week who has a quizToken.
+ */
+export const sendWeekQuizLinks = async (req: Request, res: Response) => {
+  try {
+    const tenantId  = (req as any).user?.tenantId;
+    const { weekLabel } = req.body;
+    if (!weekLabel) return res.status(400).json({ message: 'weekLabel is required' });
+
+    const weekConfig = await WeekConfig.findOne({ tenantId, weekLabel });
+    if (!weekConfig) return res.status(404).json({ message: 'Week not configured. Save the week config first.' });
+
+    const frontendBase = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
+
+    // Find all approved students in this week who have a quiz token
+    const submissions = await PublicQuizSubmission.find({
+      tenantId,
+      weekLabel,
+      isApproved: true,
+      quizToken:  { $exists: true, $ne: '' },
+    }).select('email name quizToken');
+
+    let sent = 0;
+    for (const sub of submissions) {
+      const quizUrl = `${frontendBase}/quiz/${sub.quizToken}`;
+      await emailService.sendTechBattleApprovalEmail({
+        email:        sub.email,
+        name:         sub.name,
+        quizUrl,
+        eventTitle:   weekConfig.eventTitle || 'Weekly Tech Battle',
+        eventDate:    weekConfig.eventDate,
+        eventTimeIST: weekConfig.eventTimeIST,
+        techBattleUrl:weekConfig.techBattleUrl,
+      }).catch(() => {/* non-fatal */});
+      sent++;
+    }
+
+    res.json({ success: true, sent, total: submissions.length });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

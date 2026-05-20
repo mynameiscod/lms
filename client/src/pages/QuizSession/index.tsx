@@ -255,18 +255,16 @@ const QuizSession: React.FC = () => {
 
   if (phase === 'intro' && quizData) {
     const { quiz, candidate } = quizData;
+    const candidateName = candidate?.name || (quizData as any).candidateName || '';
+    const candidateEmail = candidate?.email || '';
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
         <div className="card shadow p-4" style={{ maxWidth: 560, width: '100%' }}>
           <h3 className="mb-1 fw-bold">{quiz.title}</h3>
           {quiz.description && <p className="text-muted mb-3">{quiz.description}</p>}
           <hr />
-          <p className="mb-1">
-            <strong>Candidate:</strong> {candidate.name}
-          </p>
-          <p className="mb-3">
-            <strong>Email:</strong> {candidate.email}
-          </p>
+          {candidateName && <p className="mb-1"><strong>Candidate:</strong> {candidateName}</p>}
+          {candidateEmail && <p className="mb-3"><strong>Email:</strong> {candidateEmail}</p>}
           <ul className="list-unstyled text-muted small mb-4">
             <li>📋 <strong>{total}</strong> question{total !== 1 ? 's' : ''}</li>
             <li>🏆 Total marks: <strong>{quiz.totalMarks}</strong></li>
@@ -279,6 +277,18 @@ const QuizSession: React.FC = () => {
           <button className="btn btn-primary btn-lg w-100" onClick={handleStart}>
             Start Quiz
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'taking' && quizData && questions.length === 0) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center bg-light">
+        <div className="card shadow-sm p-4 text-center" style={{ maxWidth: 480 }}>
+          <div className="fs-1 mb-2">⚠️</div>
+          <h5 className="mb-2">Quiz Has No Questions</h5>
+          <p className="text-muted">This quiz hasn't been set up with questions yet. Please contact the organiser.</p>
         </div>
       </div>
     );

@@ -180,12 +180,14 @@ export const getQuizByToken = async (req: Request, res: Response) => {
       questions = questions.sort(() => Math.random() - 0.5);
     }
 
-    // Strip correct answers from options before sending to client
+    // Strip correct answers; keep options as { text } objects for the client
     const sanitized = questions.map(q => {
       const obj = q.toObject();
       delete obj.explanation;
       if (Array.isArray(obj.options)) {
-        obj.options = obj.options.map((o: any) => typeof o === 'string' ? o : (o?.text || ''));
+        obj.options = obj.options.map((o: any) =>
+          typeof o === 'string' ? { text: o } : { text: o?.text || String(o) }
+        );
       }
       delete obj.correctAnswers;
       delete obj.correctAnswerText;
@@ -193,11 +195,15 @@ export const getQuizByToken = async (req: Request, res: Response) => {
     });
 
     res.json({
-      candidateName: submission.name,
-      quizToken: req.params.token,
-      startedAt: submission.quizStartedAt,
+      // field names the QuizSession component expects
+      candidate:      { name: submission.name, email: submission.email },
+      candidateName:  submission.name,        // backward compat
+      quizToken:      req.params.token,
+      quizStartedAt:  submission.quizStartedAt,
+      startedAt:      submission.quizStartedAt, // backward compat
       quiz: {
         title:        quiz.title,
+        timeLimit:    (quiz as any).totalTime,  // component uses timeLimit
         totalTime:    (quiz as any).totalTime,
         totalMarks:   quiz.totalMarks,
         instructions: (quiz as any).instructions || ''

@@ -1,0 +1,791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Public Quiz System — Complete Flow Guide</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1a2332; }
+
+  /* ── Layout ── */
+  .page { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 2rem; font-weight: 800; margin-bottom: 6px; }
+  h2 { font-size: 1.25rem; font-weight: 700; margin-bottom: 16px; }
+  h3 { font-size: 1rem; font-weight: 700; margin-bottom: 10px; }
+  p  { font-size: 14px; line-height: 1.7; color: #4a5568; }
+
+  /* ── Role pills ── */
+  .pill { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; }
+  .pill-admin   { background: #ede9fe; color: #6d28d9; }
+  .pill-student { background: #dcfce7; color: #15803d; }
+  .pill-system  { background: #e0f2fe; color: #0369a1; }
+
+  /* ── Big timeline ── */
+  .timeline { position: relative; margin: 32px 0; }
+  .timeline::before { content: ''; position: absolute; left: 28px; top: 0; bottom: 0; width: 3px; background: linear-gradient(to bottom, #6d28d9, #0369a1, #15803d); border-radius: 2px; }
+  .step { display: flex; gap: 20px; margin-bottom: 28px; position: relative; }
+  .step-num { width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 20px; color: #fff; flex-shrink: 0; position: relative; z-index: 1; }
+  .step-content { flex: 1; background: #fff; border-radius: 12px; padding: 20px 24px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .step-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .step-title { font-size: 1rem; font-weight: 700; }
+
+  /* ── Screen mockups ── */
+  .screen { background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 16px; margin-top: 14px; font-size: 13px; }
+  .screen-bar { background: #1e3050; color: #94a3b8; border-radius: 6px 6px 0 0; padding: 8px 14px; font-size: 11px; margin: -16px -16px 14px; font-family: monospace; }
+  .screen-title { font-weight: 700; font-size: 15px; margin-bottom: 12px; color: #0d1b2a; }
+  .form-row { display: flex; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
+  .form-field { flex: 1; min-width: 140px; }
+  .form-label { font-size: 11px; font-weight: 700; color: #64748b; margin-bottom: 4px; letter-spacing: .3px; }
+  .form-input { background: #fff; border: 1.5px solid #cbd5e1; border-radius: 6px; padding: 7px 10px; font-size: 12px; color: #1a2332; width: 100%; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 7px; font-size: 12px; font-weight: 700; cursor: pointer; border: none; }
+  .btn-primary  { background: #0d1b2a; color: #fff; }
+  .btn-success  { background: #15803d; color: #fff; }
+  .btn-outline  { background: #fff; color: #0d1b2a; border: 1.5px solid #cbd5e1; }
+  .btn-blue     { background: #1d4ed8; color: #fff; }
+  .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-pending  { background: #fef9c3; color: #854d0e; }
+  .badge-approved { background: #dcfce7; color: #15803d; }
+  .badge-rejected { background: #fee2e2; color: #b91c1c; }
+
+  /* ── Table mockups ── */
+  .mock-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+  .mock-table th { background: #f1f5f9; padding: 8px 12px; text-align: left; font-size: 11px; color: #64748b; font-weight: 700; }
+  .mock-table td { padding: 9px 12px; border-top: 1px solid #f1f5f9; }
+  .mock-table tr:hover td { background: #f8fafc; }
+
+  /* ── Alert boxes ── */
+  .alert { border-radius: 8px; padding: 12px 16px; margin-top: 12px; font-size: 13px; display: flex; gap: 10px; align-items: flex-start; }
+  .alert-info    { background: #eff6ff; border: 1.5px solid #bfdbfe; color: #1e40af; }
+  .alert-warning { background: #fffbeb; border: 1.5px solid #fde68a; color: #92400e; }
+  .alert-success { background: #f0fdf4; border: 1.5px solid #bbf7d0; color: #14532d; }
+  .alert-danger  { background: #fef2f2; border: 1.5px solid #fecaca; color: #991b1b; }
+  .alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Email mockup ── */
+  .email-card { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 12px; font-size: 13px; }
+  .email-header { background: #0d1b2a; color: #94a3b8; padding: 12px 16px; font-size: 11px; }
+  .email-subject { font-weight: 700; color: #e2e8f0; font-size: 13px; }
+  .email-body { padding: 20px; }
+  .email-hero { background: linear-gradient(135deg, #0d1b2a, #1e3a5f); color: #fff; padding: 20px; border-radius: 8px; margin-bottom: 16px; text-align: center; }
+  .email-hero h3 { color: #fff; font-size: 20px; margin-bottom: 6px; }
+  .email-hero p  { color: #94a3b8; font-size: 13px; }
+  .date-pill { display: inline-flex; align-items: center; gap: 8px; border: 1.5px solid #bfdbfe; border-radius: 8px; padding: 8px 14px; font-size: 13px; color: #1e40af; font-weight: 600; }
+
+  /* ── Flow diagram ── */
+  .flow { display: flex; align-items: center; gap: 0; flex-wrap: wrap; margin: 20px 0; }
+  .flow-box { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 10px 14px; font-size: 12px; font-weight: 600; text-align: center; min-width: 110px; }
+  .flow-box.admin   { border-color: #a78bfa; background: #f5f3ff; color: #5b21b6; }
+  .flow-box.student { border-color: #6ee7b7; background: #f0fdf4; color: #065f46; }
+  .flow-box.system  { border-color: #7dd3fc; background: #f0f9ff; color: #0c4a6e; }
+  .flow-arrow { font-size: 18px; color: #94a3b8; padding: 0 6px; }
+
+  /* ── Scenario cards ── */
+  .scenarios { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0; }
+  @media (max-width: 640px) { .scenarios { grid-template-columns: 1fr; } }
+  .scenario { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+  .scenario-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff; margin-bottom: 12px; }
+  .scenario h3 { font-size: 14px; margin-bottom: 8px; }
+  .scenario p  { font-size: 13px; }
+  .scenario ol { font-size: 13px; color: #4a5568; padding-left: 18px; line-height: 1.9; }
+
+  /* ── Section divider ── */
+  .section { margin: 48px 0 24px; }
+  .section-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; color: #94a3b8; text-transform: uppercase; margin-bottom: 8px; }
+
+  /* ── Quiz page mockup ── */
+  .quiz-screen { background: #f8fafc; border-radius: 10px; overflow: hidden; border: 1.5px solid #e2e8f0; margin-top: 14px; }
+  .quiz-header { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .quiz-body { padding: 16px; }
+  .option-row { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 7px; padding: 10px 14px; margin-bottom: 8px; font-size: 13px; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+  .option-row.selected { border-color: #6d28d9; background: #f5f3ff; }
+
+  /* ── Key points ── */
+  .key-points { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 24px; }
+  @media (max-width: 640px) { .key-points { grid-template-columns: 1fr; } }
+  .key-point { background: #fff; border-radius: 10px; padding: 16px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+  .key-point .icon { font-size: 24px; margin-bottom: 8px; }
+  .key-point h4 { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .key-point p  { font-size: 12px; }
+
+  /* ── Step colors ── */
+  .c1 { background: #6d28d9; }
+  .c2 { background: #7c3aed; }
+  .c3 { background: #0369a1; }
+  .c4 { background: #0284c7; }
+  .c5 { background: #0891b2; }
+  .c6 { background: #059669; }
+  .c7 { background: #10b981; }
+  .c8 { background: #16a34a; }
+
+  .divider { height: 1px; background: #e2e8f0; margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ══ Hero ══════════════════════════════════════════════════════════════ -->
+  <div style="background: linear-gradient(135deg,#0d1b2a 0%,#1e3a5f 100%); border-radius: 16px; padding: 36px 40px; color: #fff; margin-bottom: 40px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#94a3b8;text-transform:uppercase;margin-bottom:12px;">CodeBegun LMS</div>
+    <h1 style="color:#fff;font-size:2rem;margin-bottom:8px;">Public Quiz System</h1>
+    <p style="color:#94a3b8;font-size:15px;max-width:600px;">
+      Complete end-to-end flow guide — from creating a quiz to students taking it live.
+      Covers every scenario with exact screens.
+    </p>
+    <div style="display:flex;gap:20px;margin-top:24px;flex-wrap:wrap;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#a5b4fc;">
+        <span style="width:10px;height:10px;background:#a78bfa;border-radius:50%;display:inline-block;"></span> Admin Actions
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6ee7b7;">
+        <span style="width:10px;height:10px;background:#6ee7b7;border-radius:50%;display:inline-block;"></span> Student Experience
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#7dd3fc;">
+        <span style="width:10px;height:10px;background:#7dd3fc;border-radius:50%;display:inline-block;"></span> System (auto)
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Big Picture Flow ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Big Picture</div>
+    <h2>How the system works in one view</h2>
+    <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+      <div class="flow">
+        <div class="flow-box admin">1. Create Quiz</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box admin">2. Configure Week</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box student">3. Students Register</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box admin">4. Approve</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box admin">5. Send Links</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box student">6. Take Quiz</div>
+        <div class="flow-arrow">→</div>
+        <div class="flow-box admin">7. Leaderboard</div>
+      </div>
+      <div class="alert alert-info" style="margin-top:16px;">
+        <span class="alert-icon">💡</span>
+        <div><strong>Key insight:</strong> You can do steps 1 &amp; 2 <em>any time</em> — even after students have already registered. The quiz link is only sent to students when <em>you choose</em> to send it (Step 5). Students cannot access the quiz before the scheduled time.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ Step-by-step Timeline ════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Step by Step</div>
+    <h2>Complete walkthrough</h2>
+  </div>
+
+  <div class="timeline">
+
+    <!-- STEP 1 -->
+    <div class="step">
+      <div class="step-num c1">1</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-admin">Admin</span>
+          <span class="step-title">Create the Quiz</span>
+        </div>
+        <p>Go to <strong>Manage Quizzes → Create Quiz</strong>. Add questions. Set the time limit. The quiz can be created any day — even weeks before the event.</p>
+        <div class="alert alert-warning">
+          <span class="alert-icon">⚠️</span>
+          <div><strong>Important:</strong> The quiz's "Access Control" setting (Everyone / Batch-wise / Individual) only applies to internal LMS students. For the public quiz system, access is controlled by the <strong>quiz token</strong> — ignore that setting for public quizzes.</div>
+        </div>
+        <div class="screen">
+          <div class="screen-bar">platform.codebegun.com/quiz-management</div>
+          <div class="screen-title">Manage Quizzes</div>
+          <div style="display:flex;justify-content:flex-end;margin-bottom:12px;">
+            <button class="btn btn-primary">+ Create Quiz</button>
+          </div>
+          <table class="mock-table">
+            <thead><tr><th>Title</th><th>Questions</th><th>Marks</th><th>Time</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td><strong>Weekly Tech Battle — May 2026</strong></td><td>20</td><td>100</td><td>30 min</td><td><span class="badge badge-approved">Active</span></td></tr>
+              <tr><td>Java DSA Challenge</td><td>15</td><td>75</td><td>20 min</td><td><span class="badge badge-approved">Active</span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 2 -->
+    <div class="step">
+      <div class="step-num c2">2</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-admin">Admin</span>
+          <span class="step-title">Configure the Week Quiz</span>
+        </div>
+        <p>Go to <strong>All Registrations → Configure Week Quiz</strong>. This is where you link a "Week Label" to a specific quiz and set the exact time when the quiz opens.</p>
+
+        <div class="screen">
+          <div class="screen-bar">All Registrations → Configure Week Quiz</div>
+
+          <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:14px;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Step 1 — Identify the Week</div>
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Week Label *</div>
+                <div class="form-input">Week 1</div>
+                <div style="font-size:11px;color:#64748b;margin-top:4px;">A label shown on registrations</div>
+              </div>
+              <div class="form-field">
+                <div class="form-label">Load existing week</div>
+                <div class="form-input" style="color:#94a3b8;">— pick to load —</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:14px;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Step 2 — Quiz &amp; Schedule</div>
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Quiz *</div>
+                <div class="form-input">Weekly Tech Battle — May 2026 (20Q)</div>
+              </div>
+              <div class="form-field">
+                <div class="form-label">Quiz Opens At ⬅ CRITICAL</div>
+                <div class="form-input">2026-05-22 19:00</div>
+                <div style="font-size:11px;color:#15803d;margin-top:4px;">✓ Students cannot access before this time</div>
+              </div>
+              <div class="form-field" style="min-width:100px;flex:0 0 auto;">
+                <div class="form-label">Display Time</div>
+                <div class="form-input">7:00 PM IST</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:#f5f3ff;border:1.5px solid #c4b5fd;border-radius:8px;padding:14px;margin-bottom:16px;">
+            <div style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:1px;text-transform:uppercase;margin-bottom:12px;">Step 3 — Event Branding (Optional)</div>
+            <div class="form-row">
+              <div class="form-field">
+                <div class="form-label">Event Title</div>
+                <div class="form-input">Weekly Tech Battle 2026</div>
+              </div>
+              <div class="form-field">
+                <div class="form-label">Tech Battle Page URL</div>
+                <div class="form-input">https://codebegun.com/battle</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary">✓ Save Week Config</button>
+            <button class="btn btn-success" style="opacity:.5;cursor:not-allowed;" disabled>✉ Send Quiz Links to Approved (do this later)</button>
+          </div>
+        </div>
+
+        <div class="alert alert-success">
+          <span class="alert-icon">✅</span>
+          <div>After saving, the system knows: <strong>Week 1 → Weekly Tech Battle quiz → opens 22 May 7 PM</strong>. Now when you approve students, their quiz token will be automatically assigned.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div class="step">
+      <div class="step-num c3">3</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-student">Student</span>
+          <span class="step-title">Student Registers on Your Website</span>
+        </div>
+        <p>A student from your Meta Ad or website clicks "Register for Free Quiz" and fills the form. They appear in your system as <strong>Pending</strong>.</p>
+
+        <div class="screen">
+          <div class="screen-bar">All Registrations</div>
+          <table class="mock-table">
+            <thead><tr><th>#</th><th>Name &amp; Email</th><th>Week</th><th>Registered</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr style="background:#fffbeb;">
+                <td>1</td>
+                <td><strong>Ravi Kumar</strong><br><span style="color:#94a3b8;font-size:11px;">ravi@gmail.com</span></td>
+                <td><span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">Week 1</span></td>
+                <td style="font-size:11px;color:#64748b;">22 May 2026</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td><strong>Priya Sharma</strong><br><span style="color:#94a3b8;font-size:11px;">priya@gmail.com</span></td>
+                <td><span class="badge" style="background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">Week 1</span></td>
+                <td style="font-size:11px;color:#64748b;">21 May 2026</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 4 -->
+    <div class="step">
+      <div class="step-num c4">4</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-admin">Admin</span>
+          <span class="step-title">Admin Reviews &amp; Approves the Student</span>
+        </div>
+        <p>Click a student's row to open the Registration Detail page. Review their info. Click <strong>Approve</strong>.</p>
+
+        <div class="screen">
+          <div class="screen-bar">Registration Detail — Ravi Kumar</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;">
+            <div style="flex:1;min-width:200px;">
+              <div class="form-label">Name</div><div style="font-weight:700;margin-bottom:8px;">Ravi Kumar</div>
+              <div class="form-label">Email</div><div style="margin-bottom:8px;">ravi@gmail.com</div>
+              <div class="form-label">Week</div><div><span class="badge" style="background:#eff6ff;color:#1d4ed8;">Week 1</span></div>
+            </div>
+            <div style="flex:1;min-width:200px;">
+              <div class="form-label">Status</div>
+              <div style="margin-bottom:12px;"><span class="badge badge-pending">Pending Review</span></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-success">✓ Approve</button>
+                <button class="btn btn-outline" style="color:#dc2626;border-color:#fca5a5;">✗ Reject</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="alert alert-info" style="margin-top:14px;">
+          <span class="alert-icon">⚙️</span>
+          <div><strong>What happens automatically on Approve:</strong>
+            <ul style="margin-top:6px;padding-left:18px;font-size:13px;line-height:2;">
+              <li>The system looks up the Week Config for "Week 1"</li>
+              <li>Assigns the quiz: "Weekly Tech Battle — May 2026"</li>
+              <li>Generates a unique quiz token: <code style="background:#e2e8f0;padding:1px 6px;border-radius:4px;">abc123-...</code></li>
+              <li>Sends a <strong>confirmation email</strong> to Ravi — <strong>NO quiz link yet!</strong></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Email mockup -->
+        <div class="email-card">
+          <div class="email-header">
+            <div>To: ravi@gmail.com</div>
+            <div class="email-subject">✓ Registration Confirmed — Weekly Tech Battle 2026</div>
+          </div>
+          <div class="email-body">
+            <div class="email-hero">
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#6ee7b7;margin-bottom:8px;">✓ REGISTRATION CONFIRMED</div>
+              <h3>You're in, Ravi!</h3>
+              <p>Your spot is confirmed for Weekly Tech Battle 2026.<br>We'll send your quiz link when the battle goes live.</p>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
+              <div class="date-pill">📅 Thursday, 22 May 2026</div>
+              <div class="date-pill">🕖 7:00 PM IST</div>
+              <div class="date-pill">💻 Online</div>
+            </div>
+            <div style="font-size:13px;color:#4a5568;">
+              <strong>What to do next:</strong><br>
+              1. 📬 Watch for the quiz link — sent to your email at 7:00 PM sharp<br>
+              2. 🧠 Solve the timed questions — real interview questions from top companies<br>
+              3. 🏆 Win prizes up to ₹1000 — Myntra vouchers, certificates &amp; gadgets for top 3
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 5 -->
+    <div class="step">
+      <div class="step-num c5">5</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-admin">Admin</span>
+          <span class="step-title">Send Quiz Links to All Approved Students</span>
+        </div>
+        <p>Do this <strong>30–60 minutes before the quiz starts</strong> (or right at 7 PM). Go to <strong>Configure Week Quiz</strong>, make sure the Week Label is set, then click <strong>"Send Quiz Links to Approved"</strong>.</p>
+
+        <div class="screen">
+          <div class="screen-bar">Configure Week Quiz</div>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+            <div class="form-input" style="width:auto;flex:0 0 auto;">Week 1</div>
+            <div style="color:#64748b;font-size:13px;">→ Weekly Tech Battle — May 2026 → 22 May 7:00 PM</div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-primary">✓ Save Week Config</button>
+            <button class="btn btn-success">✉ Send Quiz Links to Approved</button>
+          </div>
+          <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px;margin-top:12px;font-size:13px;color:#15803d;">
+            ✅ Sent to 47 students.
+          </div>
+        </div>
+
+        <!-- Email mockup with quiz link -->
+        <div class="email-card" style="margin-top:14px;">
+          <div class="email-header">
+            <div>To: ravi@gmail.com</div>
+            <div class="email-subject">✓ Registration Confirmed — Weekly Tech Battle 2026</div>
+          </div>
+          <div class="email-body">
+            <div class="email-hero">
+              <div style="font-size:11px;font-weight:700;letter-spacing:1px;color:#6ee7b7;margin-bottom:8px;">✓ YOUR QUIZ LINK IS READY</div>
+              <h3>Quiz opens at 7:00 PM IST!</h3>
+              <p>Use the button below to access your personal quiz link.</p>
+            </div>
+            <div style="text-align:center;margin-bottom:16px;">
+              <a href="#" style="display:inline-block;background:#0d1b2a;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:15px;font-weight:700;">
+                Open My Quiz Link →
+              </a>
+            </div>
+            <div class="alert alert-warning" style="font-size:12px;">
+              ⚠️ This is your personal link. Do not share it. It will only open after 7:00 PM IST.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 6 -->
+    <div class="step">
+      <div class="step-num c6">6</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-student">Student</span>
+          <span class="step-title">Student Opens the Quiz Link</span>
+        </div>
+        <p>Student clicks their personal link. Two possible screens depending on the time:</p>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:14px;">
+
+          <!-- Before time -->
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#b45309;margin-bottom:8px;">BEFORE 7:00 PM → shows this:</div>
+            <div class="quiz-screen">
+              <div style="padding:24px;text-align:center;">
+                <div style="font-size:40px;margin-bottom:10px;">⏰</div>
+                <div style="font-weight:700;font-size:16px;margin-bottom:8px;">Quiz Not Open Yet</div>
+                <div style="color:#6b7280;font-size:13px;margin-bottom:14px;">Your quiz link is confirmed but the quiz hasn't opened yet.</div>
+                <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:8px;padding:12px;margin-bottom:14px;">
+                  <div style="font-weight:700;color:#1d4ed8;">📅 Thursday, 22 May 2026 · 🕖 7:00 PM IST</div>
+                  <div style="color:#6b7280;font-size:12px;margin-top:4px;">Come back at this time to take the quiz</div>
+                </div>
+                <button class="btn btn-blue" style="font-size:12px;">Refresh to Check</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- At / after time -->
+          <div>
+            <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px;">AT / AFTER 7:00 PM → shows this:</div>
+            <div class="quiz-screen">
+              <div style="padding:24px;">
+                <div style="font-weight:800;font-size:18px;margin-bottom:4px;">Weekly Tech Battle 2026</div>
+                <div style="color:#6b7280;font-size:13px;margin-bottom:14px;">Candidate: Ravi Kumar</div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+                  <span style="background:#f1f5f9;border-radius:6px;padding:6px 10px;font-size:12px;">📋 20 questions</span>
+                  <span style="background:#f1f5f9;border-radius:6px;padding:6px 10px;font-size:12px;">🏆 100 marks</span>
+                  <span style="background:#f1f5f9;border-radius:6px;padding:6px 10px;font-size:12px;">⏱ 30 minutes</span>
+                </div>
+                <div class="alert alert-warning" style="font-size:12px;margin-bottom:14px;">Once you click Start, the timer begins. Do not close the page.</div>
+                <button class="btn btn-primary" style="width:100%;justify-content:center;">Start Quiz</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Taking quiz -->
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;font-weight:700;color:#0369a1;margin-bottom:8px;">WHILE TAKING THE QUIZ:</div>
+          <div class="quiz-screen">
+            <div class="quiz-header">
+              <span style="font-weight:700;font-size:13px;">Weekly Tech Battle 2026</span>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <span style="color:#64748b;font-size:12px;">5 / 20 answered</span>
+                <span style="background:#dc2626;color:#fff;padding:6px 12px;border-radius:6px;font-weight:700;font-size:13px;">⏱ 24:15</span>
+              </div>
+            </div>
+            <div class="quiz-body">
+              <div style="color:#64748b;font-size:11px;margin-bottom:4px;">Question 6 of 20 · 5 marks</div>
+              <div style="font-weight:600;font-size:14px;margin-bottom:12px;">Which data structure uses LIFO (Last In, First Out) order?</div>
+              <div class="option-row">○ Queue</div>
+              <div class="option-row selected">● Stack</div>
+              <div class="option-row">○ Linked List</div>
+              <div class="option-row">○ Heap</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Result -->
+        <div style="margin-top:16px;">
+          <div style="font-size:12px;font-weight:700;color:#15803d;margin-bottom:8px;">AFTER SUBMITTING:</div>
+          <div class="quiz-screen">
+            <div style="padding:24px;text-align:center;">
+              <div style="font-size:36px;margin-bottom:8px;">🏆</div>
+              <div style="font-weight:800;font-size:20px;margin-bottom:4px;">Congratulations!</div>
+              <div style="color:#6b7280;margin-bottom:20px;font-size:13px;">Your results for Weekly Tech Battle 2026</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+                <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px;">
+                  <div style="font-size:24px;font-weight:800;color:#15803d;">87%</div>
+                  <div style="font-size:11px;color:#64748b;">Score</div>
+                </div>
+                <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px;">
+                  <div style="font-size:24px;font-weight:800;">87/100</div>
+                  <div style="font-size:11px;color:#64748b;">Marks</div>
+                </div>
+                <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;padding:12px;">
+                  <div style="font-size:24px;font-weight:800;">#3</div>
+                  <div style="font-size:11px;color:#64748b;">Rank</div>
+                </div>
+              </div>
+              <span style="background:#15803d;color:#fff;padding:8px 24px;border-radius:6px;font-weight:700;">PASSED</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 7 -->
+    <div class="step">
+      <div class="step-num c7">7</div>
+      <div class="step-content">
+        <div class="step-header">
+          <span class="pill pill-admin">Admin</span>
+          <span class="step-title">View Leaderboard</span>
+        </div>
+        <p>In All Registrations, filter by "Week 1" and click <strong>Leaderboard</strong>. Or in Configure Week, type "Week 1" and click Leaderboard.</p>
+        <div class="screen">
+          <div class="screen-bar">Leaderboard — Week 1</div>
+          <table class="mock-table">
+            <thead><tr><th>Rank</th><th>Name &amp; Email</th><th>Score</th><th>%</th><th>Time</th></tr></thead>
+            <tbody>
+              <tr style="background:#fef9c3;">
+                <td style="font-size:22px;">🥇</td>
+                <td><strong>Ananya Singh</strong><br><span style="color:#94a3b8;font-size:11px;">ananya@gmail.com</span></td>
+                <td>95/100</td>
+                <td><span class="badge badge-approved">95.0%</span></td>
+                <td style="color:#64748b;">18m 32s</td>
+              </tr>
+              <tr style="background:#fef9c3;">
+                <td style="font-size:22px;">🥈</td>
+                <td><strong>Karthik Rao</strong><br><span style="color:#94a3b8;font-size:11px;">karthik@gmail.com</span></td>
+                <td>92/100</td>
+                <td><span class="badge badge-approved">92.0%</span></td>
+                <td style="color:#64748b;">21m 10s</td>
+              </tr>
+              <tr style="background:#fef9c3;">
+                <td style="font-size:22px;">🥉</td>
+                <td><strong>Ravi Kumar</strong><br><span style="color:#94a3b8;font-size:11px;">ravi@gmail.com</span></td>
+                <td>87/100</td>
+                <td><span class="badge badge-approved">87.0%</span></td>
+                <td style="color:#64748b;">24m 45s</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /timeline -->
+
+  <div class="divider"></div>
+
+  <!-- ══ All Scenarios ═════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Edge Cases &amp; Scenarios</div>
+    <h2>What to do in every situation</h2>
+  </div>
+
+  <div class="scenarios">
+
+    <!-- Scenario A -->
+    <div class="scenario" style="border-top:3px solid #6d28d9;">
+      <div class="scenario-num c1">A</div>
+      <h3>Normal flow (Week Config saved BEFORE approving)</h3>
+      <p style="margin-bottom:10px;">This is the ideal path. You set up the week first, then approve students.</p>
+      <ol>
+        <li>Save Week Config (quiz + schedule)</li>
+        <li>Approve student → token auto-assigned</li>
+        <li>Send quiz links when ready</li>
+        <li>Students take quiz at scheduled time</li>
+      </ol>
+      <div class="alert alert-success" style="margin-top:12px;font-size:12px;">
+        <span>✅</span> Everything automatic. No manual steps needed.
+      </div>
+    </div>
+
+    <!-- Scenario B -->
+    <div class="scenario" style="border-top:3px solid #0369a1;">
+      <div class="scenario-num c3">B</div>
+      <h3>Student approved BEFORE Week Config was saved</h3>
+      <p style="margin-bottom:10px;">Admin approved a student but hadn't set up the week config yet. No quiz token was generated.</p>
+      <ol>
+        <li>Save the Week Config now</li>
+        <li>Go to Registration Detail for this student</li>
+        <li>Use the <strong>"Generate Link"</strong> button — assigns quiz + generates token</li>
+        <li>Then click "Send Quiz Links to Approved" to send via email</li>
+      </ol>
+      <div class="alert alert-warning" style="margin-top:12px;font-size:12px;">
+        <span>⚠️</span> This student won't get a link from the bulk send unless you manually generate their link first.
+      </div>
+    </div>
+
+    <!-- Scenario C -->
+    <div class="scenario" style="border-top:3px solid #059669;">
+      <div class="scenario-num c6">C</div>
+      <h3>Pre-Registration (no Week Label)</h3>
+      <p style="margin-bottom:10px;">Student registered before a specific week was announced — their weekLabel is blank.</p>
+      <ol>
+        <li>Open Registration Detail</li>
+        <li>Use <strong>"Generate Link"</strong> — pick a quiz manually and optionally set a week label</li>
+        <li>Send their link manually or use bulk send</li>
+      </ol>
+      <div class="alert alert-info" style="margin-top:12px;font-size:12px;">
+        <span>💡</span> Pre-reg students show a "Pre-Reg" badge in the table. Filter by "Pre-Registrations only" to see them.
+      </div>
+    </div>
+
+    <!-- Scenario D -->
+    <div class="scenario" style="border-top:3px solid #f59e0b;">
+      <div class="scenario-num" style="background:#f59e0b;">D</div>
+      <h3>Quiz with NO scheduled time</h3>
+      <p style="margin-bottom:10px;">You saved the Week Config but left "Quiz Opens At" blank. No time-lock.</p>
+      <ol>
+        <li>Students get quiz link via "Send Quiz Links"</li>
+        <li>They can open it immediately — no waiting</li>
+        <li>No "Quiz Not Open Yet" screen appears</li>
+      </ol>
+      <div class="alert alert-warning" style="margin-top:12px;font-size:12px;">
+        <span>⚠️</span> Use this only if you want an always-open quiz (e.g. practice round).
+      </div>
+    </div>
+
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ Quick Reference ══════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Quick Reference</div>
+    <h2>Which screen to go to for what</h2>
+  </div>
+
+  <div style="background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+    <table class="mock-table" style="margin:0;">
+      <thead>
+        <tr>
+          <th style="padding:14px 20px;">I want to…</th>
+          <th style="padding:14px 20px;">Go to…</th>
+          <th style="padding:14px 20px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:14px 20px;">Create or edit a quiz</td>
+          <td><strong>Manage Quizzes</strong></td>
+          <td>Create Quiz → add questions → save</td>
+        </tr>
+        <tr>
+          <td style="padding:14px 20px;">Link a quiz to a week &amp; set time</td>
+          <td><strong>All Registrations → Configure Week Quiz</strong></td>
+          <td>Fill Week Label + Quiz + Opens At → Save</td>
+        </tr>
+        <tr>
+          <td style="padding:14px 20px;">Review and approve students</td>
+          <td><strong>All Registrations → click a row</strong></td>
+          <td>Approve / Reject button</td>
+        </tr>
+        <tr>
+          <td style="padding:14px 20px;">Send quiz links to everyone</td>
+          <td><strong>All Registrations → Configure Week Quiz</strong></td>
+          <td>Set week label → Send Quiz Links to Approved</td>
+        </tr>
+        <tr>
+          <td style="padding:14px 20px;">Fix one student who has no link</td>
+          <td><strong>All Registrations → click student → Registration Detail</strong></td>
+          <td>Generate Link button</td>
+        </tr>
+        <tr>
+          <td style="padding:14px 20px;">See who won</td>
+          <td><strong>All Registrations → Configure Week Quiz → Leaderboard</strong></td>
+          <td>Or filter table by week → Leaderboard button</td>
+        </tr>
+        <tr>
+          <td style="padding:14px 20px;">Download all data</td>
+          <td><strong>All Registrations</strong></td>
+          <td>Export CSV button</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ Key Rules ════════════════════════════════════════════════════════ -->
+  <div class="section">
+    <div class="section-label">Important Rules</div>
+    <h2>Things to remember</h2>
+  </div>
+
+  <div class="key-points">
+    <div class="key-point">
+      <div class="icon">🔐</div>
+      <h4>Quiz token = access pass</h4>
+      <p>Each student gets a unique UUID link. Only they can use it. It's useless without also being approved.</p>
+    </div>
+    <div class="key-point">
+      <div class="icon">⏰</div>
+      <h4>Time-lock is automatic</h4>
+      <p>Set "Quiz Opens At" and the quiz page blocks access until that exact time. No manual action needed at quiz time.</p>
+    </div>
+    <div class="key-point">
+      <div class="icon">📬</div>
+      <h4>Two emails per student</h4>
+      <p>1) Approval confirmation (no link). 2) Quiz link email (sent by you via "Send Quiz Links"). You control when #2 goes out.</p>
+    </div>
+    <div class="key-point">
+      <div class="icon">🏆</div>
+      <h4>Ranks auto-update</h4>
+      <p>Every time a student submits, ranks for that week recalculate automatically. Highest score wins; tie-break is fastest time.</p>
+    </div>
+    <div class="key-point">
+      <div class="icon">🔁</div>
+      <h4>One attempt only</h4>
+      <p>Once a student submits the quiz, their link shows "Already Submitted". They cannot retake it.</p>
+    </div>
+    <div class="key-point">
+      <div class="icon">📋</div>
+      <h4>Quiz Access Control setting</h4>
+      <p>Ignore the "Access Control" dropdown on Quiz creation — that's only for internal LMS students, not public quiz.</p>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <!-- ══ Your Current Situation ═══════════════════════════════════════════ -->
+  <div style="background: linear-gradient(135deg,#1e3a5f,#0d1b2a); border-radius: 16px; padding: 32px 36px; color: #fff;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:2px;color:#94a3b8;text-transform:uppercase;margin-bottom:12px;">Your Current Situation</div>
+    <h2 style="color:#fff;margin-bottom:16px;">For the 22 May 7 PM Quiz</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:16px;">
+        <div style="color:#6ee7b7;font-weight:700;margin-bottom:8px;">✅ Already done</div>
+        <ul style="color:#94a3b8;font-size:13px;line-height:2;padding-left:18px;">
+          <li>Push code (just done)</li>
+          <li>Deploy server + client</li>
+        </ul>
+      </div>
+      <div style="background:rgba(255,255,255,.08);border-radius:10px;padding:16px;">
+        <div style="color:#fbbf24;font-weight:700;margin-bottom:8px;">📋 Still to do</div>
+        <ol style="color:#94a3b8;font-size:13px;line-height:2;padding-left:18px;">
+          <li>Create quiz in Manage Quizzes (add questions)</li>
+          <li>Configure Week → set "Week 1", select quiz, set "22 May 7:00 PM"</li>
+          <li>Approve pending students</li>
+          <li>On 22 May ~6:30 PM → click "Send Quiz Links to Approved"</li>
+          <li>At 7 PM → quiz automatically unlocks for everyone</li>
+        </ol>
+      </div>
+    </div>
+    <div style="margin-top:20px;background:rgba(255,255,255,.06);border:1.5px solid rgba(255,255,255,.1);border-radius:8px;padding:14px;font-size:13px;color:#94a3b8;">
+      <strong style="color:#e2e8f0;">Note about the blank page you saw:</strong> That was fixed — the quiz session page was crashing because the quiz had no questions attached yet, and the server was sending options in the wrong format. Both are fixed in the latest push (commit 4a9439f).
+    </div>
+  </div>
+
+  <div style="text-align:center;margin-top:40px;font-size:12px;color:#94a3b8;">
+    CodeBegun LMS · Public Quiz Flow Guide · Generated 2026-05-20
+  </div>
+
+</div>
+</body>
+</html>

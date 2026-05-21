@@ -476,16 +476,21 @@ export const approveRegistration = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
     const userId   = (req as any).user?.id;
+    // Admin can pick a batch from the dropdown during approval
+    const { weekLabel: bodyWeekLabel } = req.body;
 
     const submission = await PublicQuizSubmission.findOne({ _id: req.params.subId, tenantId });
     if (!submission) return res.status(404).json({ message: 'Not found' });
 
-    // Look up the week's quiz assignment
+    // Prefer the batch the admin selected; fall back to the registration's own weekLabel
+    const effectiveWeekLabel = (bodyWeekLabel as string | undefined)?.trim() || submission.weekLabel;
+
     let quizToken: string | undefined;
     let quizId: string | undefined;
+    let weekConfig: any = null;
 
-    if (submission.weekLabel) {
-      const weekConfig = await WeekConfig.findOne({ tenantId, weekLabel: submission.weekLabel });
+    if (effectiveWeekLabel) {
+      weekConfig = await WeekConfig.findOne({ tenantId, weekLabel: effectiveWeekLabel });
       if (weekConfig?.quizId) {
         quizId    = weekConfig.quizId;
         quizToken = crypto.randomUUID();
@@ -496,25 +501,22 @@ export const approveRegistration = async (req: Request, res: Response) => {
     submission.approvedBy      = userId;
     submission.approvedAt      = new Date();
     submission.rejectionReason = undefined;
+    if (effectiveWeekLabel) {
+      submission.weekLabel         = effectiveWeekLabel;
+      submission.isPreRegistration = false;
+    }
     if (quizId)    submission.quizId    = quizId;
     if (quizToken) submission.quizToken = quizToken;
 
     await submission.save();
 
-    // Build quiz URL
     const frontendBase = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
     const quizUrl = quizToken ? `${frontendBase}/quiz/${quizToken}` : null;
 
-    // Send approval confirmation email (non-blocking)
-    const weekConfig = submission.weekLabel
-      ? await WeekConfig.findOne({ tenantId, weekLabel: submission.weekLabel })
-      : null;
-
-    // Send confirmation email WITHOUT quiz link (quiz opens at scheduled time)
     emailService.sendTechBattleApprovalEmail({
       email:        submission.email,
       name:         submission.name,
-      quizUrl:      '',  // No link yet — student will receive it when quiz goes live
+      quizUrl:      '',
       eventTitle:   weekConfig?.eventTitle || 'Weekly Tech Battle',
       eventDate:    weekConfig?.eventDate,
       eventTimeIST: weekConfig?.eventTimeIST,

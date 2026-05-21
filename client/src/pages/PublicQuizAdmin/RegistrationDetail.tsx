@@ -4,59 +4,85 @@ import { publicQuizAdminApi } from '../../api';
 import './PublicQuizAdmin.css';
 
 const SKIP_KEYS = new Set(['name', 'email', 'phone', 'mobile']);
-
 const labelFor = (key: string) =>
   key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+interface BatchOption { weekLabel: string; quizId?: string; quiz?: { title: string } | null; }
 
 const RegistrationDetail: React.FC = () => {
   const { subId } = useParams<{ subId: string }>();
   const navigate = useNavigate();
-  const [sub, setSub] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+
+  const [sub,           setSub]          = useState<any>(null);
+  const [loading,       setLoading]      = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [rejectReason, setRejectReason] = useState('');
+  const [rejectReason,  setRejectReason] = useState('');
   const [showRejectBox, setShowRejectBox] = useState(false);
-  const [message, setMessage] = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
-  const [quizUrl, setQuizUrl] = useState<string>('');
+  const [message,       setMessage]      = useState<{ text: string; type: 'success' | 'danger' } | null>(null);
+  const [quizUrl,       setQuizUrl]      = useState('');
 
-  // Quiz assignment panel state
-  const [availQuizzes, setAvailQuizzes] = useState<{ _id: string; title: string }[]>([]);
-  const [assignQuizId, setAssignQuizId] = useState('');
+  // Available batches (for approval dropdown)
+  const [batches,       setBatches]      = useState<BatchOption[]>([]);
+  const [selectedBatch, setSelectedBatch] = useState('');
+
+  // Manual quiz assignment panel
+  const [availQuizzes,   setAvailQuizzes]   = useState<{ _id: string; title: string }[]>([]);
+  const [assignQuizId,   setAssignQuizId]   = useState('');
   const [assignWeekLabel, setAssignWeekLabel] = useState('');
-  const [assignLoading, setAssignLoading] = useState(false);
-  const [quizzesLoaded, setQuizzesLoaded] = useState(false);
+  const [assignLoading,  setAssignLoading]  = useState(false);
+  const [quizzesLoaded,  setQuizzesLoaded]  = useState(false);
 
+  // Load registration + batch list + quiz list
   useEffect(() => {
     publicQuizAdminApi.getRegistrationDetail(subId!)
       .then((data: any) => {
         setSub(data);
-        // Pre-fill week label from existing registration
-        if (data?.weekLabel) setAssignWeekLabel(data.weekLabel);
+        if (data?.weekLabel) {
+          setAssignWeekLabel(data.weekLabel);
+          setSelectedBatch(data.weekLabel);
+        }
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, [subId]);
 
-  // Load available quizzes once on mount
-  useEffect(() => {
+    // Load configured batches for the approval dropdown
+    publicQuizAdminApi.getAllBatchConfigs()
+      .then((list: any) => {
+        const arr: BatchOption[] = (Array.isArray(list) ? list : []).map((c: any) => ({
+          weekLabel: c.weekLabel,
+          quizId:    c.quizId,
+          quiz:      c.quiz || null,
+        }));
+        setBatches(arr);
+      })
+      .catch(console.error);
+
+    // Load quizzes for the manual-assign panel
     publicQuizAdminApi.getAvailableQuizzes()
       .then((data: any) => {
-        const list = Array.isArray(data) ? data : (data?.quizzes || []);
-        setAvailQuizzes(list);
+        setAvailQuizzes(Array.isArray(data) ? data : (data?.quizzes || []));
         setQuizzesLoaded(true);
       })
       .catch(console.error);
-  }, []);
+  }, [subId]);
 
+  // ── Approve ──────────────────────────────────────────────────────────────
   const handleApprove = async () => {
     setActionLoading(true);
     try {
-      const res = await publicQuizAdminApi.approveRegistration(subId!);
-      setSub((prev: any) => ({ ...prev, isApproved: true, rejectionReason: undefined, quizToken: res.quizToken }));
+      const res = await publicQuizAdminApi.approveRegistration(subId!, selectedBatch || undefined);
+      setSub((prev: any) => ({
+        ...prev, isApproved: true, rejectionReason: undefined,
+        quizToken: res.quizToken,
+        weekLabel: selectedBatch || prev.weekLabel,
+        isPreRegistration: selectedBatch ? false : prev.isPreRegistration,
+      }));
       if (res.quizUrl) setQuizUrl(res.quizUrl);
-      const msg = res.quizUrl
-        ? 'Registration approved. Quiz link generated — copy and send to candidate.'
-        : 'Registration approved. Configure the Week Settings in All Registrations to auto-generate a quiz link.';
+      const msg = res.quizToken
+        ? 'Approved! Quiz link generated — copy it or use "Send Quiz Links" from All Registrations.'
+        : selectedBatch
+          ? 'Approved and assigned to batch. The batch has no quiz configured yet — save a quiz in the batch settings to generate a link.'
+          : 'Approved. Select a batch above or use the manual assign panel below to generate a quiz link.';
       setMessage({ text: msg, type: 'success' });
     } catch (e: any) {
       setMessage({ text: e.message, type: 'danger' });
@@ -64,8 +90,12 @@ const RegistrationDetail: React.FC = () => {
     setActionLoading(false);
   };
 
+  // ── Reject ───────────────────────────────────────────────────────────────
   const handleReject = async () => {
-    if (!rejectReason.trim()) { setMessage({ text: 'Please enter a rejection reason.', type: 'danger' }); return; }
+    if (!rejectReason.trim()) {
+      setMessage({ text: 'Please enter a rejection reason.', type: 'danger' });
+      return;
+    }
     setActionLoading(true);
     try {
       await publicQuizAdminApi.rejectRegistration(subId!, rejectReason.trim());
@@ -79,16 +109,17 @@ const RegistrationDetail: React.FC = () => {
     setActionLoading(false);
   };
 
-  // Directly assign a quiz and generate/regenerate a quiz link
+  // ── Manual quiz assign ───────────────────────────────────────────────────
   const handleGenerateLink = async () => {
-    if (!assignQuizId) { setMessage({ text: 'Please select a quiz first.', type: 'danger' }); return; }
+    if (!assignQuizId) {
+      setMessage({ text: 'Please select a quiz first.', type: 'danger' });
+      return;
+    }
     setAssignLoading(true);
     try {
       const res = await publicQuizAdminApi.generateQuizLink(subId!, assignQuizId, assignWeekLabel || undefined);
       setSub((prev: any) => ({
-        ...prev,
-        isApproved: true,
-        quizToken: res.quizToken,
+        ...prev, isApproved: true, quizToken: res.quizToken,
         weekLabel: assignWeekLabel || prev.weekLabel,
         isPreRegistration: assignWeekLabel ? false : prev.isPreRegistration,
       }));
@@ -100,31 +131,33 @@ const RegistrationDetail: React.FC = () => {
     setAssignLoading(false);
   };
 
-  if (loading) return <div className="pq-loading">Loading...</div>;
+  /* ── Render ── */
+  if (loading) return <div className="pq-loading">Loading…</div>;
   if (!sub) return <div className="pq-page"><p className="text-danger">Registration not found.</p></div>;
 
-  const rd = sub.registrationData || {};
-  const files: any[] = sub.uploadedFiles || [];
-  const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
+  const rd      = sub.registrationData || {};
+  const files   = (sub.uploadedFiles || []) as any[];
+  const imgTypes = new Set(['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg']);
 
-  const approvalStatus = sub.isApproved === true
-    ? { label: 'Approved', color: '#22c55e', bg: '#f0fdf4' }
-    : sub.isApproved === false
-    ? { label: 'Rejected', color: '#ef4444', bg: '#fef2f2' }
-    : { label: 'Pending Review', color: '#f59e0b', bg: '#fffbeb' };
+  const approvalStatus =
+    sub.isApproved === true  ? { label: 'Approved',       color: '#22c55e', bg: '#f0fdf4' } :
+    sub.isApproved === false ? { label: 'Rejected',        color: '#ef4444', bg: '#fef2f2' } :
+                               { label: 'Pending Review',  color: '#f59e0b', bg: '#fffbeb' };
 
   const activeQuizUrl = quizUrl || (sub.quizToken ? `${window.location.origin}/quiz/${sub.quizToken}` : '');
-  // Show the quiz assignment panel when: no quiz link yet, OR approved but no token
-  const needsQuizAssignment = !sub.quizToken && !quizUrl;
+  const needsAssignment = !sub.quizToken && !quizUrl;
+
+  // Which batch (if any) is currently assigned to this registration
+  const currentBatch = batches.find(b => b.weekLabel === (selectedBatch || sub.weekLabel));
+  const batchHasQuiz  = !!currentBatch?.quizId;
 
   return (
     <div className="pq-page">
-      {/* Header */}
+
+      {/* ── Header ── */}
       <div className="pq-header">
         <div>
-          <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => navigate(-1)}>
-            ← Back
-          </button>
+          <button className="btn btn-sm btn-outline-secondary mb-2" onClick={() => navigate(-1)}>← Back</button>
           <h1 className="pq-title">{sub.name}</h1>
           <p className="pq-subtitle">
             {sub.weekLabel && (
@@ -145,24 +178,25 @@ const RegistrationDetail: React.FC = () => {
 
       {message && (
         <div className={`alert alert-${message.type} d-flex justify-content-between align-items-center`}>
-          {message.text}
+          <span>{message.text}</span>
           <button className="btn-close" onClick={() => setMessage(null)} />
         </div>
       )}
 
       <div className="row g-4">
-        {/* Left: Details */}
+
+        {/* ── Left: Details ── */}
         <div className="col-lg-7">
-          {/* Core info */}
+
           <div className="card mb-4">
             <div className="card-header fw-semibold">Contact Information</div>
             <div className="card-body">
               <div className="row g-3">
                 {[
                   { label: 'Full Name', value: sub.name },
-                  { label: 'Email', value: sub.email },
-                  { label: 'Phone', value: rd.phone || rd.mobile || '—' },
-                  { label: 'WhatsApp', value: rd.whatsapp || '—' },
+                  { label: 'Email',     value: sub.email },
+                  { label: 'Phone',     value: rd.phone || rd.mobile || '—' },
+                  { label: 'WhatsApp',  value: rd.whatsapp || '—' },
                 ].map(f => (
                   <div key={f.label} className="col-sm-6">
                     <div className="text-muted small">{f.label}</div>
@@ -173,7 +207,6 @@ const RegistrationDetail: React.FC = () => {
             </div>
           </div>
 
-          {/* Additional form fields */}
           {Object.keys(rd).filter(k => !SKIP_KEYS.has(k) && rd[k]).length > 0 && (
             <div className="card mb-4">
               <div className="card-header fw-semibold">Registration Details</div>
@@ -192,7 +225,6 @@ const RegistrationDetail: React.FC = () => {
             </div>
           )}
 
-          {/* Meta */}
           <div className="card">
             <div className="card-header fw-semibold">Meta</div>
             <div className="card-body">
@@ -207,95 +239,79 @@ const RegistrationDetail: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Files + Quiz + Approval */}
+        {/* ── Right: Files + Quiz + Approval ── */}
         <div className="col-lg-5">
+
           {/* Uploaded files */}
           <div className="card mb-4">
             <div className="card-header fw-semibold">Uploaded Documents</div>
             <div className="card-body">
               {files.length === 0 ? (
                 <p className="text-muted small mb-0">No files uploaded.</p>
-              ) : (
-                files.map((f, i) => (
-                  <div key={i} className="mb-3">
-                    <div className="text-muted small mb-1">{labelFor(f.fieldName)} — <span className="text-muted">{f.originalName}</span></div>
-                    {imageTypes.includes(f.mimeType) ? (
-                      <a href={f.filePath} target="_blank" rel="noreferrer">
-                        <img
-                          src={f.filePath}
-                          alt={f.fieldName}
-                          style={{ width: '100%', maxHeight: 280, objectFit: 'contain', border: '1px solid #dee2e6', borderRadius: 8, background: '#f8f9fa' }}
-                        />
-                      </a>
-                    ) : (
-                      <a href={f.filePath} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-secondary w-100">
-                        📄 View / Download {f.originalName}
-                      </a>
-                    )}
-                  </div>
-                ))
-              )}
+              ) : files.map((f, i) => (
+                <div key={i} className="mb-3">
+                  <div className="text-muted small mb-1">{labelFor(f.fieldName)} — <span>{f.originalName}</span></div>
+                  {imgTypes.has(f.mimeType) ? (
+                    <a href={f.filePath} target="_blank" rel="noreferrer">
+                      <img src={f.filePath} alt={f.fieldName}
+                        style={{ width: '100%', maxHeight: 280, objectFit: 'contain', border: '1px solid #dee2e6', borderRadius: 8, background: '#f8f9fa' }} />
+                    </a>
+                  ) : (
+                    <a href={f.filePath} target="_blank" rel="noreferrer" className="btn btn-sm btn-outline-secondary w-100">
+                      📄 View / Download {f.originalName}
+                    </a>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* ── Quiz Link (if already generated) ── */}
+          {/* Quiz Link (if generated) */}
           {activeQuizUrl && (
-            <div className="card mb-4 border-primary">
-              <div className="card-header fw-semibold text-primary d-flex align-items-center justify-content-between">
-                <span><i className="fa-solid fa-link me-2" />Quiz Link</span>
-                {quizzesLoaded && (
-                  <button
-                    className="btn btn-sm btn-outline-secondary"
-                    style={{ fontSize: 11 }}
-                    onClick={() => setAssignQuizId('__reassign__')}
-                    title="Reassign a different quiz"
-                  >
-                    Reassign
-                  </button>
-                )}
+            <div className="card mb-4 border-success">
+              <div className="card-header fw-semibold text-success d-flex align-items-center justify-content-between">
+                <span><i className="fa-solid fa-link me-2" />Quiz Link Ready</span>
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  style={{ fontSize: 11 }}
+                  onClick={() => setAssignQuizId('__reassign__')}
+                  title="Reassign to a different quiz"
+                >
+                  Reassign
+                </button>
               </div>
               <div className="card-body">
-                <p className="text-muted small mb-2">Send this link to the candidate. No login required.</p>
+                <p className="text-muted small mb-2">Share this link with the candidate — no login needed.</p>
                 <div className="input-group">
-                  <input
-                    className="form-control form-control-sm font-monospace"
-                    readOnly
-                    value={activeQuizUrl}
-                  />
-                  <button
-                    className="btn btn-outline-primary btn-sm"
-                    onClick={() => navigator.clipboard.writeText(activeQuizUrl)}
-                  >
+                  <input className="form-control form-control-sm font-monospace" readOnly value={activeQuizUrl} />
+                  <button className="btn btn-outline-success btn-sm" onClick={() => navigator.clipboard.writeText(activeQuizUrl)}>
                     <i className="fa-solid fa-copy" /> Copy
                   </button>
                 </div>
                 {sub.quizInfo && (
-                  <div className="text-muted small mt-2">
-                    Quiz: <strong>{sub.quizInfo.title}</strong>
-                  </div>
+                  <div className="text-muted small mt-2">Quiz: <strong>{sub.quizInfo.title}</strong></div>
                 )}
               </div>
             </div>
           )}
 
-          {/* ── Assign Quiz panel (always show when no quiz link OR reassigning) ── */}
-          {(needsQuizAssignment || assignQuizId === '__reassign__') && (
+          {/* Manual quiz assignment (no link yet, or reassigning) */}
+          {(needsAssignment || assignQuizId === '__reassign__') && (
             <div className="card mb-4 border-warning">
               <div className="card-header fw-semibold text-warning-emphasis d-flex align-items-center gap-2" style={{ background: '#fffbeb' }}>
                 <i className="fa-solid fa-wand-magic-sparkles" />
-                {activeQuizUrl ? 'Reassign Quiz' : 'Assign Quiz & Generate Link'}
+                {activeQuizUrl ? 'Reassign Quiz' : 'Manually Assign Quiz'}
               </div>
               <div className="card-body d-flex flex-column gap-3">
-                {needsQuizAssignment && (
+                {needsAssignment && (
                   <div className="alert alert-warning py-2 small mb-0">
                     {sub.isApproved === true
-                      ? 'This student was approved but no quiz link was generated (Week Config was not set at the time). Select a quiz below to generate a link now.'
-                      : 'Select a quiz to assign to this student. Approving will generate a unique quiz link.'}
+                      ? 'Approved but no quiz link yet. Select a quiz below to generate one.'
+                      : 'Use the Approve button (with a batch selected) to auto-generate a link, or manually assign below.'}
                   </div>
                 )}
-
                 <div>
-                  <label className="form-label small fw-semibold mb-1">Week Label <span className="text-muted fw-normal">(optional — e.g. "Week 1")</span></label>
+                  <label className="form-label small fw-semibold mb-1">Batch <span className="text-muted fw-normal">(optional)</span></label>
                   <input
                     className="form-control form-control-sm"
                     placeholder="e.g. Week 1"
@@ -303,25 +319,21 @@ const RegistrationDetail: React.FC = () => {
                     onChange={e => setAssignWeekLabel(e.target.value)}
                   />
                 </div>
-
                 <div>
-                  <label className="form-label small fw-semibold mb-1">Select Quiz <span className="text-danger">*</span></label>
+                  <label className="form-label small fw-semibold mb-1">Quiz <span className="text-danger">*</span></label>
                   <select
                     className="form-select form-select-sm"
                     value={assignQuizId === '__reassign__' ? '' : assignQuizId}
                     onChange={e => setAssignQuizId(e.target.value)}
                   >
-                    <option value="">— Choose a quiz —</option>
-                    {availQuizzes.map(q => (
-                      <option key={q._id} value={q._id}>{q.title}</option>
-                    ))}
+                    <option value="">— choose a quiz —</option>
+                    {availQuizzes.map(q => <option key={q._id} value={q._id}>{q.title}</option>)}
                   </select>
-                  {!quizzesLoaded && <div className="text-muted small mt-1">Loading quizzes…</div>}
+                  {!quizzesLoaded && <div className="text-muted small mt-1">Loading…</div>}
                   {quizzesLoaded && availQuizzes.length === 0 && (
-                    <div className="text-danger small mt-1">No active quizzes found. Create one in Manage Quizzes first.</div>
+                    <div className="text-danger small mt-1">No active quizzes. Create one in Manage Quizzes.</div>
                   )}
                 </div>
-
                 <div className="d-flex gap-2">
                   <button
                     className="btn btn-warning flex-grow-1 fw-semibold"
@@ -340,28 +352,76 @@ const RegistrationDetail: React.FC = () => {
             </div>
           )}
 
-          {/* ── Approval actions ── */}
+          {/* ── Admin Decision ── */}
           <div className="card">
-            <div className="card-header fw-semibold">Admin Decision</div>
+            <div className="card-header fw-semibold d-flex align-items-center gap-2">
+              <i className="fa-solid fa-gavel" />
+              Admin Decision
+            </div>
             <div className="card-body d-flex flex-column gap-3">
-              {sub.isApproved === true && (
-                <div className="alert alert-success mb-0 py-2">✅ Approved</div>
-              )}
-              {sub.isApproved === false && (
-                <div className="alert alert-danger mb-0 py-2">❌ Rejected — <em>{sub.rejectionReason}</em></div>
-              )}
-              {sub.isApproved == null && (
-                <div className="alert alert-warning mb-0 py-2">⏳ Pending review — no decision yet.</div>
+
+              {/* Status badge */}
+              {sub.isApproved === true  && <div className="alert alert-success mb-0 py-2">✅ Approved</div>}
+              {sub.isApproved === false && <div className="alert alert-danger mb-0 py-2">❌ Rejected — <em>{sub.rejectionReason}</em></div>}
+              {sub.isApproved == null   && <div className="alert alert-warning mb-0 py-2">⏳ Pending — no decision yet.</div>}
+
+              {/* Batch selector (only meaningful when approving) */}
+              {sub.isApproved !== true && (
+                <div>
+                  <label className="form-label fw-semibold small mb-1">
+                    Assign to Batch
+                    <span className="text-muted fw-normal ms-1">(auto-generates quiz link if batch has a quiz)</span>
+                  </label>
+                  {batches.length === 0 ? (
+                    <div className="alert alert-info py-2 small mb-0">
+                      No batches configured yet.{' '}
+                      <a href="/registrations" className="alert-link">Go to All Registrations → New Batch</a> to create one first.
+                    </div>
+                  ) : (
+                    <select
+                      className="form-select"
+                      value={selectedBatch}
+                      onChange={e => setSelectedBatch(e.target.value)}
+                    >
+                      <option value="">— approve without batch —</option>
+                      {batches.map(b => (
+                        <option key={b.weekLabel} value={b.weekLabel}>
+                          {b.weekLabel}{b.quiz?.title ? ` — ${b.quiz.title}` : ' (no quiz yet)'}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {selectedBatch && !batchHasQuiz && (
+                    <div className="text-warning small mt-1">
+                      <i className="fa-solid fa-triangle-exclamation me-1" />
+                      This batch has no quiz assigned — student will be approved but won't get a link yet.
+                    </div>
+                  )}
+                  {selectedBatch && batchHasQuiz && (
+                    <div className="text-success small mt-1">
+                      <i className="fa-solid fa-check me-1" />
+                      Approving will auto-generate a quiz link for this student.
+                    </div>
+                  )}
+                </div>
               )}
 
+              {/* Approve button */}
               <button
                 className="btn btn-success"
                 disabled={actionLoading || sub.isApproved === true}
                 onClick={handleApprove}
               >
-                {actionLoading ? 'Saving...' : '✅ Approve'}
+                {actionLoading ? 'Saving…' : (
+                  selectedBatch && batchHasQuiz
+                    ? `✅ Approve + Generate Link (${selectedBatch})`
+                    : selectedBatch
+                    ? `✅ Approve + Assign to ${selectedBatch}`
+                    : '✅ Approve'
+                )}
               </button>
 
+              {/* Reject */}
               {!showRejectBox ? (
                 <button
                   className="btn btn-outline-danger"
@@ -391,6 +451,7 @@ const RegistrationDetail: React.FC = () => {
               )}
             </div>
           </div>
+
         </div>
       </div>
     </div>

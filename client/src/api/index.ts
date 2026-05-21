@@ -2854,8 +2854,8 @@ export const publicQuizAdminApi = {
   },
   getRegistrationDetail: (subId: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}`),
-  approveRegistration: (subId: string) =>
-    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({}) }),
+  approveRegistration: (subId: string, weekLabel?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/approve`, { method: 'PUT', body: JSON.stringify({ weekLabel }) }),
   rejectRegistration: (subId: string, reason: string) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/registrations/${subId}/reject`, { method: 'PUT', body: JSON.stringify({ reason }) }),
   generateQuizLink: (subId: string, quizId: string, weekLabel?: string) =>

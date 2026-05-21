@@ -44,24 +44,29 @@ export class EmailService {
       });
       console.log('   Status: ✅ SMTP Transporter Created\n');
     } else {
-      // Gmail — use explicit port 465 (SSL) instead of service:'gmail' which defaults
-      // to port 587 (STARTTLS). Port 465 is rarely blocked by VPS/cloud firewalls.
-      console.log('   Service Type: Gmail (port 465 SSL)');
+      // Gmail — port 587 with STARTTLS.
+      // VPS providers (DigitalOcean, AWS, etc.) block outbound port 465 (SSL).
+      // Port 587 is the standard submission port and is rarely blocked.
+      // If 587 is also blocked, switch to EMAIL_SERVICE=brevo and add BREVO_API_KEY.
+      console.log('   Service Type: Gmail (port 587 STARTTLS)');
       console.log('   Email User:', process.env.EMAIL_USER);
 
       this.transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
-        port: 465,
-        secure: true,          // true = SSL on port 465
+        port: 587,
+        secure: false,           // false = STARTTLS on port 587
         auth: {
           user: process.env.EMAIL_USER || 'your-email@gmail.com',
-          pass: process.env.EMAIL_PASSWORD || 'your-app-password'
+          pass: process.env.EMAIL_PASSWORD || 'your-app-password',
         },
         tls: {
-          rejectUnauthorized: false  // avoid cert errors on some servers
-        }
+          rejectUnauthorized: false,
+        },
+        connectionTimeout: 15_000,  // fail in 15 s instead of hanging minutes
+        greetingTimeout:   10_000,
+        socketTimeout:     30_000,
       });
-      console.log('   Status: ✅ Gmail Transporter Created (port 465)\n');
+      console.log('   Status: ✅ Gmail Transporter Created (port 587 STARTTLS)\n');
     }
   }
 

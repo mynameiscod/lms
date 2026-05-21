@@ -660,14 +660,16 @@ const AllRegistrations: React.FC = () => {
       {/* ── Filter bar ── */}
       <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 12 }}>
         <div className="card-body py-3 px-4">
-          <div className="row g-2 align-items-center">
-            <div className="col-12 col-md-5">
+          <div className="row g-3 align-items-end">
+            <div className="col-12 col-md-6">
+              <label className="form-label fw-semibold small mb-2">Search</label>
               <div className="input-group">
-                <span className="input-group-text bg-white border-end-0">
-                  <i className="fa-solid fa-magnifying-glass text-muted" style={{ fontSize: 12 }} />
+                <span className="input-group-text bg-white border-end-0" style={{ borderColor: '#e2e8f0' }}>
+                  <i className="fa-solid fa-magnifying-glass text-muted" style={{ fontSize: 14 }} />
                 </span>
                 <input
-                  className="form-control border-start-0 ps-0"
+                  className="form-control border-start-0"
+                  style={{ borderColor: '#e2e8f0', fontSize: 14 }}
                   placeholder="Search by name or email…"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
@@ -675,8 +677,10 @@ const AllRegistrations: React.FC = () => {
               </div>
             </div>
             <div className="col-12 col-md-4">
+              <label className="form-label fw-semibold small mb-2">Batch</label>
               <select
                 className="form-select"
+                style={{ borderColor: '#e2e8f0', fontSize: 14 }}
                 value={weekFilter}
                 onChange={e => { setWeekFilter(e.target.value); setPage(1); }}
               >
@@ -685,9 +689,9 @@ const AllRegistrations: React.FC = () => {
                 {weekLabels.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
-            <div className="col-12 col-md-3 text-md-end">
-              <span className="text-muted" style={{ fontSize: 13 }}>
-                {loading ? 'Loading…' : `${submissions.length} of ${total}`}
+            <div className="col-12 col-md-2">
+              <span className="text-muted d-block" style={{ fontSize: 13 }}>
+                <strong>{loading ? 'Loading…' : `${submissions.length} of ${total}`}</strong>
               </span>
             </div>
           </div>

@@ -76,3 +76,8 @@ volumes:
 networks:
   lms-network:
     driver: bridge
+    enable_ipv6: true
+    ipam:
+      config:
+        - subnet: "172.18.0.0/16"
+        - subnet: "fd3a::/80"

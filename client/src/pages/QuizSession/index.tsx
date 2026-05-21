@@ -24,6 +24,14 @@ interface QuizInfo {
   passingScore?: number;
 }
 
+interface CountdownParts {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  totalSeconds: number;
+}
+
 interface QuizData {
   quiz: QuizInfo;
   questions: QuizQuestion[];
@@ -57,6 +65,26 @@ function formatDuration(seconds: number): string {
   return s > 0 ? `${m}m ${s}s` : `${m}m`;
 }
 
+function calculateCountdown(targetDate: Date): CountdownParts {
+  const now = new Date();
+  const diffMs = targetDate.getTime() - now.getTime();
+  const totalSeconds = Math.max(0, Math.floor(diffMs / 1000));
+
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return { days, hours, minutes, seconds, totalSeconds };
+}
+
+function formatCountdown(parts: CountdownParts): string {
+  if (parts.totalSeconds <= 0) return 'Opening now...';
+  if (parts.days > 0) return `${parts.days}d ${parts.hours}h ${parts.minutes}m`;
+  if (parts.hours > 0) return `${parts.hours}h ${parts.minutes}m ${parts.seconds}s`;
+  return `${parts.minutes}m ${parts.seconds}s`;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const QuizSession: React.FC = () => {
@@ -70,6 +98,7 @@ const QuizSession: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState('');
   const [opensAt, setOpensAt] = useState<string>('');
   const [eventTimeIST, setEventTimeIST] = useState<string>('');
+  const [countdown, setCountdown] = useState<CountdownParts>({ days: 0, hours: 0, minutes: 0, seconds: 0, totalSeconds: 0 });
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const hasSubmitted = useRef(false);
 
@@ -105,7 +134,33 @@ const QuizSession: React.FC = () => {
       });
   }, [token]);
 
-  // ── Timer ──────────────────────────────────────────────────────────────────
+  // ── Countdown timer (when quiz not yet open) ────────────────────────────
+
+  useEffect(() => {
+    if (phase !== 'not_yet' || !opensAt) return;
+
+    const openDate = new Date(opensAt);
+
+    const updateCountdown = () => {
+      const parts = calculateCountdown(openDate);
+      setCountdown(parts);
+
+      // Auto-refresh when quiz is about to open (within 5 seconds)
+      if (parts.totalSeconds <= 5 && parts.totalSeconds > 0) {
+        // Quietly refresh to check if quiz is now open
+        setTimeout(() => {
+          if (!token) return;
+          publicQuizSessionApi.getQuiz(token)
+            .then(() => window.location.reload())
+            .catch(() => {}); // Ignore errors; will retry next tick
+        }, 1000);
+      }
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, [phase, opensAt, token]);
 
   const handleAutoSubmit = useCallback(() => {
     if (hasSubmitted.current) return;
@@ -196,33 +251,76 @@ const QuizSession: React.FC = () => {
   }
 
   if (phase === 'not_yet') {
+    // Always derive BOTH date and time from opensAt using IST — never mix with eventTimeIST
     const openDate = opensAt ? new Date(opensAt) : null;
     const displayDate = openDate
-      ? openDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+      ? openDate.toLocaleDateString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+        })
       : '';
+    const displayTime = openDate
+      ? openDate.toLocaleTimeString('en-IN', {
+          timeZone: 'Asia/Kolkata',
+          hour: '2-digit', minute: '2-digit', hour12: true,
+        }) + ' IST'
+      : eventTimeIST; // fallback only if opensAt is unavailable
+
+    const countdownText = formatCountdown(countdown);
+    const countdownColor = countdown.totalSeconds <= 60 ? '#ef4444' : countdown.totalSeconds <= 300 ? '#f59e0b' : '#3b82f6';
+
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center" style={{ background: '#f0f4f8' }}>
-        <div className="card shadow p-4 text-center" style={{ maxWidth: 480, borderRadius: 16, border: 'none' }}>
+        <div className="card shadow p-4 text-center" style={{ maxWidth: 520, borderRadius: 16, border: 'none' }}>
           <div style={{ fontSize: 52, marginBottom: 12 }}>⏰</div>
           <h4 className="mb-2 fw-bold" style={{ color: '#0d1b2a' }}>Quiz Not Open Yet</h4>
-          <p className="text-muted mb-3" style={{ fontSize: 15 }}>
+          <p className="text-muted mb-4" style={{ fontSize: 15 }}>
             Your quiz link is confirmed but the quiz hasn't opened yet.
           </p>
-          {(displayDate || eventTimeIST) && (
+
+          {/* Countdown display */}
+          <div style={{
+            background: countdownColor + '15',
+            border: `2px solid ${countdownColor}`,
+            borderRadius: 12,
+            padding: '20px',
+            marginBottom: 20,
+          }}>
+            <div style={{ fontSize: 13, color: '#64748b', marginBottom: 8, textTransform: 'uppercase', fontWeight: 600, letterSpacing: 0.5 }}>
+              Opens in
+            </div>
+            <div style={{
+              fontSize: 42,
+              fontWeight: 700,
+              color: countdownColor,
+              fontFamily: 'monospace',
+              letterSpacing: 1,
+            }}>
+              {countdownText}
+            </div>
+          </div>
+
+          {/* Date and time info */}
+          {(displayDate || displayTime) && (
             <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '14px 20px', marginBottom: 20 }}>
               <div style={{ fontWeight: 700, color: '#1d4ed8', fontSize: 15 }}>
                 {displayDate && <span>📅 {displayDate}</span>}
-                {displayDate && eventTimeIST && ' · '}
-                {eventTimeIST && <span>🕖 {eventTimeIST}</span>}
+                {displayDate && displayTime && ' · '}
+                {displayTime && <span>🕖 {displayTime}</span>}
               </div>
-              <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>Come back at this time to take the quiz</div>
+              <div style={{ color: '#6b7280', fontSize: 13, marginTop: 6 }}>Quiz opens at this time</div>
             </div>
           )}
-          <p className="text-muted" style={{ fontSize: 13 }}>
-            Keep this page link — it will unlock automatically at the scheduled time.
+
+          <p className="text-muted" style={{ fontSize: 13, marginBottom: 3 }}>
+            Keep this page open or bookmark it — it will unlock automatically.
           </p>
-          <button className="btn btn-primary btn-sm mt-2" onClick={() => window.location.reload()}>
-            Refresh to Check
+          <button
+            className="btn btn-primary btn-sm mt-3"
+            onClick={() => window.location.reload()}
+            title="Check if quiz is open now"
+          >
+            Refresh to Check Now
           </button>
         </div>
       </div>

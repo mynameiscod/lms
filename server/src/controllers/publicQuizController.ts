@@ -337,7 +337,27 @@ export const setWeekConfig = async (req: Request, res: Response) => {
       { $set: update },
       { upsert: true, new: true }
     );
-    res.json(config);
+
+    // Backfill quiz tokens for already-approved students who were approved before this config was saved
+    const needsToken = await PublicQuizSubmission.find({
+      tenantId,
+      weekLabel,
+      isApproved: true,
+      $or: [{ quizToken: { $exists: false } }, { quizToken: '' }, { quizToken: null }],
+    }).select('_id');
+
+    if (needsToken.length > 0) {
+      await PublicQuizSubmission.bulkWrite(
+        needsToken.map(s => ({
+          updateOne: {
+            filter: { _id: s._id },
+            update: { $set: { quizId, quizToken: crypto.randomUUID() } },
+          },
+        }))
+      );
+    }
+
+    res.json({ ...config.toObject(), tokenizedCount: needsToken.length });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -599,6 +619,25 @@ export const sendWeekQuizLinks = async (req: Request, res: Response) => {
     if (!weekConfig) return res.status(404).json({ message: 'Week not configured. Save the week config first.' });
 
     const frontendBase = process.env.FRONTEND_URL || 'https://platform.codebegun.com';
+
+    // Backfill tokens for approved students who were approved before the week config existed
+    const needsToken = await PublicQuizSubmission.find({
+      tenantId,
+      weekLabel,
+      isApproved: true,
+      $or: [{ quizToken: { $exists: false } }, { quizToken: '' }, { quizToken: null }],
+    }).select('_id');
+
+    if (needsToken.length > 0) {
+      await PublicQuizSubmission.bulkWrite(
+        needsToken.map(s => ({
+          updateOne: {
+            filter: { _id: s._id },
+            update: { $set: { quizId: weekConfig.quizId, quizToken: crypto.randomUUID() } },
+          },
+        }))
+      );
+    }
 
     // Find all approved students in this week who have a quiz token
     const submissions = await PublicQuizSubmission.find({

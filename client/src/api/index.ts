@@ -2865,6 +2865,8 @@ export const publicQuizAdminApi = {
     }),
   getAvailableQuizzes: () =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/available-quizzes`),
+  getAllBatchConfigs: () =>
+    authenticatedFetch(`${API_BASE_URL}/public-quizzes/all-batch-configs`),
   getWeekConfig: (weekLabel: string) => {
     const qs = new URLSearchParams({ weekLabel }).toString();
     return authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config?${qs}`);

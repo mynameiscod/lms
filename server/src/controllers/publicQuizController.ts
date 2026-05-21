@@ -299,6 +299,28 @@ export const submitQuizByToken = async (req: Request, res: Response) => {
 // ADMIN — WEEK CONFIG
 // ─────────────────────────────────────────────────────────────────────────────
 
+/** GET /api/public-quizzes/all-batch-configs — all configured batches for tenant */
+export const getAllBatchConfigs = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).user?.tenantId;
+    const configs = await WeekConfig.find({ tenantId }).sort({ createdAt: -1 });
+
+    // Attach quiz info for each config
+    const enriched = await Promise.all(
+      configs.map(async (cfg: any) => {
+        const quiz = cfg.quizId
+          ? await Quiz.findById(cfg.quizId).select('title totalQuestions totalMarks totalTime')
+          : null;
+        return { ...cfg.toObject(), quiz };
+      })
+    );
+
+    res.json(enriched);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 /** GET /api/public-quizzes/week-config?weekLabel=Week+1 */
 export const getWeekConfig = async (req: Request, res: Response) => {
   try {

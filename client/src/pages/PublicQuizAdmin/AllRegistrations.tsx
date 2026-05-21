@@ -106,15 +106,22 @@ const AllRegistrations: React.FC = () => {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  /* Load batch config for each week label */
+  /* Load all batch configs directly */
   useEffect(() => {
-    weekLabels.forEach(async label => {
+    const loadBatchConfigs = async () => {
       try {
-        const cfg = await publicQuizAdminApi.getWeekConfig(label);
-        if (cfg) setBatchConfigs(prev => ({ ...prev, [label]: { ...cfg, weekLabel: label } }));
-      } catch { /* no config yet */ }
-    });
-  }, [weekLabels]);
+        const configs = await publicQuizAdminApi.getAllBatchConfigs();
+        const record: Record<string, BatchConfig> = {};
+        (Array.isArray(configs) ? configs : []).forEach((cfg: any) => {
+          record[cfg.weekLabel] = { ...cfg, weekLabel: cfg.weekLabel };
+        });
+        setBatchConfigs(record);
+        // Also set week labels from batch configs so they always show
+        setWeekLabels(Object.keys(record).sort());
+      } catch { /* failed to load batch configs */ }
+    };
+    loadBatchConfigs();
+  }, []);
 
   const ensureQuizzes = async () => {
     if (quizzesLoaded) return;

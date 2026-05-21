@@ -13,6 +13,7 @@ router.get('/available-quizzes', ctrl.getAvailableQuizzes);
 
 // Week configuration (which quiz for which week + topper count)
 router.get('/week-config', ctrl.getWeekConfig);
+router.get('/all-batch-configs', ctrl.getAllBatchConfigs);
 router.put('/week-config', ctrl.setWeekConfig);
 
 // Leaderboard for a week

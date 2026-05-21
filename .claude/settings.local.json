@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(curl -s -o - -w \"\\\\n\\\\nHTTP Status: %{http_code}\" -X POST \"https://platform.codebegun.com/api/v1/public/codebegun/weekly-quiz-register\" -H \"Content-Type: application/json\" -d \"{\\\\\"name\\\\\":\\\\\"Test User\\\\\",\\\\\"phone\\\\\":\\\\\"9999999999\\\\\",\\\\\"email\\\\\":\\\\\"test@test.com\\\\\"}\")",
+      "Bash(curl -s -X GET \"https://platform.codebegun.com/api/v1/tenants\" -H \"Content-Type: application/json\")",
+      "Bash(curl -s \"https://platform.codebegun.com/api/v1/public/form/codebegun\")",
+      "Bash(node -e \"require\\('multer'\\); console.log\\('multer ok'\\)\")",
+      "Bash(ping -n 2 github.com)",
+      "Bash(curl -s --max-time 5 https://api.github.com)",
+      "Bash(npx tsc *)",
+      "Bash(del server\\\\src\\\\routes\\\\publicQuizRoutes.ts)",
+      "Bash(git reset *)",
+      "Bash(sshpass -p 'Galaba@181123' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@187.124.97.56 \"echo 'Connected successfully' && whoami && pwd\")",
+      "Bash(ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -o PasswordAuthentication=yes root@187.124.97.56 \"echo connected\")",
+      "Bash(python -c \"import paramiko; print\\('paramiko available'\\)\")",
+      "Bash(python3 -c \"import paramiko; print\\('paramiko available'\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -c ' *)",
+      "Bash(Get-ChildItem -Path \"d:\\\\Simple_CB_LMS\\\\Codebegun\\\\lms-saas\" -Directory)",
+      "Bash(Select-Object Name)",
+      "Bash(python3 -)",
+      "Bash(python3 -c ' *)",
+      "Bash(start \"d:\\\\Simple_CB_LMS\\\\Codebegun\\\\lms-saas\\\\public-quiz-flow-guide.html\")",
+      "Bash(npm run *)"
+    ]
+  }
+}

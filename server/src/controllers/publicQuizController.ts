@@ -159,7 +159,7 @@ export const getQuizByToken = async (req: Request, res: Response) => {
       }
     }
 
-    const quiz = await Quiz.findById(submission.quizId).select('title totalMarks totalTime passPercentage passingMarks shuffleQuestions instructions');
+    const quiz = await Quiz.findById(submission.quizId).select('title totalMarks totalTime passPercentage passingMarks shuffleQuestions instructions questionIds');
     if (!quiz) return res.status(404).json({ message: 'Quiz not found.', code: 'QUIZ_NOT_FOUND' });
 
     // Set startedAt on first open

@@ -55,6 +55,7 @@ interface QuizFormData {
   warningCount: number;
   enableCamera: boolean;
   enableMicrophone: boolean;
+  isExternalQuiz?: boolean;
 }
 
 interface QuizWizardProps {
@@ -139,7 +140,8 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     tabSwitchWarnings: initialData?.tabSwitchWarnings !== false,
     warningCount: (initialData as any)?.warningCount || 3,
     enableCamera: (initialData as any)?.enableCamera || false,
-    enableMicrophone: (initialData as any)?.enableMicrophone || false
+    enableMicrophone: (initialData as any)?.enableMicrophone || false,
+    isExternalQuiz: (initialData as any)?.isExternalQuiz || false
   });
 
   // Course, Subject, Chapter state
@@ -774,6 +776,25 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                 <option value="batch_wise">Specific Batches</option>
                 <option value="individual">Individual Students</option>
               </select>
+            </div>
+
+            <div className="form-group" style={{ marginTop: '1.25rem' }}>
+              <label
+                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', userSelect: 'none' }}
+              >
+                <input
+                  type="checkbox"
+                  checked={(formData as any).isExternalQuiz || false}
+                  onChange={e => setFormData((prev: any) => ({ ...prev, isExternalQuiz: e.target.checked }))}
+                  style={{ width: 18, height: 18, marginTop: 2, flexShrink: 0, cursor: 'pointer', accentColor: '#e05c1a' }}
+                />
+                <span>
+                  <strong>External / Public Quiz</strong>
+                  <small style={{ display: 'block', color: '#666', fontWeight: 400, marginTop: 2 }}>
+                    This quiz is for external participants (e.g. Tech Battle). It will <strong>not</strong> appear on the internal student dashboard — access is via a personal link only. You can still optionally include specific internal students later.
+                  </small>
+                </span>
+              </label>
             </div>
 
             {formData.accessibleTo === 'batch_wise' && (

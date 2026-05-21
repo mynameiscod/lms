@@ -449,8 +449,8 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get all quizzes for the tenant
-    const allQuizzes = await Quiz.find({ tenantId, isActive: true });
+    // Get all quizzes for the tenant — exclude external/token-only quizzes
+    const allQuizzes = await Quiz.find({ tenantId, isActive: true, isExternalQuiz: { $ne: true } });
 
     // Filter quizzes based on access level and enrollment
     const availableQuizzes = await Promise.all(

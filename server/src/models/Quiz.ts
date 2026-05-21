@@ -42,6 +42,7 @@ export interface IQuiz extends Document {
   warningCount: number;
   warnings: number[];
   isActive: boolean;
+  isExternalQuiz?: boolean; // If true, hidden from internal student dashboard (token-access only)
   // Student-specific computed properties (optional)
   isAttempted?: boolean;
   attemptCount?: number;
@@ -96,7 +97,8 @@ const quizSchema = new Schema<IQuiz>(
     enableMicrophone: { type: Boolean, default: false },
     warningCount: { type: Number, default: 0 },
     warnings: { type: [Number], default: [] }, // [50%, 75%, 90%] etc
-    isActive: { type: Boolean, default: true }
+    isActive: { type: Boolean, default: true },
+    isExternalQuiz: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

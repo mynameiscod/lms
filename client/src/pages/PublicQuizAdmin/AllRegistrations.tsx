@@ -659,28 +659,43 @@ const AllRegistrations: React.FC = () => {
 
       {/* ── Filter bar ── */}
       <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 12 }}>
-        <div className="card-body py-3 px-4">
-          <div className="row g-3 align-items-end">
-            <div className="col-12 col-md-6">
-              <label className="form-label fw-semibold small mb-2">Search</label>
-              <div className="input-group">
-                <span className="input-group-text bg-white border-end-0" style={{ borderColor: '#e2e8f0' }}>
-                  <i className="fa-solid fa-magnifying-glass text-muted" style={{ fontSize: 14 }} />
+        <div className="card-body p-4">
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, alignItems: 'flex-end' }}>
+            {/* Search Input */}
+            <div>
+              <label className="form-label fw-semibold small mb-2" style={{ display: 'block', color: '#475569' }}>Search</label>
+              <div className="input-group" style={{ height: 48 }}>
+                <span className="input-group-text bg-white" style={{ borderColor: '#e2e8f0', borderRadius: '10px 0 0 10px', fontSize: 16 }}>
+                  <i className="fa-solid fa-magnifying-glass text-muted" />
                 </span>
                 <input
-                  className="form-control border-start-0"
-                  style={{ borderColor: '#e2e8f0', fontSize: 14 }}
+                  type="text"
+                  className="form-control"
+                  style={{
+                    borderColor: '#e2e8f0',
+                    fontSize: 14,
+                    borderRadius: '0 10px 10px 0',
+                    height: '100%',
+                  }}
                   placeholder="Search by name or email…"
                   value={search}
                   onChange={e => { setSearch(e.target.value); setPage(1); }}
                 />
               </div>
             </div>
-            <div className="col-12 col-md-4">
-              <label className="form-label fw-semibold small mb-2">Batch</label>
+
+            {/* Batch Filter */}
+            <div>
+              <label className="form-label fw-semibold small mb-2" style={{ display: 'block', color: '#475569' }}>Batch</label>
               <select
                 className="form-select"
-                style={{ borderColor: '#e2e8f0', fontSize: 14 }}
+                style={{
+                  borderColor: '#e2e8f0',
+                  fontSize: 14,
+                  height: 48,
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                }}
                 value={weekFilter}
                 onChange={e => { setWeekFilter(e.target.value); setPage(1); }}
               >
@@ -689,10 +704,15 @@ const AllRegistrations: React.FC = () => {
                 {weekLabels.map(w => <option key={w} value={w}>{w}</option>)}
               </select>
             </div>
-            <div className="col-12 col-md-2">
-              <span className="text-muted d-block" style={{ fontSize: 13 }}>
-                <strong>{loading ? 'Loading…' : `${submissions.length} of ${total}`}</strong>
-              </span>
+
+            {/* Result Count */}
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: 0 }}>
+              <div style={{ fontSize: 13, color: '#64748b' }}>
+                <span style={{ fontWeight: 600, color: '#1e293b', fontSize: 16 }}>
+                  {loading ? '…' : `${submissions.length}`}
+                </span>
+                <span style={{ marginLeft: 4, fontSize: 12 }}>of {total}</span>
+              </div>
             </div>
           </div>
         </div>

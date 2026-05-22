@@ -649,50 +649,67 @@ const QuizSession: React.FC = () => {
   // ── PHASE: result ─────────────────────────────────────────────────────────
 
   if (phase === 'result') {
-    if (!result) return (
-      <div style={S.center}>
-        <div style={{ ...S.card, textAlign: 'center' }}>
-          <div style={{ fontSize: 44, marginBottom: 12 }}>⚠️</div>
-          <h3 style={{ fontWeight: 700 }}>Submission Error</h3>
-          <p style={{ color: '#64748b' }}>{errorMsg || 'Could not submit. Please contact the organiser.'}</p>
-        </div>
-      </div>
-    );
-
-    const pct = result.percentage ?? 0;
-    const passCol = result.passed ? '#16a34a' : '#dc2626';
-    // FIX 1: Use timeSpentSeconds (number) which server now sends
-    const timeTaken = result.timeSpentSeconds > 0 ? formatDuration(result.timeSpentSeconds) : (result.timeSpent || '—');
-
-    const statItems = [
-      { label: 'Score', value: `${pct.toFixed(1)}%`, color: passCol },
-      { label: 'Marks', value: `${result.score}/${result.totalMarks}`, color: '#0f172a' },
-      { label: 'Time Taken', value: timeTaken, color: '#0f172a' },
-      ...(result.rank ? [{ label: 'Your Rank', value: `#${result.rank}`, color: '#1e40af' }] : []),
+    const socialLinks = [
+      { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/codebegun', color: '#e1306c', bg: '#fdf2f8' },
+      { icon: '💼', label: 'LinkedIn', url: 'https://www.linkedin.com/company/codebegun', color: '#0a66c2', bg: '#eff6ff' },
+      { icon: '▶️', label: 'YouTube', url: 'https://www.youtube.com/@codebegun', color: '#ff0000', bg: '#fff1f2' },
+      { icon: '🌐', label: 'Website', url: 'https://codebegun.com', color: '#0d9488', bg: '#f0fdfa' },
     ];
 
     return (
       <div style={S.center}>
-        <div style={{ ...S.card, maxWidth: 520, width: '100%', textAlign: 'center' }}>
-          <div style={{ background: `linear-gradient(135deg,${result.passed ? '#15803d' : '#b91c1c'},${result.passed ? '#22c55e' : '#ef4444'})`, borderRadius: '12px 12px 0 0', margin: '-28px -28px 24px', padding: '30px 28px' }}>
-            <div style={{ fontSize: 52, marginBottom: 8 }}>{result.passed ? '🏆' : '📋'}</div>
-            <h2 style={{ color: '#fff', fontWeight: 800, margin: 0 }}>{result.passed ? 'Congratulations!' : 'Quiz Completed'}</h2>
-            <p style={{ color: 'rgba(255,255,255,0.8)', margin: '6px 0 0', fontSize: 14 }}>{quizData?.quiz.title}</p>
+        <div style={{ ...S.card, maxWidth: 480, width: '100%', textAlign: 'center', padding: 0, overflow: 'hidden' }}>
+
+          {/* Hero banner */}
+          <div style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0284c7 100%)', padding: '36px 28px 32px' }}>
+            <div style={{ fontSize: 64, marginBottom: 10 }}>🎉</div>
+            <h2 style={{ color: '#fff', fontWeight: 800, fontSize: 26, margin: '0 0 8px' }}>Thank You!</h2>
+            <p style={{ color: 'rgba(255,255,255,0.85)', margin: 0, fontSize: 15, fontWeight: 500 }}>
+              {quizData?.quiz.title || 'Weekly Tech Battle'}
+            </p>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: 20 }}>
-            {statItems.map(s => (
-              <div key={s.label} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '14px 8px' }}>
-                <div style={{ fontSize: 24, fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: '#64748b', marginTop: 3 }}>{s.label}</div>
-              </div>
-            ))}
-          </div>
+          <div style={{ padding: '28px 24px' }}>
 
-          <div style={{ background: result.passed ? '#f0fdf4' : '#fef2f2', border: `2px solid ${passCol}`, borderRadius: 10, padding: '12px 20px', marginBottom: 16 }}>
-            <span style={{ fontWeight: 800, fontSize: 18, color: passCol }}>{result.passed ? '✅ PASSED' : '❌ NOT PASSED'}</span>
+            {/* Main message */}
+            <div style={{ background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
+              <div style={{ fontSize: 28, marginBottom: 8 }}>🏅</div>
+              <p style={{ fontSize: 16, fontWeight: 700, color: '#15803d', margin: '0 0 6px' }}>
+                You've been selected!
+              </p>
+              <p style={{ fontSize: 14, color: '#166534', margin: 0, lineHeight: 1.6 }}>
+                The <strong>Codebegun team</strong> will connect with you shortly. Check the results and updates on our website.
+              </p>
+            </div>
+
+            {/* Info box */}
+            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '14px 18px', marginBottom: 24, fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>
+              Your quiz response has been recorded successfully. Results will be announced soon — stay tuned on our social channels for updates.
+            </div>
+
+            {/* Social links */}
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 12 }}>
+              Connect with us for more updates
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10, marginBottom: 20 }}>
+              {socialLinks.map(s => (
+                <a
+                  key={s.label}
+                  href={s.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', background: s.bg, border: `1.5px solid ${s.color}30`, borderRadius: 12, textDecoration: 'none', transition: 'transform 0.15s' }}
+                >
+                  <span style={{ fontSize: 20 }}>{s.icon}</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{s.label}</span>
+                </a>
+              ))}
+            </div>
+
+            <p style={{ fontSize: 12, color: '#94a3b8', margin: 0 }}>
+              © Codebegun · platform.codebegun.com
+            </p>
           </div>
-          <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>Results recorded. The organiser will contact you with next steps.</p>
         </div>
       </div>
     );

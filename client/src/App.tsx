@@ -145,6 +145,8 @@ import DayViewPage from './pages/MyLearningPlan/DayView';
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
 
+import AdminLogPanel from './components/AdminLogPanel';
+
 // Class Flow (new unified flow)
 import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
 import StudentMyClasses from './pages/StudentClassHub/StudentMyClasses';
@@ -1622,6 +1624,14 @@ const AppRoutes: React.FC = () => {
   );
 };
 
+// Show the log panel only for admin / staff users
+const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'];
+const AdminLogGate: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+  if (!isAuthenticated || !user || !ADMIN_ROLES.includes(user.role)) return null;
+  return <AdminLogPanel />;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
@@ -1632,6 +1642,7 @@ const App: React.FC = () => {
               <BrowserRouter>
                 <HotLeadToast />
                 <AppRoutes />
+                <AdminLogGate />
               </BrowserRouter>
             </SocketProvider>
           </TenantModulesProvider>

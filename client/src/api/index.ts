@@ -1,6 +1,8 @@
 // Use relative URL (no hardcoded domain) - works with any deployment
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
 
+import { pushClientError } from '../utils/errorStore';
+
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
   const tenantId = localStorage.getItem('tenantId');
@@ -75,6 +77,7 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: response.statusText }));
     console.error('[API] Request failed:', { status: response.status, error });
+    pushClientError(options.method || 'GET', url, response.status, error.message || `HTTP ${response.status}`);
     throw new Error(error.message || `API Error: ${response.status}`);
   }
 
@@ -2896,6 +2899,7 @@ export const publicQuizSessionApi = {
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
+        pushClientError('GET', `/public/quiz/${token}`, res.status, data.message || 'Failed to load quiz');
         const err: any = new Error(data.message || 'Failed to load quiz');
         err.code = data.code;
         err.opensAt = data.opensAt;
@@ -2913,6 +2917,7 @@ export const publicQuizSessionApi = {
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
+        pushClientError('POST', `/public/quiz/${token}/start`, res.status, data.message || 'Failed to start quiz');
         const err: any = new Error(data.message || 'Failed to start quiz');
         err.code = data.code;
         throw err;
@@ -2938,7 +2943,10 @@ export const publicQuizSessionApi = {
       body: JSON.stringify({ answers: answersArray }),
     }).then(async (res) => {
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to submit quiz');
+      if (!res.ok) {
+        pushClientError('POST', `/public/quiz/${token}/submit`, res.status, data.message || 'Failed to submit quiz');
+        throw new Error(data.message || 'Failed to submit quiz');
+      }
       return data;
     });
   },

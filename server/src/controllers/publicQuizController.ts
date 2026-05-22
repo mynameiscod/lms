@@ -6,6 +6,7 @@ import Tenant from '../models/Tenant';
 import Quiz from '../models/Quiz';
 import Question from '../models/Question';
 import { EmailService } from '../services/emailService';
+import { logger } from '../utils/logger';
 
 const emailService = new EmailService();
 
@@ -127,6 +128,7 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
 
     return res.status(201).json({ success: true, message: 'Registration successful! We will review your details and contact you soon.' });
   } catch (err: any) {
+    logger.error('registerForWeeklyQuizFromWebsite failed', { error: err.message, tenantSlug: req.params.tenantSlug });
     res.status(500).json({ message: err.message });
   }
 };
@@ -210,6 +212,7 @@ export const getQuizByToken = async (req: Request, res: Response) => {
       questions: sanitized,
     });
   } catch (err: any) {
+    logger.error('getQuizByToken failed', { error: err.message, token: req.params.token });
     res.status(500).json({ message: err.message });
   }
 };
@@ -242,8 +245,10 @@ export const startQuizSession = async (req: Request, res: Response) => {
     submission.lastHeartbeat = now;
     await submission.save();
 
+    logger.info('Quiz session started', { token: req.params.token, sessionId });
     res.json({ quizStartedAt: submission.quizStartedAt });
   } catch (err: any) {
+    logger.error('startQuizSession failed', { error: err.message, token: req.params.token });
     res.status(500).json({ message: err.message });
   }
 };
@@ -352,7 +357,9 @@ export const submitQuizByToken = async (req: Request, res: Response) => {
       timeSpent:        `${mins}m ${secs}s`,
       message:          'Quiz submitted successfully!'
     });
+    logger.info('Quiz submitted', { token: req.params.token, score: obtainedMarks, total: quiz.totalMarks, passed, timeSpentSeconds });
   } catch (err: any) {
+    logger.error('submitQuizByToken failed', { error: err.message, token: req.params.token, body: JSON.stringify(req.body).slice(0, 200) });
     res.status(500).json({ message: err.message });
   }
 };

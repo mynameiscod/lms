@@ -9,6 +9,8 @@ import path from 'path';
 import apiRoutes from './routes';
 import { ApiResponse, AuthenticatedRequest } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
+import { apiErrorLogger } from './middleware/errorLogger';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -61,6 +63,7 @@ app.use(helmet({
 }));
 app.use(morgan('combined'));
 app.use(cors(corsOptions));
+app.use(apiErrorLogger); // log all 4xx/5xx responses to file + stdout
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -227,7 +230,11 @@ app.use((req: Request, res: Response<ApiResponse<any>>) => {
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response<ApiResponse<any>>, next: NextFunction) => {
-  console.error(err);
+  logger.error(`Unhandled exception: ${req.method} ${req.originalUrl}`, {
+    error: err.message,
+    stack: err.stack?.split('\n').slice(0, 5),
+    ip: req.ip,
+  });
   res.status(err.status || 500).json({
     success: false,
     message: 'Internal server error',

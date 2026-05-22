@@ -343,13 +343,14 @@ export const submitQuizByToken = async (req: Request, res: Response) => {
     const secs = timeSpentSeconds % 60;
 
     res.json({
-      score:       obtainedMarks,
-      totalMarks:  quiz.totalMarks,
-      percentage:  Math.round(percentage),
+      score:            obtainedMarks,
+      totalMarks:       quiz.totalMarks,
+      percentage:       Math.round(percentage),
       passed,
-      rank:        (submission as any).rank ?? null,
-      timeSpent:   `${mins}m ${secs}s`,
-      message:     'Quiz submitted successfully!'
+      rank:             (submission as any).rank ?? null,
+      timeSpentSeconds: timeSpentSeconds,
+      timeSpent:        `${mins}m ${secs}s`,
+      message:          'Quiz submitted successfully!'
     });
   } catch (err: any) {
     res.status(500).json({ message: err.message });

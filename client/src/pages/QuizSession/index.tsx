@@ -120,6 +120,7 @@ const QuizSession: React.FC = () => {
       .catch((err: any) => {
         if (err.code === 'NOT_YET') { setOpensAt(err.opensAt || ''); setEventTimeIST(err.eventTimeIST || ''); setPhase('not_yet'); }
         else if (err.code === 'ANOTHER_DEVICE') { setErrorMsg('This quiz is already open on another device. Close it there first.'); setPhase('error'); }
+        else if (err.code === 'QUIZ_ENDED') { setErrorMsg('This quiz has ended and is no longer accepting new attempts.'); setPhase('error'); }
         else if ((err.message || '').toLowerCase().includes('already')) { setPhase('already_done'); }
         else { setErrorMsg(err.message || 'Failed to load quiz'); setPhase('error'); }
       });
@@ -543,13 +544,13 @@ const QuizSession: React.FC = () => {
                 {answers[current._id]?.length > 0 && <span style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>✓ Answered</span>}
               </div>
 
-              <div style={{ padding: '22px 22px 8px' }}>
-                <p style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', lineHeight: 1.65, margin: 0, whiteSpace: 'pre-wrap' }}>
+              <div style={{ padding: '22px 22px 8px' }} onCopy={e => e.preventDefault()}>
+                <p style={{ fontSize: 16, fontWeight: 600, color: '#0f172a', lineHeight: 1.65, margin: 0, whiteSpace: 'pre-wrap', userSelect: 'none' }}>
                   {getQuestionText(current)}
                 </p>
               </div>
 
-              <div style={{ padding: '14px 22px 22px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ padding: '14px 22px 22px', display: 'flex', flexDirection: 'column', gap: 10 }} onCopy={e => e.preventDefault()}>
                 {current.options.map((opt, i) => {
                   const sel = (answers[current._id] ?? []).includes(opt.text);
                   return (
@@ -651,7 +652,7 @@ const QuizSession: React.FC = () => {
   if (phase === 'result') {
     const socialLinks = [
       { icon: '📸', label: 'Instagram', url: 'https://www.instagram.com/codebegun', color: '#e1306c', bg: '#fdf2f8' },
-      { icon: '💼', label: 'LinkedIn', url: 'https://www.linkedin.com/company/codebegun', color: '#0a66c2', bg: '#eff6ff' },
+      { icon: '💼', label: 'LinkedIn', url: 'https://www.linkedin.com/company/codbegun/', color: '#0a66c2', bg: '#eff6ff' },
       { icon: '▶️', label: 'YouTube', url: 'https://www.youtube.com/@codebegun', color: '#ff0000', bg: '#fff1f2' },
       { icon: '🌐', label: 'Website', url: 'https://codebegun.com', color: '#0d9488', bg: '#f0fdfa' },
     ];

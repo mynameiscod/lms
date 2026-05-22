@@ -14,7 +14,8 @@ interface BatchConfig {
   quizId?: string;
   quiz?: { _id: string; title: string; totalQuestions?: number; totalMarks?: number };
   eventTitle?: string;
-  eventDate?: string;   // UTC ISO string (as stored)
+  eventDate?: string;    // UTC ISO string — quiz opens
+  eventEndDate?: string; // UTC ISO string — quiz closes
   eventTimeIST?: string;
   techBattleUrl?: string;
   topperCount?: number;
@@ -76,6 +77,7 @@ const AllRegistrations: React.FC = () => {
   const [cfgEventDate,   setCfgEventDate]   = useState('');   // IST local string
   const [cfgEventTitle,  setCfgEventTitle]  = useState('');
   const [cfgBattleUrl,   setCfgBattleUrl]   = useState('');
+  const [cfgEndDate,     setCfgEndDate]     = useState('');   // IST local string
   const [cfgTopperCount, setCfgTopperCount] = useState(3);
   const [cfgSaving,      setCfgSaving]      = useState(false);
   const [cfgMsg,         setCfgMsg]         = useState('');
@@ -134,7 +136,7 @@ const AllRegistrations: React.FC = () => {
   const openNew = async () => {
     await ensureQuizzes();
     setEditMode('__new__');
-    setCfgWeekLabel(''); setCfgQuizId(''); setCfgEventDate('');
+    setCfgWeekLabel(''); setCfgQuizId(''); setCfgEventDate(''); setCfgEndDate('');
     setCfgEventTitle(''); setCfgBattleUrl(''); setCfgTopperCount(3);
     setCfgMsg('');
   };
@@ -146,6 +148,7 @@ const AllRegistrations: React.FC = () => {
     setCfgWeekLabel(label);
     setCfgQuizId(cfg?.quizId || '');
     setCfgEventDate(cfg?.eventDate ? utcToISTInput(cfg.eventDate) : '');
+    setCfgEndDate(cfg?.eventEndDate ? utcToISTInput(cfg.eventEndDate) : '');
     setCfgEventTitle(cfg?.eventTitle || '');
     setCfgBattleUrl(cfg?.techBattleUrl || '');
     setCfgTopperCount(cfg?.topperCount ?? 3);
@@ -171,9 +174,12 @@ const AllRegistrations: React.FC = () => {
         }) + ' IST';
       }
 
+      const eventEndDateISO = cfgEndDate ? istInputToISO(cfgEndDate) : undefined;
+
       const result = await publicQuizAdminApi.setWeekConfig(
         cfgWeekLabel.trim(), cfgQuizId, cfgTopperCount,
         { eventTitle: cfgEventTitle || undefined, eventDate: eventDateISO,
+          eventEndDate: eventEndDateISO,
           eventTimeIST, techBattleUrl: cfgBattleUrl || undefined },
       );
 
@@ -501,6 +507,28 @@ const AllRegistrations: React.FC = () => {
                           Students cannot open the quiz before{' '}
                           <strong>{formatIST(cfgEventDate + ':00+05:30')}</strong></>
                       : 'Leave empty → quiz is always accessible after approval'}
+                  </div>
+                </div>
+
+                {/* Quiz Closes At (IST) */}
+                <div className="col-12 col-md-4">
+                  <label className="form-label fw-semibold small mb-1">
+                    Quiz Closes At{' '}
+                    <span style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 4, padding: '1px 6px', fontSize: 11 }}>
+                      India Time (IST)
+                    </span>
+                  </label>
+                  <input
+                    type="datetime-local"
+                    className="form-control"
+                    value={cfgEndDate}
+                    onChange={e => setCfgEndDate(e.target.value)}
+                  />
+                  <div className="form-text">
+                    {cfgEndDate
+                      ? <><i className="fa-solid fa-lock text-danger me-1" />
+                          Quiz locked after <strong>{formatIST(cfgEndDate + ':00+05:30')}</strong></>
+                      : 'Leave empty → no end time (always accessible)'}
                   </div>
                 </div>
 

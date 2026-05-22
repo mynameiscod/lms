@@ -146,6 +146,7 @@ import DayViewPage from './pages/MyLearningPlan/DayView';
 import QuizSession from './pages/QuizSession';
 
 import AdminLogPanel from './components/AdminLogPanel';
+import AdminLogs from './pages/AdminLogs';
 
 // Class Flow (new unified flow)
 import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
@@ -1617,6 +1618,16 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout><DayViewPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Admin Logs ── */}
+      <Route
+        path="/admin/logs"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout><AdminLogs /></Layout>
           </ProtectedRoute>
         }
       />

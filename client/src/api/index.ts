@@ -1,7 +1,7 @@
+import { pushClientError } from '../utils/errorStore';
+
 // Use relative URL (no hardcoded domain) - works with any deployment
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
-
-import { pushClientError } from '../utils/errorStore';
 
 const getAuthHeaders = () => {
   const token = localStorage.getItem('token');
@@ -2874,7 +2874,7 @@ export const publicQuizAdminApi = {
     const qs = new URLSearchParams({ weekLabel }).toString();
     return authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config?${qs}`);
   },
-  setWeekConfig: (weekLabel: string, quizId: string, topperCount: number, extras?: { eventTitle?: string; eventDate?: string; eventTimeIST?: string; techBattleUrl?: string }) =>
+  setWeekConfig: (weekLabel: string, quizId: string, topperCount: number, extras?: { eventTitle?: string; eventDate?: string; eventEndDate?: string; eventTimeIST?: string; techBattleUrl?: string }) =>
     authenticatedFetch(`${API_BASE_URL}/public-quizzes/week-config`, {
       method: 'PUT',
       body: JSON.stringify({ weekLabel, quizId, topperCount, ...extras }),

@@ -149,7 +149,7 @@ export const getQuizByToken = async (req: Request, res: Response) => {
     if (submission.isApproved !== true) return res.status(403).json({ message: 'Your registration is not yet approved.', code: 'NOT_APPROVED' });
     if (submission.quizCompletedAt) return res.status(403).json({ message: 'You have already submitted this quiz.', code: 'ALREADY_SUBMITTED' });
 
-    // Time-lock
+    // Time-lock: check open time AND end time
     if (submission.weekLabel) {
       const weekConfig = await WeekConfig.findOne({ tenantId: submission.tenantId, weekLabel: submission.weekLabel });
       if (weekConfig?.eventDate && new Date() < weekConfig.eventDate) {
@@ -158,6 +158,12 @@ export const getQuizByToken = async (req: Request, res: Response) => {
           message: 'Quiz is not open yet.',
           opensAt: weekConfig.eventDate,
           eventTimeIST: weekConfig.eventTimeIST || '',
+        });
+      }
+      if (weekConfig?.eventEndDate && new Date() > weekConfig.eventEndDate) {
+        return res.status(403).json({
+          code: 'QUIZ_ENDED',
+          message: 'This quiz has ended and is no longer accepting attempts.',
         });
       }
     }
@@ -414,12 +420,14 @@ export const getWeekConfig = async (req: Request, res: Response) => {
 export const setWeekConfig = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const { weekLabel, quizId, topperCount, eventTitle, eventDate, eventTimeIST, techBattleUrl } = req.body;
+    const { weekLabel, quizId, topperCount, eventTitle, eventDate, eventEndDate, eventTimeIST, techBattleUrl } = req.body;
     if (!weekLabel || !quizId) return res.status(400).json({ message: 'weekLabel and quizId are required' });
 
     const update: any = { quizId, topperCount: topperCount || 3 };
     if (eventTitle)    update.eventTitle    = eventTitle;
     if (eventDate)     update.eventDate     = new Date(eventDate);
+    if (eventEndDate)  update.eventEndDate  = new Date(eventEndDate);
+    else               update.$unset        = { eventEndDate: 1 };
     if (eventTimeIST)  update.eventTimeIST  = eventTimeIST;
     if (techBattleUrl) update.techBattleUrl = techBattleUrl;
 
@@ -465,20 +473,16 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const weekLabel = String(req.query.weekLabel || '');
     if (!weekLabel) return res.status(400).json({ message: 'weekLabel is required' });
 
-    const config = await WeekConfig.findOne({ tenantId, weekLabel });
-    const topperCount = config?.topperCount || 3;
-
-    const toppers = await PublicQuizSubmission.find({
+    // Return ALL completed attempts sorted by rank — no limit
+    const leaderboard = await PublicQuizSubmission.find({
       tenantId,
       weekLabel,
       quizCompletedAt: { $exists: true },
-      rank: { $exists: true }
     })
-      .sort({ rank: 1 })
-      .limit(topperCount)
+      .sort({ rank: 1, score: -1, timeSpentSeconds: 1 })
       .select('name email rank score totalMarks percentage passed timeSpentSeconds quizCompletedAt');
 
-    res.json({ toppers, topperCount, weekLabel });
+    res.json({ leaderboard, total: leaderboard.length, weekLabel });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
@@ -741,21 +745,33 @@ export const sendWeekQuizLinks = async (req: Request, res: Response) => {
     }).select('email name quizToken');
 
     let sent = 0;
-    for (const sub of submissions) {
-      const quizUrl = `${frontendBase}/quiz/${sub.quizToken}`;
-      await emailService.sendTechBattleApprovalEmail({
-        email:        sub.email,
-        name:         sub.name,
-        quizUrl,
-        eventTitle:   weekConfig.eventTitle || 'Weekly Tech Battle',
-        eventDate:    weekConfig.eventDate,
-        eventTimeIST: weekConfig.eventTimeIST,
-        techBattleUrl:weekConfig.techBattleUrl,
-      }).catch(() => {/* non-fatal */});
-      sent++;
-    }
+    let failed = 0;
+    const errors: string[] = [];
 
-    res.json({ success: true, sent, total: submissions.length });
+    // Send all emails concurrently — one failure never blocks the rest
+    await Promise.allSettled(
+      submissions.map(async (sub) => {
+        const quizUrl = `${frontendBase}/quiz/${sub.quizToken}`;
+        try {
+          await emailService.sendTechBattleApprovalEmail({
+            email:        sub.email,
+            name:         sub.name,
+            quizUrl,
+            eventTitle:   weekConfig.eventTitle || 'Weekly Tech Battle',
+            eventDate:    weekConfig.eventDate,
+            eventTimeIST: weekConfig.eventTimeIST,
+            techBattleUrl:weekConfig.techBattleUrl,
+          });
+          sent++;
+        } catch (e: any) {
+          failed++;
+          errors.push(`${sub.email}: ${e.message}`);
+          logger.warn('Quiz link email failed', { email: sub.email, error: e.message });
+        }
+      })
+    );
+
+    res.json({ success: true, sent, failed, total: submissions.length, errors: errors.slice(0, 10) });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }

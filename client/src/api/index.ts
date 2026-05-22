@@ -2890,8 +2890,10 @@ export const publicQuizAdminApi = {
 // ─── Public Quiz Session (no auth — token-based) ──────────────────────────────
 
 export const publicQuizSessionApi = {
-  getQuiz: (token: string) =>
-    fetch(`${API_BASE_URL}/public/quiz/${token}`).then(async (res) => {
+  getQuiz: (token: string, sessionId?: string) =>
+    fetch(`${API_BASE_URL}/public/quiz/${token}`, {
+      headers: sessionId ? { 'x-session-id': sessionId } : {},
+    }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) {
         const err: any = new Error(data.message || 'Failed to load quiz');
@@ -2902,15 +2904,43 @@ export const publicQuizSessionApi = {
       }
       return data;
     }),
-  submitQuiz: (token: string, answers: Record<string, string[]>) =>
-    fetch(`${API_BASE_URL}/public/quiz/${token}/submit`, {
+
+  startQuiz: (token: string, sessionId: string) =>
+    fetch(`${API_BASE_URL}/public/quiz/${token}/start`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ answers }),
+      body: JSON.stringify({ sessionId }),
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        const err: any = new Error(data.message || 'Failed to start quiz');
+        err.code = data.code;
+        throw err;
+      }
+      return data;
+    }),
+
+  heartbeat: (token: string, sessionId: string) =>
+    fetch(`${API_BASE_URL}/public/quiz/${token}/heartbeat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId }),
+    }).catch(() => {}),
+
+  submitQuiz: (token: string, answers: Record<string, string[]>) => {
+    const answersArray = Object.entries(answers).map(([questionId, selectedOptions]) => ({
+      questionId,
+      selectedOptions,
+    }));
+    return fetch(`${API_BASE_URL}/public/quiz/${token}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ answers: answersArray }),
     }).then(async (res) => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to submit quiz');
       return data;
-    }),
+    });
+  },
 };
 

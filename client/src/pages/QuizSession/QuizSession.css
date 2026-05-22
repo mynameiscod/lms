@@ -1,0 +1,11 @@
+/* Mobile-first responsive layout for the quiz grid */
+@media (max-width: 768px) {
+  .quiz-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Smooth option hover */
+label:hover {
+  background: #f8fafc !important;
+}

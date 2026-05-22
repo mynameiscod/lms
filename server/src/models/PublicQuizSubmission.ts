@@ -27,6 +27,8 @@ export interface IPublicQuizSubmission extends Document {
   quizStartedAt?: Date;
   quizCompletedAt?: Date;
   timeSpentSeconds?: number;
+  activeSessionId?: string;   // for single-device enforcement
+  lastHeartbeat?: Date;       // updated by client every 30s
   score?: number;
   totalMarks?: number;
   percentage?: number;
@@ -64,6 +66,8 @@ const publicQuizSubmissionSchema = new Schema<IPublicQuizSubmission>(
     quizStartedAt:    { type: Date },
     quizCompletedAt:  { type: Date },
     timeSpentSeconds: { type: Number },
+    activeSessionId:  { type: String },
+    lastHeartbeat:    { type: Date },
     score:       { type: Number },
     totalMarks:  { type: Number },
     percentage:  { type: Number },

@@ -137,7 +137,8 @@ export const registerForWeeklyQuizFromWebsite = async (req: Request, res: Respon
 
 /**
  * GET /api/v1/public/quiz/:token
- * Returns quiz questions. Sets quizStartedAt on first access.
+ * Returns quiz metadata + questions. Does NOT start the timer.
+ * Supports single-device enforcement via X-Session-Id header.
  */
 export const getQuizByToken = async (req: Request, res: Response) => {
   try {
@@ -146,7 +147,7 @@ export const getQuizByToken = async (req: Request, res: Response) => {
     if (submission.isApproved !== true) return res.status(403).json({ message: 'Your registration is not yet approved.', code: 'NOT_APPROVED' });
     if (submission.quizCompletedAt) return res.status(403).json({ message: 'You have already submitted this quiz.', code: 'ALREADY_SUBMITTED' });
 
-    // Time-lock: check if quiz is scheduled for a future time
+    // Time-lock
     if (submission.weekLabel) {
       const weekConfig = await WeekConfig.findOne({ tenantId: submission.tenantId, weekLabel: submission.weekLabel });
       if (weekConfig?.eventDate && new Date() < weekConfig.eventDate) {
@@ -159,59 +160,112 @@ export const getQuizByToken = async (req: Request, res: Response) => {
       }
     }
 
-    const quiz = await Quiz.findById(submission.quizId).select('title totalMarks totalTime passPercentage passingMarks shuffleQuestions instructions questionIds');
-    if (!quiz) return res.status(404).json({ message: 'Quiz not found.', code: 'QUIZ_NOT_FOUND' });
-
-    // Set startedAt on first open
-    if (!submission.quizStartedAt) {
-      submission.quizStartedAt = new Date();
-      await submission.save();
+    // Single-device check: if quiz is active on another device (heartbeat < 45s ago)
+    const incomingSession = (req.headers['x-session-id'] as string) || '';
+    if (submission.quizStartedAt && submission.activeSessionId && incomingSession
+        && submission.activeSessionId !== incomingSession
+        && submission.lastHeartbeat
+        && (Date.now() - submission.lastHeartbeat.getTime()) < 45_000) {
+      return res.status(403).json({ message: 'This quiz is already open on another device. Please close it there first.', code: 'ANOTHER_DEVICE' });
     }
+
+    const quiz = await Quiz.findById(submission.quizId)
+      .select('title totalMarks totalTime passPercentage passingMarks shuffleQuestions instructions questionIds enableCamera enableMicrophone requireFullScreen tabSwitchWarnings warningCount');
+    if (!quiz) return res.status(404).json({ message: 'Quiz not found.', code: 'QUIZ_NOT_FOUND' });
 
     // Load questions
     let questions: any[] = [];
     if ((quiz as any).questionIds?.length) {
-      questions = await Question.find({ _id: { $in: (quiz as any).questionIds } }).select('-explanation -__v');
-    } else {
-      questions = await Question.find({ quizId: quiz._id.toString() }).select('-explanation -__v');
+      questions = await Question.find({ _id: { $in: (quiz as any).questionIds } }).select('-explanation -correctAnswers -correctAnswerText -__v');
     }
-
     if ((quiz as any).shuffleQuestions) {
       questions = questions.sort(() => Math.random() - 0.5);
     }
 
-    // Strip correct answers; keep options as { text } objects for the client
     const sanitized = questions.map(q => {
       const obj = q.toObject();
-      delete obj.explanation;
       if (Array.isArray(obj.options)) {
         obj.options = obj.options.map((o: any) =>
           typeof o === 'string' ? { text: o } : { text: o?.text || String(o) }
         );
       }
-      delete obj.correctAnswers;
-      delete obj.correctAnswerText;
       return obj;
     });
 
     res.json({
-      // field names the QuizSession component expects
-      candidate:      { name: submission.name, email: submission.email },
-      candidateName:  submission.name,        // backward compat
-      quizToken:      req.params.token,
-      quizStartedAt:  submission.quizStartedAt,
-      startedAt:      submission.quizStartedAt, // backward compat
+      candidate:     { name: submission.name, email: submission.email },
+      quizToken:     req.params.token,
+      quizStartedAt: submission.quizStartedAt ?? null,
       quiz: {
-        title:        quiz.title,
-        timeLimit:    (quiz as any).totalTime,  // component uses timeLimit
-        totalTime:    (quiz as any).totalTime,
-        totalMarks:   quiz.totalMarks,
-        instructions: (quiz as any).instructions || ''
+        title:              quiz.title,
+        timeLimit:          (quiz as any).totalTime,
+        totalMarks:         quiz.totalMarks,
+        instructions:       (quiz as any).instructions || '',
+        enableCamera:       !!(quiz as any).enableCamera,
+        enableMicrophone:   !!(quiz as any).enableMicrophone,
+        requireFullScreen:  !!(quiz as any).requireFullScreen,
+        tabSwitchWarnings:  (quiz as any).tabSwitchWarnings !== false,
+        warningCount:       (quiz as any).warningCount ?? 3,
       },
-      questions: sanitized
+      questions: sanitized,
     });
   } catch (err: any) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/v1/public/quiz/:token/start
+ * Explicitly starts the quiz session — sets quizStartedAt if not already set.
+ * Body: { sessionId: string }
+ */
+export const startQuizSession = async (req: Request, res: Response) => {
+  try {
+    const submission = await PublicQuizSubmission.findOne({ quizToken: req.params.token });
+    if (!submission) return res.status(404).json({ message: 'Invalid quiz link.', code: 'NOT_FOUND' });
+    if (submission.isApproved !== true) return res.status(403).json({ message: 'Not approved.', code: 'NOT_APPROVED' });
+    if (submission.quizCompletedAt) return res.status(403).json({ message: 'Already submitted.', code: 'ALREADY_SUBMITTED' });
+
+    const { sessionId } = req.body as { sessionId?: string };
+
+    // Single-device: if already started on another active session, reject
+    if (submission.quizStartedAt && submission.activeSessionId && sessionId
+        && submission.activeSessionId !== sessionId
+        && submission.lastHeartbeat
+        && (Date.now() - submission.lastHeartbeat.getTime()) < 45_000) {
+      return res.status(403).json({ message: 'This quiz is already open on another device.', code: 'ANOTHER_DEVICE' });
+    }
+
+    const now = new Date();
+    if (!submission.quizStartedAt) submission.quizStartedAt = now;
+    if (sessionId) submission.activeSessionId = sessionId;
+    submission.lastHeartbeat = now;
+    await submission.save();
+
+    res.json({ quizStartedAt: submission.quizStartedAt });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+/**
+ * POST /api/v1/public/quiz/:token/heartbeat
+ * Client calls this every 30s to maintain single-device lock.
+ * Body: { sessionId: string }
+ */
+export const quizHeartbeat = async (req: Request, res: Response) => {
+  try {
+    const { sessionId } = req.body as { sessionId?: string };
+    const submission = await PublicQuizSubmission.findOne({ quizToken: req.params.token });
+    if (!submission || submission.quizCompletedAt) return res.json({ ok: false });
+
+    if (sessionId && submission.activeSessionId === sessionId) {
+      submission.lastHeartbeat = new Date();
+      await submission.save();
+    }
+    res.json({ ok: true });
+  } catch {
+    res.json({ ok: false });
   }
 };
 
@@ -229,7 +283,14 @@ export const submitQuizByToken = async (req: Request, res: Response) => {
     const quiz = await Quiz.findById(submission.quizId).select('totalMarks passPercentage passingMarks questionIds');
     if (!quiz) return res.status(404).json({ message: 'Quiz not found.' });
 
-    const { answers = [] } = req.body as { answers: Array<{ questionId: string; selectedOptions: string[] }> };
+    // Accept both array format and Record<questionId, selectedOptions[]> object format
+    const rawAnswers = req.body?.answers ?? [];
+    const answers: Array<{ questionId: string; selectedOptions: string[] }> = Array.isArray(rawAnswers)
+      ? rawAnswers
+      : Object.entries(rawAnswers).map(([questionId, selectedOptions]) => ({
+          questionId,
+          selectedOptions: Array.isArray(selectedOptions) ? selectedOptions : [],
+        }));
 
     let obtainedMarks = 0;
     const gradedAnswers: any[] = [];

@@ -3,7 +3,7 @@ import multer, { MulterError } from 'multer';
 import fs from 'fs';
 import path from 'path';
 import { submitPublicLeadForm, getPublicFormConfig, submitWebsiteLead } from '../controllers/publicLeadController';
-import { registerForWeeklyQuizFromWebsite, getQuizByToken, submitQuizByToken } from '../controllers/publicQuizController';
+import { registerForWeeklyQuizFromWebsite, getQuizByToken, startQuizSession, submitQuizByToken, quizHeartbeat } from '../controllers/publicQuizController';
 
 const router = express.Router();
 
@@ -54,9 +54,9 @@ router.post('/:tenantSlug/website-lead', multipart, submitWebsiteLead);
 router.post('/:tenantSlug/weekly-quiz-register', multipart, registerForWeeklyQuizFromWebsite);
 
 // Public quiz-taking routes — authenticated via token only (no login required)
-// GET  /api/v1/public/quiz/:token       — fetch quiz questions (sets quizStartedAt on first call)
-// POST /api/v1/public/quiz/:token/submit — submit answers, get score + rank
 router.get('/quiz/:token', getQuizByToken);
+router.post('/quiz/:token/start', express.json(), startQuizSession);
 router.post('/quiz/:token/submit', express.json(), submitQuizByToken);
+router.post('/quiz/:token/heartbeat', express.json(), quizHeartbeat);
 
 export default router;

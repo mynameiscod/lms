@@ -1,4 +1,5 @@
 import { Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import User from '../models/User';
 import Role from '../models/Role';
@@ -62,13 +63,13 @@ export async function buildLeadScopeFilter(req: AuthenticatedRequest): Promise<R
     }).select('_id').lean();
 
     const teamIds = teamMembers.map(m => m._id);
-    teamIds.push(req.user!.id as any); // include self
+    teamIds.push(new mongoose.Types.ObjectId(String(req.user!.id)) as any); // include self
 
     return { assignedTo: { $in: teamIds } };
   }
 
   // OWN: only leads assigned to this user
-  return { assignedTo: req.user!.id };
+  return { assignedTo: new mongoose.Types.ObjectId(String(req.user!.id)) };
 }
 
 /**

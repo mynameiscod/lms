@@ -871,7 +871,7 @@ export const deleteLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
-    const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
+    const baseMatch: any = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter };
 
     // Apply optional UI filters so stats reflect the same subset as the table
     const { stageId, source, assignedTo, priority, search, dateFrom, dateTo } = req.query as Record<string, string>;
@@ -1028,7 +1028,7 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
     const staffUsers = await User.find(staffFilter).select('firstName lastName email role customRoleId').lean();
 
     const scopeFilter = await buildLeadScopeFilter(req);
-    const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
+    const baseMatch: any = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter };
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1533,7 +1533,7 @@ export const getFunnelAnalytics = async (req: AuthenticatedRequest, res: Respons
     const scopeFilter = await buildLeadScopeFilter(req);
     const { dateFrom, dateTo, assignedTo } = req.query;
 
-    const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
+    const baseMatch: any = { tenantId: new mongoose.Types.ObjectId(String(req.tenantId)), ...scopeFilter };
     if (dateFrom) baseMatch.createdAt = { ...baseMatch.createdAt, $gte: new Date(String(dateFrom)) };
     if (dateTo) {
       const end = new Date(String(dateTo)); end.setHours(23, 59, 59, 999);

@@ -2954,3 +2954,55 @@ export const publicQuizSessionApi = {
   },
 };
 
+// ─── Scheduled Interviews ─────────────────────────────────────────────────────
+export const scheduledInterviewApi = {
+  list: (params?: { status?: string; page?: number; limit?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.set('status', params.status);
+    if (params?.page) q.set('page', String(params.page));
+    if (params?.limit) q.set('limit', String(params.limit));
+    const qs = q.toString() ? `?${q}` : '';
+    return authenticatedFetch(`${API_BASE_URL}/scheduled-interviews${qs}`);
+  },
+  getById: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}`),
+  create: (data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}`, { method: 'DELETE' }),
+  addStudents: (id: string, studentIds: string[]) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/students`, {
+      method: 'POST',
+      body: JSON.stringify({ studentIds }),
+    }),
+  submitFeedback: (id: string, studentId: string, data: Record<string, any>) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/feedback/${studentId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  getFeedback: (id: string, studentId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/feedback/${studentId}`),
+  releaseFeedback: (id: string, studentId: string, release: boolean) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/feedback/${studentId}/release`, {
+      method: 'PATCH',
+      body: JSON.stringify({ release }),
+    }),
+  releaseAll: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/release-all`, { method: 'PATCH' }),
+  // Student endpoints
+  getMyInterviews: () =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/my`),
+  getMyFeedback: () =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/my-feedback`),
+  getMyFeedbackForInterview: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/my-feedback`),
+};
+

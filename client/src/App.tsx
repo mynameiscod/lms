@@ -148,6 +148,11 @@ import QuizSession from './pages/QuizSession';
 import AdminLogPanel from './components/AdminLogPanel';
 import AdminLogs from './pages/AdminLogs';
 
+// Scheduled Interview Module
+import ScheduledInterviewsPage from './pages/ScheduledInterviews';
+import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
+import MyInterviewsPage from './pages/MyInterviews';
+
 // Class Flow (new unified flow)
 import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
 import StudentMyClasses from './pages/StudentClassHub/StudentMyClasses';
@@ -1010,6 +1015,40 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <InterviewFeedbackReport />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Scheduled Interviews (Admin/Instructor) ── */}
+      <Route
+        path="/scheduled-interviews"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ScheduledInterviewsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/scheduled-interviews/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <InterviewDetailPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── My Interviews (Student) ── */}
+      <Route
+        path="/my-interviews"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <MyInterviewsPage />
             </Layout>
           </ProtectedRoute>
         }

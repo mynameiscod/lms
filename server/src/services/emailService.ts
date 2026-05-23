@@ -1058,4 +1058,78 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
       // Don't throw — email failure must not block org creation
     }
   }
+
+  // ─── Mock Interview Invite ────────────────────────────────────────────────────
+  async sendInterviewInviteEmail(opts: {
+    email: string;
+    studentName: string;
+    title: string;
+    date: string;          // formatted e.g. "25 May 2026"
+    time: string;          // e.g. "2:30 PM"
+    duration: number;      // minutes
+    interviewerName: string;
+    venue?: string;
+    meetLink?: string;
+    criteria: string[];    // criterion labels
+    emailSubject: string;
+    emailBody: string;     // admin-written description
+    calendarLink: string;
+  }): Promise<void> {
+    const subject = opts.emailSubject || `Interview Scheduled: ${opts.title}`;
+    const criteriaList = opts.criteria.map(c => `<li style="margin:4px 0">${c}</li>`).join('');
+
+    const html = `
+<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;background:#f4f6f9;margin:0;padding:0">
+<div style="max-width:600px;margin:32px auto;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,.08)">
+  <div style="background:linear-gradient(135deg,#1e3a5f,#2563eb);padding:32px;text-align:center">
+    <h1 style="color:#fff;margin:0;font-size:24px">📋 Interview Scheduled</h1>
+    <p style="color:#bfdbfe;margin:8px 0 0">Hi ${opts.studentName}, your mock interview has been scheduled.</p>
+  </div>
+  <div style="padding:32px">
+    <h2 style="color:#1e3a5f;margin:0 0 20px;font-size:20px">${opts.title}</h2>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:24px">
+      <tr><td style="padding:10px 0;color:#6b7280;width:140px;border-bottom:1px solid #f3f4f6">📅 Date</td><td style="padding:10px 0;font-weight:600;color:#111827;border-bottom:1px solid #f3f4f6">${opts.date}</td></tr>
+      <tr><td style="padding:10px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">⏰ Time</td><td style="padding:10px 0;font-weight:600;color:#111827;border-bottom:1px solid #f3f4f6">${opts.time} (${opts.duration} min)</td></tr>
+      <tr><td style="padding:10px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">👤 Interviewer</td><td style="padding:10px 0;font-weight:600;color:#111827;border-bottom:1px solid #f3f4f6">${opts.interviewerName}</td></tr>
+      ${opts.venue ? `<tr><td style="padding:10px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">📍 Venue</td><td style="padding:10px 0;font-weight:600;color:#111827;border-bottom:1px solid #f3f4f6">${opts.venue}</td></tr>` : ''}
+      ${opts.meetLink ? `<tr><td style="padding:10px 0;color:#6b7280;border-bottom:1px solid #f3f4f6">🔗 Meet Link</td><td style="padding:10px 0;border-bottom:1px solid #f3f4f6"><a href="${opts.meetLink}" style="color:#2563eb">${opts.meetLink}</a></td></tr>` : ''}
+    </table>
+    ${opts.criteria.length > 0 ? `
+    <div style="background:#f0f9ff;border-radius:8px;padding:16px 20px;margin-bottom:24px">
+      <p style="margin:0 0 8px;font-weight:600;color:#1e3a5f">📝 Interview Topics</p>
+      <ul style="margin:0;padding-left:20px;color:#374151">${criteriaList}</ul>
+    </div>` : ''}
+    ${opts.emailBody ? `<div style="color:#374151;line-height:1.7;margin-bottom:24px;white-space:pre-wrap">${opts.emailBody}</div>` : ''}
+    <div style="text-align:center;margin:28px 0">
+      <a href="${opts.calendarLink}" style="display:inline-block;background:#2563eb;color:#fff;text-decoration:none;padding:12px 28px;border-radius:8px;font-weight:600;font-size:15px">📅 Add to Google Calendar</a>
+    </div>
+  </div>
+  <div style="background:#f9fafb;padding:20px;text-align:center;color:#9ca3af;font-size:12px">
+    <p style="margin:0">This email was sent by CodeBegun LMS. Please do not reply to this email.</p>
+  </div>
+</div>
+</body></html>`;
+
+    const text = `Interview Scheduled: ${opts.title}\n\nHi ${opts.studentName},\n\nDate: ${opts.date}\nTime: ${opts.time} (${opts.duration} min)\nInterviewer: ${opts.interviewerName}\n${opts.venue ? `Venue: ${opts.venue}\n` : ''}${opts.meetLink ? `Meet Link: ${opts.meetLink}\n` : ''}\nTopics: ${opts.criteria.join(', ')}\n\n${opts.emailBody}\n\nAdd to Google Calendar: ${opts.calendarLink}`;
+
+    console.log('\n📧 [EMAIL SERVICE] Interview Invite →', opts.email);
+    try {
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(opts.email, subject, html, text);
+      } else {
+        await this.transporter!.sendMail({
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: opts.email,
+          subject,
+          html,
+          text,
+        });
+      }
+      console.log('   ✅ Interview invite sent to', opts.email);
+    } catch (err: any) {
+      console.error('❌ sendInterviewInviteEmail failed:', err.message);
+      // Non-fatal
+    }
+  }
 }

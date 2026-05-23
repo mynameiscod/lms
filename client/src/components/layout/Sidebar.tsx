@@ -186,7 +186,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-check', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-check', featureKey: 'scheduledInterviews' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     {
       label: 'Mock Interviews',
       roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],

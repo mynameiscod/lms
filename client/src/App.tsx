@@ -1047,9 +1047,11 @@ const AppRoutes: React.FC = () => {
         path="/my-interviews"
         element={
           <ProtectedRoute>
-            <Layout>
-              <MyInterviewsPage />
-            </Layout>
+            <FeatureRoute feature="scheduledInterviews">
+              <Layout>
+                <MyInterviewsPage />
+              </Layout>
+            </FeatureRoute>
           </ProtectedRoute>
         }
       />

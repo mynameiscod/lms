@@ -13,19 +13,21 @@ interface FeatureConfig {
   codingSnippets: boolean;
   classHub: boolean;
   feeDetails: boolean;
+  scheduledInterviews: boolean;
 }
 
 // Map each student feature to the module that must be enabled for it
 const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
-  dashboard:      null,            // always available
-  myCourse:       'courses',
-  classHub:       'classRecordings',
-  attendance:     'attendance',
-  quizzes:        'quizzes',
-  assignments:    'assignments',
-  mockInterviews: 'mockInterviews',
-  codingSnippets: 'codeEditor',
-  feeDetails:     null,
+  dashboard:            null,
+  myCourse:             'courses',
+  classHub:             'classRecordings',
+  attendance:           'attendance',
+  quizzes:              'quizzes',
+  assignments:          'assignments',
+  mockInterviews:       'mockInterviews',
+  codingSnippets:       'codeEditor',
+  feeDetails:           null,
+  scheduledInterviews:  null,
 };
 
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
@@ -37,7 +39,8 @@ const FEATURE_META: { key: keyof FeatureConfig; label: string; description: stri
   { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: '📝' },
   { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: '🎙' },
   { key: 'codingSnippets', label: 'Coding Snippets',                 description: 'Code editor access with snippet manager and practice problems', icon: '💻' },
-  { key: 'feeDetails',     label: 'Fee Details',                      description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰' },
+  { key: 'feeDetails',          label: 'Fee Details',           description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰' },
+  { key: 'scheduledInterviews', label: 'My Interviews',         description: 'View scheduled mock interviews and released feedback from interviewers', icon: '🗓' },
 ];
 
 const StudentFeaturesPage: React.FC = () => {
@@ -52,6 +55,7 @@ const StudentFeaturesPage: React.FC = () => {
     codingSnippets: true,
     classHub: true,
     feeDetails: true,
+    scheduledInterviews: true,
   });
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [modulesLoaded, setModulesLoaded] = useState(false);

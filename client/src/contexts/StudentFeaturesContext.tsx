@@ -12,6 +12,7 @@ export interface StudentFeatures {
   codingSnippets: boolean;
   classHub: boolean;
   feeDetails: boolean;
+  scheduledInterviews: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -24,6 +25,7 @@ const DEFAULT_FEATURES: StudentFeatures = {
   codingSnippets: true,
   classHub: true,
   feeDetails: true,
+  scheduledInterviews: true,
 };
 
 interface StudentFeaturesContextType {

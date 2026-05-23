@@ -368,6 +368,10 @@ const LeadDetail: React.FC = () => {
   const [editingConcerns, setEditingConcerns] = useState(false);
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
 
+  const [editingCourseInterest, setEditingCourseInterest] = useState(false);
+  const [courseInterestText, setCourseInterestText] = useState('');
+  const [savingCourseInterest, setSavingCourseInterest] = useState(false);
+
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesText, setNotesText] = useState('');
   const [savingNotes, setSavingNotes] = useState(false);
@@ -509,6 +513,19 @@ const LeadDetail: React.FC = () => {
       setEditingConcerns(false);loadData();
       showAlertMsg('success','Concerns updated');
     }catch(error:any){showAlertMsg('error',error.message||'Failed to update concerns');}
+  };
+
+  const handleSaveCourseInterest = async () => {
+    if (!lead) return;
+    try {
+      setSavingCourseInterest(true);
+      const courses = courseInterestText.split(',').map(s => s.trim()).filter(Boolean);
+      await leadApi.updateLead(lead._id, { courseInterest: courses });
+      setEditingCourseInterest(false);
+      await loadData();
+      showAlertMsg('success', 'Course interest saved');
+    } catch (error: any) { showAlertMsg('error', error.message || 'Failed to save'); }
+    finally { setSavingCourseInterest(false); }
   };
 
   const handleSaveNotes = async () => {
@@ -836,12 +853,32 @@ const LeadDetail: React.FC = () => {
               </div>
             )}
             <div className="crm-info-item">
-              <div className="crm-info-label">Course Interest</div>
-              <div className="crm-info-value">
-                {lead.courseInterest?.length > 0 
-                  ? lead.courseInterest.map((c, i) => <span key={i} className="crm-tag crm-tag-green" style={{marginRight:4}}>{c}</span>)
-                  : <span className="muted">Not specified</span>}
+              <div className="crm-info-label" style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                Course Interest
+                <button className="crm-card-action" onClick={() => { setCourseInterestText(lead.courseInterest?.join(', ') || ''); setEditingCourseInterest(!editingCourseInterest); }}>
+                  {editingCourseInterest ? 'Cancel' : 'Edit'}
+                </button>
               </div>
+              {editingCourseInterest ? (
+                <div style={{marginTop:8}}>
+                  <input
+                    type="text"
+                    value={courseInterestText}
+                    onChange={e => setCourseInterestText(e.target.value)}
+                    placeholder="e.g. Python, Data Science (comma-separated)"
+                    style={{width:'100%', padding:'8px 10px', borderRadius:8, border:'1px solid #d1d5db', fontSize:'0.88rem', fontFamily:'inherit', boxSizing:'border-box'}}
+                  />
+                  <button className="crm-btn crm-btn-primary" style={{marginTop:8}} onClick={handleSaveCourseInterest} disabled={savingCourseInterest}>
+                    {savingCourseInterest ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              ) : (
+                <div className="crm-info-value">
+                  {lead.courseInterest?.length > 0
+                    ? lead.courseInterest.map((c, i) => <span key={i} className="crm-tag crm-tag-green" style={{marginRight:4}}>{c}</span>)
+                    : <span className="muted">Not specified</span>}
+                </div>
+              )}
             </div>
 
             {/* Notes */}

@@ -52,6 +52,11 @@ interface TableColumn {
 }
 
 const SOURCES = ['website','walkin','referral','social_media','google_ads','whatsapp','phone','other'];
+
+const FILTER_KEY = 'leads_filters';
+const getSavedFilter = (key: string, fallback = ''): string => {
+  try { return JSON.parse(sessionStorage.getItem(FILTER_KEY) || '{}')[key] ?? fallback; } catch { return fallback; }
+};
 const SOURCE_LABELS: Record<string,string> = {
   website:'Website', walkin:'Walk-in', referral:'Referral', social_media:'Social Media',
   google_ads:'Google Ads', whatsapp:'WhatsApp', phone:'Phone', other:'Other'
@@ -99,22 +104,22 @@ const LeadsPage: React.FC = () => {
 
   const [visibleStageIds, setVisibleStageIds] = useState<Set<string>>(new Set());
   const [stagesInitialized, setStagesInitialized] = useState(false);
-  const [activeStageFilter, setActiveStageFilter] = useState('');
+  const [activeStageFilter, setActiveStageFilter] = useState(() => getSavedFilter('activeStageFilter'));
 
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [configSources, setConfigSources] = useState<string[]>(SOURCES);
   const [statsCardsConfig, setStatsCardsConfig] = useState<StatsCard[]>([]);
   const [tableColumnsConfig, setTableColumnsConfig] = useState<TableColumn[]>([]);
 
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [filterStage, setFilterStage] = useState('');
-  const [filterSource, setFilterSource] = useState('');
-  const [filterAssignee, setFilterAssignee] = useState('');
-  const [filterPriority, setFilterPriority] = useState<LeadPriority | ''>('');
-  const [dateRange, setDateRange] = useState<'all'|'today'|'week'|'month'|'custom'>('all');
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
+  const [searchInput, setSearchInput] = useState(() => getSavedFilter('searchInput'));
+  const [search, setSearch] = useState(() => getSavedFilter('searchInput'));
+  const [filterStage, setFilterStage] = useState(() => getSavedFilter('filterStage'));
+  const [filterSource, setFilterSource] = useState(() => getSavedFilter('filterSource'));
+  const [filterAssignee, setFilterAssignee] = useState(() => getSavedFilter('filterAssignee'));
+  const [filterPriority, setFilterPriority] = useState<LeadPriority | ''>(() => getSavedFilter('filterPriority') as LeadPriority | '');
+  const [dateRange, setDateRange] = useState<'all'|'today'|'week'|'month'|'custom'>(() => getSavedFilter('dateRange', 'all') as 'all'|'today'|'week'|'month'|'custom');
+  const [dateFrom, setDateFrom] = useState(() => getSavedFilter('dateFrom'));
+  const [dateTo, setDateTo] = useState(() => getSavedFilter('dateTo'));
 
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set());
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
@@ -164,6 +169,14 @@ const LeadsPage: React.FC = () => {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
+
+  // Persist filters to sessionStorage so they survive navigation away and back
+  useEffect(() => {
+    sessionStorage.setItem(FILTER_KEY, JSON.stringify({
+      searchInput, filterStage, filterSource, filterAssignee, filterPriority,
+      dateRange, dateFrom, dateTo, activeStageFilter
+    }));
+  }, [searchInput, filterStage, filterSource, filterAssignee, filterPriority, dateRange, dateFrom, dateTo, activeStageFilter]);
 
   // Debounce search input — only fire API call 400ms after user stops typing
   useEffect(() => {
@@ -244,7 +257,14 @@ const LeadsPage: React.FC = () => {
         setStaff(users.filter((u:any)=>['TENANT_ADMIN','INSTRUCTOR','STAFF'].includes(u.role) || u.customRoleId));
       } catch {}
       try {
-        const analyticsRes = await leadApi.getAnalytics();
+        const analyticsRes = await leadApi.getAnalytics({
+          stageId: stageFilter || undefined,
+          source: filterSource || undefined,
+          assignedTo: filterAssignee || undefined,
+          priority: filterPriority || undefined,
+          search: search || undefined,
+          ...dateFilt
+        });
         setTotalLeads(analyticsRes.data?.totalLeads || 0);
         setTodayFollowUps(analyticsRes.data?.todayFollowUps || 0);
         setCallsToday(analyticsRes.data?.callsToday || 0);
@@ -551,13 +571,13 @@ const LeadsPage: React.FC = () => {
                 count = callsToday;
               }
             } else if (card.type === 'stage' && card.stageId) {
-              count = stageCounts[card.stageId] ?? leads.filter(l => getStage(l)?._id === card.stageId).length;
+              count = stageCounts[card.stageId] ?? 0;
               isActive = activeStageFilter === card.stageId;
               onClick = () => setActiveStageFilter(isActive ? '' : card.stageId!);
             } else if (card.type === 'priority' && card.priority) {
-              count = priorityCounts[card.priority] ?? leads.filter(l => l.priority === card.priority).length;
+              count = priorityCounts[card.priority] ?? 0;
             } else if (card.type === 'source' && card.source) {
-              count = sourceCounts[card.source] ?? leads.filter(l => l.source === card.source).length;
+              count = sourceCounts[card.source] ?? 0;
             }
             
             return (
@@ -595,7 +615,7 @@ const LeadsPage: React.FC = () => {
               <div className="crm-stat-label">Calls Today</div>
             </div>
             {stages.slice(0,6).map(stage=>{
-              const count=stageCounts[stage._id] ?? leads.filter(l=>getStage(l)?._id===stage._id).length;
+              const count=stageCounts[stage._id] ?? 0;
               const isActive=activeStageFilter===stage._id;
               return (
                 <div key={stage._id}

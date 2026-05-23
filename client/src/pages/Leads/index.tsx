@@ -270,7 +270,10 @@ const LeadsPage: React.FC = () => {
         setTodayFollowUps(analyticsRes.data?.todayFollowUps || 0);
         setCallsToday(analyticsRes.data?.callsToday || 0);
         setStageCounts((analyticsRes.data?.stageData || []).reduce((acc: Record<string, number>, item: any) => {
+          // Index by both stageId string and stage name so card lookup is
+          // resilient to any ObjectId serialisation mismatch.
           if (item?.stageId) acc[String(item.stageId)] = item.count;
+          if (item?.name) acc[`__name__${item.name}`] = item.count;
           return acc;
         }, {}));
         setPriorityCounts((analyticsRes.data?.priorityStats || []).reduce((acc: Record<string, number>, item: any) => {
@@ -572,7 +575,9 @@ const LeadsPage: React.FC = () => {
                 count = callsToday;
               }
             } else if (card.type === 'stage' && card.stageId) {
-              count = stageCounts[card.stageId] ?? 0;
+              // Primary lookup by stageId; fallback by stage name in case of ID mismatch
+              const stageName = stages.find(s => s._id === card.stageId)?.name;
+              count = stageCounts[card.stageId] ?? (stageName ? stageCounts[`__name__${stageName}`] : undefined) ?? 0;
               isActive = activeStageFilter === card.stageId;
               onClick = () => setActiveStageFilter(isActive ? '' : card.stageId!);
             } else if (card.type === 'priority' && card.priority) {
@@ -616,7 +621,7 @@ const LeadsPage: React.FC = () => {
               <div className="crm-stat-label">Calls Today</div>
             </div>
             {stages.slice(0,6).map(stage=>{
-              const count=stageCounts[stage._id] ?? 0;
+              const count=stageCounts[stage._id] ?? stageCounts[`__name__${stage.name}`] ?? 0;
               const isActive=activeStageFilter===stage._id;
               return (
                 <div key={stage._id}

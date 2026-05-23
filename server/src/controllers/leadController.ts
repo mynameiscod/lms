@@ -949,18 +949,19 @@ export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<
 
     const callsToday = (callsTodayByAssigneeResult || []).reduce((sum: number, c: any) => sum + (c.count || 0), 0);
 
-    // Get stages to map names
+    // Build stageData from ALL stages (not just those with leads) so every
+    // configured stats card gets a count, even if currently 0.
+    // stageId is always serialised as a plain string to guarantee lookup matches.
     const stages = await LeadStage.find({ tenantId: req.tenantId }).sort({ order: 1 });
-    const stageMap = stages.reduce((acc: any, s: any) => {
-      acc[s._id.toString()] = { name: s.name, color: s.color };
+    const stageCountMap: Record<string, number> = stageStats.reduce((acc: Record<string, number>, s: any) => {
+      if (s._id) acc[s._id.toString()] = s.count;
       return acc;
     }, {});
-
-    const stageData = stageStats.map((s: any) => ({
-      stageId: s._id,
-      name: stageMap[s._id?.toString()]?.name || 'Unknown',
-      color: stageMap[s._id?.toString()]?.color || '#999',
-      count: s.count
+    const stageData = stages.map((stage: any) => ({
+      stageId: stage._id.toString(),
+      name: stage.name,
+      color: stage.color,
+      count: stageCountMap[stage._id.toString()] || 0
     }));
 
     res.json({

@@ -1797,8 +1797,10 @@ export const leadApi = {
       body: JSON.stringify({ password })
     });
   },
-  getAnalytics: async () => {
-    return authenticatedFetch(`${API_BASE_URL}/leads/analytics`);
+  getAnalytics: async (filters?: Record<string, string | undefined>) => {
+    const params = filters ? Object.entries(filters).filter(([, v]) => v).map(([k, v]) => `${k}=${encodeURIComponent(v!)}`) : [];
+    const qs = params.length ? `?${params.join('&')}` : '';
+    return authenticatedFetch(`${API_BASE_URL}/leads/analytics${qs}`);
   },
   getManagerBoard: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/manager-board`);

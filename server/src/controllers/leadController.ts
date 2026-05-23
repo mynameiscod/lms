@@ -867,11 +867,28 @@ export const deleteLead = async (req: AuthenticatedRequest, res: Response<ApiRes
   }
 };
 
-// Get lead analytics/summary (scope-filtered)
+// Get lead analytics/summary (scope-filtered, supports optional UI filters)
 export const getLeadAnalytics = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const scopeFilter = await buildLeadScopeFilter(req);
     const baseMatch: any = { tenantId: req.tenantId as any, ...scopeFilter };
+
+    // Apply optional UI filters so stats reflect the same subset as the table
+    const { stageId, source, assignedTo, priority, search, dateFrom, dateTo } = req.query as Record<string, string>;
+    if (stageId) baseMatch.stageId = new (require('mongoose').Types.ObjectId)(stageId);
+    if (source) baseMatch.source = source;
+    if (assignedTo) baseMatch.assignedTo = new (require('mongoose').Types.ObjectId)(assignedTo);
+    if (priority) baseMatch.priority = priority;
+    if (search) baseMatch.$or = [
+      { name: { $regex: search, $options: 'i' } },
+      { phone: { $regex: search, $options: 'i' } },
+      { email: { $regex: search, $options: 'i' } }
+    ];
+    if (dateFrom || dateTo) {
+      baseMatch.createdAt = {};
+      if (dateFrom) baseMatch.createdAt.$gte = new Date(dateFrom);
+      if (dateTo) baseMatch.createdAt.$lte = new Date(dateTo + 'T23:59:59.999Z');
+    }
 
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);

@@ -257,8 +257,9 @@ const LeadsPage: React.FC = () => {
         setStaff(users.filter((u:any)=>['TENANT_ADMIN','INSTRUCTOR','STAFF'].includes(u.role) || u.customRoleId));
       } catch {}
       try {
+        // Do NOT pass stageId — each card represents a stage so filtering by stage
+        // would zero-out all other stage cards. Only pass non-stage filters.
         const analyticsRes = await leadApi.getAnalytics({
-          stageId: stageFilter || undefined,
           source: filterSource || undefined,
           assignedTo: filterAssignee || undefined,
           priority: filterPriority || undefined,

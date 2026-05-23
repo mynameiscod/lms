@@ -212,92 +212,105 @@ const LeadsPage: React.FC = () => {
       setLoading(true);
       const dateFilt = getDateFilters();
       const stageFilter = activeStageFilter || filterStage;
-      const [stagesRes,leadsRes] = await Promise.all([
+
+      // Analytics params shared by both calls (no stageId — stage cards must show
+      // their own count regardless of which stage is currently selected)
+      const baseAnalyticsParams = {
+        source: filterSource || undefined,
+        assignedTo: filterAssignee || undefined,
+        priority: filterPriority || undefined,
+        search: search || undefined,
+        ...dateFilt
+      };
+
+      // Two analytics calls:
+      //  stageAnalyticsP  — no stageId  → per-stage counts (never zeroed by selection)
+      //  filteredAnalyticsP — full filter → total / priority / source stats for current view
+      const stageAnalyticsP = leadApi.getAnalytics(baseAnalyticsParams);
+      const filteredAnalyticsP = stageFilter
+        ? leadApi.getAnalytics({ stageId: stageFilter, ...baseAnalyticsParams })
+        : stageAnalyticsP; // same promise when no stage selected — one fewer request
+
+      // All critical fetches in one Promise.all so failures surface instead of silently zeroing stats
+      const [stagesRes, leadsRes, stageAnalytics, filteredAnalytics] = await Promise.all([
         leadStageApi.getStages(),
-        leadApi.getLeads({search,stageId:stageFilter,source:filterSource,assignedTo:filterAssignee,priority:filterPriority||undefined,page,limit:100,...dateFilt}),
+        leadApi.getLeads({ search, stageId: stageFilter, source: filterSource, assignedTo: filterAssignee, priority: filterPriority || undefined, page, limit: 100, ...dateFilt }),
+        stageAnalyticsP,
+        filteredAnalyticsP,
       ]);
-      const loadedStages = stagesRes.data||[];
+
+      // ── Stages ──────────────────────────────────────────────────────────────
+      const loadedStages = stagesRes.data || [];
       setStages(loadedStages);
-      const fetchedLeads = (leadsRes.data?.leads || []).sort((a: Lead, b: Lead) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      setLeads(fetchedLeads);
-      setTotalPages(leadsRes.data?.totalPages||1);
-      setFilteredTotal(leadsRes.data?.total ?? null);
-      if (!stagesInitialized&&loadedStages.length>0) {
-        const defaultVisible=loadedStages.slice(0,5).map((s:Stage)=>s._id);
-        setVisibleStageIds(new Set(defaultVisible));
+      if (!stagesInitialized && loadedStages.length > 0) {
+        setVisibleStageIds(new Set(loadedStages.slice(0, 5).map((s: Stage) => s._id)));
         setStagesInitialized(true);
       }
+
+      // ── Leads (table) ───────────────────────────────────────────────────────
+      setLeads((leadsRes.data?.leads || []).sort((a: Lead, b: Lead) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      setTotalPages(leadsRes.data?.totalPages || 1);
+      setFilteredTotal(leadsRes.data?.total ?? null);
+
+      // ── Stage counts (no stageId filter — every stage card keeps its count) ─
+      const stageDataArr: any[] = stageAnalytics.data?.stageData || [];
+      setStageCounts(stageDataArr.reduce((acc: Record<string, number>, item: any) => {
+        if (item?.stageId) acc[item.stageId] = item.count;       // server sends plain string
+        if (item?.name)    acc[`__name__${item.name}`] = item.count; // name fallback
+        return acc;
+      }, {}));
+
+      // ── Filtered stats (total / priority / source reflect active stage) ─────
+      const fd = filteredAnalytics.data || {};
+      setTotalLeads(fd.totalLeads || 0);
+      setTodayFollowUps(fd.todayFollowUps || 0);
+      setCallsToday(fd.callsToday || 0);
+      setNewLeadsToday(fd.newLeadsToday || 0);
+      setNewLeadsTodayBySource(fd.newLeadsTodayBySource || []);
+      setPriorityCounts((fd.priorityStats || []).reduce((acc: Record<string, number>, item: any) => {
+        if (item?.priority) acc[item.priority] = item.count;
+        return acc;
+      }, {}));
+      setSourceCounts((fd.sourceStats || []).reduce((acc: Record<string, number>, item: any) => {
+        if (item?.source) acc[item.source] = item.count;
+        return acc;
+      }, {}));
+      setCallsTodayByAssignee((fd.callsTodayByAssignee || []).reduce((acc: Record<string, number>, item: any) => {
+        if (item?.assignedTo) acc[item.assignedTo] = item.count;
+        return acc;
+      }, {}));
+
+      // ── Config / users (non-critical, load independently) ───────────────────
       try {
-        const configRes=await leadFormConfigApi.getConfig();
-        if(configRes.data){
-          const enabled=(configRes.data.fields||[]).filter((f:FormField)=>f.enabled).sort((a:FormField,b:FormField)=>a.order-b.order);
-          // Ensure assignedTo field is always available in the form
-          if(!enabled.some((f:FormField)=>f.fieldKey==='assignedTo')){
-            const maxOrder=enabled.length>0?Math.max(...enabled.map((f:FormField)=>f.order)):0;
-            enabled.push({fieldKey:'assignedTo',label:'Assigned To',type:'select',required:false,enabled:true,isBuiltIn:true,order:maxOrder+1} as FormField);
+        const [configRes, statsRes, columnsRes, usersRes] = await Promise.all([
+          leadFormConfigApi.getConfig(),
+          leadFormConfigApi.getStatsCardsConfig(),
+          leadFormConfigApi.getTableColumnsConfig(),
+          userApi.getUsers(),
+        ]);
+        if (configRes.data) {
+          const enabled = (configRes.data.fields || []).filter((f: FormField) => f.enabled).sort((a: FormField, b: FormField) => a.order - b.order);
+          if (!enabled.some((f: FormField) => f.fieldKey === 'assignedTo')) {
+            const maxOrder = enabled.length > 0 ? Math.max(...enabled.map((f: FormField) => f.order)) : 0;
+            enabled.push({ fieldKey: 'assignedTo', label: 'Assigned To', type: 'select', required: false, enabled: true, isBuiltIn: true, order: maxOrder + 1 } as FormField);
           }
           setFormFields(enabled);
-          if(configRes.data.sources?.length>0) setConfigSources(configRes.data.sources);
+          if (configRes.data.sources?.length > 0) setConfigSources(configRes.data.sources);
         }
-        // Load stats cards configuration
-        const statsRes = await leadFormConfigApi.getStatsCardsConfig();
-        if (statsRes.data && statsRes.data.length > 0) {
-          setStatsCardsConfig(statsRes.data.filter((c: StatsCard) => c.enabled).sort((a: StatsCard, b: StatsCard) => a.order - b.order));
-        }
-        // Load table columns configuration
-        const columnsRes = await leadFormConfigApi.getTableColumnsConfig();
-        if (columnsRes.data && columnsRes.data.length > 0) {
-          setTableColumnsConfig(columnsRes.data.filter((c: TableColumn) => c.enabled).sort((a: TableColumn, b: TableColumn) => a.order - b.order));
-        }
-      } catch {}
-      try {
-        const usersRes=await userApi.getUsers();
-        const users=usersRes.data||[];
-        // Include users with TENANT_ADMIN/INSTRUCTOR/STAFF roles OR users with custom roles (customRoleId)
-        setStaff(users.filter((u:any)=>['TENANT_ADMIN','INSTRUCTOR','STAFF'].includes(u.role) || u.customRoleId));
-      } catch {}
-      try {
-        // Do NOT pass stageId — each card represents a stage so filtering by stage
-        // would zero-out all other stage cards. Only pass non-stage filters.
-        const analyticsRes = await leadApi.getAnalytics({
-          source: filterSource || undefined,
-          assignedTo: filterAssignee || undefined,
-          priority: filterPriority || undefined,
-          search: search || undefined,
-          ...dateFilt
-        });
-        setTotalLeads(analyticsRes.data?.totalLeads || 0);
-        setTodayFollowUps(analyticsRes.data?.todayFollowUps || 0);
-        setCallsToday(analyticsRes.data?.callsToday || 0);
-        setStageCounts((analyticsRes.data?.stageData || []).reduce((acc: Record<string, number>, item: any) => {
-          // Index by both stageId string and stage name so card lookup is
-          // resilient to any ObjectId serialisation mismatch.
-          if (item?.stageId) acc[String(item.stageId)] = item.count;
-          if (item?.name) acc[`__name__${item.name}`] = item.count;
-          return acc;
-        }, {}));
-        setPriorityCounts((analyticsRes.data?.priorityStats || []).reduce((acc: Record<string, number>, item: any) => {
-          if (item?.priority) acc[item.priority] = item.count;
-          return acc;
-        }, {}));
-        setSourceCounts((analyticsRes.data?.sourceStats || []).reduce((acc: Record<string, number>, item: any) => {
-          if (item?.source) acc[item.source] = item.count;
-          return acc;
-        }, {}));
-        setNewLeadsToday(analyticsRes.data?.newLeadsToday || 0);
-        setNewLeadsTodayBySource(analyticsRes.data?.newLeadsTodayBySource || []);
-        setCallsTodayByAssignee((analyticsRes.data?.callsTodayByAssignee || []).reduce((acc: Record<string, number>, item: any) => {
-          if (item?.assignedTo) acc[item.assignedTo] = item.count;
-          return acc;
-        }, {}));
-      } catch {}
-    } catch(error:any){
-      showAlertMsg('error',error.message||'Failed to load data');
+        if (statsRes.data?.length > 0) setStatsCardsConfig(statsRes.data.filter((c: StatsCard) => c.enabled).sort((a: StatsCard, b: StatsCard) => a.order - b.order));
+        if (columnsRes.data?.length > 0) setTableColumnsConfig(columnsRes.data.filter((c: TableColumn) => c.enabled).sort((a: TableColumn, b: TableColumn) => a.order - b.order));
+        const users = usersRes.data || [];
+        setStaff(users.filter((u: any) => ['TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(u.role) || u.customRoleId));
+      } catch { /* config/users failure is non-fatal */ }
+
+    } catch (error: any) {
+      showAlertMsg('error', error.message || 'Failed to load data');
     } finally {
       setLoading(false);
       isFirstLoad.current = false;
     }
-  },[search,filterStage,filterSource,filterAssignee,filterPriority,activeStageFilter,page,getDateFilters]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, filterStage, filterSource, filterAssignee, filterPriority, activeStageFilter, page, getDateFilters]);
 
   useEffect(()=>{loadData();},[loadData]);
 

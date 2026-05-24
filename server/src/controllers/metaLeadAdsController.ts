@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
+import User from '../models/User';
 import mongoose from 'mongoose';
 import https from 'https';
 import crypto from 'crypto';
@@ -485,6 +486,7 @@ async function fetchAndCreateLead(
   debugLog('CREATE', `Default stage: ${defaultStage?._id} (${defaultStage?.name || 'none'})`);
 
   // Create new lead
+  const adminId = await getTenantAdminId(tenantObjectId);
   const leadPayload = {
     tenantId: tenantObjectId,
     name: name,
@@ -495,6 +497,7 @@ async function fetchAndCreateLead(
     stageId: defaultStage?._id,
     location: city,
     courseInterest: course ? [course] : [],
+    createdBy: adminId,
     sourceDetails: {
       platform: 'meta',
       formId: meta.formId,
@@ -765,6 +768,14 @@ export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response)
   }
 };
 
+async function getTenantAdminId(tenantObjectId: mongoose.Types.ObjectId): Promise<mongoose.Types.ObjectId | undefined> {
+  const admin = await User.findOne({
+    tenantId: tenantObjectId,
+    role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'MANAGER'] },
+  }).select('_id').lean();
+  return admin?._id as mongoose.Types.ObjectId | undefined;
+}
+
 async function createOrUpdateLeadFromData(
   leadData: MetaLeadData,
   formId: string,
@@ -811,6 +822,8 @@ async function createOrUpdateLeadFromData(
     defaultStage = await LeadStage.findOne({ tenantId: tenantObjectId }).sort({ order: 1 });
   }
 
+  const adminId = await getTenantAdminId(tenantObjectId);
+
   const newLead = new Lead({
     tenantId: tenantObjectId,
     name,
@@ -821,6 +834,7 @@ async function createOrUpdateLeadFromData(
     stageId: defaultStage?._id,
     location: city,
     courseInterest: course ? [course] : [],
+    createdBy: adminId,
     sourceDetails: {
       platform: 'meta',
       formId,

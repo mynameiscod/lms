@@ -85,6 +85,7 @@ function ContentPickerModal({ onSelect, onClose }: PickerModalProps) {
               style={{ padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', fontSize: '13px' }}
             >
               <option value="">All Types</option>
+              <option value="interactive_lesson">🎮 Interactive Lesson</option>
               <option value="video">🎬 Video</option>
               <option value="notes">📄 Notes</option>
               <option value="tech_qa">💻 Tech Q&A</option>

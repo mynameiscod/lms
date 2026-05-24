@@ -3,6 +3,7 @@ import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import mongoose from 'mongoose';
 import https from 'https';
+import crypto from 'crypto';
 import { getDecryptedTokens } from './leadSourceConfigController';
 import LeadSourceConfig from '../models/LeadSourceConfig';
 import { scoreAndAssignLead } from '../services/leadScoringService';
@@ -195,18 +196,24 @@ export const handleMetaLeadWebhook = async (req: Request, res: Response) => {
   debugLog('WEBHOOK', `Raw Body:`, req.body);
   
   try {
+    // HMAC signature verification using App Secret
+    const appSecret = process.env.META_APP_SECRET;
+    if (appSecret) {
+      const signature = req.headers['x-hub-signature-256'] as string;
+      if (signature) {
+        const rawBody = JSON.stringify(req.body);
+        const expectedSig = 'sha256=' + crypto.createHmac('sha256', appSecret).update(rawBody).digest('hex');
+        if (signature !== expectedSig) {
+          errorLog('WEBHOOK', `❌ Signature mismatch — possible fake event. Got: ${signature.substring(0, 20)}...`);
+          return res.status(200).send('EVENT_RECEIVED'); // still 200 to avoid Meta retries
+        }
+        debugLog('WEBHOOK', '✅ HMAC signature verified');
+      }
+    }
+
     const payload: MetaLeadgenPayload = req.body;
 
     console.log('📋 Meta Lead Ads webhook received:', JSON.stringify(payload, null, 2));
-
-    // Log environment status
-    debugLog('ENV', '========== ENVIRONMENT CHECK ==========');
-    debugLog('ENV', `PAGE_ACCESS_TOKEN set: ${!!process.env.PAGE_ACCESS_TOKEN}`);
-    debugLog('ENV', `PAGE_ACCESS_TOKEN length: ${process.env.PAGE_ACCESS_TOKEN?.length || 0}`);
-    debugLog('ENV', `WHATSAPP_ACCESS_TOKEN set: ${!!process.env.WHATSAPP_ACCESS_TOKEN}`);
-    debugLog('ENV', `DEFAULT_TENANT_ID: ${process.env.DEFAULT_TENANT_ID || 'NOT SET'}`);
-    debugLog('ENV', `META_LEAD_VERIFY_TOKEN set: ${!!process.env.META_LEAD_VERIFY_TOKEN}`);
-    debugLog('ENV', `WHATSAPP_VERIFY_TOKEN set: ${!!process.env.WHATSAPP_VERIFY_TOKEN}`);
 
     // Always respond 200 quickly
     debugLog('WEBHOOK', 'Sending 200 OK response to Meta');

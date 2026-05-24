@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
+import User from '../models/User';
 import mongoose from 'mongoose';
 import { getDecryptedTokens } from './leadSourceConfigController';
 import LeadSourceConfig from '../models/LeadSourceConfig';
@@ -358,6 +359,8 @@ async function ensureLeadExists(phone: string, name: string, tenantId: string, p
     if (existing) { existing.whatsappStatus = 'replied'; await existing.save(); return existing; }
 
     const initialStage = await LeadStage.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).sort({ order: 1 });
+    const adminUser = await User.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId), role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN', 'MANAGER'] } }).select('_id').lean();
+    const adminId = adminUser?._id || new mongoose.Types.ObjectId(tenantId);
     const lead = await Lead.create({
       tenantId: new mongoose.Types.ObjectId(tenantId),
       name: name || 'WhatsApp User',
@@ -366,8 +369,8 @@ async function ensureLeadExists(phone: string, name: string, tenantId: string, p
       priority,
       stageId: initialStage?._id,
       whatsappStatus: 'replied',
-      createdBy: new mongoose.Types.ObjectId(tenantId),
-      activities: [{ type: 'whatsapp', description: 'Lead created from WhatsApp conversation.', createdAt: new Date(), createdBy: new mongoose.Types.ObjectId(tenantId) }],
+      createdBy: adminId,
+      activities: [{ type: 'whatsapp', description: 'Lead created from WhatsApp conversation.', createdAt: new Date(), createdBy: adminId }],
     });
     scoreAndAssignLead(lead, new mongoose.Types.ObjectId(tenantId)).catch(console.error);
     return lead;

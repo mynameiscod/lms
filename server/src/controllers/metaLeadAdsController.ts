@@ -649,6 +649,115 @@ export const syncMetaLeads = async (req: AuthenticatedRequest, res: Response) =>
   }
 };
 
+// ===================== SETUP META APP WEBHOOK SUBSCRIPTION =====================
+
+export const setupMetaWebhook = async (req: AuthenticatedRequest, res: Response) => {
+  const tenantId = req.tenantId!;
+
+  try {
+    const tokens = await getDecryptedTokens(tenantId);
+    const appId = tokens?.metaAds?.appId;
+    const appSecret = tokens?.metaAds?.appSecret;
+    const pageId = tokens?.metaAds?.pageId;
+    const pageToken = tokens?.metaAds?.pageAccessToken;
+
+    if (!appId || !appSecret || appSecret.length < 10) {
+      return res.status(400).json({ success: false, message: 'App ID and App Secret are required. Save them in Lead Sources → Meta Lead Ads first.' });
+    }
+
+    // Step 1: Generate App Access Token
+    const appTokenResp = await graphGet('oauth/access_token', '', {
+      client_id: appId,
+      client_secret: appSecret,
+      grant_type: 'client_credentials',
+    });
+
+    const appAccessToken: string = appTokenResp.access_token;
+    if (!appAccessToken) {
+      return res.status(400).json({ success: false, message: 'Failed to get app access token. Check your App ID and App Secret.' });
+    }
+
+    // Step 2: Check current webhook subscriptions
+    const subsResp = await graphGet(`${appId}/subscriptions`, appAccessToken);
+    const existingSubs: any[] = subsResp.data || [];
+    const pageField = existingSubs.find(s => s.object === 'page');
+
+    const webhookUrl = `https://platform.codebegun.com/api/v1/meta-leads/webhook`;
+    const verifyToken = process.env.META_LEAD_VERIFY_TOKEN || 'codebegun_verify';
+
+    // Step 3: Subscribe / re-subscribe
+    const params = new URLSearchParams({
+      object: 'page',
+      callback_url: webhookUrl,
+      fields: 'leadgen',
+      verify_token: verifyToken,
+      access_token: appAccessToken,
+    });
+    const subResult = await new Promise<any>((resolve, reject) => {
+      const https = require('https');
+      const options = {
+        hostname: 'graph.facebook.com',
+        path: `/v19.0/${appId}/subscriptions`,
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(params.toString()) },
+      };
+      const reqHttp = https.request(options, (resp: any) => {
+        let data = '';
+        resp.on('data', (c: string) => { data += c; });
+        resp.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
+      });
+      reqHttp.on('error', reject);
+      reqHttp.write(params.toString());
+      reqHttp.end();
+    });
+
+    if (subResult.error) {
+      return res.json({ success: false, message: `Webhook subscription failed: ${subResult.error.message}` });
+    }
+
+    // Step 4: Also subscribe the page to the app (ensure leadgen is in subscribed fields)
+    if (pageId && pageToken) {
+      try {
+        const pageSubParams = new URLSearchParams({
+          subscribed_fields: 'leadgen',
+          access_token: pageToken,
+        });
+        await new Promise<any>((resolve, reject) => {
+          const https = require('https');
+          const options = {
+            hostname: 'graph.facebook.com',
+            path: `/v19.0/${pageId}/subscribed_apps`,
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Content-Length': Buffer.byteLength(pageSubParams.toString()) },
+          };
+          const reqHttp = https.request(options, (resp: any) => {
+            let data = '';
+            resp.on('data', (c: string) => { data += c; });
+            resp.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
+          });
+          reqHttp.on('error', reject);
+          reqHttp.write(pageSubParams.toString());
+          reqHttp.end();
+        });
+      } catch { /* non-fatal */ }
+    }
+
+    const wasAlreadySet = pageField?.callback_url === webhookUrl;
+    return res.json({
+      success: true,
+      message: wasAlreadySet
+        ? `Webhook was already pointing to our URL. Page subscription confirmed. Meta leads should now flow automatically.`
+        : `Webhook subscription created. Meta leads will now flow automatically. Previous URL was: ${pageField?.callback_url || 'none'}.`,
+      previousUrl: pageField?.callback_url || null,
+      newUrl: webhookUrl,
+    });
+
+  } catch (error: any) {
+    console.error('[META-WEBHOOK-SETUP] Error:', error);
+    return res.status(500).json({ success: false, message: error.message || 'Webhook setup failed' });
+  }
+};
+
 async function createOrUpdateLeadFromData(
   leadData: MetaLeadData,
   formId: string,

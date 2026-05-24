@@ -128,15 +128,17 @@ interface ConfigModalProps {
   onClose: () => void;
   onSave: (sourceKey: SourceKey, isConnected: boolean, config: any, autoActions: AutoActions) => Promise<void>;
   onTest: (sourceKey: SourceKey, currentConfig: Record<string, any>) => Promise<void>;
+  onSetupWebhook?: () => Promise<void>;
   saving: boolean;
   testing: boolean;
+  settingUpWebhook?: boolean;
   testResult: { success: boolean; message: string } | null;
   copied: string;
   setCopied: (v: string) => void;
 }
 
 const ConfigModal: React.FC<ConfigModalProps> = ({
-  sourceKey, sourceData, onClose, onSave, onTest, saving, testing, testResult, copied, setCopied
+  sourceKey, sourceData, onClose, onSave, onTest, onSetupWebhook, saving, testing, settingUpWebhook, testResult, copied, setCopied
 }) => {
   const meta = SOURCE_META[sourceKey];
   const [activeTab, setActiveTab] = useState<'credentials' | 'autoActions'>('credentials');
@@ -240,7 +242,21 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                     <TextField label="Page Access Token" value={config.pageAccessToken || ''}
                       onChange={v => setConfig(c => ({ ...c, pageAccessToken: v }))}
                       type="password" placeholder="EAAxxxxxxxxxx..."
-                      hint="Get from Meta Business Suite → Apps → Your App → WhatsApp → API Setup" />
+                      hint="Get from Meta Business Suite → Apps → Your App → API Setup" />
+                    <div className="row g-3">
+                      <div className="col-md-6">
+                        <TextField label="App ID" value={config.appId || ''}
+                          onChange={v => setConfig(c => ({ ...c, appId: v }))}
+                          placeholder="1130584002527752"
+                          hint="Meta Developer Console → Your App → Settings → Basic" />
+                      </div>
+                      <div className="col-md-6">
+                        <TextField label="App Secret" value={config.appSecret || ''}
+                          onChange={v => setConfig(c => ({ ...c, appSecret: v }))}
+                          type="password" placeholder="Your App Secret"
+                          hint="Meta Developer Console → Your App → Settings → Basic" />
+                      </div>
+                    </div>
                     <div className="row g-3">
                       <div className="col-md-6">
                         <TextField label="Facebook Page ID" value={config.pageId || ''}
@@ -255,7 +271,7 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                           hint="Used to pull campaign cost data" />
                       </div>
                     </div>
-                    <ReadonlyField label="Webhook URL" hint="Paste this URL in Meta Developer Console → Your App → Webhooks"
+                    <ReadonlyField label="Webhook URL" hint="Paste this URL in Meta Developer Console → Your App → Webhooks → Callback URL"
                       value={config.webhookUrl || 'Save settings to generate URL'}
                       field="metaWebhook" copied={copied} setCopied={setCopied} />
                     <ReadonlyField label="Verify Token" hint="Enter this token in Meta Developer Console → Webhooks → Verify Token field"
@@ -579,6 +595,15 @@ const ConfigModal: React.FC<ConfigModalProps> = ({
                 ? <><span className="spinner-border spinner-border-sm me-2"></span>Testing...</>
                 : <><i className="fa-solid fa-plug me-2"></i>Test Connection</>}
             </button>
+            {sourceKey === 'metaAds' && onSetupWebhook && (
+              <button className="btn btn-sm px-3 ms-2" onClick={onSetupWebhook} disabled={settingUpWebhook}
+                title="Uses App ID + App Secret to automatically configure Meta App webhook subscription"
+                style={{ background: '#1877f2', color: '#fff', border: 'none', borderRadius: 6, fontSize: '0.83rem' }}>
+                {settingUpWebhook
+                  ? <><span className="spinner-border spinner-border-sm me-2"></span>Setting up...</>
+                  : <><i className="fa-solid fa-satellite-dish me-2"></i>Auto-Setup Webhook</>}
+              </button>
+            )}
             <div className="ms-auto d-flex gap-2">
               <button className="btn btn-light btn-sm px-3" onClick={onClose}>Cancel</button>
               <button className="btn btn-primary btn-sm px-4 fw-semibold" onClick={handleSave} disabled={saving}
@@ -805,6 +830,7 @@ const LeadSourcesPage: React.FC = () => {
   const [saveSuccess, setSaveSuccess] = useState('');
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [settingUpWebhook, setSettingUpWebhook] = useState(false);
 
   // Third-party section
   const [showAddTP, setShowAddTP] = useState(false);
@@ -882,6 +908,19 @@ const LeadSourcesPage: React.FC = () => {
       await load();
     } catch (e: any) {
       alert(e.message || 'Failed to remove source');
+    }
+  };
+
+  const handleSetupWebhook = async () => {
+    setSettingUpWebhook(true);
+    setTestResult(null);
+    try {
+      const result = await metaLeadsApi.setupWebhook();
+      setTestResult({ success: result.success, message: result.message });
+    } catch (e: any) {
+      setTestResult({ success: false, message: e.message || 'Webhook setup failed' });
+    } finally {
+      setSettingUpWebhook(false);
     }
   };
 
@@ -1094,8 +1133,10 @@ const LeadSourcesPage: React.FC = () => {
           onClose={() => { setActiveModal(null); setTestResult(null); }}
           onSave={handleSave}
           onTest={handleTest}
+          onSetupWebhook={activeModal === 'metaAds' ? handleSetupWebhook : undefined}
           saving={saving}
           testing={testing}
+          settingUpWebhook={settingUpWebhook}
           testResult={testResult}
           copied={copied}
           setCopied={setCopied}

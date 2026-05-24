@@ -94,6 +94,8 @@ export const getConfig = async (req: AuthenticatedRequest, res: Response) => {
         isConnected: config.metaAds.isConnected,
         config: {
           pageAccessToken: maskToken(config.metaAds.config.pageAccessToken || ''),
+          appId: config.metaAds.config.appId || '',
+          appSecret: maskToken(config.metaAds.config.appSecret || ''),
           pageId: config.metaAds.config.pageId,
           verifyToken: config.metaAds.config.verifyToken,
           adAccountId: config.metaAds.config.adAccountId,
@@ -232,7 +234,7 @@ export const updateSourceConfig = async (req: AuthenticatedRequest, res: Respons
     // Update config — encrypt sensitive tokens before saving
     if (newConfig) {
       for (const [key, value] of Object.entries(newConfig)) {
-        const sensitiveFields = ['pageAccessToken', 'accessToken', 'apiKey'];
+        const sensitiveFields = ['pageAccessToken', 'accessToken', 'apiKey', 'appSecret'];
         if (sensitiveFields.includes(key) && value && typeof value === 'string') {
           // Only re-encrypt if the value has changed (not masked)
           if (!value.includes('●')) {
@@ -311,6 +313,8 @@ export const getDecryptedTokens = async (tenantId: string) => {
     metaAds: {
       isConnected: config.metaAds.isConnected,
       pageAccessToken: decrypt(config.metaAds.config.pageAccessToken || ''),
+      appId: config.metaAds.config.appId || '',
+      appSecret: decrypt(config.metaAds.config.appSecret || ''),
       pageId: config.metaAds.config.pageId,
       verifyToken: config.metaAds.config.verifyToken,
       adAccountId: config.metaAds.config.adAccountId,
@@ -367,7 +371,25 @@ export const testConnection = async (req: AuthenticatedRequest, res: Response) =
       if (token.length < 20) {
         return res.json({ success: false, message: 'Page Access Token appears too short — please check it.' });
       }
-      return res.json({ success: true, message: 'Token format looks valid. Webhook is ready to receive leads.' });
+      // Live validation via Meta Graph API
+      try {
+        const https = require('https');
+        const apiResult = await new Promise<any>((resolve, reject) => {
+          const url = `https://graph.facebook.com/v19.0/me?access_token=${encodeURIComponent(token)}&fields=id,name`;
+          https.get(url, (resp: any) => {
+            let data = '';
+            resp.on('data', (c: string) => { data += c; });
+            resp.on('end', () => { try { resolve(JSON.parse(data)); } catch { resolve({}); } });
+          }).on('error', reject);
+        });
+        if (apiResult.error) {
+          return res.json({ success: false, message: `Token invalid: ${apiResult.error.message}` });
+        }
+        const pageId = bodyConfig.pageId || dbTokens?.metaAds?.pageId || '';
+        return res.json({ success: true, message: `Token valid — connected to "${apiResult.name || apiResult.id}".${pageId ? ' Webhook is ready.' : ' Enter your Page ID to complete setup.'}` });
+      } catch {
+        return res.json({ success: true, message: 'Token format looks valid. Webhook is ready to receive leads.' });
+      }
     }
 
     if (source === 'whatsApp') {

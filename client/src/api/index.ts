@@ -3014,4 +3014,6 @@ export const scheduledInterviewApi = {
 export const metaLeadsApi = {
   syncLeads: () =>
     authenticatedFetch(`${API_BASE_URL}/meta-leads/sync`, { method: 'POST' }),
+  setupWebhook: () =>
+    authenticatedFetch(`${API_BASE_URL}/meta-leads/setup-webhook`, { method: 'POST' }),
 };

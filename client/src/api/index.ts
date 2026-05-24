@@ -2633,6 +2633,11 @@ export const followUpApi = {
       body: JSON.stringify({ reason })
     });
   },
+
+  getTeamStats: async (params?: { date?: string; startDate?: string; endDate?: string }) => {
+    const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as any).toString() : '';
+    return authenticatedFetch(`${API_BASE_URL}/follow-ups/team-stats${qs}`);
+  },
 };
 
 // Meeting API

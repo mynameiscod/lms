@@ -2,6 +2,7 @@ import { Response } from 'express';
 import mongoose from 'mongoose';
 import FollowUpReminder from '../models/FollowUpReminder';
 import Lead from '../models/Lead';
+import User from '../models/User';
 import { AuthenticatedRequest } from '../types';
 
 // ===================== CREATE FOLLOW-UP =====================
@@ -484,6 +485,103 @@ export const quickSchedule = async (req: AuthenticatedRequest, res: Response) =>
       success: true,
       message: 'Quick follow-up scheduled',
       data: followUp
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ===================== TEAM ACTIVITY STATS =====================
+
+export const getTeamActivityStats = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { tenantId } = req;
+    const { date, startDate, endDate } = req.query;
+
+    let start: Date, end: Date;
+    if (startDate && endDate) {
+      start = new Date(startDate as string); start.setHours(0, 0, 0, 0);
+      end   = new Date(endDate as string);   end.setHours(23, 59, 59, 999);
+    } else {
+      const d = date ? new Date(date as string) : new Date();
+      start = new Date(d); start.setHours(0, 0, 0, 0);
+      end   = new Date(d); end.setHours(23, 59, 59, 999);
+    }
+
+    const tid = new mongoose.Types.ObjectId(String(tenantId));
+
+    // Completed follow-ups grouped by user + type
+    const completedRaw = await FollowUpReminder.aggregate([
+      { $match: { tenantId: tid, status: 'completed', completedAt: { $gte: start, $lte: end } } },
+      { $group: { _id: { user: '$assignedTo', type: '$type' }, count: { $sum: 1 } } }
+    ]);
+
+    // Scheduled/pending for the same period (still to do)
+    const scheduledRaw = await FollowUpReminder.aggregate([
+      { $match: { tenantId: tid, status: { $in: ['scheduled', 'pending'] }, scheduledAt: { $gte: start, $lte: end } } },
+      { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+    ]);
+
+    // Missed in period
+    const missedRaw = await FollowUpReminder.aggregate([
+      { $match: { tenantId: tid, status: 'missed', scheduledAt: { $gte: start, $lte: end } } },
+      { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+    ]);
+
+    // Fetch user details for all referenced users
+    const userIds = [...new Set(completedRaw.map((r: any) => r._id.user?.toString()).filter(Boolean))];
+    const usersData = await User.find({ _id: { $in: userIds } }).select('firstName lastName email').lean();
+    const userMap: Record<string, any> = {};
+    (usersData as any[]).forEach((u: any) => { userMap[u._id.toString()] = u; });
+
+    const scheduledMap: Record<string, number> = {};
+    scheduledRaw.forEach((s: any) => { if (s._id) scheduledMap[String(s._id)] = s.count; });
+
+    const missedMap: Record<string, number> = {};
+    missedRaw.forEach((s: any) => { if (s._id) missedMap[String(s._id)] = s.count; });
+
+    // Aggregate by user
+    const byUser: Record<string, { calls: number; whatsapp: number; email: number; other: number; total: number }> = {};
+    completedRaw.forEach((r: any) => {
+      const uid = r._id.user?.toString();
+      if (!uid) return;
+      if (!byUser[uid]) byUser[uid] = { calls: 0, whatsapp: 0, email: 0, other: 0, total: 0 };
+      const t = r._id.type;
+      byUser[uid].total += r.count;
+      if (t === 'call')            byUser[uid].calls    += r.count;
+      else if (t === 'whatsapp')   byUser[uid].whatsapp += r.count;
+      else if (t === 'email')      byUser[uid].email    += r.count;
+      else                         byUser[uid].other    += r.count;
+    });
+
+    const userStats = Object.entries(byUser).map(([uid, s]) => {
+      const u = userMap[uid];
+      return {
+        userId: uid,
+        name: u ? `${u.firstName} ${u.lastName}`.trim() : 'Unknown',
+        email: u?.email || '',
+        completedTotal: s.total,
+        calls: s.calls,
+        whatsapp: s.whatsapp,
+        emails: s.email,
+        other: s.other,
+        scheduledToday: scheduledMap[uid] || 0,
+        missed: missedMap[uid] || 0
+      };
+    }).sort((a, b) => b.completedTotal - a.completedTotal);
+
+    const teamTotal = {
+      completed:  userStats.reduce((s, u) => s + u.completedTotal, 0),
+      calls:      userStats.reduce((s, u) => s + u.calls, 0),
+      whatsapp:   userStats.reduce((s, u) => s + u.whatsapp, 0),
+      emails:     userStats.reduce((s, u) => s + u.emails, 0),
+      scheduled:  Object.values(scheduledMap).reduce((s, c) => s + c, 0),
+      missed:     Object.values(missedMap).reduce((s, c) => s + c, 0)
+    };
+
+    res.json({
+      success: true,
+      data: { users: userStats, teamTotal, dateRange: { start, end } }
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });

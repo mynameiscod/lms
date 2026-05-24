@@ -13,7 +13,8 @@ import {
   deleteFollowUp,
   getFollowUpCalendar,
   markAsMissed,
-  quickSchedule
+  quickSchedule,
+  getTeamActivityStats
 } from '../controllers/followUpController';
 
 const router = express.Router();
@@ -56,6 +57,15 @@ router.get(
   tenantResolver,
   roleGuard(leadPermissions),
   getFollowUpCalendar
+);
+
+// Team activity stats (completed/scheduled/missed counts per user)
+router.get(
+  '/team-stats',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(leadPermissions),
+  getTeamActivityStats
 );
 
 // ===================== CRUD =====================

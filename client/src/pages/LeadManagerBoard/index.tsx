@@ -20,6 +20,7 @@ interface Employee {
   totalLeads: number;
   todayFollowUps: number;
   overdueFollowUps: number;
+  completedToday: number;
   stageBreakdown: StageBreakdown[];
 }
 
@@ -42,10 +43,11 @@ interface Lead {
 }
 
 const STAT_OPTIONS = [
-  { key: 'totalLeads', label: 'Total Leads', icon: '🎯' },
-  { key: 'teamMembers', label: 'Team Members', icon: '👥' },
-  { key: 'todayFollowUps', label: "Today's Follow-ups", icon: '📅' },
-  { key: 'overdue', label: 'Overdue', icon: '⚠️' },
+  { key: 'totalLeads',    label: 'Total Leads',          icon: '🎯' },
+  { key: 'teamMembers',   label: 'Team Members',          icon: '👥' },
+  { key: 'todayFollowUps',label: "Today's Follow-ups",    icon: '📅' },
+  { key: 'completedToday',label: 'Done Today',            icon: '✅' },
+  { key: 'overdue',       label: 'Overdue',               icon: '⚠️' },
 ];
 
 const STATS_CONFIG_KEY = 'lead_board_stats_config';
@@ -186,6 +188,7 @@ const LeadManagerBoardPage: React.FC = () => {
   const totalAll = employees.reduce((s, e) => s + e.totalLeads, 0);
   const totalFollowUps = employees.reduce((s, e) => s + e.todayFollowUps, 0);
   const totalOverdue = employees.reduce((s, e) => s + e.overdueFollowUps, 0);
+  const totalCompletedToday = employees.reduce((s, e) => s + (e.completedToday || 0), 0);
 
   const toggleStat = (key: string) => {
     setVisibleStats(prev => {
@@ -196,10 +199,11 @@ const LeadManagerBoardPage: React.FC = () => {
   };
 
   const statValues: Record<string, { value: number | string; label: string; icon: string; cls?: string }> = {
-    totalLeads:    { value: totalAll, label: 'Total Leads', icon: '🎯' },
-    teamMembers:   { value: employees.filter(e => e._id !== 'unassigned').length, label: 'Team Members', icon: '👥' },
-    todayFollowUps:{ value: totalFollowUps, label: "Today's Follow-ups", icon: '📅', cls: 'mb-stat-warning' },
-    overdue:       { value: totalOverdue, label: 'Overdue', icon: '⚠️', cls: 'mb-stat-danger' },
+    totalLeads:     { value: totalAll,                                                  label: 'Total Leads',       icon: '🎯' },
+    teamMembers:    { value: employees.filter(e => e._id !== 'unassigned').length,      label: 'Team Members',      icon: '👥' },
+    todayFollowUps: { value: totalFollowUps,  label: "Today's Follow-ups", icon: '📅', cls: 'mb-stat-warning' },
+    completedToday: { value: totalCompletedToday, label: 'Done Today',     icon: '✅', cls: 'mb-stat-success' },
+    overdue:        { value: totalOverdue,    label: 'Overdue',             icon: '⚠️', cls: 'mb-stat-danger' },
   };
 
   if (loading) {
@@ -365,7 +369,11 @@ const LeadManagerBoardPage: React.FC = () => {
                   </div>
                   <div className="mb-emp-stat">
                     <span className="mb-emp-stat-val mb-warn">{emp.todayFollowUps}</span>
-                    <span className="mb-emp-stat-lbl">Follow-ups</span>
+                    <span className="mb-emp-stat-lbl">Pending</span>
+                  </div>
+                  <div className="mb-emp-stat">
+                    <span className="mb-emp-stat-val mb-success">{emp.completedToday || 0}</span>
+                    <span className="mb-emp-stat-lbl">Done Today</span>
                   </div>
                   {emp.overdueFollowUps > 0 && (
                     <div className="mb-emp-stat">

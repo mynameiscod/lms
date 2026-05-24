@@ -31,6 +31,8 @@ const FollowUpCalendar: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [followUps, setFollowUps] = useState<DayFollowUps>({});
   const [stats, setStats] = useState({ overdue: 0, today: 0, upcoming: 0 });
+  const [teamStats, setTeamStats] = useState<any>(null);
+  const [showTeamPanel, setShowTeamPanel] = useState(true);
 
   const loadFollowUps = useCallback(async () => {
     try {
@@ -93,6 +95,14 @@ const FollowUpCalendar: React.FC = () => {
   useEffect(() => {
     loadFollowUps();
   }, [loadFollowUps]);
+
+  // Load team activity stats (admins/staff only)
+  useEffect(() => {
+    if (!user || user.role === 'STUDENT') return;
+    followUpApi.getTeamStats().then(res => {
+      if (res?.data) setTeamStats(res.data);
+    }).catch(() => {});
+  }, [user]);
 
   const getTypeIcon = (type: string): string => {
     const icons: Record<string, string> = {
@@ -354,6 +364,71 @@ const FollowUpCalendar: React.FC = () => {
           <span className="count">{stats.upcoming}</span> Upcoming
         </div>
       </div>
+
+      {/* Team Activity Today — admin/staff only */}
+      {teamStats && user?.role !== 'STUDENT' && (
+        <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, marginBottom: 20, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 18px', cursor: 'pointer', background: '#f8fafc', borderBottom: showTeamPanel ? '1px solid #e5e7eb' : 'none' }}
+            onClick={() => setShowTeamPanel(v => !v)}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontWeight: 700, fontSize: 14, color: '#1e3a5f' }}>📊 Today's Team Activity</span>
+              <span style={{ background: '#dbeafe', color: '#1d4ed8', borderRadius: 10, padding: '2px 10px', fontSize: 12, fontWeight: 700 }}>
+                {teamStats.teamTotal.completed} done
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+              <span style={{ fontSize: 13, color: '#6b7280' }}>📞 {teamStats.teamTotal.calls} calls &nbsp;💬 {teamStats.teamTotal.whatsapp} WA &nbsp;📧 {teamStats.teamTotal.emails} email</span>
+              <span style={{ color: '#9ca3af', fontSize: 14 }}>{showTeamPanel ? '▲' : '▼'}</span>
+            </div>
+          </div>
+          {showTeamPanel && (
+            <div style={{ padding: '0 0 4px' }}>
+              {teamStats.users.length === 0 ? (
+                <div style={{ padding: '16px 20px', color: '#9ca3af', fontSize: 13 }}>No follow-ups completed yet today.</div>
+              ) : (
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb' }}>
+                      <th style={{ padding: '8px 18px', textAlign: 'left', color: '#6b7280', fontWeight: 600 }}>Team Member</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center', color: '#16a34a', fontWeight: 600 }}>✅ Done</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center', color: '#2563eb', fontWeight: 600 }}>📞 Calls</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center', color: '#7c3aed', fontWeight: 600 }}>💬 WA</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center', color: '#0891b2', fontWeight: 600 }}>📧 Email</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center', color: '#d97706', fontWeight: 600 }}>⏳ Pending</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center', color: '#dc2626', fontWeight: 600 }}>❌ Missed</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {teamStats.users.map((u: any, i: number) => (
+                      <tr key={u.userId} style={{ borderBottom: '1px solid #f3f4f6', background: i % 2 === 0 ? '#fff' : '#fafafa' }}>
+                        <td style={{ padding: '10px 18px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#dbeafe', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 13, color: '#1d4ed8', flexShrink: 0 }}>
+                              {u.name[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontWeight: 600, color: '#111827' }}>{u.name}</div>
+                              <div style={{ fontSize: 11, color: '#9ca3af' }}>{u.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ textAlign: 'center', fontWeight: 700, color: '#16a34a' }}>{u.completedTotal}</td>
+                        <td style={{ textAlign: 'center', color: '#2563eb' }}>{u.calls || 0}</td>
+                        <td style={{ textAlign: 'center', color: '#7c3aed' }}>{u.whatsapp || 0}</td>
+                        <td style={{ textAlign: 'center', color: '#0891b2' }}>{u.emails || 0}</td>
+                        <td style={{ textAlign: 'center', color: '#d97706' }}>{u.scheduledToday || 0}</td>
+                        <td style={{ textAlign: 'center', color: '#dc2626' }}>{u.missed || 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="calendar-container">
         <div className="calendar-header">

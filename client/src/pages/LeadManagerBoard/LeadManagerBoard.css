@@ -145,7 +145,8 @@
 }
 
 .mb-stat-warning .mb-stat-value { color: #f59e0b; }
-.mb-stat-danger .mb-stat-value { color: #dc2626; }
+.mb-stat-danger  .mb-stat-value { color: #dc2626; }
+.mb-stat-success .mb-stat-value { color: #16a34a; }
 
 /* Employee List */
 .mb-employee-list {
@@ -249,8 +250,9 @@
   color: #1f2937;
 }
 
-.mb-emp-stat-val.mb-warn { color: #f59e0b; }
-.mb-emp-stat-val.mb-danger { color: #dc2626; }
+.mb-emp-stat-val.mb-warn    { color: #f59e0b; }
+.mb-emp-stat-val.mb-danger  { color: #dc2626; }
+.mb-emp-stat-val.mb-success { color: #16a34a; }
 
 .mb-emp-stat-lbl {
   font-size: 0.68rem;

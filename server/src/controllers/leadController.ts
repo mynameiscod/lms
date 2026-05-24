@@ -4,6 +4,7 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import Lead from '../models/Lead';
 import LeadStage from '../models/LeadStage';
 import User from '../models/User';
+import FollowUpReminder from '../models/FollowUpReminder';
 import Role from '../models/Role';
 import AuditLog from '../models/AuditLog';
 import bcryptjs from 'bcryptjs';
@@ -1068,6 +1069,18 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
       { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
     ]);
 
+    // Count completed follow-ups today per assignee
+    const completedTodayByAssignee = await FollowUpReminder.aggregate([
+      {
+        $match: {
+          tenantId: new mongoose.Types.ObjectId(String(req.tenantId)),
+          status: 'completed',
+          completedAt: { $gte: today, $lte: todayEnd }
+        }
+      },
+      { $group: { _id: '$assignedTo', count: { $sum: 1 } } }
+    ]);
+
     // Build per-employee data
     const stageMap = stages.reduce((acc: any, s: any) => {
       acc[s._id.toString()] = { name: s.name, color: s.color, order: s.order };
@@ -1079,6 +1092,9 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
 
     const overdueMap: Record<string, number> = {};
     overdueByAssignee.forEach((o: any) => { overdueMap[String(o._id || 'unassigned')] = o.count; });
+
+    const completedTodayMap: Record<string, number> = {};
+    completedTodayByAssignee.forEach((c: any) => { if (c._id) completedTodayMap[String(c._id)] = c.count; });
 
     // Group counts by assignee
     const assigneeData: Record<string, { total: number; stages: Record<string, number> }> = {};
@@ -1103,6 +1119,7 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
         totalLeads: data.total,
         todayFollowUps: followUpMap[uid] || 0,
         overdueFollowUps: overdueMap[uid] || 0,
+        completedToday: completedTodayMap[uid] || 0,
         stageBreakdown: stages.map((s: any) => ({
           stageId: s._id.toString(),
           name: s.name,
@@ -1124,6 +1141,7 @@ export const getManagerBoard = async (req: AuthenticatedRequest, res: Response<A
         totalLeads: unassignedData.total,
         todayFollowUps: followUpMap['unassigned'] || 0,
         overdueFollowUps: overdueMap['unassigned'] || 0,
+        completedToday: 0,
         stageBreakdown: stages.map((s: any) => ({
           stageId: s._id.toString(),
           name: s.name,

@@ -140,12 +140,15 @@ export const updateLesson = async (req: Request, res: Response) => {
 export const deleteLesson = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const lesson = await InteractiveLesson.findOneAndDelete({ _id: req.params.id, tenantId });
+    const lesson = await InteractiveLesson.findOne({ _id: req.params.id, tenantId });
     if (!lesson) return res.status(404).json({ message: 'Lesson not found' });
 
+    const contentLibraryId = lesson.contentLibraryId;
+    await InteractiveLesson.deleteOne({ _id: req.params.id });
+
     // Clean up content library link
-    if (lesson.contentLibraryId) {
-      await LearningContentLibrary.findByIdAndDelete(lesson.contentLibraryId);
+    if (contentLibraryId) {
+      await LearningContentLibrary.findByIdAndDelete(contentLibraryId);
     }
 
     res.json({ message: 'Deleted' });

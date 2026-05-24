@@ -41,7 +41,8 @@ export type ContentLibraryType =
   | 'behavioral_qa'
   | 'practice_coding'
   | 'practice_theory'
-  | 'aptitude';
+  | 'aptitude'
+  | 'interactive_lesson';
 
 export interface QAItem {
   question: string;
@@ -156,31 +157,34 @@ export const learningContentLibraryApi = {
 };
 
 export const CONTENT_TYPE_LABELS: Record<ContentLibraryType, string> = {
-  video:            'Video',
-  notes:            'Notes',
-  tech_qa:          'Tech Interview Q&A',
-  behavioral_qa:    'Behavioral Q&A',
-  practice_coding:  'Practice (Coding)',
-  practice_theory:  'Practice (Theory)',
-  aptitude:         'Aptitude',
+  video:               'Video',
+  notes:               'Notes',
+  tech_qa:             'Tech Interview Q&A',
+  behavioral_qa:       'Behavioral Q&A',
+  practice_coding:     'Practice (Coding)',
+  practice_theory:     'Practice (Theory)',
+  aptitude:            'Aptitude',
+  interactive_lesson:  'Interactive Lesson',
 };
 
 export const CONTENT_TYPE_ICONS: Record<ContentLibraryType, string> = {
-  video:            '🎬',
-  notes:            '📄',
-  tech_qa:          '💻',
-  behavioral_qa:    '🤝',
-  practice_coding:  '⌨️',
-  practice_theory:  '📝',
-  aptitude:         '🧠',
+  video:               '🎬',
+  notes:               '📄',
+  tech_qa:             '💻',
+  behavioral_qa:       '🤝',
+  practice_coding:     '⌨️',
+  practice_theory:     '📝',
+  aptitude:            '🧠',
+  interactive_lesson:  '🎮',
 };
 
 export const CONTENT_TYPE_COLORS: Record<ContentLibraryType, string> = {
-  video:            '#3b82f6',
-  notes:            '#8b5cf6',
-  tech_qa:          '#0ea5e9',
-  behavioral_qa:    '#f59e0b',
-  practice_coding:  '#10b981',
-  practice_theory:  '#6366f1',
-  aptitude:         '#f97316',
+  video:               '#3b82f6',
+  notes:               '#8b5cf6',
+  tech_qa:             '#0ea5e9',
+  behavioral_qa:       '#f59e0b',
+  practice_coding:     '#10b981',
+  practice_theory:     '#6366f1',
+  aptitude:            '#f97316',
+  interactive_lesson:  '#ec4899',
 };

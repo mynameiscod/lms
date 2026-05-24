@@ -65,6 +65,7 @@ import learningContentLibraryRoutes from './learningContentLibraryRoutes';
 import learningCurriculumRoutes from './curriculumRoutes';
 import enrollmentPlanRoutes from './enrollmentPlanRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
+import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
 import scheduledInterviewRoutes from './scheduledInterviewRoutes';
 // Boot notification listeners
@@ -144,6 +145,7 @@ router.use('/learning-library', learningContentLibraryRoutes);
 router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
 router.use('/concept-lessons', conceptLessonRoutes);
+router.use('/interactive-lessons', interactiveLessonRoutes);
 
 // ─── Scheduled Interviews ─────────────────────────────────────────────────────
 router.use('/scheduled-interviews', scheduledInterviewRoutes);

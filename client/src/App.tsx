@@ -131,6 +131,10 @@ import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 import LearningContentLibraryPage from './pages/LearningContentLibrary';
 import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditContent';
 
+// Interactive Lesson System
+import InteractiveLessonBuilderPage from './pages/InteractiveLessonBuilder';
+import InteractiveLessonViewerPage from './pages/InteractiveLessonViewer';
+
 // Curriculum Builder
 import CurriculumListPage from './pages/CurriculumBuilder';
 import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
@@ -1605,6 +1609,34 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><CreateEditContentPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Interactive Lesson Builder (Admin) ── */}
+      <Route
+        path="/interactive-lessons/new"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><InteractiveLessonBuilderPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/interactive-lessons/edit/:id"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><InteractiveLessonBuilderPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Interactive Lesson Viewer (Student) ── */}
+      <Route
+        path="/interactive-lesson/play/:id"
+        element={
+          <ProtectedRoute>
+            <InteractiveLessonViewerPage />
           </ProtectedRoute>
         }
       />

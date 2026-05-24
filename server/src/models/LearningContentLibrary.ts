@@ -7,7 +7,8 @@ export type ContentLibraryType =
   | 'behavioral_qa'
   | 'practice_coding'
   | 'practice_theory'
-  | 'aptitude';
+  | 'aptitude'
+  | 'interactive_lesson';
 
 export type VideoSource = 'upload' | 'youtube' | 'vimeo';
 export type NotesSource = 'upload' | 'richtext';
@@ -132,7 +133,7 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     description: { type: String, trim: true },
     type: {
       type: String,
-      enum: ['video', 'notes', 'tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude'],
+      enum: ['video', 'notes', 'tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude', 'interactive_lesson'],
       required: true,
     },
 

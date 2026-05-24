@@ -10,14 +10,15 @@ import {
 } from '../../api/learningContentLibraryApi';
 
 const ALL_TYPES: { key: ContentLibraryType | 'all'; label: string; icon: string }[] = [
-  { key: 'all',            label: 'All',              icon: '📚' },
-  { key: 'video',          label: 'Videos',           icon: '🎬' },
-  { key: 'notes',          label: 'Notes',            icon: '📄' },
-  { key: 'tech_qa',        label: 'Tech Q&A',         icon: '💻' },
-  { key: 'behavioral_qa',  label: 'Behavioral Q&A',   icon: '🤝' },
-  { key: 'practice_coding',label: 'Practice Coding',  icon: '⌨️' },
-  { key: 'practice_theory',label: 'Practice Theory',  icon: '📝' },
-  { key: 'aptitude',       label: 'Aptitude',         icon: '🧠' },
+  { key: 'all',               label: 'All',              icon: '📚' },
+  { key: 'video',             label: 'Videos',           icon: '🎬' },
+  { key: 'notes',             label: 'Notes',            icon: '📄' },
+  { key: 'tech_qa',           label: 'Tech Q&A',         icon: '💻' },
+  { key: 'behavioral_qa',     label: 'Behavioral Q&A',   icon: '🤝' },
+  { key: 'practice_coding',   label: 'Practice Coding',  icon: '⌨️' },
+  { key: 'practice_theory',   label: 'Practice Theory',  icon: '📝' },
+  { key: 'aptitude',          label: 'Aptitude',         icon: '🧠' },
+  { key: 'interactive_lesson',label: 'Interactive',      icon: '🎮' },
 ];
 
 export default function LearningContentLibrary() {
@@ -108,17 +109,28 @@ export default function LearningContentLibrary() {
             Reusable content for your 145-day learning plans
           </p>
         </div>
-        <button
-          onClick={() => navigate('/learning-library/create')}
-          style={{
-            background: '#0f172a', color: '#fff', border: 'none',
-            borderRadius: '8px', padding: '10px 20px',
-            fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-            display: 'flex', alignItems: 'center', gap: '8px',
-          }}
-        >
-          + Add Content
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={() => navigate('/interactive-lessons/new')}
+            style={{
+              background: '#ec4899', color: '#fff', border: 'none',
+              borderRadius: '8px', padding: '10px 20px',
+              fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+            }}
+          >
+            🎮 New Interactive Lesson
+          </button>
+          <button
+            onClick={() => navigate('/learning-library/create')}
+            style={{
+              background: '#0f172a', color: '#fff', border: 'none',
+              borderRadius: '8px', padding: '10px 20px',
+              fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+            }}
+          >
+            + Add Content
+          </button>
+        </div>
       </div>
 
       {/* Type tabs */}
@@ -215,7 +227,10 @@ export default function LearningContentLibrary() {
             <ContentCard
               key={item._id}
               item={item}
-              onEdit={() => navigate(`/learning-library/edit/${item._id}`)}
+              onEdit={() => item.type === 'interactive_lesson'
+                ? navigate(`/interactive-lessons/edit/${item._id}`)
+                : navigate(`/learning-library/edit/${item._id}`)
+              }
               onDelete={() => handleDelete(item)}
               onTogglePublish={() => handleTogglePublish(item)}
               isDeleting={deleting === item._id}

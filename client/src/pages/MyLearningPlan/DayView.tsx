@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { learningContentLibraryApi, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS } from '../../api/learningContentLibraryApi';
+import { interactiveLessonApi } from '../../api/interactiveLessonApi';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
 
@@ -283,10 +284,21 @@ interface ContentItemCardProps {
 }
 
 function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }: ContentItemCardProps) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [completing, setCompleting] = useState(false);
   const [completed, setCompleted] = useState(item.isCompleted);
   const content = item.content;
+  const isInteractiveLesson = item.contentType === 'interactive_lesson';
+  const [lessonProgress, setLessonProgress] = useState<any>(null);
+
+  useEffect(() => {
+    if (isInteractiveLesson && content?.conceptLessonId && !isLocked) {
+      interactiveLessonApi.getProgress(content.conceptLessonId)
+        .then(p => setLessonProgress(p))
+        .catch(() => {});
+    }
+  }, [isInteractiveLesson, content?.conceptLessonId, isLocked]);
 
   const color = CONTENT_TYPE_COLORS[item.contentType as any] || '#64748b';
   const icon  = CONTENT_TYPE_ICONS[item.contentType as any]  || '📄';
@@ -354,12 +366,21 @@ function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }
           {/* Complete button */}
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
             {!isLocked && !completed && (
-              <button
-                onClick={() => setExpanded(e => !e)}
-                style={{ padding: '6px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-              >
-                {expanded ? 'Hide' : 'Open'}
-              </button>
+              isInteractiveLesson && content?.conceptLessonId ? (
+                <button
+                  onClick={() => navigate(`/interactive-lesson/play/${content.conceptLessonId}`)}
+                  style={{ padding: '6px 12px', border: 'none', borderRadius: '7px', background: '#ec4899', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  🎮 Start
+                </button>
+              ) : (
+                <button
+                  onClick={() => setExpanded(e => !e)}
+                  style={{ padding: '6px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                  {expanded ? 'Hide' : 'Open'}
+                </button>
+              )
             )}
             {completed ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#10b981', fontWeight: 600, fontSize: '13px' }}>
@@ -403,6 +424,25 @@ function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }
             )}
             {(content.type === 'practice_coding' || content.type === 'practice_theory' || content.type === 'aptitude') && (
               <PracticeViewer content={content} />
+            )}
+            {content.type === 'interactive_lesson' && content.conceptLessonId && (
+              <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                {lessonProgress && (lessonProgress.status === 'passed' || lessonProgress.status === 'completed') ? (
+                  <div style={{ color: '#10b981', fontWeight: 700, marginBottom: 12 }}>
+                    ✅ Lesson completed — Score: {lessonProgress.score}%
+                  </div>
+                ) : lessonProgress && lessonProgress.status === 'in_progress' ? (
+                  <div style={{ color: '#f59e0b', fontWeight: 600, marginBottom: 12 }}>
+                    ⏸ In progress — Scene {lessonProgress.currentSceneIndex + 1}
+                  </div>
+                ) : null}
+                <button
+                  onClick={() => navigate(`/interactive-lesson/play/${content.conceptLessonId}`)}
+                  style={{ padding: '12px 28px', background: '#ec4899', color: '#fff', border: 'none', borderRadius: 10, fontWeight: 700, fontSize: 15, cursor: 'pointer' }}
+                >
+                  🎮 {lessonProgress?.status === 'in_progress' ? 'Continue Lesson' : lessonProgress?.status === 'passed' ? 'Replay Lesson' : 'Start Lesson'}
+                </button>
+              </div>
             )}
           </div>
         )}

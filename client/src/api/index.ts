@@ -3011,3 +3011,7 @@ export const scheduledInterviewApi = {
     authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/my-feedback`),
 };
 
+export const metaLeadsApi = {
+  syncLeads: () =>
+    authenticatedFetch(`${API_BASE_URL}/meta-leads/sync`, { method: 'POST' }),
+};

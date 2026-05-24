@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { leadSourceConfigApi } from '../../api/index';
+import { leadSourceConfigApi, metaLeadsApi } from '../../api/index';
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -666,7 +666,10 @@ const SourceCardComponent: React.FC<{
   sourceKey: SourceKey;
   data: SourceCard;
   onConfigure: () => void;
-}> = ({ sourceKey, data, onConfigure }) => {
+  onSync?: () => void;
+  syncing?: boolean;
+  syncResult?: { success: boolean; message: string } | null;
+}> = ({ sourceKey, data, onConfigure, onSync, syncing, syncResult }) => {
   const meta = SOURCE_META[sourceKey];
   const isActive = meta.alwaysActive || data.isConnected;
 
@@ -709,6 +712,20 @@ const SourceCardComponent: React.FC<{
             {meta.description}
           </p>
 
+          {/* ── Sync Result (Meta only) ── */}
+          {sourceKey === 'metaAds' && syncResult && (
+            <div className="rounded-2 px-3 py-2 mb-3 d-flex gap-2 align-items-start"
+              style={{
+                background: syncResult.success ? '#f0fdf4' : '#fff7ed',
+                border: `1px solid ${syncResult.success ? '#bbf7d0' : '#fed7aa'}`,
+                fontSize: '0.78rem',
+                color: syncResult.success ? '#15803d' : '#c2410c',
+              }}>
+              <i className={`fa-solid ${syncResult.success ? 'fa-circle-check' : 'fa-triangle-exclamation'} flex-shrink-0 mt-1`}></i>
+              <span>{syncResult.message}</span>
+            </div>
+          )}
+
           {/* ── Stats: 3-col Bootstrap grid ── */}
           <div className="row g-2 mb-3">
             <div className="col-4">
@@ -737,18 +754,36 @@ const SourceCardComponent: React.FC<{
             </div>
           </div>
 
-          {/* ── Configure button ── */}
-          <button className="btn btn-sm w-100 fw-semibold" onClick={onConfigure}
-            style={{
-              background: isActive ? meta.color : '#f8fafc',
-              color: isActive ? '#fff' : '#64748b',
-              border: `1px solid ${isActive ? meta.color : '#e2e8f0'}`,
-              borderRadius: 6,
-              fontSize: '0.83rem',
-              letterSpacing: '0.01em',
-            }}>
-            <i className="fa-solid fa-gear me-2"></i>Configure
-          </button>
+          {/* ── Buttons ── */}
+          <div className="d-flex gap-2">
+            <button className="btn btn-sm fw-semibold flex-grow-1" onClick={onConfigure}
+              style={{
+                background: isActive ? meta.color : '#f8fafc',
+                color: isActive ? '#fff' : '#64748b',
+                border: `1px solid ${isActive ? meta.color : '#e2e8f0'}`,
+                borderRadius: 6,
+                fontSize: '0.83rem',
+              }}>
+              <i className="fa-solid fa-gear me-2"></i>Configure
+            </button>
+            {sourceKey === 'metaAds' && isActive && onSync && (
+              <button className="btn btn-sm fw-semibold" onClick={onSync} disabled={syncing}
+                title="Pull leads from Meta page forms manually"
+                style={{
+                  background: '#fff',
+                  color: meta.color,
+                  border: `1px solid ${meta.color}`,
+                  borderRadius: 6,
+                  fontSize: '0.83rem',
+                  whiteSpace: 'nowrap',
+                  minWidth: 90,
+                }}>
+                {syncing
+                  ? <><span className="spinner-border spinner-border-sm me-1"></span>Syncing</>
+                  : <><i className="fa-solid fa-arrows-rotate me-1"></i>Sync Now</>}
+              </button>
+            )}
+          </div>
 
         </div>
       </div>
@@ -768,6 +803,8 @@ const LeadSourcesPage: React.FC = () => {
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [copied, setCopied] = useState('');
   const [saveSuccess, setSaveSuccess] = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ success: boolean; message: string } | null>(null);
 
   // Third-party section
   const [showAddTP, setShowAddTP] = useState(false);
@@ -845,6 +882,21 @@ const LeadSourcesPage: React.FC = () => {
       await load();
     } catch (e: any) {
       alert(e.message || 'Failed to remove source');
+    }
+  };
+
+  const handleMetaSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const result = await metaLeadsApi.syncLeads();
+      setSyncResult({ success: result.success, message: result.message });
+      if (result.success && result.created > 0) await load();
+      setTimeout(() => setSyncResult(null), 8000);
+    } catch (e: any) {
+      setSyncResult({ success: false, message: e.message || 'Sync failed' });
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -955,6 +1007,9 @@ const LeadSourcesPage: React.FC = () => {
                 sourceKey={key}
                 data={config[key]}
                 onConfigure={() => { setActiveModal(key); setTestResult(null); }}
+                onSync={key === 'metaAds' ? handleMetaSync : undefined}
+                syncing={key === 'metaAds' ? syncing : undefined}
+                syncResult={key === 'metaAds' ? syncResult : undefined}
               />
             ))}
           </div>

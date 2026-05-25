@@ -332,7 +332,7 @@ export const executeCode = async (req: Request, res: Response) => {
       code,
       input: stdin || '',
       expectedOutput: '',
-      timeLimit: 10000,
+      timeLimit: language === 'java' ? 20000 : 10000,
       memoryLimit: 256,
     });
     res.json({

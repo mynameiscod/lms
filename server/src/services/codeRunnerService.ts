@@ -479,8 +479,8 @@ class CodeRunnerService {
         version: pistonLanguage.version,
         files: [{ name: fileName, content: code }],
         stdin: stdin || '',
-        run_timeout: Math.min(timeLimit || 3000, 3000),
-        compile_timeout: 3000
+        run_timeout: timeLimit || 10000,
+        compile_timeout: language === ProgrammingLanguage.JAVA ? 15000 : 10000
       };
 
       console.log('[PISTON] Request:', JSON.stringify({

@@ -32,6 +32,8 @@ export interface ContentLibraryItem {
   usageCount: number;
   createdAt: string;
   updatedAt: string;
+  // Interactive lesson link
+  conceptLessonId?: string;
 }
 
 export type ContentLibraryType =

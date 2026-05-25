@@ -797,6 +797,16 @@ export default function InteractiveLessonBuilderPage() {
         </h1>
         <span style={{ fontSize: 13, color: '#64748b' }}>{scenes.length} scenes · {totalXp} XP</span>
         <button
+          onClick={() => setIsPublished(p => !p)}
+          style={{
+            padding: '8px 16px', border: '1.5px solid', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 600,
+            borderColor: isPublished ? '#16a34a' : '#d1d5db',
+            background: isPublished ? '#dcfce7' : '#f9fafb',
+            color: isPublished ? '#16a34a' : '#6b7280',
+          }}>
+          {isPublished ? '● Published' : '○ Draft'}
+        </button>
+        <button
           onClick={() => setShowAIModal(true)}
           style={{
             padding: '8px 18px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700,

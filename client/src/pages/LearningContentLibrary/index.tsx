@@ -8,6 +8,7 @@ import {
   CONTENT_TYPE_ICONS,
   CONTENT_TYPE_COLORS,
 } from '../../api/learningContentLibraryApi';
+import { interactiveLessonApi } from '../../api/interactiveLessonApi';
 
 const ALL_TYPES: { key: ContentLibraryType | 'all'; label: string; icon: string }[] = [
   { key: 'all',               label: 'All',              icon: '📚' },
@@ -77,6 +78,10 @@ export default function LearningContentLibrary() {
     setToggling(item._id);
     try {
       const res = await learningContentLibraryApi.togglePublish(item._id);
+      // Sync publish state to the InteractiveLesson document as well
+      if (item.type === 'interactive_lesson' && item.conceptLessonId) {
+        await interactiveLessonApi.update(item.conceptLessonId, { isPublished: res.isPublished });
+      }
       setItems(prev =>
         prev.map(i => i._id === item._id ? { ...i, isPublished: res.isPublished } : i)
       );
@@ -228,7 +233,7 @@ export default function LearningContentLibrary() {
               key={item._id}
               item={item}
               onEdit={() => item.type === 'interactive_lesson'
-                ? navigate(`/interactive-lessons/edit/${item._id}`)
+                ? navigate(`/interactive-lessons/edit/${item.conceptLessonId || item._id}`)
                 : navigate(`/learning-library/edit/${item._id}`)
               }
               onDelete={() => handleDelete(item)}

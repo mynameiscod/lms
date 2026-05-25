@@ -14,8 +14,12 @@ RUN npm cache clean --force && \
 # Copy all client source files
 COPY client ./
 
-# Build the React app with increased memory
-ENV NODE_OPTIONS="--max-old-space-size=4096"
+# Build the React app with increased memory and version info
+ARG BUILD_DATE
+ARG APP_VERSION=1.1.0
+ENV NODE_OPTIONS="--max-old-space-size=4096" \
+    REACT_APP_VERSION=${APP_VERSION} \
+    REACT_APP_BUILD_DATE=${BUILD_DATE}
 RUN npm run build
 
 # Verify build output exists

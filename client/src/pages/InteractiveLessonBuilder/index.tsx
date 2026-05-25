@@ -490,11 +490,18 @@ interface AIGenerateModalProps {
   onClose: () => void;
 }
 
+const AI_MODELS = [
+  { id: 'claude-sonnet-4-6',        label: 'Sonnet 4.6', badge: 'Recommended', badgeColor: '#6366f1', desc: 'Best balance of quality & cost (~$0.01/call)' },
+  { id: 'claude-haiku-4-5-20251001',label: 'Haiku 4.5',  badge: 'Fastest',     badgeColor: '#10b981', desc: 'Cheapest option, good for simple topics (~$0.003/call)' },
+  { id: 'claude-opus-4-7',          label: 'Opus 4.7',   badge: 'Best Quality',badgeColor: '#f59e0b', desc: 'Highest quality, higher cost (~$0.07/call)' },
+];
+
 function AIGenerateModal({ defaultLanguage, defaultDifficulty, onGenerated, onClose }: AIGenerateModalProps) {
   const [concept, setConcept] = useState('');
   const [language, setLanguage] = useState<ProgrammingLanguage>(defaultLanguage);
   const [difficulty, setDifficulty] = useState<Difficulty>(defaultDifficulty);
   const [notes, setNotes] = useState('');
+  const [aiModel, setAiModel] = useState('claude-sonnet-4-6');
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState('');
@@ -531,7 +538,7 @@ function AIGenerateModal({ defaultLanguage, defaultDifficulty, onGenerated, onCl
     }, 2500);
 
     try {
-      const result = await interactiveLessonApi.generateWithAI({ concept, language, difficulty, additionalNotes: notes });
+      const result = await interactiveLessonApi.generateWithAI({ concept, language, difficulty, additionalNotes: notes, model: aiModel });
       clearInterval(progressTimer);
       setProgress('Done!');
       setTimeout(() => onGenerated(result), 300);
@@ -625,6 +632,31 @@ function AIGenerateModal({ defaultLanguage, defaultDifficulty, onGenerated, onCl
                 style={{ ...inputStyle, height: 70, resize: 'vertical' }}
                 placeholder="e.g. Focus on int/String types only, use real-world salary example..."
               />
+            </div>
+
+            {/* AI Model selector */}
+            <div>
+              <label style={labelStyle}>AI Model</label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {AI_MODELS.map(m => (
+                  <label key={m.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+                    border: `1.5px solid ${aiModel === m.id ? '#6366f1' : '#e2e8f0'}`,
+                    borderRadius: 8, cursor: 'pointer',
+                    background: aiModel === m.id ? '#eef2ff' : '#fff',
+                  }}>
+                    <input type="radio" name="aiModel" value={m.id} checked={aiModel === m.id}
+                      onChange={() => setAiModel(m.id)} style={{ accentColor: '#6366f1' }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{m.label}</span>
+                        <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20, background: m.badgeColor, color: '#fff' }}>{m.badge}</span>
+                      </div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{m.desc}</div>
+                    </div>
+                  </label>
+                ))}
+              </div>
             </div>
 
             {error && (

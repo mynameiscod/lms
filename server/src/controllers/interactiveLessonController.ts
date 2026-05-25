@@ -303,7 +303,7 @@ export const generateLessonAI = async (req: Request, res: Response) => {
     if (!process.env.ANTHROPIC_API_KEY) {
       return res.status(503).json({ message: 'ANTHROPIC_API_KEY not configured on server. Add it to .env and restart.' });
     }
-    const { concept, language, difficulty, additionalNotes } = req.body;
+    const { concept, language, difficulty, additionalNotes, model } = req.body;
     if (!concept || !language) {
       return res.status(400).json({ message: 'concept and language are required' });
     }
@@ -313,6 +313,7 @@ export const generateLessonAI = async (req: Request, res: Response) => {
       language,
       difficulty: difficulty || 'beginner',
       additionalNotes,
+      model,
     });
 
     res.json(lesson);

@@ -862,6 +862,10 @@ const LeadSourcesPage: React.FC = () => {
     setTestResult(null);
     try {
       await leadSourceConfigApi.updateSource(sourceKey, { isConnected, config: cfg, autoActions });
+      // Auto-subscribe webhook when Meta Ads is saved as connected
+      if (sourceKey === 'metaAds' && isConnected) {
+        try { await metaLeadsApi.setupWebhook(); } catch {}
+      }
       setSaveSuccess(`${SOURCE_META[sourceKey].label} settings saved!`);
       setTimeout(() => setSaveSuccess(''), 3000);
       setActiveModal(null);

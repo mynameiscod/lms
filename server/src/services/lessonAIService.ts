@@ -2,11 +2,40 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+export const SUPPORTED_MODELS = {
+  'claude-opus-4-7':          'Opus 4.7 — Best Quality',
+  'claude-sonnet-4-6':        'Sonnet 4.6 — Recommended',
+  'claude-haiku-4-5-20251001':'Haiku 4.5 — Fastest / Cheapest',
+} as const;
+
+export type SupportedModel = keyof typeof SUPPORTED_MODELS;
+
 export interface GenerateLessonInput {
   concept: string;
   language: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   additionalNotes?: string;
+  model?: SupportedModel;
+}
+
+// ─── In-memory cache (TTL: 24 h) ─────────────────────────────────────────────
+interface CacheEntry { data: GeneratedLesson; expiresAt: number; }
+const cache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function cacheKey(input: GenerateLessonInput): string {
+  return `${input.concept}|${input.language}|${input.difficulty}|${input.model || 'claude-sonnet-4-6'}`;
+}
+
+function getCached(input: GenerateLessonInput): GeneratedLesson | null {
+  const entry = cache.get(cacheKey(input));
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { cache.delete(cacheKey(input)); return null; }
+  return entry.data;
+}
+
+function setCached(input: GenerateLessonInput, data: GeneratedLesson): void {
+  cache.set(cacheKey(input), { data, expiresAt: Date.now() + CACHE_TTL_MS });
 }
 
 export interface GeneratedLesson {
@@ -147,6 +176,16 @@ The JSON must match this exact schema:
 }`;
 
 export async function generateLesson(input: GenerateLessonInput): Promise<GeneratedLesson> {
+  // Return cached result if available (skip cache when additionalNotes present)
+  if (!input.additionalNotes) {
+    const hit = getCached(input);
+    if (hit) return hit;
+  }
+
+  const selectedModel: SupportedModel = (input.model && SUPPORTED_MODELS[input.model])
+    ? input.model
+    : 'claude-sonnet-4-6';
+
   const userPrompt = `Generate a complete interactive lesson for:
 - Concept: ${input.concept}
 - Programming Language: ${input.language}
@@ -160,7 +199,7 @@ The fill_blank should use actual ${input.language} code with ___  for missing to
 The code_run starter should have comments guiding the student on what to write.`;
 
   const message = await client.messages.create({
-    model: 'claude-opus-4-7',
+    model: selectedModel,
     max_tokens: 4096,
     system: SYSTEM_PROMPT,
     messages: [{ role: 'user', content: userPrompt }],
@@ -186,5 +225,6 @@ The code_run starter should have comments guiding the student on what to write.`
     throw new Error('AI did not return valid scenes — please try again');
   }
 
+  if (!input.additionalNotes) setCached(input, parsed);
   return parsed;
 }

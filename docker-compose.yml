@@ -23,26 +23,50 @@ services:
       - lms-network
     restart: unless-stopped
 
-  server:
+  server-blue:
     build:
       context: .
       dockerfile: Dockerfile
       network: host
-    container_name: lms-server
+    container_name: lms-server-blue
     ports:
-      - "5000:5000"
-      - "3000:3000"
+      - "5001:5000"
     env_file:
       - ./server/.env
     environment:
       MONGODB_URI: mongodb://admin:password123@mongodb:27017/lms-saas?authSource=admin
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
       NODE_ENV: production
-      # Production URL for email links
       FRONTEND_URL: https://platform.codebegun.com
-      # Code execution engine
       PISTON_URL: http://piston:2000/api/v2
-      # Redis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      - mongodb
+      - piston
+      - redis
+    networks:
+      - lms-network
+    restart: unless-stopped
+
+  server-green:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      network: host
+    container_name: lms-server-green
+    ports:
+      - "5002:5000"
+    env_file:
+      - ./server/.env
+    environment:
+      MONGODB_URI: mongodb://admin:password123@mongodb:27017/lms-saas?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
+      NODE_ENV: production
+      FRONTEND_URL: https://platform.codebegun.com
+      PISTON_URL: http://piston:2000/api/v2
       REDIS_HOST: redis
       REDIS_PORT: "6379"
     volumes:

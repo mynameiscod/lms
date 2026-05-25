@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { useTenantModules, TenantModules } from '../../contexts/TenantModulesContext';
+import { APP_VERSION, BUILD_DATE } from '../../version';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -402,6 +403,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
             <span className="sidebar-user-role">{user.batchName || user.role}</span>
           </div>
           <i className="fa-solid fa-chevron-right sidebar-user-arrow"></i>
+        </div>
+      )}
+      {isOpen && (
+        <div style={{ padding: '6px 16px 10px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 4 }}>
+          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.5px' }}>
+            v{APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
+          </span>
         </div>
       )}
     </aside>

@@ -59,7 +59,9 @@ const getSavedFilter = (key: string, fallback = ''): string => {
 };
 const SOURCE_LABELS: Record<string,string> = {
   website:'Website', walkin:'Walk-in', referral:'Referral', social_media:'Social Media',
-  google_ads:'Google Ads', whatsapp:'WhatsApp', phone:'Phone', other:'Other'
+  google_ads:'Google Ads', whatsapp:'WhatsApp', phone:'Phone', other:'Other',
+  meta_form:'Meta Lead Ads', meta_ads:'Meta Ads', facebook:'Facebook',
+  instagram:'Instagram', linkedin:'LinkedIn', youtube:'YouTube',
 };
 
 const getFollowupState = (date?: string): 'overdue'|'today'|'ok'|'none' => {
@@ -837,16 +839,23 @@ const LeadsPage: React.FC = () => {
                             )}
                             <div className="crm-kcard-footer">
                               <span className={`crm-source-badge crm-source-${lead.source}`}>
-                                {SOURCE_LABELS[lead.source]||lead.source.replace('_',' ')}
+                                {SOURCE_LABELS[lead.source]||lead.source.replace(/_/g,' ')}
                               </span>
                               {fu&&<span className={`crm-followup-badge ${fu.cls}`}>{fu.text}</span>}
                             </div>
-                            {assignee&&(
-                              <div className="crm-assignee">
-                                <span className="crm-assignee-avatar">{initials(assignee.firstName+' '+assignee.lastName)}</span>
-                                {assignee.firstName} {assignee.lastName}
-                              </div>
-                            )}
+                            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
+                              {assignee ? (
+                                <div className="crm-assignee">
+                                  <span className="crm-assignee-avatar">{initials(assignee.firstName+' '+assignee.lastName)}</span>
+                                  {assignee.firstName} {assignee.lastName}
+                                </div>
+                              ) : <div/>}
+                              {lead.createdBy && (
+                                <div style={{fontSize:10,color:'#9ca3af'}}>
+                                  by {lead.createdBy.firstName} {lead.createdBy.lastName}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         );
                       })}

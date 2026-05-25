@@ -268,6 +268,7 @@ export const interactiveLessonApi = {
     language: ProgrammingLanguage;
     difficulty: Difficulty;
     additionalNotes?: string;
+    model?: string;
   }): Promise<{ title: string; description: string; tags: string[]; scenes: Scene[] }> =>
     apiFetch(`${API_BASE_URL}/interactive-lessons/generate-ai`, {
       method: 'POST',

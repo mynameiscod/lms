@@ -24,6 +24,7 @@ import {
   mergeDuplicateLeads,
   getFunnelAnalytics,
   updateLeadFee,
+  getStaleFollowupLeads,
 } from '../controllers/leadController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -53,6 +54,7 @@ const uploadRecording = multer({
 const router = express.Router();
 
 // Analytics & reports (need view_lead_analytics or manage_leads)
+router.get('/stale-followups', authMiddleware, tenantResolver, roleGuard(['view_lead_analytics', 'manage_leads']), getStaleFollowupLeads);
 router.get('/analytics', authMiddleware, tenantResolver, roleGuard(['view_lead_analytics', 'manage_leads']), getLeadAnalytics);
 router.get('/funnel-analytics', authMiddleware, tenantResolver, roleGuard(['view_lead_analytics', 'manage_leads']), getFunnelAnalytics);
 router.get('/manager-board', authMiddleware, tenantResolver, roleGuard(['view_lead_analytics', 'manage_leads']), getManagerBoard);

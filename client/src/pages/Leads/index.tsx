@@ -21,6 +21,8 @@ interface Lead {
   createdBy?: { firstName: string; lastName: string }; createdAt: string;
   priority?: LeadPriority;
   score?: number;
+  telecallerMetrics?: { lastActionAt?: string; firstActionAt?: string; totalActions?: number };
+  activities?: any[];
 }
 interface FormField {
   _id?: string; fieldKey: string; label: string; type: string;
@@ -62,6 +64,15 @@ const SOURCE_LABELS: Record<string,string> = {
   google_ads:'Google Ads', whatsapp:'WhatsApp', phone:'Phone', other:'Other',
   meta_form:'Meta Lead Ads', meta_ads:'Meta Ads', facebook:'Facebook',
   instagram:'Instagram', linkedin:'LinkedIn', youtube:'YouTube',
+};
+
+const getStaleDays = (lead: Lead, stageName: string): number | null => {
+  if (!/followup|follow.up|follow up/i.test(stageName)) return null;
+  const ref = lead.telecallerMetrics?.lastActionAt
+    ? new Date(lead.telecallerMetrics.lastActionAt)
+    : new Date(lead.createdAt);
+  const days = Math.floor((Date.now() - ref.getTime()) / (1000 * 60 * 60 * 24));
+  return days >= 2 ? days : null;
 };
 
 const getFollowupState = (date?: string): 'overdue'|'today'|'ok'|'none' => {
@@ -803,9 +814,10 @@ const LeadsPage: React.FC = () => {
                       ) : stageLeads.map(lead=>{
                         const fu=getFollowupLabel(lead.nextFollowUp);
                         const assignee=lead.assignedTo;
+                        const staleDays=getStaleDays(lead, stage.name);
                         return (
                           <div className="crm-kcard" key={lead._id}
-                            style={{borderLeftColor:stage.color+'60'}}
+                            style={{borderLeftColor: staleDays ? '#ef4444' : stage.color+'60'}}
                             onClick={()=>navigate(`/leads/${lead._id}`)}>
                             <div className="crm-kcard-top">
                               <div>
@@ -835,6 +847,13 @@ const LeadsPage: React.FC = () => {
                                 {lead.courseInterest.slice(0,2).map((c,i)=>(
                                   <span key={i} className="crm-course-tag">{c}</span>
                                 ))}
+                              </div>
+                            )}
+                            {staleDays && (
+                              <div style={{margin:'4px 0',display:'flex',alignItems:'center',gap:4}}>
+                                <span style={{background:'#fee2e2',color:'#dc2626',borderRadius:6,padding:'2px 8px',fontSize:11,fontWeight:700}}>
+                                  🔴 No activity {staleDays}d
+                                </span>
                               </div>
                             )}
                             <div className="crm-kcard-footer">

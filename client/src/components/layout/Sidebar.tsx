@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
@@ -19,6 +19,7 @@ interface MenuItem {
 
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
   const [isOpen, setIsOpen] = useState(true);
+  const [currentTime, setCurrentTime] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
     quizzes: false,
@@ -36,6 +37,16 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const { user } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
+
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      setCurrentTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
+    };
+    tick();
+    const timer = setInterval(tick, 60000);
+    return () => clearInterval(timer);
+  }, []);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -406,10 +417,13 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         </div>
       )}
       {isOpen && (
-        <div style={{ padding: '6px 16px 10px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.5px' }}>
+        <div style={{ padding: '6px 16px 10px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 2 }}>
+            {currentTime}
+          </div>
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.5px' }}>
             v{APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
-          </span>
+          </div>
         </div>
       )}
     </aside>

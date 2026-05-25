@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { followUpApi } from '../../api';
+import { followUpApi, leadApi } from '../../api';
 import './FollowUpCalendar.css';
 
 interface FollowUp {
@@ -18,6 +18,85 @@ interface DayFollowUps {
   [date: string]: FollowUp[];
 }
 
+// ─── Quick Activity Log Modal ─────────────────────────────────────────────────
+interface ActivityModalProps {
+  lead: any;
+  onClose: () => void;
+  onSaved: () => void;
+}
+function ActivityLogModal({ lead, onClose, onSaved }: ActivityModalProps) {
+  const [type, setType] = useState<'note'|'call'|'whatsapp'|'email'>('note');
+  const [description, setDescription] = useState('');
+  const [callOutcome, setCallOutcome] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const CALL_OUTCOMES = ['connected', 'not_answered', 'busy', 'not_connected', 'switched_off', 'wrong_number'];
+  const TYPE_ICONS: Record<string,string> = { note: '📝', call: '📞', whatsapp: '💬', email: '📧' };
+
+  const handleSave = async () => {
+    if (!description.trim()) { setError('Please enter a description'); return; }
+    setSaving(true); setError('');
+    try {
+      await leadApi.addActivity(lead._id, { type, description, ...(type === 'call' && callOutcome ? { callOutcome } : {}) });
+      onSaved();
+      onClose();
+    } catch (e: any) {
+      setError(e.message || 'Failed to save'); setSaving(false);
+    }
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 3000 }}
+      onClick={e => e.target === e.currentTarget && onClose()}>
+      <div style={{ background: '#fff', borderRadius: 14, padding: 24, width: 440, boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#111' }}>Log Activity</div>
+            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{lead.name} · {lead.phone}</div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+        </div>
+
+        {/* Type selector */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {(['note','call','whatsapp','email'] as const).map(t => (
+            <button key={t} onClick={() => setType(t)} style={{
+              flex: 1, padding: '8px 0', border: `1.5px solid ${type === t ? '#6366f1' : '#e5e7eb'}`,
+              borderRadius: 8, background: type === t ? '#eef2ff' : '#fff', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, color: type === t ? '#6366f1' : '#6b7280',
+            }}>
+              {TYPE_ICONS[t]} {t.charAt(0).toUpperCase() + t.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {type === 'call' && (
+          <select value={callOutcome} onChange={e => setCallOutcome(e.target.value)}
+            style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginBottom: 10, fontSize: 13 }}>
+            <option value="">-- Call Outcome (optional) --</option>
+            {CALL_OUTCOMES.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
+          </select>
+        )}
+
+        <textarea
+          value={description} onChange={e => setDescription(e.target.value)} autoFocus
+          placeholder={type === 'note' ? 'Add your note...' : type === 'call' ? 'What was discussed?' : type === 'whatsapp' ? 'What was sent/received?' : 'Email subject or summary...'}
+          style={{ width: '100%', padding: '10px', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, height: 90, resize: 'vertical', boxSizing: 'border-box' }}
+        />
+        {error && <div style={{ color: '#dc2626', fontSize: 12, marginTop: 4 }}>⚠ {error}</div>}
+
+        <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
+          <button onClick={onClose} style={{ padding: '8px 16px', border: '1px solid #e5e7eb', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13 }}>Cancel</button>
+          <button onClick={handleSave} disabled={saving} style={{ padding: '8px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
+            {saving ? 'Saving...' : 'Save Activity'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const FollowUpCalendar: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -27,12 +106,19 @@ const FollowUpCalendar: React.FC = () => {
     setTimeout(() => setAlertMsg(null), 3000);
   };
   const [loading, setLoading] = useState(true);
+  const [mainTab, setMainTab] = useState<'calendar' | 'stale'>('calendar');
   const [view, setView] = useState<'month' | 'week' | 'day'>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [followUps, setFollowUps] = useState<DayFollowUps>({});
   const [stats, setStats] = useState({ overdue: 0, today: 0, upcoming: 0 });
   const [teamStats, setTeamStats] = useState<any>(null);
   const [showTeamPanel, setShowTeamPanel] = useState(true);
+  // Stale leads state
+  const [staleData, setStaleData] = useState<any>(null);
+  const [staleLoading, setStaleLoading] = useState(false);
+  const [staleDays, setStaleDays] = useState(2);
+  const [expandedBDM, setExpandedBDM] = useState<string | null>(null);
+  const [activityLead, setActivityLead] = useState<any>(null);
 
   const loadFollowUps = useCallback(async () => {
     try {
@@ -103,6 +189,22 @@ const FollowUpCalendar: React.FC = () => {
       if (res?.data) setTeamStats(res.data);
     }).catch(() => {});
   }, [user]);
+
+  // Load stale followup leads
+  const loadStaleLeads = useCallback(async () => {
+    setStaleLoading(true);
+    try {
+      const res = await leadApi.getStaleFollowups(staleDays);
+      setStaleData(res?.data || null);
+    } catch { setStaleData(null); }
+    finally { setStaleLoading(false); }
+  }, [staleDays]);
+
+  useEffect(() => {
+    if (mainTab === 'stale' && user?.role !== 'STUDENT') {
+      loadStaleLeads();
+    }
+  }, [mainTab, loadStaleLeads, user]);
 
   const getTypeIcon = (type: string): string => {
     const icons: Record<string, string> = {
@@ -326,6 +428,115 @@ const FollowUpCalendar: React.FC = () => {
     );
   }
 
+  const renderStaleTab = () => {
+    if (staleLoading) return <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading stale leads...</div>;
+    if (!staleData) return <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Failed to load stale leads</div>;
+
+    const { byBDM, total, followupStages } = staleData;
+
+    return (
+      <div>
+        {/* Controls */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+          <div style={{ background: total > 0 ? '#fee2e2' : '#dcfce7', color: total > 0 ? '#dc2626' : '#16a34a', borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 14 }}>
+            {total > 0 ? `🔴 ${total} Stale Leads` : '✅ No Stale Leads'}
+          </div>
+          <div style={{ fontSize: 13, color: '#6b7280' }}>
+            Followup stages: {followupStages?.map((s: any) => s.name).join(', ') || 'None found'}
+          </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 13, color: '#6b7280' }}>Stale after:</span>
+            {[1, 2, 3, 5, 7].map(d => (
+              <button key={d} onClick={() => setStaleDays(d)} style={{
+                padding: '4px 10px', border: `1.5px solid ${staleDays === d ? '#6366f1' : '#e5e7eb'}`,
+                borderRadius: 6, background: staleDays === d ? '#eef2ff' : '#fff', cursor: 'pointer',
+                fontSize: 12, fontWeight: staleDays === d ? 700 : 400, color: staleDays === d ? '#6366f1' : '#6b7280',
+              }}>{d}d</button>
+            ))}
+            <button onClick={loadStaleLeads} style={{ padding: '4px 12px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {total === 0 ? (
+          <div style={{ textAlign: 'center', padding: '60px 20px', background: '#f0fdf4', borderRadius: 14, border: '1.5px solid #bbf7d0' }}>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>✅</div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: '#16a34a' }}>All caught up!</div>
+            <div style={{ fontSize: 14, color: '#4ade80', marginTop: 4 }}>No leads in followup have been inactive for {staleDays}+ days</div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {byBDM.map((bdm: any) => (
+              <div key={bdm.bdmId} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
+                {/* BDM header */}
+                <div
+                  onClick={() => setExpandedBDM(expandedBDM === bdm.bdmId ? null : bdm.bdmId)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', cursor: 'pointer', background: '#fafafa', borderBottom: expandedBDM === bdm.bdmId ? '1px solid #e5e7eb' : 'none' }}
+                >
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,#ef4444,#f97316)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, flexShrink: 0 }}>
+                    {bdm.bdmName[0]?.toUpperCase()}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <span style={{ fontWeight: 700, fontSize: 14, color: '#111' }}>{bdm.bdmName}</span>
+                    <span style={{ marginLeft: 8, fontSize: 12, color: '#6b7280' }}>{bdm.bdmEmail}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ background: '#fee2e2', color: '#dc2626', borderRadius: 20, padding: '3px 12px', fontSize: 12, fontWeight: 700 }}>
+                      {bdm.leads.length} stale lead{bdm.leads.length !== 1 ? 's' : ''}
+                    </span>
+                    <span style={{ background: '#fef3c7', color: '#d97706', borderRadius: 20, padding: '3px 12px', fontSize: 12, fontWeight: 600 }}>
+                      Max {bdm.maxDaysStale}d inactive
+                    </span>
+                    <span style={{ color: '#9ca3af', fontSize: 14 }}>{expandedBDM === bdm.bdmId ? '▲' : '▼'}</span>
+                  </div>
+                </div>
+
+                {/* Lead rows */}
+                {expandedBDM === bdm.bdmId && (
+                  <div>
+                    {/* Table header */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 150px 120px', gap: 0, padding: '8px 16px', fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', background: '#f9fafb' }}>
+                      <span>Lead</span><span>Phone</span><span>Stage</span><span>Last Activity</span><span>Action</span>
+                    </div>
+                    {bdm.leads.map((lead: any) => {
+                      const stageInfo = lead.stageId as any;
+                      const daysColor = lead.daysStale >= 7 ? '#dc2626' : lead.daysStale >= 3 ? '#d97706' : '#6b7280';
+                      return (
+                        <div key={lead._id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 120px 150px 120px', gap: 0, padding: '10px 16px', borderTop: '1px solid #f3f4f6', alignItems: 'center' }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: '#111' }}>{lead.name}</div>
+                            <div style={{ fontSize: 11, color: '#9ca3af' }}>{lead.email || ''}</div>
+                          </div>
+                          <div style={{ fontSize: 13, color: '#374151' }}>{lead.phone}</div>
+                          <div>
+                            <span style={{ background: stageInfo?.color ? `${stageInfo.color}22` : '#f3f4f6', color: stageInfo?.color || '#6b7280', borderRadius: 6, padding: '2px 8px', fontSize: 11, fontWeight: 600 }}>
+                              {stageInfo?.name || 'Followup'}
+                            </span>
+                          </div>
+                          <div>
+                            <span style={{ color: daysColor, fontWeight: 700, fontSize: 13 }}>🕐 {lead.daysStale}d ago</span>
+                            <div style={{ fontSize: 10, color: '#9ca3af' }}>
+                              {lead.lastActivityAt ? new Date(lead.lastActivityAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'No activity logged'}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => navigate(`/leads/${lead._id}`)} style={{ padding: '4px 10px', background: '#f3f4f6', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 500 }}>View</button>
+                            <button onClick={() => setActivityLead(lead)} style={{ padding: '4px 10px', background: '#6366f1', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: '#fff', fontWeight: 600 }}>+ Log</button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="followup-calendar">
       {/* Alert banner */}
@@ -335,21 +546,35 @@ const FollowUpCalendar: React.FC = () => {
         </div>
       )}
 
+      {/* Activity log modal */}
+      {activityLead && (
+        <ActivityLogModal
+          lead={activityLead}
+          onClose={() => setActivityLead(null)}
+          onSaved={() => { showAlertMsg('success', 'Activity logged!'); loadStaleLeads(); }}
+        />
+      )}
+
       <div className="followup-header">
         <h1>Follow-up Calendar</h1>
-        <div className="view-toggles">
-          <button
-            className={`view-toggle ${view === 'month' ? 'active' : ''}`}
-            onClick={() => setView('month')}
-          >
-            Month
-          </button>
-          <button
-            className={`view-toggle ${view === 'day' ? 'active' : ''}`}
-            onClick={() => setView('day')}
-          >
-            Day
-          </button>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {/* Main tabs */}
+          {user?.role !== 'STUDENT' && (
+            <>
+              <button onClick={() => setMainTab('calendar')} style={{ padding: '6px 16px', border: `1.5px solid ${mainTab === 'calendar' ? '#6366f1' : '#e5e7eb'}`, borderRadius: 8, background: mainTab === 'calendar' ? '#eef2ff' : '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: mainTab === 'calendar' ? '#6366f1' : '#6b7280' }}>
+                📅 Calendar
+              </button>
+              <button onClick={() => setMainTab('stale')} style={{ padding: '6px 16px', border: `1.5px solid ${mainTab === 'stale' ? '#dc2626' : '#e5e7eb'}`, borderRadius: 8, background: mainTab === 'stale' ? '#fee2e2' : '#fff', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: mainTab === 'stale' ? '#dc2626' : '#6b7280' }}>
+                🔴 Stale Leads{staleData?.total > 0 ? ` (${staleData.total})` : ''}
+              </button>
+            </>
+          )}
+          {mainTab === 'calendar' && (
+            <div className="view-toggles" style={{ marginLeft: 8 }}>
+              <button className={`view-toggle ${view === 'month' ? 'active' : ''}`} onClick={() => setView('month')}>Month</button>
+              <button className={`view-toggle ${view === 'day' ? 'active' : ''}`} onClick={() => setView('day')}>Day</button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -466,29 +691,35 @@ const FollowUpCalendar: React.FC = () => {
         </div>
       )}
 
-      <div className="calendar-container">
-        <div className="calendar-header">
-          <div className="calendar-nav">
-            <button onClick={goToPreviousMonth}>&#8249; Prev</button>
-            <h2>
-              {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-            </h2>
-            <button onClick={goToNextMonth}>Next &#8250;</button>
-          </div>
-          <button className="btn-today" onClick={goToToday}>Today</button>
+      {mainTab === 'stale' ? (
+        <div style={{ marginTop: 8 }}>
+          {renderStaleTab()}
         </div>
-
-        {view === 'month' ? (
-          <div className="calendar-grid">
-            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-              <div key={i} className="calendar-weekday">{day}</div>
-            ))}
-            {renderCalendarDays()}
+      ) : (
+        <div className="calendar-container">
+          <div className="calendar-header">
+            <div className="calendar-nav">
+              <button onClick={goToPreviousMonth}>&#8249; Prev</button>
+              <h2>
+                {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+              </h2>
+              <button onClick={goToNextMonth}>Next &#8250;</button>
+            </div>
+            <button className="btn-today" onClick={goToToday}>Today</button>
           </div>
-        ) : (
-          renderDayView()
-        )}
-      </div>
+
+          {view === 'month' ? (
+            <div className="calendar-grid">
+              {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+                <div key={i} className="calendar-weekday">{day}</div>
+              ))}
+              {renderCalendarDays()}
+            </div>
+          ) : (
+            renderDayView()
+          )}
+        </div>
+      )}
     </div>
   );
 };

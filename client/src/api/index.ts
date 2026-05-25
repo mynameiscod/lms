@@ -1868,6 +1868,12 @@ export const leadApi = {
     const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as any).toString() : '';
     return authenticatedFetch(`${API_BASE_URL}/leads/funnel-analytics${qs}`);
   },
+  getStaleFollowups: async (days = 2) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/stale-followups?days=${days}`);
+  },
+  getLeadActivities: async (leadId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`).then((r: any) => r?.data?.activities || []);
+  },
 };
 
 // Lead Form Config API

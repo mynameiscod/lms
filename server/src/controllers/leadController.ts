@@ -827,13 +827,22 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       activityData.recordingUrl = `/uploads/recordings/${req.file.filename}`;
     }
 
+    const now = new Date();
     const scopeFilter = await buildLeadScopeFilter(req);
+
+    // Check if firstActionAt needs to be set
+    const existing = await Lead.findOne({ _id: leadId, tenantId: req.tenantId, ...scopeFilter }).select('telecallerMetrics');
+    const metricsUpdate: any = { 'telecallerMetrics.lastActionAt': now };
+    if (!existing?.telecallerMetrics?.firstActionAt) {
+      metricsUpdate['telecallerMetrics.firstActionAt'] = now;
+    }
+
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
       {
-        $push: {
-          activities: activityData
-        }
+        $push: { activities: activityData },
+        $set: metricsUpdate,
+        $inc: { 'telecallerMetrics.totalActions': 1 },
       },
       { new: true }
     )
@@ -1768,5 +1777,80 @@ export const updateLeadFee = async (req: AuthenticatedRequest, res: Response<Api
     res.json({ success: true, message: 'Fee updated', data: lead });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to update fee', error: error.message });
+  }
+};
+
+// ─── STALE FOLLOWUP LEADS ────────────────────────────────────────────────────
+// Returns leads that are in any "followup" stage AND have had no logged activity
+// for more than `days` days (default 2). Grouped by assigned BDM.
+export const getStaleFollowupLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const staleDays = parseInt((req.query.days as string) || '2', 10);
+    const cutoff = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
+
+    // Find stages whose name contains "followup" (case-insensitive)
+    const followupStages = await LeadStage.find({
+      tenantId: req.tenantId,
+      name: { $regex: /followup|follow.up|follow up/i },
+    }).select('_id name color');
+
+    if (followupStages.length === 0) {
+      return res.json({ success: true, message: 'No followup stages found', data: { leads: [], byBDM: [], total: 0 } });
+    }
+
+    const stageIds = followupStages.map(s => s._id);
+
+    // Leads in followup stages where lastActionAt is null or before cutoff
+    const staleLeads = await Lead.find({
+      tenantId: req.tenantId,
+      stageId: { $in: stageIds },
+      $or: [
+        { 'telecallerMetrics.lastActionAt': { $exists: false } },
+        { 'telecallerMetrics.lastActionAt': null },
+        { 'telecallerMetrics.lastActionAt': { $lt: cutoff } },
+      ],
+    })
+      .populate('stageId', 'name color')
+      .populate('assignedTo', 'firstName lastName email')
+      .select('name phone email stageId assignedTo telecallerMetrics createdAt updatedAt nextFollowUp')
+      .sort({ 'telecallerMetrics.lastActionAt': 1 }) // most stale first
+      .limit(200)
+      .lean();
+
+    // Compute days stale per lead
+    const enriched = staleLeads.map((lead: any) => {
+      const lastActivity = lead.telecallerMetrics?.lastActionAt;
+      const refDate = lastActivity ? new Date(lastActivity) : new Date(lead.createdAt);
+      const daysStale = Math.floor((Date.now() - refDate.getTime()) / (1000 * 60 * 60 * 24));
+      return { ...lead, daysStale, lastActivityAt: lastActivity || null };
+    });
+
+    // Group by BDM
+    const bdmMap: Record<string, any> = {};
+    for (const lead of enriched) {
+      const bdm = lead.assignedTo as any;
+      const key = bdm?._id?.toString() || 'unassigned';
+      if (!bdmMap[key]) {
+        bdmMap[key] = {
+          bdmId: key,
+          bdmName: bdm ? `${bdm.firstName} ${bdm.lastName}` : 'Unassigned',
+          bdmEmail: bdm?.email || '',
+          leads: [],
+          maxDaysStale: 0,
+        };
+      }
+      bdmMap[key].leads.push(lead);
+      if (lead.daysStale > bdmMap[key].maxDaysStale) bdmMap[key].maxDaysStale = lead.daysStale;
+    }
+
+    const byBDM = Object.values(bdmMap).sort((a: any, b: any) => b.maxDaysStale - a.maxDaysStale);
+
+    res.json({
+      success: true,
+      message: 'Stale followup leads fetched',
+      data: { leads: enriched, byBDM, total: enriched.length, staleDays, followupStages },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch stale leads', error: error.message });
   }
 };

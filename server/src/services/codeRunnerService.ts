@@ -474,13 +474,16 @@ class CodeRunnerService {
       // For Java, set filename to match the public class name
       const fileName = language === ProgrammingLanguage.JAVA ? 'Main.java' : undefined;
       
+      const runLimit = Math.min(timeLimit || 10000, 15000);
       const requestBody = {
         language: pistonLanguage.language,
         version: pistonLanguage.version,
         files: [{ name: fileName, content: code }],
         stdin: stdin || '',
-        run_timeout: timeLimit || 10000,
-        compile_timeout: language === ProgrammingLanguage.JAVA ? 15000 : 10000
+        run_timeout: runLimit,
+        run_cpu_time: runLimit,
+        compile_timeout: 10000,
+        compile_cpu_time: 10000,
       };
 
       console.log('[PISTON] Request:', JSON.stringify({

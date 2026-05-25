@@ -11,6 +11,7 @@ import {
   getLessonProgressAdmin,
   getTemplates,
   executeCode,
+  generateLessonAI,
 } from '../controllers/interactiveLessonController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -22,6 +23,9 @@ router.use(authMiddleware, tenantResolver);
 
 // Templates (admin)
 router.get('/templates', getTemplates);
+
+// AI generation (admin)
+router.post('/generate-ai', generateLessonAI);
 
 // Lessons CRUD (admin/instructor)
 router.get('/', listLessons);

@@ -5,6 +5,7 @@ import LessonProgress from '../models/LessonProgress';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import codeRunner from '../services/codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
+import { generateLesson } from '../services/lessonAIService';
 
 // ─── LIST ──────────────────────────────────────────────────────────────────────
 export const listLessons = async (req: Request, res: Response) => {
@@ -294,6 +295,30 @@ export const getLessonProgressAdmin = async (req: Request, res: Response) => {
 // ─── TEMPLATE LIBRARY: pre-built lesson starters ──────────────────────────────
 export const getTemplates = async (_req: Request, res: Response) => {
   res.json({ templates: LESSON_TEMPLATES });
+};
+
+// ─── AI GENERATE: Generate full lesson via Claude ─────────────────────────────
+export const generateLessonAI = async (req: Request, res: Response) => {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return res.status(503).json({ message: 'ANTHROPIC_API_KEY not configured on server. Add it to .env and restart.' });
+    }
+    const { concept, language, difficulty, additionalNotes } = req.body;
+    if (!concept || !language) {
+      return res.status(400).json({ message: 'concept and language are required' });
+    }
+
+    const lesson = await generateLesson({
+      concept,
+      language,
+      difficulty: difficulty || 'beginner',
+      additionalNotes,
+    });
+
+    res.json(lesson);
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'AI generation failed' });
+  }
 };
 
 // ─── CODE RUN: Execute code via codeRunnerService ─────────────────────────────

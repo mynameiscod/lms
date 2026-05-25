@@ -10,6 +10,7 @@ import {
   SCENE_TYPE_LABELS,
   SCENE_TYPE_ICONS,
   LANGUAGE_LABELS,
+  DIFFICULTY_COLORS,
 } from '../../api/interactiveLessonApi';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -481,6 +482,195 @@ function SceneEditor({ scene, onChange }: { scene: Scene; onChange: (s: Scene) =
   );
 }
 
+// ─── AI Generate Modal ────────────────────────────────────────────────────────
+interface AIGenerateModalProps {
+  defaultLanguage: ProgrammingLanguage;
+  defaultDifficulty: Difficulty;
+  onGenerated: (data: { title: string; description: string; tags: string[]; scenes: Scene[] }) => void;
+  onClose: () => void;
+}
+
+function AIGenerateModal({ defaultLanguage, defaultDifficulty, onGenerated, onClose }: AIGenerateModalProps) {
+  const [concept, setConcept] = useState('');
+  const [language, setLanguage] = useState<ProgrammingLanguage>(defaultLanguage);
+  const [difficulty, setDifficulty] = useState<Difficulty>(defaultDifficulty);
+  const [notes, setNotes] = useState('');
+  const [generating, setGenerating] = useState(false);
+  const [error, setError] = useState('');
+  const [progress, setProgress] = useState('');
+
+  const CONCEPTS = [
+    'Variables & Data Types', 'Loops (for, while)', 'Functions / Methods',
+    'Arrays / Lists', 'Strings', 'Conditionals (if/else)',
+    'OOP - Classes & Objects', 'OOP - Inheritance', 'OOP - Polymorphism',
+    'Exception Handling', 'File I/O', 'Recursion',
+    'HashMap / Dictionary', 'Sorting Algorithms', 'SQL SELECT Queries',
+    'SQL JOINs', 'SQL Aggregates',
+  ];
+
+  const handleGenerate = async () => {
+    if (!concept.trim()) { setError('Enter a concept first'); return; }
+    setGenerating(true);
+    setError('');
+    setProgress('Connecting to Claude AI...');
+
+    const steps = [
+      'Designing lesson structure...',
+      'Writing story narration...',
+      'Generating code examples...',
+      'Creating quiz questions...',
+      'Building drag & drop exercise...',
+      'Writing code challenge...',
+      'Finalising summary...',
+    ];
+    let stepIdx = 0;
+    const progressTimer = setInterval(() => {
+      if (stepIdx < steps.length) {
+        setProgress(steps[stepIdx++]);
+      }
+    }, 2500);
+
+    try {
+      const result = await interactiveLessonApi.generateWithAI({ concept, language, difficulty, additionalNotes: notes });
+      clearInterval(progressTimer);
+      setProgress('Done!');
+      setTimeout(() => onGenerated(result), 300);
+    } catch (err: any) {
+      clearInterval(progressTimer);
+      setError(err.message || 'Generation failed — check ANTHROPIC_API_KEY on server');
+      setProgress('');
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 2000,
+    }} onClick={e => { if (e.target === e.currentTarget && !generating) onClose(); }}>
+      <div style={{
+        background: '#fff', borderRadius: 16, width: 520, padding: 32,
+        boxShadow: '0 24px 80px rgba(0,0,0,0.25)',
+        backgroundImage: generating ? 'none' : 'linear-gradient(135deg, #faf5ff 0%, #fff 100%)',
+      }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
+          <div style={{ fontSize: 36 }}>✨</div>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#1e293b' }}>Generate with Claude AI</h2>
+            <p style={{ margin: 0, fontSize: 13, color: '#64748b' }}>
+              Claude will auto-create all 7 scenes for your interactive lesson
+            </p>
+          </div>
+          {!generating && (
+            <button onClick={onClose} style={{ marginLeft: 'auto', background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#94a3b8' }}>×</button>
+          )}
+        </div>
+
+        {/* Generating animation */}
+        {generating ? (
+          <div style={{ textAlign: 'center', padding: '32px 0' }}>
+            <div style={{ fontSize: 56, marginBottom: 16, animation: 'spin 2s linear infinite', display: 'inline-block' }}>⚙️</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#6366f1', marginBottom: 8 }}>{progress}</div>
+            <div style={{ fontSize: 13, color: '#94a3b8' }}>This takes 15–30 seconds...</div>
+            <div style={{ marginTop: 20, height: 4, background: '#e2e8f0', borderRadius: 2, overflow: 'hidden' }}>
+              <div style={{ height: '100%', background: 'linear-gradient(90deg, #6366f1, #ec4899)', borderRadius: 2, animation: 'progressBar 18s ease-out forwards' }} />
+            </div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            {/* Concept */}
+            <div>
+              <label style={labelStyle}>Concept *</label>
+              <input
+                value={concept}
+                onChange={e => setConcept(e.target.value)}
+                list="concept-suggestions"
+                style={{ ...inputStyle, fontSize: 15 }}
+                placeholder="e.g. Variables, Loops, OOP Classes..."
+                autoFocus
+              />
+              <datalist id="concept-suggestions">
+                {CONCEPTS.map(c => <option key={c} value={c} />)}
+              </datalist>
+            </div>
+
+            {/* Language + Difficulty row */}
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Language *</label>
+                <select value={language} onChange={e => setLanguage(e.target.value as ProgrammingLanguage)} style={inputStyle}>
+                  {LANGUAGES.map(l => <option key={l} value={l}>{LANGUAGE_LABELS[l]}</option>)}
+                </select>
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={labelStyle}>Difficulty</label>
+                <select value={difficulty} onChange={e => setDifficulty(e.target.value as Difficulty)} style={inputStyle}>
+                  {(['beginner', 'intermediate', 'advanced'] as Difficulty[]).map(d => (
+                    <option key={d} value={d} style={{ color: DIFFICULTY_COLORS[d] }}>
+                      {d.charAt(0).toUpperCase() + d.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Additional notes */}
+            <div>
+              <label style={labelStyle}>Additional notes (optional)</label>
+              <textarea
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
+                style={{ ...inputStyle, height: 70, resize: 'vertical' }}
+                placeholder="e.g. Focus on int/String types only, use real-world salary example..."
+              />
+            </div>
+
+            {error && (
+              <div style={{ padding: '10px 14px', background: '#fee2e2', color: '#dc2626', borderRadius: 8, fontSize: 13 }}>
+                ❌ {error}
+              </div>
+            )}
+
+            {/* What it generates */}
+            <div style={{ background: '#f8fafc', borderRadius: 10, padding: '12px 14px' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 8, textTransform: 'uppercase' }}>
+                Claude will generate:
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {(['📖 Story narration', '💻 Code demo', '🧩 Drag & Drop', '❓ Quiz', '✏️ Fill blank', '▶️ Code challenge', '📋 Summary'] as const).map(s => (
+                  <span key={s} style={{ fontSize: 12, background: '#eef2ff', color: '#4338ca', padding: '3px 10px', borderRadius: 20, fontWeight: 500 }}>{s}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* Generate button */}
+            <button
+              onClick={handleGenerate}
+              disabled={!concept.trim()}
+              style={{
+                padding: '14px', background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                color: '#fff', border: 'none', borderRadius: 10,
+                fontWeight: 800, fontSize: 16, cursor: concept.trim() ? 'pointer' : 'not-allowed',
+                opacity: concept.trim() ? 1 : 0.5,
+                boxShadow: concept.trim() ? '0 4px 20px rgba(99,102,241,0.4)' : 'none',
+              }}
+            >
+              ✨ Generate Lesson with Claude AI
+            </button>
+          </div>
+        )}
+
+        <style>{`
+          @keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+          @keyframes progressBar { from{width:0%} to{width:95%} }
+        `}</style>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Builder Page ─────────────────────────────────────────────────────────
 export default function InteractiveLessonBuilderPage() {
   const navigate = useNavigate();
@@ -509,6 +699,7 @@ export default function InteractiveLessonBuilderPage() {
   // Templates
   const [templates, setTemplates] = useState<any[]>([]);
   const [showTemplates, setShowTemplates] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   useEffect(() => {
     if (isEdit && id) {
@@ -531,6 +722,15 @@ export default function InteractiveLessonBuilderPage() {
     }
     interactiveLessonApi.getTemplates().then((r: any) => setTemplates(r.templates || []));
   }, [id, isEdit]);
+
+  const handleAIGenerated = (data: { title: string; description: string; tags: string[]; scenes: Scene[] }) => {
+    if (!title) setTitle(data.title);
+    if (!description) setDescription(data.description);
+    if (!tags) setTags(data.tags.join(', '));
+    setScenes(data.scenes);
+    setActiveSceneIdx(0);
+    setShowAIModal(false);
+  };
 
   const addScene = (type: SceneType) => {
     const s = defaultScene(type, language);
@@ -596,9 +796,14 @@ export default function InteractiveLessonBuilderPage() {
           {isEdit ? 'Edit Interactive Lesson' : 'New Interactive Lesson'}
         </h1>
         <span style={{ fontSize: 13, color: '#64748b' }}>{scenes.length} scenes · {totalXp} XP</span>
-        <button onClick={() => navigate(`/interactive-lesson/preview/${id || 'new'}`)}
-          style={{ padding: '8px 16px', border: '1px solid #e2e8f0', borderRadius: 8, background: '#fff', cursor: 'pointer', fontSize: 13 }}>
-          Preview
+        <button
+          onClick={() => setShowAIModal(true)}
+          style={{
+            padding: '8px 18px', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+            background: 'linear-gradient(135deg, #6366f1, #8b5cf6)', color: '#fff',
+            boxShadow: '0 2px 10px rgba(99,102,241,0.35)',
+          }}>
+          ✨ Generate with AI
         </button>
         <button onClick={handleSave} disabled={saving}
           style={{ padding: '8px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>
@@ -770,6 +975,16 @@ export default function InteractiveLessonBuilderPage() {
           ) : null}
         </div>
       </div>
+
+      {/* AI Generate Modal */}
+      {showAIModal && (
+        <AIGenerateModal
+          defaultLanguage={language}
+          defaultDifficulty={difficulty}
+          onGenerated={handleAIGenerated}
+          onClose={() => setShowAIModal(false)}
+        />
+      )}
     </div>
   );
 }

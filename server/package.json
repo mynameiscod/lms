@@ -12,6 +12,7 @@
     "lint": "eslint src/**/*.ts"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.98.0",
     "@types/pdfkit": "^0.17.6",
     "axios": "^1.13.6",
     "bcryptjs": "^2.4.3",

@@ -261,6 +261,18 @@ export const interactiveLessonApi = {
   // Admin
   getProgressAdmin: (lessonId: string) =>
     apiFetch(`${API_BASE_URL}/interactive-lessons/${lessonId}/progress-admin`),
+
+  // AI generation
+  generateWithAI: (data: {
+    concept: string;
+    language: ProgrammingLanguage;
+    difficulty: Difficulty;
+    additionalNotes?: string;
+  }): Promise<{ title: string; description: string; tags: string[]; scenes: Scene[] }> =>
+    apiFetch(`${API_BASE_URL}/interactive-lessons/generate-ai`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };
 
 // ─── Code runner ──────────────────────────────────────────────────────────────

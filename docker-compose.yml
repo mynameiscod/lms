@@ -87,6 +87,11 @@ services:
       - /piston/jobs:exec,size=256m
     volumes:
       - piston_data:/piston/packages
+    environment:
+      PISTON_RUN_TIMEOUT: "15000"
+      PISTON_COMPILE_TIMEOUT: "10000"
+      PISTON_RUN_CPU_TIME: "15000"
+      PISTON_COMPILE_CPU_TIME: "10000"
     networks:
       - lms-network
     restart: unless-stopped

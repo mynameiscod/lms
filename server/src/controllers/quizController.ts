@@ -449,8 +449,8 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get all quizzes for the tenant — exclude external/token-only quizzes
-    const allQuizzes = await Quiz.find({ tenantId, isActive: true, isExternalQuiz: { $ne: true } });
+    // Get all quizzes for the tenant — exclude external/token-only and archived quizzes
+    const allQuizzes = await Quiz.find({ tenantId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null });
 
     // Filter quizzes based on access level and enrollment
     const availableQuizzes = await Promise.all(
@@ -697,6 +697,60 @@ export const cloneQuiz = async (req: Request, res: Response) => {
     }
 
     res.status(201).json(newQuiz);
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// ========== ARCHIVING ==========
+
+export const archiveQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const tenantId = (req as any).tenantId;
+
+    const quiz = await Quiz.findOneAndUpdate(
+      { _id: quizId, tenantId, archivedAt: null },
+      { archivedAt: new Date() },
+      { new: true }
+    );
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found or already archived' });
+    }
+
+    res.json({ message: 'Quiz archived', quiz });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const unarchiveQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const tenantId = (req as any).tenantId;
+
+    const quiz = await Quiz.findOneAndUpdate(
+      { _id: quizId, tenantId, archivedAt: { $ne: null } },
+      { archivedAt: null },
+      { new: true }
+    );
+
+    if (!quiz) {
+      return res.status(404).json({ message: 'Quiz not found or not archived' });
+    }
+
+    res.json({ message: 'Quiz unarchived', quiz });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getArchivedQuizzes = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const quizzes = await quizService.getQuizzes(tenantId, { view: 'archived' });
+    res.json(quizzes);
   } catch (error: any) {
     res.status(500).json({ message: error.message });
   }

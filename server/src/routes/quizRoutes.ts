@@ -47,6 +47,7 @@ router.post(
 );
 
 router.get('/instructor', quizController.getQuizzes);
+router.get('/archived', roleGuard(['edit_quiz', 'create_quiz']), quizController.getArchivedQuizzes);
 
 router.get('/chapter/:chapterId', quizController.getQuizzesByChapter);
 
@@ -73,6 +74,10 @@ router.get('/:quizId/availability', quizController.checkQuizAvailability);
 
 // Clone quiz route
 router.post('/:quizId/clone', roleGuard(['create_quiz']), quizController.cloneQuiz);
+
+// Archive / Unarchive
+router.patch('/:quizId/archive', roleGuard(['edit_quiz']), quizController.archiveQuiz);
+router.patch('/:quizId/unarchive', roleGuard(['edit_quiz']), quizController.unarchiveQuiz);
 
 // Quiz Attempt Routes
 router.post('/:quizId/start', quizController.startQuizAttempt);

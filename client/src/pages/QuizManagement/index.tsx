@@ -29,10 +29,13 @@ const QuizManagementPage: React.FC = () => {
     selectedBatches: [] as string[]
   });
   const [cloning, setCloning] = useState(false);
+  const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
+  const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
 
   useEffect(() => {
     fetchQuizzes();
     fetchBatches();
+    fetchArchivedQuizzes();
   }, []);
 
   const fetchQuizzes = async () => {
@@ -44,6 +47,38 @@ const QuizManagementPage: React.FC = () => {
       setError(err.message || 'Failed to fetch quizzes');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchArchivedQuizzes = async () => {
+    try {
+      const res = await quizApi.getArchivedQuizzes();
+      setArchivedQuizzes(res.data || res || []);
+    } catch (err: any) {
+      console.error('Failed to fetch archived quizzes:', err);
+    }
+  };
+
+  const handleArchiveQuiz = async (quizId: string) => {
+    if (!window.confirm('Archive this quiz? It will be hidden from students but data is preserved.')) return;
+    try {
+      await quizApi.archiveQuiz(quizId);
+      setSuccess('Quiz archived');
+      fetchQuizzes();
+      fetchArchivedQuizzes();
+    } catch (err: any) {
+      setError(err.message || 'Failed to archive quiz');
+    }
+  };
+
+  const handleUnarchiveQuiz = async (quizId: string) => {
+    try {
+      await quizApi.unarchiveQuiz(quizId);
+      setSuccess('Quiz restored to active');
+      fetchQuizzes();
+      fetchArchivedQuizzes();
+    } catch (err: any) {
+      setError(err.message || 'Failed to unarchive quiz');
     }
   };
 
@@ -245,6 +280,34 @@ const QuizManagementPage: React.FC = () => {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
+      {/* Active / Archived tabs */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #e5e7eb' }}>
+        <button
+          onClick={() => setActiveTab('active')}
+          style={{
+            padding: '8px 20px', border: 'none', background: 'none', cursor: 'pointer',
+            fontWeight: 600, fontSize: 14,
+            borderBottom: activeTab === 'active' ? '2px solid #6366f1' : '2px solid transparent',
+            color: activeTab === 'active' ? '#6366f1' : '#6b7280',
+            marginBottom: -2
+          }}
+        >
+          Active ({quizzes.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('archived')}
+          style={{
+            padding: '8px 20px', border: 'none', background: 'none', cursor: 'pointer',
+            fontWeight: 600, fontSize: 14,
+            borderBottom: activeTab === 'archived' ? '2px solid #6366f1' : '2px solid transparent',
+            color: activeTab === 'archived' ? '#6366f1' : '#6b7280',
+            marginBottom: -2
+          }}
+        >
+          Archived ({archivedQuizzes.length})
+        </button>
+      </div>
+
       {/* Clone Quiz Modal */}
       {cloningQuiz && (
         <div className="modal-overlay" style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -309,94 +372,172 @@ const QuizManagementPage: React.FC = () => {
 
       {/* Quizzes List */}
       <div className="quizzes-container">
-        {quizzes.length === 0 ? (
-          <div className="empty-state">
-            <h3>No quizzes yet</h3>
-            <p>Create your first quiz to get started</p>
-          </div>
-        ) : (
-          <div className="quizzes-table-wrapper">
-            <table className="quizzes-table">
-              <thead>
-                <tr>
-                  <th>Quiz Title</th>
-                  <th>Start Date & Time</th>
-                  <th>End Date & Time</th>
-                  <th>Status</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {quizzes.map(quiz => (
-                  <tr key={quiz._id} className="quiz-row">
-                    <td className="quiz-title">{quiz.title}</td>
-                    <td className="quiz-date">
-                      {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
-                    </td>
-                    <td className="quiz-date">
-                      {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
-                    </td>
-                    <td className="quiz-status">
-                      <span className={`status-badge ${getQuizStatus(quiz)}`}>
-                        {getQuizStatusLabel(quiz)}
-                      </span>
-                    </td>
-                    <td className="quiz-actions-cell">
-                      <div className="action-buttons">
-                        <Button
-                          onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                          className="btn-action btn-preview"
-                          title="Preview quiz"
-                        >
-                          👁️
-                        </Button>
-                        <Button
-                          onClick={() => navigate(`/quiz-results?quizId=${quiz._id}`)}
-                          className="btn-action btn-results"
-                          title="View quiz results"
-                        >
-                          📊
-                        </Button>
-                        {getQuizStatus(quiz) !== 'closed' && (
-                          <Button
-                            onClick={() => handleEditQuiz(quiz)}
-                            className="btn-action btn-edit"
-                            title="Edit quiz"
-                          >
-                            ✏️
-                          </Button>
-                        )}
-                        {getQuizStatus(quiz) !== 'closed' && (
-                          <Button
-                            onClick={() => handleLinkQuestions(quiz)}
-                            className="btn-action btn-link"
-                            title="Link questions from Question Bank"
-                          >
-                            🔗
-                          </Button>
-                        )}
-                        <Button
-                          onClick={() => handleDeleteQuiz(quiz._id)}
-                          className="btn-action btn-delete"
-                          title="Delete quiz"
-                        >
-                          🗑️
-                        </Button>
-                        <Button
-                          onClick={() => handleOpenClone(quiz)}
-                          className="btn-action btn-clone"
-                          title="Clone quiz for another batch"
-                        >
-                          📋
-                        </Button>
-                      </div>
-                    </td>
+
+        {/* ── Active tab ── */}
+        {activeTab === 'active' && (
+          quizzes.length === 0 ? (
+            <div className="empty-state">
+              <h3>No quizzes yet</h3>
+              <p>Create your first quiz to get started</p>
+            </div>
+          ) : (
+            <div className="quizzes-table-wrapper">
+              <table className="quizzes-table">
+                <thead>
+                  <tr>
+                    <th>Quiz Title</th>
+                    <th>Start Date & Time</th>
+                    <th>End Date & Time</th>
+                    <th>Status</th>
+                    <th>Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {quizzes.map(quiz => (
+                    <tr key={quiz._id} className="quiz-row">
+                      <td className="quiz-title">{quiz.title}</td>
+                      <td className="quiz-date">
+                        {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
+                      </td>
+                      <td className="quiz-date">
+                        {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
+                      </td>
+                      <td className="quiz-status">
+                        <span className={`status-badge ${getQuizStatus(quiz)}`}>
+                          {getQuizStatusLabel(quiz)}
+                        </span>
+                      </td>
+                      <td className="quiz-actions-cell">
+                        <div className="action-buttons">
+                          <Button
+                            onClick={() => navigate(`/quiz/${quiz._id}/take`)}
+                            className="btn-action btn-preview"
+                            title="Preview quiz"
+                          >
+                            👁️
+                          </Button>
+                          <Button
+                            onClick={() => navigate(`/quiz-results?quizId=${quiz._id}`)}
+                            className="btn-action btn-results"
+                            title="View quiz results"
+                          >
+                            📊
+                          </Button>
+                          {getQuizStatus(quiz) !== 'closed' && (
+                            <Button
+                              onClick={() => handleEditQuiz(quiz)}
+                              className="btn-action btn-edit"
+                              title="Edit quiz"
+                            >
+                              ✏️
+                            </Button>
+                          )}
+                          {getQuizStatus(quiz) !== 'closed' && (
+                            <Button
+                              onClick={() => handleLinkQuestions(quiz)}
+                              className="btn-action btn-link"
+                              title="Link questions from Question Bank"
+                            >
+                              🔗
+                            </Button>
+                          )}
+                          <Button
+                            onClick={() => handleArchiveQuiz(quiz._id)}
+                            className="btn-action"
+                            title="Archive quiz (hide from students, keep data)"
+                            style={{ opacity: 0.7 }}
+                          >
+                            📦
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteQuiz(quiz._id)}
+                            className="btn-action btn-delete"
+                            title="Delete quiz"
+                          >
+                            🗑️
+                          </Button>
+                          <Button
+                            onClick={() => handleOpenClone(quiz)}
+                            className="btn-action btn-clone"
+                            title="Clone quiz for another batch"
+                          >
+                            📋
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
         )}
+
+        {/* ── Archived tab ── */}
+        {activeTab === 'archived' && (
+          archivedQuizzes.length === 0 ? (
+            <div className="empty-state">
+              <h3>No archived quizzes</h3>
+              <p>Quizzes archived manually or auto-archived after 7 days will appear here</p>
+            </div>
+          ) : (
+            <div className="quizzes-table-wrapper">
+              <table className="quizzes-table">
+                <thead>
+                  <tr>
+                    <th>Quiz Title</th>
+                    <th>Start Date & Time</th>
+                    <th>End Date & Time</th>
+                    <th>Archived On</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {archivedQuizzes.map(quiz => (
+                    <tr key={quiz._id} className="quiz-row" style={{ opacity: 0.75 }}>
+                      <td className="quiz-title">{quiz.title}</td>
+                      <td className="quiz-date">
+                        {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
+                      </td>
+                      <td className="quiz-date">
+                        {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
+                      </td>
+                      <td className="quiz-date" style={{ color: '#9ca3af', fontSize: 13 }}>
+                        {quiz.archivedAt ? new Date(quiz.archivedAt).toLocaleDateString() : '—'}
+                      </td>
+                      <td className="quiz-actions-cell">
+                        <div className="action-buttons">
+                          <Button
+                            onClick={() => navigate(`/quiz-results?quizId=${quiz._id}`)}
+                            className="btn-action btn-results"
+                            title="View quiz results"
+                          >
+                            📊
+                          </Button>
+                          <Button
+                            onClick={() => handleUnarchiveQuiz(quiz._id)}
+                            className="btn-action btn-edit"
+                            title="Restore quiz to active"
+                          >
+                            ♻️
+                          </Button>
+                          <Button
+                            onClick={() => handleDeleteQuiz(quiz._id)}
+                            className="btn-action btn-delete"
+                            title="Delete permanently"
+                          >
+                            🗑️
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )
+        )}
+
       </div>
     </div>
   );

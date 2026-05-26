@@ -10,6 +10,7 @@ import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
 import { startDailySummaryScheduler } from './jobs/dailySummaryCron';
 import { startSlaCronScheduler } from './jobs/slaCron';
 import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
+import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -268,6 +269,9 @@ const startServer = async () => {
     // Start AI Voice Call worker (BullMQ)
     startAICallWorker();
     console.log('🤖 AI Call Worker started');
+
+    // Start quiz auto-archive scheduler
+    startArchiveQuizScheduler();
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

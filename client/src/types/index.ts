@@ -238,6 +238,7 @@ export interface Quiz {
   warningCount?: number;
   warnings?: number[];
   isActive: boolean;
+  archivedAt?: string;
   isAttempted?: boolean;
   lastAttemptMarks?: number;
   lastAttemptPassed?: boolean;

@@ -1395,6 +1395,20 @@ export const quizApi = {
     return authenticatedFetch(url, { method: 'GET' });
   },
 
+  // ========== ARCHIVING ==========
+
+  getArchivedQuizzes: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/archived`, { method: 'GET' });
+  },
+
+  archiveQuiz: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/archive`, { method: 'PATCH' });
+  },
+
+  unarchiveQuiz: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/unarchive`, { method: 'PATCH' });
+  },
+
   // ========== QUIZ REPORTS ==========
 
   // Get quiz report summary

@@ -7,6 +7,7 @@ export interface IQuiz extends Document {
   instructions?: string; // Instructions shown before quiz starts
   tenantId: string;
   createdBy: string; // Instructor ID
+  archivedAt?: Date; // Set when quiz is archived; null/undefined means active
   courseId?: mongoose.Types.ObjectId; // Optional course reference
   subjectId?: mongoose.Types.ObjectId; // Optional subject reference
   chapterId?: mongoose.Types.ObjectId; // Optional chapter reference
@@ -98,9 +99,12 @@ const quizSchema = new Schema<IQuiz>(
     warningCount: { type: Number, default: 0 },
     warnings: { type: [Number], default: [] }, // [50%, 75%, 90%] etc
     isActive: { type: Boolean, default: true },
-    isExternalQuiz: { type: Boolean, default: false }
+    isExternalQuiz: { type: Boolean, default: false },
+    archivedAt: { type: Date, default: null }
   },
   { timestamps: true }
 );
+
+quizSchema.index({ tenantId: 1, archivedAt: 1, endDate: 1 });
 
 export default mongoose.model<IQuiz>('Quiz', quizSchema);

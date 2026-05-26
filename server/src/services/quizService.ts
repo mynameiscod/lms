@@ -18,13 +18,20 @@ export class QuizService {
 
   // Get quizzes by chapter ID
   async getQuizzesByChapter(chapterId: string, tenantId: string): Promise<IQuiz[]> {
-    return Quiz.find({ chapterId, tenantId, isActive: true }).sort({ createdAt: -1 });
+    return Quiz.find({ chapterId, tenantId, isActive: true, archivedAt: null }).sort({ createdAt: -1 });
   }
 
   // Get all quizzes for a tenant with filters
   async getQuizzes(tenantId: string, filters?: any) {
     const query: any = { tenantId };
-    
+
+    if (filters?.view === 'archived') {
+      query.archivedAt = { $ne: null };
+    } else {
+      // Default: only non-archived quizzes
+      query.archivedAt = null;
+    }
+
     if (filters?.isActive !== undefined) {
       query.isActive = filters.isActive;
     }

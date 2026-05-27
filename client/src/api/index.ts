@@ -1698,6 +1698,19 @@ export const interviewQuestionApi = {
 };
 
 // Lead Stage API
+export const leadDispositionApi = {
+  getDispositions: async () =>
+    authenticatedFetch(`${API_BASE_URL}/lead-dispositions`),
+  getAllDispositions: async () =>
+    authenticatedFetch(`${API_BASE_URL}/lead-dispositions/all`),
+  createDisposition: async (data: { name: string; color: string; stageIds?: string[]; order?: number }) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-dispositions`, { method: 'POST', body: JSON.stringify(data) }),
+  updateDisposition: async (id: string, data: Partial<{ name: string; color: string; stageIds: string[]; order: number; isActive: boolean }>) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-dispositions/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteDisposition: async (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/lead-dispositions/${id}`, { method: 'DELETE' }),
+};
+
 export const leadStageApi = {
   getStages: async () => {
     return authenticatedFetch(`${API_BASE_URL}/lead-stages`);
@@ -1774,7 +1787,7 @@ export const leadApi = {
       body: JSON.stringify({ stageId, notInterestedReason })
     });
   },
-  addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string }, recordingFile?: File) => {
+  addActivity: async (leadId: string, data: { type: string; description: string; callOutcome?: string; disposition?: string }, recordingFile?: File) => {
     if (recordingFile) {
       // Use FormData so the audio file can be sent as multipart
       const formData = new FormData();
@@ -1882,8 +1895,10 @@ export const leadApi = {
     const qs = params ? '?' + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as any).toString() : '';
     return authenticatedFetch(`${API_BASE_URL}/leads/funnel-analytics${qs}`);
   },
-  getStaleFollowups: async (days = 2) => {
-    return authenticatedFetch(`${API_BASE_URL}/leads/stale-followups?days=${days}`);
+  getStaleFollowups: async (days = 2, stageIds?: string[]) => {
+    const qs = new URLSearchParams({ days: String(days) });
+    if (stageIds && stageIds.length > 0) qs.set('stageIds', stageIds.join(','));
+    return authenticatedFetch(`${API_BASE_URL}/leads/stale-followups?${qs.toString()}`);
   },
   getLeadActivities: async (leadId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`).then((r: any) => r?.data?.activities || []);

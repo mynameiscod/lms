@@ -138,6 +138,8 @@ const LeadsPage: React.FC = () => {
   const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
   const [whatsAppMessage, setWhatsAppMessage] = useState('');
 
+  const [myActivity, setMyActivity] = useState<any>(null);
+
   const [showWalkInModal, setShowWalkInModal] = useState(false);
   const [walkInForm, setWalkInForm] = useState({ name: '', phone: '', courseInterest: '' });
   const [walkInSaving, setWalkInSaving] = useState(false);
@@ -326,6 +328,13 @@ const LeadsPage: React.FC = () => {
   }, [search, filterStage, filterSource, filterAssignee, filterPriority, activeStageFilter, page, getDateFilters]);
 
   useEffect(()=>{loadData();},[loadData]);
+
+  // Load BDM's own today activity counts (non-critical)
+  useEffect(() => {
+    leadApi.getMyPerformance().then((res: any) => {
+      if (res?.data) setMyActivity(res.data);
+    }).catch(() => {});
+  }, []);
 
   // Open edit modal when navigating back from LeadDetail with edit state
   useEffect(() => {
@@ -691,6 +700,27 @@ const LeadsPage: React.FC = () => {
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {/* Today's Activity Widget — shown to non-admin BDM/staff */}
+      {myActivity && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', padding: '8px 16px', background: 'linear-gradient(135deg,#1e1b4b 0%,#312e81 100%)', borderRadius: 10, margin: '0 0 12px', color: '#fff', fontSize: 13 }}>
+          <span style={{ fontWeight: 700, marginRight: 4 }}>Today's Activity:</span>
+          {[
+            { icon: '📞', label: 'Calls', val: myActivity.todayByType?.call || 0 },
+            { icon: '💬', label: 'WhatsApp', val: myActivity.todayByType?.whatsapp || 0 },
+            { icon: '📝', label: 'Notes', val: myActivity.todayByType?.note || 0 },
+            { icon: '🔄', label: 'Stage moves', val: myActivity.todayByType?.stage_change || 0 },
+            { icon: '🎯', label: 'Leads touched', val: myActivity.uniqueleadsTouchedToday || 0 },
+          ].map(item => (
+            <span key={item.label} style={{ background: 'rgba(255,255,255,0.12)', borderRadius: 20, padding: '3px 10px', fontWeight: 600 }}>
+              {item.icon} {item.val} {item.label}
+            </span>
+          ))}
+          <span style={{ marginLeft: 'auto', color: 'rgba(255,255,255,0.6)', fontSize: 11 }}>
+            Week: {myActivity.weekActivities} · Month: {myActivity.monthActivities}
+          </span>
         </div>
       )}
 
@@ -1272,7 +1302,7 @@ const LeadsPage: React.FC = () => {
                     return(
                       <div className={isFullWidth?'col-12':'col-md-6'} key={field.fieldKey}>
                         <label className="form-label">{field.label}{field.required&&<span className="text-danger ms-1">*</span>}</label>
-                        <input className="form-control" type={field.type==='time'?'time':field.type} value={val} onChange={e=>onChange(e.target.value)} placeholder={field.placeholder||''}/>
+                        <input className="form-control" type={field.type==='time'?'time':field.type} value={val} onChange={e=>onChange(e.target.value)} placeholder={field.placeholder||''} maxLength={field.fieldKey==='phone'?13:undefined}/>
                       </div>
                     );
                   })}
@@ -1458,7 +1488,8 @@ const LeadsPage: React.FC = () => {
                     type="tel"
                     value={walkInForm.phone}
                     onChange={e => setWalkInForm(p => ({ ...p, phone: e.target.value }))}
-                    placeholder="Mobile number"
+                    placeholder="Mobile number (e.g. 9198765432)"
+                    maxLength={13}
                   />
                 </div>
                 <div className="mb-0">

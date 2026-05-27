@@ -208,6 +208,84 @@ const NextActionCard: React.FC<{
   );
 };
 
+// 3b. Quick Edit Bar — inline stage + course update
+const QuickEditBar: React.FC<{
+  lead: Lead;
+  stages: Stage[];
+  onStageChange: (stageId: string, stageName: string) => void;
+  onCourseChange: (course: string) => void;
+}> = ({ lead, stages, onStageChange, onCourseChange }) => {
+  const currentStageId = typeof lead.stageId === 'object' ? lead.stageId?._id : lead.stageId as string;
+  const [courseEdit, setCourseEdit] = useState(false);
+  const [courseVal, setCourseVal] = useState(lead.courseInterested || '');
+  const [saving, setSaving] = useState(false);
+
+  const handleCourseBlur = async () => {
+    if (courseVal !== lead.courseInterested) {
+      setSaving(true);
+      await onCourseChange(courseVal);
+      setSaving(false);
+    }
+    setCourseEdit(false);
+  };
+
+  const barStyle: React.CSSProperties = {
+    display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+    padding: '10px 16px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+    fontSize: 13
+  };
+
+  return (
+    <div style={barStyle}>
+      {/* Stage selector */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ color: '#64748b', fontWeight: 500 }}>Stage:</span>
+        <select
+          value={currentStageId || ''}
+          onChange={e => {
+            const sel = stages.find(s => s._id === e.target.value);
+            if (sel) onStageChange(sel._id, sel.name);
+          }}
+          style={{ border: '1.5px solid #c7d2fe', borderRadius: 7, padding: '4px 8px', fontSize: 13, fontWeight: 600, color: '#3730a3', background: '#eef2ff', cursor: 'pointer' }}
+        >
+          {stages.sort((a,b)=>a.order-b.order).map(s => (
+            <option key={s._id} value={s._id}>{s.name}</option>
+          ))}
+        </select>
+      </div>
+
+      <span style={{ color: '#cbd5e1' }}>|</span>
+
+      {/* Course interest inline edit */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ color: '#64748b', fontWeight: 500 }}>Course:</span>
+        {courseEdit ? (
+          <>
+            <input
+              autoFocus
+              value={courseVal}
+              onChange={e => setCourseVal(e.target.value)}
+              onBlur={handleCourseBlur}
+              onKeyDown={e => { if (e.key === 'Enter') handleCourseBlur(); if (e.key === 'Escape') setCourseEdit(false); }}
+              style={{ border: '1.5px solid #86efac', borderRadius: 7, padding: '4px 8px', fontSize: 13, width: 220, outline: 'none' }}
+              placeholder="e.g. Full Stack, Data Science"
+            />
+            {saving && <span style={{ fontSize: 11, color: '#6b7280' }}>Saving…</span>}
+          </>
+        ) : (
+          <span
+            onClick={() => { setCourseVal(lead.courseInterested || ''); setCourseEdit(true); }}
+            title="Click to edit"
+            style={{ color: lead.courseInterested ? '#0f766e' : '#9ca3af', fontWeight: 500, cursor: 'pointer', borderBottom: '1px dashed #94a3b8', paddingBottom: 1 }}
+          >
+            {lead.courseInterested || 'Click to add course'}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // 4. Stage Stepper Component
 const StageStepper: React.FC<{
   stages: Stage[];
@@ -780,18 +858,37 @@ const LeadDetailModern: React.FC = () => {
 
   const handleStageChange = async (newStage: string) => {
     try {
-      // Find the stage ID from the stage name
       const stage = stages.find(s => s.name === newStage);
       if (stage) {
         await leadApi.changeStage(leadId!, stage._id);
-      } else {
-        await leadApi.updateLead(leadId!, { stage: newStage });
       }
       setLead(prev => prev ? { ...prev, stage: newStage } : null);
       showToast(`Stage updated to ${newStage}`);
       fetchLead();
     } catch (error) {
       showToast('Failed to update stage', 'danger');
+    }
+  };
+
+  const handleQuickStageChange = async (stageId: string, stageName: string) => {
+    try {
+      await leadApi.changeStage(leadId!, stageId);
+      setLead(prev => prev ? { ...prev, stage: stageName, stageId } : null);
+      showToast(`Stage updated to ${stageName}`);
+      fetchLead();
+    } catch (error) {
+      showToast('Failed to update stage', 'danger');
+    }
+  };
+
+  const handleCourseUpdate = async (course: string) => {
+    try {
+      const courseArr = course.split(',').map(s => s.trim()).filter(Boolean);
+      await leadApi.updateLead(leadId!, { courseInterest: courseArr });
+      setLead(prev => prev ? { ...prev, courseInterested: course } : null);
+      showToast('Course interest updated');
+    } catch (error) {
+      showToast('Failed to update course', 'danger');
     }
   };
 
@@ -898,6 +995,14 @@ const LeadDetailModern: React.FC = () => {
         onWhatsApp={handleWhatsApp}
         onFollowUp={() => setShowFollowUpModal(true)}
         onConvert={handleConvert}
+      />
+
+      {/* Quick Edit Bar — stage + course inline */}
+      <QuickEditBar
+        lead={lead}
+        stages={stages}
+        onStageChange={handleQuickStageChange}
+        onCourseChange={handleCourseUpdate}
       />
 
       {/* Main Content */}

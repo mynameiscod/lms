@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi, meetingApi, leadFeeApi } from '../../api';
+import { leadApi, leadStageApi, leadFormConfigApi, leadAIApi, qualificationApi, salesContentApi, meetingApi, leadFeeApi, leadDispositionApi } from '../../api';
 import MeetingScheduler from '../../components/leads/MeetingScheduler';
 import PaymentLinkModal from '../../components/leads/PaymentLinkModal';
 import LostReasonModal from '../../components/leads/LostReasonModal';
@@ -51,7 +51,7 @@ interface SalesContent {
 
 interface Activity {
   _id: string; type: string; description: string;
-  callOutcome?: string; recordingUrl?: string;
+  callOutcome?: string; disposition?: string; recordingUrl?: string;
   createdBy: { firstName: string; lastName: string } | string;
   createdAt: string;
 }
@@ -356,6 +356,8 @@ const LeadDetail: React.FC = () => {
   const [activityType, setActivityType] = useState('note');
   const [activityDesc, setActivityDesc] = useState('');
   const [callOutcome, setCallOutcome] = useState('');
+  const [disposition, setDisposition] = useState('');
+  const [dispositions, setDispositions] = useState<{_id:string;name:string;color:string}[]>([]);
   const [recordingFile, setRecordingFile] = useState<File|null>(null);
   const [uploadingActivity, setUploadingActivity] = useState(false);
 
@@ -455,6 +457,12 @@ const LeadDetail: React.FC = () => {
 
   useEffect(()=>{loadData();},[loadData]);
 
+  useEffect(()=>{
+    leadDispositionApi.getDispositions().then((res:any)=>{
+      setDispositions(res.data||[]);
+    }).catch(()=>{});
+  },[]);
+
   const handleStageChange = async (newStageId:string) => {
     if (!lead) return;
     const targetStage=stages.find(s=>s._id===newStageId);
@@ -480,8 +488,9 @@ const LeadDetail: React.FC = () => {
       setUploadingActivity(true);
       const data:any={type:activityType,description:activityDesc};
       if(activityType==='call'&&callOutcome)data.callOutcome=callOutcome;
+      if(disposition)data.disposition=disposition;
       await leadApi.addActivity(lead._id,data,recordingFile||undefined);
-      setActivityDesc('');setCallOutcome('');setRecordingFile(null);
+      setActivityDesc('');setCallOutcome('');setDisposition('');setRecordingFile(null);
       await loadData();
     }catch(error:any){showAlertMsg('error',error.message||'Failed to add activity');}
     finally{setUploadingActivity(false); addActivityInFlight.current = false;}
@@ -971,7 +980,7 @@ const LeadDetail: React.FC = () => {
                   value={activityDesc}
                   onChange={e=>setActivityDesc(e.target.value)}/>
                 
-                {activityType === 'call' && (
+                {activityType === 'call' && dispositions.length === 0 && (
                   <div className="crm-call-options">
                     <div className="crm-call-outcome-label">Call Outcome</div>
                     <div className="crm-call-pills">
@@ -980,6 +989,21 @@ const LeadDetail: React.FC = () => {
                           className={`crm-call-pill${callOutcome === o.value ? ' active' : ''}`}
                           onClick={() => setCallOutcome(callOutcome === o.value ? '' : o.value)}>
                           {o.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {dispositions.length > 0 && (
+                  <div className="crm-call-options" style={{marginTop:8}}>
+                    <div className="crm-call-outcome-label">Disposition</div>
+                    <div className="crm-call-pills">
+                      {dispositions.map(d => (
+                        <button key={d._id}
+                          className={`crm-call-pill${disposition === d._id ? ' active' : ''}`}
+                          style={disposition === d._id ? {background: d.color, borderColor: d.color} : {borderColor: d.color, color: d.color}}
+                          onClick={() => setDisposition(disposition === d._id ? '' : d._id)}>
+                          {d.name}
                         </button>
                       ))}
                     </div>
@@ -1017,11 +1041,19 @@ const LeadDetail: React.FC = () => {
                              activity.type === 'whatsapp' ? 'WhatsApp' : 
                              activity.type === 'status_change' ? 'Stage Changed' :
                              activity.type === 'created' ? 'Lead Created' : 'Activity'}
-                            {activity.callOutcome && (
+                            {activity.callOutcome && !activity.disposition && (
                               <span className={`crm-outcome-badge ${activity.callOutcome}`} style={{marginLeft:8}}>
                                 {CALL_OUTCOMES.find(o=>o.value===activity.callOutcome)?.label || activity.callOutcome}
                               </span>
                             )}
+                            {activity.disposition && (() => {
+                              const d = dispositions.find(x=>x._id===activity.disposition);
+                              return d ? (
+                                <span style={{marginLeft:8,background:d.color,color:'#fff',borderRadius:10,padding:'1px 8px',fontSize:11,fontWeight:600}}>
+                                  {d.name}
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                           <div className="crm-activity-desc">{activity.description}</div>
                           <div className="crm-activity-meta">

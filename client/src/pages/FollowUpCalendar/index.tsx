@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { followUpApi, leadApi } from '../../api';
+import { followUpApi, leadApi, leadStageApi, leadDispositionApi } from '../../api';
 import './FollowUpCalendar.css';
 
 interface FollowUp {
@@ -28,17 +28,26 @@ function ActivityLogModal({ lead, onClose, onSaved }: ActivityModalProps) {
   const [type, setType] = useState<'note'|'call'|'whatsapp'|'email'>('note');
   const [description, setDescription] = useState('');
   const [callOutcome, setCallOutcome] = useState('');
+  const [disposition, setDisposition] = useState('');
+  const [dispositions, setDispositions] = useState<{_id:string;name:string;color:string}[]>([]);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
   const CALL_OUTCOMES = ['connected', 'not_answered', 'busy', 'not_connected', 'switched_off', 'wrong_number'];
   const TYPE_ICONS: Record<string,string> = { note: '📝', call: '📞', whatsapp: '💬', email: '📧' };
 
+  useEffect(() => {
+    leadDispositionApi.getDispositions().then((res:any) => setDispositions(res.data || [])).catch(()=>{});
+  }, []);
+
   const handleSave = async () => {
     if (!description.trim()) { setError('Please enter a description'); return; }
     setSaving(true); setError('');
     try {
-      await leadApi.addActivity(lead._id, { type, description, ...(type === 'call' && callOutcome ? { callOutcome } : {}) });
+      const data: any = { type, description };
+      if (type === 'call' && callOutcome) data.callOutcome = callOutcome;
+      if (disposition) data.disposition = disposition;
+      await leadApi.addActivity(lead._id, data);
       onSaved();
       onClose();
     } catch (e: any) {
@@ -71,12 +80,25 @@ function ActivityLogModal({ lead, onClose, onSaved }: ActivityModalProps) {
           ))}
         </div>
 
-        {type === 'call' && (
+        {type === 'call' && dispositions.length === 0 && (
           <select value={callOutcome} onChange={e => setCallOutcome(e.target.value)}
             style={{ width: '100%', padding: '8px 10px', border: '1px solid #e5e7eb', borderRadius: 8, marginBottom: 10, fontSize: 13 }}>
             <option value="">-- Call Outcome (optional) --</option>
             {CALL_OUTCOMES.map(o => <option key={o} value={o}>{o.replace(/_/g, ' ')}</option>)}
           </select>
+        )}
+        {dispositions.length > 0 && (
+          <div style={{ marginBottom: 10 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', marginBottom: 6, textTransform: 'uppercase' }}>Disposition</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {dispositions.map(d => (
+                <button key={d._id} onClick={() => setDisposition(disposition === d._id ? '' : d._id)}
+                  style={{ border: `2px solid ${d.color}`, background: disposition === d._id ? d.color : 'transparent', color: disposition === d._id ? '#fff' : d.color, borderRadius: 20, padding: '3px 10px', fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>
+                  {d.name}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
 
         <textarea
@@ -117,6 +139,10 @@ const FollowUpCalendar: React.FC = () => {
   const [staleData, setStaleData] = useState<any>(null);
   const [staleLoading, setStaleLoading] = useState(false);
   const [staleDays, setStaleDays] = useState(2);
+  const [customStaleDays, setCustomStaleDays] = useState('');
+  const [staleStageIds, setStaleStageIds] = useState<string[]>([]);
+  const [allStages, setAllStages] = useState<{_id:string;name:string;color:string}[]>([]);
+  const [staleBdmFilter, setStaleBdmFilter] = useState('');
   const [expandedBDM, setExpandedBDM] = useState<string | null>(null);
   const [activityLead, setActivityLead] = useState<any>(null);
 
@@ -190,15 +216,20 @@ const FollowUpCalendar: React.FC = () => {
     }).catch(() => {});
   }, [user]);
 
+  // Load all stages for stale filter
+  useEffect(() => {
+    leadStageApi.getStages().then((res:any) => setAllStages(res.data || [])).catch(()=>{});
+  }, []);
+
   // Load stale followup leads
   const loadStaleLeads = useCallback(async () => {
     setStaleLoading(true);
     try {
-      const res = await leadApi.getStaleFollowups(staleDays);
+      const res = await leadApi.getStaleFollowups(staleDays, staleStageIds.length > 0 ? staleStageIds : undefined);
       setStaleData(res?.data || null);
     } catch { setStaleData(null); }
     finally { setStaleLoading(false); }
-  }, [staleDays]);
+  }, [staleDays, staleStageIds]);
 
   useEffect(() => {
     if (mainTab === 'stale' && user?.role !== 'STUDENT') {
@@ -429,33 +460,89 @@ const FollowUpCalendar: React.FC = () => {
   }
 
   const renderStaleTab = () => {
-    if (staleLoading) return <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading stale leads...</div>;
-    if (!staleData) return <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Failed to load stale leads</div>;
+    // Controls rendered regardless of loading state
+    const controls = (
+      <div style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 12, padding: '16px', marginBottom: 20 }}>
+        {/* Stage selector */}
+        <div style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 8 }}>Filter by Stage</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {allStages.map(s => (
+              <button key={s._id} onClick={() => setStaleStageIds(prev => prev.includes(s._id) ? prev.filter(id=>id!==s._id) : [...prev, s._id])}
+                style={{ border: `1.5px solid ${staleStageIds.includes(s._id) ? s.color : '#d1d5db'}`, background: staleStageIds.includes(s._id) ? s.color+'22' : '#fff', borderRadius: 20, padding: '3px 10px', cursor: 'pointer', fontSize: 12, fontWeight: staleStageIds.includes(s._id) ? 700 : 400, color: staleStageIds.includes(s._id) ? s.color : '#6b7280' }}>
+                {s.name}
+              </button>
+            ))}
+            {staleStageIds.length > 0 && (
+              <button onClick={() => setStaleStageIds([])} style={{ border: '1.5px solid #e5e7eb', background: '#fff', borderRadius: 20, padding: '3px 10px', cursor: 'pointer', fontSize: 12, color: '#6b7280' }}>
+                Clear
+              </button>
+            )}
+          </div>
+          {staleStageIds.length === 0 && <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>No selection = auto-detect followup stages</div>}
+        </div>
 
-    const { byBDM, total, followupStages } = staleData;
+        {/* Days selector + BDM filter */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Stale after (days)</div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+              {[1,2,3,4,5,6,7].map(d => (
+                <button key={d} onClick={() => { setStaleDays(d); setCustomStaleDays(''); }} style={{
+                  padding: '4px 10px', border: `1.5px solid ${staleDays === d && !customStaleDays ? '#6366f1' : '#e5e7eb'}`,
+                  borderRadius: 6, background: staleDays === d && !customStaleDays ? '#eef2ff' : '#fff', cursor: 'pointer',
+                  fontSize: 12, fontWeight: staleDays === d && !customStaleDays ? 700 : 400, color: staleDays === d && !customStaleDays ? '#6366f1' : '#6b7280',
+                }}>{d}</button>
+              ))}
+              <input
+                type="number" min={1} max={365}
+                placeholder="Custom"
+                value={customStaleDays}
+                onChange={e => { setCustomStaleDays(e.target.value); if (e.target.value) setStaleDays(parseInt(e.target.value)||1); }}
+                style={{ width: 70, padding: '4px 8px', border: `1.5px solid ${customStaleDays ? '#6366f1' : '#e5e7eb'}`, borderRadius: 6, fontSize: 12 }}
+              />
+              <span style={{ fontSize: 11, color: '#9ca3af' }}>days</span>
+            </div>
+          </div>
+
+          {staleData && staleData.byBDM?.length > 1 && (
+            <div style={{ marginLeft: 'auto' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', marginBottom: 6 }}>Filter BDM</div>
+              <select value={staleBdmFilter} onChange={e => setStaleBdmFilter(e.target.value)}
+                style={{ padding: '5px 10px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 13 }}>
+                <option value="">All BDMs</option>
+                {staleData.byBDM.map((b:any) => (
+                  <option key={b.bdmId} value={b.bdmId}>{b.bdmName}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <button onClick={loadStaleLeads} style={{ padding: '6px 14px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600, alignSelf: 'flex-end' }}>
+            Apply &amp; Refresh
+          </button>
+        </div>
+      </div>
+    );
+
+    if (staleLoading) return <div>{controls}<div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading stale leads...</div></div>;
+    if (!staleData) return <div>{controls}<div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Failed to load. Try refreshing.</div></div>;
+
+    const { total, followupStages } = staleData;
+    const visibleBDM = staleBdmFilter
+      ? staleData.byBDM.filter((b:any) => b.bdmId === staleBdmFilter)
+      : staleData.byBDM;
 
     return (
       <div>
-        {/* Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
+        {controls}
+        {/* Summary */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
           <div style={{ background: total > 0 ? '#fee2e2' : '#dcfce7', color: total > 0 ? '#dc2626' : '#16a34a', borderRadius: 20, padding: '6px 16px', fontWeight: 700, fontSize: 14 }}>
             {total > 0 ? `🔴 ${total} Stale Leads` : '✅ No Stale Leads'}
           </div>
           <div style={{ fontSize: 13, color: '#6b7280' }}>
-            Followup stages: {followupStages?.map((s: any) => s.name).join(', ') || 'None found'}
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 13, color: '#6b7280' }}>Stale after:</span>
-            {[1, 2, 3, 5, 7].map(d => (
-              <button key={d} onClick={() => setStaleDays(d)} style={{
-                padding: '4px 10px', border: `1.5px solid ${staleDays === d ? '#6366f1' : '#e5e7eb'}`,
-                borderRadius: 6, background: staleDays === d ? '#eef2ff' : '#fff', cursor: 'pointer',
-                fontSize: 12, fontWeight: staleDays === d ? 700 : 400, color: staleDays === d ? '#6366f1' : '#6b7280',
-              }}>{d}d</button>
-            ))}
-            <button onClick={loadStaleLeads} style={{ padding: '4px 12px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
-              Refresh
-            </button>
+            Checking: {followupStages?.map((s: any) => s.name).join(', ') || 'None found'}
           </div>
         </div>
 
@@ -467,7 +554,7 @@ const FollowUpCalendar: React.FC = () => {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {byBDM.map((bdm: any) => (
+            {visibleBDM.map((bdm: any) => (
               <div key={bdm.bdmId} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,.05)' }}>
                 {/* BDM header */}
                 <div

@@ -130,6 +130,7 @@ export interface ILeadActivity {
   callStatus?: CallStatus;
   callDuration?: number;  // Duration in seconds
   recordingUrl?: string;
+  disposition?: string;
   createdBy: mongoose.Types.ObjectId;
   createdAt: Date;
   metadata?: Record<string, any>;
@@ -277,6 +278,10 @@ const LeadActivitySchema: Schema = new Schema(
       min: 0
     },
     recordingUrl: {
+      type: String,
+      trim: true
+    },
+    disposition: {
       type: String,
       trim: true
     },

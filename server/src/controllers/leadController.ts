@@ -530,7 +530,7 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { name, email, phone, courseInterest, source, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes } = req.body;
+    const { name, email, phone, courseInterest, source, stageId, assignedTo, nextFollowUp, notes, interestConcerns, notInterestedReason, customFields, priority, demoBookedAt, demoNotes } = req.body;
 
     const scopeFilter = await buildLeadScopeFilter(req);
 
@@ -544,6 +544,8 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
 
     const oldAssignedToId = currentLead.assignedTo ? String((currentLead.assignedTo as any)._id) : null;
     const newAssignedToId = assignedTo !== undefined ? (assignedTo || null) : oldAssignedToId;
+    const oldStageId = currentLead.stageId ? String(currentLead.stageId) : null;
+    const stageChanged = stageId && stageId !== oldStageId;
 
     const lead = await Lead.findOneAndUpdate(
       { _id: leadId, tenantId: req.tenantId, ...scopeFilter },
@@ -553,6 +555,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
         ...(phone && { phone }),
         ...(courseInterest && { courseInterest }),
         ...(source && { source }),
+        ...(stageId && { stageId }),
         ...(assignedTo !== undefined && { assignedTo: assignedTo || null }),
         ...(nextFollowUp !== undefined && { nextFollowUp: nextFollowUp || null }),
         ...(notes !== undefined && { notes }),
@@ -592,6 +595,25 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
             createdBy: req.user!.id,
             createdAt: new Date(),
             metadata: { from: oldAssignedToId, to: newAssignedToId }
+          }
+        }
+      });
+    }
+
+    // Log stage_change activity when stage was changed via edit form
+    if (stageChanged) {
+      const newStageDoc = await LeadStage.findById(stageId).select('name');
+      const oldStageDoc = oldStageId ? await LeadStage.findById(oldStageId).select('name') : null;
+      const actorUser = await User.findById(req.user!.id).select('firstName lastName');
+      const actorName = actorUser ? `${(actorUser as any).firstName} ${(actorUser as any).lastName}` : 'Someone';
+      await Lead.findByIdAndUpdate(leadId, {
+        $push: {
+          activities: {
+            type: 'stage_change',
+            description: `Stage changed from "${oldStageDoc?.name || 'Unknown'}" to "${newStageDoc?.name || 'Unknown'}" by ${actorName}`,
+            createdBy: req.user!.id,
+            createdAt: new Date(),
+            metadata: { from: oldStageId, to: stageId }
           }
         }
       });
@@ -795,7 +817,7 @@ export const approveStageChange = async (req: AuthenticatedRequest, res: Respons
 export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const { leadId } = req.params;
-    const { type, description, callOutcome, callDuration, callStatus } = req.body;
+    const { type, description, callOutcome, callDuration, callStatus, disposition } = req.body;
 
     if (!type || !description) {
       return res.status(400).json({ success: false, message: 'Activity type and description are required' });
@@ -822,6 +844,7 @@ export const addLeadActivity = async (req: AuthenticatedRequest, res: Response<A
       if (callDuration !== undefined) activityData.callDuration = callDuration;
       if (callStatus) activityData.callStatus = callStatus;
     }
+    if (disposition) activityData.disposition = disposition;
     // Attach uploaded recording URL if a file was provided
     if (req.file) {
       activityData.recordingUrl = `/uploads/recordings/${req.file.filename}`;
@@ -1316,21 +1339,21 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
       Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId }),
       Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $gte: today, $lte: todayEnd } }),
       Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $lt: today, $ne: null } }),
-      // Count activities added today by this user
+      // Count ALL activities today by this user across all tenant leads
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $match: { tenantId: req.tenantId as any } },
         { $unwind: '$activities' },
         { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
         { $count: 'count' }
       ]),
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $match: { tenantId: req.tenantId as any } },
         { $unwind: '$activities' },
         { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: weekStart } } },
         { $count: 'count' }
       ]),
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $match: { tenantId: req.tenantId as any } },
         { $unwind: '$activities' },
         { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: monthStart } } },
         { $count: 'count' }
@@ -1339,9 +1362,9 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
         { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
         { $group: { _id: '$stageId', count: { $sum: 1 } } }
       ]),
-      // Last 10 activities by this user
+      // Last 10 activities by this user across all leads
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $match: { tenantId: req.tenantId as any } },
         { $unwind: '$activities' },
         { $match: { 'activities.createdBy': userId as any } },
         { $sort: { 'activities.createdAt': -1 } },
@@ -1355,6 +1378,25 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
     const stageMap: Record<string, string> = {};
     stages.forEach((s: any) => { stageMap[s._id.toString()] = s.name; });
 
+    // Today's breakdown by activity type
+    const todayTypeBreakdown = await Lead.aggregate([
+      { $match: { tenantId: req.tenantId as any } },
+      { $unwind: '$activities' },
+      { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
+      { $group: { _id: '$activities.type', count: { $sum: 1 } } }
+    ]);
+    const todayByType: Record<string, number> = {};
+    todayTypeBreakdown.forEach((t: any) => { todayByType[t._id || 'other'] = t.count; });
+
+    // Count unique leads touched today
+    const uniqueleadsTouchedToday = await Lead.aggregate([
+      { $match: { tenantId: req.tenantId as any } },
+      { $unwind: '$activities' },
+      { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
+      { $group: { _id: '$_id' } },
+      { $count: 'count' }
+    ]);
+
     res.json({
       success: true,
       message: 'Performance data fetched',
@@ -1365,6 +1407,8 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
         todayActivities: todayActivities[0]?.count || 0,
         weekActivities: weekActivities[0]?.count || 0,
         monthActivities: monthActivities[0]?.count || 0,
+        todayByType,
+        uniqueleadsTouchedToday: uniqueleadsTouchedToday[0]?.count || 0,
         stageBreakdown: stageBreakdown.map((s: any) => ({
           stageId: s._id,
           name: stageMap[s._id?.toString()] || 'Unknown',
@@ -1781,24 +1825,32 @@ export const updateLeadFee = async (req: AuthenticatedRequest, res: Response<Api
 };
 
 // ─── STALE FOLLOWUP LEADS ────────────────────────────────────────────────────
-// Returns leads that are in any "followup" stage AND have had no logged activity
+// Returns leads in configured stages that have had no logged activity
 // for more than `days` days (default 2). Grouped by assigned BDM.
 export const getStaleFollowupLeads = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
   try {
     const staleDays = parseInt((req.query.days as string) || '2', 10);
     const cutoff = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
+    const rawStageIds = req.query.stageIds as string | undefined;
 
-    // Find stages whose name contains "followup" (case-insensitive)
-    const followupStages = await LeadStage.find({
-      tenantId: req.tenantId,
-      name: { $regex: /followup|follow.up|follow up/i },
-    }).select('_id name color');
-
-    if (followupStages.length === 0) {
-      return res.json({ success: true, message: 'No followup stages found', data: { leads: [], byBDM: [], total: 0 } });
+    let targetStages: any[];
+    if (rawStageIds) {
+      // Caller explicitly selected stages
+      const ids = rawStageIds.split(',').map(id => id.trim()).filter(Boolean);
+      targetStages = await LeadStage.find({ tenantId: req.tenantId, _id: { $in: ids } }).select('_id name color');
+    } else {
+      // Fallback: auto-detect "followup"-named stages
+      targetStages = await LeadStage.find({
+        tenantId: req.tenantId,
+        name: { $regex: /followup|follow.up|follow up/i },
+      }).select('_id name color');
     }
 
-    const stageIds = followupStages.map(s => s._id);
+    if (targetStages.length === 0) {
+      return res.json({ success: true, message: 'No matching stages found', data: { leads: [], byBDM: [], total: 0 } });
+    }
+
+    const stageIds = targetStages.map(s => s._id);
 
     // Leads in followup stages where lastActionAt is null or before cutoff
     const staleLeads = await Lead.find({
@@ -1848,7 +1900,7 @@ export const getStaleFollowupLeads = async (req: AuthenticatedRequest, res: Resp
     res.json({
       success: true,
       message: 'Stale followup leads fetched',
-      data: { leads: enriched, byBDM, total: enriched.length, staleDays, followupStages },
+      data: { leads: enriched, byBDM, total: enriched.length, staleDays, followupStages: targetStages },
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch stale leads', error: error.message });

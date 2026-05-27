@@ -126,6 +126,9 @@ export interface Assignment {
   subject?: { _id: string; title: string } | string;
   chapter?: { _id: string; title: string } | string;
   batch?: { _id: string; name: string };
+  accessibleTo?: 'everyone' | 'batch_wise' | 'individual';
+  selectedBatches?: string[];
+  selectedStudents?: string[];
   allowedLanguages: ProgrammingLanguage[];
   testCases: TestCase[];
   starterCode: StarterCode[];

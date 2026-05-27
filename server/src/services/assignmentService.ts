@@ -33,6 +33,9 @@ interface CreateAssignmentInput {
   subject?: Types.ObjectId;
   chapter?: Types.ObjectId;
   batch?: Types.ObjectId;
+  accessibleTo?: 'everyone' | 'batch_wise' | 'individual';
+  selectedBatches?: string[];
+  selectedStudents?: string[];
   allowedLanguages?: ProgrammingLanguage[];
   testCases?: any[];
   starterCode?: any[];
@@ -252,23 +255,31 @@ class AssignmentService {
   // Send email notifications to students about new assignment
   private async sendAssignmentNotifications(assignment: IAssignment, tenant: Types.ObjectId): Promise<void> {
     try {
-      // Build query to filter students - only students in the assignment's batch if specified
-      const studentQuery: any = {
-        tenantId: tenant,
-        role: 'student',
-        isActive: true
-      };
-      
-      // If assignment has a specific batch, only send to students in that batch
-      if (assignment.batch) {
-        studentQuery.batchId = assignment.batch;
-      }
-      
-      // Get students based on query
-      const students = await User.find(studentQuery).select('firstName lastName email');
+      const accessibleTo = (assignment as any).accessibleTo || 'everyone';
+      let students: any[] = [];
 
-      console.log(`📧 Sending assignment notifications to ${students.length} students` + 
-        (assignment.batch ? ` (batch: ${assignment.batch})` : ' (all students)'));
+      if (accessibleTo === 'everyone') {
+        students = await User.find({ tenantId: tenant, role: 'STUDENT', isActive: true }).select('firstName lastName email');
+      } else if (accessibleTo === 'batch_wise' && (assignment as any).selectedBatches?.length) {
+        students = await User.find({
+          tenantId: tenant,
+          role: 'STUDENT',
+          isActive: true,
+          batchId: { $in: (assignment as any).selectedBatches }
+        }).select('firstName lastName email');
+      } else if (accessibleTo === 'individual' && (assignment as any).selectedStudents?.length) {
+        students = await User.find({
+          _id: { $in: (assignment as any).selectedStudents },
+          tenantId: tenant,
+          role: 'STUDENT',
+          isActive: true
+        }).select('firstName lastName email');
+      } else if (assignment.batch) {
+        // legacy single-batch
+        students = await User.find({ tenantId: tenant, role: 'STUDENT', isActive: true, batchId: assignment.batch }).select('firstName lastName email');
+      }
+
+      console.log(`📧 Sending assignment notifications to ${students.length} students (accessibleTo: ${accessibleTo})`);
 
       for (const student of students) {
         try {
@@ -338,12 +349,23 @@ class AssignmentService {
       status: AssignmentStatus.PUBLISHED
     };
     
-    if (batch) {
-      query.$or = [
-        { batch },
-        { batch: { $exists: false } }
-      ];
-    }
+    const studentIdStr = studentId.toString();
+    const batchIdStr = batch ? batch.toString() : null;
+
+    // New access-control model: match by accessibleTo field
+    // Legacy records (no accessibleTo field): fall back to old batch logic
+    query.$or = [
+      { accessibleTo: 'everyone' },
+      ...(batchIdStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchIdStr }] : []),
+      { accessibleTo: 'individual', selectedStudents: studentIdStr },
+      // legacy: has no accessibleTo, batch matches or no batch set
+      ...(batchIdStr ? [
+        { accessibleTo: { $exists: false }, batch },
+        { accessibleTo: { $exists: false }, batch: null }
+      ] : [
+        { accessibleTo: { $exists: false } }
+      ])
+    ];
 
     const assignments = await Assignment.find(query)
       .select('title description type difficulty totalPoints dueDate startDate topics')

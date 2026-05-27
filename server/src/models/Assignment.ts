@@ -107,6 +107,11 @@ export interface IAssignment extends Document {
   subject?: Types.ObjectId;
   chapter?: Types.ObjectId;
   batch?: Types.ObjectId;
+
+  // Access Control
+  accessibleTo?: 'everyone' | 'batch_wise' | 'individual';
+  selectedBatches?: string[];
+  selectedStudents?: string[];
   
   // Coding Assignment Fields
   allowedLanguages: ProgrammingLanguage[];
@@ -222,6 +227,11 @@ const AssignmentSchema = new Schema<IAssignment>({
   subject: { type: Schema.Types.ObjectId, ref: 'Subject', index: true },
   chapter: { type: Schema.Types.ObjectId, ref: 'Chapter', index: true },
   batch: { type: Schema.Types.ObjectId, ref: 'Batch', index: true },
+
+  // Access Control
+  accessibleTo: { type: String, enum: ['everyone', 'batch_wise', 'individual'], default: 'everyone' },
+  selectedBatches: [{ type: String }],
+  selectedStudents: [{ type: String }],
   
   // Coding Assignment Fields
   allowedLanguages: [{ type: String, enum: Object.values(ProgrammingLanguage) }],

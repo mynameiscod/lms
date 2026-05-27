@@ -69,8 +69,8 @@ export const createQuiz = async (req: Request, res: Response) => {
       console.error('Failed to create announcement:', annError);
     }
 
-    // Send email notifications to target students
-    try {
+    // Send email notifications to target students (skip for external quizzes — they use token links)
+    if (!rest.isExternalQuiz) try {
       const emailService = new EmailService();
       let targetStudents: any[] = [];
 

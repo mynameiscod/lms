@@ -3,7 +3,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { Button, Input, Alert } from '../common';
 import { Batch } from '../../types';
-import { courseApi, subjectApi, chapterApi } from '../../api';
+import { courseApi, subjectApi, chapterApi, userApi } from '../../api';
 import './QuizWizard.css';
 
 interface Course {
@@ -149,6 +149,10 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [chapters, setChapters] = useState<Chapter[]>([]);
 
+  // Individual student picker state
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [studentSearch, setStudentSearch] = useState('');
+
   // Rich text editor configuration
   const quillModules = useMemo(() => ({
     toolbar: [
@@ -202,6 +206,22 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       setFormData(prev => ({ ...prev, subjectId: '', chapterId: '' }));
     }
   }, [formData.courseId]);
+
+  // Fetch all students when individual access is selected
+  useEffect(() => {
+    if (formData.accessibleTo === 'individual' && allStudents.length === 0) {
+      const fetchStudents = async () => {
+        try {
+          const res = await userApi.getUsers();
+          const users = res.users || res.data || res || [];
+          setAllStudents(users.filter((u: any) => u.role === 'STUDENT'));
+        } catch (err) {
+          console.error('Failed to fetch students:', err);
+        }
+      };
+      fetchStudents();
+    }
+  }, [formData.accessibleTo]);
 
   // Fetch chapters when subject changes
   useEffect(() => {
@@ -821,67 +841,70 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
 
             {formData.accessibleTo === 'individual' && (
               <div className="form-group full">
-                <label>Select Students *</label>
-                <div className="form-group">
-                  <input
-                    type="text"
-                    placeholder="Search students by name or email..."
-                    className="text-input"
-                    id="studentSearch"
-                    style={{ marginBottom: '0.5rem' }}
-                  />
-                </div>
-                <div style={{ 
-                  maxHeight: '300px', 
-                  overflowY: 'auto', 
-                  border: '1px solid #ddd', 
+                <label>Select Students <span style={{ fontWeight: 400, color: '#6c757d' }}>({formData.selectedStudents.length} selected)</span></label>
+                <input
+                  type="text"
+                  placeholder="Search by name or email..."
+                  className="text-input"
+                  value={studentSearch}
+                  onChange={(e) => setStudentSearch(e.target.value)}
+                  style={{ marginBottom: '0.5rem' }}
+                />
+                <div style={{
+                  maxHeight: '280px',
+                  overflowY: 'auto',
+                  border: '1px solid #ddd',
                   borderRadius: '4px',
-                  padding: '0.5rem'
+                  padding: '0.25rem'
                 }}>
-                  {formData.selectedStudents && formData.selectedStudents.length > 0 ? (
-                    <div>
-                      <p style={{ margin: '0.5rem 0', fontWeight: 'bold', fontSize: '0.9rem' }}>
-                        {formData.selectedStudents.length} student(s) selected
-                      </p>
-                      {formData.selectedStudents.map((studentId, index) => (
-                        <div 
-                          key={studentId} 
-                          style={{ 
-                            display: 'flex', 
-                            justifyContent: 'space-between', 
-                            alignItems: 'center',
-                            padding: '0.5rem',
-                            backgroundColor: '#f8f9fa',
-                            marginBottom: '0.3rem',
-                            borderRadius: '3px'
-                          }}
-                        >
-                          <span style={{ fontSize: '0.95rem' }}>Student ID: {studentId}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleStudentToggle(studentId)}
-                            style={{ 
-                              background: 'none', 
-                              border: 'none', 
-                              color: '#dc3545', 
-                              cursor: 'pointer', 
-                              fontSize: '1.5rem',
-                              padding: '0'
+                  {allStudents.length === 0 ? (
+                    <p style={{ color: '#6c757d', margin: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
+                      Loading students...
+                    </p>
+                  ) : (() => {
+                    const query = studentSearch.toLowerCase();
+                    const filtered = allStudents.filter(s => {
+                      const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+                      const email = (s.email || '').toLowerCase();
+                      return !query || name.includes(query) || email.includes(query);
+                    });
+                    return filtered.length === 0 ? (
+                      <p style={{ color: '#6c757d', margin: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>No students match</p>
+                    ) : (
+                      filtered.map((student) => {
+                        const isSelected = formData.selectedStudents.includes(student._id);
+                        return (
+                          <label
+                            key={student._id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.5rem',
+                              padding: '0.4rem 0.5rem',
+                              borderRadius: '3px',
+                              cursor: 'pointer',
+                              backgroundColor: isSelected ? '#e8f4fd' : 'transparent',
+                              marginBottom: '2px'
                             }}
-                            title="Remove student"
                           >
-                            ×
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p style={{ color: '#6c757d', margin: '1rem 0' }}>No students selected yet</p>
-                  )}
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => handleStudentToggle(student._id)}
+                              style={{ flexShrink: 0 }}
+                            />
+                            <span style={{ fontSize: '0.9rem' }}>
+                              {student.firstName} {student.lastName}
+                              <span style={{ color: '#6c757d', marginLeft: '0.4rem', fontSize: '0.82rem' }}>
+                                {student.email}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })
+                    );
+                  })()}
                 </div>
-                <p style={{ fontSize: '0.85rem', color: '#6c757d', marginTop: '0.5rem' }}>
-                  Note: You can enter student IDs or select from enrolled students. Contact admin to add students to specific quizzes.
-                </p>
               </div>
             )}
           </div>

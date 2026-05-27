@@ -12,7 +12,7 @@ import {
   RubricItem,
   MCQQuestion
 } from '../../api/assignmentApi';
-import { courseApi, subjectApi, chapterApi, quizApi } from '../../api';
+import { courseApi, subjectApi, chapterApi, quizApi, batchApi, userApi } from '../../api';
 import './assignments.css';
 
 type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'settings';
@@ -85,6 +85,14 @@ const AdminAssignmentForm: React.FC = () => {
   const [latePenaltyPercent, setLatePenaltyPercent] = useState(10);
   const [publishImmediately, setPublishImmediately] = useState(true);
   
+  // Access Control
+  const [accessibleTo, setAccessibleTo] = useState<'everyone' | 'batch_wise' | 'individual'>('everyone');
+  const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [allBatches, setAllBatches] = useState<any[]>([]);
+  const [allStudents, setAllStudents] = useState<any[]>([]);
+  const [studentSearch, setStudentSearch] = useState('');
+
   // Code Execution Settings
   const [showSyntaxErrors, setShowSyntaxErrors] = useState(true);
   const [showTestCaseResults, setShowTestCaseResults] = useState(true);
@@ -159,6 +167,35 @@ const AdminAssignmentForm: React.FC = () => {
     };
     loadCourses();
   }, []);
+
+  // Load batches on mount
+  useEffect(() => {
+    const loadBatches = async () => {
+      try {
+        const res = await batchApi.getBatches();
+        setAllBatches(res.batches || res.data || res || []);
+      } catch (err) {
+        console.error('Failed to load batches:', err);
+      }
+    };
+    loadBatches();
+  }, []);
+
+  // Load students when individual access is selected
+  useEffect(() => {
+    if (accessibleTo === 'individual' && allStudents.length === 0) {
+      const loadStudents = async () => {
+        try {
+          const res = await userApi.getUsers();
+          const users = res.users || res.data || res || [];
+          setAllStudents(users.filter((u: any) => u.role === 'STUDENT'));
+        } catch (err) {
+          console.error('Failed to load students:', err);
+        }
+      };
+      loadStudents();
+    }
+  }, [accessibleTo]);
 
   // Load subjects when course changes
   useEffect(() => {
@@ -274,6 +311,11 @@ const AdminAssignmentForm: React.FC = () => {
       setAllowLateSubmission(a.settings?.allowLateSubmission ?? false);
       setLatePenaltyPercent(a.settings?.latePenaltyPercent || 10);
       
+      // Access control
+      if (a.accessibleTo) setAccessibleTo(a.accessibleTo);
+      if (a.selectedBatches) setSelectedBatches(a.selectedBatches);
+      if (a.selectedStudents) setSelectedStudents(a.selectedStudents);
+
       // Code execution settings
       setShowSyntaxErrors(a.showSyntaxErrors ?? true);
       setShowTestCaseResults(a.showTestCaseResults ?? true);
@@ -334,7 +376,10 @@ const AdminAssignmentForm: React.FC = () => {
         showExpectedOutput,
         enablePlagiarismCheck,
         enableCamera,
-        enableMicrophone
+        enableMicrophone,
+        accessibleTo,
+        selectedBatches: accessibleTo === 'batch_wise' ? selectedBatches : [],
+        selectedStudents: accessibleTo === 'individual' ? selectedStudents : []
       };
 
       if (isEdit) {
@@ -889,6 +934,97 @@ const AdminAssignmentForm: React.FC = () => {
                     </button>
                   </span>
                 ))}
+              </div>
+            </div>
+
+            {/* Access Control */}
+            <div className="form-section" style={{ marginTop: '24px', marginBottom: '16px' }}>
+              <h4 className="section-title" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>Access Control <span style={{ fontWeight: 400, fontSize: '13px', color: '#6b7280' }}>(Optional)</span></h4>
+              <p className="section-description" style={{ padding: '8px 16px 0', margin: 0, fontSize: '13px' }}>Control who can see this assignment</p>
+              <div style={{ padding: '12px 16px' }}>
+                <div className="form-group">
+                  <label className="form-label">Accessible To</label>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {(['everyone', 'batch_wise', 'individual'] as const).map((opt) => (
+                      <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 12px', border: `1px solid ${accessibleTo === opt ? '#3b82f6' : '#d1d5db'}`, borderRadius: '6px', background: accessibleTo === opt ? '#eff6ff' : '#fff' }}>
+                        <input type="radio" name="accessibleTo" value={opt} checked={accessibleTo === opt} onChange={() => setAccessibleTo(opt)} />
+                        <span style={{ fontSize: '13px', fontWeight: 500 }}>
+                          {opt === 'everyone' ? 'Everyone' : opt === 'batch_wise' ? 'By Batch' : 'Individual Students'}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {accessibleTo === 'batch_wise' && (
+                  <div className="form-group">
+                    <label className="form-label">Select Batches</label>
+                    <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px' }}>
+                      {allBatches.length === 0 ? (
+                        <p style={{ color: '#6b7280', margin: '8px', fontSize: '13px' }}>No batches found</p>
+                      ) : allBatches.map((batch: any) => (
+                        <label key={batch._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedBatches.includes(batch._id)}
+                            onChange={() => setSelectedBatches(prev =>
+                              prev.includes(batch._id) ? prev.filter(id => id !== batch._id) : [...prev, batch._id]
+                            )}
+                          />
+                          <span style={{ fontSize: '13px' }}>{batch.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    {selectedBatches.length > 0 && (
+                      <small className="form-hint">{selectedBatches.length} batch(es) selected</small>
+                    )}
+                  </div>
+                )}
+
+                {accessibleTo === 'individual' && (
+                  <div className="form-group">
+                    <label className="form-label">Select Students <span style={{ fontWeight: 400, color: '#6b7280' }}>({selectedStudents.length} selected)</span></label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Search by name or email..."
+                      value={studentSearch}
+                      onChange={(e) => setStudentSearch(e.target.value)}
+                      style={{ marginBottom: '8px' }}
+                    />
+                    <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px' }}>
+                      {allStudents.length === 0 ? (
+                        <p style={{ color: '#6b7280', margin: '12px', textAlign: 'center', fontSize: '13px' }}>Loading students...</p>
+                      ) : (() => {
+                        const q = studentSearch.toLowerCase();
+                        const filtered = allStudents.filter((s: any) => {
+                          const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+                          return !q || name.includes(q) || (s.email || '').toLowerCase().includes(q);
+                        });
+                        return filtered.length === 0 ? (
+                          <p style={{ color: '#6b7280', margin: '12px', textAlign: 'center', fontSize: '13px' }}>No students match</p>
+                        ) : filtered.map((student: any) => {
+                          const isSelected = selectedStudents.includes(student._id);
+                          return (
+                            <label key={student._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', background: isSelected ? '#eff6ff' : 'transparent' }}>
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => setSelectedStudents(prev =>
+                                  prev.includes(student._id) ? prev.filter(id => id !== student._id) : [...prev, student._id]
+                                )}
+                              />
+                              <span style={{ fontSize: '13px' }}>
+                                {student.firstName} {student.lastName}
+                                <span style={{ color: '#6b7280', marginLeft: '6px', fontSize: '12px' }}>{student.email}</span>
+                              </span>
+                            </label>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

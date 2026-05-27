@@ -89,6 +89,7 @@ const AdminAssignmentForm: React.FC = () => {
   const [accessibleTo, setAccessibleTo] = useState<'everyone' | 'batch_wise' | 'individual'>('everyone');
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [isExternalAssignment, setIsExternalAssignment] = useState(false);
   const [allBatches, setAllBatches] = useState<any[]>([]);
   const [allStudents, setAllStudents] = useState<any[]>([]);
   const [studentSearch, setStudentSearch] = useState('');
@@ -315,6 +316,7 @@ const AdminAssignmentForm: React.FC = () => {
       if (a.accessibleTo) setAccessibleTo(a.accessibleTo);
       if (a.selectedBatches) setSelectedBatches(a.selectedBatches);
       if (a.selectedStudents) setSelectedStudents(a.selectedStudents);
+      if (a.isExternalAssignment !== undefined) setIsExternalAssignment(a.isExternalAssignment);
 
       // Code execution settings
       setShowSyntaxErrors(a.showSyntaxErrors ?? true);
@@ -377,9 +379,10 @@ const AdminAssignmentForm: React.FC = () => {
         enablePlagiarismCheck,
         enableCamera,
         enableMicrophone,
-        accessibleTo,
-        selectedBatches: accessibleTo === 'batch_wise' ? selectedBatches : [],
-        selectedStudents: accessibleTo === 'individual' ? selectedStudents : []
+        accessibleTo: isExternalAssignment ? 'everyone' : accessibleTo,
+        selectedBatches: (!isExternalAssignment && accessibleTo === 'batch_wise') ? selectedBatches : [],
+        selectedStudents: (!isExternalAssignment && accessibleTo === 'individual') ? selectedStudents : [],
+        isExternalAssignment,
       };
 
       if (isEdit) {
@@ -939,92 +942,83 @@ const AdminAssignmentForm: React.FC = () => {
 
             {/* Access Control */}
             <div className="form-section" style={{ marginTop: '24px', marginBottom: '16px' }}>
-              <h4 className="section-title" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>Access Control <span style={{ fontWeight: 400, fontSize: '13px', color: '#6b7280' }}>(Optional)</span></h4>
-              <p className="section-description" style={{ padding: '8px 16px 0', margin: 0, fontSize: '13px' }}>Control who can see this assignment</p>
-              <div style={{ padding: '12px 16px' }}>
-                <div className="form-group">
-                  <label className="form-label">Accessible To</label>
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {(['everyone', 'batch_wise', 'individual'] as const).map((opt) => (
-                      <label key={opt} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', padding: '6px 12px', border: `1px solid ${accessibleTo === opt ? '#3b82f6' : '#d1d5db'}`, borderRadius: '6px', background: accessibleTo === opt ? '#eff6ff' : '#fff' }}>
-                        <input type="radio" name="accessibleTo" value={opt} checked={accessibleTo === opt} onChange={() => setAccessibleTo(opt)} />
-                        <span style={{ fontSize: '13px', fontWeight: 500 }}>
-                          {opt === 'everyone' ? 'Everyone' : opt === 'batch_wise' ? 'By Batch' : 'Individual Students'}
-                        </span>
-                      </label>
-                    ))}
+              <h4 className="section-title" style={{ padding: '12px 16px', margin: 0, borderBottom: '1px solid #e5e7eb', background: '#f9fafb' }}>🎯 Who can do this assignment?</h4>
+              <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+                {/* Track A: Internal */}
+                <div onClick={() => setIsExternalAssignment(false)} style={{ border: `2px solid ${!isExternalAssignment ? '#6366f1' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', background: !isExternalAssignment ? '#f5f3ff' : '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: !isExternalAssignment ? 14 : 0 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${!isExternalAssignment ? '#6366f1' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {!isExternalAssignment && <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#6366f1' }} />}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>🎓 Internal Students</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>Assign to your LMS students. They will see it on their dashboard.</div>
+                    </div>
+                  </div>
+                  {!isExternalAssignment && (
+                    <div style={{ paddingLeft: 28 }}>
+                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+                        {([['everyone','🌍 All Students'],['batch_wise','📦 By Batch'],['individual','👤 Specific Students']] as const).map(([val, lbl]) => (
+                          <button key={val} type="button" onClick={e => { e.stopPropagation(); setAccessibleTo(val); setSelectedBatches([]); setSelectedStudents([]); }}
+                            style={{ border: `1.5px solid ${accessibleTo === val ? '#6366f1' : '#e5e7eb'}`, borderRadius: 20, padding: '4px 12px', background: accessibleTo === val ? '#eef2ff' : '#fff', color: accessibleTo === val ? '#6366f1' : '#6b7280', fontWeight: accessibleTo === val ? 700 : 400, cursor: 'pointer', fontSize: 12 }}>
+                            {lbl}
+                          </button>
+                        ))}
+                      </div>
+
+                      {accessibleTo === 'batch_wise' && (
+                        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
+                          {allBatches.length === 0 ? <span style={{ color: '#9ca3af', fontSize: 13 }}>No batches</span> : allBatches.map((batch: any) => (
+                            <label key={batch._id} style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1.5px solid ${selectedBatches.includes(batch._id) ? '#6366f1' : '#e5e7eb'}`, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', background: selectedBatches.includes(batch._id) ? '#eef2ff' : '#fff', fontSize: 13 }}>
+                              <input type="checkbox" checked={selectedBatches.includes(batch._id)} onChange={() => setSelectedBatches(prev => prev.includes(batch._id) ? prev.filter(id => id !== batch._id) : [...prev, batch._id])} style={{ accentColor: '#6366f1' }} />
+                              {batch.name}
+                            </label>
+                          ))}
+                        </div>
+                      )}
+
+                      {accessibleTo === 'individual' && (
+                        <div onClick={e => e.stopPropagation()}>
+                          <input type="text" className="form-control" placeholder="Search by name or email..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} style={{ marginBottom: 8, fontSize: 13 }} />
+                          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 4 }}>
+                            {allStudents.length === 0 ? <p style={{ color: '#9ca3af', margin: '12px', textAlign: 'center', fontSize: 13 }}>Loading students...</p> : (() => {
+                              const q = studentSearch.toLowerCase();
+                              const filtered = allStudents.filter((s: any) => {
+                                const name = `${s.firstName||''} ${s.lastName||''}`.toLowerCase();
+                                return !q || name.includes(q) || (s.email||'').toLowerCase().includes(q);
+                              });
+                              return filtered.length === 0 ? <p style={{ color: '#9ca3af', margin: '12px', textAlign: 'center', fontSize: 13 }}>No match</p> : filtered.map((student: any) => {
+                                const isSel = selectedStudents.includes(student._id);
+                                return (
+                                  <label key={student._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 6, cursor: 'pointer', background: isSel ? '#eef2ff' : 'transparent' }}>
+                                    <input type="checkbox" checked={isSel} onChange={() => setSelectedStudents(prev => prev.includes(student._id) ? prev.filter(id => id !== student._id) : [...prev, student._id])} style={{ accentColor: '#6366f1' }} />
+                                    <span style={{ fontSize: 13 }}>{student.firstName} {student.lastName} <span style={{ color: '#9ca3af', fontSize: 12 }}>{student.email}</span></span>
+                                  </label>
+                                );
+                              });
+                            })()}
+                          </div>
+                          {selectedStudents.length > 0 && <small style={{ color: '#6366f1', fontSize: 12, marginTop: 4, display: 'block' }}>{selectedStudents.length} student(s) selected</small>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Track B: External */}
+                <div onClick={() => setIsExternalAssignment(true)} style={{ border: `2px solid ${isExternalAssignment ? '#f97316' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', background: isExternalAssignment ? '#fff7ed' : '#fff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${isExternalAssignment ? '#f97316' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      {isExternalAssignment && <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#f97316' }} />}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>🌐 External / Open Assignment</div>
+                      <div style={{ fontSize: 12, color: '#6b7280' }}>For external participants via a shareable link. Not shown on the student dashboard. No email sent.</div>
+                    </div>
                   </div>
                 </div>
 
-                {accessibleTo === 'batch_wise' && (
-                  <div className="form-group">
-                    <label className="form-label">Select Batches</label>
-                    <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '6px', padding: '8px' }}>
-                      {allBatches.length === 0 ? (
-                        <p style={{ color: '#6b7280', margin: '8px', fontSize: '13px' }}>No batches found</p>
-                      ) : allBatches.map((batch: any) => (
-                        <label key={batch._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 0', cursor: 'pointer' }}>
-                          <input
-                            type="checkbox"
-                            checked={selectedBatches.includes(batch._id)}
-                            onChange={() => setSelectedBatches(prev =>
-                              prev.includes(batch._id) ? prev.filter(id => id !== batch._id) : [...prev, batch._id]
-                            )}
-                          />
-                          <span style={{ fontSize: '13px' }}>{batch.name}</span>
-                        </label>
-                      ))}
-                    </div>
-                    {selectedBatches.length > 0 && (
-                      <small className="form-hint">{selectedBatches.length} batch(es) selected</small>
-                    )}
-                  </div>
-                )}
-
-                {accessibleTo === 'individual' && (
-                  <div className="form-group">
-                    <label className="form-label">Select Students <span style={{ fontWeight: 400, color: '#6b7280' }}>({selectedStudents.length} selected)</span></label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Search by name or email..."
-                      value={studentSearch}
-                      onChange={(e) => setStudentSearch(e.target.value)}
-                      style={{ marginBottom: '8px' }}
-                    />
-                    <div style={{ maxHeight: '240px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '6px', padding: '4px' }}>
-                      {allStudents.length === 0 ? (
-                        <p style={{ color: '#6b7280', margin: '12px', textAlign: 'center', fontSize: '13px' }}>Loading students...</p>
-                      ) : (() => {
-                        const q = studentSearch.toLowerCase();
-                        const filtered = allStudents.filter((s: any) => {
-                          const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
-                          return !q || name.includes(q) || (s.email || '').toLowerCase().includes(q);
-                        });
-                        return filtered.length === 0 ? (
-                          <p style={{ color: '#6b7280', margin: '12px', textAlign: 'center', fontSize: '13px' }}>No students match</p>
-                        ) : filtered.map((student: any) => {
-                          const isSelected = selectedStudents.includes(student._id);
-                          return (
-                            <label key={student._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '5px 8px', borderRadius: '4px', cursor: 'pointer', background: isSelected ? '#eff6ff' : 'transparent' }}>
-                              <input
-                                type="checkbox"
-                                checked={isSelected}
-                                onChange={() => setSelectedStudents(prev =>
-                                  prev.includes(student._id) ? prev.filter(id => id !== student._id) : [...prev, student._id]
-                                )}
-                              />
-                              <span style={{ fontSize: '13px' }}>
-                                {student.firstName} {student.lastName}
-                                <span style={{ color: '#6b7280', marginLeft: '6px', fontSize: '12px' }}>{student.email}</span>
-                              </span>
-                            </label>
-                          );
-                        });
-                      })()}
-                    </div>
-                  </div>
-                )}
               </div>
             </div>
 

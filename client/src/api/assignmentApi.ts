@@ -129,6 +129,7 @@ export interface Assignment {
   accessibleTo?: 'everyone' | 'batch_wise' | 'individual';
   selectedBatches?: string[];
   selectedStudents?: string[];
+  isExternalAssignment?: boolean;
   allowedLanguages: ProgrammingLanguage[];
   testCases: TestCase[];
   starterCode: StarterCode[];

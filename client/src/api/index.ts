@@ -1144,6 +1144,17 @@ export const quizApi = {
     });
   },
 
+  getNonAttendees: async (quizId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/non-attendees`, { method: 'GET' });
+  },
+
+  reassignNonAttendees: async (quizId: string, extendDays = 0) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/reassign-non-attendees`, {
+      method: 'POST',
+      body: JSON.stringify({ extendDays })
+    });
+  },
+
   // Questions
   createQuestion: async (quizId: string, questionData: any) => {
     // Map frontend field names to backend field names

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { quizApi, batchApi } from '../../api';
 import { Button, Alert, Spinner } from '../../components/common';
@@ -31,6 +31,12 @@ const QuizManagementPage: React.FC = () => {
   const [cloning, setCloning] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
+  // Non-attendees modal
+  const [nonAttendeesQuiz, setNonAttendeesQuiz] = useState<Quiz | null>(null);
+  const [nonAttendeesData, setNonAttendeesData] = useState<any>(null);
+  const [nonAttendeesLoading, setNonAttendeesLoading] = useState(false);
+  const [extendDays, setExtendDays] = useState(3);
+  const [reassigning, setReassigning] = useState(false);
 
   useEffect(() => {
     fetchQuizzes();
@@ -176,6 +182,43 @@ const QuizManagementPage: React.FC = () => {
     }
   };
 
+  const openNonAttendees = useCallback(async (quiz: Quiz) => {
+    setNonAttendeesQuiz(quiz);
+    setNonAttendeesData(null);
+    setNonAttendeesLoading(true);
+    try {
+      const res = await quizApi.getNonAttendees(quiz._id);
+      setNonAttendeesData(res.data);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load non-attendees');
+    } finally {
+      setNonAttendeesLoading(false);
+    }
+  }, []);
+
+  const handleReassign = async () => {
+    if (!nonAttendeesQuiz) return;
+    setReassigning(true);
+    try {
+      const res = await quizApi.reassignNonAttendees(nonAttendeesQuiz._id, extendDays);
+      setSuccess(res.message || 'Reassigned successfully');
+      setNonAttendeesQuiz(null);
+      fetchQuizzes();
+    } catch (err: any) {
+      setError(err.message || 'Failed to reassign');
+    } finally {
+      setReassigning(false);
+    }
+  };
+
+  const getAudienceBadge = (quiz: Quiz) => {
+    const q = quiz as any;
+    if (q.isExternalQuiz) return { label: '🌐 Public Link', color: '#f97316', bg: '#fff7ed' };
+    if (q.accessibleTo === 'batch_wise') return { label: `📦 ${q.selectedBatches?.length || 0} Batch${(q.selectedBatches?.length || 0) !== 1 ? 'es' : ''}`, color: '#7c3aed', bg: '#f5f3ff' };
+    if (q.accessibleTo === 'individual') return { label: `👤 ${q.selectedStudents?.length || 0} Student${(q.selectedStudents?.length || 0) !== 1 ? 's' : ''}`, color: '#0891b2', bg: '#ecfeff' };
+    return { label: '🌍 All Students', color: '#059669', bg: '#ecfdf5' };
+  };
+
   const getQuizStatus = (quiz: Quiz): string => {
     try {
       const now = new Date();
@@ -308,6 +351,86 @@ const QuizManagementPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Non-Attendees Modal */}
+      {nonAttendeesQuiz && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: 14, padding: 28, width: '100%', maxWidth: 560, maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+              <div>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>👥 Non-Attendees</h3>
+                <div style={{ fontSize: 13, color: '#6b7280', marginTop: 4 }}>{nonAttendeesQuiz.title}</div>
+              </div>
+              <button onClick={() => setNonAttendeesQuiz(null)} style={{ background: 'none', border: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>
+            </div>
+
+            {nonAttendeesLoading ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#6b7280' }}>Loading...</div>
+            ) : nonAttendeesData ? (
+              <>
+                {/* Stats */}
+                <div style={{ display: 'flex', gap: 12, marginBottom: 16 }}>
+                  {[
+                    { label: 'Total audience', val: nonAttendeesData.total, color: '#6b7280' },
+                    { label: 'Submitted', val: nonAttendeesData.submitted, color: '#16a34a' },
+                    { label: 'Not attempted', val: nonAttendeesData.notAttempted, color: '#dc2626' },
+                  ].map(s => (
+                    <div key={s.label} style={{ flex: 1, textAlign: 'center', background: '#f9fafb', borderRadius: 10, padding: '10px 8px' }}>
+                      <div style={{ fontSize: 22, fontWeight: 700, color: s.color }}>{s.val}</div>
+                      <div style={{ fontSize: 11, color: '#9ca3af' }}>{s.label}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Non-attendee list */}
+                {nonAttendeesData.notAttempted > 0 ? (
+                  <>
+                    <div style={{ flex: 1, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, marginBottom: 16 }}>
+                      {nonAttendeesData.nonAttendees.map((s: any) => (
+                        <div key={s._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', borderBottom: '1px solid #f3f4f6' }}>
+                          <div style={{ width: 30, height: 30, borderRadius: '50%', background: '#fef3c7', color: '#92400e', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
+                            {(s.firstName?.[0] || '?').toUpperCase()}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13 }}>{s.firstName} {s.lastName}</div>
+                            <div style={{ fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.email}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 14px', marginBottom: 16 }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, marginBottom: 8 }}>🔄 Reassign to these {nonAttendeesData.notAttempted} students</div>
+                      <div style={{ fontSize: 12, color: '#6b7280', marginBottom: 10 }}>Quiz will be switched to "Individual" mode targeting only non-attendees. A reminder email will be sent.</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <label style={{ fontSize: 13, color: '#374151' }}>Extend deadline by:</label>
+                        {[0, 1, 2, 3, 5, 7].map(d => (
+                          <button key={d} onClick={() => setExtendDays(d)} style={{ padding: '3px 10px', border: `1.5px solid ${extendDays === d ? '#6366f1' : '#e5e7eb'}`, borderRadius: 6, background: extendDays === d ? '#eef2ff' : '#fff', color: extendDays === d ? '#6366f1' : '#6b7280', cursor: 'pointer', fontSize: 12, fontWeight: extendDays === d ? 700 : 400 }}>
+                            {d === 0 ? 'No change' : `+${d}d`}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+                      <Button onClick={() => setNonAttendeesQuiz(null)} className="btn-secondary" disabled={reassigning}>Cancel</Button>
+                      <Button onClick={handleReassign} className="btn-primary" disabled={reassigning}>
+                        {reassigning ? 'Reassigning...' : `🔄 Reassign + Send Reminder`}
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '30px 20px', background: '#f0fdf4', borderRadius: 10 }}>
+                    <div style={{ fontSize: 36, marginBottom: 8 }}>✅</div>
+                    <div style={{ fontWeight: 700, color: '#16a34a' }}>All students have submitted!</div>
+                    <button onClick={() => setNonAttendeesQuiz(null)} style={{ marginTop: 16, padding: '8px 20px', background: '#6366f1', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>Close</button>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      )}
+
       {/* Clone Quiz Modal */}
       {cloningQuiz && (
         <div className="modal-overlay" style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', zIndex:1000, display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -386,6 +509,7 @@ const QuizManagementPage: React.FC = () => {
                 <thead>
                   <tr>
                     <th>Quiz Title</th>
+                    <th>Audience</th>
                     <th>Start Date & Time</th>
                     <th>End Date & Time</th>
                     <th>Status</th>
@@ -396,6 +520,9 @@ const QuizManagementPage: React.FC = () => {
                   {quizzes.map(quiz => (
                     <tr key={quiz._id} className="quiz-row">
                       <td className="quiz-title">{quiz.title}</td>
+                      <td>
+                        {(() => { const b = getAudienceBadge(quiz); return <span style={{ background: b.bg, color: b.color, borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{b.label}</span>; })()}
+                      </td>
                       <td className="quiz-date">
                         {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
                       </td>
@@ -463,6 +590,16 @@ const QuizManagementPage: React.FC = () => {
                           >
                             📋
                           </Button>
+                          {!(quiz as any).isExternalQuiz && (
+                            <Button
+                              onClick={() => openNonAttendees(quiz)}
+                              className="btn-action"
+                              title="View & reassign non-attendees"
+                              style={{ background: '#fef3c7', color: '#92400e' }}
+                            >
+                              👥
+                            </Button>
+                          )}
                         </div>
                       </td>
                     </tr>

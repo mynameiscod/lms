@@ -755,3 +755,132 @@ export const getArchivedQuizzes = async (req: Request, res: Response) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// ─── Non-Attendees ────────────────────────────────────────────────────────────
+// Returns students who were in the quiz's target audience but never submitted.
+export const getNonAttendees = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const tenantId = (req as any).tenantId;
+
+    const quiz = await Quiz.findOne({ _id: quizId, tenantId });
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+    // Build the target audience
+    let targetStudents: any[] = [];
+    if (quiz.accessibleTo === 'individual') {
+      targetStudents = await User.find({
+        _id: { $in: quiz.selectedStudents },
+        tenantId,
+        role: 'STUDENT',
+        isActive: true,
+      }).select('_id firstName lastName email batchId').lean();
+    } else if (quiz.accessibleTo === 'batch_wise') {
+      targetStudents = await User.find({
+        tenantId,
+        role: 'STUDENT',
+        isActive: true,
+        batchId: { $in: quiz.selectedBatches },
+      }).select('_id firstName lastName email batchId').lean();
+    } else {
+      // everyone
+      targetStudents = await User.find({
+        tenantId,
+        role: 'STUDENT',
+        isActive: true,
+      }).select('_id firstName lastName email batchId').lean();
+    }
+
+    // Find students who have submitted
+    const submitted = await QuizAttempt.find({
+      quizId,
+      status: { $in: ['submitted', 'grading'] },
+    }).distinct('studentId');
+    const submittedSet = new Set(submitted.map((id: any) => id.toString()));
+
+    const nonAttendees = targetStudents.filter(
+      (s: any) => !submittedSet.has(s._id.toString())
+    );
+
+    res.json({
+      success: true,
+      data: {
+        total: targetStudents.length,
+        submitted: submittedSet.size,
+        notAttempted: nonAttendees.length,
+        nonAttendees,
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Reassign a quiz to only the non-attendees (flip to individual mode + send reminder).
+export const reassignNonAttendees = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const tenantId = (req as any).tenantId;
+    const { extendDays = 0 } = req.body;
+
+    const quiz = await Quiz.findOne({ _id: quizId, tenantId });
+    if (!quiz) return res.status(404).json({ success: false, message: 'Quiz not found' });
+
+    // Build non-attendees (same logic as getNonAttendees)
+    let targetStudents: any[] = [];
+    if (quiz.accessibleTo === 'individual') {
+      targetStudents = await User.find({ _id: { $in: quiz.selectedStudents }, tenantId, role: 'STUDENT', isActive: true }).select('_id firstName lastName email').lean();
+    } else if (quiz.accessibleTo === 'batch_wise') {
+      targetStudents = await User.find({ tenantId, role: 'STUDENT', isActive: true, batchId: { $in: quiz.selectedBatches } }).select('_id firstName lastName email').lean();
+    } else {
+      targetStudents = await User.find({ tenantId, role: 'STUDENT', isActive: true }).select('_id firstName lastName email').lean();
+    }
+    const submitted = await QuizAttempt.find({ quizId, status: { $in: ['submitted', 'grading'] } }).distinct('studentId');
+    const submittedSet = new Set(submitted.map((id: any) => id.toString()));
+    const nonAttendees = targetStudents.filter((s: any) => !submittedSet.has(s._id.toString()));
+
+    if (nonAttendees.length === 0) {
+      return res.json({ success: true, message: 'All students have already submitted', data: { reassigned: 0 } });
+    }
+
+    const nonAttendeeIds = nonAttendees.map((s: any) => s._id.toString());
+    const newEndDate = extendDays > 0
+      ? new Date(new Date(quiz.endDate).getTime() + extendDays * 24 * 60 * 60 * 1000)
+      : quiz.endDate;
+
+    await Quiz.findByIdAndUpdate(quizId, {
+      accessibleTo: 'individual',
+      selectedStudents: nonAttendeeIds,
+      selectedBatches: [],
+      endDate: newEndDate,
+      isActive: true,
+      archivedAt: null,
+    });
+
+    // Send reminder emails
+    const emailService = new EmailService();
+    const emailPromises = nonAttendees.map((student: any) =>
+      emailService.sendQuizNotificationEmail(
+        student.email,
+        `${student.firstName} ${student.lastName}`,
+        `[Reminder] ${quiz.title}`,
+        quiz.description,
+        new Date(quiz.startDate),
+        new Date(newEndDate),
+        quiz.totalTime,
+        quiz.totalMarks,
+        quiz.startTime,
+        quiz.endTime
+      ).catch(() => {})
+    );
+    await Promise.all(emailPromises);
+
+    res.json({
+      success: true,
+      message: `Quiz reassigned to ${nonAttendees.length} non-attendees${extendDays > 0 ? `, deadline extended by ${extendDays} day(s)` : ''}`,
+      data: { reassigned: nonAttendees.length },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};

@@ -112,6 +112,7 @@ export interface IAssignment extends Document {
   accessibleTo?: 'everyone' | 'batch_wise' | 'individual';
   selectedBatches?: string[];
   selectedStudents?: string[];
+  isExternalAssignment?: boolean; // token/link-based, not shown on dashboard
   
   // Coding Assignment Fields
   allowedLanguages: ProgrammingLanguage[];
@@ -232,6 +233,7 @@ const AssignmentSchema = new Schema<IAssignment>({
   accessibleTo: { type: String, enum: ['everyone', 'batch_wise', 'individual'], default: 'everyone' },
   selectedBatches: [{ type: String }],
   selectedStudents: [{ type: String }],
+  isExternalAssignment: { type: Boolean, default: false },
   
   // Coding Assignment Fields
   allowedLanguages: [{ type: String, enum: Object.values(ProgrammingLanguage) }],

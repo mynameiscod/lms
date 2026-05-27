@@ -764,149 +764,149 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       {/* Step 4: Access Control */}
       {step === 4 && (
         <div className="wizard-step">
-          <h3>🔒 Access Control</h3>
+          <h3>🎯 Who can take this quiz?</h3>
           <div className="step-content">
-            <div className="form-group">
-              <label>Access Level</label>
-              <select
-                name="access"
-                value={formData.access}
-                onChange={handleInputChange}
-                className="select-input"
-              >
-                <option value="public">Public (Everyone can see)</option>
-                <option value="private">Private (Restricted)</option>
-              </select>
-              <small style={{ display: 'block', marginTop: '0.5rem', color: '#666', fontSize: '0.85rem' }}>
-                {formData.access === 'private' 
-                  ? '🔒 Private: Only students you specifically grant access to can view this quiz'
-                  : '🌍 Public: All students in the selected batches can see and access this quiz'}
-              </small>
-            </div>
 
-            <div className="form-group">
-              <label>Accessible To</label>
-              <select
-                name="accessibleTo"
-                value={formData.accessibleTo}
-                onChange={handleInputChange}
-                className="select-input"
-              >
-                <option value="everyone">Everyone</option>
-                <option value="batch_wise">Specific Batches</option>
-                <option value="individual">Individual Students</option>
-              </select>
-            </div>
+            {/* Track A: Internal Students */}
+            <div
+              onClick={() => setFormData((prev: any) => ({ ...prev, isExternalQuiz: false }))}
+              style={{
+                border: `2px solid ${!(formData as any).isExternalQuiz ? '#6366f1' : '#e5e7eb'}`,
+                borderRadius: 12,
+                padding: '16px 20px',
+                marginBottom: 14,
+                cursor: 'pointer',
+                background: !(formData as any).isExternalQuiz ? '#f5f3ff' : '#fff',
+                transition: 'all 0.15s'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: !(formData as any).isExternalQuiz ? 16 : 0 }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${!(formData as any).isExternalQuiz ? '#6366f1' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {!(formData as any).isExternalQuiz && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1' }} />}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>🎓 Internal Students</div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>Assign to your LMS students. They will see this quiz on their dashboard and receive an email.</div>
+                </div>
+              </div>
 
-            <div className="form-group" style={{ marginTop: '1.25rem' }}>
-              <label
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', cursor: 'pointer', userSelect: 'none' }}
-              >
-                <input
-                  type="checkbox"
-                  checked={(formData as any).isExternalQuiz || false}
-                  onChange={e => setFormData((prev: any) => ({ ...prev, isExternalQuiz: e.target.checked }))}
-                  style={{ width: 18, height: 18, marginTop: 2, flexShrink: 0, cursor: 'pointer', accentColor: '#e05c1a' }}
-                />
-                <span>
-                  <strong>External / Public Quiz</strong>
-                  <small style={{ display: 'block', color: '#666', fontWeight: 400, marginTop: 2 }}>
-                    This quiz is for external participants (e.g. Tech Battle). It will <strong>not</strong> appear on the internal student dashboard — access is via a personal link only. You can still optionally include specific internal students later.
-                  </small>
-                </span>
-              </label>
-            </div>
+              {!(formData as any).isExternalQuiz && (
+                <div style={{ paddingLeft: 32 }}>
+                  {/* Sub-selection */}
+                  <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+                    {[
+                      { value: 'everyone', label: '🌍 All Students' },
+                      { value: 'batch_wise', label: '📦 By Batch' },
+                      { value: 'individual', label: '👤 Specific Students' },
+                    ].map(opt => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={e => { e.stopPropagation(); setFormData((prev: any) => ({ ...prev, accessibleTo: opt.value, selectedBatches: [], selectedStudents: [] })); }}
+                        style={{
+                          border: `1.5px solid ${formData.accessibleTo === opt.value ? '#6366f1' : '#e5e7eb'}`,
+                          borderRadius: 20,
+                          padding: '5px 14px',
+                          background: formData.accessibleTo === opt.value ? '#eef2ff' : '#fff',
+                          color: formData.accessibleTo === opt.value ? '#6366f1' : '#6b7280',
+                          fontWeight: formData.accessibleTo === opt.value ? 700 : 400,
+                          cursor: 'pointer',
+                          fontSize: 13,
+                        }}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
 
-            {formData.accessibleTo === 'batch_wise' && (
-              <div className="form-group full">
-                <label>Select Batches *</label>
-                <div className="batch-list">
-                  {batches.length > 0 ? (
-                    batches.map(batch => (
-                      <label key={batch._id} className="checkbox-label">
-                        <input
-                          type="checkbox"
-                          checked={formData.selectedBatches.includes(batch._id)}
-                          onChange={() => handleBatchToggle(batch._id)}
-                        />
-                        <span>{batch.name}</span>
-                      </label>
-                    ))
-                  ) : (
-                    <p className="no-batches">No batches available</p>
+                  {formData.accessibleTo === 'batch_wise' && (
+                    <div style={{ marginBottom: 8 }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#374151' }}>Select Batch(es) *</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                        {batches.length > 0 ? batches.map(batch => (
+                          <label key={batch._id} onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1.5px solid ${formData.selectedBatches.includes(batch._id) ? '#6366f1' : '#e5e7eb'}`, borderRadius: 8, padding: '6px 12px', cursor: 'pointer', background: formData.selectedBatches.includes(batch._id) ? '#eef2ff' : '#fff', fontSize: 13 }}>
+                            <input type="checkbox" checked={formData.selectedBatches.includes(batch._id)} onChange={() => handleBatchToggle(batch._id)} style={{ accentColor: '#6366f1' }} />
+                            {batch.name}
+                          </label>
+                        )) : <span style={{ color: '#9ca3af', fontSize: 13 }}>No batches available</span>}
+                      </div>
+                    </div>
+                  )}
+
+                  {formData.accessibleTo === 'individual' && (
+                    <div onClick={e => e.stopPropagation()}>
+                      <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: '#374151' }}>
+                        Select Students <span style={{ fontWeight: 400, color: '#6b7280' }}>({formData.selectedStudents.length} selected)</span>
+                      </div>
+                      <input
+                        type="text"
+                        placeholder="Search by name or email..."
+                        className="text-input"
+                        value={studentSearch}
+                        onChange={e => setStudentSearch(e.target.value)}
+                        style={{ marginBottom: 8, fontSize: 13 }}
+                      />
+                      <div style={{ maxHeight: 240, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 4 }}>
+                        {allStudents.length === 0 ? (
+                          <p style={{ color: '#9ca3af', margin: '1rem', textAlign: 'center', fontSize: 13 }}>Loading students...</p>
+                        ) : (() => {
+                          const q = studentSearch.toLowerCase();
+                          const filtered = allStudents.filter(s => {
+                            const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
+                            return !q || name.includes(q) || (s.email || '').toLowerCase().includes(q);
+                          });
+                          return filtered.length === 0
+                            ? <p style={{ color: '#9ca3af', margin: '1rem', textAlign: 'center', fontSize: 13 }}>No match</p>
+                            : filtered.map(student => {
+                              const isSel = formData.selectedStudents.includes(student._id);
+                              return (
+                                <label key={student._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 6, cursor: 'pointer', background: isSel ? '#eef2ff' : 'transparent', marginBottom: 2 }}>
+                                  <input type="checkbox" checked={isSel} onChange={() => handleStudentToggle(student._id)} style={{ accentColor: '#6366f1', flexShrink: 0 }} />
+                                  <span style={{ fontSize: 13 }}>
+                                    {student.firstName} {student.lastName}
+                                    <span style={{ color: '#9ca3af', marginLeft: 6, fontSize: 12 }}>{student.email}</span>
+                                  </span>
+                                </label>
+                              );
+                            });
+                        })()}
+                      </div>
+                    </div>
                   )}
                 </div>
-              </div>
-            )}
+              )}
+            </div>
 
-            {formData.accessibleTo === 'individual' && (
-              <div className="form-group full">
-                <label>Select Students <span style={{ fontWeight: 400, color: '#6c757d' }}>({formData.selectedStudents.length} selected)</span></label>
-                <input
-                  type="text"
-                  placeholder="Search by name or email..."
-                  className="text-input"
-                  value={studentSearch}
-                  onChange={(e) => setStudentSearch(e.target.value)}
-                  style={{ marginBottom: '0.5rem' }}
-                />
-                <div style={{
-                  maxHeight: '280px',
-                  overflowY: 'auto',
-                  border: '1px solid #ddd',
-                  borderRadius: '4px',
-                  padding: '0.25rem'
-                }}>
-                  {allStudents.length === 0 ? (
-                    <p style={{ color: '#6c757d', margin: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>
-                      Loading students...
-                    </p>
-                  ) : (() => {
-                    const query = studentSearch.toLowerCase();
-                    const filtered = allStudents.filter(s => {
-                      const name = `${s.firstName || ''} ${s.lastName || ''}`.toLowerCase();
-                      const email = (s.email || '').toLowerCase();
-                      return !query || name.includes(query) || email.includes(query);
-                    });
-                    return filtered.length === 0 ? (
-                      <p style={{ color: '#6c757d', margin: '1rem', textAlign: 'center', fontSize: '0.9rem' }}>No students match</p>
-                    ) : (
-                      filtered.map((student) => {
-                        const isSelected = formData.selectedStudents.includes(student._id);
-                        return (
-                          <label
-                            key={student._id}
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '0.5rem',
-                              padding: '0.4rem 0.5rem',
-                              borderRadius: '3px',
-                              cursor: 'pointer',
-                              backgroundColor: isSelected ? '#e8f4fd' : 'transparent',
-                              marginBottom: '2px'
-                            }}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={() => handleStudentToggle(student._id)}
-                              style={{ flexShrink: 0 }}
-                            />
-                            <span style={{ fontSize: '0.9rem' }}>
-                              {student.firstName} {student.lastName}
-                              <span style={{ color: '#6c757d', marginLeft: '0.4rem', fontSize: '0.82rem' }}>
-                                {student.email}
-                              </span>
-                            </span>
-                          </label>
-                        );
-                      })
-                    );
-                  })()}
+            {/* Track B: Public / External */}
+            <div
+              onClick={() => setFormData((prev: any) => ({ ...prev, isExternalQuiz: true, accessibleTo: 'everyone' }))}
+              style={{
+                border: `2px solid ${(formData as any).isExternalQuiz ? '#f97316' : '#e5e7eb'}`,
+                borderRadius: 12,
+                padding: '16px 20px',
+                cursor: 'pointer',
+                background: (formData as any).isExternalQuiz ? '#fff7ed' : '#fff',
+                transition: 'all 0.15s'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div style={{ width: 20, height: 20, borderRadius: '50%', border: `2px solid ${(formData as any).isExternalQuiz ? '#f97316' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  {(formData as any).isExternalQuiz && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f97316' }} />}
+                </div>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>🌐 Public / External Quiz</div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
+                    For external participants or open events (e.g. Tech Battle, Hackathon). Access via personal token link only — <strong>not shown</strong> on the student dashboard and no email is sent.
+                  </div>
                 </div>
               </div>
-            )}
+              {(formData as any).isExternalQuiz && (
+                <div style={{ paddingLeft: 32, marginTop: 12, fontSize: 13, color: '#9a3412', background: '#ffedd5', borderRadius: 8, padding: '10px 14px' }}>
+                  🔗 Participants will receive unique token links. You can manage registrations from the <strong>Public Quiz Admin</strong> section after creating.
+                </div>
+              )}
+            </div>
+
           </div>
         </div>
       )}

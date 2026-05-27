@@ -75,6 +75,10 @@ router.get('/:quizId/availability', quizController.checkQuizAvailability);
 // Clone quiz route
 router.post('/:quizId/clone', roleGuard(['create_quiz']), quizController.cloneQuiz);
 
+// Non-attendees
+router.get('/:quizId/non-attendees', roleGuard(['edit_quiz', 'create_quiz']), quizController.getNonAttendees);
+router.post('/:quizId/reassign-non-attendees', roleGuard(['edit_quiz', 'create_quiz']), quizController.reassignNonAttendees);
+
 // Archive / Unarchive
 router.patch('/:quizId/archive', roleGuard(['edit_quiz']), quizController.archiveQuiz);
 router.patch('/:quizId/unarchive', roleGuard(['edit_quiz']), quizController.unarchiveQuiz);

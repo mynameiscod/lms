@@ -221,20 +221,24 @@ const FeatureRoute: React.FC<{ feature: keyof StudentFeatures; children: React.R
   return <>{children}</>;
 };
 
-// Hot lead real-time notification toast
+// Hot lead real-time notification toast — staff/admin only, never shown to students
 const HotLeadToast: React.FC = () => {
   const { onHotLeadCreated, offHotLeadCreated } = useSocket();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [toasts, setToasts] = useState<Array<{ id: number; leadId: string; leadName: string; source: string }>>([]);
 
+  const isStaff = user && user.role !== 'STUDENT';
+
   useEffect(() => {
+    if (!isStaff) return;
     onHotLeadCreated((data: any) => {
       const id = Date.now();
       setToasts(prev => [...prev, { id, leadId: data.leadId, leadName: data.leadName, source: data.source }]);
       setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 8000);
     });
     return () => offHotLeadCreated();
-  }, [onHotLeadCreated, offHotLeadCreated]);
+  }, [onHotLeadCreated, offHotLeadCreated, isStaff]);
 
   if (toasts.length === 0) return null;
 

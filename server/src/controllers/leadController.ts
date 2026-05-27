@@ -493,11 +493,11 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     // Real-time notification
     emitLeadEvent(req, 'lead_created', populated);
 
-    // Hot lead real-time alert
+    // Hot lead real-time alert — emit only to the staff room, not to students
     if (lead.priority === 'hot') {
       const io = req.app.get('io');
       if (io) {
-        io.to(`tenant_${req.tenantId}`).emit('hot_lead_created', {
+        io.to(`staff_${req.tenantId}`).emit('hot_lead_created', {
           leadId: lead._id,
           leadName: name,
           phone,

@@ -47,6 +47,12 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.log(`📍 Joined tenant room: ${auth.user.tenantId}`);
       }
 
+      // Join staff room only for non-student roles (hot lead alerts, etc.)
+      if (auth.user?.tenantId && auth.user?.role !== 'STUDENT') {
+        newSocket.emit('join_staff', auth.user.tenantId);
+        console.log(`📍 Joined staff room: ${auth.user.tenantId}`);
+      }
+
       // Join course room if in course context
       // This can be done later when user navigates to a specific course
     });

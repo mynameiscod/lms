@@ -67,6 +67,12 @@ const startServer = async () => {
         console.log(`📢 Socket ${socket.id} joined tenant_${tenantId}`);
       });
 
+      // Join staff-only room (receives hot lead alerts and other staff notifications)
+      socket.on('join_staff', (tenantId: string) => {
+        socket.join(`staff_${tenantId}`);
+        console.log(`👔 Socket ${socket.id} joined staff_${tenantId}`);
+      });
+
       // Join course-specific room
       socket.on('join_course', (courseId: string) => {
         socket.join(`course_${courseId}`);

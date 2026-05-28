@@ -348,9 +348,16 @@ class AssignmentService {
       tenant,
       status: AssignmentStatus.PUBLISHED
     };
-    
+
     const studentIdStr = studentId.toString();
-    const batchIdStr = batch ? batch.toString() : null;
+
+    // Resolve the student's batch: prefer explicit param, fall back to User.batchId
+    let resolvedBatch = batch;
+    if (!resolvedBatch) {
+      const user = await User.findById(studentId).select('batchId').lean();
+      if (user?.batchId) resolvedBatch = user.batchId as Types.ObjectId;
+    }
+    const batchIdStr = resolvedBatch ? resolvedBatch.toString() : null;
 
     // New access-control model: match by accessibleTo field
     // Legacy records (no accessibleTo field): fall back to old batch logic
@@ -360,7 +367,7 @@ class AssignmentService {
       { accessibleTo: 'individual', selectedStudents: studentIdStr },
       // legacy: has no accessibleTo, batch matches or no batch set
       ...(batchIdStr ? [
-        { accessibleTo: { $exists: false }, batch },
+        { accessibleTo: { $exists: false }, batch: resolvedBatch },
         { accessibleTo: { $exists: false }, batch: null }
       ] : [
         { accessibleTo: { $exists: false } }

@@ -234,14 +234,10 @@ const AssignmentWorkspace: React.FC = () => {
   };
 
   const handleLanguageChange = (lang: ProgrammingLanguage) => {
-    // Save current code before switching
     handleSave(true);
-    
     setSelectedLanguage(lang);
     const starter = assignment?.starterCode.find(s => s.language === lang);
-    if (starter && !code.trim()) {
-      setCode(starter.code);
-    }
+    setCode(starter?.code || '');
   };
 
   const formatTime = (ms: number) => {

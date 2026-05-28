@@ -3,6 +3,19 @@
   .quiz-grid {
     grid-template-columns: 1fr !important;
   }
+
+  /* Make intro/result pages fill the full screen on mobile */
+  .quiz-page-center {
+    padding: 0 !important;
+    align-items: flex-start !important;
+  }
+
+  .quiz-page-card {
+    border-radius: 0 !important;
+    min-height: 100vh;
+    max-width: 100% !important;
+    box-shadow: none !important;
+  }
 }
 
 /* Smooth option hover */

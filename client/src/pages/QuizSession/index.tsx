@@ -397,8 +397,8 @@ const QuizSession: React.FC = () => {
     const { quiz, candidate } = quizData;
     const needsMedia = quiz.enableCamera || quiz.enableMicrophone;
     return (
-      <div style={S.center}>
-        <div style={{ ...S.card, maxWidth: 580, width: '100%' }}>
+      <div style={S.center} className="quiz-page-center">
+        <div style={{ ...S.card, maxWidth: 580, width: '100%' }} className="quiz-page-card">
           {/* Header banner */}
           <div style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0284c7 100%)', borderRadius: '12px 12px 0 0', margin: '-28px -28px 24px', padding: '30px 28px 26px' }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 1 }}>Tech Battle Quiz</div>
@@ -658,34 +658,20 @@ const QuizSession: React.FC = () => {
     ];
 
     return (
-      <div style={S.center}>
-        <div style={{ ...S.card, maxWidth: 480, width: '100%', textAlign: 'center', padding: 0, overflow: 'hidden' }}>
+      <div style={S.center} className="quiz-page-center">
+        <div style={{ ...S.card, maxWidth: 480, width: '100%', textAlign: 'center', padding: 0, overflow: 'hidden' }} className="quiz-page-card">
 
           {/* Hero banner */}
           <div style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0284c7 100%)', padding: '36px 28px 32px' }}>
             <div style={{ fontSize: 64, marginBottom: 10 }}>🎉</div>
-            <h2 style={{ color: '#fff', fontWeight: 800, fontSize: 26, margin: '0 0 8px' }}>Thank You!</h2>
-            <p style={{ color: 'rgba(255,255,255,0.85)', margin: 0, fontSize: 15, fontWeight: 500 }}>
-              {quizData?.quiz.title || 'Weekly Tech Battle'}
-            </p>
+            <h2 style={{ color: '#fff', fontWeight: 800, fontSize: 26, margin: 0 }}>Thank You!</h2>
           </div>
 
           <div style={{ padding: '28px 24px' }}>
 
-            {/* Main message */}
-            <div style={{ background: '#f0fdf4', border: '2px solid #bbf7d0', borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
-              <div style={{ fontSize: 28, marginBottom: 8 }}>🏅</div>
-              <p style={{ fontSize: 16, fontWeight: 700, color: '#15803d', margin: '0 0 6px' }}>
-                You've been selected!
-              </p>
-              <p style={{ fontSize: 14, color: '#166534', margin: 0, lineHeight: 1.6 }}>
-                The <strong>Codebegun team</strong> will connect with you shortly. Check the results and updates on our website.
-              </p>
-            </div>
-
             {/* Info box */}
-            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '14px 18px', marginBottom: 24, fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>
-              Your quiz response has been recorded successfully. Results will be announced soon — stay tuned on our social channels for updates.
+            <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: '14px 18px', marginBottom: 24, fontSize: 14, color: '#78350f', lineHeight: 1.7 }}>
+              Thank you so much for participating! The <strong>Codebegun team</strong> will connect with you and let you know about the further process.
             </div>
 
             {/* Social links */}

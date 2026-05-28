@@ -1,5 +1,5 @@
-import express from 'express';
-import multer from 'multer';
+import express, { Request, Response, NextFunction } from 'express';
+import multer, { MulterError } from 'multer';
 import path from 'path';
 import fs from 'fs';
 import {
@@ -60,9 +60,25 @@ const upload = multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB max
+    fileSize: 20 * 1024 * 1024, // 20MB max
   },
 });
+
+const profileUpload = (req: Request, res: Response, next: NextFunction) => {
+  upload.fields([
+    { name: 'profilePhoto', maxCount: 1 },
+    { name: 'resume', maxCount: 1 },
+  ])(req, res, (err: any) => {
+    if (err instanceof MulterError && err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({
+        success: false,
+        message: 'File too large. Profile photo must be under 20 MB.',
+      });
+    }
+    if (err) return next(err);
+    next();
+  });
+};
 
 // ====== STUDENT ROUTES ======
 
@@ -75,27 +91,8 @@ router.get(
 );
 
 // Save/Update my profile
-router.post(
-  '/me',
-  authMiddleware,
-  tenantResolver,
-  upload.fields([
-    { name: 'profilePhoto', maxCount: 1 },
-    { name: 'resume', maxCount: 1 },
-  ]),
-  saveProfile
-);
-
-router.put(
-  '/me',
-  authMiddleware,
-  tenantResolver,
-  upload.fields([
-    { name: 'profilePhoto', maxCount: 1 },
-    { name: 'resume', maxCount: 1 },
-  ]),
-  saveProfile
-);
+router.post('/me', authMiddleware, tenantResolver, profileUpload, saveProfile);
+router.put('/me', authMiddleware, tenantResolver, profileUpload, saveProfile);
 
 // ====== ADMIN ROUTES ======
 

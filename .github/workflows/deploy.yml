@@ -39,8 +39,8 @@ jobs:
           
           ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'DEPLOY'
           cd /root/lms
-          chmod +x scripts/deploy.sh
-          ./scripts/deploy.sh
+          chmod +x deploy.sh
+          ./deploy.sh
           DEPLOY
 
       - name: Verify deployment

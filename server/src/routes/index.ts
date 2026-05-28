@@ -69,6 +69,7 @@ import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
 import scheduledInterviewRoutes from './scheduledInterviewRoutes';
+import resumeRoutes from './resumeRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -148,6 +149,9 @@ router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);
+
+// ─── Resume Builder ────────────────────────────────────────────────────────────
+router.use('/resume', resumeRoutes);
 
 // ─── Scheduled Interviews ─────────────────────────────────────────────────────
 router.use('/scheduled-interviews', scheduledInterviewRoutes);

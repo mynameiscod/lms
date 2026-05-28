@@ -84,8 +84,9 @@ import {
   AssignmentWorkspace,
   AssignmentResult
 } from './pages/assignments';
-import AssignmentReports from './pages/AssignmentReports';  
+import AssignmentReports from './pages/AssignmentReports';
 import StudentFeaturesPage from './pages/StudentFeatures';
+import ResumeBuilderPage from './pages/ResumeBuilder';
 import LeadsPage from './pages/Leads';
 import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
@@ -924,6 +925,18 @@ const AppRoutes: React.FC = () => {
       />
 
       <Route path="/" element={<Navigate to="/dashboard" />} />
+
+      {/* ── Resume Builder (Student) ─── */}
+      <Route
+        path="/resume-builder"
+        element={
+          <ProtectedRoute>
+            <Layout>
+              <ResumeBuilderPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* ── Structured Interview Module (Admin/Instructor) ─── */}
       <Route

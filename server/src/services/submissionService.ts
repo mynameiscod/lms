@@ -379,27 +379,45 @@ class SubmissionService {
       }
     }
 
-    // Update submission
-    submission.testCaseResults = results;
-    submission.autoScore = autoScore;
-    submission.penaltyApplied = penalty;
-    submission.totalScore = autoScore;
-    submission.finalScore = autoScore - penalty;
-    submission.percentage = Math.round((submission.finalScore / assignment.totalPoints) * 100);
-    submission.isPassing = submission.finalScore >= assignment.passingPoints;
-    submission.status = status;
-    submission.submittedAt = new Date();
-    submission.timeSpent = submission.startedAt 
-      ? Math.floor((Date.now() - submission.startedAt.getTime()) / 1000)
-      : 0;
-    submission.shareToken = crypto.randomUUID();
+    const finalScore = autoScore - penalty;
 
-    await submission.save();
+    // Persist atomically. Running the test cases can take a long time (compiled
+    // languages compile + run per case), and the workspace auto-saves the code
+    // every 30s — which bumps the document's version. A plain doc.save() would
+    // then throw a Mongoose VersionError ("No matching document found ... version
+    // N"). An atomic $set keyed on the still-IN_PROGRESS doc avoids that and also
+    // guards against a double submit.
+    const updated = await Submission.findOneAndUpdate(
+      { _id: submissionId, student: studentId, tenant, status: SubmissionStatus.IN_PROGRESS },
+      {
+        $set: {
+          testCaseResults: results,
+          autoScore,
+          penaltyApplied: penalty,
+          totalScore: autoScore,
+          finalScore,
+          percentage: Math.round((finalScore / assignment.totalPoints) * 100),
+          isPassing: finalScore >= assignment.passingPoints,
+          status,
+          submittedAt: new Date(),
+          timeSpent: submission.startedAt
+            ? Math.floor((Date.now() - submission.startedAt.getTime()) / 1000)
+            : 0,
+          shareToken: submission.shareToken || crypto.randomUUID()
+        }
+      },
+      { new: true }
+    );
+
+    if (!updated) {
+      // Lost the race (already submitted in another request)
+      throw new Error('Submission has already been submitted');
+    }
 
     // Update assignment stats
     await assignmentService.updateStats(assignment._id, tenant);
 
-    return submission;
+    return updated;
   }
 
   // Submit MCQ answers

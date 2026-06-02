@@ -485,8 +485,10 @@ class CodeRunnerService {
       // run stage, and javac cold-start alone uses ~7s of CPU. So run limits must
       // be generous enough to cover compilation, otherwise the job is SIGKILLed
       // mid-compile ("Time limit exceeded") and the student sees no output/error.
-      // Floor well above per-test timeLimit; Piston caps at its configured max.
-      const runLimit = Math.min(Math.max(timeLimit || 5000, 12000), 15000);
+      // A successful Java run measured ~9.5s of CPU (compile + run), so use
+      // Piston's full configured run allowance (15s) rather than the per-test
+      // timeLimit, which is far too small for compiled languages.
+      const runLimit = Math.min(Math.max(timeLimit || 5000, 15000), 15000);
       const requestBody = {
         language: pistonLanguage.language,
         version: pistonLanguage.version,
@@ -494,8 +496,10 @@ class CodeRunnerService {
         stdin: stdin || '',
         run_timeout: runLimit,
         run_cpu_time: runLimit,
-        compile_timeout: 15000,
-        compile_cpu_time: 15000,
+        // Must not exceed Piston's configured caps (PISTON_COMPILE_* = 10000),
+        // or Piston rejects the request with HTTP 400.
+        compile_timeout: 10000,
+        compile_cpu_time: 10000,
       };
 
       console.log('[PISTON] Request:', JSON.stringify({

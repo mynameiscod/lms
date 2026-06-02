@@ -203,7 +203,7 @@ class SubmissionService {
     tenant: Types.ObjectId,
     code: string,
     language: ProgrammingLanguage
-  ): Promise<{ results: ITestCaseResult[]; allPassed: boolean; compilationError?: string }> {
+  ): Promise<{ results: ITestCaseResult[]; allPassed: boolean; compilationError?: string; stdout: string; runtimeError?: string }> {
     const submission = await Submission.findOne({
       _id: submissionId,
       student: studentId,
@@ -215,16 +215,19 @@ class SubmissionService {
     }
 
     const assignment = submission.assignment as unknown as IAssignment;
-    
+
     // Get assignment-level setting for showing syntax errors (defaults to true)
     const showSyntaxErrors = assignment.showSyntaxErrors ?? true;
-    
+
     // Run against visible test cases only during practice
     const visibleTestCases = assignment.testCases.filter(tc => !tc.isHidden);
-    
+
     const results: ITestCaseResult[] = [];
     let compilationError: string | undefined;
-    
+    // Raw program output (stdout) so the student always sees what their code printed
+    let stdout = '';
+    let runtimeError: string | undefined;
+
     for (let i = 0; i < visibleTestCases.length; i++) {
       const tc = visibleTestCases[i];
       const result = await codeRunnerService.execute({
@@ -269,10 +272,36 @@ class SubmissionService {
       });
     }
 
+    if (visibleTestCases.length > 0) {
+      // Use the first visible test case's run as the program's console output
+      stdout = results[0]?.actualOutput || '';
+      runtimeError = results[0]?.error;
+    } else {
+      // No visible test cases — run once with empty input so the student still
+      // sees their program's raw output in the console.
+      const plain = await codeRunnerService.execute({
+        code,
+        language,
+        input: '',
+        expectedOutput: '',
+        timeLimit: 5000,
+        memoryLimit: assignment.memoryLimit || 256
+      });
+      if (plain.compilationError) {
+        compilationError = showSyntaxErrors
+          ? plain.compilationError
+          : 'Compilation error detected. Please check your code syntax.';
+      }
+      stdout = plain.output || '';
+      runtimeError = plain.error;
+    }
+
     return {
       results,
       allPassed: results.every(r => r.passed),
-      compilationError
+      compilationError,
+      stdout,
+      runtimeError
     };
   }
 

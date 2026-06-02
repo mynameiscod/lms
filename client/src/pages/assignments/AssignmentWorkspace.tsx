@@ -37,6 +37,11 @@ const AssignmentWorkspace: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [output, setOutput] = useState('');
+  // Raw program output (stdout) shown in a console panel for all languages
+  const [consoleOutput, setConsoleOutput] = useState<string | null>(null);
+  const [runtimeError, setRuntimeError] = useState<string | null>(null);
+  // Live HTML preview for `web` assignments
+  const [webPreview, setWebPreview] = useState<string | null>(null);
   
   // UI state
   const [activeTab, setActiveTab] = useState<'instructions' | 'output'>('instructions');
@@ -172,30 +177,49 @@ const AssignmentWorkspace: React.FC = () => {
 
   const handleRun = async () => {
     if (!submission) return;
-    
+
+    // Web assignments: render a live HTML/CSS preview instead of stdout
+    if (assignment?.type === AssignmentType.WEB) {
+      setActiveTab('output');
+      setOutput('');
+      setConsoleOutput(null);
+      setRuntimeError(null);
+      setTestResults([]);
+      setWebPreview(code || '');
+      return;
+    }
+
     try {
       setRunning(true);
       setActiveTab('output');
       setOutput('Running code...');
-      
+      setConsoleOutput(null);
+      setRuntimeError(null);
+      setWebPreview(null);
+
       const response = await submissionApi.runCode(submission._id, {
         code,
         language: selectedLanguage
       });
-      
+
       const data = response.data.data;
       const results = data?.results || [];
       setTestResults(results);
-      
+
+      // Always surface the program's raw output in the console panel
+      setConsoleOutput(data?.stdout ?? '');
+      setRuntimeError(data?.runtimeError || null);
+
       // Check for compilation error
       if (data?.compilationError) {
         setOutput(`Compilation Error:\n\n${data.compilationError}`);
       } else {
-        // Don't set text output - we'll render nice cards instead
+        // Don't set text output - we'll render the console + test cards instead
         setOutput('');
       }
     } catch (err: any) {
       setTestResults([]);
+      setConsoleOutput(null);
       setOutput(`Error: ${err.response?.data?.message || 'Failed to run code'}`);
     } finally {
       setRunning(false);
@@ -602,13 +626,43 @@ const AssignmentWorkspace: React.FC = () => {
               </>
             ) : (
               <div className="test-results">
-                {running ? (
+                {webPreview !== null ? (
+                  <div style={{ padding: '16px' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      🌐 Live Preview
+                    </div>
+                    <iframe
+                      title="Web Preview"
+                      srcDoc={webPreview}
+                      sandbox="allow-scripts allow-modals"
+                      style={{ width: '100%', height: '440px', border: '1px solid #e5e7eb', borderRadius: '8px', background: '#fff' }}
+                    />
+                  </div>
+                ) : running ? (
                   <div className="empty-state" style={{ padding: '40px 0' }}>
                     <div className="empty-state-icon" style={{ fontSize: '48px' }}>⏳</div>
                     <h3>Running your code...</h3>
                     <p>Please wait while we execute your solution</p>
                   </div>
-                ) : output ? (
+                ) : (
+                <>
+                {/* Console Output — raw program stdout, shown for all languages */}
+                {consoleOutput !== null && (
+                  <div style={{ padding: '16px 16px 0' }}>
+                    <div style={{ fontSize: '12px', fontWeight: 600, color: '#6b7280', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                      🖥️ Console Output
+                    </div>
+                    <pre style={{ background: '#0f172a', color: '#e2e8f0', padding: '14px 16px', borderRadius: '8px', margin: 0, fontSize: '13px', fontFamily: "'Fira Code', monospace", whiteSpace: 'pre-wrap', wordBreak: 'break-word', maxHeight: '260px', overflow: 'auto' }}>
+                      {consoleOutput.trim() ? consoleOutput : '(no output)'}
+                    </pre>
+                    {runtimeError && (
+                      <pre style={{ background: '#fef2f2', color: '#dc2626', padding: '10px 12px', borderRadius: '6px', margin: '8px 0 0', fontSize: '13px', fontFamily: "'Fira Code', monospace", whiteSpace: 'pre-wrap', wordBreak: 'break-word', border: '1px solid #fecaca' }}>
+                        ⚠️ {runtimeError}
+                      </pre>
+                    )}
+                  </div>
+                )}
+                {output ? (
                   <div style={{ padding: '16px' }}>
                     <div style={{ 
                       padding: '16px', 
@@ -831,12 +885,14 @@ const AssignmentWorkspace: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                ) : (
+                ) : consoleOutput === null ? (
                   <div className="empty-state" style={{ padding: '40px 0' }}>
                     <div className="empty-state-icon">▶️</div>
                     <h3>No Output Yet</h3>
-                    <p>Click "Run" to execute your code and see test results</p>
+                    <p>Click "Run" to execute your code and see output</p>
                   </div>
+                ) : null}
+                </>
                 )}
               </div>
             )}

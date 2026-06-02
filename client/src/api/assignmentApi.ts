@@ -447,7 +447,7 @@ export const submissionApi = {
 
   // Run code
   runCode: (submissionId: string, data: { code: string; language: ProgrammingLanguage }) =>
-    api.post<ApiResponse<{ results: TestResult[]; allPassed: boolean; compilationError?: string }>>(
+    api.post<ApiResponse<{ results: TestResult[]; allPassed: boolean; compilationError?: string; stdout?: string; runtimeError?: string }>>(
       `/assignments/submissions/${submissionId}/run`,
       data
     ),

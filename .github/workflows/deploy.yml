@@ -39,8 +39,11 @@ jobs:
           ssh-keyscan -H ${{ secrets.VPS_HOST }} >> ~/.ssh/known_hosts 2>/dev/null
           
           ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'DEPLOY'
+          set -e
           cd /root/lms
-          git pull origin master
+          echo "==> Syncing /root/lms to latest origin/master"
+          git fetch origin master
+          git reset --hard origin/master
           chmod +x deploy.sh
           ./deploy.sh
           DEPLOY

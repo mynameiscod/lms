@@ -1,0 +1,555 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Assignment Module — End-to-End Flow · Codebegun LMS</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8fafc;color:#0f172a;line-height:1.6}
+.page{max-width:1080px;margin:0 auto;padding:40px 28px}
+
+/* Hero */
+.hero{background:linear-gradient(135deg,#1e3a5f 0%,#0284c7 100%);color:#fff;border-radius:14px;padding:36px 44px;margin-bottom:36px}
+.hero h1{font-size:28px;font-weight:800;margin-bottom:6px}
+.hero p{font-size:15px;opacity:.85}
+.hero .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.chip{background:rgba(255,255,255,.18);border-radius:20px;padding:3px 13px;font-size:12px;font-weight:600}
+
+/* TOC */
+.toc{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px 24px;margin-bottom:32px}
+.toc h3{font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.toc ol{padding-left:18px;columns:2;column-gap:28px}
+.toc li{margin-bottom:5px}
+.toc a{color:#2563eb;text-decoration:none;font-size:13px;font-weight:500}
+.toc a:hover{text-decoration:underline}
+@media(max-width:600px){.toc ol{columns:1}}
+
+/* Sections */
+.section{margin-bottom:48px}
+.section-title{font-size:20px;font-weight:800;color:#0f172a;border-bottom:2px solid #bfdbfe;padding-bottom:8px;margin-bottom:18px;display:flex;align-items:center;gap:10px}
+.sub{font-size:16px;font-weight:700;color:#1e3a5f;margin:20px 0 10px}
+p{color:#475569;font-size:14px;margin-bottom:12px}
+
+/* Flow steps */
+.flow{display:flex;align-items:center;flex-wrap:wrap;gap:0;margin:16px 0}
+.flow-step{background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:10px;padding:10px 16px;min-width:130px;text-align:center;flex-shrink:0}
+.flow-step .fn{font-size:10px;font-weight:800;color:#2563eb;text-transform:uppercase;letter-spacing:.5px}
+.flow-step .fl{font-size:13px;font-weight:700;color:#0f172a;margin-top:3px}
+.flow-arrow{padding:0 6px;font-size:18px;color:#93c5fd;align-self:center}
+.flow-step.green{background:#f0fdf4;border-color:#bbf7d0}
+.flow-step.green .fn{color:#16a34a}
+.flow-step.red{background:#fef2f2;border-color:#fecaca}
+.flow-step.red .fn{color:#dc2626}
+.flow-step.amber{background:#fffbeb;border-color:#fde68a}
+.flow-step.amber .fn{color:#d97706}
+
+/* Tables */
+table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px}
+thead tr{background:#1e3a5f;color:#fff}
+thead th{padding:10px 13px;text-align:left;font-weight:700}
+tbody tr:nth-child(even){background:#f8fafc}
+tbody tr:hover{background:#eff6ff}
+td{padding:9px 13px;border-bottom:1px solid #e2e8f0;vertical-align:top}
+td:first-child{font-family:'Fira Code',monospace;font-size:12px;color:#2563eb;font-weight:600}
+code{background:#f1f5f9;border-radius:4px;padding:1px 6px;font-size:12px;color:#7c3aed;font-family:'Fira Code',monospace}
+
+/* Info boxes */
+.info{border-radius:10px;padding:12px 16px;margin-bottom:14px;font-size:13px}
+.info-blue{background:#eff6ff;border:1.5px solid #bfdbfe;color:#1e3a5f}
+.info-green{background:#f0fdf4;border:1.5px solid #bbf7d0;color:#166534}
+.info-amber{background:#fffbeb;border:1.5px solid #fde68a;color:#92400e}
+.info-red{background:#fef2f2;border:1.5px solid #fecaca;color:#991b1b}
+
+/* Badges */
+.badge{display:inline-block;border-radius:20px;padding:2px 9px;font-size:11px;font-weight:700}
+.b-blue{background:#dbeafe;color:#1d4ed8}
+.b-green{background:#dcfce7;color:#166534}
+.b-amber{background:#fef3c7;color:#92400e}
+.b-red{background:#fee2e2;color:#991b1b}
+.b-gray{background:#f1f5f9;color:#475569}
+.b-purple{background:#f5f3ff;color:#7c3aed}
+
+/* Code block */
+pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:16px 18px;font-size:12.5px;overflow-x:auto;margin-bottom:14px;line-height:1.7}
+.k{color:#93c5fd}.s{color:#86efac}.c{color:#64748b;font-style:italic}.n{color:#fbbf24}
+
+/* Status list */
+.status-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:16px}
+.status-card{border-radius:10px;padding:12px 14px;border:1px solid}
+.status-card .sv{font-family:'Fira Code',monospace;font-size:11px;font-weight:700;margin-bottom:4px}
+.status-card .sd{font-size:12px;color:#475569}
+
+/* Number list */
+ol.steps{padding-left:20px;color:#475569;font-size:14px;line-height:2.2}
+ol.steps li strong{color:#0f172a}
+
+/* Two col */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:640px){.two-col{grid-template-columns:1fr}}
+.col-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px}
+.col-card h4{font-size:14px;font-weight:700;color:#0f172a;margin-bottom:10px}
+.col-card ul{padding-left:16px;font-size:13px;color:#475569;line-height:1.9}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- HERO -->
+<div class="hero">
+  <h1>📋 Assignment Module — End-to-End Flow</h1>
+  <p>Complete technical reference for how assignments work in Codebegun LMS — from admin creation to student submission and grading.</p>
+  <div class="chips">
+    <span class="chip">6 Assignment Types</span>
+    <span class="chip">Piston Code Runner</span>
+    <span class="chip">Auto + Manual Grading</span>
+    <span class="chip">Multi-tenant</span>
+    <span class="chip">Real-time Code Execution</span>
+  </div>
+</div>
+
+<!-- TOC -->
+<div class="toc">
+  <h3>Contents</h3>
+  <ol>
+    <li><a href="#types">Assignment Types</a></li>
+    <li><a href="#admin-create">Admin: Creating an Assignment</a></li>
+    <li><a href="#access">Access Control</a></li>
+    <li><a href="#student-list">Student: Assignment List</a></li>
+    <li><a href="#student-start">Student: Starting & Working</a></li>
+    <li><a href="#run">Code Run Flow (Piston)</a></li>
+    <li><a href="#submit">Submission Flow</a></li>
+    <li><a href="#scoring">Scoring & Grading</a></li>
+    <li><a href="#submission-model">Submission Data Model</a></li>
+    <li><a href="#api">API Endpoints</a></li>
+    <li><a href="#bugs">Known Issues Fixed</a></li>
+  </ol>
+</div>
+
+<!-- 1. TYPES -->
+<div class="section" id="types">
+  <div class="section-title">1. Assignment Types</div>
+  <table>
+    <thead><tr><th>Type</th><th>Code</th><th>How it works</th><th>Grading</th></tr></thead>
+    <tbody>
+      <tr><td>Coding</td><td><code>coding</code></td><td>Write code. Run against test cases. Supports 12 languages.</td><td>Auto (Piston)</td></tr>
+      <tr><td>SQL</td><td><code>sql</code></td><td>Write SQL query. Runs against hidden DB test cases.</td><td>Auto (Piston)</td></tr>
+      <tr><td>Web</td><td><code>web</code></td><td>Write HTML/CSS. Checked against structural test cases.</td><td>Auto + Manual</td></tr>
+      <tr><td>MCQ</td><td><code>mcq</code></td><td>Multiple choice questions. Options can be shuffled.</td><td>Auto (instant)</td></tr>
+      <tr><td>Theory</td><td><code>theory</code></td><td>Long-form text answer written in a textarea.</td><td>Manual (instructor)</td></tr>
+      <tr><td>File Upload</td><td><code>file_upload</code></td><td>Student uploads file(s). Instructor reviews manually.</td><td>Manual (instructor)</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Supported Languages (Coding):</strong> JavaScript, TypeScript, Python, Java, C++, C, C#, Go, Rust, SQL, HTML, CSS</p>
+</div>
+
+<!-- 2. ADMIN CREATE -->
+<div class="section" id="admin-create">
+  <div class="section-title">2. Admin: Creating an Assignment</div>
+
+  <div class="sub">2.1 Creation Steps</div>
+  <ol class="steps">
+    <li>Admin goes to <strong>Manage Assignments → Create</strong></li>
+    <li>Fills in <strong>Basic Info</strong>: Title, Description, Instructions (rich text)</li>
+    <li>Chooses <strong>Type</strong> (Coding / MCQ / Theory / SQL / Web / File Upload)</li>
+    <li>Sets <strong>Difficulty</strong>: Beginner / Easy / Medium / Hard / Expert</li>
+    <li>Configures <strong>Access Control</strong>: Everyone / Batch-wise / Individual students</li>
+    <li>Sets <strong>Schedule</strong>: Start date, Due date, Late submission deadline</li>
+    <li>For Coding → adds <strong>Test Cases</strong> (input/expected output, visible vs hidden, weight/points)</li>
+    <li>For Coding → adds <strong>Starter Code</strong> per language (optional boilerplate)</li>
+    <li>For MCQ → adds <strong>Questions and Options</strong>, marks correct answers</li>
+    <li>Configures <strong>Settings</strong>: Max attempts, time limit, show/hide results, plagiarism check</li>
+    <li>Saves as <strong>Draft</strong> → reviews → clicks <strong>Publish</strong></li>
+  </ol>
+
+  <div class="sub">2.2 Test Case Configuration (Coding)</div>
+  <table>
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>input</td><td><code>String</code></td><td>stdin passed to the program. Can be empty for web/HTML types.</td></tr>
+      <tr><td>expectedOutput</td><td><code>String</code></td><td>Exact stdout the program must produce. Blank allowed (default: '').</td></tr>
+      <tr><td>isHidden</td><td><code>Boolean</code></td><td>Hidden test cases run on SUBMIT only — student never sees input/output.</td></tr>
+      <tr><td>weight</td><td><code>Number</code></td><td>Relative weight for scoring. Score = (passed_weight/total_weight) × totalPoints.</td></tr>
+      <tr><td>timeLimit</td><td><code>Number (ms)</code></td><td>Per test case timeout. Default 5000ms.</td></tr>
+      <tr><td>points</td><td><code>Number</code></td><td>Optional explicit points for this test case.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info info-amber">⚠️ For Web/HTML assignments: <code>expectedOutput</code> can be blank — it checks structure, not stdout. Empty string is valid (was a bug fixed in v1.1).</div>
+
+  <div class="sub">2.3 Assignment Settings</div>
+  <table>
+    <thead><tr><th>Setting</th><th>Default</th><th>Effect</th></tr></thead>
+    <tbody>
+      <tr><td>maxAttempts</td><td>3</td><td>How many times a student can submit. 0 = unlimited.</td></tr>
+      <tr><td>showTestCaseResults</td><td>true</td><td>Student sees pass/fail for each visible test case after Run.</td></tr>
+      <tr><td>showExpectedOutput</td><td>false</td><td>Student sees the expected output in test result cards.</td></tr>
+      <tr><td>showSyntaxErrors</td><td>true</td><td>Show compilation/syntax error details. If false, shows generic message.</td></tr>
+      <tr><td>enablePlagiarismCheck</td><td>false</td><td>Compares submissions for similarity.</td></tr>
+      <tr><td>timeLimitMinutes</td><td>null</td><td>If set, timer starts when student clicks Start. Auto-submits at 0.</td></tr>
+      <tr><td>lateSubmissionPenalty</td><td>0%</td><td>% deducted from score if submitted after due date.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub">2.4 AI Generation</div>
+  <p>Admin can click <strong>Generate with AI</strong> — sends topic + language + difficulty to OpenAI which returns: description, instructions, starter code, solution code, and test cases automatically.</p>
+</div>
+
+<!-- 3. ACCESS -->
+<div class="section" id="access">
+  <div class="section-title">3. Access Control</div>
+  <table>
+    <thead><tr><th>Mode</th><th>Value</th><th>Who sees the assignment</th></tr></thead>
+    <tbody>
+      <tr><td>Everyone</td><td><code>everyone</code></td><td>All enrolled students in the tenant</td></tr>
+      <tr><td>Batch-wise</td><td><code>batch_wise</code></td><td>Only students in the selected batches</td></tr>
+      <tr><td>Individual</td><td><code>individual</code></td><td>Only specific students selected by name</td></tr>
+    </tbody>
+  </table>
+  <div class="info info-blue">The student list page (<code>GET /assignments/student/list</code>) filters assignments based on the student's batch membership and individual selection before returning results.</div>
+</div>
+
+<!-- 4. STUDENT LIST -->
+<div class="section" id="student-list">
+  <div class="section-title">4. Student: Assignment List Page</div>
+  <ol class="steps">
+    <li>Student opens <strong>My Assignments</strong> from sidebar</li>
+    <li>API call: <code>GET /api/v1/assignments/student/list</code></li>
+    <li>Backend filters: <strong>status = published</strong> + <strong>accessible to this student</strong> (batch / individual)</li>
+    <li>Returns assignments with their submission status for that student</li>
+    <li>UI shows cards with: Title, Type badge, Due date, Points, <strong>Status badge</strong> (Not Started / In Progress / Submitted / Graded)</li>
+    <li>Student clicks a card → goes to Assignment Workspace</li>
+  </ol>
+  <div class="info info-green">✅ The student only sees assignments that are: <strong>published</strong>, <strong>within access scope</strong>, and <strong>have not passed late submission deadline</strong>.</div>
+</div>
+
+<!-- 5. STUDENT START -->
+<div class="section" id="student-start">
+  <div class="section-title">5. Student: Starting & Working on an Assignment</div>
+
+  <div class="sub">5.1 Instructions Page (Before Start)</div>
+  <ol class="steps">
+    <li>Student arrives at workspace → sees <strong>Instructions Page</strong> (not the editor yet)</li>
+    <li>Page shows: title, description, type, difficulty, total points, time limit, attempt info</li>
+    <li>Shows important notes (auto-save, max attempts, time limit warning)</li>
+    <li>Student clicks <strong>Start Assignment</strong></li>
+    <li>API call: <code>POST /api/v1/assignments/:assignmentId/start</code></li>
+    <li>Backend creates a <code>Submission</code> document with <code>status: IN_PROGRESS</code> and records <code>startedAt</code></li>
+    <li>If submission already exists (IN_PROGRESS) — returns the existing one (resume)</li>
+    <li>Instructions page disappears → editor/workspace loads</li>
+  </ol>
+
+  <div class="sub">5.2 Workspace — Coding Assignment</div>
+  <div class="two-col">
+    <div class="col-card">
+      <h4>Left Panel — Problem</h4>
+      <ul>
+        <li>Problem description (rich text)</li>
+        <li>Instructions</li>
+        <li>Visible test cases (input + expected output)</li>
+        <li>Output tab (after Run)</li>
+      </ul>
+    </div>
+    <div class="col-card">
+      <h4>Right Panel — Editor</h4>
+      <ul>
+        <li>Language pills (JS / Python / Java…)</li>
+        <li>Monaco code editor (VS Code-like)</li>
+        <li>Run button → executes visible tests</li>
+        <li>Submit button → executes all tests</li>
+        <li>Auto-save every 30 seconds</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="sub">5.3 Language Switching (Coding)</div>
+  <ol class="steps">
+    <li>Student clicks a different language tab (e.g. Java → Python)</li>
+    <li>Current code is <strong>saved to memory</strong> for the current language</li>
+    <li>Current code is also <strong>auto-saved</strong> to server (<code>POST /submissions/:id/save-code</code>)</li>
+    <li>Editor remounts with the <strong>saved code for the new language</strong> (or starter code, or blank)</li>
+    <li>Switching back to Java restores what the student had written in Java</li>
+  </ol>
+  <div class="info info-blue">Monaco Editor uses <code>key={selectedLanguage}</code> to force a full remount on language switch — this ensures the editor always shows the correct code and not a stale cached view.</div>
+
+  <div class="sub">5.4 Auto-Save</div>
+  <p>Every <strong>30 seconds</strong>, the workspace silently calls <code>POST /submissions/:id/save-code</code>. The backend saves the code and adds a snapshot to <code>codeSnapshots[]</code> (last 50 kept). This allows code playback and prevents data loss.</p>
+
+  <div class="sub">5.5 Workspace — MCQ Assignment</div>
+  <ol class="steps">
+    <li>Shows all questions with radio button options</li>
+    <li>Student selects answers</li>
+    <li>Progress bar shows how many answered</li>
+    <li>Clicks Submit → calls <code>POST /submissions/:id/submit-mcq</code></li>
+    <li>Backend instantly checks each answer against <code>isCorrect</code> flag</li>
+  </ol>
+
+  <div class="sub">5.6 Workspace — Theory Assignment</div>
+  <ol class="steps">
+    <li>Shows a large textarea for long-form answer</li>
+    <li>Student types their answer</li>
+    <li>Clicks Submit → calls <code>POST /submissions/:id/submit-theory</code></li>
+    <li>Instructor grades manually later</li>
+  </ol>
+</div>
+
+<!-- 6. CODE RUN -->
+<div class="section" id="run">
+  <div class="section-title">6. Code Run Flow (Piston Execution Engine)</div>
+
+  <div class="sub">6.1 When Student Clicks "Run"</div>
+  <div class="flow">
+    <div class="flow-step"><div class="fn">Student</div><div class="fl">Clicks Run</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="fn">Frontend</div><div class="fl">POST /run</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="fn">Backend</div><div class="fl">Gets visible<br/>test cases only</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="fn">Piston</div><div class="fl">Executes code<br/>per test case</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step class-green green"><div class="fn">Result</div><div class="fl">Pass/Fail cards<br/>shown to student</div></div>
+  </div>
+
+  <div class="sub">6.2 Piston Execution Details</div>
+  <table>
+    <thead><tr><th>Step</th><th>Detail</th></tr></thead>
+    <tbody>
+      <tr><td>Code sent</td><td>Student's code + stdin (test case input)</td></tr>
+      <tr><td>Java filename</td><td>Extracted from <code>public class XYZ</code> → file becomes <code>XYZ.java</code>. <strong>Must match or compilation fails.</strong></td></tr>
+      <tr><td>Timeout</td><td>Per test case: <code>timeLimit</code> ms (default 5000). Max 15000.</td></tr>
+      <tr><td>Compilation error</td><td>If Piston returns compile error: all test cases marked failed, error shown (if <code>showSyntaxErrors=true</code>)</td></tr>
+      <tr><td>Runtime error</td><td>If exit code ≠ 0: test case failed, stderr shown as error message</td></tr>
+      <tr><td>Output comparison</td><td><code>normalize(actual) === normalize(expected)</code> — trims whitespace, normalises line endings. Case-sensitive.</td></tr>
+      <tr><td>Run vs Submit</td><td><strong>Run</strong> = visible test cases only. <strong>Submit</strong> = all test cases including hidden.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub">6.3 Language → Piston Mapping</div>
+  <table>
+    <thead><tr><th>LMS Language</th><th>Piston Language</th><th>Version</th></tr></thead>
+    <tbody>
+      <tr><td>javascript</td><td>javascript</td><td>18.15.0</td></tr>
+      <tr><td>python</td><td>python</td><td>3.10.0</td></tr>
+      <tr><td>java</td><td>java</td><td>15.0.2</td></tr>
+      <tr><td>cpp</td><td>c++</td><td>10.2.0</td></tr>
+      <tr><td>c</td><td>c</td><td>10.2.0</td></tr>
+      <tr><td>typescript</td><td>typescript</td><td>5.0.3</td></tr>
+      <tr><td>csharp</td><td>csharp</td><td>6.12.0</td></tr>
+      <tr><td>go</td><td>go</td><td>1.16.2</td></tr>
+      <tr><td>rust</td><td>rust</td><td>1.68.2</td></tr>
+      <tr><td>sql</td><td>sqlite3</td><td>3.36.0</td></tr>
+    </tbody>
+  </table>
+
+  <div class="info info-amber">⚠️ Piston runs inside Docker (<code>lms-piston</code> container). If Piston is down, the code runner falls back to <strong>simulation mode</strong> — pattern matching only, not real execution.</div>
+</div>
+
+<!-- 7. SUBMIT -->
+<div class="section" id="submit">
+  <div class="section-title">7. Submission Flow</div>
+
+  <div class="sub">7.1 When Student Clicks "Submit"</div>
+  <div class="flow">
+    <div class="flow-step"><div class="fn">Student</div><div class="fl">Clicks Submit</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="fn">Frontend</div><div class="fl">POST /submit-coding<br/>(or submit-mcq)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="fn">Backend</div><div class="fl">Runs ALL test cases<br/>(visible + hidden)</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step amber"><div class="fn">Score</div><div class="fl">auto_score calculated<br/>from weight ratio</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step"><div class="fn">DB</div><div class="fl">Submission saved<br/>status: SUBMITTED</div></div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step green"><div class="fn">Student</div><div class="fl">Redirected to<br/>Result page</div></div>
+  </div>
+
+  <div class="sub">7.2 What Happens on Submit (Coding)</div>
+  <ol class="steps">
+    <li>Backend fetches submission + assignment (with all test cases)</li>
+    <li>Runs code against <strong>every test case</strong> (visible + hidden) via Piston</li>
+    <li>For each test case: records <code>passed</code>, <code>executionTime</code>, <code>memoryUsed</code>, <code>actualOutput</code>, <code>error</code></li>
+    <li>Hidden test cases: <code>input</code>, <code>expectedOutput</code>, <code>actualOutput</code> set to <code>""</code> in response (student can't see them)</li>
+    <li>Calculates <code>autoScore = (earnedWeight / totalWeight) × totalPoints</code></li>
+    <li>Checks if past due date → applies <code>lateSubmissionPenalty</code> %</li>
+    <li>Sets <code>isPassing = finalScore >= passingPoints</code></li>
+    <li>Generates a <code>shareToken</code> (UUID) for LinkedIn share feature</li>
+    <li>Sends confirmation email to student</li>
+    <li>Status set to <code>SUBMITTED</code> (or <code>LATE</code> if past due date)</li>
+  </ol>
+
+  <div class="sub">7.3 Submit MCQ Flow</div>
+  <ol class="steps">
+    <li>Frontend sends array of <code>{questionIndex, selectedOptionIndex}</code></li>
+    <li>Backend checks each against <code>isCorrect</code> flag on assignment's <code>mcqQuestions</code></li>
+    <li>Each answer gets <code>isCorrect</code> + <code>pointsEarned</code></li>
+    <li><code>autoScore</code> = sum of all <code>pointsEarned</code></li>
+    <li>Status → SUBMITTED, redirect to results</li>
+  </ol>
+
+  <div class="sub">7.4 Submit Theory Flow</div>
+  <ol class="steps">
+    <li>Frontend sends <code>theoryAnswer</code> (text)</li>
+    <li>Saved to submission, <code>autoScore = 0</code> (no auto grading)</li>
+    <li>Status → SUBMITTED</li>
+    <li>Instructor grades manually</li>
+  </ol>
+</div>
+
+<!-- 8. SCORING -->
+<div class="section" id="scoring">
+  <div class="section-title">8. Scoring & Grading</div>
+
+  <div class="sub">8.1 Score Calculation Formula</div>
+  <pre>
+<span class="c">// Coding / SQL / Web</span>
+<span class="k">autoScore</span>  = ( earnedWeight / totalWeight ) × totalPoints
+<span class="k">totalScore</span> = autoScore + manualScore
+<span class="k">finalScore</span> = max(0, totalScore - penaltyApplied)
+<span class="k">percentage</span> = (finalScore / totalPoints) × 100
+<span class="k">isPassing</span>  = finalScore >= passingPoints
+
+<span class="c">// Late penalty (applied if submittedAt > dueDate)</span>
+<span class="k">penaltyApplied</span> = totalScore × (lateSubmissionPenalty / 100)
+
+<span class="c">// MCQ</span>
+<span class="k">autoScore</span> = sum of pointsEarned for each correct answer</pre>
+
+  <div class="sub">8.2 Submission Status Lifecycle</div>
+  <div class="status-list">
+    <div class="status-card" style="border-color:#e2e8f0;background:#f8fafc">
+      <div class="sv" style="color:#64748b">NOT_STARTED</div>
+      <div class="sd">Assignment visible, student hasn't clicked Start</div>
+    </div>
+    <div class="status-card" style="border-color:#bfdbfe;background:#eff6ff">
+      <div class="sv" style="color:#2563eb">IN_PROGRESS</div>
+      <div class="sd">Start clicked, submission created, timer running</div>
+    </div>
+    <div class="status-card" style="border-color:#fde68a;background:#fffbeb">
+      <div class="sv" style="color:#d97706">SUBMITTED</div>
+      <div class="sd">Student submitted. Awaiting manual grading (theory/file)</div>
+    </div>
+    <div class="status-card" style="border-color:#fde68a;background:#fffbeb">
+      <div class="sv" style="color:#d97706">LATE</div>
+      <div class="sd">Submitted after due date. Penalty applied.</div>
+    </div>
+    <div class="status-card" style="border-color:#fde68a;background:#fffbeb">
+      <div class="sv" style="color:#d97706">GRADING</div>
+      <div class="sd">Instructor opened for manual grading</div>
+    </div>
+    <div class="status-card" style="border-color:#bbf7d0;background:#f0fdf4">
+      <div class="sv" style="color:#16a34a">GRADED</div>
+      <div class="sd">Final score set. Student can see full result.</div>
+    </div>
+  </div>
+
+  <div class="sub">8.3 Instructor Manual Grading</div>
+  <ol class="steps">
+    <li>Instructor opens <strong>Assignment Reports → Submissions</strong></li>
+    <li>Sees list of all submitted students with auto-score</li>
+    <li>Clicks a submission → sees code / answer + test results</li>
+    <li>For Theory/File: fills in <strong>rubric scores</strong> per criterion + feedback</li>
+    <li>Can override score with <code>manualScore</code></li>
+    <li>Clicks <strong>Save Grade</strong> → <code>POST /submissions/:id/grade</code></li>
+    <li>Status → GRADED, student can now see their full result</li>
+    <li>Instructor can also click <strong>Allow Re-attempt</strong> to reset and let student try again</li>
+  </ol>
+</div>
+
+<!-- 9. DATA MODEL -->
+<div class="section" id="submission-model">
+  <div class="section-title">9. Submission Data Model</div>
+  <table>
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td>tenant</td><td><code>ObjectId</code></td><td>Tenant isolation</td></tr>
+      <tr><td>assignment</td><td><code>ObjectId → Assignment</code></td><td>Which assignment</td></tr>
+      <tr><td>student</td><td><code>ObjectId → User</code></td><td>Which student</td></tr>
+      <tr><td>attemptNumber</td><td><code>Number</code></td><td>1, 2, 3… up to maxAttempts</td></tr>
+      <tr><td>status</td><td><code>SubmissionStatus</code></td><td>See lifecycle above</td></tr>
+      <tr><td>startedAt</td><td><code>Date</code></td><td>When Start was clicked</td></tr>
+      <tr><td>submittedAt</td><td><code>Date</code></td><td>When Submit was clicked</td></tr>
+      <tr><td>timeSpent</td><td><code>Number (seconds)</code></td><td>Calculated on each auto-save</td></tr>
+      <tr><td>language</td><td><code>ProgrammingLanguage</code></td><td>Language chosen for coding submission</td></tr>
+      <tr><td>code</td><td><code>String</code></td><td>Latest saved code</td></tr>
+      <tr><td>codeSnapshots</td><td><code>Array</code></td><td>Last 50 auto-save snapshots (for playback)</td></tr>
+      <tr><td>testCaseResults</td><td><code>Array</code></td><td>Per-test result: passed, input, expected, actual, time, memory, error</td></tr>
+      <tr><td>compilationError</td><td><code>String</code></td><td>Piston compilation error message</td></tr>
+      <tr><td>mcqAnswers</td><td><code>Array</code></td><td>Selected option, isCorrect, pointsEarned per question</td></tr>
+      <tr><td>theoryAnswer</td><td><code>String</code></td><td>Student's written answer</td></tr>
+      <tr><td>autoScore</td><td><code>Number</code></td><td>System-calculated score (Piston / MCQ)</td></tr>
+      <tr><td>manualScore</td><td><code>Number</code></td><td>Instructor-added score</td></tr>
+      <tr><td>finalScore</td><td><code>Number</code></td><td>totalScore - penaltyApplied</td></tr>
+      <tr><td>percentage</td><td><code>Number</code></td><td>finalScore / totalPoints × 100</td></tr>
+      <tr><td>isPassing</td><td><code>Boolean</code></td><td>finalScore >= passingPoints</td></tr>
+      <tr><td>rubricScores</td><td><code>Array</code></td><td>Per-criterion score from instructor</td></tr>
+      <tr><td>overallFeedback</td><td><code>String</code></td><td>Instructor feedback (visible to student)</td></tr>
+      <tr><td>shareToken</td><td><code>String</code></td><td>UUID for LinkedIn share link</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Unique index:</strong> <code>(tenant, assignment, student, attemptNumber)</code> — prevents duplicate submissions.</p>
+</div>
+
+<!-- 10. API -->
+<div class="section" id="api">
+  <div class="section-title">10. API Endpoints</div>
+
+  <div class="sub">Admin Endpoints</div>
+  <table>
+    <thead><tr><th>Method</th><th>Path</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>POST</td><td><code>/assignments</code></td><td>Create assignment (draft)</td></tr>
+      <tr><td>GET</td><td><code>/assignments</code></td><td>List all assignments for tenant</td></tr>
+      <tr><td>GET</td><td><code>/assignments/:id</code></td><td>Get single assignment</td></tr>
+      <tr><td>PUT</td><td><code>/assignments/:id</code></td><td>Update assignment</td></tr>
+      <tr><td>DELETE</td><td><code>/assignments/:id</code></td><td>Delete assignment</td></tr>
+      <tr><td>POST</td><td><code>/assignments/:id/publish</code></td><td>Publish (makes visible to students)</td></tr>
+      <tr><td>POST</td><td><code>/assignments/:id/archive</code></td><td>Archive (hide from students)</td></tr>
+      <tr><td>POST</td><td><code>/assignments/:id/clone</code></td><td>Duplicate an assignment</td></tr>
+      <tr><td>POST</td><td><code>/assignments/generate-ai</code></td><td>AI-generate assignment from topic</td></tr>
+      <tr><td>GET</td><td><code>/assignments/:id/submissions</code></td><td>All submissions for an assignment</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/grade</code></td><td>Grade a submission (manual)</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/allow-reattempt</code></td><td>Reset submission for re-attempt</td></tr>
+      <tr><td>GET</td><td><code>/assignments/reports/overall</code></td><td>Overall assignment analytics</td></tr>
+    </tbody>
+  </table>
+
+  <div class="sub">Student Endpoints</div>
+  <table>
+    <thead><tr><th>Method</th><th>Path</th><th>What it does</th></tr></thead>
+    <tbody>
+      <tr><td>GET</td><td><code>/assignments/student/list</code></td><td>Get assignments accessible to this student</td></tr>
+      <tr><td>POST</td><td><code>/assignments/:assignmentId/start</code></td><td>Start or resume a submission</td></tr>
+      <tr><td>GET</td><td><code>/assignments/:assignmentId/my-submission</code></td><td>Get own submission for an assignment</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/save-code</code></td><td>Auto-save code (every 30s)</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/run</code></td><td>Run code against visible test cases</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/submit-coding</code></td><td>Final submit (runs all tests, scores)</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/submit-mcq</code></td><td>Submit MCQ answers</td></tr>
+      <tr><td>POST</td><td><code>/assignments/submissions/:id/submit-theory</code></td><td>Submit theory answer</td></tr>
+      <tr><td>GET</td><td><code>/assignments/submissions/:id</code></td><td>Get submission details + results</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 11. BUGS FIXED -->
+<div class="section" id="bugs">
+  <div class="section-title">11. Known Issues Fixed</div>
+  <table>
+    <thead><tr><th>Bug</th><th>Root Cause</th><th>Fix</th><th>Commit</th></tr></thead>
+    <tbody>
+      <tr><td>Java test cases always fail</td><td>Filename hardcoded to <code>Main.java</code>. Java requires filename = class name. <code>PrimeNumberCheck.java</code> was sent as <code>Main.java</code> → Piston compile error.</td><td>Extract class name via regex: <code>public class XYZ</code> → <code>XYZ.java</code></td><td><code>0810c05</code></td></tr>
+      <tr><td>Output comparison wrong</td><td><code>normalizeOutput()</code> lowercased both sides — hid case-sensitivity mismatches</td><td>Removed <code>.toLowerCase()</code> — comparison is now exact</td><td><code>0810c05</code></td></tr>
+      <tr><td>Language switch clears code</td><td>Switching tabs always reset editor to starter code, losing what student typed</td><td>Added <code>codePerLanguage</code> map — each language remembers student's code</td><td><code>0810c05</code></td></tr>
+      <tr><td>Monaco shows wrong code on tab switch</td><td>Monaco Editor ignores external <code>value</code> prop changes after user has typed</td><td>Added <code>key={selectedLanguage}</code> — forces full remount with correct code</td><td><code>0810c05</code></td></tr>
+      <tr><td>Pre-written code in editor for all languages</td><td><code>handleLanguageChange</code> only loaded starter if <code>!code.trim()</code> — once starter loaded, condition was always false</td><td>Always load starter for new language on switch</td><td><code>313d5d0</code></td></tr>
+      <tr><td>Web assignment 500 on create</td><td>Empty <code>expectedOutput: ""</code> rejected by Mongoose <code>required: true</code> (treats empty string as null)</td><td>Changed to <code>default: ''</code> to allow empty strings</td><td><code>7226c87</code></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<hr style="border:none;border-top:1px solid #e2e8f0;margin:40px 0"/>
+<div style="text-align:center;color:#94a3b8;font-size:12px;padding-bottom:32px">
+  Codebegun LMS · Assignment Module Technical Reference · Generated from source
+</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Assignment Module — End-to-End Flow · Codebegun LMS</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f1f5f9;color:#0f172a;line-height:1.65}
+  .page{max-width:1120px;margin:0 auto;padding:40px 26px 80px}
+  a{color:#0284c7}
+
+  /* Hero */
+  .hero{background:linear-gradient(135deg,#0f2942 0%,#0284c7 100%);color:#fff;border-radius:16px;padding:38px 44px;margin-bottom:30px;box-shadow:0 12px 30px -12px rgba(2,132,199,.5)}
+  .hero h1{font-size:30px;font-weight:800;letter-spacing:-.5px}
+  .hero p{font-size:15px;opacity:.9;margin-top:8px;max-width:760px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+  .chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:600}
+
+  /* TOC */
+  .toc{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px 26px;margin-bottom:34px}
+  .toc h3{font-size:13px;text-transform:uppercase;letter-spacing:1px;color:#64748b;margin-bottom:12px}
+  .toc ol{list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 22px;counter-reset:t}
+  .toc li{counter-increment:t;font-size:14px;font-weight:500}
+  .toc li::before{content:counter(t);display:inline-flex;align-items:center;justify-content:center;width:21px;height:21px;border-radius:6px;background:#e0f2fe;color:#0284c7;font-size:11px;font-weight:700;margin-right:9px}
+
+  /* Sections */
+  section{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:30px 34px;margin-bottom:24px;scroll-margin-top:20px}
+  section h2{font-size:21px;font-weight:750;color:#0f2942;display:flex;align-items:center;gap:11px;margin-bottom:8px}
+  section h2 .num{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:9px;background:#0284c7;color:#fff;font-size:14px;font-weight:800;flex-shrink:0}
+  section .lead{color:#475569;font-size:14.5px;margin-bottom:18px}
+  h3.sub{font-size:15.5px;font-weight:700;color:#0f2942;margin:22px 0 10px}
+
+  p{margin-bottom:10px;font-size:14.5px}
+  ul,ol.body{margin:8px 0 14px 22px}
+  li{margin-bottom:6px;font-size:14.5px}
+  code{background:#f1f5f9;border:1px solid #e2e8f0;border-radius:5px;padding:1px 6px;font-family:'Fira Code',Consolas,monospace;font-size:12.5px;color:#be123c}
+  .path{color:#0369a1}
+
+  /* Tables */
+  table{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:13.5px}
+  th{background:#0f2942;color:#fff;text-align:left;padding:9px 12px;font-weight:600;font-size:12.5px}
+  td{border:1px solid #e2e8f0;padding:9px 12px;vertical-align:top}
+  tr:nth-child(even) td{background:#f8fafc}
+  td code{font-size:11.5px}
+
+  /* method pills */
+  .m{display:inline-block;border-radius:5px;padding:1px 7px;font-size:10.5px;font-weight:700;color:#fff;font-family:monospace}
+  .get{background:#0891b2}.post{background:#16a34a}.put{background:#d97706}.del{background:#dc2626}
+
+  /* callouts */
+  .note{border-left:4px solid #0284c7;background:#f0f9ff;padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px}
+  .warn{border-left:4px solid #f59e0b;background:#fffbeb;padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px}
+  .danger{border-left:4px solid #dc2626;background:#fef2f2;padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13.5px}
+
+  /* flow diagram */
+  pre.flow{background:#0f2942;color:#dbeafe;border-radius:10px;padding:20px 22px;overflow-x:auto;font-family:'Fira Code',Consolas,monospace;font-size:12.5px;line-height:1.55;margin:14px 0}
+  pre.flow .hi{color:#7dd3fc;font-weight:700}
+  pre.flow .gr{color:#86efac}
+  pre.flow .ye{color:#fde68a}
+
+  /* stage cards */
+  .stages{display:grid;gap:14px;margin:16px 0}
+  .stage{border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;background:#fcfdfe;position:relative;padding-left:58px}
+  .stage .badge{position:absolute;left:16px;top:16px;width:30px;height:30px;border-radius:8px;background:#0284c7;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+  .stage h4{font-size:15px;font-weight:700;color:#0f2942;margin-bottom:4px}
+  .stage p{font-size:13.5px;color:#475569;margin:0}
+  .stage .files{margin-top:7px;font-size:11.5px;color:#64748b;font-family:monospace}
+
+  .pill{display:inline-block;border-radius:20px;padding:2px 11px;font-size:11px;font-weight:700;margin:2px 3px 2px 0}
+  .pill.code{background:#dbeafe;color:#1e40af}.pill.mcq{background:#dcfce7;color:#166534}
+  .pill.theory{background:#fef3c7;color:#92400e}.pill.file{background:#fae8ff;color:#86198f}
+  .pill.web{background:#ccfbf1;color:#115e59}.pill.sql{background:#ffe4e6;color:#9f1239}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  .kv{font-size:13px}
+  .kv b{color:#0f2942}
+  footer{text-align:center;color:#94a3b8;font-size:12.5px;margin-top:30px}
+  .tag-file{font-family:monospace;font-size:11.5px;color:#0369a1;background:#f0f9ff;border:1px solid #e0f2fe;border-radius:5px;padding:1px 6px}
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="hero">
+    <h1>Assignment Module — End-to-End Flow</h1>
+    <p>How assignments move through the Codebegun LMS: from an instructor authoring &amp; publishing, through a student attempting and submitting, to automatic / manual grading, reports, and sharing — across a multi-tenant Node + React + MongoDB stack.</p>
+    <div class="chips">
+      <span class="chip">Node / Express + TypeScript</span>
+      <span class="chip">React (TSX)</span>
+      <span class="chip">MongoDB / Mongoose</span>
+      <span class="chip">Multi-tenant</span>
+      <span class="chip">Piston code execution</span>
+    </div>
+  </div>
+
+  <div class="toc">
+    <h3>On this page</h3>
+    <ol>
+      <li><a href="#overview">Big picture &amp; actors</a></li>
+      <li><a href="#models">Data models</a></li>
+      <li><a href="#types">Assignment types</a></li>
+      <li><a href="#authoring">Stage 1 — Authoring</a></li>
+      <li><a href="#publish">Stage 2 — Publish &amp; notify</a></li>
+      <li><a href="#discovery">Stage 3 — Student discovery</a></li>
+      <li><a href="#attempt">Stage 4 — Attempt &amp; workspace</a></li>
+      <li><a href="#submit">Stage 5 — Submit &amp; auto-grade</a></li>
+      <li><a href="#grade">Stage 6 — Manual grading</a></li>
+      <li><a href="#reports">Stage 7 — Reports, share, reattempt</a></li>
+      <li><a href="#execution">Code execution engine</a></li>
+      <li><a href="#access">Access control &amp; scoring</a></li>
+      <li><a href="#api">API reference</a></li>
+    </ol>
+  </div>
+
+  <!-- 1 -->
+  <section id="overview">
+    <h2><span class="num">1</span> Big picture &amp; actors</h2>
+    <p class="lead">The Assignment module is a self-contained vertical: data models, services, REST controllers, and a React UI. Everything is scoped to a <b>tenant</b> (organization) and protected by JWT auth + permission guards.</p>
+
+    <h3 class="sub">The three actors</h3>
+    <ul>
+      <li><b>Admin / Instructor</b> — authors, publishes, archives, clones assignments; grades submissions; views reports. Needs permissions <code>manage_assignments</code> / <code>grade_submissions</code>.</li>
+      <li><b>Student</b> — discovers published assignments, attempts them in a workspace, runs code, submits. Needs <code>submit_assignments</code>.</li>
+      <li><b>System</b> — auto-grades coding/MCQ, runs code via Piston, computes scores &amp; stats, sends email notifications.</li>
+    </ul>
+
+    <h3 class="sub">End-to-end at a glance</h3>
+<pre class="flow"><span class="hi">INSTRUCTOR</span>                         <span class="hi">SYSTEM</span>                          <span class="hi">STUDENT</span>
+   │                                  │                                 │
+   │ 1. Create (DRAFT) ──────────────▶│  Assignment saved, linked to    │
+   │    /assignments  POST            │     chapter (optional)          │
+   │                                  │                                 │
+   │ 2. Publish ─────────────────────▶│  validate → status=PUBLISHED    │
+   │    /:id/publish                  │  <span class="ye">email notifications</span> ──────────▶│ inbox
+   │                                  │                                 │
+   │                                  │◀──── 3. GET /student/list ───────│ sees it on dashboard
+   │                                  │                                 │
+   │                                  │◀──── 4. POST /:id/start ─────────│ opens workspace
+   │                                  │      Submission (IN_PROGRESS)    │
+   │                                  │◀──── save-code / run (loop) ─────│ codes & tests
+   │                                  │                                 │
+   │                                  │◀──── 5. submit-coding/mcq/theory │ submits
+   │                                  │  <span class="gr">auto-grade</span> coding+MCQ          │
+   │                                  │  status=SUBMITTED/GRADED/LATE    │
+   │                                  │                                 │
+   │ 6. Grade (theory/project) ──────▶│  rubric → manualScore → GRADED  │
+   │    /submissions/:id/grade        │                                 │
+   │                                  │                                 │
+   │ 7. Reports / stats ◀─────────────│  updateStats() cached on Assign │──▶ result + LinkedIn share
+</pre>
+  </section>
+
+  <!-- 2 -->
+  <section id="models">
+    <h2><span class="num">2</span> Data models</h2>
+    <p class="lead">Two Mongoose collections drive everything. <span class="tag-file">server/src/models/Assignment.ts</span> and <span class="tag-file">server/src/models/Submission.ts</span>.</p>
+
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Assignment (the template)</h3>
+        <ul class="kv">
+          <li><b>Identity:</b> <code>tenant</code>, <code>title</code>, <code>description</code>, <code>instructions</code>, <code>type</code></li>
+          <li><b>Classification:</b> <code>difficulty</code>, <code>topics[]</code>, <code>tags[]</code></li>
+          <li><b>Grading:</b> <code>totalPoints</code>, <code>passingPoints</code></li>
+          <li><b>Schedule:</b> <code>status</code>, <code>startDate</code>, <code>dueDate</code>, <code>lateSubmissionDeadline</code>, <code>lateSubmissionPenalty</code></li>
+          <li><b>Scope:</b> <code>course</code>, <code>subject</code>, <code>chapter</code>, <code>batch</code></li>
+          <li><b>Access:</b> <code>accessibleTo</code> (everyone / batch_wise / individual), <code>selectedBatches[]</code>, <code>selectedStudents[]</code></li>
+          <li><b>Coding:</b> <code>allowedLanguages[]</code>, <code>testCases[]</code>, <code>starterCode[]</code>, <code>timeLimit</code>, <code>memoryLimit</code></li>
+          <li><b>MCQ:</b> <code>mcqQuestions[]</code>, <code>shuffleQuestions</code>, <code>shuffleOptions</code></li>
+          <li><b>Theory/File:</b> <code>rubric[]</code>, <code>maxFileSize</code>, <code>allowedFileTypes[]</code>, <code>maxFiles</code></li>
+          <li><b>Settings:</b> <code>maxAttempts</code>, <code>showTestCaseResults</code>, <code>showExpectedOutput</code>, <code>showSyntaxErrors</code>, <code>enablePlagiarismCheck</code>, <code>enableHints</code> + <code>hints[]</code></li>
+          <li><b>Bank:</b> <code>isInBank</code>, <code>bankCategory</code></li>
+          <li><b>Cached stats:</b> totals, avg / highest score, avg time</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sub">Submission (a student attempt)</h3>
+        <ul class="kv">
+          <li><b>Keys:</b> <code>tenant</code>, <code>assignment</code>, <code>student</code>, <code>attemptNumber</code></li>
+          <li><b>Lifecycle:</b> <code>status</code> = not_started → in_progress → submitted → grading → graded (or late)</li>
+          <li><b>Timing:</b> <code>startedAt</code>, <code>submittedAt</code>, <code>timeSpent</code></li>
+          <li><b>Coding:</b> <code>language</code>, <code>code</code>, <code>codeSnapshots[]</code> (playback), <code>testCaseResults[]</code>, <code>compilationError</code></li>
+          <li><b>MCQ:</b> <code>mcqAnswers[]</code> (per-question correct + points)</li>
+          <li><b>Theory/File:</b> <code>theoryAnswer</code>, <code>uploadedFiles[]</code></li>
+          <li><b>Scoring:</b> <code>autoScore</code> + <code>manualScore</code> → <code>totalScore</code> − <code>penaltyApplied</code> → <code>finalScore</code> → <code>percentage</code>, <code>isPassing</code></li>
+          <li><b>Grading:</b> <code>gradedBy</code>, <code>gradedAt</code>, <code>rubricScores[]</code>, <code>overallFeedback</code>, <code>privateFeedback</code></li>
+          <li><b>Extras:</b> <code>plagiarismScore</code>, <code>shareToken</code> (LinkedIn), <code>ipAddress</code>, <code>userAgent</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="note"><b>Key invariants.</b> A <b>pre-save hook</b> always recomputes <code>totalScore = autoScore + manualScore</code> and <code>finalScore = max(0, totalScore − penaltyApplied)</code>. A <b>unique compound index</b> on <code>(tenant, assignment, student, attemptNumber)</code> guarantees one record per attempt. Virtuals expose <code>score</code> (=finalScore) and <code>feedback</code> (=overallFeedback) for the client.</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="types">
+    <h2><span class="num">3</span> Assignment types</h2>
+    <p class="lead">The <code>type</code> field decides the editor used to author it, the workspace shown to the student, and how it is graded.</p>
+    <table>
+      <tr><th>Type</th><th>Student does</th><th>Grading path</th><th>End status</th></tr>
+      <tr><td><span class="pill code">coding</span></td><td>Writes code in Monaco editor; Run vs visible tests; Submit</td><td><b>Auto</b> — runs all test cases (visible + hidden), weighted</td><td>SUBMITTED / LATE</td></tr>
+      <tr><td><span class="pill mcq">mcq</span></td><td>Selects one option per question</td><td><b>Auto</b> — compares to correct option, per-question points</td><td>GRADED</td></tr>
+      <tr><td><span class="pill theory">theory</span></td><td>Writes a long-form answer</td><td><b>Manual</b> — instructor uses rubric</td><td>SUBMITTED → GRADED</td></tr>
+      <tr><td><span class="pill file">file_upload</span> / <span class="pill code">project</span></td><td>Uploads files / submits a project</td><td><b>Manual</b> — rubric-based</td><td>SUBMITTED → GRADED</td></tr>
+      <tr><td><span class="pill sql">sql</span></td><td>Writes SQL (treated like coding)</td><td><b>Auto</b> via code runner (sqlite3)</td><td>SUBMITTED / LATE</td></tr>
+      <tr><td><span class="pill web">web</span></td><td>Writes HTML/CSS in editor</td><td>Submitted like coding (often manual review)</td><td>SUBMITTED / LATE</td></tr>
+    </table>
+  </section>
+
+  <!-- 4 -->
+  <section id="authoring">
+    <h2><span class="num">4</span> Stage 1 — Authoring an assignment</h2>
+    <p class="lead">Instructor opens <span class="path">/admin/assignments/create</span> (<span class="tag-file">AdminAssignmentForm.tsx</span>). Every save begins life as <code>DRAFT</code>.</p>
+
+    <div class="stages">
+      <div class="stage"><span class="badge">A</span>
+        <h4>Fill the form (or generate with AI / import CSV)</h4>
+        <p>Title, type, difficulty, points, schedule, access, plus type-specific fields (test cases, MCQ questions, rubric…). Three shortcuts exist: <b>AI generation</b> (<code>POST /assignments/generate-ai</code> → OpenAI builds a coding problem + test cases), <b>CSV import</b> (<code>/template/download</code> then <code>/import</code>), and <b>clone</b> an existing one.</p>
+        <p class="files">client/src/pages/assignments/AdminAssignmentForm.tsx · server aiService.ts</p>
+      </div>
+      <div class="stage"><span class="badge">B</span>
+        <h4>POST /assignments → create()</h4>
+        <p>Controller injects <code>tenant</code> + <code>createdBy</code> from the JWT, then <code>assignmentService.create()</code> saves with <code>status: DRAFT</code>. If a <code>chapter</code> was chosen, the assignment id is <code>$addToSet</code>‑linked into that chapter's <code>assignmentIds</code> (curriculum integration).</p>
+        <p class="files">assignmentController.create → assignmentService.create</p>
+      </div>
+      <div class="stage"><span class="badge">C</span>
+        <h4>Edit freely while DRAFT</h4>
+        <p><code>PUT /:id</code> updates fields; re-pointing the chapter re-links/unlinks automatically. Drafts are invisible to students.</p>
+      </div>
+    </div>
+    <div class="note">All authoring routes are guarded by <code>roleGuard(['manage_assignments'])</code> and <code>tenantMiddleware</code>, so an instructor can only ever touch their own tenant's data.</div>
+  </section>
+
+  <!-- 5 -->
+  <section id="publish">
+    <h2><span class="num">5</span> Stage 2 — Publish &amp; notify</h2>
+    <p class="lead"><code>POST /assignments/:id/publish</code> → <code>assignmentService.publish()</code>. This is the gate that makes an assignment real for students.</p>
+
+    <h3 class="sub">Validation before publish</h3>
+    <ul>
+      <li>Title and <b>dueDate</b> are required.</li>
+      <li><span class="pill code">coding</span> → at least one <code>allowedLanguage</code> and one <code>testCase</code>.</li>
+      <li><span class="pill mcq">mcq</span> → at least one question.</li>
+      <li>On failure it throws <code>Cannot publish: …</code> and the status stays DRAFT.</li>
+    </ul>
+
+    <h3 class="sub">On success</h3>
+    <ul>
+      <li><code>status → PUBLISHED</code>, <code>updatedBy</code> stamped.</li>
+      <li><b>Email notifications fire asynchronously</b> (non-blocking) via <code>sendAssignmentNotifications()</code> — the recipient set is resolved from <code>accessibleTo</code>:
+        <ul>
+          <li><code>everyone</code> → all active students in the tenant</li>
+          <li><code>batch_wise</code> → students whose <code>batchId ∈ selectedBatches</code></li>
+          <li><code>individual</code> → students in <code>selectedStudents</code></li>
+          <li>legacy single <code>batch</code> also supported</li>
+        </ul>
+      </li>
+    </ul>
+    <div class="warn"><b>Archive instead of delete.</b> <code>DELETE /:id</code> refuses if any submission exists (<code>Cannot delete assignment with existing submissions</code>). Use <code>POST /:id/archive</code> to retire it while keeping history.</div>
+  </section>
+
+  <!-- 6 -->
+  <section id="discovery">
+    <h2><span class="num">6</span> Stage 3 — Student discovery</h2>
+    <p class="lead"><code>GET /assignments/student/list</code> → <code>getStudentAssignments()</code>. Student opens <span class="path">/assignments</span> (<span class="tag-file">StudentAssignmentList.tsx</span>).</p>
+    <ol class="body">
+      <li>Query is hard-filtered to <code>status = PUBLISHED</code> for the current tenant.</li>
+      <li>The student's <b>batch</b> is resolved (explicit param → else <code>User.batchId</code>).</li>
+      <li>An <code>$or</code> visibility filter matches: <code>accessibleTo: everyone</code>, OR <code>batch_wise</code> with the batch in <code>selectedBatches</code>, OR <code>individual</code> with the student in <code>selectedStudents</code>, plus legacy records (no <code>accessibleTo</code>) by batch.</li>
+      <li>For each visible assignment, the student's latest <code>Submission</code> is attached so the UI can show <b>Not started / In progress / Submitted / Score</b>.</li>
+      <li>Results sorted by <code>dueDate</code> ascending.</li>
+    </ol>
+    <div class="note">This is the access-control heart of the module — a student can never even <i>see</i> an assignment that isn't published and scoped to them.</div>
+  </section>
+
+  <!-- 7 -->
+  <section id="attempt">
+    <h2><span class="num">7</span> Stage 4 — Attempt &amp; workspace</h2>
+    <p class="lead">Student clicks an assignment → <span class="path">/assignments/:id/workspace</span> (<span class="tag-file">AssignmentWorkspace.tsx</span>). The workspace bootstraps an attempt and then loops save/run until submit.</p>
+
+    <div class="stages">
+      <div class="stage"><span class="badge">1</span>
+        <h4>POST /:assignmentId/start → startSubmission()</h4>
+        <p>Guards: assignment must be <code>PUBLISHED</code> and past its <code>startDate</code>. Then:</p>
+        <ul style="margin:6px 0 0 18px">
+          <li>If an <b>in-progress</b> submission exists → return it (resume).</li>
+          <li>If a completed one exists and <code>maxAttempts</code> reached → return the last (read-only).</li>
+          <li>Otherwise create a fresh <code>Submission</code> with <code>status=IN_PROGRESS</code>, <code>attemptNumber=1</code>, <code>startedAt=now</code>. For MCQ it pre-seeds blank answers. Duplicate-key races are caught and the existing record returned.</li>
+        </ul>
+      </div>
+      <div class="stage"><span class="badge">2</span>
+        <h4>Coding loop — auto-save every 30s</h4>
+        <p>The Monaco editor calls <code>POST /submissions/:id/save-code</code> on a 30-second interval. Each save stores <code>code</code> + <code>language</code> and pushes a <b>code snapshot</b> (capped at the last 50) — enabling code-playback later. A countdown timer reflects <code>timeLimit</code>.</p>
+      </div>
+      <div class="stage"><span class="badge">3</span>
+        <h4>Run against visible tests</h4>
+        <p><code>POST /submissions/:id/run</code> → <code>runCode()</code> executes the code against <b>visible test cases only</b> through the code runner. Compilation errors are shown (or masked) per <code>showSyntaxErrors</code>. Results render as pass/fail cards; hidden tests are reserved for final scoring.</p>
+      </div>
+    </div>
+    <div class="note">MCQ and theory workspaces skip save/run — the student just selects answers / types text and submits.</div>
+  </section>
+
+  <!-- 8 -->
+  <section id="submit">
+    <h2><span class="num">8</span> Stage 5 — Submit &amp; auto-grade</h2>
+    <p class="lead">Submission is type-specific. Each finalizes the attempt, computes a score where possible, stamps a <code>shareToken</code>, and refreshes cached assignment stats.</p>
+
+    <h3 class="sub">Coding — <code>POST /submissions/:id/submit-coding</code></h3>
+    <ol class="body">
+      <li>Runs <b>all</b> test cases (visible + hidden) through the runner.</li>
+      <li><code>autoScore = round(earnedWeight / totalWeight × totalPoints)</code>.</li>
+      <li>Hidden test details are stripped from the stored result; expected output only shown if <code>showExpectedOutput</code>.</li>
+      <li>Late check: if past <code>dueDate</code> → status <code>LATE</code>; within <code>lateSubmissionDeadline</code> a percentage penalty is applied.</li>
+      <li><code>finalScore = autoScore − penalty</code>; <code>isPassing = finalScore ≥ passingPoints</code>; status <code>SUBMITTED</code>/<code>LATE</code>.</li>
+    </ol>
+
+    <h3 class="sub">MCQ — <code>POST /submissions/:id/submit-mcq</code></h3>
+    <ol class="body">
+      <li>Each answer compared to the correct option; <code>pointsEarned</code> accrued per question.</li>
+      <li><code>autoScore = round(earned / totalPoints × totalPoints)</code>; status set straight to <code>GRADED</code> (fully automatic), with <code>gradedAt</code> stamped.</li>
+    </ol>
+
+    <h3 class="sub">Theory / File — <code>POST /submissions/:id/submit-theory</code></h3>
+    <ol class="body">
+      <li>Stores <code>theoryAnswer</code> (and uploaded files), sets status <code>SUBMITTED</code> (or <code>LATE</code>). <b>No auto-score</b> — it waits for an instructor.</li>
+    </ol>
+
+    <div class="note">After coding/MCQ submit, <code>assignmentService.updateStats()</code> recomputes totals, average/highest score and average time, caching them on the Assignment for fast reporting.</div>
+  </section>
+
+  <!-- 9 -->
+  <section id="grade">
+    <h2><span class="num">9</span> Stage 6 — Manual grading</h2>
+    <p class="lead">For theory / project / file (and any override of auto-scores), the instructor opens <span class="path">/admin/assignments/:id/submissions</span> and grades via <code>POST /assignments/submissions/:submissionId/grade</code>.</p>
+    <ol class="body">
+      <li>Controller accepts either field convention — <code>{score, feedback}</code> or <code>{manualScore, overallFeedback}</code> — and maps client rubric <code>{criterion, score}</code> to server <code>{criterionIndex, pointsAwarded}</code>.</li>
+      <li><code>grade()</code> sums rubric points into <code>manualScore</code>, recomputes <code>totalScore = autoScore + manualScore</code>, <code>finalScore</code>, <code>percentage</code>, <code>isPassing</code>.</li>
+      <li>Stores <code>overallFeedback</code> (visible) + <code>privateFeedback</code> (instructor notes), stamps <code>gradedBy</code>/<code>gradedAt</code>, sets status <code>GRADED</code>, ensures a <code>shareToken</code>, and refreshes stats.</li>
+    </ol>
+    <div class="note">Guard <code>roleGuard(['grade_submissions'])</code>. Instructors may view any submission in their tenant; students only their own (enforced in <code>getSubmission</code>).</div>
+  </section>
+
+  <!-- 10 -->
+  <section id="reports">
+    <h2><span class="num">10</span> Stage 7 — Reports, sharing &amp; reattempt</h2>
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Reports (<span class="tag-file">AssignmentReports</span>)</h3>
+        <ul>
+          <li><code>/reports/overall</code> — counts by status/type/difficulty, total submissions, avg score.</li>
+          <li><code>/reports/by-assignment</code> — per-assignment pass rate, on-time vs late.</li>
+          <li><code>/reports/by-student</code> — per-student completion, avg score, punctuality.</li>
+          <li><code>/:assignmentId/stats</code> — live grading queue stats (pending, graded, pass rate).</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="sub">Student result &amp; share</h3>
+        <ul>
+          <li>Student opens <span class="path">/assignments/:id/result</span> (<span class="tag-file">AssignmentResult.tsx</span>) showing score, test results, feedback.</li>
+          <li>The <code>shareToken</code> powers a public <b>Share-on-LinkedIn</b> certificate link (shareRoutes / shareController).</li>
+        </ul>
+        <h3 class="sub">Reattempt</h3>
+        <p>Instructor calls <code>POST /submissions/:id/allow-reattempt</code> → resets the record to <code>IN_PROGRESS</code>, bumps <code>attemptNumber</code>, clears scores/answers/snapshots so the student can try again.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section id="execution">
+    <h2><span class="num">11</span> Code execution engine</h2>
+    <p class="lead"><span class="tag-file">server/src/services/codeRunnerService.ts</span> abstracts running student code. It has two modes chosen at startup.</p>
+    <table>
+      <tr><th>Mode</th><th>When</th><th>How it works</th></tr>
+      <tr><td><b>Real (Piston)</b></td><td><code>PISTON_URL</code> set to a self-hosted instance (not emkc.org)</td><td>POSTs <code>{language, version, files, stdin}</code> to Piston's <code>/execute</code>. Handles compile errors, runtime errors, signals. For <b>Java</b> the filename is derived from the <code>public class</code> name (else Piston fails). Output compared after <b>normalization</b> (trim, CRLF→LF, strip trailing newlines).</td></tr>
+      <tr><td><b>Simulation</b></td><td>No real Piston URL (default/dev)</td><td>Heuristic engine: bracket-balance + language syntax checks, then pattern-matches common problems (prime, fibonacci, factorial, palindrome, two-sum, binary search, reverse, dedupe…) to synthesize plausible output. Useful for demos without a sandbox.</td></tr>
+    </table>
+    <div class="warn"><b>Note for production correctness:</b> simulation mode only recognizes known patterns — for trustworthy grading a self-hosted Piston must be configured. Languages map to Piston runtimes (JS 18, Python 3.10, Java 15, C/C++ 10.2, etc.).</div>
+  </section>
+
+  <!-- 12 -->
+  <section id="access">
+    <h2><span class="num">12</span> Access control &amp; scoring formulas</h2>
+    <div class="grid2">
+      <div>
+        <h3 class="sub">Security layers (every request)</h3>
+        <ol class="body">
+          <li><code>authMiddleware</code> — valid JWT.</li>
+          <li><code>tenantMiddleware</code> — resolves &amp; injects <code>tenantId</code>; all queries filter by it.</li>
+          <li><code>roleGuard([...])</code> — permission check on admin/grading routes.</li>
+          <li>Ownership — students restricted to their own submissions.</li>
+        </ol>
+      </div>
+      <div>
+        <h3 class="sub">Scoring math</h3>
+        <ul class="kv">
+          <li><b>Coding:</b> <code>auto = round(Σ passedWeight / Σ weight × totalPoints)</code></li>
+          <li><b>MCQ:</b> <code>auto = round(Σ earned / Σ qPoints × totalPoints)</code></li>
+          <li><b>Penalty:</b> <code>round(auto × latePenalty% )</code> if late but within late deadline</li>
+          <li><b>Final:</b> <code>max(0, auto + manual − penalty)</code></li>
+          <li><b>Pass:</b> <code>finalScore ≥ passingPoints</code></li>
+          <li><b>%:</b> <code>round(finalScore / totalPoints × 100)</code></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section id="api">
+    <h2><span class="num">13</span> API reference</h2>
+    <p class="lead">All under <code>/api/v1/assignments</code>; all require auth + tenant. Source: <span class="tag-file">server/src/routes/assignmentRoutes.ts</span>.</p>
+
+    <h3 class="sub">Authoring &amp; lifecycle (manage_assignments)</h3>
+    <table>
+      <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/</code></td><td>Create assignment (DRAFT)</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/</code></td><td>List with filters &amp; pagination</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/:id</code></td><td>Get one (populated)</td></tr>
+      <tr><td><span class="m put">PUT</span></td><td><code>/:id</code></td><td>Update</td></tr>
+      <tr><td><span class="m del">DEL</span></td><td><code>/:id</code></td><td>Delete (blocked if submissions exist)</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/:id/publish</code></td><td>Validate → publish → notify</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/:id/archive</code></td><td>Archive</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/:id/clone</code></td><td>Duplicate as new DRAFT</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/generate-ai</code></td><td>AI-generate coding problem</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/import</code> · <span class="m get">GET</span> <code>/template/download</code></td><td>CSV import / template</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/bank</code> · <code>/topics</code> · <code>/tags</code></td><td>Bank &amp; autocomplete</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/reports/overall|by-assignment|by-student</code></td><td>Reporting</td></tr>
+    </table>
+
+    <h3 class="sub">Student attempt &amp; submission</h3>
+    <table>
+      <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/student/list</code></td><td>Visible published assignments + my status</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/student/submissions</code></td><td>All my submissions</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/:assignmentId/start</code></td><td>Start / resume an attempt</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/:assignmentId/my-submission</code></td><td>Latest attempt for assignment</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/save-code</code></td><td>Auto-save + snapshot</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/run</code></td><td>Run vs visible tests</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/submit-coding</code></td><td>Final run + auto-score</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/submit-mcq</code></td><td>Auto-grade MCQ</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/submit-theory</code></td><td>Submit theory/file (awaits grading)</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/submissions/:id</code></td><td>View a submission</td></tr>
+    </table>
+
+    <h3 class="sub">Grading (grade_submissions)</h3>
+    <table>
+      <tr><th>Method</th><th>Path</th><th>Purpose</th></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/:assignmentId/submissions</code></td><td>All submissions for an assignment</td></tr>
+      <tr><td><span class="m get">GET</span></td><td><code>/:assignmentId/stats</code></td><td>Grading queue stats</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/grade</code></td><td>Apply rubric / manual score + feedback</td></tr>
+      <tr><td><span class="m post">POST</span></td><td><code>/submissions/:id/allow-reattempt</code></td><td>Reset for another attempt</td></tr>
+    </table>
+  </section>
+
+  <footer>
+    Generated from the Codebegun LMS source — models, services, controllers, routes &amp; React pages of the Assignment module.
+  </footer>
+
+</div>
+</body>
+</html>

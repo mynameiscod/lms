@@ -175,6 +175,31 @@ const AssignmentWorkspace: React.FC = () => {
     }
   };
 
+  // For `web` assignments HTML and CSS live in separate language tabs, so the
+  // raw HTML (with an external <link href="style.css">) renders unstyled in the
+  // iframe. Merge them: inline the CSS and replace the external stylesheet link.
+  const buildWebPreview = (): string => {
+    const codeFor = (lang: ProgrammingLanguage) =>
+      selectedLanguage === lang
+        ? code
+        : (codePerLanguage[lang] ?? assignment?.starterCode.find(s => s.language === lang)?.code ?? '');
+
+    let html = codeFor(ProgrammingLanguage.HTML) || code || '';
+    const css = codeFor(ProgrammingLanguage.CSS);
+
+    if (css && css.trim()) {
+      const styleTag = `<style>\n${css}\n</style>`;
+      if (/<link\b[^>]*stylesheet[^>]*>/i.test(html)) {
+        html = html.replace(/<link\b[^>]*stylesheet[^>]*>/i, styleTag);
+      } else if (/<\/head>/i.test(html)) {
+        html = html.replace(/<\/head>/i, `${styleTag}\n</head>`);
+      } else {
+        html = `${styleTag}\n${html}`;
+      }
+    }
+    return html;
+  };
+
   const handleRun = async () => {
     if (!submission) return;
 
@@ -185,7 +210,7 @@ const AssignmentWorkspace: React.FC = () => {
       setConsoleOutput(null);
       setRuntimeError(null);
       setTestResults([]);
-      setWebPreview(code || '');
+      setWebPreview(buildWebPreview());
       return;
     }
 

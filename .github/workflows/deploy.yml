@@ -24,8 +24,9 @@ jobs:
 
       - name: Build and verify
         run: |
-          cd server && npm ci --legacy-peer-deps && npm run build
-          cd ../client && npm ci --legacy-peer-deps && npm run build
+          npm ci --legacy-peer-deps
+          npm run build --workspace=server
+          npm run build --workspace=client
           test -f server/dist/server.js && test -f client/build/index.html
         env:
           CI: false
@@ -39,6 +40,7 @@ jobs:
           
           ssh -o StrictHostKeyChecking=no ${{ env.VPS_USER }}@${{ env.VPS_HOST }} << 'DEPLOY'
           cd /root/lms
+          git pull origin master
           chmod +x deploy.sh
           ./deploy.sh
           DEPLOY

@@ -21,11 +21,14 @@ interface ExecutionResult {
 /**
  * Code Runner Service
  * 
- * For real code execution, self-host Piston:
- * docker run -d --name piston -p 2000:2000 ghcr.io/engineer-man/piston
- * Then set PISTON_URL=http://localhost:2000/api/v2/piston in .env
- * 
- * Falls back to smart simulation mode if no Piston URL configured.
+ * For real code execution, self-host Piston (already in docker-compose.yml as
+ * the `piston` service). After it is up, install the language runtimes once:
+ *   ./scripts/piston-init.sh
+ * The server reaches it via PISTON_URL=http://piston:2000/api/v2 (set in compose).
+ *
+ * Falls back to smart simulation mode if no Piston URL configured. Simulation
+ * does NOT run real code — it pattern-matches common problems — so always use
+ * Piston for trustworthy output/grading.
  */
 class CodeRunnerService {
   private pistonUrl: string | null;

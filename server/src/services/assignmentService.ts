@@ -141,6 +141,15 @@ class AssignmentService {
       }
     }
 
+    // If a published assignment had its audience widened (e.g. edited to add an
+    // individual student or a batch), email only the newly-added students.
+    // Notifications otherwise only fire on publish(), so edits would silently
+    // add students with no email. Fire-and-forget so it never blocks the update.
+    if (assignment && assignment.status === AssignmentStatus.PUBLISHED) {
+      this.notifyNewlyAddedStudents(existingAssignment, assignment, tenant).catch(err =>
+        console.error('Failed to notify newly added students:', err));
+    }
+
     return assignment;
   }
 
@@ -280,25 +289,83 @@ class AssignmentService {
       }
 
       console.log(`📧 Sending assignment notifications to ${students.length} students (accessibleTo: ${accessibleTo})`);
-
-      for (const student of students) {
-        try {
-          await emailService.sendAssignmentNotificationEmail(
-            student.email,
-            `${student.firstName} ${student.lastName}`,
-            assignment.title,
-            assignment.type,
-            assignment.description,
-            assignment.dueDate || new Date(),
-            assignment.totalPoints,
-            assignment.difficulty
-          );
-        } catch (err) {
-          console.error(`Failed to send email to ${student.email}:`, err);
-        }
-      }
+      await this.emailStudents(students, assignment);
     } catch (err) {
       console.error('Error sending assignment notifications:', err);
+    }
+  }
+
+  // Send the assignment notification email to a list of student docs
+  private async emailStudents(students: any[], assignment: IAssignment): Promise<void> {
+    for (const student of students) {
+      try {
+        await emailService.sendAssignmentNotificationEmail(
+          student.email,
+          `${student.firstName} ${student.lastName}`,
+          assignment.title,
+          assignment.type,
+          assignment.description,
+          assignment.dueDate || new Date(),
+          assignment.totalPoints,
+          assignment.difficulty
+        );
+      } catch (err) {
+        console.error(`Failed to send email to ${student.email}:`, err);
+      }
+    }
+  }
+
+  // Notify only students who were newly granted access by an edit (so editing a
+  // published assignment to add an individual student / batch emails them).
+  private async notifyNewlyAddedStudents(
+    before: IAssignment | null,
+    after: IAssignment,
+    tenant: Types.ObjectId
+  ): Promise<void> {
+    try {
+      const accessibleTo = (after as any).accessibleTo || 'everyone';
+
+      if (accessibleTo === 'individual') {
+        const beforeSet = new Set<string>(
+          (before as any)?.accessibleTo === 'individual'
+            ? ((before as any).selectedStudents || []).map(String)
+            : []
+        );
+        const newIds = ((after as any).selectedStudents || [])
+          .map(String)
+          .filter((id: string) => !beforeSet.has(id));
+        if (!newIds.length) return;
+        const students = await User.find({
+          _id: { $in: newIds },
+          tenantId: tenant,
+          role: 'STUDENT',
+          isActive: true
+        }).select('firstName lastName email');
+        console.log(`📧 Notifying ${students.length} newly-added individual student(s) after edit`);
+        await this.emailStudents(students, after);
+      } else if (accessibleTo === 'batch_wise') {
+        const beforeBatches = new Set<string>(
+          (before as any)?.accessibleTo === 'batch_wise'
+            ? ((before as any).selectedBatches || []).map(String)
+            : []
+        );
+        const newBatches = ((after as any).selectedBatches || [])
+          .map(String)
+          .filter((b: string) => !beforeBatches.has(b));
+        if (!newBatches.length) return;
+        const students = await User.find({
+          tenantId: tenant,
+          role: 'STUDENT',
+          isActive: true,
+          batchId: { $in: newBatches }
+        }).select('firstName lastName email');
+        console.log(`📧 Notifying ${students.length} student(s) in newly-added batch(es) after edit`);
+        await this.emailStudents(students, after);
+      }
+      // 'everyone' is intentionally not auto-notified on edit to avoid emailing
+      // the whole tenant on an unrelated change.
+    } catch (err) {
+      console.error('notifyNewlyAddedStudents error:', err);
     }
   }
 

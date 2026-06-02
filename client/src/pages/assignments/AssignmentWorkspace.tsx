@@ -27,6 +27,8 @@ const AssignmentWorkspace: React.FC = () => {
   // Workspace state
   const [selectedLanguage, setSelectedLanguage] = useState<ProgrammingLanguage>(ProgrammingLanguage.JAVASCRIPT);
   const [code, setCode] = useState('');
+  // Stores code per language so switching tabs preserves what student typed
+  const [codePerLanguage, setCodePerLanguage] = useState<Record<string, string>>({});
   const [theoryAnswer, setTheoryAnswer] = useState('');
   const [mcqAnswers, setMcqAnswers] = useState<Record<number, number>>({});
   
@@ -234,10 +236,18 @@ const AssignmentWorkspace: React.FC = () => {
   };
 
   const handleLanguageChange = (lang: ProgrammingLanguage) => {
+    // Save current code for the language we're leaving
+    setCodePerLanguage(prev => ({ ...prev, [selectedLanguage]: code }));
     handleSave(true);
     setSelectedLanguage(lang);
-    const starter = assignment?.starterCode.find(s => s.language === lang);
-    setCode(starter?.code || '');
+    // Restore previously typed code for this language, or fall back to starter/empty
+    const saved = codePerLanguage[lang];
+    if (saved !== undefined) {
+      setCode(saved);
+    } else {
+      const starter = assignment?.starterCode.find(s => s.language === lang);
+      setCode(starter?.code || '');
+    }
   };
 
   const formatTime = (ms: number) => {
@@ -864,6 +874,7 @@ const AssignmentWorkspace: React.FC = () => {
               
               <div className="code-editor-container">
                 <Editor
+                  key={selectedLanguage}
                   height="100%"
                   language={getLanguageForMonaco(selectedLanguage)}
                   value={code}

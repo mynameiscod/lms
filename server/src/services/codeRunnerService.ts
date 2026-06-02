@@ -481,7 +481,12 @@ class CodeRunnerService {
         fileName = classMatch ? `${classMatch[1]}.java` : 'Main.java';
       }
       
-      const runLimit = Math.min(timeLimit || 10000, 15000);
+      // On this Piston build, compiled languages (Java/C++/…) compile INSIDE the
+      // run stage, and javac cold-start alone uses ~7s of CPU. So run limits must
+      // be generous enough to cover compilation, otherwise the job is SIGKILLed
+      // mid-compile ("Time limit exceeded") and the student sees no output/error.
+      // Floor well above per-test timeLimit; Piston caps at its configured max.
+      const runLimit = Math.min(Math.max(timeLimit || 5000, 12000), 15000);
       const requestBody = {
         language: pistonLanguage.language,
         version: pistonLanguage.version,
@@ -489,8 +494,8 @@ class CodeRunnerService {
         stdin: stdin || '',
         run_timeout: runLimit,
         run_cpu_time: runLimit,
-        compile_timeout: 10000,
-        compile_cpu_time: 10000,
+        compile_timeout: 15000,
+        compile_cpu_time: 15000,
       };
 
       console.log('[PISTON] Request:', JSON.stringify({
@@ -516,23 +521,44 @@ class CodeRunnerService {
 
       const result: any = await response.json();
 
-      // Check for compilation errors
+      // Compilation errors from the dedicated compile stage
       if (result.compile && result.compile.code !== 0) {
         return {
           passed: false,
           output: '',
-          compilationError: result.compile.stderr || result.compile.output,
+          compilationError: result.compile.stderr || result.compile.output || 'Compilation failed',
           executionTime: 0,
           memoryUsed: 0
         };
       }
 
-      // Check for runtime errors
+      const runStderr = (result.run.stderr || '').trim();
+
+      // Run stage failed or was killed
       if (result.run.code !== 0 || result.run.signal) {
+        // Some packages (Java) compile in the run stage and report compile
+        // failures via run.stderr — surface those as a compilation error.
+        if (/\berror:|compilation failed|cannot find symbol|';' expected|is public, should be declared/i.test(runStderr)) {
+          return {
+            passed: false,
+            output: '',
+            compilationError: runStderr,
+            executionTime: 0,
+            memoryUsed: 0
+          };
+        }
+
+        // SIGKILL/null code with no stderr == killed by the CPU/time limit
+        const killed = !!result.run.signal || result.run.code === null;
+        const errorMsg = runStderr
+          || (killed
+              ? 'Time limit exceeded — your program ran too long (check for an infinite loop, or reading input that was never provided).'
+              : `Program exited with code ${result.run.code}`);
+
         return {
           passed: false,
           output: result.run.stdout || '',
-          error: result.run.stderr || `Exit code: ${result.run.code}`,
+          error: errorMsg,
           executionTime: 0,
           memoryUsed: 0
         };

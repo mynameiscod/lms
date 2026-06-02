@@ -471,8 +471,12 @@ class CodeRunnerService {
     try {
       const pistonLanguage = this.mapToPistonLanguage(language);
       
-      // For Java, set filename to match the public class name
-      const fileName = language === ProgrammingLanguage.JAVA ? 'Main.java' : undefined;
+      // For Java, filename MUST match the public class name or Piston fails to compile
+      let fileName: string | undefined;
+      if (language === ProgrammingLanguage.JAVA) {
+        const classMatch = code.match(/public\s+class\s+(\w+)/);
+        fileName = classMatch ? `${classMatch[1]}.java` : 'Main.java';
+      }
       
       const runLimit = Math.min(timeLimit || 10000, 15000);
       const requestBody = {
@@ -648,12 +652,7 @@ class CodeRunnerService {
       .trim()
       .replace(/\r\n/g, '\n')  // Windows line endings
       .replace(/\r/g, '\n')    // Old Mac line endings
-      .replace(/\n+$/, '')     // Trailing newlines
-      .replace(/,\s+/g, ',')   // Remove spaces after commas
-      .replace(/\s+,/g, ',')   // Remove spaces before commas
-      .replace(/\[\s+/g, '[')  // Remove spaces after [
-      .replace(/\s+\]/g, ']')  // Remove spaces before ]
-      .toLowerCase();
+      .replace(/\n+$/, '');    // Trailing newlines
   }
 
   // Get available languages

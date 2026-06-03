@@ -236,6 +236,8 @@
 .search-input::placeholder { color: #9ca3af !important; }
 
 /* You badge / joined column / status dot */
+.user-link { color: #005897; font-weight: 600; cursor: pointer; }
+.user-link:hover { text-decoration: underline; }
 .you-badge { display: inline-block; margin-left: 8px; background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; vertical-align: middle; }
 .joined-cell { color: #64748b; font-size: 13px; white-space: nowrap; }
 .status-badge .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; background: currentColor; }

@@ -135,8 +135,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Watch Recordings', path: '/class-recordings', roles: ['STUDENT'], icon: 'fa-solid fa-play-circle', permissions: ['view_courses'] },
       ]
     },
-    { label: 'Student Reports', path: '/student-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-bar', permissions: ['view_reports'] },
-    { label: 'Student Profiles', path: '/admin/student-profiles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-id-card', permissions: ['view_reports'] },
+    // Student Reports & Student Profiles merged into the unified Student Detail page — click a student in Users.
     { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },

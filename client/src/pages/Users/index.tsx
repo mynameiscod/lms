@@ -564,7 +564,17 @@ const UsersPage: React.FC = () => {
                       <span className="avatar">{user.firstName[0]}{user.lastName[0]}</span>
                       <div>
                         <div className="full-name">
-                          {user.firstName} {user.lastName}
+                          {user.role === 'STUDENT' ? (
+                            <span
+                              className="user-link"
+                              onClick={() => navigate(`/users/${user._id}`)}
+                              title="View student details"
+                            >
+                              {user.firstName} {user.lastName}
+                            </span>
+                          ) : (
+                            <>{user.firstName} {user.lastName}</>
+                          )}
                           {currentUser && (currentUser._id === user._id || currentUser.id === user._id) && (
                             <span className="you-badge">You</span>
                           )}

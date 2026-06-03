@@ -1,10 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
+import { getStudentReport } from '../../api/studentReportApi';
 import { Spinner } from '../../components/common';
 import './StudentProfileDetail.css';
+import '../StudentReports/StudentReports.css';
 
-type DetailTab = 'profile' | 'attendance' | 'quizzes' | 'assignments' | 'snippets';
+type DetailTab = 'overview' | 'profile' | 'attendance' | 'quizzes' | 'assignments' | 'snippets' | 'interviews' | 'fees' | 'exams';
+
+const ACTIVITY_TABS: DetailTab[] = ['attendance', 'quizzes', 'assignments', 'snippets'];
+const REPORT_TABS: DetailTab[] = ['overview', 'interviews', 'fees', 'exams'];
+const TAB_LABELS: Record<DetailTab, string> = {
+  overview: '📊 Overview',
+  profile: '👤 Profile',
+  attendance: '📅 Attendance',
+  quizzes: '📝 Quizzes',
+  assignments: '📋 Assignments',
+  snippets: '💻 Code Snippets',
+  interviews: '🎤 Interviews',
+  fees: '💰 Fees',
+  exams: '📄 Exams',
+};
 
 const avatarColor = (name: string) => {
   const colors = ['#005897', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#ec4899'];
@@ -27,11 +43,13 @@ const fmt = (date: string | undefined) => {
 const StudentProfileDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<DetailTab>('profile');
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [profile, setProfile] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
+  const [report, setReport] = useState<any>(null);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingActivity, setLoadingActivity] = useState(false);
+  const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -44,7 +62,7 @@ const StudentProfileDetail: React.FC = () => {
   }, [userId]);
 
   useEffect(() => {
-    if (!userId || activeTab === 'profile') return;
+    if (!userId || !ACTIVITY_TABS.includes(activeTab)) return;
     if (activity) return; // already loaded
     setLoadingActivity(true);
     studentProfileAPI.getStudentActivity(userId)
@@ -52,6 +70,16 @@ const StudentProfileDetail: React.FC = () => {
       .catch(() => setActivity(null))
       .finally(() => setLoadingActivity(false));
   }, [userId, activeTab, activity]);
+
+  useEffect(() => {
+    if (!userId || !REPORT_TABS.includes(activeTab)) return;
+    if (report) return; // already loaded
+    setLoadingReport(true);
+    getStudentReport(userId)
+      .then((r: any) => setReport(r?.data || r))
+      .catch(() => setReport(null))
+      .finally(() => setLoadingReport(false));
+  }, [userId, activeTab, report]);
 
   if (loadingProfile) return <div className="spd-loading"><Spinner /></div>;
   if (!profile) return <div className="spd-error">{error || 'Profile not found.'}</div>;
@@ -70,8 +98,8 @@ const StudentProfileDetail: React.FC = () => {
     <div className="spd-page">
       {/* Header */}
       <div className="spd-topbar">
-        <button className="spd-back-btn" onClick={() => navigate('/admin/student-profiles')}>
-          ← Back to Profiles
+        <button className="spd-back-btn" onClick={() => navigate('/users')}>
+          ← Back to Users
         </button>
       </div>
 
@@ -130,21 +158,50 @@ const StudentProfileDetail: React.FC = () => {
 
       {/* Tabs */}
       <div className="spd-tabs">
-        {(['profile', 'attendance', 'quizzes', 'assignments', 'snippets'] as DetailTab[]).map(t => (
+        {(['overview', 'profile', 'attendance', 'quizzes', 'assignments', 'snippets', 'interviews', 'fees', 'exams'] as DetailTab[]).map(t => (
           <button
             key={t}
             className={`spd-tab ${activeTab === t ? 'active' : ''}`}
             onClick={() => setActiveTab(t)}
           >
-            {t === 'profile' ? '👤 Profile' :
-             t === 'attendance' ? '📅 Attendance' :
-             t === 'quizzes' ? '📝 Quizzes' :
-             t === 'assignments' ? '📋 Assignments' : '💻 Code Snippets'}
+            {TAB_LABELS[t]}
           </button>
         ))}
       </div>
 
       <div className="spd-tab-content">
+        {/* ── Overview Tab ── */}
+        {activeTab === 'overview' && (
+          loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
+          !report ? <p className="spd-empty">No report data available for this student.</p> :
+          <div className="overview-grid">
+            <div className="overview-card attendance"><div className="overview-icon">📅</div><div className="overview-content">
+              <h4>Attendance</h4><div className="overview-stat">{report.attendance?.percentage ?? 0}%</div>
+              <div className="overview-details"><span>Present: {report.attendance?.present ?? 0}</span><span>Absent: {report.attendance?.absent ?? 0}</span><span>Late: {report.attendance?.lateArrivals ?? 0}</span></div>
+            </div></div>
+            <div className="overview-card quizzes"><div className="overview-icon">📝</div><div className="overview-content">
+              <h4>Quizzes</h4><div className="overview-stat">{report.quizzes?.completed ?? 0}/{report.quizzes?.total ?? 0}</div>
+              <div className="overview-details"><span>Passed: {report.quizzes?.passed ?? 0}</span><span>Failed: {report.quizzes?.failed ?? 0}</span><span>Avg: {report.quizzes?.averageScore ?? 0}%</span></div>
+            </div></div>
+            <div className="overview-card assignments"><div className="overview-icon">💻</div><div className="overview-content">
+              <h4>Assignments</h4><div className="overview-stat">{report.assignments?.graded ?? 0}/{report.assignments?.total ?? 0}</div>
+              <div className="overview-details"><span>Pending: {report.assignments?.pending ?? 0}</span><span>Late: {report.assignments?.late ?? 0}</span><span>Avg: {report.assignments?.averageScore ?? 0}</span></div>
+            </div></div>
+            <div className="overview-card fees"><div className="overview-icon">💰</div><div className="overview-content">
+              <h4>Fees</h4><div className="overview-stat">{report.fees?.status ?? '—'}</div>
+              <div className="overview-details"><span>Total: ₹{report.fees?.totalAmount ?? 0}</span><span>Paid: ₹{report.fees?.paidAmount ?? 0}</span><span>Due: ₹{report.fees?.dueAmount ?? 0}</span></div>
+            </div></div>
+            <div className="overview-card interviews"><div className="overview-icon">🎤</div><div className="overview-content">
+              <h4>Interviews</h4><div className="overview-stat">{report.interviews?.attended ?? 0}/{report.interviews?.total ?? 0}</div>
+              <div className="overview-details"><span>Mock: {report.interviews?.mock ?? 0}</span><span>Passed: {report.interviews?.passed ?? 0}</span><span>Avg: {report.interviews?.averageScore ?? 0}%</span></div>
+            </div></div>
+            <div className="overview-card exams"><div className="overview-icon">📊</div><div className="overview-content">
+              <h4>Exams</h4><div className="overview-stat">{report.exams?.passed ?? 0}/{report.exams?.total ?? 0}</div>
+              <div className="overview-details"><span>Passed: {report.exams?.passed ?? 0}</span><span>Failed: {report.exams?.failed ?? 0}</span><span>Avg: {report.exams?.averagePercentage ?? 0}%</span></div>
+            </div></div>
+          </div>
+        )}
+
         {/* ── Profile Tab ── */}
         {activeTab === 'profile' && (
           <div className="spd-profile-sections">
@@ -298,6 +355,113 @@ const StudentProfileDetail: React.FC = () => {
                     <td>{fmt(s.submittedAt || s.createdAt)}</td>
                   </tr>
                 ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Interviews Tab ── */}
+        {activeTab === 'interviews' && (
+          loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
+          !report ? <p className="spd-empty">No interview data found.</p> :
+          <div className="detail-section">
+            <div className="stats-row">
+              <div className="stat-box"><span className="stat-label">Total</span><span className="stat-value">{report.interviews?.total ?? 0}</span></div>
+              <div className="stat-box"><span className="stat-label">Mock</span><span className="stat-value">{report.interviews?.mock ?? 0}</span></div>
+              <div className="stat-box"><span className="stat-label">Real</span><span className="stat-value">{report.interviews?.real ?? 0}</span></div>
+              <div className="stat-box present"><span className="stat-label">Attended</span><span className="stat-value">{report.interviews?.attended ?? 0}</span></div>
+              <div className="stat-box present"><span className="stat-label">Passed</span><span className="stat-value">{report.interviews?.passed ?? 0}</span></div>
+              <div className="stat-box percentage"><span className="stat-label">Overall Avg</span><span className="stat-value">{report.interviews?.averageScore ?? 0}%</span></div>
+            </div>
+            <div className="scores-row">
+              <div className="score-card"><div className="score-label">Communication Score</div><div className="score-value">{report.interviews?.communicationAvg ?? 0}%</div><div className="score-bar"><div className="score-fill" style={{ width: `${report.interviews?.communicationAvg ?? 0}%` }}></div></div></div>
+              <div className="score-card"><div className="score-label">Technical Score</div><div className="score-value">{report.interviews?.technicalAvg ?? 0}%</div><div className="score-bar"><div className="score-fill" style={{ width: `${report.interviews?.technicalAvg ?? 0}%` }}></div></div></div>
+            </div>
+            <h4>Recent Interviews</h4>
+            <table className="data-table">
+              <thead><tr><th>Date</th><th>Type</th><th>Company</th><th>Overall Score</th><th>Status</th><th>Result</th></tr></thead>
+              <tbody>
+                {(report.interviews?.recentInterviews || []).length === 0 ? (
+                  <tr><td colSpan={6} className="no-data">No interview records found</td></tr>
+                ) : (
+                  report.interviews.recentInterviews.map((iv: any, idx: number) => (
+                    <tr key={idx}>
+                      <td>{new Date(iv.date).toLocaleDateString()}</td>
+                      <td>{iv.type}</td>
+                      <td>{iv.companyName || '-'}</td>
+                      <td>{iv.scores?.overall || 0}%</td>
+                      <td><span className={`status-badge ${iv.status}`}>{iv.status}</span></td>
+                      <td><span className={`status-badge ${iv.result || 'pending'}`}>{iv.result || 'pending'}</span></td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Fees Tab ── */}
+        {activeTab === 'fees' && (
+          loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
+          !report ? <p className="spd-empty">No fee data found.</p> :
+          <div className="detail-section">
+            <div className="stats-row">
+              <div className="stat-box"><span className="stat-label">Total Amount</span><span className="stat-value">₹{(report.fees?.totalAmount ?? 0).toLocaleString()}</span></div>
+              <div className="stat-box present"><span className="stat-label">Paid</span><span className="stat-value">₹{(report.fees?.paidAmount ?? 0).toLocaleString()}</span></div>
+              <div className="stat-box absent"><span className="stat-label">Due</span><span className="stat-value">₹{(report.fees?.dueAmount ?? 0).toLocaleString()}</span></div>
+              <div className="stat-box"><span className="stat-label">Status</span><span className={`stat-value status-${report.fees?.status}`}>{(report.fees?.status || '—').toUpperCase()}</span></div>
+            </div>
+            <h4>Payment History</h4>
+            <table className="data-table">
+              <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Transaction ID</th><th>Received By</th></tr></thead>
+              <tbody>
+                {(report.fees?.payments || []).length === 0 ? (
+                  <tr><td colSpan={5} className="no-data">No payment records found</td></tr>
+                ) : (
+                  report.fees.payments.map((payment: any, idx: number) => (
+                    <tr key={idx}>
+                      <td>{new Date(payment.paymentDate).toLocaleDateString()}</td>
+                      <td>₹{(payment.amount ?? 0).toLocaleString()}</td>
+                      <td>{payment.paymentMethod}</td>
+                      <td>{payment.transactionId || '-'}</td>
+                      <td>{payment.receivedBy?.firstName || '-'} {payment.receivedBy?.lastName || ''}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {/* ── Exams Tab ── */}
+        {activeTab === 'exams' && (
+          loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
+          !report ? <p className="spd-empty">No exam data found.</p> :
+          <div className="detail-section">
+            <div className="stats-row">
+              <div className="stat-box"><span className="stat-label">Total</span><span className="stat-value">{report.exams?.total ?? 0}</span></div>
+              <div className="stat-box present"><span className="stat-label">Passed</span><span className="stat-value">{report.exams?.passed ?? 0}</span></div>
+              <div className="stat-box absent"><span className="stat-label">Failed</span><span className="stat-value">{report.exams?.failed ?? 0}</span></div>
+              <div className="stat-box percentage"><span className="stat-label">Average %</span><span className="stat-value">{report.exams?.averagePercentage ?? 0}%</span></div>
+            </div>
+            <h4>Recent Exams</h4>
+            <table className="data-table">
+              <thead><tr><th>Exam Name</th><th>Type</th><th>Date</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead>
+              <tbody>
+                {(report.exams?.recentExams || []).length === 0 ? (
+                  <tr><td colSpan={6} className="no-data">No exam records found</td></tr>
+                ) : (
+                  report.exams.recentExams.map((exam: any, idx: number) => (
+                    <tr key={idx}>
+                      <td>{exam.examName}</td>
+                      <td>{exam.examType}</td>
+                      <td>{new Date(exam.date).toLocaleDateString()}</td>
+                      <td>{exam.scoredMarks}/{exam.maxScore}</td>
+                      <td>{exam.percentage}%</td>
+                      <td><span className={`status-badge ${exam.result}`}>{exam.result}</span></td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>

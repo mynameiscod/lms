@@ -487,16 +487,8 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
-        path="/student-reports"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <StudentReportsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
+      {/* Student Reports merged into the unified Student Detail page (reached from Users) */}
+      <Route path="/student-reports" element={<Navigate to="/users" replace />} />
 
       <Route
         path="/admin/college/departments"
@@ -665,17 +657,22 @@ const AppRoutes: React.FC = () => {
         }
       />
 
+      {/* Student Profiles list merged into Users; keep the list route as a redirect */}
+      <Route path="/admin/student-profiles" element={<Navigate to="/users" replace />} />
+
+      {/* Unified Student Detail (reached by clicking a student in Users) */}
       <Route
-        path="/admin/student-profiles"
+        path="/users/:userId"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
             <Layout>
-              <AdminStudentProfilesPage />
+              <StudentProfileDetail />
             </Layout>
           </ProtectedRoute>
         }
       />
 
+      {/* Back-compat: old detail URL still works */}
       <Route
         path="/admin/student-profiles/:userId"
         element={

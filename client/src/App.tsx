@@ -87,6 +87,7 @@ import {
 import AssignmentReports from './pages/AssignmentReports';
 import StudentFeaturesPage from './pages/StudentFeatures';
 import ResumeBuilderPage from './pages/ResumeBuilder';
+import PublicResumeView from './pages/ResumeBuilder/PublicResumeView';
 import LeadsPage from './pages/Leads';
 import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
@@ -280,6 +281,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />
+      <Route path="/resume/view/:token" element={<PublicResumeView />} />
       <Route path="/quiz/:token" element={<QuizSession />} />
 
       <Route

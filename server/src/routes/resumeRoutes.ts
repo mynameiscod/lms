@@ -10,6 +10,8 @@ import {
   saveSections,
   scoreMyResume,
   getAllResumes,
+  shareMyResume,
+  getPublicResume,
 } from '../controllers/resumeController';
 
 const router = express.Router();
@@ -35,6 +37,9 @@ const upload = multer({
   },
 });
 
+// Public, read-only share link — must be before auth middleware
+router.get('/public/:token', getPublicResume);
+
 router.use(tenantResolver);
 router.use(authMiddleware);
 
@@ -42,6 +47,7 @@ router.get('/my', getMyResume);
 router.post('/upload', upload.single('resume'), uploadResume);
 router.put('/sections', saveSections);
 router.post('/score', scoreMyResume);
+router.post('/share', shareMyResume);
 router.get('/all', getAllResumes); // admin
 
 export default router;

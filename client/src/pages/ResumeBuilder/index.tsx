@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience, ResumeEducation, ResumeProject, ResumeSkillGroup, ResumeCertification } from '../../api/resumeApi';
+import { resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience, ResumeEducation, ResumeProject, ResumeSkillGroup, ResumeCertification, ResumeTemplate } from '../../api/resumeApi';
+import { ResumeDocument, TEMPLATES } from './templates';
 import './ResumeBuilder.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -501,6 +502,8 @@ const ResumeBuilder: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [scoring, setScoring] = useState(false);
   const [toast, setToast] = useState('');
+  const [template, setTemplate] = useState<ResumeTemplate>('classic');
+  const [sharing, setSharing] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -511,12 +514,40 @@ const ResumeBuilder: React.FC = () => {
           const r: ResumeData = res.data.data;
           setResume(r);
           setSections(r.sections);
+          setTemplate(r.template || 'classic');
           setActiveTab(r.mode === 'uploaded' ? 'upload' : 'build');
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+
+  const handleSelectTemplate = async (t: ResumeTemplate) => {
+    setTemplate(t);
+    try { await resumeApi.saveSections(sections, t); } catch { /* non-blocking */ }
+  };
+
+  const handleDownload = () => { window.print(); };
+
+  const handleShare = async () => {
+    try {
+      setSharing(true);
+      await resumeApi.saveSections(sections, template); // ensure latest is saved before sharing
+      const res = await resumeApi.share();
+      const token = res.data.data.shareToken;
+      const url = `${window.location.origin}/resume/view/${token}`;
+      try {
+        await navigator.clipboard.writeText(url);
+        showToast('🔗 Share link copied to clipboard!');
+      } catch {
+        window.prompt('Copy your resume share link:', url);
+      }
+    } catch {
+      showToast('❌ Could not create link — save your resume first.');
+    } finally {
+      setSharing(false);
+    }
+  };
 
   const handleUploaded = (data: ResumeData) => {
     setResume(data);
@@ -528,7 +559,7 @@ const ResumeBuilder: React.FC = () => {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const res = await resumeApi.saveSections(sections);
+      const res = await resumeApi.saveSections(sections, template);
       setResume(res.data.data);
       showToast('✅ Saved!');
     } catch { showToast('❌ Save failed'); }
@@ -538,7 +569,7 @@ const ResumeBuilder: React.FC = () => {
   const handleScore = async () => {
     try {
       setSaving(true);
-      const saveRes = await resumeApi.saveSections(sections);
+      const saveRes = await resumeApi.saveSections(sections, template);
       setResume(saveRes.data.data);
       setSaving(false);
       setScoring(true);
@@ -568,7 +599,7 @@ const ResumeBuilder: React.FC = () => {
 
       <div className="rb-header">
         <h1>📄 Resume Builder</h1>
-        <p>Upload your existing resume or build one from scratch — get an AI score and suggestions</p>
+        <p>Upload your old resume or start fresh → pick a template → edit & get an AI score → download or share a link</p>
         {resume?.score && (
           <div style={{ marginTop: 10, fontSize: 13, opacity: 0.9 }}>
             Current score: <strong style={{ fontSize: 16, color: scoreColor(resume.score.total) }}>{resume.score.total}/100</strong>
@@ -603,12 +634,46 @@ const ResumeBuilder: React.FC = () => {
           )}
         </div>
 
-        {/* Right: score + preview */}
+        {/* Right: score + template + preview */}
         <div className="rb-right">
           <ScorePanel resume={resume} scoring={scoring} />
+
+          {/* Template picker */}
+          <div className="rb-template-picker">
+            <div className="rb-block-label">1 · Choose a Template</div>
+            <div className="rb-template-grid">
+              {TEMPLATES.map(t => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`rb-template-card ${template === t.id ? 'active' : ''}`}
+                  onClick={() => handleSelectTemplate(t.id)}
+                  title={t.blurb}
+                >
+                  <span className="rb-template-swatch" style={{ background: t.accent }} />
+                  <span className="rb-template-name">{t.name}</span>
+                  <span className="rb-template-blurb">{t.blurb}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Preview + actions */}
           <div style={{ marginTop: 20 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 }}>Preview</div>
-            <ResumePreview sections={sections} />
+            <div className="rb-preview-head">
+              <div className="rb-block-label" style={{ margin: 0 }}>2 · Preview — {TEMPLATES.find(t => t.id === template)?.name}</div>
+              <div className="rb-preview-actions">
+                <button className="rb-btn-secondary sm" onClick={handleShare} disabled={sharing} title="Create a public link to share your resume">
+                  {sharing ? '…' : '🔗 Share Link'}
+                </button>
+                <button className="rb-btn-primary sm" onClick={handleDownload} title="Download as PDF (uses your browser's Save as PDF)">
+                  ⬇️ Download PDF
+                </button>
+              </div>
+            </div>
+            <div className="resume-print-area">
+              <ResumeDocument sections={sections} template={template} />
+            </div>
           </div>
         </div>
       </div>

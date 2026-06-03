@@ -8,6 +8,8 @@ API.interceptors.request.use(cfg => {
   return cfg;
 });
 
+export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional';
+
 export const resumeApi = {
   getMy: () => API.get('/resume/my'),
   upload: (file: File) => {
@@ -15,8 +17,11 @@ export const resumeApi = {
     fd.append('resume', file);
     return API.post('/resume/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
-  saveSections: (sections: any) => API.put('/resume/sections', { sections }),
+  saveSections: (sections: any, template?: ResumeTemplate) =>
+    API.put('/resume/sections', { sections, template }),
   score: () => API.post('/resume/score'),
+  share: () => API.post('/resume/share'),
+  getPublic: (token: string) => API.get(`/resume/public/${token}`),
   getAll: () => API.get('/resume/all'),
 };
 
@@ -61,9 +66,11 @@ export interface ResumeScore {
 export interface ResumeData {
   _id: string;
   mode: 'uploaded' | 'built';
+  template?: ResumeTemplate;
   sections: ResumeSections;
   score: ResumeScore | null;
   uploadedFileUrl?: string;
+  shareToken?: string;
   version: number;
   scoredAt?: string;
   updatedAt: string;

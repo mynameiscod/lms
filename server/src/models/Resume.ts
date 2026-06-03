@@ -78,13 +78,17 @@ export interface IResumeScore {
   keywordsMissing: string[];
 }
 
+export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional';
+
 export interface IResume extends Document {
   userId: mongoose.Types.ObjectId;
   tenantId: mongoose.Types.ObjectId;
   mode: 'uploaded' | 'built';
+  template: ResumeTemplate;
   sections: IResumeSections;
   score: IResumeScore | null;
   uploadedFileUrl?: string;
+  shareToken?: string;
   version: number;
   scoredAt?: Date;
   createdAt: Date;
@@ -135,9 +139,11 @@ const ResumeSchema = new Schema<IResume>({
   userId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   mode: { type: String, enum: ['uploaded', 'built'], default: 'built' },
+  template: { type: String, enum: ['classic', 'modern', 'minimal', 'professional'], default: 'classic' },
   sections: { type: ResumeSectionsSchema, default: () => ({}) },
   score: { type: ResumeScoreSchema, default: null },
   uploadedFileUrl: { type: String },
+  shareToken: { type: String, index: true, sparse: true },
   version: { type: Number, default: 1 },
   scoredAt: { type: Date },
 }, { timestamps: true });

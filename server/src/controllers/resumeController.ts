@@ -65,18 +65,60 @@ export async function saveSections(req: AuthRequest, res: Response) {
     const tenantId = req.tenantId;
     if (!userId || !tenantId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const { sections } = req.body;
+    const { sections, template } = req.body;
     if (!sections) return res.status(400).json({ success: false, message: 'sections required' });
+
+    const update: any = { mode: 'built', sections, $inc: { version: 1 } };
+    if (template && ['classic', 'modern', 'minimal', 'professional'].includes(template)) {
+      update.template = template;
+    }
 
     const resume = await Resume.findOneAndUpdate(
       { userId, tenantId },
-      { mode: 'built', sections, $inc: { version: 1 } },
+      update,
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
 
     res.json({ success: true, data: resume, message: 'Saved' });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to save' });
+  }
+}
+
+// POST /resume/share  — create/return a public share token for the resume
+export async function shareMyResume(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const tenantId = req.tenantId;
+    if (!userId || !tenantId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const resume = await Resume.findOne({ userId, tenantId });
+    if (!resume) return res.status(404).json({ success: false, message: 'Save your resume before sharing.' });
+
+    if (!resume.shareToken) {
+      const crypto = await import('crypto');
+      resume.shareToken = crypto.randomUUID().replace(/-/g, '');
+      await resume.save();
+    }
+
+    res.json({ success: true, data: { shareToken: resume.shareToken } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to create share link' });
+  }
+}
+
+// GET /resume/public/:token  — public, read-only resume for the share link
+export async function getPublicResume(req: Request, res: Response) {
+  try {
+    const { token } = req.params;
+    if (!token) return res.status(400).json({ success: false, message: 'Invalid link' });
+
+    const resume = await Resume.findOne({ shareToken: token }).select('sections template');
+    if (!resume) return res.status(404).json({ success: false, message: 'Resume not found' });
+
+    res.json({ success: true, data: { sections: resume.sections, template: resume.template } });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Failed to load resume' });
   }
 }
 

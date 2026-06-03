@@ -10,7 +10,9 @@ export async function extractTextFromFile(filePath: string): Promise<string> {
   const ext = path.extname(filePath).toLowerCase();
 
   if (ext === '.pdf') {
-    const pdfParse = require('pdf-parse');
+    // pdf-parse v1 exports a function directly; guard for any wrapped export
+    const mod = require('pdf-parse');
+    const pdfParse = typeof mod === 'function' ? mod : (mod.default || mod.pdf);
     const buffer = fs.readFileSync(filePath);
     const data = await pdfParse(buffer);
     return data.text || '';

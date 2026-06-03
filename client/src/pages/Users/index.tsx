@@ -115,6 +115,19 @@ const UsersPage: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
+  // Summary stats for the header cards
+  const distinctRoles = Array.from(new Set(users.map(u => u.role).filter(Boolean)));
+  const activeCount = users.filter(u => u.isActive).length;
+  const activePct = users.length ? Math.round((activeCount / users.length) * 100) : 0;
+  const now = new Date();
+  const newThisMonth = users.filter(u => {
+    if (!u.createdAt) return false;
+    const d = new Date(u.createdAt);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+  const prettyRole = (r: string) => r === 'SUPER_ADMIN' ? 'Super Admin' : r === 'TENANT_ADMIN' ? 'Tenant Admin'
+    : r.charAt(0) + r.slice(1).toLowerCase();
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -380,6 +393,40 @@ const UsersPage: React.FC = () => {
           >
             👥 Create User
           </Button>
+        </div>
+      </div>
+
+      <div className="users-stats">
+        <div className="stat-card">
+          <div className="stat-icon blue">👥</div>
+          <div className="stat-body">
+            <div className="stat-label">Total Users</div>
+            <div className="stat-value">{users.length}</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon green">🛡️</div>
+          <div className="stat-body">
+            <div className="stat-label">Active Users</div>
+            <div className="stat-value">{activeCount}</div>
+            <div className="stat-sub">{activePct}% of total users</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon purple">🎭</div>
+          <div className="stat-body">
+            <div className="stat-label">Roles</div>
+            <div className="stat-value">{distinctRoles.length}</div>
+            <div className="stat-sub">{distinctRoles.map(prettyRole).slice(0, 3).join(', ')}</div>
+          </div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-icon amber">✨</div>
+          <div className="stat-body">
+            <div className="stat-label">New Users</div>
+            <div className="stat-value">{newThisMonth}</div>
+            <div className="stat-sub">This month</div>
+          </div>
         </div>
       </div>
 

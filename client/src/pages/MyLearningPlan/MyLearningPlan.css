@@ -1,0 +1,145 @@
+/* ── My Learning Plans — student overview ───────────────────────────────── */
+.lp-page {
+  padding: 24px;
+  max-width: 1200px;
+  margin: 0 auto;
+  color: #1e293b;
+  color-scheme: light;
+}
+
+/* Header */
+.lp-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.lp-title { font-size: 30px; font-weight: 800; color: #0f172a; margin: 0 0 6px; }
+.lp-subtitle { font-size: 14px; color: #64748b; margin: 0; }
+.lp-hero-art { font-size: 46px; line-height: 1; flex-shrink: 0; filter: drop-shadow(0 6px 10px rgba(99,102,241,.25)); }
+
+/* List */
+.lp-list { display: flex; flex-direction: column; gap: 18px; }
+
+/* Plan card */
+.lp-card {
+  background: #fff;
+  border: 1px solid #eef0f5;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.lp-progress-strip { height: 5px; background: #f1f5f9; }
+.lp-progress-fill { height: 5px; background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width .4s; }
+.lp-card-body { padding: 22px; }
+
+/* Top section */
+.lp-top {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 20px;
+  align-items: stretch;
+  margin-bottom: 18px;
+}
+.lp-identity { display: flex; gap: 16px; }
+.lp-tile {
+  width: 64px; height: 64px;
+  border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 800; color: #fff;
+  flex-shrink: 0;
+}
+.lp-identity-text { flex: 1; min-width: 0; }
+.lp-plan-title { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0 0 6px; }
+.lp-plan-sub { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
+.lp-status {
+  font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 12px;
+  background: #f1f5f9; color: #475569;
+}
+.lp-status.active { background: #dcfce7; color: #15803d; }
+.lp-started { font-size: 13px; color: #64748b; }
+.lp-batch { font-size: 13px; color: #94a3b8; }
+
+/* Stat row (bordered box like the mockup) */
+.lp-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  border: 1px solid #eef0f5;
+  border-radius: 14px;
+  padding: 16px;
+}
+.lp-stat { text-align: center; }
+.lp-stat-val { font-size: 24px; font-weight: 800; color: #0f172a; line-height: 1.1; }
+.lp-stat-val.green { color: #10b981; }
+.lp-stat-val.blue { color: #6366f1; }
+.lp-stat-val.muted { color: #94a3b8; }
+.lp-stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+/* Motivational panel */
+.lp-motivate {
+  background: linear-gradient(135deg, #eef2ff, #f5f3ff);
+  border: 1px solid #e0e7ff;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lp-motivate-title { font-size: 17px; font-weight: 800; color: #1e293b; margin-bottom: 6px; }
+.lp-motivate-sub { font-size: 13px; color: #64748b; }
+.lp-motivate-art { font-size: 44px; line-height: 1; flex-shrink: 0; filter: drop-shadow(0 4px 8px rgba(99,102,241,.2)); }
+
+/* Notice */
+.lp-notice {
+  display: flex; align-items: center; gap: 10px;
+  border-radius: 12px; padding: 14px 16px; font-size: 14px; margin-bottom: 16px;
+}
+.lp-notice.info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; }
+.lp-notice.warn { background: #fffbeb; border: 1px solid #fde68a; color: #92400e; }
+.lp-notice-ic { font-size: 16px; }
+.lp-notice-est { color: #64748b; }
+
+/* Actions */
+.lp-actions {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+}
+.lp-actions-left { display: flex; gap: 10px; flex-wrap: wrap; }
+.lp-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 10px; padding: 11px 20px; font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1px solid transparent; transition: all .15s;
+}
+.lp-btn.primary { background: #6366f1; color: #fff; }
+.lp-btn.primary:hover { background: #4f46e5; }
+.lp-btn.outline { background: #fff; color: #475569; border-color: #e2e8f0; }
+.lp-btn.outline:hover { border-color: #c7d2fe; color: #4f46e5; }
+.lp-daysleft { font-size: 13px; color: #94a3b8; display: inline-flex; align-items: center; gap: 6px; }
+
+/* Empty / loading */
+.lp-empty { text-align: center; padding: 80px 24px; background: #fff; border: 1px solid #eef0f5; border-radius: 16px; }
+.lp-empty-ic { font-size: 48px; margin-bottom: 12px; }
+.lp-empty h3 { color: #0f172a; margin: 0 0 8px; font-size: 18px; }
+.lp-empty p { color: #64748b; margin: 0; font-size: 14px; }
+.lp-loading { display: flex; justify-content: center; padding: 80px 0; }
+.lp-spinner { width: 40px; height: 40px; border: 4px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: lp-spin .8s linear infinite; }
+@keyframes lp-spin { to { transform: rotate(360deg); } }
+
+/* ── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 920px) {
+  .lp-top { grid-template-columns: 1fr; }
+  .lp-motivate { order: -1; }
+}
+@media (max-width: 860px) {
+  .lp-page { padding: 16px; }
+  .lp-title { font-size: 24px; }
+  .lp-plan-title { font-size: 20px; }
+}
+@media (max-width: 560px) {
+  .lp-stats { grid-template-columns: repeat(2, 1fr); }
+  .lp-identity { flex-direction: column; }
+  .lp-actions-left { width: 100%; }
+  .lp-btn { flex: 1 1 auto; justify-content: center; }
+}

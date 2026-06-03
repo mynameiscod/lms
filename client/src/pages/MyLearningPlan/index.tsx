@@ -1,19 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { enrollmentPlanApi, CurriculumEnrollment } from '../../api/enrollmentPlanApi';
+import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
+import { useAuth } from '../../contexts/AuthContext';
+import './MyLearningPlan.css';
 
 function fmtDate(d: string) {
   return new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
 
-function weekdayName(d: string) {
-  return new Date(d).toLocaleDateString('en-IN', { weekday: 'long', timeZone: 'UTC' });
-}
+const tileColors = ['#6366f1', '#0ea5e9', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+const tileColor = (s: string) => tileColors[(s?.charCodeAt(0) || 0) % tileColors.length];
 
 export default function MyLearningPlan() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const firstName = (user as any)?.firstName || 'there';
+
   const [enrollments, setEnrollments] = useState<any[]>([]);
-  const [loading, setLoading]         = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     enrollmentPlanApi.getMyEnrollments()
@@ -23,158 +27,130 @@ export default function MyLearningPlan() {
   }, []);
 
   if (loading) {
-    return <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading your learning plans...</div>;
+    return (
+      <div className="lp-page">
+        <div className="lp-loading"><div className="lp-spinner" /></div>
+      </div>
+    );
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1000px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '24px' }}>
-        <h2 style={{ margin: 0, fontSize: '24px', fontWeight: 700, color: '#0f172a' }}>
-          🎓 My Learning Plans
-        </h2>
-        <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '14px' }}>
-          Your enrolled curricula and daily plans
-        </p>
+    <div className="lp-page">
+      <div className="lp-header">
+        <div>
+          <h1 className="lp-title">My Learning Plans</h1>
+          <p className="lp-subtitle">Your enrolled curricula and daily learning plans.</p>
+        </div>
+        <div className="lp-hero-art">🎓</div>
       </div>
 
       {enrollments.length === 0 ? (
-        <div style={{
-          textAlign: 'center', padding: '80px 24px',
-          background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0',
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📚</div>
-          <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>No active learning plans</h3>
-          <p style={{ color: '#64748b', margin: 0 }}>
-            Your instructor will enroll you in a curriculum. Check back soon!
-          </p>
+        <div className="lp-empty">
+          <div className="lp-empty-ic">📚</div>
+          <h3>No active learning plans</h3>
+          <p>Your instructor will enroll you in a curriculum. Check back soon!</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="lp-list">
           {enrollments.map((e: any) => {
-            const today       = e.todayPlanDay;
-            const totalDays   = e.totalDays || 145;
-            const pct         = e.progressPct || 0;
-            const doneCount   = e.completedDays?.length || 0;
-            const isAhead     = today && e.currentDay > today;
-            const daysLeft    = today ? totalDays - today : null;
+            const today = e.todayPlanDay;
+            const totalDays = e.totalDays || 145;
+            const pct = e.progressPct || 0;
+            const doneCount = e.completedDays?.length || 0;
+            const daysLeft = today ? totalDays - today : null;
+            const itemCount = e.todayPlan?.items?.length || 0;
+            const estMins = itemCount > 0
+              ? e.todayPlan.items.reduce((sum: number, i: any) => sum + (i.estimatedDuration || 0), 0)
+              : 0;
+            const initial = (e.curriculumTitle?.[0] || '📘').toUpperCase();
 
             return (
-              <div key={e._id} style={{
-                background: '#fff', borderRadius: '12px', border: '1.5px solid #e2e8f0',
-                overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-              }}>
-                {/* Progress bar */}
-                <div style={{ height: '4px', background: '#f1f5f9' }}>
-                  <div style={{ height: '4px', background: '#3b82f6', width: `${pct}%`, transition: 'width 0.4s' }} />
-                </div>
+              <div key={e._id} className="lp-card">
+                {/* progress strip */}
+                <div className="lp-progress-strip"><div className="lp-progress-fill" style={{ width: `${pct}%` }} /></div>
 
-                <div style={{ padding: '20px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1 }}>
-                      <h3 style={{ margin: '0 0 4px', fontSize: '18px', fontWeight: 700, color: '#0f172a' }}>
-                        {e.curriculumTitle}
-                      </h3>
-                      {e.batchName && (
-                        <span style={{ fontSize: '12px', color: '#64748b' }}>Batch: {e.batchName}</span>
-                      )}
-                    </div>
-                    <span style={{
-                      background: '#dcfce7', color: '#15803d', borderRadius: '12px',
-                      padding: '4px 12px', fontSize: '12px', fontWeight: 600, flexShrink: 0,
-                    }}>
-                      {e.status === 'active' ? '● Active' : e.status}
-                    </span>
-                  </div>
-
-                  {/* Stats */}
-                  <div style={{ display: 'flex', gap: '24px', margin: '16px 0', flexWrap: 'wrap' }}>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 800, color: '#0f172a' }}>{today || '—'}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>Today's Day</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 800, color: '#10b981' }}>{doneCount}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>Days Completed</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 800, color: '#94a3b8' }}>{totalDays}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>Total Days</div>
-                    </div>
-                    <div style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '22px', fontWeight: 800, color: '#3b82f6' }}>{pct}%</div>
-                      <div style={{ fontSize: '12px', color: '#64748b' }}>Progress</div>
-                    </div>
-                  </div>
-
-                  {/* Today's plan info */}
-                  {e.todayPlan ? (
-                    <div style={{
-                      background: '#eff6ff', borderRadius: '10px', padding: '14px 16px', marginBottom: '16px',
-                      border: '1px solid #bfdbfe',
-                    }}>
-                      <div style={{ fontSize: '13px', fontWeight: 700, color: '#1d4ed8', marginBottom: '4px' }}>
-                        📅 Today's Plan — Day {today}
-                      </div>
-                      <div style={{ fontSize: '13px', color: '#374151' }}>
-                        {e.todayPlan.items?.length || 0} content item{e.todayPlan.items?.length !== 1 ? 's' : ''} assigned
-                        {e.todayPlan.items?.length > 0 && (
-                          <span style={{ marginLeft: '8px', color: '#64748b' }}>
-                            · {e.todayPlan.items.reduce((sum: number, i: any) => sum + (i.estimatedDuration || 0), 0)}m estimated
+                <div className="lp-card-body">
+                  {/* Top: identity + motivational panel */}
+                  <div className="lp-top">
+                    <div className="lp-identity">
+                      <div className="lp-tile" style={{ background: tileColor(e.curriculumTitle || '') }}>{initial}</div>
+                      <div className="lp-identity-text">
+                        <h2 className="lp-plan-title">{e.curriculumTitle}</h2>
+                        <div className="lp-plan-sub">
+                          <span className={`lp-status ${e.status === 'active' ? 'active' : ''}`}>
+                            {e.status === 'active' ? '● Active' : e.status}
                           </span>
-                        )}
+                          <span className="lp-started">Started on {fmtDate(e.startDate)}</span>
+                          {e.batchName && <span className="lp-batch">· {e.batchName}</span>}
+                        </div>
+
+                        {/* Stat row */}
+                        <div className="lp-stats">
+                          <div className="lp-stat">
+                            <div className="lp-stat-val">{today || '—'}</div>
+                            <div className="lp-stat-label">Today's Day</div>
+                          </div>
+                          <div className="lp-stat">
+                            <div className="lp-stat-val green">{doneCount}</div>
+                            <div className="lp-stat-label">Days Completed</div>
+                          </div>
+                          <div className="lp-stat">
+                            <div className="lp-stat-val muted">{totalDays}</div>
+                            <div className="lp-stat-label">Total Days</div>
+                          </div>
+                          <div className="lp-stat">
+                            <div className="lp-stat-val blue">{pct}%</div>
+                            <div className="lp-stat-label">Progress</div>
+                          </div>
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="lp-motivate">
+                      <div className="lp-motivate-text">
+                        <div className="lp-motivate-title">Keep going, {firstName}! 🚀</div>
+                        <div className="lp-motivate-sub">Consistency today, mastery tomorrow.</div>
+                      </div>
+                      <div className="lp-motivate-art">🏆</div>
+                    </div>
+                  </div>
+
+                  {/* Today notice */}
+                  {itemCount > 0 ? (
+                    <div className="lp-notice info">
+                      <span className="lp-notice-ic">📅</span>
+                      <span>
+                        <strong>Today's Plan — Day {today}:</strong> {itemCount} content item{itemCount !== 1 ? 's' : ''} assigned
+                        {estMins > 0 && <span className="lp-notice-est"> · {estMins}m estimated</span>}
+                      </span>
                     </div>
                   ) : today ? (
-                    <div style={{
-                      background: '#fef9c3', borderRadius: '10px', padding: '12px 16px', marginBottom: '16px',
-                      border: '1px solid #fde68a', fontSize: '13px', color: '#92400e',
-                    }}>
-                      No content assigned for Day {today} yet.
+                    <div className="lp-notice warn">
+                      <span className="lp-notice-ic">📅</span>
+                      <span>No content assigned for Day {today} yet.</span>
                     </div>
                   ) : null}
 
-                  {/* Action buttons */}
-                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    {today && (
-                      <button
-                        onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}
-                        style={{
-                          background: '#0f172a', color: '#fff', border: 'none',
-                          borderRadius: '8px', padding: '10px 20px',
-                          fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                        }}
-                      >
-                        📅 Go to Today (Day {today})
+                  {/* Actions */}
+                  <div className="lp-actions">
+                    <div className="lp-actions-left">
+                      {today && (
+                        <button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>
+                          📅 Go to Today (Day {today})
+                        </button>
+                      )}
+                      {doneCount > 0 && (
+                        <button className="lp-btn outline" onClick={() => navigate(`/my-learning/${e._id}/day/${Math.min(e.currentDay, totalDays)}`)}>
+                          Continue from Day {Math.min(e.currentDay, totalDays)}
+                        </button>
+                      )}
+                      <button className="lp-btn outline" onClick={() => navigate(`/my-learning/${e._id}/day/1`)}>
+                        📋 View from Day 1
                       </button>
+                    </div>
+                    {daysLeft !== null && daysLeft > 0 && (
+                      <div className="lp-daysleft">📅 {daysLeft} weekdays remaining</div>
                     )}
-                    {doneCount > 0 && (
-                      <button
-                        onClick={() => navigate(`/my-learning/${e._id}/day/${Math.min(doneCount, totalDays)}`)}
-                        style={{
-                          background: '#f8fafc', color: '#374151', border: '1.5px solid #e2e8f0',
-                          borderRadius: '8px', padding: '10px 20px',
-                          fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                        }}
-                      >
-                        Continue from Day {Math.min(e.currentDay, totalDays)}
-                      </button>
-                    )}
-                    <button
-                      onClick={() => navigate(`/my-learning/${e._id}/day/1`)}
-                      style={{
-                        background: '#f8fafc', color: '#374151', border: '1.5px solid #e2e8f0',
-                        borderRadius: '8px', padding: '10px 20px',
-                        fontWeight: 600, fontSize: '14px', cursor: 'pointer',
-                      }}
-                    >
-                      📋 View from Day 1
-                    </button>
-                  </div>
-
-                  {/* Start date */}
-                  <div style={{ marginTop: '12px', fontSize: '12px', color: '#94a3b8' }}>
-                    Started {fmtDate(e.startDate)}
-                    {daysLeft !== null && daysLeft > 0 && ` · ${daysLeft} weekdays remaining`}
                   </div>
                 </div>
               </div>

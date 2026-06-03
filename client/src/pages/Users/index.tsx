@@ -526,31 +526,17 @@ const UsersPage: React.FC = () => {
             <option value="inactive">Inactive</option>
           </select>
 
-          <button
-            type="button"
-            className={`filters-btn ${showFilters ? 'active' : ''}`}
-            onClick={() => setShowFilters(s => !s)}
+          <select
+            value={batchFilter}
+            onChange={(e) => setBatchFilter(e.target.value)}
+            className="filter-select"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
-            Filters
-          </button>
+            <option value="all">All Batches</option>
+            {batches.map(batch => (
+              <option key={batch._id} value={batch._id}>{batch.name}</option>
+            ))}
+          </select>
         </div>
-
-        {showFilters && (
-          <div className="users-controls-advanced">
-            <span className="adv-label">Batch</span>
-            <select
-              value={batchFilter}
-              onChange={(e) => setBatchFilter(e.target.value)}
-              className="filter-select"
-            >
-              <option value="all">All Batches</option>
-              {batches.map(batch => (
-                <option key={batch._id} value={batch._id}>{batch.name}</option>
-              ))}
-            </select>
-          </div>
-        )}
       </div>
 
       <div className="users-table-container">

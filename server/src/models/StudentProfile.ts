@@ -310,6 +310,15 @@ const StudentProfileSchema: Schema = new Schema(
     profileCompletionPercentage: { type: Number, default: 0 },
     isProfileComplete: { type: Boolean, default: false },
     lastUpdated: { type: Date, default: Date.now },
+
+    // Admin/instructor notes about the student
+    adminNotes: [{
+      text: { type: String, required: true },
+      authorId: { type: Schema.Types.ObjectId, ref: 'User' },
+      authorName: { type: String },
+      authorRole: { type: String },
+      createdAt: { type: Date, default: Date.now },
+    }],
   },
   {
     timestamps: true,

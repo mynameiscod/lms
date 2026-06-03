@@ -541,3 +541,44 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+// POST - Add an admin note to a student's profile
+export const addStudentNote = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId } = req.params;
+    const tenantId = req.user?.tenantId;
+    const text = (req.body?.text || '').trim();
+    if (!text) return res.status(400).json({ success: false, message: 'Note text is required' });
+
+    const profile = await StudentProfile.findOne({ userId, tenantId });
+    if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' });
+
+    const author = await User.findById(req.user?.id).select('firstName lastName role');
+    (profile as any).adminNotes.push({
+      text,
+      authorId: req.user?.id,
+      authorName: author ? `${author.firstName || ''} ${author.lastName || ''}`.trim() : 'Admin',
+      authorRole: (author as any)?.role || '',
+      createdAt: new Date(),
+    });
+    await profile.save();
+    res.json({ success: true, data: (profile as any).adminNotes });
+  } catch (error) {
+    res.status(500).json({ success: false, message: (error as Error).message || 'Failed to add note' });
+  }
+};
+
+// DELETE - Remove an admin note from a student's profile
+export const deleteStudentNote = async (req: AuthRequest, res: Response) => {
+  try {
+    const { userId, noteId } = req.params;
+    const tenantId = req.user?.tenantId;
+    const profile = await StudentProfile.findOne({ userId, tenantId });
+    if (!profile) return res.status(404).json({ success: false, message: 'Profile not found' });
+    (profile as any).adminNotes = (profile as any).adminNotes.filter((n: any) => String(n._id) !== noteId);
+    await profile.save();
+    res.json({ success: true, data: (profile as any).adminNotes });
+  } catch (error) {
+    res.status(500).json({ success: false, message: (error as Error).message || 'Failed to delete note' });
+  }
+};

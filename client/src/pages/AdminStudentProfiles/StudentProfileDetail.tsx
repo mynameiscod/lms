@@ -52,15 +52,36 @@ const StudentProfileDetail: React.FC = () => {
   const [loadingActivity, setLoadingActivity] = useState(false);
   const [loadingReport, setLoadingReport] = useState(false);
   const [error, setError] = useState('');
+  const [notes, setNotes] = useState<any[]>([]);
+  const [noteText, setNoteText] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
 
   useEffect(() => {
     if (!userId) return;
     setLoadingProfile(true);
     studentProfileAPI.getProfileByUserId(userId)
-      .then((res: any) => setProfile(res.data || res))
+      .then((res: any) => { const pr = res.data || res; setProfile(pr); setNotes(pr?.adminNotes || []); })
       .catch((e: any) => setError(e.message || 'Failed to load profile'))
       .finally(() => setLoadingProfile(false));
   }, [userId]);
+
+  const handleAddNote = async () => {
+    if (!noteText.trim() || !userId) return;
+    setSavingNote(true);
+    try {
+      const res = await studentProfileAPI.addStudentNote(userId, noteText.trim());
+      setNotes(res.data || []);
+      setNoteText('');
+    } catch { /* ignore */ } finally { setSavingNote(false); }
+  };
+
+  const handleDeleteNote = async (noteId: string) => {
+    if (!userId) return;
+    try {
+      const res = await studentProfileAPI.deleteStudentNote(userId, noteId);
+      setNotes(res.data || []);
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
     if (!userId || !ACTIVITY_TABS.includes(activeTab)) return;
@@ -101,6 +122,16 @@ const StudentProfileDetail: React.FC = () => {
   const quizAttempts: any[] = activity?.quizAttempts || [];
   const assignments: any[] = activity?.assignmentSubmissions || [];
   const snippets: any[] = activity?.snippetSubmissions || [];
+
+  // Overview-derived values
+  const asg = report?.assignments;
+  const submittedCount = asg ? ((asg.graded ?? 0) + (asg.pending ?? 0)) || (asg.submitted ?? 0) : 0;
+  const assignmentRate = asg?.total ? Math.round((submittedCount / asg.total) * 100) : 0;
+  const recentActivity: { title: string; time: string; badge?: string }[] = [];
+  if (report?.quizzes?.completed) recentActivity.push({ title: `${report.quizzes.completed} quizzes completed`, time: `Average ${report.quizzes.averageScore ?? 0}%`, badge: `${report.quizzes.averageScore ?? 0}%` });
+  if (report?.assignments?.graded) recentActivity.push({ title: `${report.assignments.graded} assignments graded`, time: `Submitted ${submittedCount}/${report.assignments.total ?? 0}`, badge: 'Submitted' });
+  if (profile?.lastUpdated) recentActivity.push({ title: 'Profile updated', time: new Date(profile.lastUpdated).toLocaleString() });
+  if (profile?.createdAt) recentActivity.push({ title: 'Account created', time: new Date(profile.createdAt).toLocaleString() });
 
   return (
     <div className="spd-page">
@@ -167,7 +198,7 @@ const StudentProfileDetail: React.FC = () => {
 
       {/* Tabs */}
       <div className="spd-tabs">
-        {(['overview', 'profile', 'attendance', 'quizzes', 'assignments', 'snippets', 'interviews', 'fees', 'exams'] as DetailTab[]).map(t => (
+        {(['overview', 'attendance', 'quizzes', 'assignments', 'exams', 'fees', 'snippets'] as DetailTab[]).map(t => (
           <button
             key={t}
             className={`spd-tab ${activeTab === t ? 'active' : ''}`}
@@ -179,35 +210,156 @@ const StudentProfileDetail: React.FC = () => {
       </div>
 
       <div className="spd-tab-content">
-        {/* ── Overview Tab ── */}
+        {/* ── Overview Tab (dashboard) ── */}
         {activeTab === 'overview' && (
-          loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
-          !report ? <p className="spd-empty">No report data available for this student.</p> :
-          <div className="overview-grid">
-            <div className="overview-card attendance"><div className="overview-icon">📅</div><div className="overview-content">
-              <h4>Attendance</h4><div className="overview-stat">{report.attendance?.percentage ?? 0}%</div>
-              <div className="overview-details"><span>Present: {report.attendance?.present ?? 0}</span><span>Absent: {report.attendance?.absent ?? 0}</span><span>Late: {report.attendance?.lateArrivals ?? 0}</span></div>
-            </div></div>
-            <div className="overview-card quizzes"><div className="overview-icon">📝</div><div className="overview-content">
-              <h4>Quizzes</h4><div className="overview-stat">{report.quizzes?.completed ?? 0}/{report.quizzes?.total ?? 0}</div>
-              <div className="overview-details"><span>Passed: {report.quizzes?.passed ?? 0}</span><span>Failed: {report.quizzes?.failed ?? 0}</span><span>Avg: {report.quizzes?.averageScore ?? 0}%</span></div>
-            </div></div>
-            <div className="overview-card assignments"><div className="overview-icon">💻</div><div className="overview-content">
-              <h4>Assignments</h4><div className="overview-stat">{report.assignments?.graded ?? 0}/{report.assignments?.total ?? 0}</div>
-              <div className="overview-details"><span>Pending: {report.assignments?.pending ?? 0}</span><span>Late: {report.assignments?.late ?? 0}</span><span>Avg: {report.assignments?.averageScore ?? 0}</span></div>
-            </div></div>
-            <div className="overview-card fees"><div className="overview-icon">💰</div><div className="overview-content">
-              <h4>Fees</h4><div className="overview-stat">{report.fees?.status ?? '—'}</div>
-              <div className="overview-details"><span>Total: ₹{report.fees?.totalAmount ?? 0}</span><span>Paid: ₹{report.fees?.paidAmount ?? 0}</span><span>Due: ₹{report.fees?.dueAmount ?? 0}</span></div>
-            </div></div>
-            <div className="overview-card interviews"><div className="overview-icon">🎤</div><div className="overview-content">
-              <h4>Interviews</h4><div className="overview-stat">{report.interviews?.attended ?? 0}/{report.interviews?.total ?? 0}</div>
-              <div className="overview-details"><span>Mock: {report.interviews?.mock ?? 0}</span><span>Passed: {report.interviews?.passed ?? 0}</span><span>Avg: {report.interviews?.averageScore ?? 0}%</span></div>
-            </div></div>
-            <div className="overview-card exams"><div className="overview-icon">📊</div><div className="overview-content">
-              <h4>Exams</h4><div className="overview-stat">{report.exams?.passed ?? 0}/{report.exams?.total ?? 0}</div>
-              <div className="overview-details"><span>Passed: {report.exams?.passed ?? 0}</span><span>Failed: {report.exams?.failed ?? 0}</span><span>Avg: {report.exams?.averagePercentage ?? 0}%</span></div>
-            </div></div>
+          <div className="spd-ov">
+            {/* Stat cards */}
+            <div className="spd-ov-stats">
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic blue">📅</span><span className="spd-ovc-label">Attendance</span></div>
+                <div className="spd-ovc-val">{report?.attendance?.percentage ?? 0}%</div>
+                <div className="spd-ovc-sub">Overall Attendance</div>
+                <div className="spd-ovc-bar"><div className="spd-ovc-fill blue" style={{ width: `${report?.attendance?.percentage ?? 0}%` }} /></div>
+                <div className="spd-ovc-foot">Last 30 days</div>
+              </div>
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic purple">📝</span><span className="spd-ovc-label">Quizzes</span></div>
+                <div className="spd-ovc-val">{report?.quizzes?.averageScore ?? 0}%</div>
+                <div className="spd-ovc-sub">Average Score</div>
+                <div className="spd-ovc-bar"><div className="spd-ovc-fill purple" style={{ width: `${report?.quizzes?.averageScore ?? 0}%` }} /></div>
+                <div className="spd-ovc-foot">Total Quizzes: {report?.quizzes?.total ?? 0}</div>
+              </div>
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic indigo">📋</span><span className="spd-ovc-label">Assignments</span></div>
+                <div className="spd-ovc-val">{assignmentRate}%</div>
+                <div className="spd-ovc-sub">Submission Rate</div>
+                <div className="spd-ovc-bar"><div className="spd-ovc-fill indigo" style={{ width: `${assignmentRate}%` }} /></div>
+                <div className="spd-ovc-foot">Submitted: {submittedCount}/{report?.assignments?.total ?? 0}</div>
+              </div>
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic orange">💰</span><span className="spd-ovc-label">Fees Status</span></div>
+                <div className="spd-ovc-val">₹{report?.fees?.dueAmount ?? 0}</div>
+                <div className="spd-ovc-sub">Total Due</div>
+                <button className="spd-ovc-link" onClick={() => setActiveTab('fees')}>View Details →</button>
+              </div>
+            </div>
+
+            {/* Personal Information + Education */}
+            <div className="spd-ov-2col">
+              <div className="spd-card">
+                <h3 className="spd-card-title">🪪 Personal Information</h3>
+                <div className="spd-kv">
+                  <div><label>Full Name</label><span>{fullName}</span></div>
+                  <div><label>Email</label><span>{email || '—'}</span></div>
+                  <div><label>Phone</label><span>{p.mobileNumber || '—'}</span></div>
+                  <div><label>Location</label><span>{[p.city, p.state].filter(Boolean).join(', ') || '—'}</span></div>
+                  <div><label>Date of Birth</label><span>{p.dateOfBirth ? fmt(p.dateOfBirth) : '—'}</span></div>
+                  <div><label>Gender</label><span>{p.gender || '—'}</span></div>
+                  <div><label>Profile Status</label><span>{profile?.isProfileComplete ? <span className="spd-pill green">Completed</span> : <span className="spd-pill amber">Incomplete</span>}</span></div>
+                  <div><label>Member Since</label><span>{fmt(profile?.createdAt)}</span></div>
+                </div>
+              </div>
+              <div className="spd-card">
+                <h3 className="spd-card-title">🎓 Education</h3>
+                {profile?.education ? (
+                  <div className="spd-kv">
+                    <div><label>Qualification</label><span>{profile.education.highestQualification || '—'}</span></div>
+                    <div><label>College</label><span>{profile.education.degree?.college || '—'}</span></div>
+                    <div><label>Degree %</label><span>{profile.education.degree?.percentage ?? '—'}{profile.education.degree?.percentage !== undefined ? '%' : ''}</span></div>
+                    <div><label>Intermediate %</label><span>{profile.education.intermediate?.percentage ?? '—'}{profile.education.intermediate?.percentage !== undefined ? '%' : ''}</span></div>
+                    <div><label>10th %</label><span>{profile.education.tenthClass?.percentage ?? '—'}{profile.education.tenthClass?.percentage !== undefined ? '%' : ''}</span></div>
+                    <div><label>Graduation Year</label><span>{profile.education.degree?.graduationYear || '—'}</span></div>
+                    <div><label>Status</label><span>{profile.education.currentStatus ? <span className="spd-pill green">{profile.education.currentStatus}</span> : '—'}</span></div>
+                  </div>
+                ) : <p className="spd-empty">No education info.</p>}
+              </div>
+            </div>
+
+            {/* Technical Background */}
+            <div className="spd-card">
+              <h3 className="spd-card-title">💻 Technical Background</h3>
+              {profile?.technicalBackground || profile?.courseInterest ? (
+                <div className="spd-tech-grid">
+                  <div>
+                    <div className="spd-tech-label">Experience Level</div>
+                    {profile?.technicalBackground?.experienceLevel ? <span className="spd-pill green">{profile.technicalBackground.experienceLevel}</span> : '—'}
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Languages</div>
+                    <div className="spd-tags">{(profile?.technicalBackground?.programmingLanguages || []).map((l: string) => <span key={l} className="spd-tag">{l}</span>)}</div>
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Technologies</div>
+                    <div className="spd-tags">{(profile?.technicalBackground?.technologies || []).map((t: string) => <span key={t} className="spd-tag blue">{t}</span>)}</div>
+                  </div>
+                  <div>
+                    <div className="spd-tech-label">Course Interest</div>
+                    {profile?.courseInterest?.interestedCourse ? <span className="spd-tag blue">{profile.courseInterest.interestedCourse}</span> : '—'}
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Preferred Batch</div>
+                    {profile?.courseInterest?.preferredBatchTime ? <span className="spd-tag blue">{profile.courseInterest.preferredBatchTime}</span> : '—'}
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Preferred Timings</div>
+                    <div>{profile?.courseInterest?.preferredLearningMode || '—'}</div>
+                  </div>
+                </div>
+              ) : <p className="spd-empty">No technical background info.</p>}
+            </div>
+
+            {/* Payment Summary + Recent Activity */}
+            <div className="spd-ov-2col">
+              <div className="spd-card">
+                <h3 className="spd-card-title">💳 Payment Summary</h3>
+                <div className="spd-pay-boxes">
+                  <div className="spd-pay-box"><span>Total Amount</span><b>₹{report?.fees?.totalAmount ?? 0}</b></div>
+                  <div className="spd-pay-box green"><span>Paid Amount</span><b>₹{report?.fees?.paidAmount ?? 0}</b></div>
+                  <div className="spd-pay-box red"><span>Due Amount</span><b>₹{report?.fees?.dueAmount ?? 0}</b></div>
+                  <div className="spd-pay-box"><span>Status</span><b>{(report?.fees?.status || 'N/A').toUpperCase()}</b></div>
+                </div>
+                <h4 className="spd-subh">Payment History</h4>
+                {(report?.fees?.payments || []).length === 0 ? <div className="spd-nodata">No payment records found</div> : (
+                  <table className="spd-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody>
+                    {report.fees.payments.map((pay: any, i: number) => <tr key={i}><td>{new Date(pay.paymentDate).toLocaleDateString()}</td><td>₹{pay.amount}</td><td>{pay.paymentMethod}</td></tr>)}
+                  </tbody></table>
+                )}
+              </div>
+              <div className="spd-card">
+                <h3 className="spd-card-title">🕑 Recent Activity</h3>
+                {recentActivity.length === 0 ? <p className="spd-empty">No recent activity.</p> : (
+                  <div className="spd-timeline">
+                    {recentActivity.map((a, i) => (
+                      <div key={i} className="spd-tl-item">
+                        <span className="spd-tl-dot" />
+                        <div className="spd-tl-body">
+                          <div className="spd-tl-title">{a.title}{a.badge && <span className="spd-pill green">{a.badge}</span>}</div>
+                          <div className="spd-tl-time">{a.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="spd-card">
+              <h3 className="spd-card-title">🗒️ Notes</h3>
+              <div className="spd-note-add">
+                <input className="spd-note-input" placeholder="Add a note about this student..." value={noteText}
+                  onChange={e => setNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddNote(); }} />
+                <button className="spd-note-btn" onClick={handleAddNote} disabled={savingNote || !noteText.trim()}>{savingNote ? '…' : 'Add Note'}</button>
+              </div>
+              {notes.length === 0 ? <p className="spd-empty">No notes yet.</p> : (
+                notes.slice().reverse().map((n: any) => (
+                  <div key={n._id} className="spd-note">
+                    <span className="spd-note-avatar">{(n.authorName || 'A').split(' ').map((s: string) => s[0]).slice(0, 2).join('')}</span>
+                    <div className="spd-note-body">
+                      <div className="spd-note-head">
+                        <b>{n.authorName || 'Admin'}</b>
+                        {n.authorRole && <span className="spd-note-role">({n.authorRole})</span>}
+                        <span className="spd-note-time">{new Date(n.createdAt).toLocaleString()}</span>
+                        <button className="spd-note-del" onClick={() => handleDeleteNote(n._id)} title="Delete note">🗑️</button>
+                      </div>
+                      <div className="spd-note-text">{n.text}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
 

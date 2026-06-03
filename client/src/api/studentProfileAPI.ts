@@ -368,6 +368,22 @@ export const studentProfileAPI = {
     return response.data;
   },
 
+  // Admin: Add a note about a student
+  addStudentNote: async (userId: string, text: string) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/${userId}/notes`, { text }, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
+  // Admin: Delete a note
+  deleteStudentNote: async (userId: string, noteId: string) => {
+    const response = await axios.delete(`${API_BASE_URL}/admin/${userId}/notes/${noteId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
   // ============ OAuth Methods ============
   
   // Get OAuth connection status

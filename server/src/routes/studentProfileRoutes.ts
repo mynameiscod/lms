@@ -10,6 +10,8 @@ import {
   deleteProfile,
   getProfileStats,
   getStudentActivity,
+  addStudentNote,
+  deleteStudentNote,
 } from '../controllers/studentProfileController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
@@ -130,6 +132,22 @@ router.get(
   tenantResolver,
   roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
   getProfileByUserId
+);
+
+// Add / delete admin notes on a student (admin)
+router.post(
+  '/admin/:userId/notes',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
+  addStudentNote
+);
+router.delete(
+  '/admin/:userId/notes/:noteId',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
+  deleteStudentNote
 );
 
 // Delete profile (admin)

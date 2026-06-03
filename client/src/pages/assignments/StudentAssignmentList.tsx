@@ -7,14 +7,7 @@ import {
   AssignmentType,
   DifficultyLevel
 } from '../../api/assignmentApi';
-import './assignments.css';
-
-// Helper function to strip HTML tags for preview
-const stripHtml = (html: string): string => {
-  const tmp = document.createElement('div');
-  tmp.innerHTML = html;
-  return tmp.textContent || tmp.innerText || '';
-};
+import './StudentAssignmentList.css';
 
 interface StudentAssignment extends Assignment {
   submission?: {
@@ -26,15 +19,26 @@ interface StudentAssignment extends Assignment {
   };
 }
 
+type Tab = 'all' | 'pending' | 'completed' | 'overdue';
+
+const tileColors = ['#ede9fe', '#dbeafe', '#dcfce7', '#fef3c7', '#fee2e2', '#e0f2fe', '#fae8ff'];
+const tileColor = (s: string) => tileColors[(s?.charCodeAt(0) || 0) % tileColors.length];
+
 const StudentAssignmentList: React.FC = () => {
   const navigate = useNavigate();
   const [assignments, setAssignments] = useState<StudentAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
+
   // Filters
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [search, setSearch] = useState('');
+  const [tab, setTab] = useState<Tab>('all');
+
+  // Pagination
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
 
   const loadAssignments = useCallback(async () => {
     try {
@@ -49,38 +53,30 @@ const StudentAssignmentList: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadAssignments();
-  }, [loadAssignments]);
+  useEffect(() => { loadAssignments(); }, [loadAssignments]);
 
-  const getSubmissionStatus = (assignment: StudentAssignment) => {
-    if (!assignment.submission) return 'not_started';
-    return assignment.submission.status;
-  };
+  const getSubmissionStatus = (a: StudentAssignment) => a.submission?.status || 'not_started';
 
-  const isOverdue = (assignment: StudentAssignment) => {
-    if (!assignment.dueDate) return false;
-    const status = getSubmissionStatus(assignment);
+  const isOverdue = (a: StudentAssignment) => {
+    if (!a.dueDate) return false;
+    const status = getSubmissionStatus(a);
     if (status === 'submitted' || status === 'graded') return false;
-    return new Date(assignment.dueDate) < new Date();
+    return new Date(a.dueDate) < new Date();
   };
 
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return 'No deadline';
-    const date = new Date(dateString);
+  const formatDue = (a: StudentAssignment) => {
+    if (!a.dueDate) return { text: 'No deadline', overdue: false };
+    const date = new Date(a.dueDate);
     const now = new Date();
     const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) return `Overdue by ${Math.abs(diffDays)} days`;
-    if (diffDays === 0) return 'Due today!';
-    if (diffDays === 1) return 'Due tomorrow';
-    if (diffDays <= 7) return `Due in ${diffDays} days`;
-    
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
-    });
+    if (isOverdue(a)) return { text: `Overdue by ${Math.abs(diffDays)} days`, overdue: true };
+    if (diffDays === 0) return { text: 'Due today!', overdue: false };
+    if (diffDays === 1) return { text: 'Due tomorrow', overdue: false };
+    if (diffDays <= 7 && diffDays > 0) return { text: `Due in ${diffDays} days`, overdue: false };
+    return {
+      text: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      overdue: false,
+    };
   };
 
   const getTypeIcon = (type: AssignmentType) => {
@@ -96,310 +92,278 @@ const StudentAssignmentList: React.FC = () => {
     return icons[type] || '📄';
   };
 
-  const getDifficultyColor = (difficulty: DifficultyLevel) => {
-    const colors: Record<DifficultyLevel, string> = {
-      [DifficultyLevel.BEGINNER]: '#10b981',
-      [DifficultyLevel.EASY]: '#22c55e',
-      [DifficultyLevel.MEDIUM]: '#f59e0b',
-      [DifficultyLevel.HARD]: '#ef4444',
-      [DifficultyLevel.EXPERT]: '#7c3aed'
+  const difficultyClass = (d: DifficultyLevel) => {
+    const map: Record<DifficultyLevel, string> = {
+      [DifficultyLevel.BEGINNER]: 'beginner',
+      [DifficultyLevel.EASY]: 'easy',
+      [DifficultyLevel.MEDIUM]: 'medium',
+      [DifficultyLevel.HARD]: 'hard',
+      [DifficultyLevel.EXPERT]: 'expert',
     };
-    return colors[difficulty] || '#6b7280';
+    return map[d] || 'medium';
   };
 
-  const getStatusInfo = (assignment: StudentAssignment) => {
-    const status = getSubmissionStatus(assignment);
-    const statusMap: Record<string, { color: string; label: string; icon: string }> = {
-      not_started: { color: '#6b7280', label: 'Not Started', icon: '⏸️' },
-      in_progress: { color: '#3b82f6', label: 'In Progress', icon: '🔄' },
-      submitted: { color: '#f59e0b', label: 'In Review', icon: '👀' },
-      graded: { color: '#10b981', label: 'Graded', icon: '✅' },
-      late: { color: '#ef4444', label: 'Late', icon: '⚠️' }
+  const statusBadge = (a: StudentAssignment) => {
+    const status = getSubmissionStatus(a);
+    const map: Record<string, { cls: string; label: string; icon: string }> = {
+      not_started: { cls: 'notstarted', label: 'Not Started', icon: '⏸' },
+      in_progress: { cls: 'inprogress', label: 'In Progress', icon: '🔄' },
+      submitted:   { cls: 'review',     label: 'In Review',   icon: '👀' },
+      graded:      { cls: 'graded',     label: 'Completed',   icon: '✅' },
+      late:        { cls: 'late',       label: 'Late',        icon: '⚠' },
     };
-    return statusMap[status] || statusMap.not_started;
+    return map[status] || map.not_started;
   };
 
-  const handleStartAssignment = (assignment: StudentAssignment) => {
-    const status = getSubmissionStatus(assignment);
-    if (status === 'graded') {
-      navigate(`/assignments/${assignment._id}/result`);
-    } else {
-      navigate(`/assignments/${assignment._id}/workspace`);
-    }
+  const actionLabel = (a: StudentAssignment) => {
+    const status = getSubmissionStatus(a);
+    if (status === 'graded') return { label: 'Results', icon: '📊' };
+    if (status === 'in_progress') return { label: 'Continue', icon: '▶' };
+    if (status === 'submitted') return { label: 'View', icon: '👁' };
+    if (status === 'late') return { label: 'Submit', icon: '📤' };
+    return { label: 'Start', icon: '🚀' };
   };
 
-  const filteredAssignments = assignments.filter(a => {
+  const handleOpen = (a: StudentAssignment) => {
+    if (getSubmissionStatus(a) === 'graded') navigate(`/assignments/${a._id}/result`);
+    else navigate(`/assignments/${a._id}/workspace`);
+  };
+
+  // ── Filtering ──
+  const matchesTab = (a: StudentAssignment) => {
+    const status = getSubmissionStatus(a);
+    if (tab === 'pending') return ['not_started', 'in_progress'].includes(status);
+    if (tab === 'completed') return status === 'graded';
+    if (tab === 'overdue') return isOverdue(a);
+    return true;
+  };
+
+  const filtered = assignments.filter(a => {
     if (typeFilter && a.type !== typeFilter) return false;
     if (statusFilter) {
       const status = getSubmissionStatus(a);
       if (statusFilter === 'pending' && (status === 'submitted' || status === 'graded')) return false;
       if (statusFilter === 'completed' && status !== 'graded') return false;
+      if (statusFilter === 'overdue' && !isOverdue(a)) return false;
     }
-    return true;
+    if (search) {
+      const q = search.toLowerCase();
+      const inTitle = a.title.toLowerCase().includes(q);
+      const inTopics = (a.topics || []).some(t => t.toLowerCase().includes(q));
+      if (!inTitle && !inTopics) return false;
+    }
+    return matchesTab(a);
   });
 
-  // Stats
-  const stats = {
-    total: assignments.length,
-    completed: assignments.filter(a => getSubmissionStatus(a) === 'graded').length,
-    pending: assignments.filter(a => ['not_started', 'in_progress'].includes(getSubmissionStatus(a))).length,
-    overdue: assignments.filter(a => isOverdue(a)).length
+  // reset to first page whenever the result set changes
+  useEffect(() => { setPage(1); }, [typeFilter, statusFilter, search, tab, perPage]);
+
+  // ── Stats ──
+  const total = assignments.length;
+  const completed = assignments.filter(a => getSubmissionStatus(a) === 'graded').length;
+  const pending = assignments.filter(a => ['not_started', 'in_progress'].includes(getSubmissionStatus(a))).length;
+  const overdue = assignments.filter(a => isOverdue(a)).length;
+  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+
+  const tabCount = (t: Tab) => {
+    if (t === 'pending') return pending;
+    if (t === 'completed') return completed;
+    if (t === 'overdue') return overdue;
+    return total;
+  };
+
+  // ── Pagination ──
+  const totalRecords = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / perPage));
+  const pageStart = (page - 1) * perPage;
+  const pageRows = filtered.slice(pageStart, pageStart + perPage);
+
+  const pageNumbers = (): (number | '…')[] => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (page <= 3) return [1, 2, 3, '…', totalPages];
+    if (page >= totalPages - 2) return [1, '…', totalPages - 2, totalPages - 1, totalPages];
+    return [1, '…', page, '…', totalPages];
   };
 
   if (loading) {
     return (
-      <div className="assignment-page">
-        <div className="loading-spinner">
-          <div className="spinner"></div>
-        </div>
+      <div className="sa-page">
+        <div className="sa-loading"><div className="sa-spinner" /></div>
       </div>
     );
   }
 
   return (
-    <div className="assignment-page">
+    <div className="sa-page">
       {/* Header */}
-      <div className="page-header">
+      <div className="sa-header">
         <div>
-          <h1>📚 My Assignments</h1>
-          <p>View and complete your assigned work</p>
+          <h1 className="sa-title">My Assignments</h1>
+          <p className="sa-subtitle">View and complete your assigned work.</p>
+        </div>
+        <div className="sa-hero-art">📋</div>
+      </div>
+
+      {error && <div className="sa-alert">⚠ {error}</div>}
+
+      {/* Stat cards */}
+      <div className="sa-stats">
+        <div className="sa-stat">
+          <span className="sa-stat-ic purple">🗓️</span>
+          <div><div className="sa-stat-label">Total Assignments</div><div className="sa-stat-val">{total}</div></div>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-ic green">✅</span>
+          <div><div className="sa-stat-label">Completed</div><div className="sa-stat-val">{completed}</div><div className="sa-stat-sub good">{pct(completed)}%</div></div>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-ic blue">📊</span>
+          <div><div className="sa-stat-label">Pending</div><div className="sa-stat-val">{pending}</div><div className="sa-stat-sub blue">{pct(pending)}%</div></div>
+        </div>
+        <div className="sa-stat">
+          <span className="sa-stat-ic red">❗</span>
+          <div><div className="sa-stat-label">Overdue</div><div className="sa-stat-val">{overdue}</div><div className="sa-stat-sub low">{pct(overdue)}%</div></div>
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">Total Assignments</div>
-          <div className="stat-value">{stats.total}</div>
+      {/* Filter bar */}
+      <div className="sa-filterbar">
+        <div className="sa-filter-item">
+          <label>Type</label>
+          <div className="sa-select-wrap">
+            <span className="sa-select-ic">🧩</span>
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+              <option value="">All Types</option>
+              <option value="coding">💻 Coding</option>
+              <option value="mcq">📋 Quiz</option>
+              <option value="theory">📝 Theory</option>
+              <option value="project">🚀 Project</option>
+              <option value="web">🌐 Web</option>
+              <option value="sql">🗄️ SQL</option>
+            </select>
+          </div>
         </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #10b981' }}>
-          <div className="stat-label">Completed</div>
-          <div className="stat-value" style={{ color: '#10b981' }}>{stats.completed}</div>
-        </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #3b82f6' }}>
-          <div className="stat-label">Pending</div>
-          <div className="stat-value" style={{ color: '#3b82f6' }}>{stats.pending}</div>
-        </div>
-        <div className="stat-card" style={{ borderLeft: '4px solid #ef4444' }}>
-          <div className="stat-label">Overdue</div>
-          <div className="stat-value" style={{ color: '#ef4444' }}>{stats.overdue}</div>
-        </div>
-      </div>
-
-      {/* Error Alert */}
-      {error && (
-        <div className="alert alert-error">
-          <i className="bi bi-exclamation-triangle"></i>
-          {error}
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="filters-bar">
-        <div className="filter-group">
-          <label>Type:</label>
-          <select 
-            value={typeFilter} 
-            onChange={(e) => setTypeFilter(e.target.value)}
-          >
-            <option value="">All Types</option>
-            <option value="coding">💻 Coding</option>
-            <option value="mcq">📋 Quiz</option>
-            <option value="theory">📝 Theory</option>
-            <option value="project">🚀 Project</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Status:</label>
-          <select 
-            value={statusFilter} 
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">All</option>
+        <div className="sa-filter-item">
+          <label>Status</label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">All Status</option>
             <option value="pending">Pending</option>
             <option value="completed">Completed</option>
+            <option value="overdue">Overdue</option>
           </select>
+        </div>
+        <div className="sa-search-wrap">
+          <input
+            className="sa-search"
+            placeholder="Search assignments…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <span className="sa-search-ic">🔍</span>
         </div>
       </div>
 
-      {/* Assignments Table */}
-      {filteredAssignments.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-state-icon">🎉</div>
-          <h3>No Assignments</h3>
-          <p>You're all caught up! Check back later for new assignments.</p>
+      {/* Tabs */}
+      <div className="sa-card">
+        <div className="sa-tabs">
+          {(['all', 'pending', 'completed', 'overdue'] as Tab[]).map(t => (
+            <button key={t} className={`sa-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+              {t === 'all' ? 'All Assignments' : t.charAt(0).toUpperCase() + t.slice(1)}
+              <span className="sa-tab-count">{tabCount(t)}</span>
+            </button>
+          ))}
         </div>
-      ) : (
-        <div className="table-container" style={{ overflowX: 'auto' }}>
-          <table className="assignment-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Assignment</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Type</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Difficulty</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Points</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Due Date</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Status</th>
-                <th style={{ padding: '14px 16px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Score</th>
-                <th style={{ padding: '14px 16px', textAlign: 'center', fontWeight: 600, color: '#475569' }}>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAssignments.map((assignment) => {
-                const statusInfo = getStatusInfo(assignment);
-                const overdue = isOverdue(assignment);
-                const status = getSubmissionStatus(assignment);
-                
-                return (
-                  <tr 
-                    key={assignment._id}
-                    style={{ 
-                      borderBottom: '1px solid #e2e8f0',
-                      backgroundColor: overdue ? '#fef2f2' : 'white',
-                      transition: 'background-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = overdue ? '#fee2e2' : '#f8fafc'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = overdue ? '#fef2f2' : 'white'}
-                  >
-                    {/* Assignment Title */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ fontWeight: 500, color: '#1e293b', fontSize: '14px' }}>
-                          {assignment.title}
-                        </span>
-                        {assignment.topics.length > 0 && (
-                          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
-                            {assignment.topics.slice(0, 2).map((topic, i) => (
-                              <span 
-                                key={i} 
-                                style={{ 
-                                  fontSize: '11px', 
-                                  padding: '2px 8px', 
-                                  backgroundColor: '#e0f2fe', 
-                                  color: '#0369a1',
-                                  borderRadius: '12px'
-                                }}
-                              >
-                                {topic}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </td>
-                    
-                    {/* Type */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '6px',
-                        fontSize: '13px',
-                        color: '#475569'
-                      }}>
-                        {getTypeIcon(assignment.type)}
-                        <span style={{ textTransform: 'capitalize' }}>{assignment.type}</span>
-                      </span>
-                    </td>
-                    
-                    {/* Difficulty */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ 
-                        display: 'inline-block',
-                        padding: '4px 10px', 
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        backgroundColor: getDifficultyColor(assignment.difficulty) + '20',
-                        color: getDifficultyColor(assignment.difficulty)
-                      }}>
-                        {assignment.difficulty}
-                      </span>
-                    </td>
-                    
-                    {/* Points */}
-                    <td style={{ padding: '14px 16px', fontWeight: 500, color: '#1e293b' }}>
-                      {assignment.totalPoints}
-                    </td>
-                    
-                    {/* Due Date */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ 
-                        color: overdue ? '#dc2626' : '#475569',
-                        fontWeight: overdue ? 500 : 400,
-                        fontSize: '13px'
-                      }}>
-                        {formatDate(assignment.dueDate)}
-                      </span>
-                    </td>
-                    
-                    {/* Status */}
-                    <td style={{ padding: '14px 16px' }}>
-                      <span style={{ 
-                        display: 'inline-flex', 
-                        alignItems: 'center', 
-                        gap: '6px',
-                        padding: '4px 10px',
-                        borderRadius: '12px',
-                        fontSize: '12px',
-                        fontWeight: 500,
-                        backgroundColor: statusInfo.color + '15',
-                        color: statusInfo.color
-                      }}>
-                        {statusInfo.icon} {statusInfo.label}
-                      </span>
-                    </td>
-                    
-                    {/* Score */}
-                    <td style={{ padding: '14px 16px' }}>
-                      {assignment.submission?.finalScore !== undefined ? (
-                        <span style={{ 
-                          fontWeight: 600,
-                          color: assignment.submission.finalScore >= assignment.totalPoints * 0.6 ? '#059669' : '#dc2626'
-                        }}>
-                          {assignment.submission.finalScore}/{assignment.totalPoints}
-                        </span>
-                      ) : (
-                        <span style={{ color: '#9ca3af' }}>-</span>
-                      )}
-                    </td>
-                    
-                    {/* Action */}
-                    <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                      <button 
-                        onClick={() => handleStartAssignment(assignment)}
-                        style={{ 
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          border: 'none',
-                          cursor: 'pointer',
-                          fontWeight: 500,
-                          fontSize: '13px',
-                          backgroundColor: status === 'graded' ? '#f1f5f9' : '#3b82f6',
-                          color: status === 'graded' ? '#475569' : 'white',
-                          transition: 'all 0.2s'
-                        }}
-                        onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = status === 'graded' ? '#e2e8f0' : '#2563eb';
-                        }}
-                        onMouseLeave={(e) => {
-                          e.currentTarget.style.backgroundColor = status === 'graded' ? '#f1f5f9' : '#3b82f6';
-                        }}
-                      >
-                        {status === 'not_started' && '🚀 Start'}
-                        {status === 'in_progress' && '📝 Continue'}
-                        {status === 'submitted' && '👀 View'}
-                        {status === 'graded' && '📊 Results'}
-                        {status === 'late' && '📤 Submit'}
-                      </button>
-                    </td>
+
+        {totalRecords === 0 ? (
+          <div className="sa-empty">
+            <div className="sa-empty-ic">🎉</div>
+            <h3>No assignments</h3>
+            <p>You're all caught up! Check back later for new assignments.</p>
+          </div>
+        ) : (
+          <>
+            <div className="sa-table-wrap">
+              <table className="sa-table">
+                <thead>
+                  <tr>
+                    <th>Assignment</th><th>Type</th><th>Difficulty</th><th>Points</th>
+                    <th>Due Date</th><th>Status</th><th>Score</th><th>Action</th>
                   </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                </thead>
+                <tbody>
+                  {pageRows.map(a => {
+                    const due = formatDue(a);
+                    const sb = statusBadge(a);
+                    const act = actionLabel(a);
+                    const score = a.submission?.finalScore;
+                    return (
+                      <tr key={a._id} className={due.overdue ? 'sa-row-overdue' : ''}>
+                        <td data-label="Assignment" className="sa-titlecell">
+                          <span className="sa-tile" style={{ background: tileColor(a.title) }}>{getTypeIcon(a.type)}</span>
+                          <div className="sa-titlebox">
+                            <div className="sa-aname">{a.title}</div>
+                            {a.topics && a.topics.length > 0 && (
+                              <div className="sa-tags">
+                                {a.topics.slice(0, 2).map((t, i) => <span key={i} className="sa-tag">{t}</span>)}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                        <td data-label="Type">
+                          <span className="sa-type">{getTypeIcon(a.type)} <span className="sa-cap">{a.type}</span></span>
+                        </td>
+                        <td data-label="Difficulty">
+                          <span className={`sa-diff ${difficultyClass(a.difficulty)}`}>{a.difficulty}</span>
+                        </td>
+                        <td data-label="Points" className="sa-points">{a.totalPoints}</td>
+                        <td data-label="Due Date">
+                          <span className={`sa-due ${due.overdue ? 'overdue' : ''}`}>{due.text}</span>
+                        </td>
+                        <td data-label="Status">
+                          <span className={`sa-badge ${sb.cls}`}>{sb.icon} {sb.label}</span>
+                        </td>
+                        <td data-label="Score">
+                          {score !== undefined ? (
+                            <span className="sa-score" style={{ color: score >= a.totalPoints * 0.6 ? '#059669' : '#dc2626' }}>
+                              {score}/{a.totalPoints}
+                            </span>
+                          ) : <span className="sa-dash">–</span>}
+                        </td>
+                        <td data-label="Action">
+                          <button
+                            className={`sa-action ${getSubmissionStatus(a) === 'graded' ? 'secondary' : ''}`}
+                            onClick={() => handleOpen(a)}
+                          >
+                            {act.icon} {act.label}
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="sa-foot">
+              <span className="sa-foot-info">
+                Showing {pageStart + 1} to {Math.min(pageStart + perPage, totalRecords)} of {totalRecords} assignments
+              </span>
+              <div className="sa-pager">
+                <button className="sa-pg" disabled={page === 1} onClick={() => setPage(p => Math.max(1, p - 1))}>←</button>
+                {pageNumbers().map((n, i) =>
+                  n === '…'
+                    ? <span key={`e${i}`} className="sa-pg-ellipsis">…</span>
+                    : <button key={n} className={`sa-pg ${page === n ? 'active' : ''}`} onClick={() => setPage(n as number)}>{n}</button>
+                )}
+                <button className="sa-pg" disabled={page === totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>→</button>
+              </div>
+              <select className="sa-perpage" value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+                {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n} per page</option>)}
+              </select>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

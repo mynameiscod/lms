@@ -159,6 +159,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_reports', 'view_analytics', 'view_tenant_analytics',
     // Admin
     'manage_tenant', 'manage_tenant_settings',
+    // Fees / billing
+    'manage_billing',
     // Leads (full access)
     'manage_leads', 'view_leads', 'create_leads', 'edit_leads', 'delete_leads',
     'assign_leads', 'export_leads', 'view_lead_analytics', 'manage_lead_stages', 'convert_leads',

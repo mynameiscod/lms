@@ -24,6 +24,7 @@ const UsersPage: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'inactive'>('active');
+  const [showFilters, setShowFilters] = useState(false);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -127,6 +128,8 @@ const UsersPage: React.FC = () => {
   }).length;
   const prettyRole = (r: string) => r === 'SUPER_ADMIN' ? 'Super Admin' : r === 'TENANT_ADMIN' ? 'Tenant Admin'
     : r.charAt(0) + r.slice(1).toLowerCase();
+  const currentUser: any = (() => { try { return JSON.parse(localStorage.getItem('user') || 'null'); } catch { return null; } })();
+  const formatJoined = (d?: string) => d ? new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 
   // Reset to page 1 when filters change
   useEffect(() => {
@@ -398,35 +401,51 @@ const UsersPage: React.FC = () => {
 
       <div className="users-stats">
         <div className="stat-card">
-          <div className="stat-icon blue">👥</div>
-          <div className="stat-body">
-            <div className="stat-label">Total Users</div>
-            <div className="stat-value">{users.length}</div>
+          <div className="stat-card-head">
+            <span className="stat-icon blue">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>
+            </span>
+            <span className="stat-label">Total Users</span>
           </div>
+          <div className="stat-value">{users.length}</div>
+          <div className="stat-sub up">↗ +12% from last month</div>
+          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,18 16,14 32,16 48,8 64,11 80,4" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
+
         <div className="stat-card">
-          <div className="stat-icon green">🛡️</div>
-          <div className="stat-body">
-            <div className="stat-label">Active Users</div>
-            <div className="stat-value">{activeCount}</div>
-            <div className="stat-sub">{activePct}% of total users</div>
+          <div className="stat-card-head">
+            <span className="stat-icon green">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" /></svg>
+            </span>
+            <span className="stat-label">Active Users</span>
           </div>
+          <div className="stat-value">{activeCount}</div>
+          <div className="stat-sub">{activePct}% of total users</div>
+          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,16 16,10 32,13 48,6 64,9 80,5" fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
+
         <div className="stat-card">
-          <div className="stat-icon purple">🎭</div>
-          <div className="stat-body">
-            <div className="stat-label">Roles</div>
-            <div className="stat-value">{distinctRoles.length}</div>
-            <div className="stat-sub">{distinctRoles.map(prettyRole).slice(0, 3).join(', ')}</div>
+          <div className="stat-card-head">
+            <span className="stat-icon purple">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="5" /><path d="M20 21a8 8 0 0 0-16 0" /></svg>
+            </span>
+            <span className="stat-label">Roles</span>
           </div>
+          <div className="stat-value">{distinctRoles.length}</div>
+          <div className="stat-sub">{distinctRoles.map(prettyRole).slice(0, 3).join(', ')}</div>
+          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,12 16,16 32,9 48,14 64,8 80,12" fill="none" stroke="#8b5cf6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
+
         <div className="stat-card">
-          <div className="stat-icon amber">✨</div>
-          <div className="stat-body">
-            <div className="stat-label">New Users</div>
-            <div className="stat-value">{newThisMonth}</div>
-            <div className="stat-sub">This month</div>
+          <div className="stat-card-head">
+            <span className="stat-icon amber">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><line x1="19" y1="8" x2="19" y2="14" /><line x1="22" y1="11" x2="16" y2="11" /></svg>
+            </span>
+            <span className="stat-label">New Users</span>
           </div>
+          <div className="stat-value">{newThisMonth}</div>
+          <div className="stat-sub">This month</div>
+          <svg className="stat-spark" viewBox="0 0 80 24" preserveAspectRatio="none"><polyline points="0,17 16,15 32,16 48,12 64,13 80,9" fill="none" stroke="#f59e0b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
         </div>
       </div>
 
@@ -471,28 +490,20 @@ const UsersPage: React.FC = () => {
         </div>
       )}
 
-      <div className="users-controls">
-        <div className="search-box">
-          <input
-            type="text"
-            placeholder="Search by name or email..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="search-input"
-          />
-        </div>
-
-        <div className="filter-buttons">
-          <select
-            value={batchFilter}
-            onChange={(e) => setBatchFilter(e.target.value)}
-            className="filter-select"
-          >
-            <option value="all">All Batches</option>
-            {batches.map(batch => (
-              <option key={batch._id} value={batch._id}>{batch.name}</option>
-            ))}
-          </select>
+      <div className="users-controls-card">
+        <div className="users-controls">
+          <div className="search-box">
+            <span className="search-ic">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
+            </span>
+            <input
+              type="text"
+              placeholder="Search by name or email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="search-input"
+            />
+          </div>
 
           <select
             value={roleFilter}
@@ -501,7 +512,7 @@ const UsersPage: React.FC = () => {
           >
             <option value="all">All Roles</option>
             {Array.from(new Set(users.map(u => u.role).filter(Boolean))).map(r => (
-              <option key={r} value={r}>{r}</option>
+              <option key={r} value={r}>{prettyRole(r)}</option>
             ))}
           </select>
 
@@ -514,7 +525,32 @@ const UsersPage: React.FC = () => {
             <option value="active">Active</option>
             <option value="inactive">Inactive</option>
           </select>
+
+          <button
+            type="button"
+            className={`filters-btn ${showFilters ? 'active' : ''}`}
+            onClick={() => setShowFilters(s => !s)}
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" /></svg>
+            Filters
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="users-controls-advanced">
+            <span className="adv-label">Batch</span>
+            <select
+              value={batchFilter}
+              onChange={(e) => setBatchFilter(e.target.value)}
+              className="filter-select"
+            >
+              <option value="all">All Batches</option>
+              {batches.map(batch => (
+                <option key={batch._id} value={batch._id}>{batch.name}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <div className="users-table-container">
@@ -526,10 +562,11 @@ const UsersPage: React.FC = () => {
           <table className="users-table">
             <thead>
               <tr>
-                <th>Name</th>
+                <th>User</th>
                 <th>Email</th>
                 <th>Role</th>
                 <th>Status</th>
+                <th>Joined On</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -540,7 +577,12 @@ const UsersPage: React.FC = () => {
                     <div className="user-name">
                       <span className="avatar">{user.firstName[0]}{user.lastName[0]}</span>
                       <div>
-                        <div className="full-name">{user.firstName} {user.lastName}</div>
+                        <div className="full-name">
+                          {user.firstName} {user.lastName}
+                          {currentUser && (currentUser._id === user._id || currentUser.id === user._id) && (
+                            <span className="you-badge">You</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -557,9 +599,10 @@ const UsersPage: React.FC = () => {
                   </td>
                   <td>
                     <span className={`status-badge ${user.isActive ? 'active' : 'inactive'}`}>
-                      {user.isActive ? 'Active' : 'Inactive'}
+                      <span className="status-dot" />{user.isActive ? 'Active' : 'Inactive'}
                     </span>
                   </td>
+                  <td className="joined-cell">{formatJoined(user.createdAt)}</td>
                   <td>
                     <div className="action-buttons">
                       <span

@@ -68,59 +68,98 @@
 .users-stats {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 .stat-card {
-  display: flex;
-  align-items: center;
-  gap: 11px;
+  position: relative;
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
-  padding: 12px 14px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border-radius: 14px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
 }
+.stat-card-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
 .stat-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  color: #fff;
   flex-shrink: 0;
 }
-.stat-icon.blue { background: #e0f2fe; }
-.stat-icon.green { background: #dcfce7; }
-.stat-icon.purple { background: #ede9fe; }
-.stat-icon.amber { background: #fef3c7; }
-.stat-body { min-width: 0; }
-.stat-label { font-size: 12px; color: #6b7280; font-weight: 600; }
-.stat-value { font-size: 20px; font-weight: 800; color: #0f172a; line-height: 1.1; }
-.stat-sub { font-size: 11px; color: #94a3b8; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-icon.blue { background: #3b82f6; }
+.stat-icon.green { background: #22c55e; }
+.stat-icon.purple { background: #8b5cf6; }
+.stat-icon.amber { background: #f59e0b; }
+.stat-label { font-size: 13.5px; color: #475569; font-weight: 600; }
+.stat-value { font-size: 28px; font-weight: 800; color: #0f172a; line-height: 1; margin-bottom: 8px; }
+.stat-sub { font-size: 12px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 70%; }
+.stat-sub.up { color: #16a34a; font-weight: 600; }
+.stat-spark { position: absolute; right: 14px; bottom: 12px; width: 64px; height: 22px; opacity: 0.9; }
 @media (max-width: 900px) { .users-stats { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .users-stats { grid-template-columns: 1fr; } }
 
+.users-controls-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
 .users-controls {
   display: flex;
   gap: 12px;
-  margin-bottom: 24px;
+  margin-bottom: 0;
   align-items: center;
   flex-wrap: wrap;
 }
+.filters-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.filters-btn:hover { border-color: #005897; background: #f8fafc; }
+.filters-btn.active { border-color: #005897; color: #005897; background: #eff6ff; }
+.users-controls-advanced {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+}
+.adv-label { font-size: 13px; font-weight: 600; color: #64748b; }
 
 .search-box {
-  flex: 1;
-  min-width: 250px;
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 220px;
   margin-bottom: 0;
   display: flex;
   align-items: center;
 }
+.search-ic { position: absolute; left: 14px; color: #9ca3af; display: flex; pointer-events: none; }
 
 .search-input {
   width: 100%;
-  padding: 0 14px;
+  padding: 0 14px 0 40px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 14px;
@@ -192,6 +231,11 @@
   font-weight: 500;
 }
 .search-input::placeholder { color: #9ca3af !important; }
+
+/* You badge / joined column / status dot */
+.you-badge { display: inline-block; margin-left: 8px; background: #e0f2fe; color: #0369a1; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; vertical-align: middle; }
+.joined-cell { color: #64748b; font-size: 13px; white-space: nowrap; }
+.status-badge .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 5px; vertical-align: middle; background: currentColor; }
 
 /* ===== TABLE ===== */
 .users-table-container {

@@ -60,7 +60,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const menuItems: MenuItem[] = [
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-gauge-high', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
     { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'myCourse', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'myCourse', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'topicHub', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
     { label: '🎓 My Classes', path: '/class-hub', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'classHub' as keyof StudentFeatures, moduleKey: 'classRecordings', permissions: ['enroll_courses', 'view_courses', 'view_attendance', 'view_quiz'] },
     { label: 'Fee Details', path: '/student/fee-details', roles: ['STUDENT'], icon: 'fa-solid fa-wallet', featureKey: 'feeDetails' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'courses', permissions: ['view_courses'] },
@@ -128,6 +128,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-video',
       moduleKey: 'classRecordings',
+      featureKey: 'classHub' as keyof StudentFeatures,
       permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'view_courses'],
       submenu: [
         { label: 'All Recordings', path: '/admin/class-recordings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-list', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
@@ -174,6 +175,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       label: 'Learning Plans',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-calendar-days',
+      featureKey: 'learningPlan' as keyof StudentFeatures,
       permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'enroll_courses', 'view_courses'],
       submenu: [
         { label: '📚 Content Library',    path: '/learning-library',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-book',          permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
@@ -199,7 +201,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'My Interviews', path: '/my-interviews', roles: ['STUDENT'], icon: 'fa-solid fa-calendar-check', featureKey: 'scheduledInterviews' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Resume Builder', path: '/resume-builder', roles: ['STUDENT'], icon: 'fa-solid fa-file-lines', permissions: ['enroll_courses', 'submit_assignments'] },
+    { label: 'Resume Builder', path: '/resume-builder', roles: ['STUDENT'], icon: 'fa-solid fa-file-lines', featureKey: 'resumeBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'submit_assignments'] },
     {
       label: 'Mock Interviews',
       roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
@@ -297,6 +299,27 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     if (!hasAccessToMenu(item)) return null;
 
     if (item.submenu) {
+      const visibleSubitems = item.submenu.filter(subitem => hasAccessToMenu(subitem));
+      if (visibleSubitems.length === 0) return null;
+
+      // Flatten: if only one subitem is visible (e.g. students see a single child),
+      // render it as a direct menu link instead of an expandable group.
+      if (visibleSubitems.length === 1) {
+        const only = visibleSubitems[0];
+        return (
+          <li key={only.path} className={isSubmenu ? 'submenu-item' : ''}>
+            <Link
+              to={only.path!}
+              className={`sidebar-link ${isActive(only.path) ? 'active' : ''}`}
+              onClick={onMobileClose}
+            >
+              <span className="menu-icon"><i className={item.icon || only.icon}></i></span>
+              <span className="sidebar-label">{item.label}</span>
+            </Link>
+          </li>
+        );
+      }
+
       const isExpanded = expandedGroups[item.label.toLowerCase()];
       return (
         <div key={item.label} className="menu-group">
@@ -310,9 +333,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           </button>
           {isExpanded && (
             <ul className="submenu">
-              {item.submenu
-                .filter(subitem => hasAccessToMenu(subitem))
-                .map((subitem) => (
+              {visibleSubitems.map((subitem) => (
                 <li key={subitem.path}>
                   <Link
                     to={subitem.path!}

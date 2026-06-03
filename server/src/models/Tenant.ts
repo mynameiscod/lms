@@ -11,12 +11,17 @@ export interface ITenantSettings {
 export interface IStudentFeatures {
   dashboard: boolean;
   myCourse: boolean;
+  topicHub?: boolean;
   attendance: boolean;
   quizzes: boolean;
   assignments: boolean;
   mockInterviews: boolean;
+  codingSnippets?: boolean;
   classHub?: boolean;
   feeDetails?: boolean;
+  scheduledInterviews?: boolean;
+  resumeBuilder?: boolean;
+  learningPlan?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -135,12 +140,17 @@ const TenantSchema: Schema = new Schema(
     studentFeatures: {
       dashboard: { type: Boolean, default: true },
       myCourse: { type: Boolean, default: true },
+      topicHub: { type: Boolean, default: true },
       attendance: { type: Boolean, default: true },
       quizzes: { type: Boolean, default: true },
       assignments: { type: Boolean, default: true },
       mockInterviews: { type: Boolean, default: true },
+      codingSnippets: { type: Boolean, default: true },
       classHub: { type: Boolean, default: true },
-      feeDetails: { type: Boolean, default: true }
+      feeDetails: { type: Boolean, default: true },
+      scheduledInterviews: { type: Boolean, default: true },
+      resumeBuilder: { type: Boolean, default: true },
+      learningPlan: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
     modules: {

@@ -5,6 +5,7 @@ import { tenantApi } from '../api';
 export interface StudentFeatures {
   dashboard: boolean;
   myCourse: boolean;
+  topicHub: boolean;
   attendance: boolean;
   quizzes: boolean;
   assignments: boolean;
@@ -13,11 +14,14 @@ export interface StudentFeatures {
   classHub: boolean;
   feeDetails: boolean;
   scheduledInterviews: boolean;
+  resumeBuilder: boolean;
+  learningPlan: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
   dashboard: true,
   myCourse: true,
+  topicHub: true,
   attendance: true,
   quizzes: true,
   assignments: true,
@@ -26,6 +30,8 @@ const DEFAULT_FEATURES: StudentFeatures = {
   classHub: true,
   feeDetails: true,
   scheduledInterviews: true,
+  resumeBuilder: true,
+  learningPlan: true,
 };
 
 interface StudentFeaturesContextType {

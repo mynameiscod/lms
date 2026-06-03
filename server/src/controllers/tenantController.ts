@@ -173,11 +173,17 @@ export const getStudentFeatures = async (
     const defaults: IStudentFeatures = {
       dashboard: true,
       myCourse: true,
+      topicHub: true,
       attendance: true,
       quizzes: true,
       assignments: true,
       mockInterviews: true,
-      feeDetails: true
+      codingSnippets: true,
+      classHub: true,
+      feeDetails: true,
+      scheduledInterviews: true,
+      resumeBuilder: true,
+      learningPlan: true
     };
 
     const featureData = { ...defaults, ...(tenant.studentFeatures || {}) };
@@ -204,7 +210,8 @@ export const updateStudentFeatures = async (
     const features = req.body as Partial<IStudentFeatures>;
 
     const allowedKeys: (keyof IStudentFeatures)[] = [
-      'dashboard', 'myCourse', 'attendance', 'quizzes', 'assignments', 'mockInterviews', 'feeDetails'
+      'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments', 'mockInterviews',
+      'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews', 'resumeBuilder', 'learningPlan'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {

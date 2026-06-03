@@ -70,6 +70,7 @@ import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
 import scheduledInterviewRoutes from './scheduledInterviewRoutes';
 import resumeRoutes from './resumeRoutes';
+import feeRoutes from './feeRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -152,6 +153,7 @@ router.use('/interactive-lessons', interactiveLessonRoutes);
 
 // ─── Resume Builder ────────────────────────────────────────────────────────────
 router.use('/resume', resumeRoutes);
+router.use('/fees', feeRoutes);
 
 // ─── Scheduled Interviews ─────────────────────────────────────────────────────
 router.use('/scheduled-interviews', scheduledInterviewRoutes);

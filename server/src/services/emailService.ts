@@ -161,6 +161,28 @@ export class EmailService {
     }
   }
 
+  // Generic email sender — used for fee receipts / reminders
+  async sendGenericEmail(email: string, subject: string, htmlContent: string, textContent?: string): Promise<boolean> {
+    const text = textContent || htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    try {
+      if (this.useBrevoApi) {
+        await this.sendViaBrevoApi(email, subject, htmlContent, text);
+      } else {
+        await this.transporter!.sendMail({
+          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject,
+          html: htmlContent,
+          text,
+        });
+      }
+      return true;
+    } catch (error: any) {
+      console.error('[EMAIL SERVICE] sendGenericEmail failed:', error?.message);
+      return false;
+    }
+  }
+
   async sendPasswordResetEmail(
     email: string,
     firstName: string,

@@ -88,6 +88,7 @@ import AssignmentReports from './pages/AssignmentReports';
 import StudentFeaturesPage from './pages/StudentFeatures';
 import ResumeBuilderPage from './pages/ResumeBuilder';
 import PublicResumeView from './pages/ResumeBuilder/PublicResumeView';
+import FeesPage from './pages/Fees';
 import LeadsPage from './pages/Leads';
 import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
@@ -414,6 +415,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <UsersPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/fees"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']} requiredPermissions={['manage_billing']}>
+            <Layout>
+              <FeesPage />
             </Layout>
           </ProtectedRoute>
         }

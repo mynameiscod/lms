@@ -10,6 +10,45 @@ const LANG_LABELS: Record<string, string> = {
   php: 'PHP', ruby: 'Ruby', kotlin: 'Kotlin', swift: 'Swift',
 };
 
+// Per-language tile (short label + colors) for the list view
+const LANG_TILE: Record<string, { short: string; bg: string; color: string }> = {
+  javascript: { short: 'JS',  bg: '#fef9c3', color: '#a16207' },
+  typescript: { short: 'TS',  bg: '#dbeafe', color: '#1d4ed8' },
+  python:     { short: 'Py',  bg: '#e0f2fe', color: '#0369a1' },
+  java:       { short: 'Jv',  bg: '#fee2e2', color: '#b91c1c' },
+  cpp:        { short: 'C++', bg: '#e0e7ff', color: '#4338ca' },
+  c:          { short: 'C',   bg: '#e0e7ff', color: '#4338ca' },
+  csharp:     { short: 'C#',  bg: '#dcfce7', color: '#15803d' },
+  go:         { short: 'Go',  bg: '#cffafe', color: '#0e7490' },
+  rust:       { short: 'Rs',  bg: '#ffedd5', color: '#c2410c' },
+  sql:        { short: 'SQL', bg: '#f1f5f9', color: '#475569' },
+  php:        { short: 'PHP', bg: '#ede9fe', color: '#6d28d9' },
+  ruby:       { short: 'Rb',  bg: '#fee2e2', color: '#b91c1c' },
+};
+const langTile = (lang: string) =>
+  LANG_TILE[lang] || { short: (LANG_LABELS[lang] || lang || '?').slice(0, 2), bg: '#ede9fe', color: '#6366f1' };
+
+// Three-state status used by the list view (matches the dashboard mockup)
+const listStatus = (s: Submission | null) => {
+  if (!s) return { key: 'notstarted', label: 'Not Started', cls: 'notstarted' };
+  if (s.status === 'graded') return { key: 'completed', label: 'Completed', cls: 'completed' };
+  return { key: 'inprogress', label: 'In Progress', cls: 'inprogress' };
+};
+
+const deriveDifficulty = (marks: number) =>
+  marks <= 10 ? 'Easy' : marks <= 20 ? 'Medium' : 'Hard';
+const difficultyCls = (d: string) => d.toLowerCase();
+const expectedTime = (questions: number) => `${Math.max(5, Math.round(questions * 1.5))} mins`;
+const lastAttempt = (s: Submission | null) => {
+  const ts = (s as any)?.submittedAt || (s as any)?.updatedAt || (s as any)?.createdAt;
+  if (!ts) return null;
+  const d = new Date(ts);
+  return {
+    date: d.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }),
+    time: d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+  };
+};
+
 interface SnippetOption { text: string; }
 interface SnippetQuestion {
   _id: string;
@@ -39,12 +78,6 @@ interface AnswerState {
   explanation: string;
 }
 
-const statusLabel = (s: Submission | null) => {
-  if (!s) return { text: 'Not Started', cls: 'scs-badge--new' };
-  if (s.status === 'graded') return { text: 'Graded', cls: 'scs-badge--graded' };
-  return { text: 'Submitted', cls: 'scs-badge--submitted' };
-};
-
 export default function StudentCodeSnippets() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,6 +86,16 @@ export default function StudentCodeSnippets() {
   const [submitting, setSubmitting] = useState(false);
   const [submitDone, setSubmitDone] = useState(false);
   const [viewResult, setViewResult] = useState<Assessment | null>(null);
+
+  // List-view controls
+  const [search, setSearch] = useState('');
+  const [langFilter, setLangFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [tab, setTab] = useState<'all' | 'inprogress' | 'completed' | 'notstarted'>('all');
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(5);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [showInstructions, setShowInstructions] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -67,6 +110,7 @@ export default function StudentCodeSnippets() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+  useEffect(() => { setPage(1); }, [search, langFilter, statusFilter, tab, perPage]);
 
   const openAssessment = (a: Assessment) => {
     setActive(a);
@@ -371,56 +415,233 @@ export default function StudentCodeSnippets() {
     );
   }
 
-  // ── Assessment list ──
+  // ── Assessment list (dashboard view) ──
+  const languages = Array.from(new Set(assessments.map((a) => a.language)));
+
+  const matchesTab = (a: Assessment) => {
+    if (tab === 'all') return true;
+    return listStatus(a.submission).key === tab;
+  };
+
+  const filtered = assessments.filter((a) => {
+    if (langFilter && a.language !== langFilter) return false;
+    if (statusFilter && listStatus(a.submission).key !== statusFilter) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!a.title.toLowerCase().includes(q) && !(a.description || '').toLowerCase().includes(q)) return false;
+    }
+    return matchesTab(a);
+  });
+
+  const total = assessments.length;
+  const completed = assessments.filter((a) => listStatus(a.submission).key === 'completed').length;
+  const inProgress = assessments.filter((a) => listStatus(a.submission).key === 'inprogress').length;
+  const notStarted = assessments.filter((a) => listStatus(a.submission).key === 'notstarted').length;
+  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+
+  const tabCount = (t: typeof tab) =>
+    t === 'inprogress' ? inProgress : t === 'completed' ? completed : t === 'notstarted' ? notStarted : total;
+
+  const totalRecords = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / perPage));
+  const pageStart = (page - 1) * perPage;
+  const pageRows = filtered.slice(pageStart, pageStart + perPage);
+  const pageNumbers = (): (number | '…')[] => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    if (page <= 3) return [1, 2, 3, '…', totalPages];
+    if (page >= totalPages - 2) return [1, '…', totalPages - 2, totalPages - 1, totalPages];
+    return [1, '…', page, '…', totalPages];
+  };
+
+  const detail = filtered.find((a) => a._id === selectedId) || filtered[0] || null;
+
+  const openFor = (a: Assessment) => {
+    if (a.submission) openResult(a);
+    else openAssessment(a);
+  };
+
   return (
-    <div className="scs-page">
-      <div className="scs-page-header">
-        <h1>Coding Snippet Assessments</h1>
-        <p>Analyze code, answer questions, and explain your understanding</p>
+    <div className="csa-page">
+      {/* Header */}
+      <div className="csa-header">
+        <div>
+          <h1 className="csa-title">Code Snippet Assessments</h1>
+          <p className="csa-subtitle">Practice, analyze, and strengthen your coding skills.</p>
+        </div>
+        <div className="csa-hero-art">{'</>'}</div>
+      </div>
+
+      {/* Stat cards */}
+      <div className="csa-stats">
+        <div className="csa-stat">
+          <span className="csa-stat-ic purple">{'</>'}</span>
+          <div><div className="csa-stat-label">Total Assessments</div><div className="csa-stat-val">{total}</div></div>
+        </div>
+        <div className="csa-stat">
+          <span className="csa-stat-ic green">✅</span>
+          <div><div className="csa-stat-label">Completed</div><div className="csa-stat-val">{completed}</div><div className="csa-stat-sub good">{pct(completed)}%</div></div>
+        </div>
+        <div className="csa-stat">
+          <span className="csa-stat-ic blue">📊</span>
+          <div><div className="csa-stat-label">In Progress</div><div className="csa-stat-val">{inProgress}</div><div className="csa-stat-sub blue">{pct(inProgress)}%</div></div>
+        </div>
+        <div className="csa-stat">
+          <span className="csa-stat-ic red">⏳</span>
+          <div><div className="csa-stat-label">Not Started</div><div className="csa-stat-val">{notStarted}</div><div className="csa-stat-sub low">{pct(notStarted)}%</div></div>
+        </div>
+      </div>
+
+      {/* Filter bar */}
+      <div className="csa-filterbar">
+        <div className="csa-filter-item">
+          <label>Language</label>
+          <select value={langFilter} onChange={(e) => setLangFilter(e.target.value)}>
+            <option value="">All Languages</option>
+            {languages.map((l) => <option key={l} value={l}>{LANG_LABELS[l] || l}</option>)}
+          </select>
+        </div>
+        <div className="csa-filter-item">
+          <label>Status</label>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+            <option value="">All Status</option>
+            <option value="inprogress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="notstarted">Not Started</option>
+          </select>
+        </div>
+        <div className="csa-search-wrap">
+          <input className="csa-search" placeholder="Search assessments…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <span className="csa-search-ic">🔍</span>
+        </div>
       </div>
 
       {loading ? (
-        <div className="scs-loading">Loading your assessments…</div>
-      ) : assessments.length === 0 ? (
-        <div className="scs-empty">
-          <div className="scs-empty-icon">{'</>'}</div>
-          <p>No assessments assigned yet. Check back later.</p>
-        </div>
+        <div className="csa-loading"><div className="csa-spinner" /></div>
       ) : (
-        <div className="scs-cards">
-          {assessments.map((a) => {
-            const badge = statusLabel(a.submission);
-            const isGraded = a.submission?.status === 'graded';
-            const isSubmitted = !!a.submission;
-            return (
-              <div key={a._id} className="scs-card">
-                <div className="scs-card-top">
-                  <span className="scs-lang-badge">{LANG_LABELS[a.language] || a.language}</span>
-                  <span className={`scs-badge ${badge.cls}`}>{badge.text}</span>
-                </div>
-                <h3 className="scs-card-title">{a.title}</h3>
-                {a.description && <p className="scs-card-desc">{a.description}</p>}
-                <div className="scs-card-meta">
-                  <span>{a.questions.length} question{a.questions.length !== 1 ? 's' : ''}</span>
-                  <span>{a.totalMarks} marks</span>
-                  {a.dueDate && <span>Due {new Date(a.dueDate).toLocaleDateString()}</span>}
-                </div>
-                {isGraded && (
-                  <div className="scs-card-score">
-                    Score: <strong>{a.submission!.totalMarksAwarded}/{a.totalMarks}</strong>
-                    {' '}({a.totalMarks > 0 ? Math.round((a.submission!.totalMarksAwarded / a.totalMarks) * 100) : 0}%)
-                  </div>
-                )}
-                <div className="scs-card-actions">
-                  {!isSubmitted ? (
-                    <button className="scs-btn-primary" onClick={() => openAssessment(a)}>Start Assessment</button>
-                  ) : (
-                    <button className="scs-btn-outline" onClick={() => openResult(a)}>View {isGraded ? 'Grades' : 'Submission'}</button>
-                  )}
-                </div>
+        <div className="csa-body">
+          {/* Left: table card */}
+          <div className="csa-card">
+            <div className="csa-tabs">
+              {(['all', 'inprogress', 'completed', 'notstarted'] as const).map((t) => (
+                <button key={t} className={`csa-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>
+                  {t === 'all' ? 'All' : t === 'inprogress' ? 'In Progress' : t === 'completed' ? 'Completed' : 'Not Started'}
+                  <span className="csa-tab-count">{tabCount(t)}</span>
+                </button>
+              ))}
+            </div>
+
+            {totalRecords === 0 ? (
+              <div className="csa-empty">
+                <div className="csa-empty-ic">{'</>'}</div>
+                <h3>No assessments</h3>
+                <p>No assessments match your filters. Check back later.</p>
               </div>
-            );
-          })}
+            ) : (
+              <>
+                <div className="csa-table-wrap">
+                  <table className="csa-table">
+                    <thead>
+                      <tr>
+                        <th>Assessment</th><th>Language</th><th>Questions</th><th>Marks</th>
+                        <th>Status</th><th>Last Attempt</th><th>Action</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pageRows.map((a) => {
+                        const st = listStatus(a.submission);
+                        const tile = langTile(a.language);
+                        const la = lastAttempt(a.submission);
+                        const action = st.key === 'notstarted' ? 'Start' : st.key === 'completed' ? 'View Result' : 'Continue';
+                        return (
+                          <tr
+                            key={a._id}
+                            className={`${detail?._id === a._id ? 'csa-row-active' : ''}`}
+                            onClick={() => { setSelectedId(a._id); setShowInstructions(false); }}
+                          >
+                            <td data-label="Assessment" className="csa-titlecell">
+                              <span className="csa-tile" style={{ background: tile.bg, color: tile.color }}>{tile.short}</span>
+                              <div className="csa-titlebox">
+                                <div className="csa-aname">{a.title}</div>
+                                {a.description && <div className="csa-adesc">{a.description.length > 64 ? a.description.slice(0, 64) + '…' : a.description}</div>}
+                              </div>
+                            </td>
+                            <td data-label="Language"><span className="csa-langpill" style={{ background: tile.bg, color: tile.color }}>{LANG_LABELS[a.language] || a.language}</span></td>
+                            <td data-label="Questions" className="csa-center">{a.questions.length}</td>
+                            <td data-label="Marks" className="csa-center">{a.totalMarks}</td>
+                            <td data-label="Status"><span className={`csa-badge ${st.cls}`}>{st.label}</span></td>
+                            <td data-label="Last Attempt">
+                              {la ? <div className="csa-lastattempt"><div>{la.date}</div><div className="csa-la-time">{la.time}</div></div> : <span className="csa-dash">—</span>}
+                            </td>
+                            <td data-label="Action">
+                              <button className={`csa-action ${st.key === 'completed' ? 'secondary' : ''}`} onClick={(e) => { e.stopPropagation(); openFor(a); }}>
+                                {st.key === 'completed' ? '👁 View Result' : `▶ ${action}`}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="csa-foot">
+                  <span className="csa-foot-info">
+                    Showing {pageStart + 1} to {Math.min(pageStart + perPage, totalRecords)} of {totalRecords} assessments
+                  </span>
+                  <div className="csa-pager">
+                    <button className="csa-pg" disabled={page === 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>←</button>
+                    {pageNumbers().map((n, i) =>
+                      n === '…'
+                        ? <span key={`e${i}`} className="csa-pg-ellipsis">…</span>
+                        : <button key={n} className={`csa-pg ${page === n ? 'active' : ''}`} onClick={() => setPage(n as number)}>{n}</button>
+                    )}
+                    <button className="csa-pg" disabled={page === totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>→</button>
+                  </div>
+                  <select className="csa-perpage" value={perPage} onChange={(e) => setPerPage(Number(e.target.value))}>
+                    {[5, 10, 20, 50].map((n) => <option key={n} value={n}>{n} per page</option>)}
+                  </select>
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Right: detail panel */}
+          {detail && (
+            <aside className="csa-detail">
+              <div className="csa-detail-hero"><span>{'</>'}</span></div>
+              <div className="csa-detail-tags">
+                <span className="csa-langpill" style={{ background: langTile(detail.language).bg, color: langTile(detail.language).color }}>
+                  {LANG_LABELS[detail.language] || detail.language}
+                </span>
+                <span className={`csa-badge ${listStatus(detail.submission).cls}`}>{listStatus(detail.submission).label}</span>
+              </div>
+              <h2 className="csa-detail-title">{detail.title}</h2>
+              {detail.description && <p className="csa-detail-desc">{detail.description}</p>}
+
+              <div className="csa-detail-rows">
+                <div className="csa-drow"><span className="csa-drow-ic">🧩</span><span className="csa-drow-label">Questions</span><span className="csa-drow-val">{detail.questions.length}</span></div>
+                <div className="csa-drow"><span className="csa-drow-ic">⭐</span><span className="csa-drow-label">Marks</span><span className="csa-drow-val">{detail.totalMarks}</span></div>
+                <div className="csa-drow"><span className="csa-drow-ic">📶</span><span className="csa-drow-label">Difficulty</span><span className={`csa-diff ${difficultyCls(deriveDifficulty(detail.totalMarks))}`}>{deriveDifficulty(detail.totalMarks)}</span></div>
+                <div className="csa-drow"><span className="csa-drow-ic">⏱️</span><span className="csa-drow-label">Expected Time</span><span className="csa-drow-val">{expectedTime(detail.questions.length)}</span></div>
+                <div className="csa-drow"><span className="csa-drow-ic">📅</span><span className="csa-drow-label">Last Attempt</span><span className="csa-drow-val">{lastAttempt(detail.submission)?.date || '—'}</span></div>
+              </div>
+
+              {showInstructions && (
+                <div className="csa-instructions">
+                  Read the code snippet carefully, answer each question, and explain your reasoning in detail.
+                  You can submit your answers only once, so review them before submitting.
+                </div>
+              )}
+
+              <button className="csa-detail-primary" onClick={() => openFor(detail)}>
+                {listStatus(detail.submission).key === 'notstarted' ? '▶ Start Assessment'
+                  : listStatus(detail.submission).key === 'completed' ? '👁 View Result' : '▶ Continue'}
+              </button>
+              <button className="csa-detail-outline" onClick={() => setShowInstructions((v) => !v)}>
+                ⓘ {showInstructions ? 'Hide Instructions' : 'View Instructions'}
+              </button>
+            </aside>
+          )}
         </div>
       )}
     </div>

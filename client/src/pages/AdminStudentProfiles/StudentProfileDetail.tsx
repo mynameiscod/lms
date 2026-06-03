@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { getStudentReport } from '../../api/studentReportApi';
 import { Spinner } from '../../components/common';
@@ -43,6 +43,7 @@ const fmt = (date: string | undefined) => {
 const StudentProfileDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [profile, setProfile] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
@@ -82,11 +83,18 @@ const StudentProfileDetail: React.FC = () => {
   }, [userId, activeTab, report]);
 
   if (loadingProfile) return <div className="spd-loading"><Spinner /></div>;
-  if (!profile) return <div className="spd-error">{error || 'Profile not found.'}</div>;
 
-  const p = profile.personalInfo || {};
-  const fullName = `${p.firstName || ''} ${p.middleName || ''} ${p.surname || ''}`.trim();
-  const pct = profile.profileCompletionPercentage || 0;
+  // A student may not have a StudentProfile yet — don't hard-fail. Fall back to
+  // the basic user info passed from the Users list so the page (and the
+  // activity/report tabs, which only need userId) still works.
+  const passedUser = (location.state as any)?.user;
+  const hasProfile = !!profile;
+  const p = profile?.personalInfo || {};
+  const firstName = p.firstName || passedUser?.firstName || '';
+  const surname = p.surname || passedUser?.lastName || '';
+  const fullName = `${firstName} ${p.middleName || ''} ${surname}`.trim() || 'Student';
+  const email = p.email || passedUser?.email || '';
+  const pct = profile?.profileCompletionPercentage || 0;
   const rg = ring(pct);
 
   const att = activity?.attendance;
@@ -109,25 +117,26 @@ const StudentProfileDetail: React.FC = () => {
           {p.profilePhoto ? (
             <img src={p.profilePhoto} alt={fullName} className="spd-avatar-img" />
           ) : (
-            <div className="spd-avatar-initials" style={{ background: avatarColor(p.firstName || '') }}>
-              {(p.firstName?.[0] || '') + (p.surname?.[0] || '')}
+            <div className="spd-avatar-initials" style={{ background: avatarColor(firstName || 'S') }}>
+              {((firstName[0] || '') + (surname[0] || '')) || 'S'}
             </div>
           )}
           <div className="spd-hero-info">
             <h1 className="spd-hero-name">{fullName}</h1>
-            <p className="spd-hero-email">{p.email}</p>
+            <p className="spd-hero-email">{email}</p>
             {p.mobileNumber && <p className="spd-hero-phone">📞 {p.mobileNumber}</p>}
             {p.city && <p className="spd-hero-location">📍 {p.city}{p.state ? `, ${p.state}` : ''}</p>}
             <div className="spd-hero-badges">
-              {profile.courseInterest?.interestedCourse && (
+              {profile?.courseInterest?.interestedCourse && (
                 <span className="spd-badge course">{profile.courseInterest.interestedCourse}</span>
               )}
-              {profile.technicalBackground?.experienceLevel && (
+              {profile?.technicalBackground?.experienceLevel && (
                 <span className="spd-badge exp">{profile.technicalBackground.experienceLevel}</span>
               )}
-              {profile.education?.currentStatus && (
+              {profile?.education?.currentStatus && (
                 <span className="spd-badge status">{profile.education.currentStatus}</span>
               )}
+              {!hasProfile && <span className="spd-badge status">No profile yet</span>}
             </div>
           </div>
         </div>
@@ -144,13 +153,13 @@ const StudentProfileDetail: React.FC = () => {
           </div>
         </div>
         <div className="spd-hero-links">
-          {profile.professionalProfiles?.resumeUrl && (
+          {profile?.professionalProfiles?.resumeUrl && (
             <a href={profile.professionalProfiles.resumeUrl} target="_blank" rel="noopener noreferrer" className="spd-link-btn">📄 Resume</a>
           )}
-          {profile.professionalProfiles?.linkedInUrl && (
+          {profile?.professionalProfiles?.linkedInUrl && (
             <a href={profile.professionalProfiles.linkedInUrl} target="_blank" rel="noopener noreferrer" className="spd-link-btn">🔗 LinkedIn</a>
           )}
-          {profile.professionalProfiles?.githubUrl && (
+          {profile?.professionalProfiles?.githubUrl && (
             <a href={profile.professionalProfiles.githubUrl} target="_blank" rel="noopener noreferrer" className="spd-link-btn">🐙 GitHub</a>
           )}
         </div>
@@ -204,6 +213,7 @@ const StudentProfileDetail: React.FC = () => {
 
         {/* ── Profile Tab ── */}
         {activeTab === 'profile' && (
+          !hasProfile ? <p className="spd-empty">This student hasn't created a profile yet.</p> :
           <div className="spd-profile-sections">
             {/* Education */}
             {profile.education && (

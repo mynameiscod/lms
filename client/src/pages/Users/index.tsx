@@ -567,7 +567,7 @@ const UsersPage: React.FC = () => {
                           {user.role === 'STUDENT' ? (
                             <span
                               className="user-link"
-                              onClick={() => navigate(`/users/${user._id}`)}
+                              onClick={() => navigate(`/users/${user._id}`, { state: { user } })}
                               title="View student details"
                             >
                               {user.firstName} {user.lastName}

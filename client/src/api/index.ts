@@ -1871,6 +1871,13 @@ export const leadApi = {
   getMyPerformance: async () => {
     return authenticatedFetch(`${API_BASE_URL}/leads/my-performance`);
   },
+  getTeamActivity: async (params?: { date?: string; from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.date) q.append('date', params.date);
+    if (params?.from) q.append('from', params.from);
+    if (params?.to) q.append('to', params.to);
+    return authenticatedFetch(`${API_BASE_URL}/leads/team-activity${q.toString() ? `?${q}` : ''}`);
+  },
   quickUpdate: async (leadId: string, data: { stageId?: string; nextFollowUp?: string; activityType?: string; activityDescription?: string; notes?: string }) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/quick-update`, {
       method: 'PATCH',

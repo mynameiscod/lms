@@ -1,0 +1,28 @@
+.ta-page { padding: 24px 28px 60px; max-width: 1200px; margin: 0 auto; }
+.ta-header h1 { font-size: 24px; font-weight: 800; color: #0f172a; margin: 0; }
+.ta-header p { color: #64748b; margin: 4px 0 18px; font-size: 14px; }
+
+.ta-filters { display: flex; gap: 8px; align-items: center; margin-bottom: 18px; flex-wrap: wrap; }
+.ta-tab { border: 1px solid #d1d5db; background: #fff; color: #374151; border-radius: 8px; padding: 8px 16px; font-weight: 600; font-size: 13.5px; cursor: pointer; }
+.ta-tab:hover { background: #f8fafc; }
+.ta-tab.active { background: #2563eb; border-color: #2563eb; color: #fff; }
+.ta-date { height: 38px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 12px; font-size: 14px; color: #1f2937; color-scheme: light; }
+
+.ta-totals { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 18px; }
+@media (max-width: 800px) { .ta-totals { grid-template-columns: repeat(2, 1fr); } }
+.ta-total { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.05); display: flex; flex-direction: column; gap: 4px; }
+.ta-total span { font-size: 12.5px; color: #64748b; font-weight: 600; }
+.ta-total b { font-size: 24px; color: #0f172a; }
+
+.ta-table-wrap { background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; overflow-x: auto; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.ta-msg { padding: 40px; text-align: center; color: #64748b; }
+.ta-msg.err { color: #dc2626; }
+.ta-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.ta-table th { background: #f8fafc; text-align: left; padding: 12px 14px; color: #64748b; font-weight: 600; font-size: 12px; border-bottom: 1px solid #e5e7eb; white-space: nowrap; }
+.ta-table td { padding: 12px 14px; border-bottom: 1px solid #f1f5f9; color: #0f172a; }
+.ta-table tbody tr:hover { background: #f8fafc; }
+.ta-person { display: flex; align-items: center; gap: 10px; }
+.ta-avatar { width: 34px; height: 34px; border-radius: 50%; background: #2563eb; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; text-transform: uppercase; flex-shrink: 0; }
+.ta-person div { display: flex; flex-direction: column; }
+.ta-person span { font-size: 11.5px; color: #94a3b8; }
+.ta-role { background: #f1f5f9; color: #475569; border-radius: 8px; padding: 2px 9px; font-size: 11px; font-weight: 600; }

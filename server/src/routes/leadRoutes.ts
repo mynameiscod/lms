@@ -18,6 +18,7 @@ import {
   getManagerBoard,
   getLeadAuditLogs,
   getMyPerformance,
+  getTeamActivity,
   quickUpdateLead,
   getAgingLeads,
   getDuplicateLeads,
@@ -62,6 +63,8 @@ router.get('/audit-logs', authMiddleware, tenantResolver, roleGuard(['manage_lea
 
 // Telecaller self-performance
 router.get('/my-performance', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads', 'create_leads', 'edit_leads']), getMyPerformance);
+// Team activity report (per-person, daily) — admins/managers
+router.get('/team-activity', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_lead_analytics', 'view_reports', 'view_analytics']), getTeamActivity);
 
 // Export / Import (need export_leads or manage_leads)
 router.get('/export', authMiddleware, tenantResolver, roleGuard(['export_leads', 'manage_leads']), exportLeads);

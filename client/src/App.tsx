@@ -90,6 +90,7 @@ import ResumeBuilderPage from './pages/ResumeBuilder';
 import PublicResumeView from './pages/ResumeBuilder/PublicResumeView';
 import FeesPage from './pages/Fees';
 import LeadsPage from './pages/Leads';
+import TeamActivity from './pages/TeamActivity';
 import LeadDetailPage from './pages/LeadDetail';
 import LeadStagesPage from './pages/LeadStages';
 import LeadFormSettingsPage from './pages/LeadFormSettings';
@@ -1098,6 +1099,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
             <Layout>
               <LeadsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team-activity"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']} requiredPermissions={['manage_leads', 'view_lead_analytics']}>
+            <Layout>
+              <TeamActivity />
             </Layout>
           </ProtectedRoute>
         }

@@ -1326,6 +1326,11 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
     // This month
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
 
+    // Aggregation $match does NOT auto-cast strings to ObjectId (unlike Mongoose
+    // queries) — cast explicitly or every activity match returns 0.
+    const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
+    const userOid = new mongoose.Types.ObjectId(userId);
+
     const [
       totalAssigned,
       todayFollowUps,
@@ -1341,32 +1346,32 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
       Lead.countDocuments({ tenantId: req.tenantId, assignedTo: userId, nextFollowUp: { $lt: today, $ne: null } }),
       // Count ALL activities today by this user across all tenant leads
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any } },
+        { $match: { tenantId: tenantOid } },
         { $unwind: '$activities' },
-        { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
+        { $match: { 'activities.createdBy': userOid, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
         { $count: 'count' }
       ]),
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any } },
+        { $match: { tenantId: tenantOid } },
         { $unwind: '$activities' },
-        { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: weekStart } } },
+        { $match: { 'activities.createdBy': userOid, 'activities.createdAt': { $gte: weekStart } } },
         { $count: 'count' }
       ]),
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any } },
+        { $match: { tenantId: tenantOid } },
         { $unwind: '$activities' },
-        { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: monthStart } } },
+        { $match: { 'activities.createdBy': userOid, 'activities.createdAt': { $gte: monthStart } } },
         { $count: 'count' }
       ]),
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any, assignedTo: userId as any } },
+        { $match: { tenantId: tenantOid, assignedTo: userOid } },
         { $group: { _id: '$stageId', count: { $sum: 1 } } }
       ]),
       // Last 10 activities by this user across all leads
       Lead.aggregate([
-        { $match: { tenantId: req.tenantId as any } },
+        { $match: { tenantId: tenantOid } },
         { $unwind: '$activities' },
-        { $match: { 'activities.createdBy': userId as any } },
+        { $match: { 'activities.createdBy': userOid } },
         { $sort: { 'activities.createdAt': -1 } },
         { $limit: 10 },
         { $project: { leadName: '$name', leadId: '$_id', activity: '$activities' } }
@@ -1380,19 +1385,24 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
 
     // Today's breakdown by activity type
     const todayTypeBreakdown = await Lead.aggregate([
-      { $match: { tenantId: req.tenantId as any } },
+      { $match: { tenantId: tenantOid } },
       { $unwind: '$activities' },
-      { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
+      { $match: { 'activities.createdBy': userOid, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
       { $group: { _id: '$activities.type', count: { $sum: 1 } } }
     ]);
     const todayByType: Record<string, number> = {};
-    todayTypeBreakdown.forEach((t: any) => { todayByType[t._id || 'other'] = t.count; });
+    todayTypeBreakdown.forEach((t: any) => {
+      const key = t._id || 'other';
+      todayByType[key] = (todayByType[key] || 0) + t.count;
+    });
+    // Alias: widget reads "stage_change" but activities are logged as "status_change"
+    if (todayByType.status_change) todayByType.stage_change = (todayByType.stage_change || 0) + todayByType.status_change;
 
     // Count unique leads touched today
     const uniqueleadsTouchedToday = await Lead.aggregate([
-      { $match: { tenantId: req.tenantId as any } },
+      { $match: { tenantId: tenantOid } },
       { $unwind: '$activities' },
-      { $match: { 'activities.createdBy': userId as any, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
+      { $match: { 'activities.createdBy': userOid, 'activities.createdAt': { $gte: today, $lte: todayEnd } } },
       { $group: { _id: '$_id' } },
       { $count: 'count' }
     ]);
@@ -1419,6 +1429,76 @@ export const getMyPerformance = async (req: AuthenticatedRequest, res: Response<
     });
   } catch (error: any) {
     res.status(500).json({ success: false, message: 'Failed to fetch performance data', error: error.message });
+  }
+};
+
+// ===================== TEAM ACTIVITY REPORT (per-person, daily) =====================
+
+export const getTeamActivity = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
+    const { date, from, to } = req.query as any;
+
+    let start: Date, end: Date;
+    if (from || to) {
+      start = from ? new Date(from) : new Date(0);
+      end = to ? new Date(to) : new Date();
+      end.setHours(23, 59, 59, 999);
+    } else {
+      const d = date ? new Date(date) : new Date();
+      start = new Date(d); start.setHours(0, 0, 0, 0);
+      end = new Date(d); end.setHours(23, 59, 59, 999);
+    }
+
+    const rows = await Lead.aggregate([
+      { $match: { tenantId: tenantOid } },
+      { $unwind: '$activities' },
+      { $match: { 'activities.createdAt': { $gte: start, $lte: end } } },
+      {
+        $group: {
+          _id: '$activities.createdBy',
+          total: { $sum: 1 },
+          call: { $sum: { $cond: [{ $eq: ['$activities.type', 'call'] }, 1, 0] } },
+          whatsapp: { $sum: { $cond: [{ $eq: ['$activities.type', 'whatsapp'] }, 1, 0] } },
+          note: { $sum: { $cond: [{ $eq: ['$activities.type', 'note'] }, 1, 0] } },
+          email: { $sum: { $cond: [{ $eq: ['$activities.type', 'email'] }, 1, 0] } },
+          stageMoves: { $sum: { $cond: [{ $in: ['$activities.type', ['status_change', 'stage_change']] }, 1, 0] } },
+          leads: { $addToSet: '$_id' },
+        },
+      },
+      { $sort: { total: -1 } },
+    ]);
+
+    const userIds = rows.map((r: any) => r._id).filter(Boolean);
+    const users = await User.find({ _id: { $in: userIds } }).select('firstName lastName email role').lean();
+    const userMap: Record<string, any> = {};
+    users.forEach((u: any) => { userMap[String(u._id)] = u; });
+
+    const data = rows.map((r: any) => {
+      const u = userMap[String(r._id)];
+      return {
+        userId: r._id ? String(r._id) : null,
+        name: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email : 'Unknown / System',
+        email: u?.email || '',
+        role: u?.role || '',
+        total: r.total,
+        call: r.call,
+        whatsapp: r.whatsapp,
+        note: r.note,
+        email_count: r.email,
+        stageMoves: r.stageMoves,
+        leadsTouched: (r.leads || []).length,
+      };
+    });
+
+    const totals = data.reduce((acc: any, r: any) => ({
+      total: acc.total + r.total, call: acc.call + r.call, whatsapp: acc.whatsapp + r.whatsapp,
+      note: acc.note + r.note, stageMoves: acc.stageMoves + r.stageMoves,
+    }), { total: 0, call: 0, whatsapp: 0, note: 0, stageMoves: 0 });
+
+    res.json({ success: true, message: 'Team activity fetched', data: { rows: data, totals, range: { start, end } } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch team activity', error: error.message });
   }
 };
 

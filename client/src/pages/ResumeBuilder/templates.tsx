@@ -19,6 +19,7 @@ const Classic: React.FC<{ s: ResumeSections }> = ({ s }) => (
   <div style={{ fontFamily: 'Georgia, "Times New Roman", serif', color: '#1a1a1a', fontSize: 12.5, lineHeight: 1.5, padding: '36px 40px' }}>
     <div style={{ textAlign: 'center', borderBottom: '2px solid #1a1a1a', paddingBottom: 10, marginBottom: 14 }}>
       {s.contact.name && <div style={{ fontSize: 24, fontWeight: 700, letterSpacing: 1 }}>{s.contact.name}</div>}
+      {s.contact.title && <div style={{ fontSize: 12.5, color: '#555', marginTop: 2, fontStyle: 'italic' }}>{s.contact.title}</div>}
       <div style={{ fontSize: 11, color: '#444', marginTop: 4 }}>{contactLine(s.contact)}</div>
       <div style={{ fontSize: 11, color: '#444' }}>
         {[s.contact.linkedin && 'LinkedIn', s.contact.github && 'GitHub', s.contact.portfolio && 'Portfolio'].filter(Boolean).join('  ·  ')}
@@ -72,6 +73,7 @@ const Modern: React.FC<{ s: ResumeSections; accent: string }> = ({ s, accent }) 
     <div style={{ fontFamily: '"Segoe UI", Arial, sans-serif', color: '#1f2937', fontSize: 12.5, lineHeight: 1.5 }}>
       <div style={{ background: accent, color: '#fff', padding: '26px 36px' }}>
         <div style={{ fontSize: 26, fontWeight: 800 }}>{s.contact.name || 'Your Name'}</div>
+        {s.contact.title && <div style={{ fontSize: 12.5, opacity: 0.95, marginTop: 2 }}>{s.contact.title}</div>}
         <div style={{ fontSize: 11.5, opacity: 0.92, marginTop: 4 }}>
           {[contactLine(s.contact), s.contact.linkedin && 'LinkedIn', s.contact.github && 'GitHub'].filter(Boolean).join('   ·   ')}
         </div>

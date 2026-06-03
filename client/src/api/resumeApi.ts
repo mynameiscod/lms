@@ -28,7 +28,7 @@ export const resumeApi = {
 };
 
 export interface ResumeContact {
-  name: string; email: string; phone: string;
+  name: string; title: string; email: string; phone: string;
   linkedin: string; github: string; portfolio: string; location: string;
 }
 export interface ResumeExperience {
@@ -79,7 +79,7 @@ export interface ResumeData {
 }
 
 export const emptySections = (): ResumeSections => ({
-  contact: { name: '', email: '', phone: '', linkedin: '', github: '', portfolio: '', location: '' },
+  contact: { name: '', title: '', email: '', phone: '', linkedin: '', github: '', portfolio: '', location: '' },
   summary: '',
   experience: [],
   education: [],

@@ -38,6 +38,7 @@ export interface IResumeCertification {
 export interface IResumeSections {
   contact: {
     name: string;
+    title?: string;
     email: string;
     phone: string;
     linkedin?: string;
@@ -98,6 +99,7 @@ export interface IResume extends Document {
 const ResumeSectionsSchema = new Schema({
   contact: {
     name: { type: String, default: '' },
+    title: { type: String, default: '' },
     email: { type: String, default: '' },
     phone: { type: String, default: '' },
     linkedin: { type: String, default: '' },

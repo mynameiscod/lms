@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
-import { resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience, ResumeEducation, ResumeProject, ResumeSkillGroup, ResumeCertification, ResumeTemplate } from '../../api/resumeApi';
+import {
+  resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience,
+  ResumeEducation, ResumeProject, ResumeCertification, ResumeTemplate,
+} from '../../api/resumeApi';
 import { ResumeDocument, TEMPLATES } from './templates';
 import './ResumeBuilder.css';
 
@@ -20,197 +23,158 @@ function scoreGrade(n: number) {
 }
 
 const BREAKDOWN_LABELS: Record<string, { label: string; max: number }> = {
-  contact: { label: 'Contact', max: 10 },
+  contact: { label: 'Content', max: 10 },
   summary: { label: 'Summary', max: 15 },
   experience: { label: 'Experience', max: 20 },
   education: { label: 'Education', max: 15 },
   skills: { label: 'Skills', max: 20 },
   projects: { label: 'Projects', max: 10 },
-  ats: { label: 'ATS', max: 10 },
+  ats: { label: 'ATS Friendliness', max: 10 },
 };
 
-// ── Score Panel ───────────────────────────────────────────────────────────────
+// Section anchor used for "jump & highlight" from tips / suggestions
+const SECTION_ANCHOR: Record<string, string> = {
+  contact: 'rb-sec-contact',
+  summary: 'rb-sec-summary',
+  experience: 'rb-sec-experience',
+  education: 'rb-sec-education',
+  skills: 'rb-sec-skills',
+  projects: 'rb-sec-projects',
+  certifications: 'rb-sec-certifications',
+  ats: 'rb-sec-contact',
+};
 
-const ScorePanel: React.FC<{ resume: ResumeData | null; scoring: boolean }> = ({ resume, scoring }) => {
+function jumpTo(anchorId: string) {
+  const el = document.getElementById(anchorId);
+  if (!el) return;
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  el.classList.add('rb-flash');
+  setTimeout(() => el.classList.remove('rb-flash'), 1400);
+}
+
+function anchorForSuggestion(section: string): string {
+  const k = (section || '').toLowerCase();
+  const match = Object.keys(SECTION_ANCHOR).find(key => k.includes(key));
+  return SECTION_ANCHOR[match || 'contact'];
+}
+
+// ── Score Panel (with clickable suggestions) ───────────────────────────────────
+
+const ScorePanel: React.FC<{
+  resume: ResumeData | null;
+  scoring: boolean;
+  onApplySuggestion: (section: string) => void;
+}> = ({ resume, scoring, onApplySuggestion }) => {
   const score = resume?.score;
 
   if (scoring) return (
-    <div className="rb-no-score">
+    <div className="rb-card rb-no-score">
       <div className="rb-spinner"><div className="spinner-ring" /><span>Analysing resume…</span></div>
     </div>
   );
 
   if (!score) return (
-    <div className="rb-no-score">
+    <div className="rb-card rb-no-score">
       <div className="ns-icon">📊</div>
       <p>Fill in your resume and click<br /><strong>"Analyse Resume"</strong> to get your score.</p>
     </div>
   );
 
-  const { total, breakdown, suggestions, atsWarnings, keywordsFound, keywordsMissing } = score;
+  const { total, breakdown, suggestions, atsWarnings, keywordsMissing } = score;
   const grade = scoreGrade(total);
 
   return (
-    <>
-      <div className="rb-score-card">
+    <div className="rb-card">
+      <div className="rb-score-head">
+        <span className="rb-score-title">Resume Score</span>
+        <span className="rb-beta">Beta</span>
+      </div>
+
+      <div className="rb-score-row">
         <div className="rb-score-ring">
           <CircularProgressbar
             value={total}
             text={`${total}`}
             styles={buildStyles({
-              textSize: '28px',
+              textSize: '30px',
               pathColor: scoreColor(total),
-              textColor: scoreColor(total),
+              textColor: '#0f172a',
               trailColor: '#e2e8f0',
+              strokeLinecap: 'round',
             })}
           />
         </div>
-        <div className="rb-score-label">Resume Score</div>
-        <div className={`rb-score-grade ${grade.cls}`}>{grade.label}</div>
+        <div className="rb-score-meta">
+          <div className={`rb-score-grade ${grade.cls}`}>{grade.label}</div>
+          <div className="rb-score-note">
+            {total >= 65 ? 'Your resume is good, but can be improved even more.'
+              : total >= 50 ? 'Decent start — apply the tips below to boost it.'
+              : 'Needs work — follow the suggestions to improve fast.'}
+          </div>
+        </div>
       </div>
 
       <div className="rb-breakdown">
         <div className="rb-breakdown-title">Score Breakdown</div>
         {Object.entries(BREAKDOWN_LABELS).map(([key, meta]) => {
           const val = (breakdown as any)[key] ?? 0;
-          const pct = (val / meta.max) * 100;
+          const pct = Math.round((val / meta.max) * 100);
           return (
             <div key={key} className="rb-bar-row">
               <span className="rb-bar-label">{meta.label}</span>
               <div className="rb-bar-track">
                 <div className="rb-bar-fill" style={{ width: `${pct}%`, background: scoreColor(pct) }} />
               </div>
-              <span className="rb-bar-val">{val}/{meta.max}</span>
+              <span className="rb-bar-val">{pct}%</span>
             </div>
           );
         })}
       </div>
 
       {suggestions.length > 0 && (
-        <>
+        <div className="rb-suggestions" id="rb-suggestions">
           <div className="rb-suggestions-title">Suggestions ({suggestions.length})</div>
           {suggestions.map((s, i) => (
             <div key={i} className="rb-suggestion">
-              <div className="rb-suggestion-section">{s.section}</div>
-              <div className="rb-suggestion-issue">⚠ {s.issue}</div>
-              <div className="rb-suggestion-fix">💡 {s.fix}</div>
+              <div className="rb-suggestion-body">
+                <div className="rb-suggestion-section">{s.section}</div>
+                <div className="rb-suggestion-issue">⚠ {s.issue}</div>
+                <div className="rb-suggestion-fix">💡 {s.fix}</div>
+              </div>
+              <button className="rb-suggestion-apply" onClick={() => onApplySuggestion(s.section)}>
+                Fix it →
+              </button>
             </div>
           ))}
-        </>
+        </div>
       )}
 
       {atsWarnings.length > 0 && (
-        <>
-          <div className="rb-suggestions-title" style={{ marginTop: 16 }}>ATS Warnings</div>
+        <div className="rb-suggestions">
+          <div className="rb-suggestions-title">ATS Warnings</div>
           {atsWarnings.map((w, i) => <div key={i} className="rb-ats-warn">🔒 {w}</div>)}
-        </>
-      )}
-
-      {(keywordsFound.length > 0 || keywordsMissing.length > 0) && (
-        <div style={{ marginTop: 16 }}>
-          {keywordsFound.length > 0 && (
-            <div className="rb-kw-section">
-              <div className="rb-kw-title">✅ Keywords Found</div>
-              <div className="rb-kw-chips">{keywordsFound.map(k => <span key={k} className="rb-kw-chip found">{k}</span>)}</div>
-            </div>
-          )}
-          {keywordsMissing.length > 0 && (
-            <div className="rb-kw-section">
-              <div className="rb-kw-title">❌ Missing Keywords</div>
-              <div className="rb-kw-chips">{keywordsMissing.map(k => <span key={k} className="rb-kw-chip missing">{k}</span>)}</div>
-            </div>
-          )}
-        </div>
-      )}
-    </>
-  );
-};
-
-// ── Resume Preview (PDF-style) ─────────────────────────────────────────────────
-
-const ResumePreview: React.FC<{ sections: ResumeSections }> = ({ sections }) => {
-  const { contact, summary, experience, education, skills, projects, certifications } = sections;
-  return (
-    <div className="rb-preview">
-      {contact.name && <h2>{contact.name}</h2>}
-      <div className="preview-contact">
-        {[contact.email, contact.phone, contact.location].filter(Boolean).join(' · ')}
-        {contact.linkedin && <> · <a href={contact.linkedin} target="_blank" rel="noopener noreferrer">LinkedIn</a></>}
-        {contact.github && <> · <a href={contact.github} target="_blank" rel="noopener noreferrer">GitHub</a></>}
-      </div>
-
-      {summary && (
-        <div className="preview-section">
-          <div className="preview-section-title">Summary</div>
-          <p style={{ margin: 0, fontSize: 11 }}>{summary}</p>
         </div>
       )}
 
-      {experience.length > 0 && (
-        <div className="preview-section">
-          <div className="preview-section-title">Experience</div>
-          {experience.map((e, i) => (
-            <div key={i} style={{ marginBottom: 8 }}>
-              <div className="preview-entry-title">{e.role}{e.company && ` — ${e.company}`}</div>
-              <div className="preview-entry-sub">{e.from}{e.to ? ` – ${e.current ? 'Present' : e.to}` : ''}</div>
-              {e.bullets.length > 0 && <ul>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {education.length > 0 && (
-        <div className="preview-section">
-          <div className="preview-section-title">Education</div>
-          {education.map((e, i) => (
-            <div key={i} style={{ marginBottom: 6 }}>
-              <div className="preview-entry-title">{e.degree}</div>
-              <div className="preview-entry-sub">{e.college}{e.year ? `, ${e.year}` : ''}{e.cgpa ? ` · CGPA: ${e.cgpa}` : ''}</div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {skills.length > 0 && (
-        <div className="preview-section">
-          <div className="preview-section-title">Skills</div>
-          {skills.map((sg, i) => (
-            <div key={i} style={{ marginBottom: 4 }}>
-              <strong style={{ fontSize: 11 }}>{sg.category}: </strong>
-              {sg.items.map(s => <span key={s} className="preview-chip">{s}</span>)}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {projects.length > 0 && (
-        <div className="preview-section">
-          <div className="preview-section-title">Projects</div>
-          {projects.map((p, i) => (
-            <div key={i} style={{ marginBottom: 8 }}>
-              <div className="preview-entry-title">{p.name}{p.link && <> · <a href={p.link} target="_blank" rel="noopener noreferrer" style={{ fontSize: 10 }}>Link</a></>}</div>
-              {p.tech.length > 0 && <div className="preview-entry-sub">{p.tech.join(', ')}</div>}
-              {p.description && <p style={{ margin: '2px 0 0', fontSize: 11 }}>{p.description}</p>}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {certifications.length > 0 && (
-        <div className="preview-section">
-          <div className="preview-section-title">Certifications</div>
-          {certifications.map((c, i) => (
-            <div key={i}><span className="preview-entry-title">{c.name}</span> — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>
-          ))}
+      {keywordsMissing.length > 0 && (
+        <div className="rb-kw-section">
+          <div className="rb-kw-title">❌ Missing Keywords</div>
+          <div className="rb-kw-chips">{keywordsMissing.map(k => <span key={k} className="rb-kw-chip missing">{k}</span>)}</div>
         </div>
       )}
     </div>
   );
 };
 
-// ── Upload Tab ────────────────────────────────────────────────────────────────
+// ── Live Resume Preview ─────────────────────────────────────────────────────
 
-const UploadTab: React.FC<{ onUploaded: (data: ResumeData) => void }> = ({ onUploaded }) => {
+const ResumePreview: React.FC<{ sections: ResumeSections; template: ResumeTemplate }> = ({ sections, template }) => (
+  <div className="resume-print-area"><ResumeDocument sections={sections} template={template} /></div>
+);
+
+// ── Upload modal ────────────────────────────────────────────────────────────
+
+const UploadModal: React.FC<{ onUploaded: (data: ResumeData) => void; onClose: () => void }> = ({ onUploaded, onClose }) => {
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
@@ -218,202 +182,165 @@ const UploadTab: React.FC<{ onUploaded: (data: ResumeData) => void }> = ({ onUpl
 
   const handleFile = async (file: File) => {
     const ext = file.name.split('.').pop()?.toLowerCase();
-    if (!['pdf', 'doc', 'docx'].includes(ext || '')) {
-      setError('Only PDF or DOCX files are supported.');
-      return;
-    }
+    if (!['pdf', 'doc', 'docx'].includes(ext || '')) { setError('Only PDF or DOCX files are supported.'); return; }
     try {
-      setUploading(true);
-      setError('');
+      setUploading(true); setError('');
       const res = await resumeApi.upload(file);
       onUploaded(res.data.data);
     } catch (err: any) {
       setError(err.response?.data?.message || 'Upload failed. Try again.');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const onDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setDragging(false);
-    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    } finally { setUploading(false); }
   };
 
   return (
-    <div>
-      <div
-        className={`rb-upload-zone ${dragging ? 'drag' : ''}`}
-        onDragOver={e => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={onDrop}
-        onClick={() => inputRef.current?.click()}
-      >
-        <input ref={inputRef} type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
-        <div className="upload-icon">{uploading ? '⏳' : '📄'}</div>
-        <h3>{uploading ? 'Uploading & Analysing…' : 'Upload Your Resume'}</h3>
-        <p>{uploading ? 'AI is parsing and scoring your resume, please wait…' : 'Drag & drop or click — PDF or DOCX, max 10 MB'}</p>
-      </div>
-
-      {error && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, padding: '10px 14px', color: '#dc2626', fontSize: 13, marginBottom: 16 }}>{error}</div>}
-
-      <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 12, padding: '14px 18px' }}>
-        <div style={{ fontWeight: 700, color: '#166534', marginBottom: 8 }}>✅ What happens after upload</div>
-        <ul style={{ margin: 0, paddingLeft: 18, color: '#166534', fontSize: 13, lineHeight: 1.8 }}>
-          <li>AI extracts all sections from your resume</li>
-          <li>Every section gets scored out of 100</li>
-          <li>You get specific suggestions to improve each section</li>
-          <li>ATS compatibility is checked</li>
-          <li>Missing keywords are identified</li>
-        </ul>
+    <div className="rb-modal-overlay" onClick={onClose}>
+      <div className="rb-modal" onClick={e => e.stopPropagation()}>
+        <div className="rb-modal-head">
+          <h3>Upload existing resume</h3>
+          <button className="rb-modal-close" onClick={onClose}>×</button>
+        </div>
+        <div
+          className={`rb-upload-zone ${dragging ? 'drag' : ''}`}
+          onDragOver={e => { e.preventDefault(); setDragging(true); }}
+          onDragLeave={() => setDragging(false)}
+          onDrop={e => { e.preventDefault(); setDragging(false); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); }}
+          onClick={() => inputRef.current?.click()}
+        >
+          <input ref={inputRef} type="file" accept=".pdf,.doc,.docx" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && handleFile(e.target.files[0])} />
+          <div className="upload-icon">{uploading ? '⏳' : '📄'}</div>
+          <h3>{uploading ? 'Uploading & Analysing…' : 'Upload Your Resume'}</h3>
+          <p>{uploading ? 'AI is parsing and scoring your resume…' : 'Drag & drop or click — PDF or DOCX, max 10 MB'}</p>
+        </div>
+        {error && <div className="rb-modal-error">{error}</div>}
+        <p className="rb-modal-note">AI extracts your sections, scores each one, and gives improvement tips you can apply with one click.</p>
       </div>
     </div>
   );
 };
 
-// ── Builder Tab ───────────────────────────────────────────────────────────────
+// ── Section header with icon badge ────────────────────────────────────────────
 
-const BuilderTab: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSections) => void }> = ({ sections, onChange }) => {
+const SectionHead: React.FC<{ icon: string; color: string; title: string; sub: string; right?: React.ReactNode }> =
+  ({ icon, color, title, sub, right }) => (
+    <div className="rb-sec-head">
+      <span className="rb-sec-badge" style={{ background: color }}>{icon}</span>
+      <div className="rb-sec-headtext">
+        <div className="rb-sec-title">{title}</div>
+        <div className="rb-sec-sub">{sub}</div>
+      </div>
+      {right && <div className="rb-sec-right">{right}</div>}
+    </div>
+  );
+
+// ── Builder Form ──────────────────────────────────────────────────────────────
+
+const BuilderForm: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSections) => void }> = ({ sections, onChange }) => {
   const upd = (patch: Partial<ResumeSections>) => onChange({ ...sections, ...patch });
-
-  // Contact
   const setContact = (key: string, val: string) => upd({ contact: { ...sections.contact, [key]: val } });
 
-  // Experience
   const addExp = () => upd({ experience: [...sections.experience, { company: '', role: '', from: '', to: '', current: false, bullets: [''] }] });
-  const setExp = (i: number, patch: Partial<ResumeExperience>) => {
-    const exp = [...sections.experience];
-    exp[i] = { ...exp[i], ...patch };
-    upd({ experience: exp });
-  };
+  const setExp = (i: number, patch: Partial<ResumeExperience>) => { const e = [...sections.experience]; e[i] = { ...e[i], ...patch }; upd({ experience: e }); };
   const removeExp = (i: number) => upd({ experience: sections.experience.filter((_, j) => j !== i) });
   const addBullet = (i: number) => setExp(i, { bullets: [...sections.experience[i].bullets, ''] });
-  const setBullet = (ei: number, bi: number, val: string) => {
-    const bullets = [...sections.experience[ei].bullets];
-    bullets[bi] = val;
-    setExp(ei, { bullets });
-  };
+  const setBullet = (ei: number, bi: number, val: string) => { const b = [...sections.experience[ei].bullets]; b[bi] = val; setExp(ei, { bullets: b }); };
   const removeBullet = (ei: number, bi: number) => setExp(ei, { bullets: sections.experience[ei].bullets.filter((_, j) => j !== bi) });
 
-  // Education
   const addEdu = () => upd({ education: [...sections.education, { degree: '', college: '', university: '', year: '', cgpa: '' }] });
-  const setEdu = (i: number, patch: Partial<ResumeEducation>) => {
-    const edu = [...sections.education];
-    edu[i] = { ...edu[i], ...patch };
-    upd({ education: edu });
-  };
+  const setEdu = (i: number, patch: Partial<ResumeEducation>) => { const e = [...sections.education]; e[i] = { ...e[i], ...patch }; upd({ education: e }); };
   const removeEdu = (i: number) => upd({ education: sections.education.filter((_, j) => j !== i) });
 
-  // Skills
   const [newSkillCat, setNewSkillCat] = useState('');
   const [newSkillItem, setNewSkillItem] = useState<Record<number, string>>({});
-  const addSkillGroup = () => {
-    if (!newSkillCat.trim()) return;
-    upd({ skills: [...sections.skills, { category: newSkillCat.trim(), items: [] }] });
-    setNewSkillCat('');
-  };
+  const addSkillGroup = () => { if (!newSkillCat.trim()) return; upd({ skills: [...sections.skills, { category: newSkillCat.trim(), items: [] }] }); setNewSkillCat(''); };
   const removeSkillGroup = (i: number) => upd({ skills: sections.skills.filter((_, j) => j !== i) });
   const addSkillItem = (i: number) => {
-    const val = (newSkillItem[i] || '').trim();
-    if (!val) return;
-    const skills = [...sections.skills];
-    skills[i] = { ...skills[i], items: [...skills[i].items, val] };
-    upd({ skills });
+    const val = (newSkillItem[i] || '').trim(); if (!val) return;
+    const s = [...sections.skills]; s[i] = { ...s[i], items: [...s[i].items, val] }; upd({ skills: s });
     setNewSkillItem(p => ({ ...p, [i]: '' }));
   };
-  const removeSkillItem = (gi: number, si: number) => {
-    const skills = [...sections.skills];
-    skills[gi] = { ...skills[gi], items: skills[gi].items.filter((_, j) => j !== si) };
-    upd({ skills });
-  };
+  const removeSkillItem = (gi: number, si: number) => { const s = [...sections.skills]; s[gi] = { ...s[gi], items: s[gi].items.filter((_, j) => j !== si) }; upd({ skills: s }); };
 
-  // Projects
   const addProject = () => upd({ projects: [...sections.projects, { name: '', tech: [], description: '', link: '' }] });
-  const setProject = (i: number, patch: Partial<ResumeProject>) => {
-    const p = [...sections.projects];
-    p[i] = { ...p[i], ...patch };
-    upd({ projects: p });
-  };
+  const setProject = (i: number, patch: Partial<ResumeProject>) => { const p = [...sections.projects]; p[i] = { ...p[i], ...patch }; upd({ projects: p }); };
   const removeProject = (i: number) => upd({ projects: sections.projects.filter((_, j) => j !== i) });
 
-  // Certifications
   const addCert = () => upd({ certifications: [...sections.certifications, { name: '', issuer: '', year: '' }] });
-  const setCert = (i: number, patch: Partial<ResumeCertification>) => {
-    const c = [...sections.certifications];
-    c[i] = { ...c[i], ...patch };
-    upd({ certifications: c });
-  };
+  const setCert = (i: number, patch: Partial<ResumeCertification>) => { const c = [...sections.certifications]; c[i] = { ...c[i], ...patch }; upd({ certifications: c }); };
   const removeCert = (i: number) => upd({ certifications: sections.certifications.filter((_, j) => j !== i) });
 
   return (
-    <div>
+    <div className="rb-form">
       {/* Contact */}
-      <div className="rb-section">
-        <div className="rb-section-header"><span className="rb-section-title">👤 Contact Information</span></div>
+      <div className="rb-card" id="rb-sec-contact">
+        <SectionHead icon="👤" color="#dbeafe" title="Contact Information" sub="Add your personal and contact details" />
         <div className="rb-grid-2">
-          <div className="rb-field"><label className="rb-label">Full Name</label><input className="rb-input" value={sections.contact.name} onChange={e => setContact('name', e.target.value)} placeholder="John Doe" /></div>
-          <div className="rb-field"><label className="rb-label">Email</label><input className="rb-input" value={sections.contact.email} onChange={e => setContact('email', e.target.value)} placeholder="john@example.com" /></div>
-          <div className="rb-field"><label className="rb-label">Phone</label><input className="rb-input" value={sections.contact.phone} onChange={e => setContact('phone', e.target.value)} placeholder="+91 9999999999" /></div>
-          <div className="rb-field"><label className="rb-label">Location</label><input className="rb-input" value={sections.contact.location} onChange={e => setContact('location', e.target.value)} placeholder="Hyderabad, India" /></div>
-          <div className="rb-field"><label className="rb-label">LinkedIn URL</label><input className="rb-input" value={sections.contact.linkedin} onChange={e => setContact('linkedin', e.target.value)} placeholder="https://linkedin.com/in/..." /></div>
-          <div className="rb-field"><label className="rb-label">GitHub URL</label><input className="rb-input" value={sections.contact.github} onChange={e => setContact('github', e.target.value)} placeholder="https://github.com/..." /></div>
+          <div className="rb-field"><label className="rb-label">Full Name</label><div className="rb-input-ic"><span>👤</span><input className="rb-input" value={sections.contact.name} onChange={e => setContact('name', e.target.value)} placeholder="John Doe" /></div></div>
+          <div className="rb-field"><label className="rb-label">Email</label><div className="rb-input-ic"><span>✉️</span><input className="rb-input" value={sections.contact.email} onChange={e => setContact('email', e.target.value)} placeholder="john@example.com" /></div></div>
+          <div className="rb-field"><label className="rb-label">Phone</label><div className="rb-input-ic"><span>📞</span><input className="rb-input" value={sections.contact.phone} onChange={e => setContact('phone', e.target.value)} placeholder="+91 99999 99999" /></div></div>
+          <div className="rb-field"><label className="rb-label">Location</label><div className="rb-input-ic"><span>📍</span><input className="rb-input" value={sections.contact.location} onChange={e => setContact('location', e.target.value)} placeholder="Hyderabad, India" /></div></div>
+          <div className="rb-field"><label className="rb-label">LinkedIn Profile</label><div className="rb-input-ic"><span>in</span><input className="rb-input" value={sections.contact.linkedin} onChange={e => setContact('linkedin', e.target.value)} placeholder="linkedin.com/in/…" /></div></div>
+          <div className="rb-field"><label className="rb-label">GitHub Profile</label><div className="rb-input-ic"><span>🐙</span><input className="rb-input" value={sections.contact.github} onChange={e => setContact('github', e.target.value)} placeholder="github.com/…" /></div></div>
+          <div className="rb-field"><label className="rb-label">Portfolio / Website</label><div className="rb-input-ic"><span>🌐</span><input className="rb-input" value={sections.contact.portfolio} onChange={e => setContact('portfolio', e.target.value)} placeholder="yoursite.dev" /></div></div>
+          <div className="rb-field"><label className="rb-label">Professional Title</label><div className="rb-input-ic"><span>💼</span><input className="rb-input" value={sections.contact.title || ''} onChange={e => setContact('title', e.target.value)} placeholder="Full Stack Developer" /></div></div>
         </div>
-        <div className="rb-field"><label className="rb-label">Portfolio / Website</label><input className="rb-input" value={sections.contact.portfolio} onChange={e => setContact('portfolio', e.target.value)} placeholder="https://yoursite.com" /></div>
       </div>
 
       {/* Summary */}
-      <div className="rb-section">
-        <div className="rb-section-header"><span className="rb-section-title">📝 Professional Summary</span></div>
+      <div className="rb-card" id="rb-sec-summary">
+        <SectionHead icon="💬" color="#ede9fe" title="Professional Summary" sub="Write a brief summary about yourself" />
         <div className="rb-field">
-          <textarea className="rb-textarea" value={sections.summary} onChange={e => upd({ summary: e.target.value })} placeholder="2-3 lines: your role, years of experience, top skills and what you bring to a team…" rows={3} />
+          <textarea
+            className="rb-textarea" rows={4} maxLength={500}
+            value={sections.summary}
+            onChange={e => upd({ summary: e.target.value })}
+            placeholder="2–3 lines: your role, top skills, and what you bring to a team…"
+          />
+          <div className="rb-counter">{sections.summary.length} / 500</div>
         </div>
       </div>
 
       {/* Experience */}
-      <div className="rb-section">
-        <div className="rb-section-header">
-          <span className="rb-section-title">💼 Work Experience</span>
-          <button className="rb-add-btn" onClick={addExp}>+ Add</button>
-        </div>
+      <div className="rb-card" id="rb-sec-experience">
+        <SectionHead icon="💼" color="#dcfce7" title="Work Experience" sub="Add your work experience and responsibilities"
+          right={<button className="rb-add-pill" onClick={addExp}>+ Add Experience</button>} />
         {sections.experience.map((exp, i) => (
           <div key={i} className="rb-entry">
+            <div className="rb-entry-tools">
+              <button className="rb-icon-btn danger" onClick={() => removeExp(i)} title="Delete">🗑</button>
+            </div>
             <div className="rb-grid-2">
               <div className="rb-field"><label className="rb-label">Job Title</label><input className="rb-input" value={exp.role} onChange={e => setExp(i, { role: e.target.value })} placeholder="Frontend Developer" /></div>
-              <div className="rb-field"><label className="rb-label">Company</label><input className="rb-input" value={exp.company} onChange={e => setExp(i, { company: e.target.value })} placeholder="Acme Corp" /></div>
-              <div className="rb-field"><label className="rb-label">From</label><input className="rb-input" value={exp.from} onChange={e => setExp(i, { from: e.target.value })} placeholder="Jan 2022" /></div>
+              <div className="rb-field"><label className="rb-label">Company</label><div className="rb-input-ic"><span>🏢</span><input className="rb-input" value={exp.company} onChange={e => setExp(i, { company: e.target.value })} placeholder="Acme Corp" /></div></div>
+              <div className="rb-field"><label className="rb-label">From</label><div className="rb-input-ic"><span>📅</span><input className="rb-input" value={exp.from} onChange={e => setExp(i, { from: e.target.value })} placeholder="Jan 2022" /></div></div>
               <div className="rb-field">
                 <label className="rb-label">To</label>
-                <input className="rb-input" value={exp.current ? 'Present' : exp.to} disabled={exp.current} onChange={e => setExp(i, { to: e.target.value })} placeholder="Dec 2023" />
-                <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 6, fontSize: 12, color: '#475569', cursor: 'pointer' }}>
-                  <input type="checkbox" checked={exp.current} onChange={e => setExp(i, { current: e.target.checked, to: '' })} />
-                  Currently working here
-                </label>
+                <div className="rb-input-ic"><span>📅</span><input className="rb-input" value={exp.current ? 'Present' : exp.to} disabled={exp.current} onChange={e => setExp(i, { to: e.target.value })} placeholder="Dec 2023" /></div>
+                <label className="rb-check"><input type="checkbox" checked={exp.current} onChange={e => setExp(i, { current: e.target.checked, to: '' })} /> Currently working here</label>
               </div>
             </div>
             <div className="rb-field" style={{ marginTop: 8 }}>
-              <label className="rb-label">Achievements / Responsibilities (add numbers & impact!)</label>
+              <label className="rb-label">Key Achievements / Responsibilities</label>
               {exp.bullets.map((b, bi) => (
                 <div key={bi} className="rb-bullet-row">
+                  <span className="rb-bullet-dot">•</span>
                   <input className="rb-input" value={b} onChange={e => setBullet(i, bi, e.target.value)} placeholder="e.g. Reduced load time by 40% using lazy loading" />
                   <button className="rb-bullet-del" onClick={() => removeBullet(i, bi)}>×</button>
                 </div>
               ))}
-              <button className="rb-add-btn" style={{ marginTop: 4 }} onClick={() => addBullet(i)}>+ Add bullet</button>
+              <button className="rb-add-text" onClick={() => addBullet(i)}>+ Add bullet</button>
             </div>
-            <div className="rb-entry-actions"><button className="rb-remove-btn" onClick={() => removeExp(i)}>Remove</button></div>
           </div>
         ))}
-        {sections.experience.length === 0 && <p style={{ color: '#94a3b8', fontSize: 13, margin: 0 }}>No experience added yet. Click "+ Add" above.</p>}
+        {sections.experience.length === 0 && <p className="rb-empty-hint">No experience added yet. Click <b>+ Add Experience</b>.</p>}
       </div>
 
       {/* Education */}
-      <div className="rb-section">
-        <div className="rb-section-header">
-          <span className="rb-section-title">🎓 Education</span>
-          <button className="rb-add-btn" onClick={addEdu}>+ Add</button>
-        </div>
+      <div className="rb-card" id="rb-sec-education">
+        <SectionHead icon="🎓" color="#fef3c7" title="Education" sub="Add your academic background"
+          right={<button className="rb-add-pill" onClick={addEdu}>+ Add Education</button>} />
         {sections.education.map((edu, i) => (
           <div key={i} className="rb-entry">
+            <div className="rb-entry-tools"><button className="rb-icon-btn danger" onClick={() => removeEdu(i)} title="Delete">🗑</button></div>
             <div className="rb-grid-2">
               <div className="rb-field"><label className="rb-label">Degree / Qualification</label><input className="rb-input" value={edu.degree} onChange={e => setEdu(i, { degree: e.target.value })} placeholder="B.Tech Computer Science" /></div>
               <div className="rb-field"><label className="rb-label">College</label><input className="rb-input" value={edu.college} onChange={e => setEdu(i, { college: e.target.value })} placeholder="XYZ College of Engineering" /></div>
@@ -421,72 +348,65 @@ const BuilderTab: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSecti
               <div className="rb-field"><label className="rb-label">Year of Graduation</label><input className="rb-input" value={edu.year} onChange={e => setEdu(i, { year: e.target.value })} placeholder="2024" /></div>
               <div className="rb-field"><label className="rb-label">CGPA / Percentage</label><input className="rb-input" value={edu.cgpa} onChange={e => setEdu(i, { cgpa: e.target.value })} placeholder="8.5 / 85%" /></div>
             </div>
-            <div className="rb-entry-actions"><button className="rb-remove-btn" onClick={() => removeEdu(i)}>Remove</button></div>
           </div>
         ))}
+        {sections.education.length === 0 && <p className="rb-empty-hint">No education added. Click <b>+ Add Education</b>.</p>}
       </div>
 
       {/* Skills */}
-      <div className="rb-section">
-        <div className="rb-section-header"><span className="rb-section-title">🛠 Skills</span></div>
+      <div className="rb-card" id="rb-sec-skills">
+        <SectionHead icon="🛠" color="#cffafe" title="Skills" sub="Group your skills by category" />
         {sections.skills.map((sg, i) => (
           <div key={i} className="rb-entry">
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-              <strong style={{ fontSize: 13, color: '#0f172a' }}>{sg.category}</strong>
-              <button className="rb-remove-btn" onClick={() => removeSkillGroup(i)}>Remove group</button>
-            </div>
+            <div className="rb-skill-head"><strong>{sg.category}</strong><button className="rb-remove-text" onClick={() => removeSkillGroup(i)}>Remove group</button></div>
             <div className="rb-skill-chips">
-              {sg.items.map((item, si) => (
-                <span key={si} className="rb-chip">{item}<button onClick={() => removeSkillItem(i, si)}>×</button></span>
-              ))}
+              {sg.items.map((item, si) => <span key={si} className="rb-chip">{item}<button onClick={() => removeSkillItem(i, si)}>×</button></span>)}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input className="rb-input" style={{ flex: 1 }} value={newSkillItem[i] || ''} onChange={e => setNewSkillItem(p => ({ ...p, [i]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addSkillItem(i)} placeholder="Type skill and press Enter or Add" />
-              <button className="rb-add-btn" onClick={() => addSkillItem(i)}>Add</button>
+            <div className="rb-inline-add">
+              <input className="rb-input" value={newSkillItem[i] || ''} onChange={e => setNewSkillItem(p => ({ ...p, [i]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && addSkillItem(i)} placeholder="Type a skill and press Enter" />
+              <button className="rb-add-pill" onClick={() => addSkillItem(i)}>Add</button>
             </div>
           </div>
         ))}
-        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+        <div className="rb-inline-add">
           <input className="rb-input" value={newSkillCat} onChange={e => setNewSkillCat(e.target.value)} onKeyDown={e => e.key === 'Enter' && addSkillGroup()} placeholder="Group name: Languages / Frameworks / Tools…" />
-          <button className="rb-add-btn" onClick={addSkillGroup}>+ Group</button>
+          <button className="rb-add-pill" onClick={addSkillGroup}>+ Group</button>
         </div>
       </div>
 
       {/* Projects */}
-      <div className="rb-section">
-        <div className="rb-section-header">
-          <span className="rb-section-title">🚀 Projects</span>
-          <button className="rb-add-btn" onClick={addProject}>+ Add</button>
-        </div>
+      <div className="rb-card" id="rb-sec-projects">
+        <SectionHead icon="🚀" color="#fce7f3" title="Projects" sub="Showcase what you've built"
+          right={<button className="rb-add-pill" onClick={addProject}>+ Add Project</button>} />
         {sections.projects.map((proj, i) => (
           <div key={i} className="rb-entry">
+            <div className="rb-entry-tools"><button className="rb-icon-btn danger" onClick={() => removeProject(i)} title="Delete">🗑</button></div>
             <div className="rb-grid-2">
               <div className="rb-field"><label className="rb-label">Project Name</label><input className="rb-input" value={proj.name} onChange={e => setProject(i, { name: e.target.value })} placeholder="LMS SaaS Platform" /></div>
-              <div className="rb-field"><label className="rb-label">Live / GitHub Link</label><input className="rb-input" value={proj.link} onChange={e => setProject(i, { link: e.target.value })} placeholder="https://github.com/..." /></div>
+              <div className="rb-field"><label className="rb-label">Live / GitHub Link</label><input className="rb-input" value={proj.link} onChange={e => setProject(i, { link: e.target.value })} placeholder="https://github.com/…" /></div>
             </div>
             <div className="rb-field"><label className="rb-label">Technologies Used (comma-separated)</label><input className="rb-input" value={proj.tech.join(', ')} onChange={e => setProject(i, { tech: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })} placeholder="React, Node.js, MongoDB" /></div>
             <div className="rb-field"><label className="rb-label">Description (mention impact!)</label><textarea className="rb-textarea" rows={2} value={proj.description} onChange={e => setProject(i, { description: e.target.value })} placeholder="What it does and why it matters — e.g. 'Built an LMS used by 500+ students…'" /></div>
-            <div className="rb-entry-actions"><button className="rb-remove-btn" onClick={() => removeProject(i)}>Remove</button></div>
           </div>
         ))}
+        {sections.projects.length === 0 && <p className="rb-empty-hint">No projects yet. Click <b>+ Add Project</b>.</p>}
       </div>
 
       {/* Certifications */}
-      <div className="rb-section">
-        <div className="rb-section-header">
-          <span className="rb-section-title">🏅 Certifications</span>
-          <button className="rb-add-btn" onClick={addCert}>+ Add</button>
-        </div>
+      <div className="rb-card" id="rb-sec-certifications">
+        <SectionHead icon="🏅" color="#ffedd5" title="Certifications" sub="Add certifications and credentials"
+          right={<button className="rb-add-pill" onClick={addCert}>+ Add Certification</button>} />
         {sections.certifications.map((cert, i) => (
           <div key={i} className="rb-entry">
+            <div className="rb-entry-tools"><button className="rb-icon-btn danger" onClick={() => removeCert(i)} title="Delete">🗑</button></div>
             <div className="rb-grid-2">
               <div className="rb-field"><label className="rb-label">Certification Name</label><input className="rb-input" value={cert.name} onChange={e => setCert(i, { name: e.target.value })} placeholder="AWS Solutions Architect" /></div>
               <div className="rb-field"><label className="rb-label">Issuer</label><input className="rb-input" value={cert.issuer} onChange={e => setCert(i, { issuer: e.target.value })} placeholder="Amazon Web Services" /></div>
               <div className="rb-field"><label className="rb-label">Year</label><input className="rb-input" value={cert.year} onChange={e => setCert(i, { year: e.target.value })} placeholder="2024" /></div>
             </div>
-            <div className="rb-entry-actions"><button className="rb-remove-btn" onClick={() => removeCert(i)}>Remove</button></div>
           </div>
         ))}
+        {sections.certifications.length === 0 && <p className="rb-empty-hint">No certifications yet. Click <b>+ Add Certification</b>.</p>}
       </div>
     </div>
   );
@@ -495,15 +415,21 @@ const BuilderTab: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSecti
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 const ResumeBuilder: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'upload' | 'build'>('upload');
+  const [step, setStep] = useState<'build' | 'preview'>('build');
   const [resume, setResume] = useState<ResumeData | null>(null);
   const [sections, setSections] = useState<ResumeSections>(emptySections());
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'dirty'>('saved');
   const [scoring, setScoring] = useState(false);
   const [toast, setToast] = useState('');
   const [template, setTemplate] = useState<ResumeTemplate>('classic');
   const [sharing, setSharing] = useState(false);
+  const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
+
+  const loadedRef = useRef(false);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
 
@@ -515,168 +441,230 @@ const ResumeBuilder: React.FC = () => {
           setResume(r);
           setSections(r.sections);
           setTemplate(r.template || 'classic');
-          setActiveTab(r.mode === 'uploaded' ? 'upload' : 'build');
         }
       })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { setLoading(false); setTimeout(() => { loadedRef.current = true; }, 300); });
   }, []);
 
-  const handleSelectTemplate = async (t: ResumeTemplate) => {
-    setTemplate(t);
-    try { await resumeApi.saveSections(sections, t); } catch { /* non-blocking */ }
-  };
+  // Debounced auto-save → drives the "All changes saved" indicator
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    setSaveStatus('dirty');
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(async () => {
+      try {
+        setSaveStatus('saving');
+        const res = await resumeApi.saveSections(sections, template);
+        setResume(res.data.data);
+        setSaveStatus('saved');
+      } catch { setSaveStatus('dirty'); }
+    }, 1200);
+    return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
+  }, [sections, template]);
 
-  const handleDownload = () => { window.print(); };
+  const handleSelectTemplate = (t: ResumeTemplate) => setTemplate(t);
+  const handleDownload = () => window.print();
+
+  const handleSaveNow = async () => {
+    try {
+      setSaveStatus('saving');
+      const res = await resumeApi.saveSections(sections, template);
+      setResume(res.data.data);
+      setSaveStatus('saved');
+      showToast('✅ Draft saved');
+    } catch { setSaveStatus('dirty'); showToast('❌ Save failed'); }
+  };
 
   const handleShare = async () => {
     try {
       setSharing(true);
-      await resumeApi.saveSections(sections, template); // ensure latest is saved before sharing
+      await resumeApi.saveSections(sections, template);
       const res = await resumeApi.share();
-      const token = res.data.data.shareToken;
-      const url = `${window.location.origin}/resume/view/${token}`;
-      try {
-        await navigator.clipboard.writeText(url);
-        showToast('🔗 Share link copied to clipboard!');
-      } catch {
-        window.prompt('Copy your resume share link:', url);
-      }
-    } catch {
-      showToast('❌ Could not create link — save your resume first.');
-    } finally {
-      setSharing(false);
-    }
+      const url = `${window.location.origin}/resume/view/${res.data.data.shareToken}`;
+      try { await navigator.clipboard.writeText(url); showToast('🔗 Share link copied!'); }
+      catch { window.prompt('Copy your resume share link:', url); }
+    } catch { showToast('❌ Could not create link.'); }
+    finally { setSharing(false); setMenuOpen(false); }
   };
 
   const handleUploaded = (data: ResumeData) => {
-    setResume(data);
-    setSections(data.sections);
-    setActiveTab('build');
+    setResume(data); setSections(data.sections); setShowUpload(false); setStep('build');
     showToast('✅ Resume uploaded and scored!');
-  };
-
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      const res = await resumeApi.saveSections(sections, template);
-      setResume(res.data.data);
-      showToast('✅ Saved!');
-    } catch { showToast('❌ Save failed'); }
-    finally { setSaving(false); }
   };
 
   const handleScore = async () => {
     try {
-      setSaving(true);
-      const saveRes = await resumeApi.saveSections(sections, template);
-      setResume(saveRes.data.data);
-      setSaving(false);
+      await resumeApi.saveSections(sections, template);
       setScoring(true);
       const scoreRes = await resumeApi.score();
       setResume(prev => prev ? { ...prev, score: scoreRes.data.data.score, scoredAt: new Date().toISOString() } : prev);
       showToast('✅ Resume analysed!');
+      setTimeout(() => jumpTo('rb-suggestions'), 200);
     } catch { showToast('❌ Scoring failed. Try again.'); }
-    finally { setSaving(false); setScoring(false); }
+    finally { setScoring(false); }
+  };
+
+  // ── Actionable tips (click → apply & jump) ──────────────────────────────────
+  const totalSkills = sections.skills.reduce((n, g) => n + g.items.length, 0);
+  const tips: { id: string; label: string; done: boolean; action: () => void }[] = [
+    {
+      id: 'project', label: 'Add at least one project',
+      done: sections.projects.length > 0,
+      action: () => { setSections(s => ({ ...s, projects: [...s.projects, { name: '', tech: [], description: '', link: '' }] })); setStep('build'); setTimeout(() => jumpTo('rb-sec-projects'), 80); },
+    },
+    {
+      id: 'cert', label: 'Include certifications',
+      done: sections.certifications.length > 0,
+      action: () => { setSections(s => ({ ...s, certifications: [...s.certifications, { name: '', issuer: '', year: '' }] })); setStep('build'); setTimeout(() => jumpTo('rb-sec-certifications'), 80); },
+    },
+    {
+      id: 'skills', label: 'Add more skills',
+      done: totalSkills >= 5,
+      action: () => { setSections(s => (s.skills.length ? s : { ...s, skills: [{ category: 'Skills', items: [] }] })); setStep('build'); setTimeout(() => jumpTo('rb-sec-skills'), 80); },
+    },
+    {
+      id: 'summary', label: 'Write a stronger summary',
+      done: sections.summary.trim().length >= 120,
+      action: () => { setStep('build'); setTimeout(() => jumpTo('rb-sec-summary'), 80); },
+    },
+    {
+      id: 'experience', label: 'Add work experience',
+      done: sections.experience.length > 0,
+      action: () => { setSections(s => ({ ...s, experience: [...s.experience, { company: '', role: '', from: '', to: '', current: false, bullets: [''] }] })); setStep('build'); setTimeout(() => jumpTo('rb-sec-experience'), 80); },
+    },
+  ];
+  const tipsRemaining = tips.filter(t => !t.done).length;
+
+  // Apply an AI suggestion: add an entry if the section is empty, then jump+highlight
+  const applySuggestion = (section: string) => {
+    const k = (section || '').toLowerCase();
+    setStep('build');
+    if (k.includes('project') && sections.projects.length === 0)
+      setSections(s => ({ ...s, projects: [...s.projects, { name: '', tech: [], description: '', link: '' }] }));
+    else if (k.includes('cert') && sections.certifications.length === 0)
+      setSections(s => ({ ...s, certifications: [...s.certifications, { name: '', issuer: '', year: '' }] }));
+    else if (k.includes('experience') && sections.experience.length === 0)
+      setSections(s => ({ ...s, experience: [...s.experience, { company: '', role: '', from: '', to: '', current: false, bullets: [''] }] }));
+    else if (k.includes('education') && sections.education.length === 0)
+      setSections(s => ({ ...s, education: [...s.education, { degree: '', college: '', university: '', year: '', cgpa: '' }] }));
+    else if (k.includes('skill') && sections.skills.length === 0)
+      setSections(s => ({ ...s, skills: [{ category: 'Skills', items: [] }] }));
+    setTimeout(() => jumpTo(anchorForSuggestion(section)), 120);
   };
 
   if (loading) return (
-    <div className="rb-page">
-      <div className="rb-spinner" style={{ justifyContent: 'center', minHeight: '60vh' }}>
-        <div className="spinner-ring" /><span>Loading your resume…</span>
-      </div>
-    </div>
+    <div className="rb-page"><div className="rb-spinner center"><div className="spinner-ring" /><span>Loading your resume…</span></div></div>
   );
+
+  const saveText = saveStatus === 'saving' ? 'Saving…' : saveStatus === 'dirty' ? 'Unsaved changes' : 'All changes saved';
 
   return (
     <div className="rb-page">
-      {/* Toast */}
-      {toast && (
-        <div style={{ position: 'fixed', top: 20, right: 24, background: '#1e3a5f', color: '#fff', padding: '12px 20px', borderRadius: 10, fontWeight: 600, fontSize: 14, zIndex: 9999, boxShadow: '0 4px 20px rgba(0,0,0,0.2)' }}>
-          {toast}
+      {toast && <div className="rb-toast">{toast}</div>}
+      {showUpload && <UploadModal onUploaded={handleUploaded} onClose={() => setShowUpload(false)} />}
+
+      {/* Top bar */}
+      <div className="rb-topbar">
+        <div className="rb-steps">
+          <button className={`rb-step ${step === 'build' ? 'active' : ''}`} onClick={() => setStep('build')}>
+            <span className="rb-step-num">1</span> Build Resume
+          </button>
+          <button className={`rb-step ${step === 'preview' ? 'active' : ''}`} onClick={() => setStep('preview')}>
+            <span className="rb-step-num">2</span> Preview &amp; Download
+          </button>
         </div>
-      )}
-
-      <div className="rb-header">
-        <h1>📄 Resume Builder</h1>
-        <p>Upload your old resume or start fresh → pick a template → edit & get an AI score → download or share a link</p>
-        {resume?.score && (
-          <div style={{ marginTop: 10, fontSize: 13, opacity: 0.9 }}>
-            Current score: <strong style={{ fontSize: 16, color: scoreColor(resume.score.total) }}>{resume.score.total}/100</strong>
-            {resume.scoredAt && <> · Last scored {new Date(resume.scoredAt).toLocaleDateString()}</>}
-            {` · v${resume.version}`}
-          </div>
-        )}
-      </div>
-
-      <div className="rb-tabs">
-        <button className={`rb-tab ${activeTab === 'upload' ? 'active' : ''}`} onClick={() => setActiveTab('upload')}>📤 Upload Resume</button>
-        <button className={`rb-tab ${activeTab === 'build' ? 'active' : ''}`} onClick={() => setActiveTab('build')}>🔨 Build Resume</button>
-      </div>
-
-      <div className="rb-body">
-        {/* Left: form/upload */}
-        <div className="rb-left">
-          {activeTab === 'upload' ? (
-            <UploadTab onUploaded={handleUploaded} />
-          ) : (
-            <>
-              <BuilderTab sections={sections} onChange={setSections} />
-              <div className="rb-actions">
-                <button className="rb-btn-primary" onClick={handleScore} disabled={saving || scoring}>
-                  {scoring ? '⏳ Analysing…' : saving ? '⏳ Saving…' : '🔍 Analyse Resume'}
-                </button>
-                <button className="rb-btn-secondary" onClick={handleSave} disabled={saving || scoring}>
-                  {saving ? 'Saving…' : '💾 Save Draft'}
-                </button>
+        <div className="rb-topactions">
+          <span className={`rb-savestate ${saveStatus}`}>{saveStatus === 'saved' ? '✓ ' : ''}{saveText}</span>
+          <button className="rb-tb-btn" onClick={handleSaveNow}>🖫 Save Draft</button>
+          <button className="rb-tb-btn primary" onClick={handleDownload}>⬇ Download PDF</button>
+          <div className="rb-menu">
+            <button className="rb-tb-btn icon" onClick={() => setMenuOpen(o => !o)}>⋮</button>
+            {menuOpen && (
+              <div className="rb-menu-pop" onMouseLeave={() => setMenuOpen(false)}>
+                <button onClick={() => { setShowUpload(true); setMenuOpen(false); }}>📤 Upload existing resume</button>
+                <button onClick={handleShare} disabled={sharing}>{sharing ? '…' : '🔗 Copy share link'}</button>
+                <button onClick={() => { setStep('preview'); setMenuOpen(false); }}>🎨 Choose template</button>
               </div>
-            </>
-          )}
+            )}
+          </div>
         </div>
+      </div>
 
-        {/* Right: score + template + preview */}
-        <div className="rb-right">
-          <ScorePanel resume={resume} scoring={scoring} />
+      {step === 'build' ? (
+        <>
+          <div className="rb-grid">
+            {/* Left: form */}
+            <div className="rb-col-left"><BuilderForm sections={sections} onChange={setSections} /></div>
 
-          {/* Template picker */}
-          <div className="rb-template-picker">
-            <div className="rb-block-label">1 · Choose a Template</div>
+            {/* Right: score + preview */}
+            <div className="rb-col-right">
+              <ScorePanel resume={resume} scoring={scoring} onApplySuggestion={applySuggestion} />
+              {!resume?.score && (
+                <button className="rb-analyse-btn" onClick={handleScore} disabled={scoring}>
+                  {scoring ? '⏳ Analysing…' : '🔍 Analyse Resume'}
+                </button>
+              )}
+              {resume?.score && (
+                <button className="rb-analyse-btn ghost" onClick={handleScore} disabled={scoring}>
+                  {scoring ? '⏳ Analysing…' : '🔄 Re-analyse Resume'}
+                </button>
+              )}
+
+              <div className="rb-card rb-preview-card">
+                <div className="rb-preview-head">
+                  <span className="rb-preview-title">Resume Preview</span>
+                  <div className="rb-device-toggle">
+                    <button className={device === 'desktop' ? 'active' : ''} onClick={() => setDevice('desktop')} title="Desktop">🖥</button>
+                    <button className={device === 'mobile' ? 'active' : ''} onClick={() => setDevice('mobile')} title="Mobile">📱</button>
+                  </div>
+                </div>
+                <div className={`rb-preview-frame ${device}`}>
+                  <ResumePreview sections={sections} template={template} />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom: clickable tips */}
+          <div className="rb-tipsbar">
+            <span className="rb-tips-title">💡 Tips to improve your resume</span>
+            <div className="rb-tips-list">
+              {tips.map(t => (
+                <button key={t.id} className={`rb-tip ${t.done ? 'done' : ''}`} onClick={t.done ? undefined : t.action} disabled={t.done}>
+                  <span className="rb-tip-check">{t.done ? '✓' : '+'}</span> {t.label}
+                </button>
+              ))}
+            </div>
+            <button className="rb-tips-cta" onClick={() => resume?.score ? jumpTo('rb-suggestions') : handleScore()}>
+              ✦ {resume?.score ? 'View Suggestions' : 'Analyse Resume'}
+            </button>
+          </div>
+        </>
+      ) : (
+        // ── Preview & Download step ──
+        <div className="rb-preview-step">
+          <div className="rb-card rb-template-picker">
+            <div className="rb-block-label">Choose a Template</div>
             <div className="rb-template-grid">
               {TEMPLATES.map(t => (
-                <button
-                  key={t.id}
-                  type="button"
-                  className={`rb-template-card ${template === t.id ? 'active' : ''}`}
-                  onClick={() => handleSelectTemplate(t.id)}
-                  title={t.blurb}
-                >
+                <button key={t.id} type="button" className={`rb-template-card ${template === t.id ? 'active' : ''}`} onClick={() => handleSelectTemplate(t.id)} title={t.blurb}>
                   <span className="rb-template-swatch" style={{ background: t.accent }} />
                   <span className="rb-template-name">{t.name}</span>
                   <span className="rb-template-blurb">{t.blurb}</span>
                 </button>
               ))}
             </div>
+            <div className="rb-preview-step-actions">
+              <button className="rb-tb-btn" onClick={handleShare} disabled={sharing}>{sharing ? '…' : '🔗 Share Link'}</button>
+              <button className="rb-tb-btn primary" onClick={handleDownload}>⬇ Download PDF</button>
+            </div>
           </div>
-
-          {/* Preview + actions */}
-          <div style={{ marginTop: 20 }}>
-            <div className="rb-preview-head">
-              <div className="rb-block-label" style={{ margin: 0 }}>2 · Preview — {TEMPLATES.find(t => t.id === template)?.name}</div>
-              <div className="rb-preview-actions">
-                <button className="rb-btn-secondary sm" onClick={handleShare} disabled={sharing} title="Create a public link to share your resume">
-                  {sharing ? '…' : '🔗 Share Link'}
-                </button>
-                <button className="rb-btn-primary sm" onClick={handleDownload} title="Download as PDF (uses your browser's Save as PDF)">
-                  ⬇️ Download PDF
-                </button>
-              </div>
-            </div>
-            <div className="resume-print-area">
-              <ResumeDocument sections={sections} template={template} />
-            </div>
+          <div className="rb-card rb-bigpreview">
+            <ResumePreview sections={sections} template={template} />
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

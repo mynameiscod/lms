@@ -1,192 +1,309 @@
-.rb-page { min-height: 100vh; background: #f1f5f9; }
-
-.rb-header {
-  background: linear-gradient(135deg, #1e3a5f 0%, #0284c7 100%);
-  padding: 24px 32px;
-  color: #fff;
+/* ════════════════════════════════════════════════════════════════════════
+   Resume Builder — redesigned (mockup)
+   ════════════════════════════════════════════════════════════════════════ */
+.rb-page {
+  min-height: 100vh;
+  background: #f6f7fb;
+  padding: 20px 24px 40px;
+  color: #1e293b;
+  color-scheme: light;
 }
-.rb-header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 800; }
-.rb-header p { margin: 0; font-size: 14px; opacity: 0.8; }
 
-.rb-tabs { display: flex; gap: 4px; padding: 20px 32px 0; border-bottom: 2px solid #e2e8f0; background: #fff; }
-.rb-tab {
-  padding: 10px 22px; border: none; background: none; cursor: pointer;
-  font-size: 14px; font-weight: 600; color: #64748b; border-bottom: 3px solid transparent;
-  margin-bottom: -2px; border-radius: 6px 6px 0 0; transition: all 0.15s;
+/* Toast */
+.rb-toast {
+  position: fixed; top: 20px; right: 24px; z-index: 9999;
+  background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px;
+  font-weight: 600; font-size: 14px; box-shadow: 0 8px 28px rgba(0,0,0,.22);
 }
-.rb-tab.active { color: #1e40af; border-bottom-color: #1e40af; background: #eff6ff; }
-.rb-tab:hover:not(.active) { color: #334155; background: #f8fafc; }
 
-.rb-body { display: grid; grid-template-columns: 1fr 380px; gap: 0; min-height: calc(100vh - 160px); }
-@media (max-width: 1024px) { .rb-body { grid-template-columns: 1fr; } }
-
-/* ── LEFT: Form/Upload ── */
-.rb-left { padding: 28px 32px; overflow-y: auto; }
-
-/* Upload zone */
-.rb-upload-zone {
-  border: 2.5px dashed #93c5fd; border-radius: 16px; padding: 48px 32px;
-  text-align: center; cursor: pointer; background: #eff6ff;
-  transition: all 0.2s; margin-bottom: 24px;
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.rb-topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  flex-wrap: wrap;
+  background: #fff; border: 1px solid #eef0f5; border-radius: 14px;
+  padding: 10px 16px; margin-bottom: 18px; box-shadow: 0 1px 3px rgba(15,23,42,.05);
 }
-.rb-upload-zone:hover, .rb-upload-zone.drag { border-color: #1e40af; background: #dbeafe; }
-.rb-upload-zone .upload-icon { font-size: 48px; margin-bottom: 12px; }
-.rb-upload-zone h3 { font-size: 18px; font-weight: 700; color: #1e3a5f; margin: 0 0 6px; }
-.rb-upload-zone p { color: #64748b; font-size: 14px; margin: 0; }
+.rb-steps { display: flex; gap: 8px; }
+.rb-step {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: none; border: none; cursor: pointer; padding: 8px 14px;
+  font-size: 14px; font-weight: 600; color: #64748b; border-radius: 9px;
+}
+.rb-step.active { color: #4f46e5; background: #eef2ff; }
+.rb-step-num {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 22px; height: 22px; border-radius: 50%; font-size: 12px; font-weight: 800;
+  background: #e2e8f0; color: #64748b;
+}
+.rb-step.active .rb-step-num { background: #6366f1; color: #fff; }
 
-/* Section card */
-.rb-section {
-  background: #fff; border-radius: 14px; padding: 20px 24px;
-  margin-bottom: 16px; border: 1px solid #e2e8f0;
+.rb-topactions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rb-savestate { font-size: 13px; font-weight: 600; color: #16a34a; }
+.rb-savestate.saving { color: #d97706; }
+.rb-savestate.dirty { color: #94a3b8; }
+.rb-tb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 9px;
+  padding: 8px 14px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; transition: all .15s;
 }
-.rb-section-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px;
+.rb-tb-btn:hover { border-color: #c7d2fe; color: #4f46e5; }
+.rb-tb-btn.primary { background: #6366f1; border-color: #6366f1; color: #fff; }
+.rb-tb-btn.primary:hover { background: #4f46e5; }
+.rb-tb-btn.icon { padding: 8px 11px; font-size: 16px; }
+.rb-menu { position: relative; }
+.rb-menu-pop {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 50;
+  background: #fff; border: 1px solid #eef0f5; border-radius: 12px; padding: 6px;
+  box-shadow: 0 12px 28px rgba(15,23,42,.14); min-width: 210px; display: flex; flex-direction: column;
 }
-.rb-section-title { font-size: 15px; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 8px; }
-.rb-add-btn {
-  background: #eff6ff; color: #1e40af; border: 1.5px solid #bfdbfe;
-  border-radius: 8px; padding: 6px 14px; font-size: 13px; font-weight: 600; cursor: pointer;
+.rb-menu-pop button {
+  text-align: left; background: none; border: none; cursor: pointer;
+  padding: 9px 12px; border-radius: 8px; font-size: 13px; color: #334155;
 }
-.rb-add-btn:hover { background: #dbeafe; }
+.rb-menu-pop button:hover { background: #f5f3ff; color: #4f46e5; }
 
-/* Form fields */
-.rb-field { margin-bottom: 14px; }
-.rb-label { display: block; font-size: 12px; font-weight: 600; color: #475569; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+/* ── Layout ──────────────────────────────────────────────────────────────── */
+.rb-grid { display: grid; grid-template-columns: 1fr 400px; gap: 18px; align-items: start; }
+.rb-col-left { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
+.rb-col-right { min-width: 0; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 16px; }
+
+.rb-card {
+  background: #fff; border: 1px solid #eef0f5; border-radius: 16px; padding: 20px;
+  box-shadow: 0 1px 3px rgba(15,23,42,.05);
+}
+.rb-form { display: flex; flex-direction: column; gap: 16px; }
+
+/* Flash highlight when jumping to a section */
+.rb-flash { animation: rb-flash 1.4s ease; }
+@keyframes rb-flash {
+  0% { box-shadow: 0 0 0 0 rgba(99,102,241,.0); }
+  20% { box-shadow: 0 0 0 4px rgba(99,102,241,.35); }
+  100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
+}
+
+/* ── Section head with icon badge ────────────────────────────────────────── */
+.rb-sec-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.rb-sec-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 38px; height: 38px; border-radius: 50%; font-size: 18px; flex-shrink: 0;
+}
+.rb-sec-headtext { flex: 1; min-width: 0; }
+.rb-sec-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.rb-sec-sub { font-size: 12.5px; color: #94a3b8; margin-top: 1px; }
+.rb-sec-right { flex-shrink: 0; }
+.rb-add-pill {
+  display: inline-flex; align-items: center; gap: 5px;
+  background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;
+  border-radius: 9px; padding: 7px 13px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.rb-add-pill:hover { background: #e0e7ff; }
+
+/* ── Fields ──────────────────────────────────────────────────────────────── */
+.rb-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.rb-field { margin-bottom: 0; position: relative; }
+.rb-field + .rb-field { margin-top: 0; }
+.rb-label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 6px; }
 .rb-input, .rb-textarea {
-  width: 100%; padding: 9px 12px; border: 1.5px solid #e2e8f0; border-radius: 8px;
-  font-size: 14px; color: #0f172a; background: #f8fafc; box-sizing: border-box;
-  transition: border-color 0.15s;
+  width: 100%; padding: 10px 12px; border: 1px solid #e2e8f0; border-radius: 9px;
+  font-size: 14px; color: #0f172a; background: #fff; box-sizing: border-box; transition: border-color .15s, box-shadow .15s;
 }
-.rb-input:focus, .rb-textarea:focus { outline: none; border-color: #93c5fd; background: #fff; }
-.rb-textarea { resize: vertical; min-height: 80px; font-family: inherit; }
-.rb-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-@media (max-width: 600px) { .rb-grid-2 { grid-template-columns: 1fr; } }
+.rb-input:focus, .rb-textarea:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.13); }
+.rb-textarea { resize: vertical; min-height: 84px; font-family: inherit; line-height: 1.55; }
+.rb-input-ic { position: relative; display: flex; align-items: center; }
+.rb-input-ic > span {
+  position: absolute; left: 11px; font-size: 13px; color: #94a3b8; pointer-events: none;
+  width: 16px; text-align: center; font-weight: 600;
+}
+.rb-input-ic .rb-input { padding-left: 34px; }
+.rb-counter { position: absolute; right: 10px; bottom: 8px; font-size: 11px; color: #94a3b8; background: rgba(255,255,255,.85); padding: 0 4px; }
+.rb-check { display: flex; align-items: center; gap: 6px; margin-top: 7px; font-size: 12px; color: #475569; cursor: pointer; }
 
-/* Entry card (experience, education, project) */
-.rb-entry { background: #f8fafc; border-radius: 10px; padding: 16px; margin-bottom: 12px; border: 1px solid #e2e8f0; }
-.rb-entry-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
-.rb-remove-btn { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; border-radius: 6px; padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer; }
-.rb-remove-btn:hover { background: #fee2e2; }
+/* Entry card */
+.rb-entry { position: relative; background: #f8fafc; border: 1px solid #eef0f5; border-radius: 12px; padding: 16px; margin-top: 14px; }
+.rb-entry-tools { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
+.rb-icon-btn { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; width: 30px; height: 30px; cursor: pointer; font-size: 14px; color: #64748b; }
+.rb-icon-btn.danger:hover { background: #fef2f2; border-color: #fecaca; color: #dc2626; }
+.rb-empty-hint { color: #94a3b8; font-size: 13px; margin: 12px 0 0; }
 
 /* Bullets */
-.rb-bullet-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: flex-start; }
+.rb-bullet-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.rb-bullet-dot { color: #6366f1; font-weight: 800; }
 .rb-bullet-row .rb-input { flex: 1; }
-.rb-bullet-del { background: none; border: none; color: #dc2626; cursor: pointer; font-size: 18px; padding: 6px 4px; line-height: 1; }
+.rb-bullet-del { background: none; border: none; color: #cbd5e1; cursor: pointer; font-size: 18px; line-height: 1; padding: 4px; }
+.rb-bullet-del:hover { color: #dc2626; }
+.rb-add-text { background: none; border: none; color: #4f46e5; font-size: 13px; font-weight: 600; cursor: pointer; padding: 4px 0; margin-top: 2px; }
 
 /* Skills */
+.rb-skill-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.rb-skill-head strong { font-size: 13px; color: #0f172a; }
+.rb-remove-text { background: none; border: none; color: #dc2626; font-size: 12px; font-weight: 600; cursor: pointer; }
 .rb-skill-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
 .rb-chip {
-  background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe;
-  border-radius: 20px; padding: 4px 12px; font-size: 13px; font-weight: 500;
-  display: flex; align-items: center; gap: 6px;
+  background: #eef2ff; color: #4338ca; border: 1px solid #c7d2fe; border-radius: 999px;
+  padding: 4px 11px; font-size: 13px; font-weight: 500; display: inline-flex; align-items: center; gap: 6px;
 }
-.rb-chip button { background: none; border: none; color: #64748b; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+.rb-chip button { background: none; border: none; color: #818cf8; cursor: pointer; font-size: 14px; padding: 0; line-height: 1; }
+.rb-inline-add { display: flex; gap: 8px; margin-top: 8px; }
+.rb-inline-add .rb-input { flex: 1; }
 
-/* Actions bar */
-.rb-actions { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
-.rb-btn-primary {
-  background: #1e40af; color: #fff; border: none; border-radius: 10px;
-  padding: 12px 24px; font-size: 14px; font-weight: 700; cursor: pointer; transition: background 0.15s;
-}
-.rb-btn-primary:hover { background: #1d3a8a; }
-.rb-btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
-.rb-btn-secondary {
-  background: #fff; color: #475569; border: 1.5px solid #e2e8f0;
-  border-radius: 10px; padding: 12px 24px; font-size: 14px; font-weight: 600; cursor: pointer;
-}
-.rb-btn-secondary:hover { background: #f8fafc; }
-
-/* ── RIGHT: Score + Preview ── */
-.rb-right { background: #fff; border-left: 1px solid #e2e8f0; padding: 24px; overflow-y: auto; }
-
-/* Score ring */
-.rb-score-card { text-align: center; margin-bottom: 24px; }
-.rb-score-ring { width: 120px; height: 120px; margin: 0 auto 12px; }
-.rb-score-label { font-size: 13px; font-weight: 700; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
-.rb-score-grade { font-size: 18px; font-weight: 800; margin-top: 4px; }
+/* ── Score panel ─────────────────────────────────────────────────────────── */
+.rb-score-head { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.rb-score-title { font-size: 16px; font-weight: 700; color: #0f172a; }
+.rb-beta { font-size: 11px; font-weight: 700; color: #6366f1; background: #eef2ff; border-radius: 6px; padding: 2px 7px; }
+.rb-score-row { display: flex; align-items: center; gap: 16px; margin-bottom: 18px; }
+.rb-score-ring { width: 84px; height: 84px; flex-shrink: 0; }
+.rb-score-meta { min-width: 0; }
+.rb-score-grade { font-size: 17px; font-weight: 800; }
 .rb-score-grade.green { color: #16a34a; }
 .rb-score-grade.amber { color: #d97706; }
 .rb-score-grade.red { color: #dc2626; }
+.rb-score-note { font-size: 13px; color: #64748b; margin-top: 3px; line-height: 1.4; }
 
-/* Breakdown bars */
-.rb-breakdown { margin-bottom: 20px; }
-.rb-breakdown-title { font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
-.rb-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
-.rb-bar-label { font-size: 12px; color: #475569; width: 80px; flex-shrink: 0; }
-.rb-bar-track { flex: 1; height: 6px; background: #e2e8f0; border-radius: 4px; overflow: hidden; }
-.rb-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s; }
-.rb-bar-val { font-size: 12px; font-weight: 700; color: #0f172a; width: 28px; text-align: right; }
+.rb-breakdown-title { font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 12px; }
+.rb-bar-row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; }
+.rb-bar-label { font-size: 12px; color: #475569; width: 108px; flex-shrink: 0; }
+.rb-bar-track { flex: 1; height: 7px; background: #eef0f5; border-radius: 5px; overflow: hidden; }
+.rb-bar-fill { height: 100%; border-radius: 5px; transition: width .5s; }
+.rb-bar-val { font-size: 12px; font-weight: 700; color: #0f172a; width: 36px; text-align: right; }
 
-/* Suggestions */
-.rb-suggestions-title { font-size: 13px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px; }
+/* Suggestions (clickable) */
+.rb-suggestions { margin-top: 18px; }
+.rb-suggestions-title { font-size: 13px; font-weight: 700; color: #475569; margin-bottom: 10px; }
 .rb-suggestion {
-  background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 10px;
-  padding: 12px 14px; margin-bottom: 10px;
+  display: flex; align-items: flex-start; gap: 10px;
+  background: #fffbeb; border: 1px solid #fde68a; border-radius: 11px; padding: 12px 14px; margin-bottom: 10px;
 }
+.rb-suggestion-body { flex: 1; min-width: 0; }
+.rb-suggestion-section { font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 5px; }
 .rb-suggestion-issue { font-size: 13px; font-weight: 700; color: #92400e; margin-bottom: 4px; }
 .rb-suggestion-fix { font-size: 12px; color: #78350f; line-height: 1.5; }
-.rb-suggestion-section { font-size: 11px; font-weight: 700; color: #b45309; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.rb-suggestion-apply {
+  flex-shrink: 0; align-self: center; background: #6366f1; color: #fff; border: none; border-radius: 8px;
+  padding: 7px 12px; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: background .15s;
+}
+.rb-suggestion-apply:hover { background: #4f46e5; }
 
-/* ATS warnings */
 .rb-ats-warn { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 12px; color: #991b1b; }
-
-/* Keywords */
-.rb-kw-section { margin-bottom: 16px; }
-.rb-kw-title { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.rb-kw-section { margin-top: 16px; }
+.rb-kw-title { font-size: 12px; font-weight: 700; color: #475569; margin-bottom: 8px; }
 .rb-kw-chips { display: flex; flex-wrap: wrap; gap: 5px; }
-.rb-kw-chip { padding: 3px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+.rb-kw-chip { padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
 .rb-kw-chip.found { background: #f0fdf4; color: #16a34a; border: 1px solid #bbf7d0; }
 .rb-kw-chip.missing { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 
-/* No score yet */
-.rb-no-score { text-align: center; padding: 32px 16px; color: #94a3b8; }
-.rb-no-score .ns-icon { font-size: 48px; margin-bottom: 12px; }
+.rb-no-score { text-align: center; padding: 30px 16px; color: #94a3b8; }
+.rb-no-score .ns-icon { font-size: 44px; margin-bottom: 10px; }
 .rb-no-score p { font-size: 14px; margin: 0; }
 
-/* Resume preview */
-.rb-preview { border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; font-size: 12px; line-height: 1.6; color: #0f172a; margin-top: 20px; background: #fff; }
-.rb-preview h2 { font-size: 18px; font-weight: 800; margin: 0 0 2px; color: #0f172a; }
-.rb-preview .preview-contact { font-size: 11px; color: #475569; margin-bottom: 12px; }
-.rb-preview .preview-section { margin-bottom: 14px; }
-.rb-preview .preview-section-title { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #1e40af; border-bottom: 1.5px solid #bfdbfe; margin-bottom: 8px; padding-bottom: 2px; }
-.rb-preview .preview-entry-title { font-weight: 700; font-size: 12px; }
-.rb-preview .preview-entry-sub { font-size: 11px; color: #64748b; margin-bottom: 4px; }
-.rb-preview ul { margin: 4px 0 8px 14px; padding: 0; }
-.rb-preview ul li { margin-bottom: 2px; font-size: 11px; }
-.rb-preview .preview-chip { display: inline-block; background: #f1f5f9; border-radius: 4px; padding: 2px 7px; margin: 2px; font-size: 11px; }
+/* Analyse button */
+.rb-analyse-btn {
+  width: 100%; background: #6366f1; color: #fff; border: none; border-radius: 12px;
+  padding: 13px; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .15s;
+}
+.rb-analyse-btn:hover { background: #4f46e5; }
+.rb-analyse-btn:disabled { opacity: .6; cursor: default; }
+.rb-analyse-btn.ghost { background: #fff; color: #4f46e5; border: 1px solid #c7d2fe; }
+.rb-analyse-btn.ghost:hover { background: #f5f3ff; }
 
-/* Loading spinner */
-.rb-spinner { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 40px; color: #64748b; font-weight: 600; }
-.spinner-ring { width: 28px; height: 28px; border: 3px solid #e2e8f0; border-top-color: #1e40af; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
+/* Preview card */
+.rb-preview-card { padding: 16px; }
+.rb-preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.rb-preview-title { font-size: 15px; font-weight: 700; color: #0f172a; }
+.rb-device-toggle { display: flex; gap: 4px; background: #f1f5f9; border-radius: 9px; padding: 3px; }
+.rb-device-toggle button { background: none; border: none; cursor: pointer; padding: 5px 10px; border-radius: 7px; font-size: 14px; }
+.rb-device-toggle button.active { background: #fff; box-shadow: 0 1px 3px rgba(15,23,42,.12); }
+.rb-preview-frame { background: #f8fafc; border: 1px solid #eef0f5; border-radius: 10px; padding: 12px; max-height: 460px; overflow: auto; }
+.rb-preview-frame.mobile .resume-print-area { max-width: 360px; }
 
-/* ── Template picker ──────────────────────────────────────────────────────── */
-.rb-block-label { font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
-.rb-template-picker { margin-top: 20px; }
-.rb-template-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-.rb-template-card { display: flex; flex-direction: column; align-items: stretch; text-align: left; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
-.rb-template-card:hover { border-color: #c7d2fe; background: #f8fafc; }
-.rb-template-card.active { border-color: #1e40af; box-shadow: 0 0 0 3px rgba(30,64,175,0.12); }
-.rb-template-swatch { display: block; width: 100%; height: 24px; border-radius: 5px; margin-bottom: 6px; }
+/* ── Tips bar ────────────────────────────────────────────────────────────── */
+.rb-tipsbar {
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+  background: #fff; border: 1px solid #eef0f5; border-radius: 14px;
+  padding: 14px 18px; margin-top: 18px; box-shadow: 0 1px 3px rgba(15,23,42,.05);
+}
+.rb-tips-title { font-size: 14px; font-weight: 700; color: #0f172a; flex-shrink: 0; }
+.rb-tips-list { display: flex; gap: 8px; flex-wrap: wrap; flex: 1; }
+.rb-tip {
+  display: inline-flex; align-items: center; gap: 7px;
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 999px;
+  padding: 6px 14px; font-size: 13px; font-weight: 600; color: #475569; cursor: pointer; transition: all .15s;
+}
+.rb-tip:hover:not(.done) { border-color: #c7d2fe; color: #4f46e5; background: #f5f3ff; }
+.rb-tip.done { color: #16a34a; border-color: #bbf7d0; background: #f0fdf4; cursor: default; }
+.rb-tip-check {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; border-radius: 50%; font-size: 11px; font-weight: 800;
+  background: #eef2ff; color: #6366f1;
+}
+.rb-tip.done .rb-tip-check { background: #16a34a; color: #fff; }
+.rb-tips-cta {
+  flex-shrink: 0; display: inline-flex; align-items: center; gap: 6px;
+  background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe; border-radius: 9px;
+  padding: 8px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.rb-tips-cta:hover { background: #e0e7ff; }
+
+/* ── Preview & Download step ─────────────────────────────────────────────── */
+.rb-preview-step { display: grid; grid-template-columns: 300px 1fr; gap: 18px; align-items: start; }
+.rb-block-label { font-size: 13px; font-weight: 700; color: #0f172a; margin-bottom: 12px; }
+.rb-template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.rb-template-card { display: flex; flex-direction: column; text-align: left; background: #fff; border: 1.5px solid #e2e8f0; border-radius: 11px; padding: 10px; cursor: pointer; transition: all .15s; }
+.rb-template-card:hover { border-color: #c7d2fe; }
+.rb-template-card.active { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.13); }
+.rb-template-swatch { display: block; width: 100%; height: 26px; border-radius: 6px; margin-bottom: 7px; }
 .rb-template-name { font-weight: 700; font-size: 13px; color: #0f172a; }
 .rb-template-blurb { font-size: 11px; color: #64748b; line-height: 1.3; margin-top: 1px; }
+.rb-preview-step-actions { display: flex; gap: 8px; margin-top: 16px; }
+.rb-bigpreview { padding: 16px; }
 
-/* ── Preview header + actions ─────────────────────────────────────────────── */
-.rb-preview-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-.rb-preview-actions { display: flex; gap: 8px; }
-.rb-btn-primary.sm, .rb-btn-secondary.sm { padding: 7px 12px; font-size: 12.5px; }
+/* ── Upload modal ────────────────────────────────────────────────────────── */
+.rb-modal-overlay { position: fixed; inset: 0; background: rgba(15,23,42,.5); z-index: 9998; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.rb-modal { background: #fff; border-radius: 16px; padding: 22px; width: 100%; max-width: 480px; box-shadow: 0 20px 50px rgba(0,0,0,.3); }
+.rb-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.rb-modal-head h3 { margin: 0; font-size: 18px; font-weight: 700; color: #0f172a; }
+.rb-modal-close { background: none; border: none; font-size: 24px; color: #94a3b8; cursor: pointer; line-height: 1; }
+.rb-upload-zone {
+  border: 2.5px dashed #c7d2fe; border-radius: 14px; padding: 40px 24px; text-align: center;
+  cursor: pointer; background: #f5f3ff; transition: all .2s;
+}
+.rb-upload-zone:hover, .rb-upload-zone.drag { border-color: #6366f1; background: #eef2ff; }
+.rb-upload-zone .upload-icon { font-size: 44px; margin-bottom: 10px; }
+.rb-upload-zone h3 { font-size: 17px; font-weight: 700; color: #4338ca; margin: 0 0 6px; }
+.rb-upload-zone p { color: #64748b; font-size: 13px; margin: 0; }
+.rb-modal-error { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; color: #dc2626; font-size: 13px; margin-top: 12px; }
+.rb-modal-note { font-size: 12.5px; color: #64748b; margin: 14px 0 0; line-height: 1.5; }
 
-/* ── Resume document frame (what gets printed) ────────────────────────────── */
-.resume-print-area { background: #fff; width: 100%; max-width: 720px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 24px rgba(15,23,42,0.10); }
+/* Spinner */
+.rb-spinner { display: flex; align-items: center; justify-content: center; gap: 10px; padding: 30px; color: #64748b; font-weight: 600; }
+.rb-spinner.center { min-height: 60vh; }
+.spinner-ring { width: 28px; height: 28px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-/* ── Public shared-resume page ────────────────────────────────────────────── */
+/* Resume document frame (printed) */
+.resume-print-area { background: #fff; width: 100%; max-width: 720px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; box-shadow: 0 6px 24px rgba(15,23,42,.10); }
+
+/* ── Public shared-resume page ───────────────────────────────────────────── */
 .rb-public-page { min-height: 100vh; background: #f1f5f9; padding: 24px 16px 60px; }
 .rb-public-bar { max-width: 720px; margin: 0 auto 16px; display: flex; align-items: center; justify-content: space-between; font-weight: 700; font-size: 16px; color: #0f172a; }
-.rb-public-doc { box-shadow: 0 10px 40px rgba(15,23,42,0.15); }
+.rb-public-doc { box-shadow: 0 10px 40px rgba(15,23,42,.15); }
 .rb-public-error { max-width: 480px; margin: 80px auto; text-align: center; color: #64748b; font-weight: 600; background: #fff; padding: 40px; border-radius: 12px; }
 
-/* ── Print: show only the resume document ─────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 1080px) {
+  .rb-grid { grid-template-columns: 1fr; }
+  .rb-col-right { position: static; }
+  .rb-preview-step { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .rb-page { padding: 14px; }
+  .rb-grid-2 { grid-template-columns: 1fr; }
+  .rb-topbar { gap: 10px; }
+  .rb-topactions { width: 100%; justify-content: space-between; }
+  .rb-savestate { order: -1; flex: 1 1 100%; }
+  .rb-tips-title { flex: 1 1 100%; }
+}
+
+/* ── Print: show only the resume document ────────────────────────────────── */
 @media print {
   body * { visibility: hidden !important; }
   .resume-print-area, .resume-print-area * { visibility: visible !important; }

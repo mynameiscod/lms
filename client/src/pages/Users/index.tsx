@@ -453,8 +453,8 @@ const UsersPage: React.FC = () => {
             className="filter-select"
           >
             <option value="all">All Roles</option>
-            {roles.map(role => (
-              <option key={role._id} value={role._id}>{role.name}</option>
+            {Array.from(new Set(users.map(u => u.role).filter(Boolean))).map(r => (
+              <option key={r} value={r}>{r}</option>
             ))}
           </select>
 

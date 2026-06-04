@@ -157,7 +157,7 @@ const StudentMyClasses: React.FC = () => {
 
             {/* Class cards */}
             {loading ? (
-              <div className="text-center py-5"><Spinner /></div>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '60px 0' }}><Spinner /></div>
             ) : filtered.length === 0 ? (
               <div className="text-center py-5 text-muted">No classes available yet.</div>
             ) : (

@@ -1,8 +1,7 @@
 /* ── My Assignments — student page ──────────────────────────────────────── */
 .sa-page {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 10px 4px 4px;
+  width: 100%;
   color: #1e293b;
   color-scheme: light;
 }
@@ -60,10 +59,11 @@
   font-size: 22px;
   flex-shrink: 0;
 }
-.sa-stat-ic.purple { background: #ede9fe; }
-.sa-stat-ic.green  { background: #dcfce7; }
-.sa-stat-ic.blue   { background: #dbeafe; }
-.sa-stat-ic.red    { background: #fee2e2; }
+.sa-stat-ic i { font-size: 20px; }
+.sa-stat-ic.purple { background: #ede9fe; color: #7c3aed; }
+.sa-stat-ic.green  { background: #dcfce7; color: #16a34a; }
+.sa-stat-ic.blue   { background: #dbeafe; color: #2563eb; }
+.sa-stat-ic.red    { background: #fee2e2; color: #dc2626; }
 .sa-stat-label { font-size: 13px; color: #64748b; margin-bottom: 2px; }
 .sa-stat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1.1; }
 .sa-stat-sub { font-size: 12px; font-weight: 700; margin-top: 2px; }
@@ -283,7 +283,7 @@
 
 /* Empty */
 .sa-empty { text-align: center; padding: 48px 16px; color: #64748b; }
-.sa-empty-ic { font-size: 44px; margin-bottom: 8px; }
+.sa-empty-ic { font-size: 40px; margin-bottom: 8px; color: #cbd5e1; }
 .sa-empty h3 { margin: 0 0 6px; color: #334155; font-size: 17px; }
 .sa-empty p { margin: 0; font-size: 14px; }
 
@@ -334,7 +334,7 @@
   .sa-stats { grid-template-columns: repeat(2, 1fr); }
 }
 @media (max-width: 860px) {
-  .sa-page { padding: 16px; }
+  .sa-page { padding: 10px 4px 4px; }
   .sa-title { font-size: 24px; }
   .sa-hero-art { font-size: 40px; }
   .sa-filter-item { flex: 1 1 calc(50% - 8px); }

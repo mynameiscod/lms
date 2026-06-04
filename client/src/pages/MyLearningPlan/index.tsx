@@ -41,12 +41,11 @@ export default function MyLearningPlan() {
           <h1 className="lp-title">My Learning Plans</h1>
           <p className="lp-subtitle">Your enrolled curricula and daily learning plans.</p>
         </div>
-        <div className="lp-hero-art">🎓</div>
       </div>
 
       {enrollments.length === 0 ? (
         <div className="lp-empty">
-          <div className="lp-empty-ic">📚</div>
+          <div className="lp-empty-ic"><i className="fa-solid fa-graduation-cap" /></div>
           <h3>No active learning plans</h3>
           <p>Your instructor will enroll you in a curriculum. Check back soon!</p>
         </div>

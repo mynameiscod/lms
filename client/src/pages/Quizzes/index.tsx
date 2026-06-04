@@ -116,7 +116,6 @@ const QuizzesPage: React.FC = () => {
           <div className="mq-greeting">Hello, {firstName}! <span className="mq-wave">👋</span></div>
           <p className="mq-subtitle">Track your quiz progress and see how far you've come.</p>
         </div>
-        <div className="mq-hero-art">📋</div>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
@@ -124,19 +123,19 @@ const QuizzesPage: React.FC = () => {
       {/* Stat cards */}
       <div className="mq-stats">
         <div className="mq-stat">
-          <span className="mq-stat-ic purple">🗒️</span>
+          <span className="mq-stat-ic purple"><i className="fa-solid fa-list-check" /></span>
           <div><div className="mq-stat-label">Total Quizzes</div><div className="mq-stat-val">{totalCount}</div><div className="mq-stat-sub">All Time</div></div>
         </div>
         <div className="mq-stat">
-          <span className="mq-stat-ic green">✅</span>
+          <span className="mq-stat-ic green"><i className="fa-solid fa-circle-check" /></span>
           <div><div className="mq-stat-label">Completed</div><div className="mq-stat-val">{completedCount}</div><div className="mq-stat-sub">Keep it up! 🎉</div></div>
         </div>
         <div className="mq-stat">
-          <span className="mq-stat-ic amber">⏳</span>
+          <span className="mq-stat-ic amber"><i className="fa-solid fa-hourglass-half" /></span>
           <div><div className="mq-stat-label">Pending</div><div className="mq-stat-val">{pendingCount}</div><div className="mq-stat-sub">{pendingCount > 0 ? 'Get ready!' : 'Good going!'}</div></div>
         </div>
         <div className="mq-stat">
-          <span className="mq-stat-ic red">🏆</span>
+          <span className="mq-stat-ic red"><i className="fa-solid fa-trophy" /></span>
           <div><div className="mq-stat-label">Average Score</div><div className="mq-stat-val">{attemptedQ.length ? `${avgScore}%` : '—'}</div><div className="mq-stat-sub">{avgScore >= 75 ? 'Great Performance! 🔥' : 'Keep practising'}</div></div>
         </div>
       </div>
@@ -154,7 +153,7 @@ const QuizzesPage: React.FC = () => {
       {/* List */}
       {filteredQuizzes.length === 0 ? (
         <div className="mq-empty">
-          <div className="mq-empty-ic">📭</div>
+          <div className="mq-empty-ic"><i className="fa-solid fa-inbox" /></div>
           <h3>No quizzes found</h3>
           <p>
             {filterTab === 'available' && 'No quizzes available right now.'}

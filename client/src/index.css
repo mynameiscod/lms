@@ -20,6 +20,8 @@ body {
 #root {
   width: 100%;
   min-height: 100vh;
+  /* Load the whole app slightly zoomed out by default (~75%) */
+  zoom: 0.75;
 }
 
 code {

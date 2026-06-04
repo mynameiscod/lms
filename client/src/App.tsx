@@ -1548,7 +1548,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['STUDENT']}>
             <FeatureRoute feature="classHub">
-              <StudentMyClasses />
+              <Layout>
+                <StudentMyClasses />
+              </Layout>
             </FeatureRoute>
           </ProtectedRoute>
         }
@@ -1558,7 +1560,9 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <FeatureRoute feature="classHub">
-              <StudentClassHub />
+              <Layout>
+                <StudentClassHub />
+              </Layout>
             </FeatureRoute>
           </ProtectedRoute>
         }

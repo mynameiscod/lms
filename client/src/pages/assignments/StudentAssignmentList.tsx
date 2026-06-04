@@ -201,7 +201,6 @@ const StudentAssignmentList: React.FC = () => {
           <h1 className="sa-title">My Assignments</h1>
           <p className="sa-subtitle">View and complete your assigned work.</p>
         </div>
-        <div className="sa-hero-art">📋</div>
       </div>
 
       {error && <div className="sa-alert">⚠ {error}</div>}
@@ -209,19 +208,19 @@ const StudentAssignmentList: React.FC = () => {
       {/* Stat cards */}
       <div className="sa-stats">
         <div className="sa-stat">
-          <span className="sa-stat-ic purple">🗓️</span>
+          <span className="sa-stat-ic purple"><i className="fa-solid fa-clipboard-list" /></span>
           <div><div className="sa-stat-label">Total Assignments</div><div className="sa-stat-val">{total}</div></div>
         </div>
         <div className="sa-stat">
-          <span className="sa-stat-ic green">✅</span>
+          <span className="sa-stat-ic green"><i className="fa-solid fa-circle-check" /></span>
           <div><div className="sa-stat-label">Completed</div><div className="sa-stat-val">{completed}</div><div className="sa-stat-sub good">{pct(completed)}%</div></div>
         </div>
         <div className="sa-stat">
-          <span className="sa-stat-ic blue">📊</span>
+          <span className="sa-stat-ic blue"><i className="fa-solid fa-hourglass-half" /></span>
           <div><div className="sa-stat-label">Pending</div><div className="sa-stat-val">{pending}</div><div className="sa-stat-sub blue">{pct(pending)}%</div></div>
         </div>
         <div className="sa-stat">
-          <span className="sa-stat-ic red">❗</span>
+          <span className="sa-stat-ic red"><i className="fa-solid fa-triangle-exclamation" /></span>
           <div><div className="sa-stat-label">Overdue</div><div className="sa-stat-val">{overdue}</div><div className="sa-stat-sub low">{pct(overdue)}%</div></div>
         </div>
       </div>
@@ -230,18 +229,15 @@ const StudentAssignmentList: React.FC = () => {
       <div className="sa-filterbar">
         <div className="sa-filter-item">
           <label>Type</label>
-          <div className="sa-select-wrap">
-            <span className="sa-select-ic">🧩</span>
-            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
-              <option value="">All Types</option>
-              <option value="coding">💻 Coding</option>
-              <option value="mcq">📋 Quiz</option>
-              <option value="theory">📝 Theory</option>
-              <option value="project">🚀 Project</option>
-              <option value="web">🌐 Web</option>
-              <option value="sql">🗄️ SQL</option>
-            </select>
-          </div>
+          <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)}>
+            <option value="">All Types</option>
+            <option value="coding">Coding</option>
+            <option value="mcq">Quiz</option>
+            <option value="theory">Theory</option>
+            <option value="project">Project</option>
+            <option value="web">Web</option>
+            <option value="sql">SQL</option>
+          </select>
         </div>
         <div className="sa-filter-item">
           <label>Status</label>
@@ -276,7 +272,7 @@ const StudentAssignmentList: React.FC = () => {
 
         {totalRecords === 0 ? (
           <div className="sa-empty">
-            <div className="sa-empty-ic">🎉</div>
+            <div className="sa-empty-ic"><i className="fa-solid fa-clipboard-check" /></div>
             <h3>No assignments</h3>
             <p>You're all caught up! Check back later for new assignments.</p>
           </div>

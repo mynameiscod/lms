@@ -47,7 +47,7 @@ const MyInterviewsPage: React.FC = () => {
   );
 
   return (
-    <div style={{ padding: '24px', maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ padding: '10px 4px 4px', width: '100%' }}>
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#111827' }}>My Interviews</h1>
         <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 14 }}>

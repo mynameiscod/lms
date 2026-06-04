@@ -1,8 +1,7 @@
 /* ── My Attendance — student page ───────────────────────────────────────── */
 .ma-page {
-  padding: 24px;
-  max-width: 1200px;
-  margin: 0 auto;
+  padding: 10px 4px 4px;
+  width: 100%;
   color: #1e293b;
   color-scheme: light;
 }
@@ -27,10 +26,10 @@
   margin: 0;
 }
 .ma-hero-art {
-  font-size: 52px;
+  font-size: 40px;
   line-height: 1;
   flex-shrink: 0;
-  filter: drop-shadow(0 6px 10px rgba(99, 102, 241, 0.25));
+  color: #6366f1;
 }
 
 /* Batch info */
@@ -56,7 +55,8 @@
   height: 36px;
   border-radius: 10px;
   background: #ede9fe;
-  font-size: 18px;
+  color: #6366f1;
+  font-size: 16px;
 }
 
 /* Filter bar */
@@ -139,11 +139,12 @@
   font-size: 22px;
   flex-shrink: 0;
 }
-.ma-stat-ic.purple { background: #ede9fe; }
-.ma-stat-ic.green  { background: #dcfce7; }
-.ma-stat-ic.red    { background: #fee2e2; }
-.ma-stat-ic.amber  { background: #fef3c7; }
-.ma-stat-ic.blue   { background: #dbeafe; }
+.ma-stat-ic.purple { background: #ede9fe; color: #7c3aed; }
+.ma-stat-ic.green  { background: #dcfce7; color: #16a34a; }
+.ma-stat-ic.red    { background: #fee2e2; color: #dc2626; }
+.ma-stat-ic.amber  { background: #fef3c7; color: #d97706; }
+.ma-stat-ic.blue   { background: #dbeafe; color: #2563eb; }
+.ma-stat-ic i { font-size: 20px; }
 .ma-stat-label { font-size: 13px; color: #64748b; margin-bottom: 2px; }
 .ma-stat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1.1; }
 .ma-stat-sub { font-size: 12px; font-weight: 700; margin-top: 2px; }
@@ -203,7 +204,7 @@
 
 /* Empty */
 .ma-empty { text-align: center; padding: 48px 16px; color: #64748b; }
-.ma-empty-ic { font-size: 44px; margin-bottom: 8px; }
+.ma-empty-ic { font-size: 40px; margin-bottom: 10px; color: #cbd5e1; }
 .ma-empty h3 { margin: 0 0 6px; color: #334155; font-size: 17px; }
 .ma-empty p { margin: 0; font-size: 14px; }
 
@@ -253,7 +254,7 @@
   .ma-stats { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 860px) {
-  .ma-page { padding: 16px; }
+  .ma-page { padding: 10px 4px 4px; }
   .ma-title { font-size: 24px; }
   .ma-hero-art { font-size: 40px; }
   .ma-preset { margin-left: 0; flex: 1 1 100%; }

@@ -8,7 +8,8 @@
   position: fixed;
   left: 0;
   top: 60px;
-  height: calc(100vh - 60px);
+  bottom: 0;            /* anchor to bottom so it fills correctly under #root zoom */
+  height: auto;
   width: 260px;
   transition: all 0.3s ease;
   overflow-y: auto;

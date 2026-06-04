@@ -559,7 +559,7 @@
 /* ============================================================
    My Quiz — redesigned student quiz page (mobile-friendly)
    ============================================================ */
-.mq-page { padding: 22px 26px 60px; max-width: 1180px; margin: 0 auto; }
+.mq-page { padding: 10px 4px 4px; width: 100%; }
 
 /* Header */
 .mq-header { position: relative; display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin-bottom: 22px; }
@@ -573,7 +573,8 @@
 .mq-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 22px; }
 .mq-stat { display: flex; align-items: center; gap: 14px; background: #fff; border: 1px solid #eef2f7; border-radius: 16px; padding: 18px 20px; box-shadow: 0 2px 10px rgba(15,23,42,.04); }
 .mq-stat-ic { width: 46px; height: 46px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
-.mq-stat-ic.purple { background: #ede9fe; } .mq-stat-ic.green { background: #dcfce7; } .mq-stat-ic.amber { background: #fef3c7; } .mq-stat-ic.red { background: #fee2e2; }
+.mq-stat-ic i { font-size: 20px; }
+.mq-stat-ic.purple { background: #ede9fe; color: #7c3aed; } .mq-stat-ic.green { background: #dcfce7; color: #16a34a; } .mq-stat-ic.amber { background: #fef3c7; color: #d97706; } .mq-stat-ic.red { background: #fee2e2; color: #dc2626; }
 .mq-stat-label { font-size: 13px; color: #64748b; font-weight: 600; }
 .mq-stat-val { font-size: 26px; font-weight: 800; color: #0f172a; line-height: 1.15; }
 .mq-stat-sub { font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
@@ -626,14 +627,14 @@
 
 /* Empty */
 .mq-empty { background: #fff; border: 1px solid #eef2f7; border-radius: 16px; padding: 50px 20px; text-align: center; box-shadow: 0 2px 10px rgba(15,23,42,.04); }
-.mq-empty-ic { font-size: 40px; }
+.mq-empty-ic { font-size: 40px; color: #cbd5e1; }
 .mq-empty h3 { margin: 10px 0 4px; color: #0f172a; }
 .mq-empty p { color: #94a3b8; margin: 0; }
 
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 1000px) { .mq-stats { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 860px) {
-  .mq-page { padding: 16px 14px 50px; }
+  .mq-page { padding: 10px 4px 4px; }
   .mq-hero-art { display: none; }
   .mq-title { font-size: 23px; }
   .mq-search { flex: 1; min-width: 0; }

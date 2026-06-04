@@ -191,7 +191,6 @@ const MyAttendancePage: React.FC = () => {
           <h1 className="ma-title">My Attendance</h1>
           <p className="ma-subtitle">Track your class attendance and maintain your records.</p>
         </div>
-        <div className="ma-hero-art">📋</div>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
@@ -199,7 +198,7 @@ const MyAttendancePage: React.FC = () => {
       {/* Batch info */}
       {currentBatch && (
         <div className="ma-batch">
-          <span className="ma-batch-ic">👥</span>
+          <span className="ma-batch-ic"><i className="fa-solid fa-user-group" /></span>
           <span>Batch: <strong>{currentBatch.name}</strong></span>
         </div>
       )}
@@ -245,23 +244,23 @@ const MyAttendancePage: React.FC = () => {
       {/* Stat cards */}
       <div className="ma-stats">
         <div className="ma-stat">
-          <span className="ma-stat-ic purple">🗓️</span>
+          <span className="ma-stat-ic purple"><i className="fa-solid fa-calendar-days" /></span>
           <div><div className="ma-stat-label">Total Days</div><div className="ma-stat-val">{display.total}</div></div>
         </div>
         <div className="ma-stat">
-          <span className="ma-stat-ic green">✅</span>
+          <span className="ma-stat-ic green"><i className="fa-solid fa-circle-check" /></span>
           <div><div className="ma-stat-label">Present</div><div className="ma-stat-val">{display.present}</div><div className="ma-stat-sub good">{pct(display.present)}%</div></div>
         </div>
         <div className="ma-stat">
-          <span className="ma-stat-ic red">⛔</span>
+          <span className="ma-stat-ic red"><i className="fa-solid fa-circle-xmark" /></span>
           <div><div className="ma-stat-label">Absent</div><div className="ma-stat-val">{display.absent}</div><div className="ma-stat-sub low">{pct(display.absent)}%</div></div>
         </div>
         <div className="ma-stat">
-          <span className="ma-stat-ic amber">🕒</span>
+          <span className="ma-stat-ic amber"><i className="fa-solid fa-clock" /></span>
           <div><div className="ma-stat-label">Leave</div><div className="ma-stat-val">{display.leave}</div><div className="ma-stat-sub avg">{pct(display.leave)}%</div></div>
         </div>
         <div className="ma-stat">
-          <span className="ma-stat-ic blue">📊</span>
+          <span className="ma-stat-ic blue"><i className="fa-solid fa-chart-pie" /></span>
           <div><div className="ma-stat-label">Attendance %</div><div className="ma-stat-val">{display.percentage}%</div><div className={`ma-stat-sub ${ratingClass}`}>{rating}</div></div>
         </div>
       </div>
@@ -272,7 +271,7 @@ const MyAttendancePage: React.FC = () => {
 
         {totalRecords === 0 ? (
           <div className="ma-empty">
-            <div className="ma-empty-ic">📭</div>
+            <div className="ma-empty-ic"><i className="fa-solid fa-calendar-xmark" /></div>
             <h3>No attendance records</h3>
             <p>No attendance records found for the selected dates.</p>
           </div>

@@ -21,15 +21,9 @@
 
 /* ── Top Bar ── */
 .sch-topbar {
-  background: #fff;
-  border-bottom: 1px solid #e8ecf3;
-  padding: 14px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  position: sticky;
-  top: 0;
-  z-index: 100;
+  /* The page now renders inside the app Layout (navbar + sidebar),
+     so this in-page top bar is hidden to avoid a duplicate header. */
+  display: none;
 }
 .sch-breadcrumb { font-size: 14px; color: #64748b; display: flex; align-items: center; gap: 6px; }
 .sch-breadcrumb strong { color: var(--sch-dark); font-weight: 700; }
@@ -60,7 +54,7 @@
 }
 
 /* ── Content ── */
-.sch-content { max-width: 800px; margin: 0 auto; padding: 28px 20px 20px; }
+.sch-content { width: 100%; padding: 10px 4px 4px; }
 
 /* ── Stats Row ── */
 .sch-stats-row {

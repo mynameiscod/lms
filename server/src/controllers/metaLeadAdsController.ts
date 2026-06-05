@@ -39,6 +39,28 @@ function errorLog(category: string, message: string, error?: any) {
   }
 }
 
+// ===================== PHONE NORMALIZATION =====================
+
+/**
+ * Normalize a phone number coming from Meta lead forms.
+ * Only strips the Indian country code (91 / +91) when doing so still leaves a
+ * full-length local number. A bare `.replace(/^91/, '')` would corrupt valid
+ * 10-digit mobiles that legitimately start with "91" (e.g. 9180123456 -> 80123456).
+ */
+function normalizeIndianPhone(raw: string): string {
+  let digits = (raw || '').replace(/[^0-9]/g, '');
+  // +91XXXXXXXXXX or 91XXXXXXXXXX (12 digits) -> drop country code
+  if (digits.length === 12 && digits.startsWith('91')) {
+    digits = digits.slice(2);
+  } else if (digits.length === 13 && digits.startsWith('091')) {
+    digits = digits.slice(3);
+  } else if (digits.length === 11 && digits.startsWith('0')) {
+    // leading trunk-zero: 0XXXXXXXXXX -> XXXXXXXXXX
+    digits = digits.slice(1);
+  }
+  return digits;
+}
+
 // ===================== TYPES =====================
 
 interface MetaLeadgenPayload {
@@ -418,7 +440,7 @@ async function fetchAndCreateLead(
   debugLog('CREATE', `Extracted course: ${course}`);
 
   // Clean phone number
-  const cleanPhone = phone.replace(/[^0-9+]/g, '').replace(/^\+91/, '').replace(/^91/, '');
+  const cleanPhone = normalizeIndianPhone(phone);
   debugLog('CREATE', `Cleaned phone: ${cleanPhone}`);
 
   if (!cleanPhone) {
@@ -783,7 +805,7 @@ async function createOrUpdateLeadFromData(
   tenantId: string
 ): Promise<'created' | 'updated' | 'skipped'> {
   const phone = extractFieldValue(leadData.field_data, 'phone') || '';
-  const cleanPhone = phone.replace(/[^0-9+]/g, '').replace(/^\+91/, '').replace(/^91/, '');
+  const cleanPhone = normalizeIndianPhone(phone);
 
   if (!cleanPhone || cleanPhone.length < 7) return 'skipped';
 

@@ -498,7 +498,7 @@ export default function DayView() {
   const dayLabel = dayDate.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 
   return (
-    <div style={{ padding: '24px', maxWidth: '860px', margin: '0 auto' }}>
+    <div style={{ padding: '24px 28px 60px', width: '100%' }}>
 
       {/* Back nav */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '20px' }}>

@@ -1502,6 +1502,77 @@ export const getTeamActivity = async (req: AuthenticatedRequest, res: Response<A
   }
 };
 
+// ===================== TEAM ACTIVITY DRILL-DOWN =====================
+// Returns the individual activities (with lead details) behind a clicked metric
+// on the Team Activity page — e.g. clicking a member's "Calls" count lists every
+// call they logged in the period, with the lead it was on.
+
+export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
+    const { date, from, to, userId, type } = req.query as any;
+
+    let start: Date, end: Date;
+    if (from || to) {
+      start = from ? new Date(from) : new Date(0);
+      end = to ? new Date(to) : new Date();
+      end.setHours(23, 59, 59, 999);
+    } else {
+      const d = date ? new Date(date) : new Date();
+      start = new Date(d); start.setHours(0, 0, 0, 0);
+      end = new Date(d); end.setHours(23, 59, 59, 999);
+    }
+
+    // Map the clicked metric to the underlying activity type(s).
+    // 'total' / 'leadsTouched' => no type filter (all activities).
+    const typeFilter: Record<string, string[]> = {
+      call: ['call'],
+      whatsapp: ['whatsapp'],
+      note: ['note'],
+      email: ['email'],
+      stageMoves: ['status_change', 'stage_change'],
+    };
+    const types = typeFilter[type as string];
+
+    const activityMatch: any = { 'activities.createdAt': { $gte: start, $lte: end } };
+    // userId may be the string "null" for the "Unknown / System" row.
+    if (userId && userId !== 'null') {
+      activityMatch['activities.createdBy'] = new mongoose.Types.ObjectId(userId);
+    } else {
+      activityMatch['activities.createdBy'] = null;
+    }
+    if (types) {
+      activityMatch['activities.type'] = { $in: types };
+    }
+
+    const items = await Lead.aggregate([
+      { $match: { tenantId: tenantOid } },
+      { $unwind: '$activities' },
+      { $match: activityMatch },
+      { $sort: { 'activities.createdAt': -1 } },
+      { $limit: 500 },
+      {
+        $project: {
+          _id: 0,
+          leadId: '$_id',
+          leadName: '$name',
+          phone: '$phone',
+          email: '$email',
+          activityType: '$activities.type',
+          description: '$activities.description',
+          callOutcome: '$activities.callOutcome',
+          metadata: '$activities.metadata',
+          createdAt: '$activities.createdAt',
+        },
+      },
+    ]);
+
+    res.json({ success: true, message: 'Activity details fetched', data: { items, range: { start, end } } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch activity details', error: error.message });
+  }
+};
+
 // ===================== QUICK STATUS UPDATE (Telecaller) =====================
 
 export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {

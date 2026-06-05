@@ -1878,6 +1878,15 @@ export const leadApi = {
     if (params?.to) q.append('to', params.to);
     return authenticatedFetch(`${API_BASE_URL}/leads/team-activity${q.toString() ? `?${q}` : ''}`);
   },
+  getTeamActivityDetails: async (params: { userId?: string | null; type?: string; date?: string; from?: string; to?: string }) => {
+    const q = new URLSearchParams();
+    if (params.userId) q.append('userId', String(params.userId));
+    if (params.type) q.append('type', params.type);
+    if (params.date) q.append('date', params.date);
+    if (params.from) q.append('from', params.from);
+    if (params.to) q.append('to', params.to);
+    return authenticatedFetch(`${API_BASE_URL}/leads/team-activity/details${q.toString() ? `?${q}` : ''}`);
+  },
   quickUpdate: async (leadId: string, data: { stageId?: string; nextFollowUp?: string; activityType?: string; activityDescription?: string; notes?: string }) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}/quick-update`, {
       method: 'PATCH',

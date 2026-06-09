@@ -37,6 +37,9 @@ const complete = (dimension, difficulty, language, codeSnippet, blanks) => ({
   type: 'complete_code', dimension, difficulty, language,
   prompt: 'Fill in the blank to make the code correct.', codeSnippet, blanks, points: 1, tags: ['seed'], active: true,
 });
+const liveCode = (dimension, difficulty, language, prompt, starterCode, testCases) => ({
+  type: 'live_code', dimension, difficulty, language, prompt, starterCode, testCases, points: 2, tags: ['seed'], active: true,
+});
 
 const ITEMS = [
   // ── Aptitude ──
@@ -72,6 +75,23 @@ const ITEMS = [
   debug('problem_solving', 3, 'java',
     'int max = 0;\nint[] arr = {-3, -1, -7};\nfor (int v : arr) if (v > max) max = v;\nSystem.out.println(max);', 1,
     'Line 1 initializes max to 0; for all-negative input it should start at arr[0] or Integer.MIN_VALUE.'),
+
+  // ── Live code (Wave B — graded by Piston against hidden test cases) ──
+  liveCode('dsa', 3, 'python',
+    'Read an integer n from input and print the n-th Fibonacci number (0-indexed: 0, 1, 1, 2, 3, 5, ...).',
+    'n = int(input())\n# your code here\n',
+    [
+      { input: '7', expectedOutput: '13', hidden: false, weight: 1 },
+      { input: '10', expectedOutput: '55', hidden: true, weight: 1 },
+      { input: '0', expectedOutput: '0', hidden: true, weight: 1 },
+    ]),
+  liveCode('core_stack', 3, 'java',
+    'Read two integers (each on its own line) and print their sum.',
+    'import java.util.*;\npublic class Main {\n  public static void main(String[] args) {\n    Scanner sc = new Scanner(System.in);\n    // your code here\n  }\n}',
+    [
+      { input: '3\n4', expectedOutput: '7', hidden: false, weight: 1 },
+      { input: '100\n250', expectedOutput: '350', hidden: true, weight: 1 },
+    ]),
 ];
 
 (async () => {

@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
 import AssessmentItem, { IAssessmentItem } from '../models/AssessmentItem';
 import AssessmentSubmission, {
   IAssessmentSubmission,
   ISubmissionItem,
   ISubScore,
 } from '../models/AssessmentSubmission';
-import { ASSESSMENT_DIMENSIONS, AssessmentDimension, WAVE_A_TYPES } from '../constants/assessment';
+import { ASSESSMENT_DIMENSIONS, AssessmentDimension, WAVE_A_TYPES, WAVE_B_TYPES } from '../constants/assessment';
+import { gradeCodeItem } from './assessmentCodeGradingService';
 
 /**
  * Scoring service — grades Wave A items (no code execution), rolls responses up
@@ -151,14 +151,18 @@ export async function gradeSubmission(submission: IAssessmentSubmission): Promis
   const itemDocs = await AssessmentItem.find({ _id: { $in: itemIds } }).lean<IAssessmentItem[]>();
   const byId = new Map(itemDocs.map((d) => [String(d._id), d]));
 
+  const codeGradingTasks: Promise<void>[] = [];
   for (const resp of submission.items) {
     const item = byId.get(String(resp.itemId));
     if (!item) continue;
     if (WAVE_A_TYPES.includes(item.type)) {
       gradeWaveAItem(item, resp);
+    } else if (WAVE_B_TYPES.includes(item.type)) {
+      // Run live-code / SQL against test cases via Piston (concurrently).
+      codeGradingTasks.push(gradeCodeItem(item, resp));
     }
-    // Wave B (live_code/sql) graded by Piston in Slice 2.
   }
+  if (codeGradingTasks.length) await Promise.all(codeGradingTasks);
 
   const subScores = computeSubScores(submission.items);
   const dimensionWeights =

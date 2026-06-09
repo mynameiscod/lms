@@ -8,6 +8,8 @@ import { gradeSubmission, gradeStage, finalizeScores } from '../services/assessm
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
 import { generateRoadmap } from '../services/assessmentRoadmapService';
+import { ensureCandidateAccount } from '../services/assessmentAccountService';
+import { extractTextFromFile, parseResumeText } from '../services/resumeParserService';
 import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
 
 /**
@@ -58,7 +60,9 @@ export const registerAssessment = async (req: Request, res: Response) => {
   try {
     const b = req.body || {};
     const tenantId = String(b.tenantId || '').trim();
-    const name = String(b.name || '').trim();
+    const firstName = String(b.firstName || '').trim();
+    const lastName = String(b.lastName || '').trim();
+    const name = `${firstName} ${lastName}`.trim() || String(b.name || '').trim();
     const phone = normalizePhone(b.phone || '');
     const segment = String(b.segment || '') as CandidateSegment;
 
@@ -74,12 +78,15 @@ export const registerAssessment = async (req: Request, res: Response) => {
       publicConfigId: b.publicConfigId && mongoose.isValidObjectId(b.publicConfigId) ? b.publicConfigId : undefined,
       candidate: {
         name,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
         phone,
         email: b.email,
         city: b.city,
         segment,
         year: b.year,
         yearsExperience: b.yearsExperience != null ? Number(b.yearsExperience) : undefined,
+        primaryLanguage: b.primaryLanguage,
         currentStack: Array.isArray(b.currentStack) ? b.currentStack : [],
         currentPackage: b.currentPackage != null ? Number(b.currentPackage) : undefined,
         targetRole: b.targetRole,
@@ -104,6 +111,34 @@ export const registerAssessment = async (req: Request, res: Response) => {
   }
 };
 
+// ─── POST /resume (multipart) ────────────────────────────────────────────────
+// Optional: upload a resume for a registered candidate. Parsed text feeds the
+// AI exam designer (Phase 2). Best-effort parse; never blocks the funnel.
+export const uploadAssessmentResume = async (req: Request, res: Response) => {
+  try {
+    const token = String((req.body || {}).token || '');
+    const file = (req as any).file;
+    if (!token) return res.status(400).json({ success: false, message: 'token is required' });
+    const submission = await AssessmentSubmission.findOne({ token });
+    if (!submission) return res.status(404).json({ success: false, message: 'Session not found' });
+    if (!file) return res.status(400).json({ success: false, message: 'No resume file uploaded' });
+
+    submission.resumeFilePath = file.path;
+    try {
+      const text = await extractTextFromFile(file.path);
+      submission.resumeText = (text || '').slice(0, 20000);
+      const sections: any = await parseResumeText(text || '');
+      const skills = sections?.skills;
+      submission.parsedSkills = Array.isArray(skills) ? skills.slice(0, 50) : [];
+    } catch (e) { /* parsing best-effort */ }
+
+    await submission.save();
+    return res.json({ success: true, message: 'Resume uploaded', data: { parsedSkills: submission.parsedSkills || [] } });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Resume upload failed', error: error.message });
+  }
+};
+
 // ─── POST /verify-otp ────────────────────────────────────────────────────────
 export const verifyAssessmentOtp = async (req: Request, res: Response) => {
   try {
@@ -114,6 +149,20 @@ export const verifyAssessmentOtp = async (req: Request, res: Response) => {
     if (result !== 'ok') return res.status(400).json({ success: false, message: 'OTP verification failed', data: { reason: result } });
 
     await AssessmentSubmission.updateOne({ token }, { $set: { phoneVerified: true } });
+
+    // Auto-create the candidate's Student account now that the phone is verified.
+    try {
+      const submission = await AssessmentSubmission.findOne({ token });
+      if (submission && !submission.candidateUserId) {
+        const userId = await ensureCandidateAccount(submission);
+        if (userId) {
+          submission.candidateUserId = userId;
+          submission.accountCreatedAt = new Date();
+          await submission.save();
+        }
+      }
+    } catch (e) { /* best-effort — never block verification */ }
+
     return res.json({ success: true, message: 'Phone verified' });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Verification failed', error: error.message });

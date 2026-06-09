@@ -220,7 +220,7 @@ const Exam: React.FC = () => {
               <div className="as-editor">
                 <Editor
                   height="280px"
-                  theme="vs-dark"
+                  theme="light"
                   language={current.type === 'sql' ? 'sql' : (current.language || 'java')}
                   value={resp.code ?? current.starterCode ?? ''}
                   onChange={(v) => setResp({ code: v ?? '' })}

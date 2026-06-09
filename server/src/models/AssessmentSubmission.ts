@@ -100,6 +100,7 @@ export interface IAssessmentSubmission extends Document {
 
   blueprintSnapshot?: any;       // frozen copy of the blueprint at compose time
   items: ISubmissionItem[];
+  currentStage: number;          // 0-based index of the stage in progress (adaptive flow)
   stageHistory: IStageDecision[];
 
   subScores: ISubScore[];
@@ -183,6 +184,7 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
 
     blueprintSnapshot: { type: Schema.Types.Mixed },
     items: { type: [SubmissionItemSchema], default: [] },
+    currentStage: { type: Number, default: 0 },
     stageHistory: {
       type: [
         new Schema(

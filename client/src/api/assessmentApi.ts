@@ -72,7 +72,11 @@ export const assessmentApi = {
     post('/resend-otp', { token }).then((r) => r.data as { otp: { sent: boolean; channel: string; devCode?: string } }),
 
   start: (token: string) =>
-    post('/start', { token }).then((r) => r.data as { items: AssessmentItemView[]; title: string; timeLimitMinutes: number }),
+    post('/start', { token }).then((r) => r.data as { items: AssessmentItemView[]; title: string; timeLimitMinutes: number; stage: number; totalStages: number; isLast: boolean }),
+
+  // Submit the current stage; returns either the next stage or the final result.
+  advance: (token: string, responses: ItemResponse[], antiCheatFlags?: string[]) =>
+    post('/advance', { token, responses, antiCheatFlags }).then((r) => r.data as { done: boolean; stage?: number; totalStages?: number; isLast?: boolean; items?: AssessmentItemView[]; result?: any }),
 
   submit: (token: string, responses: ItemResponse[], antiCheatFlags?: string[]) =>
     post('/submit', { token, responses, antiCheatFlags }).then((r) => r.data),

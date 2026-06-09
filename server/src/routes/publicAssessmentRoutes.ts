@@ -4,6 +4,7 @@ import {
   verifyAssessmentOtp,
   resendAssessmentOtp,
   startAssessment,
+  advanceAssessment,
   submitAssessment,
   getAssessmentResult,
 } from '../controllers/publicAssessmentController';
@@ -15,6 +16,7 @@ router.post('/register', registerAssessment);
 router.post('/verify-otp', verifyAssessmentOtp);
 router.post('/resend-otp', resendAssessmentOtp);
 router.post('/start', startAssessment);
+router.post('/advance', advanceAssessment);
 router.post('/submit', submitAssessment);
 router.get('/result/:token', getAssessmentResult);
 

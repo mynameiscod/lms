@@ -3,8 +3,8 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import AssessmentSubmission from '../models/AssessmentSubmission';
 import AssessmentItem from '../models/AssessmentItem';
-import { composeExam } from '../services/assessmentBlueprintService';
-import { gradeSubmission } from '../services/assessmentScoringService';
+import { composeStage, resolveBlueprint, difficultyShiftFor } from '../services/assessmentBlueprintService';
+import { gradeSubmission, gradeStage, finalizeScores } from '../services/assessmentScoringService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
 import { generateRoadmap } from '../services/assessmentRoadmapService';
@@ -132,7 +132,17 @@ export const resendAssessmentOtp = async (req: Request, res: Response) => {
   }
 };
 
+// Sanitize the items of a single stage (by stage order) for the browser.
+async function sanitizeStage(submission: any, stageOrder: number) {
+  const stageItems = submission.items.filter((i: any) => i.stage === stageOrder);
+  const docs = await AssessmentItem.find({ _id: { $in: stageItems.map((i: any) => i.itemId) } }).lean();
+  const byId = new Map(docs.map((d: any) => [String(d._id), d]));
+  return stageItems.map((s: any) => sanitizeItem(byId.get(String(s.itemId)), s)).filter(Boolean);
+}
+
 // ─── POST /start ─────────────────────────────────────────────────────────────
+// Composes and returns ONLY the first stage; subsequent stages are served by
+// /advance with an adaptive difficulty based on the prior stage's score.
 export const startAssessment = async (req: Request, res: Response) => {
   try {
     const { token } = req.body || {};
@@ -140,31 +150,99 @@ export const startAssessment = async (req: Request, res: Response) => {
     if (!submission) return res.status(404).json({ success: false, message: 'Session not found' });
     if (!submission.phoneVerified) return res.status(403).json({ success: false, message: 'Phone not verified' });
 
-    // Idempotent: if already composed, just return the same exam (refresh-safe).
+    // Resume an in-progress session at its current stage (refresh-safe).
     if (submission.status === 'in_progress' && submission.items.length) {
-      const itemDocs = await AssessmentItem.find({ _id: { $in: submission.items.map((i) => i.itemId) } }).lean();
-      const byId = new Map(itemDocs.map((d: any) => [String(d._id), d]));
-      const items = submission.items.map((s) => sanitizeItem(byId.get(String(s.itemId)), s)).filter(Boolean);
-      return res.json({ success: true, message: 'Resumed', data: { items, title: submission.blueprintSnapshot?.title, timeLimitMinutes: submission.blueprintSnapshot?.timeLimitMinutes } });
+      const stages = submission.blueprintSnapshot?.stages || [];
+      const cur = submission.currentStage || 0;
+      const items = await sanitizeStage(submission, stages[cur]?.order);
+      return res.json({ success: true, message: 'Resumed', data: { items, stage: cur, totalStages: stages.length, isLast: cur >= stages.length - 1, title: submission.blueprintSnapshot?.title, timeLimitMinutes: submission.blueprintSnapshot?.timeLimitMinutes } });
     }
 
-    const composed = await composeExam(submission.tenantId, submission.candidate.segment, submission.isMobile);
-    if (!composed.items.length) return res.status(503).json({ success: false, message: 'No assessment items available yet' });
+    const resolved = await resolveBlueprint(submission.tenantId, submission.candidate.segment);
+    if (!resolved.stages.length) return res.status(503).json({ success: false, message: 'No blueprint configured' });
 
-    submission.items = composed.items;
-    submission.blueprintId = composed.blueprintId;
-    submission.blueprintSnapshot = { ...composed.snapshot, timeLimitMinutes: composed.timeLimitMinutes, title: composed.title };
+    const used = new Set<string>();
+    const stage0 = await composeStage(submission.tenantId, resolved.stages[0], submission.isMobile, 0, used);
+    if (!stage0.length) return res.status(503).json({ success: false, message: 'No assessment items available yet' });
+
+    submission.items = stage0;
+    submission.blueprintId = resolved.blueprintId;
+    submission.blueprintSnapshot = { title: resolved.title, timeLimitMinutes: resolved.timeLimitMinutes, dimensions: resolved.dimensions, stages: resolved.stages, isMobile: submission.isMobile };
+    submission.currentStage = 0;
     submission.status = 'in_progress';
     submission.startedAt = new Date();
     await submission.save();
 
-    const itemDocs = await AssessmentItem.find({ _id: { $in: composed.items.map((i) => i.itemId) } }).lean();
-    const byId = new Map(itemDocs.map((d: any) => [String(d._id), d]));
-    const items = composed.items.map((s) => sanitizeItem(byId.get(String(s.itemId)), s)).filter(Boolean);
-
-    return res.json({ success: true, message: 'Started', data: { items, title: composed.title, timeLimitMinutes: composed.timeLimitMinutes } });
+    const items = await sanitizeStage(submission, resolved.stages[0].order);
+    return res.json({ success: true, message: 'Started', data: { items, stage: 0, totalStages: resolved.stages.length, isLast: resolved.stages.length === 1, title: resolved.title, timeLimitMinutes: resolved.timeLimitMinutes } });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Failed to start assessment', error: error.message });
+  }
+};
+
+// ─── POST /advance ───────────────────────────────────────────────────────────
+// Submit the current stage → grade it → either serve the next (difficulty-
+// adapted) stage, or finalize the whole assessment.
+export const advanceAssessment = async (req: Request, res: Response) => {
+  try {
+    const { token, responses, antiCheatFlags } = req.body || {};
+    const submission = await AssessmentSubmission.findOne({ token });
+    if (!submission) return res.status(404).json({ success: false, message: 'Session not found' });
+    if (submission.status === 'submitted') return res.json({ success: true, data: { done: true, result: resultPayload(submission) } });
+
+    const stages = submission.blueprintSnapshot?.stages || [];
+    const cur = submission.currentStage || 0;
+    const stageOrder = stages[cur]?.order;
+
+    // Merge this stage's responses.
+    const respById = new Map<string, any>((responses || []).map((r: any) => [String(r.itemId), r]));
+    for (const item of submission.items) {
+      if (item.stage !== stageOrder) continue;
+      const r = respById.get(String(item.itemId));
+      if (!r) continue;
+      item.selectedOptionIds = r.selectedOptionIds;
+      item.predictedOutput = r.predictedOutput;
+      item.blankAnswers = r.blankAnswers;
+      item.identifiedLine = r.identifiedLine != null ? Number(r.identifiedLine) : undefined;
+      item.code = r.code;
+      item.timeSpentSeconds = r.timeSpentSeconds != null ? Number(r.timeSpentSeconds) : undefined;
+    }
+    if (Array.isArray(antiCheatFlags)) {
+      submission.antiCheatFlags = Array.from(new Set([...(submission.antiCheatFlags || []), ...antiCheatFlags]));
+    }
+
+    // Grade the just-completed stage and record the routing decision.
+    const runningPct = await gradeStage(submission, stageOrder);
+    const shift = difficultyShiftFor(runningPct);
+    submission.stageHistory.push({ stage: stageOrder, runningScorePct: runningPct } as any);
+    submission.markModified('items');
+
+    if (cur + 1 < stages.length) {
+      const used = new Set<string>(submission.items.map((i) => String(i.itemId)));
+      const nextItems = await composeStage(submission.tenantId, stages[cur + 1], submission.isMobile, shift, used);
+      submission.items.push(...nextItems);
+      submission.currentStage = cur + 1;
+      submission.markModified('items');
+      await submission.save();
+      const items = await sanitizeStage(submission, stages[cur + 1].order);
+      return res.json({ success: true, data: { done: false, stage: cur + 1, totalStages: stages.length, isLast: cur + 1 >= stages.length - 1, items } });
+    }
+
+    // Final stage → aggregate scores, roadmap, lead.
+    const final = await finalizeScores(submission);
+    submission.subScores = final.subScores;
+    submission.readinessScore = final.readinessScore;
+    submission.percentile = final.percentile;
+    submission.status = 'submitted';
+    submission.submittedAt = new Date();
+    await submission.save();
+
+    try { const roadmap = await generateRoadmap(submission); if (roadmap) { submission.roadmap = roadmap as any; await submission.save(); } } catch (e) { /* best-effort */ }
+    try { const leadId = await syncSubmissionToLead(submission, { withResults: true }); if (leadId && !submission.leadId) { submission.leadId = leadId; await submission.save(); } } catch (e) { /* best-effort */ }
+
+    return res.json({ success: true, data: { done: true, result: resultPayload(submission) } });
+  } catch (error: any) {
+    return res.status(500).json({ success: false, message: 'Failed to advance assessment', error: error.message });
   }
 };
 

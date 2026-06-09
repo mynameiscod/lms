@@ -164,6 +164,43 @@ export async function gradeSubmission(submission: IAssessmentSubmission): Promis
   }
   if (codeGradingTasks.length) await Promise.all(codeGradingTasks);
 
+  return finalizeScores(submission);
+}
+
+/**
+ * Grade only the items belonging to one stage (adaptive flow). Returns that
+ * stage's running score percentage, used to pick the next stage's difficulty.
+ */
+export async function gradeStage(submission: IAssessmentSubmission, stageOrder: number): Promise<number> {
+  const stageItems = submission.items.filter((i) => i.stage === stageOrder);
+  const itemDocs = await AssessmentItem.find({ _id: { $in: stageItems.map((i) => i.itemId) } }).lean<IAssessmentItem[]>();
+  const byId = new Map(itemDocs.map((d) => [String(d._id), d]));
+
+  const codeTasks: Promise<void>[] = [];
+  for (const resp of stageItems) {
+    const item = byId.get(String(resp.itemId));
+    if (!item) continue;
+    if (WAVE_A_TYPES.includes(item.type)) gradeWaveAItem(item, resp);
+    else if (WAVE_B_TYPES.includes(item.type)) codeTasks.push(gradeCodeItem(item, resp));
+  }
+  if (codeTasks.length) await Promise.all(codeTasks);
+
+  let correct = 0, total = 0;
+  for (const resp of stageItems) {
+    if (!resp.graded) continue;
+    total += resp.maxScore || 0;
+    correct += resp.score || 0;
+  }
+  return total ? Math.round((correct / total) * 100) : 0;
+}
+
+/** Compute aggregate scores from already-graded items (no re-grading). */
+export async function finalizeScores(submission: IAssessmentSubmission): Promise<{
+  items: ISubmissionItem[];
+  subScores: ISubScore[];
+  readinessScore: number;
+  percentile: number;
+}> {
   const subScores = computeSubScores(submission.items);
   const dimensionWeights =
     (submission.blueprintSnapshot?.dimensions as { dimension: AssessmentDimension; weight: number }[]) || [];

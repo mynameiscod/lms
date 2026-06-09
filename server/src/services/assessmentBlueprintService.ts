@@ -184,9 +184,59 @@ const toSubmissionItem = (doc: any, stage: number, optional: boolean): ISubmissi
   maxScore: doc.points ?? 1,
 });
 
+const clampDifficulty = (n: number) => Math.max(1, Math.min(5, n));
+
 /**
- * Compose the ordered list of exam items for a candidate.
- * Returns the items plus the resolved blueprint meta used to build the session.
+ * Compose the items for a SINGLE stage, with an adaptive difficulty shift
+ * (-1/0/+1) applied to the stage's band based on prior-stage performance.
+ * `used` tracks already-served item ids to avoid repeats across stages.
+ */
+export async function composeStage(
+  tenantId: string,
+  stage: IBlueprintStage,
+  isMobile: boolean,
+  difficultyShift: number,
+  used: Set<string>
+): Promise<ISubmissionItem[]> {
+  const band: [number, number] = [
+    clampDifficulty(stage.difficultyBand[0] + difficultyShift),
+    clampDifficulty(stage.difficultyBand[1] + difficultyShift),
+  ];
+  const items: ISubmissionItem[] = [];
+
+  for (const entry of stage.mix) {
+    const keyboardOnPhone = isMobile && isKeyboardType(entry.type);
+
+    const picked = await sampleItems(tenantId, entry.type, entry.dimension, band, entry.count, used);
+    for (const doc of picked) {
+      used.add(String(doc._id));
+      items.push(toSubmissionItem(doc, stage.order, keyboardOnPhone));
+    }
+
+    // Zero-drop-off back-fill: on a phone, replace keyboard-only tasks with an
+    // equal number of tap-friendly items in the same dimension.
+    if (keyboardOnPhone) {
+      const backfill = await sampleItems(tenantId, 'predict_output', entry.dimension, band, entry.count, used);
+      for (const doc of backfill) {
+        used.add(String(doc._id));
+        items.push(toSubmissionItem(doc, stage.order, false));
+      }
+    }
+  }
+
+  return items;
+}
+
+/** Map a stage's running score (%) into the next stage's difficulty shift. */
+export function difficultyShiftFor(runningScorePct: number): number {
+  if (runningScorePct >= 75) return 1;   // crushing it → harder
+  if (runningScorePct <= 40) return -1;  // struggling → ease off
+  return 0;
+}
+
+/**
+ * Compose the full exam in one shot (non-adaptive fallback / preview). The
+ * staged flow uses composeStage per stage instead.
  */
 export async function composeExam(
   tenantId: string,
@@ -203,32 +253,10 @@ export async function composeExam(
   const resolved = await resolveBlueprint(tenantId, segment);
   const items: ISubmissionItem[] = [];
   const used = new Set<string>();
-
   for (const stage of resolved.stages) {
-    const band: [number, number] = [stage.difficultyBand[0], stage.difficultyBand[1]];
-    for (const entry of stage.mix) {
-      const keyboardOnPhone = isMobile && isKeyboardType(entry.type);
-
-      // Primary pull for this mix entry.
-      const picked = await sampleItems(tenantId, entry.type, entry.dimension, band, entry.count, used);
-      for (const doc of picked) {
-        used.add(String(doc._id));
-        items.push(toSubmissionItem(doc, stage.order, keyboardOnPhone));
-      }
-
-      // Zero-drop-off back-fill: on a phone, replace keyboard-only tasks with an
-      // equal number of tap-friendly items in the same dimension so the core
-      // score never depends on typing code.
-      if (keyboardOnPhone) {
-        const backfill = await sampleItems(tenantId, 'predict_output', entry.dimension, band, entry.count, used);
-        for (const doc of backfill) {
-          used.add(String(doc._id));
-          items.push(toSubmissionItem(doc, stage.order, false));
-        }
-      }
-    }
+    const stageItems = await composeStage(tenantId, stage, isMobile, 0, used);
+    items.push(...stageItems);
   }
-
   return {
     items,
     blueprintId: resolved.blueprintId,

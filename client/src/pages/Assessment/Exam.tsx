@@ -32,6 +32,9 @@ const Exam: React.FC = () => {
   const [err, setErr] = useState('');
   const [items, setItems] = useState<AssessmentItemView[]>([]);
   const [meta, setMeta] = useState<{ title: string; timeLimitMinutes: number }>({ title: '', timeLimitMinutes: 25 });
+  const [stage, setStage] = useState(0);
+  const [totalStages, setTotalStages] = useState(1);
+  const [isLast, setIsLast] = useState(true);
   const [idx, setIdx] = useState(0);
   const [responses, setResponses] = useState<Record<string, ItemResponse>>({});
   const [timeLeft, setTimeLeft] = useState(0);
@@ -39,14 +42,17 @@ const Exam: React.FC = () => {
   const flags = useRef<Set<string>>(new Set());
   const itemStart = useRef<number>(Date.now());
 
-  // Load & compose the exam.
+  // Load & compose stage 1.
   useEffect(() => {
     (async () => {
       try {
         const data = await assessmentApi.start(token);
         setItems(data.items);
         setMeta({ title: data.title, timeLimitMinutes: data.timeLimitMinutes });
-        setTimeLeft(data.timeLimitMinutes * 60);
+        setStage(data.stage ?? 0);
+        setTotalStages(data.totalStages ?? 1);
+        setIsLast(data.isLast ?? true);
+        setTimeLeft((data.timeLimitMinutes || 25) * 60);
       } catch (e: any) {
         setErr(e.message || 'Failed to load the assessment.');
       } finally {
@@ -57,33 +63,49 @@ const Exam: React.FC = () => {
 
   const current = items[idx];
 
-  const doSubmit = useCallback(async (auto = false) => {
+  // Submit the current stage → advance to the next (difficulty-adapted) stage,
+  // or finalize and go to the result page.
+  const advance = useCallback(async () => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      const payload: ItemResponse[] = Object.values(responses);
-      await assessmentApi.submit(token, payload, Array.from(flags.current));
-      navigate(`/assessment/result/${token}`);
+      const stagePayload: ItemResponse[] = items.map((it) => responses[it.itemId]).filter(Boolean) as ItemResponse[];
+      const data = await assessmentApi.advance(token, stagePayload, Array.from(flags.current));
+      if (data.done) { navigate(`/assessment/result/${token}`); return; }
+      setItems(data.items || []);
+      setStage(data.stage ?? stage + 1);
+      setIsLast(data.isLast ?? true);
+      setIdx(0);
+      itemStart.current = Date.now();
+      setSubmitting(false);
     } catch (e: any) {
       setErr(e.message || 'Submission failed.');
       setSubmitting(false);
     }
-    void auto;
-  }, [responses, submitting, token, navigate]);
+  }, [items, responses, submitting, token, navigate, stage]);
 
-  // Countdown timer → auto-submit at 0.
+  // Countdown timer → auto-advance at 0.
   useEffect(() => {
     if (loading || err) return;
-    if (timeLeft <= 0) { doSubmit(true); return; }
+    if (timeLeft <= 0) { advance(); return; }
     const t = setTimeout(() => setTimeLeft((s) => s - 1), 1000);
     return () => clearTimeout(t);
-  }, [timeLeft, loading, err, doSubmit]);
+  }, [timeLeft, loading, err, advance]);
 
-  // Anti-cheat: flag tab switches.
+  // Anti-cheat: flag tab switches, window blur, and copy attempts; best-effort fullscreen.
   useEffect(() => {
     const onHide = () => { if (document.hidden) flags.current.add('tab_switch'); };
+    const onBlur = () => flags.current.add('window_blur');
+    const onCopy = () => flags.current.add('copy_attempt');
     document.addEventListener('visibilitychange', onHide);
-    return () => document.removeEventListener('visibilitychange', onHide);
+    window.addEventListener('blur', onBlur);
+    document.addEventListener('copy', onCopy);
+    document.documentElement.requestFullscreen?.().catch(() => { /* gesture may be required */ });
+    return () => {
+      document.removeEventListener('visibilitychange', onHide);
+      window.removeEventListener('blur', onBlur);
+      document.removeEventListener('copy', onCopy);
+    };
   }, []);
 
   const setResp = (patch: Partial<ItemResponse>) => {
@@ -118,7 +140,7 @@ const Exam: React.FC = () => {
   return (
     <div className="as-root">
       <div className="as-exam-top">
-        <div><b>{meta.title || 'Assessment'}</b><div className="as-note" style={{ marginTop: 2 }}>Question {idx + 1} of {items.length}</div></div>
+        <div><b>{meta.title || 'Assessment'}</b><div className="as-note" style={{ marginTop: 2 }}>Stage {stage + 1}/{totalStages} · Question {idx + 1} of {items.length}</div></div>
         <div className={`as-timer ${timeLeft < 60 ? 'low' : ''}`}>⏱ {mmss}</div>
       </div>
       <div className="as-wrap">
@@ -209,7 +231,7 @@ const Exam: React.FC = () => {
           {idx > 0 && <button className="as-btn ghost" onClick={() => go(-1)}>← Previous</button>}
           {idx < items.length - 1
             ? <button className="as-btn" onClick={() => go(1)}>Next →</button>
-            : <button className="as-btn" disabled={submitting} onClick={() => doSubmit(false)}>{submitting ? 'Scoring…' : 'Submit & See My Score'}</button>}
+            : <button className="as-btn" disabled={submitting} onClick={() => advance()}>{submitting ? (isLast ? 'Scoring…' : 'Loading next stage…') : (isLast ? 'Submit & See My Score' : 'Submit Stage →')}</button>}
         </div>
         {err && <div className="as-err">{err}</div>}
       </div>

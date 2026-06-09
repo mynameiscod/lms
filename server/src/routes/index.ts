@@ -72,6 +72,7 @@ import scheduledInterviewRoutes from './scheduledInterviewRoutes';
 import resumeRoutes from './resumeRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
+import assessmentItemRoutes from './assessmentItemRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -93,6 +94,7 @@ router.use('/roles', roleRoutes);
 router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
+router.use('/assessment-items', assessmentItemRoutes);
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);

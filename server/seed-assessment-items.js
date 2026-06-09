@@ -104,6 +104,36 @@ const ITEMS = [
       { input: '3\n4', expectedOutput: '7', hidden: false, weight: 1 },
       { input: '100\n250', expectedOutput: '350', hidden: true, weight: 1 },
     ]),
+
+  // ── Extra coverage (variety across dimensions / difficulties) ──
+  mcq('aptitude', 3, 'A train 120m long runs at 60 km/h. Time to cross a pole?', ['6.2s', '7.2s', '8s', '5s'], ['b']),
+  mcq('aptitude', 1, '15% of 200 is?', ['25', '30', '35', '40'], ['b']),
+  mcq('fundamentals', 2, 'What is the size of an int in Java?', ['2 bytes', '4 bytes', '8 bytes', 'JVM-dependent'], ['b']),
+  mcq('fundamentals', 3, 'Which collection does NOT allow duplicate keys?', ['ArrayList', 'HashMap', 'LinkedList', 'Stack'], ['b']),
+  mcq('dsa', 4, 'Average time complexity of quicksort?', ['O(n)', 'O(n log n)', 'O(n^2)', 'O(log n)'], ['b']),
+  mcq('dsa', 4, 'Which DS is ideal for implementing recursion internally?', ['Queue', 'Stack', 'Heap', 'Graph'], ['b']),
+  mcq('core_stack', 3, 'Which HTTP method is idempotent and used to fully update a resource?', ['POST', 'PUT', 'PATCH', 'CONNECT'], ['b']),
+  mcq('core_stack', 4, 'In React, which hook memoizes an expensive computed value?', ['useEffect', 'useMemo', 'useRef', 'useState'], ['b']),
+  mcq('problem_solving', 3, 'Best DS to implement an LRU cache in O(1)?', ['Array', 'HashMap + Doubly Linked List', 'BST', 'Heap'], ['b']),
+
+  predict('fundamentals', 3, 'java', 'String a = "ab";\nString b = "a" + "b";\nSystem.out.println(a == b);', 'true'),
+  predict('core_stack', 3, 'javascript', 'console.log([3,1,2].sort());', '1,2,3'),
+  predict('dsa', 4, 'python', 'print(sum(i*i for i in range(4)))', '14'),
+  predict('problem_solving', 4, 'javascript', 'let x=0;[1,2,3].forEach(n=>x+=n);console.log(x);', '6'),
+
+  complete('fundamentals', 2, 'python', 'nums = [1,2,3]\ntotal = ___(nums)\nprint(total)', [{ id: 'b1', acceptedAnswers: ['sum'], caseSensitive: false }]),
+  complete('core_stack', 3, 'javascript', 'const doubled = [1,2,3].___(x => x*2);', [{ id: 'b1', acceptedAnswers: ['map'], caseSensitive: false }]),
+
+  debug('fundamentals', 2, 'python', 'def add(a, b):\nreturn a + b\nprint(add(2,3))', 2, 'Line 2 is not indented under the function body.'),
+  debug('dsa', 4, 'java', 'int[] a = {1,2,3};\nfor (int i = 0; i <= a.length; i++)\n  System.out.println(a[i]);', 2, 'Line 2 uses i <= a.length, causing an ArrayIndexOutOfBoundsException.'),
+
+  liveCode('problem_solving', 3, 'python',
+    'Read a line of text and print it reversed.',
+    's = input()\n# your code here\n',
+    [
+      { input: 'hello', expectedOutput: 'olleh', hidden: false, weight: 1 },
+      { input: 'CodeBegun', expectedOutput: 'nugeBedoC', hidden: true, weight: 1 },
+    ]),
 ];
 
 (async () => {

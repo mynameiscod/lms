@@ -172,6 +172,30 @@ async function sampleItems(
   return docs;
 }
 
+/**
+ * Resilient sampler: try the exact difficulty band first; if the bank is sparse,
+ * widen to all difficulties (same type+dimension) to still fill `count`. Keeps
+ * the exam full even with a thin question bank. Excludes already-picked ids.
+ */
+async function sampleItemsFlexible(
+  tenantId: string,
+  type: AssessmentItemType,
+  dimension: AssessmentDimension,
+  band: [number, number],
+  count: number,
+  excludeIds: Set<string>
+): Promise<any[]> {
+  if (count <= 0) return [];
+  const picked = await sampleItems(tenantId, type, dimension, band, count, excludeIds);
+  if (picked.length >= count) return picked;
+
+  // Widen to any difficulty for the shortfall, excluding what we just picked.
+  const exclude = new Set(excludeIds);
+  picked.forEach((d) => exclude.add(String(d._id)));
+  const more = await sampleItems(tenantId, type, dimension, [1, 5], count - picked.length, exclude);
+  return picked.concat(more);
+}
+
 const toSubmissionItem = (doc: any, stage: number, optional: boolean): ISubmissionItem => ({
   itemId: doc._id,
   type: doc.type,
@@ -207,7 +231,7 @@ export async function composeStage(
   for (const entry of stage.mix) {
     const keyboardOnPhone = isMobile && isKeyboardType(entry.type);
 
-    const picked = await sampleItems(tenantId, entry.type, entry.dimension, band, entry.count, used);
+    const picked = await sampleItemsFlexible(tenantId, entry.type, entry.dimension, band, entry.count, used);
     for (const doc of picked) {
       used.add(String(doc._id));
       items.push(toSubmissionItem(doc, stage.order, keyboardOnPhone));
@@ -216,7 +240,7 @@ export async function composeStage(
     // Zero-drop-off back-fill: on a phone, replace keyboard-only tasks with an
     // equal number of tap-friendly items in the same dimension.
     if (keyboardOnPhone) {
-      const backfill = await sampleItems(tenantId, 'predict_output', entry.dimension, band, entry.count, used);
+      const backfill = await sampleItemsFlexible(tenantId, 'predict_output', entry.dimension, band, entry.count, used);
       for (const doc of backfill) {
         used.add(String(doc._id));
         items.push(toSubmissionItem(doc, stage.order, false));

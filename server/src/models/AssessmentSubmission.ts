@@ -18,12 +18,15 @@ import {
 // ─── Candidate registration inputs (drive the blueprint + enrich the lead) ───
 export interface ICandidateInputs {
   name: string;
+  firstName?: string;
+  lastName?: string;
   phone: string;
   email?: string;
   city?: string;
   segment: CandidateSegment;
   year?: string;              // for students (e.g. "1st", "Final")
   yearsExperience?: number;   // for professionals
+  primaryLanguage?: string;   // primary programming language
   currentStack?: string[];
   currentPackage?: number;    // current CTC in LPA
   targetRole?: string;
@@ -98,6 +101,15 @@ export interface IAssessmentSubmission extends Document {
   isMobile: boolean;
   phoneVerified: boolean;
 
+  // Resume + auto-created account (v2)
+  resumeFilePath?: string;
+  resumeText?: string;
+  parsedSkills?: string[];
+  candidateUserId?: mongoose.Types.ObjectId; // the Student account auto-created for this candidate
+  accountCreatedAt?: Date;
+
+  designedBlueprint?: any;       // AI-designed, per-candidate blueprint (v2)
+  examDesignStatus?: 'pending' | 'ready' | 'failed';
   blueprintSnapshot?: any;       // frozen copy of the blueprint at compose time
   items: ISubmissionItem[];
   currentStage: number;          // 0-based index of the stage in progress (adaptive flow)
@@ -167,12 +179,15 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
 
     candidate: {
       name: { type: String, required: true, trim: true },
+      firstName: { type: String, trim: true },
+      lastName: { type: String, trim: true },
       phone: { type: String, required: true, trim: true },
       email: { type: String, trim: true, lowercase: true },
       city: { type: String, trim: true },
       segment: { type: String, enum: CANDIDATE_SEGMENTS as unknown as string[], required: true },
       year: { type: String, trim: true },
       yearsExperience: { type: Number },
+      primaryLanguage: { type: String, trim: true },
       currentStack: { type: [String], default: [] },
       currentPackage: { type: Number },
       targetRole: { type: String, trim: true },
@@ -182,6 +197,14 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
     isMobile: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
 
+    resumeFilePath: { type: String },
+    resumeText: { type: String },
+    parsedSkills: { type: [String], default: [] },
+    candidateUserId: { type: Schema.Types.ObjectId, ref: 'User' },
+    accountCreatedAt: { type: Date },
+
+    designedBlueprint: { type: Schema.Types.Mixed },
+    examDesignStatus: { type: String, enum: ['pending', 'ready', 'failed'], default: undefined },
     blueprintSnapshot: { type: Schema.Types.Mixed },
     items: { type: [SubmissionItemSchema], default: [] },
     currentStage: { type: Number, default: 0 },

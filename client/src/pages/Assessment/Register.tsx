@@ -1,10 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { assessmentApi, SEGMENT_OPTIONS } from '../../api/assessmentApi';
+import { assessmentApi, PROFILE_OPTIONS, PRIMARY_LANGUAGES } from '../../api/assessmentApi';
 import './assessment.css';
-
-const STACK_OPTIONS = ['Java', 'Spring', 'Python', 'JavaScript', 'React', 'Node.js', 'SQL', 'C++', 'Android', '.NET'];
-const YEAR_OPTIONS = ['1st', '2nd', '3rd', 'Final', 'Passed out'];
 
 const isMobileDevice = () =>
   typeof window !== 'undefined' &&
@@ -16,27 +13,24 @@ const Register: React.FC = () => {
   const navigate = useNavigate();
 
   const presetSegment = params.get('segment') || '';
+  const presetProfile = PROFILE_OPTIONS.find((p) => p.segment === presetSegment)?.value || '';
+
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
 
   const [form, setForm] = useState({
-    name: '', phone: '', email: '', city: '',
-    segment: presetSegment, year: '', yearsExperience: '',
-    currentStack: [] as string[], currentPackage: '',
-    targetRole: '', targetCompany: '', targetSalary: '',
+    firstName: '', lastName: '', email: '', phone: '',
+    profile: presetProfile, yearsExperience: '', primaryLanguage: '',
   });
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
 
   const [token, setToken] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [devCode, setDevCode] = useState('');
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
-  const toggleStack = (s: string) =>
-    setForm((f) => ({ ...f, currentStack: f.currentStack.includes(s) ? f.currentStack.filter((x) => x !== s) : [...f.currentStack, s] }));
-
-  const isProfessional = form.segment === 'job_switcher' || form.segment === 'graduate';
-  const isStudent = form.segment && !isProfessional;
+  const profileMeta = PROFILE_OPTIONS.find((p) => p.value === form.profile);
 
   const utmParams = useMemo(() => {
     const u: Record<string, string> = {};
@@ -46,30 +40,32 @@ const Register: React.FC = () => {
 
   const submitForm = async () => {
     setErr('');
-    if (!form.name.trim()) return setErr('Please enter your name.');
+    if (!form.firstName.trim() || !form.lastName.trim()) return setErr('Please enter your first and last name.');
+    if (!/\S+@\S+\.\S+/.test(form.email)) return setErr('Please enter a valid email — your account login is sent here.');
     if (form.phone.replace(/\D/g, '').length < 10) return setErr('Please enter a valid 10-digit phone number.');
-    if (!form.segment) return setErr('Please tell us where you are right now.');
+    if (!profileMeta) return setErr('Please select where you are right now.');
     setBusy(true);
     try {
       const res = await assessmentApi.register({
         tenantId,
-        name: form.name.trim(),
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
         phone: form.phone,
-        email: form.email || undefined,
-        city: form.city || undefined,
-        segment: form.segment,
-        year: form.year || undefined,
+        segment: profileMeta.segment,
+        year: profileMeta.year,
         yearsExperience: form.yearsExperience ? Number(form.yearsExperience) : undefined,
-        currentStack: form.currentStack,
-        currentPackage: form.currentPackage ? Number(form.currentPackage) : undefined,
-        targetRole: form.targetRole || undefined,
-        targetCompany: form.targetCompany || undefined,
-        targetSalary: form.targetSalary ? Number(form.targetSalary) : undefined,
+        primaryLanguage: form.primaryLanguage || undefined,
         isMobile: isMobileDevice(),
         utmParams,
       });
       setToken(res.token);
       if (res.otp?.devCode) setDevCode(res.otp.devCode);
+
+      // Upload resume (optional, best-effort) before moving to OTP.
+      if (resumeFile) {
+        try { await assessmentApi.uploadResume(res.token, resumeFile); } catch { /* non-blocking */ }
+      }
       setStep('otp');
     } catch (e: any) {
       setErr(e.message || 'Something went wrong. Please try again.');
@@ -115,63 +111,51 @@ const Register: React.FC = () => {
         {step === 'form' && (
           <>
             <div className="as-hero">
-              <div className="as-pill">⚡ Free · ~20–30 min · Get your roadmap</div>
+              <div className="as-pill">⚡ Free · personalized to you · get your roadmap</div>
               <h1>Developer Readiness Assessment</h1>
-              <p>Find out exactly where you stand and get a personalized roadmap to your target role. Real code tasks, instant score.</p>
+              <p>Tell us about yourself and we'll build an assessment tailored to your level — then a personalized roadmap to your goal.</p>
             </div>
 
             <div className="as-card">
               <div className="as-field">
                 <label>Where are you right now?</label>
                 <div className="as-chips">
-                  {SEGMENT_OPTIONS.map((s) => (
-                    <div key={s.value} className={`as-chip ${form.segment === s.value ? 'active' : ''}`} onClick={() => set('segment', s.value)}>{s.label}</div>
+                  {PROFILE_OPTIONS.map((p) => (
+                    <div key={p.value} className={`as-chip ${form.profile === p.value ? 'active' : ''}`} onClick={() => set('profile', p.value)}>{p.label}</div>
                   ))}
                 </div>
               </div>
 
               <div className="as-row">
-                <div className="as-field"><label>Full name</label><input className="as-input" value={form.name} onChange={(e) => set('name', e.target.value)} placeholder="Your name" /></div>
+                <div className="as-field"><label>First name</label><input className="as-input" value={form.firstName} onChange={(e) => set('firstName', e.target.value)} placeholder="First name" /></div>
+                <div className="as-field"><label>Last name</label><input className="as-input" value={form.lastName} onChange={(e) => set('lastName', e.target.value)} placeholder="Last name" /></div>
+              </div>
+              <div className="as-row">
+                <div className="as-field"><label>Email (your login is sent here)</label><input className="as-input" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@email.com" /></div>
                 <div className="as-field"><label>Mobile number</label><input className="as-input" type="tel" inputMode="numeric" value={form.phone} onChange={(e) => set('phone', e.target.value)} placeholder="10-digit mobile" /></div>
               </div>
-              <div className="as-row">
-                <div className="as-field"><label>Email (optional)</label><input className="as-input" type="email" value={form.email} onChange={(e) => set('email', e.target.value)} placeholder="you@email.com" /></div>
-                <div className="as-field"><label>City</label><input className="as-input" value={form.city} onChange={(e) => set('city', e.target.value)} placeholder="City" /></div>
-              </div>
 
-              {isStudent && (
-                <div className="as-field"><label>Year of study</label>
-                  <select className="as-select" value={form.year} onChange={(e) => set('year', e.target.value)}>
+              <div className="as-row">
+                {profileMeta?.professional && (
+                  <div className="as-field"><label>Years of experience</label><input className="as-input" type="number" inputMode="numeric" value={form.yearsExperience} onChange={(e) => set('yearsExperience', e.target.value)} placeholder="e.g. 5" /></div>
+                )}
+                <div className="as-field"><label>Primary programming language</label>
+                  <select className="as-select" value={form.primaryLanguage} onChange={(e) => set('primaryLanguage', e.target.value)}>
                     <option value="">Select</option>
-                    {YEAR_OPTIONS.map((y) => <option key={y} value={y}>{y}</option>)}
+                    {PRIMARY_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
                   </select>
                 </div>
-              )}
-
-              {isProfessional && (
-                <div className="as-row">
-                  <div className="as-field"><label>Years of experience</label><input className="as-input" type="number" inputMode="numeric" value={form.yearsExperience} onChange={(e) => set('yearsExperience', e.target.value)} placeholder="e.g. 4" /></div>
-                  <div className="as-field"><label>Current package (LPA)</label><input className="as-input" type="number" inputMode="decimal" value={form.currentPackage} onChange={(e) => set('currentPackage', e.target.value)} placeholder="e.g. 6.5" /></div>
-                </div>
-              )}
-
-              <div className="as-field"><label>Your current skills</label>
-                <div className="as-chips">
-                  {STACK_OPTIONS.map((s) => (
-                    <div key={s} className={`as-chip ${form.currentStack.includes(s) ? 'active' : ''}`} onClick={() => toggleStack(s)}>{s}</div>
-                  ))}
-                </div>
               </div>
 
-              <div className="as-row">
-                <div className="as-field"><label>Target role</label><input className="as-input" value={form.targetRole} onChange={(e) => set('targetRole', e.target.value)} placeholder="e.g. Backend SDE" /></div>
-                <div className="as-field"><label>Target company</label><input className="as-input" value={form.targetCompany} onChange={(e) => set('targetCompany', e.target.value)} placeholder="e.g. a product company" /></div>
+              <div className="as-field">
+                <label>Resume (optional — sharpens your assessment & roadmap)</label>
+                <input className="as-input" type="file" accept=".pdf,.doc,.docx,.txt" onChange={(e) => setResumeFile(e.target.files?.[0] || null)} />
+                {resumeFile && <div className="as-note">Selected: {resumeFile.name}</div>}
               </div>
-              <div className="as-field"><label>Target salary (LPA)</label><input className="as-input" type="number" inputMode="decimal" value={form.targetSalary} onChange={(e) => set('targetSalary', e.target.value)} placeholder="e.g. 15" /></div>
 
               {err && <div className="as-err">{err}</div>}
               <button className="as-btn" disabled={busy} onClick={submitForm} style={{ marginTop: 8 }}>{busy ? 'Please wait…' : 'Continue →'}</button>
-              <div className="as-note">We'll send a one-time code to verify your number. No spam.</div>
+              <div className="as-note">We'll send a one-time code to verify your number, then create your free account.</div>
             </div>
           </>
         )}
@@ -179,7 +163,7 @@ const Register: React.FC = () => {
         {step === 'otp' && (
           <div className="as-card as-center">
             <h1 style={{ fontSize: 22, marginBottom: 6 }}>Verify your number</h1>
-            <p className="as-note" style={{ marginBottom: 18 }}>Enter the 6-digit code sent to {form.phone} on WhatsApp.</p>
+            <p className="as-note" style={{ marginBottom: 18 }}>Enter the 6-digit code sent to {form.phone} on WhatsApp. We'll create your account and email your login.</p>
             <div className="as-otp">
               {otp.map((d, i) => (
                 <input key={i} id={`otp-${i}`} value={d} inputMode="numeric" maxLength={1}

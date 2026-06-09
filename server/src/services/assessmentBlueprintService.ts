@@ -125,11 +125,26 @@ export const DEFAULT_BLUEPRINTS: Record<CandidateSegment, DefaultBlueprint> = {
   },
 };
 
-/** Resolve the blueprint for a segment: tenant's active one, else an in-code default. */
+/**
+ * Resolve the blueprint for a candidate, in priority order:
+ *   1. AI-designed per-candidate blueprint (v2), if provided
+ *   2. tenant's active blueprint for the segment
+ *   3. in-code default
+ */
 export async function resolveBlueprint(
   tenantId: string,
-  segment: CandidateSegment
+  segment: CandidateSegment,
+  designed?: any
 ): Promise<{ doc?: IAssessmentBlueprint; def: DefaultBlueprint; stages: IBlueprintStage[]; dimensions: { dimension: AssessmentDimension; weight: number }[]; timeLimitMinutes: number; title: string; blueprintId?: mongoose.Types.ObjectId }> {
+  if (designed && Array.isArray(designed.stages) && designed.stages.length) {
+    return {
+      def: DEFAULT_BLUEPRINTS[segment],
+      stages: designed.stages as IBlueprintStage[],
+      dimensions: designed.dimensions,
+      timeLimitMinutes: designed.timeLimitMinutes,
+      title: designed.title,
+    };
+  }
   const doc = await AssessmentBlueprint.findOne({ tenantId, segment, active: true }).lean<IAssessmentBlueprint>();
   if (doc && doc.stages?.length) {
     return {

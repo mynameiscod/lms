@@ -71,12 +71,14 @@ import adminLogsRoute from './adminLogsRoute';
 import scheduledInterviewRoutes from './scheduledInterviewRoutes';
 import resumeRoutes from './resumeRoutes';
 import feeRoutes from './feeRoutes';
+import publicAssessmentRoutes from './publicAssessmentRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
 const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
+router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public', publicLeadRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
 

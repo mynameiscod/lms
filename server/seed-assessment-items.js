@@ -13,8 +13,20 @@ const mongoose = require('mongoose');
 
 let MONGO_URI = process.env.MONGODB_URI || process.env.MONGO_URI;
 if (MONGO_URI && MONGO_URI.includes('@mongodb:')) MONGO_URI = MONGO_URI.replace('@mongodb:', '@127.0.0.1:');
-if (MONGO_URI && !MONGO_URI.includes('@')) {
-  MONGO_URI = MONGO_URI.replace('mongodb://', 'mongodb://admin:password123@') + (MONGO_URI.includes('?') ? '&authSource=admin' : '?authSource=admin');
+
+// Connect with the URI as-is (works locally); only on an auth error fall back to
+// the VPS default admin credentials. This keeps the script usable in both places.
+async function connectMongo() {
+  try {
+    await mongoose.connect(MONGO_URI);
+  } catch (e) {
+    if (/auth/i.test(e.message || '') && MONGO_URI && !MONGO_URI.includes('@')) {
+      const withCreds = MONGO_URI.replace('mongodb://', 'mongodb://admin:password123@') + (MONGO_URI.includes('?') ? '&authSource=admin' : '?authSource=admin');
+      await mongoose.connect(withCreds);
+    } else {
+      throw e;
+    }
+  }
 }
 
 const tenantId = process.argv[2];
@@ -99,7 +111,7 @@ const ITEMS = [
     console.error('Usage: node seed-assessment-items.js <tenantId> [--force]');
     process.exit(1);
   }
-  await mongoose.connect(MONGO_URI);
+  await connectMongo();
   const col = mongoose.connection.collection('assessmentitems');
 
   const existing = await col.countDocuments({ tenantId });

@@ -3,6 +3,8 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { assessmentApi, PROFILE_OPTIONS, PRIMARY_LANGUAGES } from '../../api/assessmentApi';
 import './assessment.css';
 
+const WEB = 'https://www.codebegun.com';
+
 const isMobileDevice = () =>
   typeof window !== 'undefined' &&
   (window.matchMedia('(max-width: 768px)').matches || /Mobi|Android|iPhone/i.test(navigator.userAgent));
@@ -10,7 +12,7 @@ const isMobileDevice = () =>
 const STEPS = [
   { n: 1, icon: '📝', title: 'Tell us about you', desc: 'Your level, primary language, and resume. Takes 2 minutes.' },
   { n: 2, icon: '🧠', title: 'Take your AI-tailored exam', desc: 'Real coding tasks built for your level — freshers and seniors get different exams. ~25 min.' },
-  { n: 3, icon: '🗺️', title: 'Get your roadmap + free account', desc: 'A day-by-day path to your target role, ready in your dashboard.' },
+  { n: 3, icon: '🗺️', title: 'Get your roadmap + free account', desc: 'A day-by-day path to a job-ready, hireable profile — ready in your dashboard.' },
 ];
 
 const FEATURES = [
@@ -19,7 +21,7 @@ const FEATURES = [
   { icon: '🗺️', title: 'AI roadmap to your goal', desc: 'Your gaps mapped to a step-by-step plan toward your target role & package.' },
   { icon: '🎓', title: 'Free learning account', desc: 'Concepts, assignments, quizzes and progress tracking in one place.' },
   { icon: '🧩', title: 'Designed for your level', desc: 'No system design for freshers; no aptitude for seniors. Your exam fits you.' },
-  { icon: '🤝', title: 'Mentor support', desc: 'Our team helps you close the gap and get interview-ready, faster.' },
+  { icon: '🤝', title: 'Placement-first mentoring', desc: 'Backed by CodeBegun — 79% placement rate and 40+ hiring partners.' },
 ];
 
 const FAQ = [
@@ -30,7 +32,13 @@ const FAQ = [
   { q: 'What happens to my data?', a: 'Your resume and answers are private, used only to personalize your assessment and roadmap.' },
 ];
 
-const COMPANIES = ['Google', 'Microsoft', 'Amazon', 'TCS', 'Infosys', 'Adobe'];
+// CodeBegun logo with a text fallback if the asset can't be hot-linked.
+const Logo: React.FC = () => {
+  const [ok, setOk] = useState(true);
+  return ok
+    ? <img className="as-logo-img" src="https://codebegun.com/images/logo.png" alt="CodeBegun" onError={() => setOk(false)} />
+    : <span className="as-brand" style={{ margin: 0 }}><span className="as-dot" /><b>CodeBegun</b></span>;
+};
 
 const Register: React.FC = () => {
   const { tenantId = '' } = useParams();
@@ -125,7 +133,6 @@ const Register: React.FC = () => {
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-  // ── Reusable form card ──
   const FormCard = (
     <div className="as-card as-form-card" id="as-form">
       <div className="as-form-head">Start your free assessment</div>
@@ -170,14 +177,14 @@ const Register: React.FC = () => {
 
   return (
     <div className="as-root as-landing">
-      {/* Nav */}
+      {/* Header */}
       <nav className="as-nav">
         <div className="as-nav-inner">
-          <div className="as-brand"><span className="as-dot" /><b>CodeBegun</b><span>Compass</span></div>
+          <a href={WEB} className="as-logo-link"><Logo /></a>
           <div className="as-nav-actions">
-            <a className="as-login-link" onClick={() => scrollTo('how')} style={{ cursor: 'pointer' }}>How it works</a>
-            <a className="as-login-link" onClick={() => scrollTo('features')} style={{ cursor: 'pointer' }}>Features</a>
-            <a className="as-login-link" onClick={() => scrollTo('faq')} style={{ cursor: 'pointer' }}>FAQ</a>
+            <a className="as-login-link nav-desktop" href={`${WEB}/#placements`}>Placements</a>
+            <a className="as-login-link nav-desktop" href={`${WEB}/blog`}>Blog</a>
+            <a className="as-login-link nav-desktop" href={`${WEB}/#about`}>About</a>
             <a className="as-login-link" href="/login">Login</a>
             {step === 'form' && <button className="as-btn small primary" onClick={() => scrollTo('as-form')}>Get Started Free</button>}
           </div>
@@ -186,33 +193,32 @@ const Register: React.FC = () => {
 
       {step === 'form' ? (
         <>
-          {/* Hero: text left, form right */}
+          {/* Hero */}
           <header className="as-hero-2col">
             <div className="as-hero-left">
-              <div className="as-pill">⚡ AI-personalized · Built for developers · Free</div>
+              <div className="as-pill">⚡ AI-personalized · Placement-first · Free</div>
               <h1 className="as-hero-title">Know if you're ready.<br /><span className="grad">And exactly how to get there.</span></h1>
-              <p className="as-hero-sub">A free, AI-personalized developer assessment that scores your <b>real</b> skills — not just your resume — and builds a step-by-step roadmap to your dream role.</p>
+              <p className="as-hero-sub">CodeBegun's free, AI-personalized developer assessment scores your <b>real</b> skills — not just your resume — and builds a step-by-step roadmap to a job-ready, hireable profile.</p>
               <div className="as-hero-checks">
                 <span className="as-hero-check"><span className="ico">✓</span> AI Skill Assessment</span>
                 <span className="as-hero-check"><span className="ico">✓</span> Real Coding Tasks</span>
                 <span className="as-hero-check"><span className="ico">✓</span> Personalized Roadmap</span>
               </div>
               <div className="as-stats-row">
-                <div className="as-stat"><b>12,000+</b><span>Developers assessed</span></div>
-                <div className="as-stat"><b>~25 min</b><span>Personalized exam</span></div>
-                <div className="as-stat"><b>Free</b><span>Roadmap + account</span></div>
+                <div className="as-stat"><b>79%</b><span>Placement rate</span></div>
+                <div className="as-stat"><b>₹6.2 LPA</b><span>Average salary</span></div>
+                <div className="as-stat"><b>40+</b><span>Hiring partners</span></div>
               </div>
-              <div className="as-trust-mini"><span className="as-stars">★★★★★</span> Trusted by students &amp; working developers across India</div>
+              <div className="as-trust-mini"><span className="as-stars">★★★★★</span> Hyderabad's placement-first engineering academy</div>
             </div>
             <div className="as-hero-right">
               <div className="as-form-wrap">{FormCard}</div>
             </div>
           </header>
 
-          {/* Companies band */}
-          <section className="as-companies">
-            <div className="as-companies-label">Prepare for interviews at companies like</div>
-            <div className="as-companies-logos">{COMPANIES.map((c) => <span key={c}>{c}</span>)}</div>
+          {/* Value strip */}
+          <section className="as-valuestrip">
+            <b>We build engineers companies want to hire.</b> Zero to job-ready in 145 days.
           </section>
 
           {/* How it works */}
@@ -270,7 +276,7 @@ const Register: React.FC = () => {
           {/* Bottom CTA */}
           <section className="as-section as-cta-band">
             <h2>Ready to find out where you really stand?</h2>
-            <p className="as-section-sub" style={{ marginTop: 8 }}>Join thousands of developers who turned a score into an offer.</p>
+            <p className="as-section-sub" style={{ marginTop: 8 }}>Join thousands of developers building a hireable profile with CodeBegun.</p>
             <button className="as-btn primary" style={{ maxWidth: 300, margin: '6px auto 0' }} onClick={() => scrollTo('as-form')}>Start my free assessment →</button>
           </section>
         </>
@@ -294,9 +300,43 @@ const Register: React.FC = () => {
         </div>
       )}
 
-      <footer className="as-footer">
-        <div className="as-brand"><span className="as-dot" /><b>CodeBegun</b><span>Compass</span></div>
-        <span>© {new Date().getFullYear()} CodeBegun · AI-personalized skill assessments &amp; roadmaps that get developers hired.</span>
+      {/* Branded footer */}
+      <footer className="as-footer-rich">
+        <div className="as-footer-cols">
+          <div className="as-footer-col">
+            <a href={WEB} className="as-logo-link"><Logo /></a>
+            <p className="as-footer-tag">Hyderabad's edutech startup — building engineers top companies want to hire. Zero to job-ready in 145 days.</p>
+            <div className="as-footer-social">
+              <a href="https://www.linkedin.com/company/codbegun/" target="_blank" rel="noreferrer" aria-label="LinkedIn">in</a>
+              <a href="https://www.instagram.com/codebegun/" target="_blank" rel="noreferrer" aria-label="Instagram">ig</a>
+              <a href="https://www.youtube.com/@CodeBegun" target="_blank" rel="noreferrer" aria-label="YouTube">yt</a>
+              <a href="https://www.facebook.com/share/1ut7vgqnTQdE82tS/" target="_blank" rel="noreferrer" aria-label="Facebook">fb</a>
+            </div>
+          </div>
+          <div className="as-footer-col">
+            <h4>Programs</h4>
+            <a href={`${WEB}/java-full-stack`}>Java Full Stack</a>
+            <a href={`${WEB}/data-science`}>Data Science</a>
+            <a href={`${WEB}/data-analyst`}>Data Analyst</a>
+            <a href={`${WEB}/data-engineer`}>Data Engineer</a>
+            <a href={`${WEB}/generative-ai`}>Generative AI</a>
+          </div>
+          <div className="as-footer-col">
+            <h4>Company</h4>
+            <a href={`${WEB}/#about`}>About</a>
+            <a href={`${WEB}/#placements`}>Placements</a>
+            <a href={`${WEB}/#students`}>For Students</a>
+            <a href={`${WEB}/hire-from-us`}>For Recruiters</a>
+            <a href={`${WEB}/blog`}>Blog</a>
+          </div>
+          <div className="as-footer-col">
+            <h4>Contact</h4>
+            <p className="as-footer-addr">Plot No.4, Flat 102, SM Reddy Complex, Madhapur, Hyderabad, Telangana 500081</p>
+            <a href="tel:+916301099587">+91 63010 99587</a>
+            <a href="mailto:contact@codebegun.com">contact@codebegun.com</a>
+          </div>
+        </div>
+        <div className="as-footer-bottom">© {new Date().getFullYear()} CodeBegun · All rights reserved.</div>
       </footer>
     </div>
   );

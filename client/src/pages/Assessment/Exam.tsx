@@ -24,6 +24,26 @@ const CodeBlock: React.FC<{ code: string; onPick?: (line: number) => void; picke
   );
 };
 
+// Renders a question prompt: plain text, but any ```fenced code``` (or a stray
+// markdown fence the AI left in) is pulled out and shown as a real code block.
+const QuestionPrompt: React.FC<{ text?: string }> = ({ text }) => {
+  if (!text) return null;
+  const parts: React.ReactNode[] = [];
+  const re = /```(?:[a-zA-Z0-9]+)?[ \t]*\n?([\s\S]*?)```/g;
+  let last = 0; let m: RegExpExecArray | null; let key = 0;
+  while ((m = re.exec(text)) !== null) {
+    const before = text.slice(last, m.index).trim();
+    if (before) parts.push(<p key={key++} className="as-qprompt">{before}</p>);
+    const code = m[1].trim();
+    if (code) parts.push(<CodeBlock key={key++} code={code} />);
+    last = m.index + m[0].length;
+  }
+  const tail = text.slice(last).trim();
+  if (tail) parts.push(<p key={key++} className="as-qprompt">{tail}</p>);
+  if (!parts.length) parts.push(<p key={0} className="as-qprompt">{text}</p>);
+  return <>{parts}</>;
+};
+
 const Exam: React.FC = () => {
   const { token = '' } = useParams();
   const navigate = useNavigate();
@@ -161,11 +181,14 @@ const Exam: React.FC = () => {
             <div className="as-bonus-banner">Optional bonus — boost your score. Skip freely on mobile; finish the full coding challenge on a laptop anytime.</div>
           )}
 
-          <p className="as-qprompt">{current.prompt}</p>
+          <QuestionPrompt text={current.prompt} />
+
+          {/* Code shown above MCQ when the question is about code */}
+          {current.type === 'mcq' && current.codeSnippet && <CodeBlock code={current.codeSnippet} />}
 
           {/* MCQ */}
           {current.type === 'mcq' && current.options && (
-            <div className="as-opts">
+            <div className="as-opts" style={{ marginTop: 12 }}>
               {current.options.map((o) => {
                 const active = (resp.selectedOptionIds || []).includes(o.id);
                 return (

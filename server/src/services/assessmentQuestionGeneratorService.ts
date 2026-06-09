@@ -38,7 +38,7 @@ function toLang(language?: string, type?: string): ProgrammingLanguage {
 const norm = (s: string) => (s || '').replace(/\r\n/g, '\n').replace(/\s+$/gm, '').replace(/\n+$/, '').trim();
 
 const SCHEMA_BY_TYPE: Record<AssessmentItemType, string> = {
-  mcq: `{"prompt","options":[{"id":"a","text"}...],"correctOptionIds":["a"]}`,
+  mcq: `{"prompt (ONE short sentence, NO code inside)","codeSnippet (optional — if the question is about code, put the code HERE with real newlines + 2-space indentation),"options":[{"id":"a","text"}...],"correctOptionIds":["a"]}`,
   predict_output: `{"prompt":"What does this print?","language","codeSnippet","expectedOutput"}`,
   debug: `{"prompt":"Which line has the bug?","language","codeSnippet","buggyLineNumber","bugExplanation"}`,
   complete_code: `{"prompt","language","codeSnippet (with a blank marker)","blanks":[{"id":"b1","acceptedAnswers":["..."],"caseSensitive":false}]}`,
@@ -54,6 +54,7 @@ function buildPrompt(spec: GenSpec): string {
     spec.context ? `Tailor to this candidate context where natural: ${spec.context}.` : '',
     `Return ONLY a raw JSON array (no markdown). Each element matches: ${SCHEMA_BY_TYPE[spec.type]}.`,
     `For live_code/sql/predict_output you MUST include code that compiles and runs; outputs are verified by execution.`,
+    `CRITICAL: put ALL code in the dedicated code field (codeSnippet/starterCode/referenceSolution), formatted with real newlines (\\n) and 2-space indentation. NEVER put code or markdown code fences (\`\`\`) inside "prompt". The prompt must be a single short sentence.`,
     `Keep prompts concise and unambiguous. For mcq, exactly one correct option unless the question implies multiple.`,
   ].filter(Boolean).join('\n');
 }
@@ -82,35 +83,48 @@ async function runForOutput(code: string, language: ProgrammingLanguage, input: 
  * Validate + finalize one raw AI item into a storable AssessmentItem (or null
  * if it can't be trusted). Uses execution to set authoritative outputs.
  */
+// If the model left a ```fenced``` code block inside the prompt, move it to the
+// code field and clean the prompt — so questions always render with a real block.
+function splitPromptCode(raw: any): { prompt: string; codeSnippet?: string } {
+  let prompt = String(raw.prompt || '').trim();
+  let codeSnippet = raw.codeSnippet;
+  const fence = /```(?:[a-zA-Z0-9]+)?\s*([\s\S]*?)```/;
+  const m = prompt.match(fence);
+  if (m && !codeSnippet) { codeSnippet = m[1].trim(); prompt = prompt.replace(fence, '').replace(/\s+$/g, '').trim(); }
+  return { prompt, codeSnippet };
+}
+
 async function finalizeItem(raw: any, spec: GenSpec): Promise<any | null> {
+  const { prompt, codeSnippet: extractedSnippet } = splitPromptCode(raw);
   const base = {
     type: spec.type, dimension: spec.dimension, difficulty: spec.difficulty,
-    language: raw.language || spec.language, prompt: String(raw.prompt || '').trim(),
+    language: raw.language || spec.language, prompt,
     points: spec.type === 'live_code' || spec.type === 'sql' ? 2 : 1,
     tags: ['ai-generated'], active: true,
   };
   if (!base.prompt) return null;
+  const snippet = extractedSnippet || raw.codeSnippet;
 
   switch (spec.type) {
     case 'mcq': {
       if (!Array.isArray(raw.options) || !raw.options.length || !Array.isArray(raw.correctOptionIds) || !raw.correctOptionIds.length) return null;
-      return { ...base, options: raw.options.map((o: any) => ({ id: String(o.id), text: String(o.text) })), correctOptionIds: raw.correctOptionIds.map(String) };
+      return { ...base, codeSnippet: snippet || undefined, options: raw.options.map((o: any) => ({ id: String(o.id), text: String(o.text) })), correctOptionIds: raw.correctOptionIds.map(String) };
     }
     case 'debug': {
-      if (!raw.codeSnippet || raw.buggyLineNumber == null) return null;
-      return { ...base, codeSnippet: raw.codeSnippet, buggyLineNumber: Number(raw.buggyLineNumber), bugExplanation: raw.bugExplanation || '' };
+      if (!snippet || raw.buggyLineNumber == null) return null;
+      return { ...base, codeSnippet: snippet, buggyLineNumber: Number(raw.buggyLineNumber), bugExplanation: raw.bugExplanation || '' };
     }
     case 'complete_code': {
-      if (!raw.codeSnippet || !Array.isArray(raw.blanks) || !raw.blanks.length) return null;
-      return { ...base, codeSnippet: raw.codeSnippet, blanks: raw.blanks.map((b: any, i: number) => ({ id: b.id || `b${i + 1}`, acceptedAnswers: (b.acceptedAnswers || []).map(String), caseSensitive: !!b.caseSensitive })) };
+      if (!snippet || !Array.isArray(raw.blanks) || !raw.blanks.length) return null;
+      return { ...base, codeSnippet: snippet, blanks: raw.blanks.map((b: any, i: number) => ({ id: b.id || `b${i + 1}`, acceptedAnswers: (b.acceptedAnswers || []).map(String), caseSensitive: !!b.caseSensitive })) };
     }
     case 'predict_output': {
-      if (!raw.codeSnippet) return null;
+      if (!snippet) return null;
       const lang = toLang(base.language, spec.type);
-      const out = await runForOutput(raw.codeSnippet, lang, '');
+      const out = await runForOutput(snippet, lang, '');
       const expectedOutput = out != null ? out : norm(String(raw.expectedOutput || ''));
       if (!expectedOutput) return null; // couldn't determine a trustworthy answer
-      return { ...base, codeSnippet: raw.codeSnippet, expectedOutput };
+      return { ...base, codeSnippet: snippet, expectedOutput };
     }
     case 'live_code':
     case 'sql': {

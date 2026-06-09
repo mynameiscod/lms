@@ -233,9 +233,9 @@ const Editor: React.FC<{ item: AdminAssessmentItem; up: (p: Partial<AdminAssessm
             </div>
           )}
 
-          {(item.type === 'predict_output' || item.type === 'debug' || item.type === 'complete_code') && (
-            <label className="full">Code snippet
-              <textarea className="mono" rows={6} value={item.codeSnippet || ''} onChange={(e) => up({ codeSnippet: e.target.value })} />
+          {(item.type === 'mcq' || item.type === 'predict_output' || item.type === 'debug' || item.type === 'complete_code') && (
+            <label className="full">Code snippet{item.type === 'mcq' ? ' (optional)' : ''}
+              <textarea className="mono" rows={6} value={item.codeSnippet || ''} onChange={(e) => up({ codeSnippet: e.target.value })} placeholder="Put code here (with real line breaks) — keep the prompt to one sentence" />
             </label>
           )}
 

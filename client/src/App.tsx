@@ -154,6 +154,12 @@ import DayViewPage from './pages/MyLearningPlan/DayView';
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
 
+// Public skill assessment funnel (no auth — Meta-ad → exam → roadmap)
+import AssessmentRegister from './pages/Assessment/Register';
+import AssessmentExam from './pages/Assessment/Exam';
+import AssessmentResult from './pages/Assessment/Result';
+import AssessmentAdmin from './pages/AssessmentAdmin';
+
 import AdminLogPanel from './components/AdminLogPanel';
 import AdminLogs from './pages/AdminLogs';
 
@@ -285,6 +291,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />
       <Route path="/resume/view/:token" element={<PublicResumeView />} />
       <Route path="/quiz/:token" element={<QuizSession />} />
+      <Route path="/assessment/:tenantId" element={<AssessmentRegister />} />
+      <Route path="/assessment/exam/:token" element={<AssessmentExam />} />
+      <Route path="/assessment/result/:token" element={<AssessmentResult />} />
 
       <Route
         path="/dashboard"
@@ -292,6 +301,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute>
             <Layout>
               <DashboardPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/assessment-admin"
+        element={
+          <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'MANAGER']}>
+            <Layout>
+              <AssessmentAdmin />
             </Layout>
           </ProtectedRoute>
         }

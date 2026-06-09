@@ -31,6 +31,10 @@ export interface ICurriculumEnrollment extends Document {
   lastActivityAt?: Date;
   completedAt?: Date;
   enrolledBy: string;
+  // Assessment-funnel gating: a free "taste" then locked until a mentor/payment unlocks.
+  assessmentOriginated?: boolean;
+  previewOnly?: boolean;   // when true, days beyond previewDays are locked
+  previewDays?: number;    // number of free days (default 2)
   createdAt: Date;
   updatedAt: Date;
 }
@@ -71,6 +75,9 @@ const CurriculumEnrollmentSchema = new Schema<ICurriculumEnrollment>(
     lastActivityAt: { type: Date },
     completedAt:    { type: Date },
     enrolledBy:     { type: String, required: true },
+    assessmentOriginated: { type: Boolean, default: false },
+    previewOnly:    { type: Boolean, default: false },
+    previewDays:    { type: Number, default: 2 },
   },
   { timestamps: true }
 );

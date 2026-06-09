@@ -79,9 +79,12 @@ const Result: React.FC = () => {
         )}
 
         <div className="as-card as-center">
-          <p className="as-qprompt" style={{ fontSize: 16 }}>Ready to close the gap?</p>
-          <p className="as-note" style={{ marginBottom: 14 }}>Unlock your full day-by-day plan, code labs, and mock interviews.</p>
-          <button className="as-btn" onClick={() => { window.location.href = 'tel:'; }}>Talk to a mentor</button>
+          <p className="as-qprompt" style={{ fontSize: 16 }}>Your free account is ready 🎉</p>
+          <p className="as-note" style={{ marginBottom: 14 }}>
+            We've created your CodeBegun account and enrolled you in your plan. The first days are unlocked free — log in to start. Your login was sent to your email & WhatsApp.
+          </p>
+          <button className="as-btn primary" onClick={() => { window.location.href = '/login'; }}>Log in & start my plan →</button>
+          <p className="as-note" style={{ marginTop: 12 }}>Want the full plan, code labs, and mock interviews unlocked? A mentor will reach out — or ask us anytime.</p>
         </div>
       </div>
     </div>

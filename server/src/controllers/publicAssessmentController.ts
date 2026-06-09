@@ -10,6 +10,7 @@ import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
 import { generateRoadmap } from '../services/assessmentRoadmapService';
 import { ensureCandidateAccount } from '../services/assessmentAccountService';
+import { enrollCandidateInRoadmapPlan } from '../services/assessmentEnrollmentService';
 import { designExamForSubmission } from '../services/assessmentExamDesignerService';
 import { extractTextFromFile, parseResumeText } from '../services/resumeParserService';
 import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
@@ -346,6 +347,8 @@ export const advanceAssessment = async (req: Request, res: Response) => {
     await submission.save();
 
     try { const roadmap = await generateRoadmap(submission); if (roadmap) { submission.roadmap = roadmap as any; await submission.save(); } } catch (e) { /* best-effort */ }
+    // Enroll the candidate's account in the recommended plan (preview/locked).
+    try { await enrollCandidateInRoadmapPlan(submission); } catch (e) { /* best-effort */ }
     try { const leadId = await syncSubmissionToLead(submission, { withResults: true }); if (leadId && !submission.leadId) { submission.leadId = leadId; await submission.save(); } } catch (e) { /* best-effort */ }
 
     return res.json({ success: true, data: { done: true, result: resultPayload(submission) } });

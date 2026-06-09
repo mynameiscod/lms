@@ -423,6 +423,11 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       }
     }
 
+    // Assessment-funnel preview gating: free taste, then locked until unlocked.
+    if ((enrollment as any).previewOnly && dayNumber > ((enrollment as any).previewDays || 2)) {
+      isLocked = true;
+    }
+
     // Compute calendar date for this day
     const dayDate = weekdayForDay(enrollment.startDate, dayNumber);
 

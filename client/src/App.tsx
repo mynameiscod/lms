@@ -159,6 +159,7 @@ import AssessmentRegister from './pages/Assessment/Register';
 import AssessmentExam from './pages/Assessment/Exam';
 import AssessmentResult from './pages/Assessment/Result';
 import AssessmentAdmin from './pages/AssessmentAdmin';
+import AssessmentCandidates from './pages/AssessmentCandidates';
 
 import AdminLogPanel from './components/AdminLogPanel';
 import AdminLogs from './pages/AdminLogs';
@@ -312,6 +313,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'MANAGER']}>
             <Layout>
               <AssessmentAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/assessment-candidates"
+        element={
+          <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'MANAGER']}>
+            <Layout>
+              <AssessmentCandidates />
             </Layout>
           </ProtectedRoute>
         }

@@ -73,6 +73,7 @@ import resumeRoutes from './resumeRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
+import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -95,6 +96,7 @@ router.use('/batches', batchRoutes);
 router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/assessment-items', assessmentItemRoutes);
+router.use('/assessment-candidates', assessmentCandidatesRoutes);
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);

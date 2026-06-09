@@ -59,6 +59,37 @@ export const assessmentAdminApi = {
   },
 };
 
+// ── Team candidate dashboard ────────────────────────────────────────────────
+const CAND_BASE = `${API_BASE_URL}/assessment-candidates`;
+
+export interface CandidateRow {
+  id: string;
+  name?: string; phone?: string; email?: string;
+  segment?: string; primaryLanguage?: string; yearsExperience?: number;
+  status: 'registered' | 'in_progress' | 'submitted' | 'abandoned';
+  progress: number; answered: number; total: number;
+  readinessScore?: number; percentile?: number;
+  roadmapPlan?: string; leadId?: string | null; userId?: string | null;
+  createdAt?: string; submittedAt?: string;
+}
+
+export const candidatesApi = {
+  list: async (params: { status?: string; segment?: string; search?: string } = {}) => {
+    const q = new URLSearchParams();
+    Object.entries(params).forEach(([k, v]) => { if (v) q.append(k, String(v)); });
+    const res: any = await authenticatedFetch(`${CAND_BASE}${q.toString() ? `?${q}` : ''}`);
+    return (res?.data || res) as CandidateRow[];
+  },
+  stats: async () => {
+    const res: any = await authenticatedFetch(`${CAND_BASE}/stats`);
+    return (res?.data || res) as { byStatus: Record<string, number> };
+  },
+  unlock: async (userId: string) => {
+    const res: any = await authenticatedFetch(`${CAND_BASE}/unlock`, { method: 'POST', body: JSON.stringify({ userId }) });
+    return (res?.data || res) as { unlocked: number };
+  },
+};
+
 export const DIMENSIONS = [
   { value: 'aptitude', label: 'Aptitude' },
   { value: 'fundamentals', label: 'Fundamentals' },

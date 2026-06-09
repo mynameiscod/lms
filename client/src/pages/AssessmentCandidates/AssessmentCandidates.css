@@ -1,0 +1,23 @@
+/* ── Assessment Candidates dashboard (extends AssessmentAdmin.css) ────────── */
+.ac-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 720px) { .ac-stats { grid-template-columns: repeat(2, 1fr); } }
+.ac-stat { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px 16px; display: flex; flex-direction: column; gap: 4px; }
+.ac-stat span { font-size: 12.5px; color: #64748b; font-weight: 600; }
+.ac-stat b { font-size: 26px; color: #0f172a; }
+.ac-stat.hot { border-color: #fed7aa; background: #fff7ed; }
+.ac-stat.hot b { color: #c2410c; }
+.ac-stat.ok { border-color: #bbf7d0; background: #f0fdf4; }
+.ac-stat.ok b { color: #15803d; }
+
+.ac-sub { font-size: 11.5px; color: #94a3b8; }
+.ac-status { font-size: 11px; font-weight: 700; border-radius: 6px; padding: 2px 9px; }
+.ac-status.registered { background: #f1f5f9; color: #475569; }
+.ac-status.in_progress { background: #fff7ed; color: #c2410c; }
+.ac-status.submitted { background: #f0fdf4; color: #15803d; }
+.ac-status.abandoned { background: #fef2f2; color: #b91c1c; }
+
+.ac-progress { display: flex; align-items: center; gap: 8px; }
+.ac-progress-bar { flex: 1; min-width: 70px; height: 7px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+.ac-progress-fill { height: 100%; background: linear-gradient(90deg, #f59e0b, #f97316); }
+.ac-progress span { font-size: 11.5px; color: #64748b; white-space: nowrap; }
+.ac-plan { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: #334155; }

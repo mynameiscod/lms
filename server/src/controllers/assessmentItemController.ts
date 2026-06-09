@@ -2,6 +2,7 @@ import { Response } from 'express';
 import AssessmentItem from '../models/AssessmentItem';
 import { AuthenticatedRequest } from '../types';
 import { ASSESSMENT_DIMENSIONS, ASSESSMENT_ITEM_TYPES } from '../constants/assessment';
+import { generateItems } from '../services/assessmentQuestionGeneratorService';
 
 /**
  * Admin CRUD for the skill-assessment question bank (AssessmentItem).
@@ -109,6 +110,27 @@ export const deleteAssessmentItem = async (req: AuthenticatedRequest, res: Respo
     res.json({ success: true, message: 'Item deleted', data: { deleted: r.deletedCount } });
   } catch (e: any) {
     res.status(500).json({ success: false, message: 'Failed to delete item', error: e.message });
+  }
+};
+
+/** AI-generate + validate items into the bank (reviewable). */
+export const generateAssessmentItems = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!process.env.ANTHROPIC_API_KEY) return res.status(400).json({ success: false, message: 'AI generation is not configured (no API key).' });
+    const tenantId = String(req.tenantId);
+    const { type, dimension, difficulty, language, count, context } = req.body || {};
+    if (!ASSESSMENT_ITEM_TYPES.includes(type)) return res.status(400).json({ success: false, message: 'Invalid item type' });
+    if (!ASSESSMENT_DIMENSIONS.includes(dimension)) return res.status(400).json({ success: false, message: 'Invalid dimension' });
+    const n = Math.max(1, Math.min(10, Number(count) || 3));
+
+    const items = await generateItems(
+      tenantId,
+      { type, dimension, difficulty: Math.max(1, Math.min(5, Number(difficulty) || 3)), language, count: n, context },
+      { persist: true }
+    );
+    res.json({ success: true, message: `Generated ${items.length} item(s)`, data: items });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: 'Generation failed', error: e.message });
   }
 };
 

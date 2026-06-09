@@ -17,6 +17,10 @@ const AssessmentAdmin: React.FC = () => {
   const [editing, setEditing] = useState<AdminAssessmentItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState('');
+  const [genOpen, setGenOpen] = useState(false);
+  const [gen, setGen] = useState({ type: 'mcq', dimension: 'fundamentals', difficulty: 2, language: 'Java', count: 3 });
+  const [genBusy, setGenBusy] = useState(false);
+  const [genMsg, setGenMsg] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -51,6 +55,15 @@ const AssessmentAdmin: React.FC = () => {
 
   const up = (patch: Partial<AdminAssessmentItem>) => setEditing((e) => (e ? { ...e, ...patch } : e));
 
+  const runGenerate = async () => {
+    setGenBusy(true); setGenMsg('');
+    try {
+      const items = await assessmentAdminApi.generate(gen);
+      setGenMsg(`✓ Generated ${items.length} validated item(s).`);
+      await load();
+    } catch (e: any) { setGenMsg(e.message || 'Generation failed'); } finally { setGenBusy(false); }
+  };
+
   return (
     <div className="aa-page">
       <div className="aa-header">
@@ -58,7 +71,10 @@ const AssessmentAdmin: React.FC = () => {
           <h1>Assessment — Question Bank</h1>
           <p>Author and manage the skill-assessment items. {coverage ? `${coverage.activeTotal}/${coverage.total} active.` : ''}</p>
         </div>
-        <button className="aa-btn primary" onClick={() => setEditing(blank())}>+ New Item</button>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="aa-btn" onClick={() => { setGenOpen(true); setGenMsg(''); }}>✨ Generate with AI</button>
+          <button className="aa-btn primary" onClick={() => setEditing(blank())}>+ New Item</button>
+        </div>
       </div>
 
       {/* Coverage matrix */}
@@ -124,6 +140,44 @@ const AssessmentAdmin: React.FC = () => {
       </div>
 
       {editing && <Editor item={editing} up={up} onSave={save} onCancel={() => { setEditing(null); setErr(''); }} saving={saving} err={err} />}
+
+      {genOpen && (
+        <div className="aa-overlay" onClick={() => !genBusy && setGenOpen(false)}>
+          <div className="aa-modal" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()}>
+            <div className="aa-modal-head"><h3>✨ Generate with AI</h3><button onClick={() => !genBusy && setGenOpen(false)}>×</button></div>
+            <div className="aa-modal-body">
+              <p className="aa-section-sub" style={{ textAlign: 'left', margin: '0 0 12px', color: '#64748b', fontSize: 13 }}>
+                Claude writes the items; code questions are <b>run on Piston</b> to lock in correct outputs and drop any that don't compile. They land here as drafts you can review/disable.
+              </p>
+              <div className="aa-row3">
+                <label>Type
+                  <select value={gen.type} onChange={(e) => setGen({ ...gen, type: e.target.value })}>{ITEM_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}</select>
+                </label>
+                <label>Dimension
+                  <select value={gen.dimension} onChange={(e) => setGen({ ...gen, dimension: e.target.value })}>{DIMENSIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}</select>
+                </label>
+                <label>Difficulty
+                  <select value={gen.difficulty} onChange={(e) => setGen({ ...gen, difficulty: Number(e.target.value) })}>{[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+                </label>
+              </div>
+              <div className="aa-row2">
+                <label>Language (for code)
+                  <input value={gen.language} onChange={(e) => setGen({ ...gen, language: e.target.value })} placeholder="Java / Python / SQL" />
+                </label>
+                <label>How many
+                  <select value={gen.count} onChange={(e) => setGen({ ...gen, count: Number(e.target.value) })}>{[1, 2, 3, 5, 8, 10].map((n) => <option key={n} value={n}>{n}</option>)}</select>
+                </label>
+              </div>
+              {genMsg && <div className={genMsg.startsWith('✓') ? 'aa-section-sub' : 'aa-err'} style={{ textAlign: 'left' }}>{genMsg}</div>}
+              {genBusy && <div className="aa-section-sub" style={{ textAlign: 'left' }}>Generating &amp; validating… this can take up to a minute for code questions.</div>}
+            </div>
+            <div className="aa-modal-foot">
+              <button className="aa-btn" onClick={() => setGenOpen(false)} disabled={genBusy}>Close</button>
+              <button className="aa-btn primary" onClick={runGenerate} disabled={genBusy}>{genBusy ? 'Generating…' : 'Generate'}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

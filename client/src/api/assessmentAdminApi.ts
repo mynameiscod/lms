@@ -53,6 +53,10 @@ export const assessmentAdminApi = {
   remove: async (id: string) => {
     return authenticatedFetch(`${BASE}/${id}`, { method: 'DELETE' });
   },
+  generate: async (spec: { type: string; dimension: string; difficulty: number; language?: string; count: number; context?: string }) => {
+    const res: any = await authenticatedFetch(`${BASE}/generate`, { method: 'POST', body: JSON.stringify(spec) });
+    return (res?.data || res) as AdminAssessmentItem[];
+  },
 };
 
 export const DIMENSIONS = [

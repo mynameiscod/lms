@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import AssessmentSubmission, { IAssessmentSubmission } from '../models/AssessmentSubmission';
 import { DEFAULT_BLUEPRINTS } from './assessmentBlueprintService';
+import { ensureBankCoverage } from './assessmentQuestionGeneratorService';
 import {
   ASSESSMENT_DIMENSIONS,
   ASSESSMENT_ITEM_TYPES,
@@ -122,4 +123,10 @@ export async function designExamForSubmission(submissionId: string): Promise<voi
     { _id: submissionId },
     { $set: { designedBlueprint: blueprint, examDesignStatus: designed ? 'ready' : 'failed' } }
   );
+
+  // Warm the question bank for this blueprint in the background (AI-generates +
+  // validates any missing items). Doesn't block exam start — gaps are covered by
+  // the resilient sampler and benefit the next candidate too.
+  const ctx = [submission.candidate.primaryLanguage && `primary language ${submission.candidate.primaryLanguage}`, submission.parsedSkills?.length && `skills: ${submission.parsedSkills.slice(0, 10).join(', ')}`].filter(Boolean).join('; ');
+  ensureBankCoverage(submission.tenantId, blueprint, { language: submission.candidate.primaryLanguage, context: ctx || undefined }).catch(() => { /* best-effort */ });
 }

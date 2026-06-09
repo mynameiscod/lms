@@ -10,6 +10,7 @@ router.use(authMiddleware, tenantMiddleware);
 
 router.get('/', ctrl.listAssessmentItems);
 router.get('/coverage', ctrl.getAssessmentCoverage);
+router.post('/generate', ctrl.generateAssessmentItems);
 router.post('/', ctrl.createAssessmentItem);
 router.put('/:id', ctrl.updateAssessmentItem);
 router.patch('/:id/toggle', ctrl.toggleAssessmentItem);

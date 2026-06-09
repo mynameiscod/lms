@@ -7,6 +7,7 @@ import { composeExam } from '../services/assessmentBlueprintService';
 import { gradeSubmission } from '../services/assessmentScoringService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
+import { generateRoadmap } from '../services/assessmentRoadmapService';
 import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
 
 /**
@@ -200,7 +201,13 @@ export const submitAssessment = async (req: Request, res: Response) => {
     submission.submittedAt = new Date();
     await submission.save();
 
-    // Enrich the CRM lead with results + bump priority (roadmap added in Slice 3).
+    // Generate the personalized roadmap (best-effort; never blocks the result).
+    try {
+      const roadmap = await generateRoadmap(submission);
+      if (roadmap) { submission.roadmap = roadmap as any; await submission.save(); }
+    } catch (e) { /* best-effort — result page falls back to "mentor will reach out" */ }
+
+    // Enrich the CRM lead with results + bump priority.
     try {
       const leadId = await syncSubmissionToLead(submission, { withResults: true });
       if (leadId && !submission.leadId) { submission.leadId = leadId; await submission.save(); }

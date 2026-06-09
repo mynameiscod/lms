@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import mongoose from 'mongoose';
 import AssessmentSubmission from '../models/AssessmentSubmission';
 import AssessmentItem from '../models/AssessmentItem';
+import Tenant from '../models/Tenant';
 import { composeStage, resolveBlueprint, difficultyShiftFor } from '../services/assessmentBlueprintService';
 import { gradeSubmission, gradeStage, finalizeScores } from '../services/assessmentScoringService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
@@ -60,7 +61,12 @@ function sanitizeItem(itemDoc: any, sub: any) {
 export const registerAssessment = async (req: Request, res: Response) => {
   try {
     const b = req.body || {};
-    const tenantId = String(b.tenantId || '').trim();
+    let tenantId = String(b.tenantId || '').trim();
+    // Accept either a tenant ObjectId or a slug (e.g. "codebegun") in the URL.
+    if (tenantId && !mongoose.isValidObjectId(tenantId)) {
+      const tenant = await Tenant.findOne({ slug: tenantId.toLowerCase() }).select('_id').lean();
+      if (tenant) tenantId = String(tenant._id);
+    }
     const firstName = String(b.firstName || '').trim();
     const lastName = String(b.lastName || '').trim();
     const name = `${firstName} ${lastName}`.trim() || String(b.name || '').trim();

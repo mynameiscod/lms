@@ -41,9 +41,13 @@ const Exam: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const flags = useRef<Set<string>>(new Set());
   const itemStart = useRef<number>(Date.now());
+  const startedRef = useRef(false);
 
-  // Load & compose stage 1.
+  // Load & compose stage 1. Guarded so React StrictMode's double-invoke (dev)
+  // doesn't fire two concurrent /start requests.
   useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
     (async () => {
       try {
         const data = await assessmentApi.start(token);

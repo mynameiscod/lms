@@ -23,6 +23,7 @@ import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
  */
 
 const newToken = () => crypto.randomBytes(16).toString('hex');
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const normalizePhone = (raw: string): string => {
   let d = (raw || '').replace(/[^0-9]/g, '');
   if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
@@ -140,9 +141,22 @@ async function sanitizeStage(submission: any, stageOrder: number) {
   return stageItems.map((s: any) => sanitizeItem(byId.get(String(s.itemId)), s)).filter(Boolean);
 }
 
+// Respond with the candidate's current stage (resume / after-compose).
+async function respondStage(res: Response, submission: any, message: string) {
+  const stages = submission.blueprintSnapshot?.stages || [];
+  const cur = submission.currentStage || 0;
+  const items = await sanitizeStage(submission, stages[cur]?.order);
+  return res.json({
+    success: true,
+    message,
+    data: { items, stage: cur, totalStages: stages.length, isLast: cur >= stages.length - 1, title: submission.blueprintSnapshot?.title, timeLimitMinutes: submission.blueprintSnapshot?.timeLimitMinutes },
+  });
+}
+
 // ─── POST /start ─────────────────────────────────────────────────────────────
-// Composes and returns ONLY the first stage; subsequent stages are served by
-// /advance with an adaptive difficulty based on the prior stage's score.
+// Composes and returns ONLY the first stage. Concurrency-safe: dev StrictMode
+// (and double-clicks) fire this twice — an atomic status claim ensures exactly
+// one request composes, and the other resumes the same exam.
 export const startAssessment = async (req: Request, res: Response) => {
   try {
     const { token } = req.body || {};
@@ -150,31 +164,54 @@ export const startAssessment = async (req: Request, res: Response) => {
     if (!submission) return res.status(404).json({ success: false, message: 'Session not found' });
     if (!submission.phoneVerified) return res.status(403).json({ success: false, message: 'Phone not verified' });
 
-    // Resume an in-progress session at its current stage (refresh-safe).
-    if (submission.status === 'in_progress' && submission.items.length) {
-      const stages = submission.blueprintSnapshot?.stages || [];
-      const cur = submission.currentStage || 0;
-      const items = await sanitizeStage(submission, stages[cur]?.order);
-      return res.json({ success: true, message: 'Resumed', data: { items, stage: cur, totalStages: stages.length, isLast: cur >= stages.length - 1, title: submission.blueprintSnapshot?.title, timeLimitMinutes: submission.blueprintSnapshot?.timeLimitMinutes } });
+    // Already composed → resume at the current stage (refresh-safe, read-only).
+    if (submission.status !== 'registered' && submission.items.length) {
+      return respondStage(res, submission, 'Resumed');
     }
 
-    const resolved = await resolveBlueprint(submission.tenantId, submission.candidate.segment);
+    // Atomically claim composition — only the first concurrent request wins.
+    const claimed = await AssessmentSubmission.findOneAndUpdate(
+      { token, status: 'registered' },
+      { $set: { status: 'in_progress', startedAt: new Date() } },
+      { new: true }
+    );
+
+    if (!claimed) {
+      // Another request is composing; briefly wait for the items, then resume.
+      for (let i = 0; i < 15; i++) {
+        const s = await AssessmentSubmission.findOne({ token });
+        if (s && s.items.length) return respondStage(res, s, 'Resumed');
+        await sleep(150);
+      }
+      return res.status(503).json({ success: false, message: 'Assessment is initializing, please retry.' });
+    }
+
+    const resolved = await resolveBlueprint(claimed.tenantId, claimed.candidate.segment);
     if (!resolved.stages.length) return res.status(503).json({ success: false, message: 'No blueprint configured' });
 
     const used = new Set<string>();
-    const stage0 = await composeStage(submission.tenantId, resolved.stages[0], submission.isMobile, 0, used);
-    if (!stage0.length) return res.status(503).json({ success: false, message: 'No assessment items available yet' });
+    const stage0 = await composeStage(claimed.tenantId, resolved.stages[0], claimed.isMobile, 0, used);
+    if (!stage0.length) {
+      // Release the claim so a retry (e.g. after seeding items) can compose.
+      await AssessmentSubmission.updateOne({ token }, { $set: { status: 'registered' } });
+      return res.status(503).json({ success: false, message: 'No assessment items available yet' });
+    }
 
-    submission.items = stage0;
-    submission.blueprintId = resolved.blueprintId;
-    submission.blueprintSnapshot = { title: resolved.title, timeLimitMinutes: resolved.timeLimitMinutes, dimensions: resolved.dimensions, stages: resolved.stages, isMobile: submission.isMobile };
-    submission.currentStage = 0;
-    submission.status = 'in_progress';
-    submission.startedAt = new Date();
-    await submission.save();
+    // Persist via updateOne (atomic) rather than doc.save() to avoid version races.
+    await AssessmentSubmission.updateOne(
+      { token },
+      {
+        $set: {
+          items: stage0,
+          blueprintId: resolved.blueprintId,
+          currentStage: 0,
+          blueprintSnapshot: { title: resolved.title, timeLimitMinutes: resolved.timeLimitMinutes, dimensions: resolved.dimensions, stages: resolved.stages, isMobile: claimed.isMobile },
+        },
+      }
+    );
 
-    const items = await sanitizeStage(submission, resolved.stages[0].order);
-    return res.json({ success: true, message: 'Started', data: { items, stage: 0, totalStages: resolved.stages.length, isLast: resolved.stages.length === 1, title: resolved.title, timeLimitMinutes: resolved.timeLimitMinutes } });
+    const fresh = await AssessmentSubmission.findOne({ token });
+    return respondStage(res, fresh, 'Started');
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Failed to start assessment', error: error.message });
   }

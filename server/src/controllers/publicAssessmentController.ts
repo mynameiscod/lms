@@ -9,6 +9,7 @@ import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
 import { generateRoadmap } from '../services/assessmentRoadmapService';
 import { ensureCandidateAccount } from '../services/assessmentAccountService';
+import { designExamForSubmission } from '../services/assessmentExamDesignerService';
 import { extractTextFromFile, parseResumeText } from '../services/resumeParserService';
 import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
 
@@ -161,6 +162,11 @@ export const verifyAssessmentOtp = async (req: Request, res: Response) => {
           await submission.save();
         }
       }
+      // Kick off AI exam design in the background so it's ready when they start
+      // (resume + profile are both present by now). Falls back to default if late.
+      if (submission && !submission.designedBlueprint) {
+        designExamForSubmission(String(submission._id)).catch(() => { /* best-effort */ });
+      }
     } catch (e) { /* best-effort — never block verification */ }
 
     return res.json({ success: true, message: 'Phone verified' });
@@ -218,6 +224,16 @@ export const startAssessment = async (req: Request, res: Response) => {
       return respondStage(res, submission, 'Resumed');
     }
 
+    // If the AI exam design is still in flight, wait briefly (≤3s) so we compose
+    // from the personalized blueprint rather than the default fallback.
+    if (submission.examDesignStatus === 'pending') {
+      for (let i = 0; i < 20; i++) {
+        const s = await AssessmentSubmission.findOne({ token }).select('designedBlueprint examDesignStatus').lean();
+        if ((s as any)?.designedBlueprint || (s as any)?.examDesignStatus !== 'pending') break;
+        await sleep(150);
+      }
+    }
+
     // Atomically claim composition — only the first concurrent request wins.
     const claimed = await AssessmentSubmission.findOneAndUpdate(
       { token, status: 'registered' },
@@ -235,7 +251,7 @@ export const startAssessment = async (req: Request, res: Response) => {
       return res.status(503).json({ success: false, message: 'Assessment is initializing, please retry.' });
     }
 
-    const resolved = await resolveBlueprint(claimed.tenantId, claimed.candidate.segment);
+    const resolved = await resolveBlueprint(claimed.tenantId, claimed.candidate.segment, claimed.designedBlueprint);
     if (!resolved.stages.length) return res.status(503).json({ success: false, message: 'No blueprint configured' });
 
     const used = new Set<string>();

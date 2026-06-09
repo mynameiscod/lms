@@ -108,6 +108,8 @@ export interface IAssessmentSubmission extends Document {
   candidateUserId?: mongoose.Types.ObjectId; // the Student account auto-created for this candidate
   accountCreatedAt?: Date;
 
+  designedBlueprint?: any;       // AI-designed, per-candidate blueprint (v2)
+  examDesignStatus?: 'pending' | 'ready' | 'failed';
   blueprintSnapshot?: any;       // frozen copy of the blueprint at compose time
   items: ISubmissionItem[];
   currentStage: number;          // 0-based index of the stage in progress (adaptive flow)
@@ -201,6 +203,8 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
     candidateUserId: { type: Schema.Types.ObjectId, ref: 'User' },
     accountCreatedAt: { type: Date },
 
+    designedBlueprint: { type: Schema.Types.Mixed },
+    examDesignStatus: { type: String, enum: ['pending', 'ready', 'failed'], default: undefined },
     blueprintSnapshot: { type: Schema.Types.Mixed },
     items: { type: [SubmissionItemSchema], default: [] },
     currentStage: { type: Number, default: 0 },

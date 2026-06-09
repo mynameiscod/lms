@@ -6,7 +6,7 @@ const BASE = `${API_BASE_URL}/assessment-items`;
 export interface AdminAssessmentItem {
   _id?: string;
   type: 'mcq' | 'predict_output' | 'debug' | 'complete_code' | 'live_code' | 'sql';
-  dimension: 'aptitude' | 'fundamentals' | 'dsa' | 'core_stack' | 'problem_solving';
+  dimension: 'aptitude' | 'fundamentals' | 'dsa' | 'core_stack' | 'problem_solving' | 'system_design';
   difficulty: number;
   language?: string;
   prompt: string;
@@ -61,6 +61,7 @@ export const DIMENSIONS = [
   { value: 'dsa', label: 'DSA' },
   { value: 'core_stack', label: 'Core Stack' },
   { value: 'problem_solving', label: 'Problem Solving' },
+  { value: 'system_design', label: 'System Design' },
 ];
 
 export const ITEM_TYPES = [

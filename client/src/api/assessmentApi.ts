@@ -121,4 +121,5 @@ export const DIMENSION_LABELS: Record<string, string> = {
   dsa: 'DSA',
   core_stack: 'Core Stack',
   problem_solving: 'Problem Solving',
+  system_design: 'System Design',
 };

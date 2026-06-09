@@ -12,6 +12,7 @@ export const ASSESSMENT_DIMENSIONS = [
   'dsa',
   'core_stack',
   'problem_solving',
+  'system_design',
 ] as const;
 export type AssessmentDimension = (typeof ASSESSMENT_DIMENSIONS)[number];
 
@@ -21,6 +22,7 @@ export const DIMENSION_LABELS: Record<AssessmentDimension, string> = {
   dsa: 'Data Structures & Algorithms',
   core_stack: 'Core Stack',
   problem_solving: 'Problem Solving',
+  system_design: 'System Design',
 };
 
 // ─── Item (question/task) types ──────────────────────────────────────────────

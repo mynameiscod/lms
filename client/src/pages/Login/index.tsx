@@ -196,13 +196,6 @@ const LoginPage: React.FC = () => {
               {!loading && <ArrowIcon />}
             </button>
           </form>
-
-          <div className="login-divider"><span>OR</span></div>
-
-          <div className="login-alt">
-            <p>New here? <Link to="/create-organization" className="login-alt-link">Create your organization</Link></p>
-            <p>Have an invite link? <Link to="/register" className="login-alt-link">Join organization</Link></p>
-          </div>
         </div>
       </section>
     </div>

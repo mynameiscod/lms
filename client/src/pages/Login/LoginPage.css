@@ -249,35 +249,6 @@
 .login-submit:active:not(:disabled) { transform: translateY(0); }
 .login-submit:disabled { opacity: 0.7; cursor: not-allowed; }
 
-.login-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 22px 0 16px;
-  color: rgba(255, 255, 255, 0.55);
-  font-size: 12px;
-  font-weight: 600;
-}
-.login-divider::before,
-.login-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: rgba(255, 255, 255, 0.18);
-}
-
-.login-alt { text-align: center; }
-.login-alt p { margin: 0 0 8px; font-size: 13.5px; color: rgba(255, 255, 255, 0.8); }
-.login-alt p:last-child { margin-bottom: 0; }
-.login-alt-link {
-  color: #fff;
-  font-weight: 700;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  transition: color 0.18s ease;
-}
-.login-alt-link:hover { color: var(--cb-teal); }
-
 /* ---------- Responsive: stack brand on top, login below ---------- */
 @media (max-width: 992px) {
   .login-page { grid-template-columns: 1fr; min-height: 100vh; }

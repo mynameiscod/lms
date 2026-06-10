@@ -47,10 +47,67 @@ class CodeRunnerService {
   }
 
   async execute(input: ExecutionInput): Promise<ExecutionResult> {
+    // HTML / CSS are markup, not executable programs. Piston has no runtime for
+    // them ("html-5 runtime is unknown"), so never send them there — grade them
+    // by comparing the rendered markup/structure against the expected output.
+    if (input.language === ProgrammingLanguage.HTML || input.language === ProgrammingLanguage.CSS) {
+      return this.evaluateMarkup(input);
+    }
     if (this.useRealExecution && this.pistonUrl) {
       return this.executeWithPiston(input);
     }
     return this.simulateExecution(input);
+  }
+
+  /**
+   * Grade HTML/CSS (web) submissions without code execution.
+   *
+   * There is no browser/DOM on the server, so we can't render the page. Instead
+   * we check that the student's markup contains the structure (tags) and the
+   * visible data (text) described by the test case's expected output. This is
+   * forgiving about whitespace, attributes, casing and ordering, while still
+   * verifying the required elements and content are present.
+   */
+  private evaluateMarkup(input: ExecutionInput): ExecutionResult {
+    const { code, expectedOutput } = input;
+
+    // No expected output configured → nothing to assert against; treat as a pass
+    // so the student at least sees their markup echoed back.
+    if (!expectedOutput || !expectedOutput.trim()) {
+      return { passed: true, output: code || '', executionTime: 1, memoryUsed: 0 };
+    }
+
+    if (!code || !code.trim()) {
+      return { passed: false, output: '', error: 'No markup submitted', executionTime: 0, memoryUsed: 0 };
+    }
+
+    // Visible text content (tags stripped), normalized for comparison
+    const textOf = (s: string) =>
+      s.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+    const codeLower = code.toLowerCase();
+    const expectedText = textOf(expectedOutput);
+    const actualText = textOf(code);
+
+    // 1) Every meaningful token from the expected output must appear in the markup
+    const tokens = expectedText.split(' ').filter(t => t.length > 0);
+    const missingTokens = tokens.filter(t => !actualText.includes(t));
+
+    // 2) Every HTML tag used in the expected output must appear in the markup
+    const expectedTags = Array.from(expectedOutput.matchAll(/<\s*([a-zA-Z][a-zA-Z0-9]*)/g)).map(m => m[1].toLowerCase());
+    const requiredTags = Array.from(new Set(expectedTags));
+    const missingTags = requiredTags.filter(t => !new RegExp(`<\\s*${t}[\\s/>]`).test(codeLower));
+
+    const passed = missingTokens.length === 0 && missingTags.length === 0;
+
+    let error: string | undefined;
+    if (!passed) {
+      const parts: string[] = [];
+      if (missingTags.length) parts.push(`missing element(s): ${missingTags.map(t => `<${t}>`).join(', ')}`);
+      if (missingTokens.length) parts.push(`missing content: ${missingTokens.slice(0, 8).join(', ')}${missingTokens.length > 8 ? '…' : ''}`);
+      error = `Output does not match the expected structure — ${parts.join('; ')}`;
+    }
+
+    return { passed, output: code, executionTime: 1, memoryUsed: 0, error };
   }
 
   // Smart simulation - tries to understand the code logic

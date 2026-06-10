@@ -12,11 +12,12 @@ const METRIC_LABELS: Record<string, string> = {
   whatsapp: '💬 WhatsApp',
   note: '📝 Notes',
   stageMoves: '🔄 Stage Moves',
+  leadsTouched: '🎯 Leads Touched',
   total: '🎯 All Activities',
 };
 
 const ACTIVITY_ICON: Record<string, string> = {
-  call: '📞', whatsapp: '💬', note: '📝', email: '✉️', status_change: '🔄', stage_change: '🔄',
+  call: '📞', whatsapp: '💬', note: '📝', email: '✉️', status_change: '🔄', stage_change: '🔄', lead: '🎯',
 };
 
 const TeamActivity: React.FC = () => {
@@ -134,7 +135,7 @@ const TeamActivity: React.FC = () => {
                   <MetricCell value={r.whatsapp} userId={r.userId} type="whatsapp" name={r.name} />
                   <MetricCell value={r.note} userId={r.userId} type="note" name={r.name} />
                   <MetricCell value={r.stageMoves} userId={r.userId} type="stageMoves" name={r.name} />
-                  <td>{r.leadsTouched}</td>
+                  <MetricCell value={r.leadsTouched} userId={r.userId} type="leadsTouched" name={r.name} />
                   <td>
                     {r.total > 0
                       ? <button type="button" className="ta-link ta-link-strong" onClick={() => openDrill(r.userId, 'total', r.name, r.total)}>{r.total}</button>
@@ -169,7 +170,7 @@ const TeamActivity: React.FC = () => {
                         </div>
                         {it.description && <div className="ta-detail-desc">{it.description}</div>}
                         <div className="ta-detail-meta">
-                          <span className="ta-detail-type">{it.activityType}</span>
+                          {it.activityType && it.activityType !== 'lead' && <span className="ta-detail-type">{it.activityType}</span>}
                           {it.callOutcome && <span className="ta-detail-outcome">{it.callOutcome}</span>}
                           <span className="ta-detail-time">{new Date(it.createdAt).toLocaleString()}</span>
                         </div>

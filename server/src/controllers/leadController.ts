@@ -1545,6 +1545,47 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
       activityMatch['activities.type'] = { $in: types };
     }
 
+    // "Leads Touched" → list each DISTINCT lead the member acted on (not every
+    // activity), with how many activities and which types, so it's clear which
+    // leads were touched.
+    if (type === 'leadsTouched') {
+      const TYPE_LABEL: Record<string, string> = {
+        call: 'Call', whatsapp: 'WhatsApp', note: 'Note', email: 'Email',
+        status_change: 'Stage move', stage_change: 'Stage move',
+      };
+      const grouped = await Lead.aggregate([
+        { $match: { tenantId: tenantOid } },
+        { $unwind: '$activities' },
+        { $match: activityMatch },
+        {
+          $group: {
+            _id: '$_id',
+            leadName: { $first: '$name' },
+            phone: { $first: '$phone' },
+            email: { $first: '$email' },
+            count: { $sum: 1 },
+            types: { $addToSet: '$activities.type' },
+            lastAt: { $max: '$activities.createdAt' },
+          },
+        },
+        { $sort: { lastAt: -1 } },
+        { $limit: 500 },
+      ]);
+      const items = grouped.map((g: any) => {
+        const labels = Array.from(new Set((g.types || []).map((t: string) => TYPE_LABEL[t] || t)));
+        return {
+          leadId: g._id,
+          leadName: g.leadName,
+          phone: g.phone,
+          email: g.email,
+          activityType: 'lead',
+          description: `${g.count} activit${g.count === 1 ? 'y' : 'ies'}${labels.length ? ' · ' + labels.join(', ') : ''}`,
+          createdAt: g.lastAt,
+        };
+      });
+      return res.json({ success: true, message: 'Leads touched fetched', data: { items, range: { start, end } } });
+    }
+
     const items = await Lead.aggregate([
       { $match: { tenantId: tenantOid } },
       { $unwind: '$activities' },

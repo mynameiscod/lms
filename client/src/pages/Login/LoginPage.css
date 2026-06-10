@@ -3,6 +3,7 @@
   --cb-teal: #14a89c;
   --cb-navy: #0a2a5e;
   --cb-navy-2: #003d82;
+  flex: 1 0 auto; /* fill #root (which compensates the global zoom) — no bottom gap */
   min-height: 100vh;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -11,10 +12,6 @@
   font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', 'Helvetica Neue', sans-serif;
   color: #1f2937;
 }
-
-/* Both panels fill the full viewport height so there is no empty strip below */
-.login-brand,
-.login-panel { min-height: 100vh; }
 
 /* ---------- Left: brand ---------- */
 .login-brand {
@@ -284,7 +281,6 @@
 /* ---------- Responsive: stack brand on top, login below ---------- */
 @media (max-width: 992px) {
   .login-page { grid-template-columns: 1fr; min-height: 100vh; }
-  .login-brand, .login-panel { min-height: auto; }
   .login-brand { padding: 36px 28px 28px; }
   .login-brand-inner { max-width: 520px; text-align: center; }
   .login-logo { margin: 0 auto 22px; }

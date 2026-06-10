@@ -19,9 +19,13 @@ body {
 
 #root {
   width: 100%;
-  min-height: 100vh;
   /* Load the whole app slightly zoomed out by default (~75%) */
   zoom: 0.75;
+  /* zoom shrinks vh, so 100vh under-fills the screen and leaves a gap below
+     short pages (e.g. login). Compensate so #root fills the real viewport. */
+  min-height: calc(100vh / 0.75);
+  display: flex;
+  flex-direction: column;
 }
 
 code {

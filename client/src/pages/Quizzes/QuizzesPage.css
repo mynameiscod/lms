@@ -137,21 +137,21 @@
   opacity: 0.8;
 }
 
-/* Card Header */
-.card-header {
+/* Card Header (scoped to quiz cards — must NOT leak to every .card-header app-wide) */
+.quiz-card .card-header {
   background: linear-gradient(135deg, #005897 0%, #003d6b 100%);
   padding: 20px;
   color: white;
 }
 
-.header-content {
+.quiz-card .header-content {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
   gap: 15px;
 }
 
-.card-header h3 {
+.quiz-card .card-header h3 {
   margin: 0;
   font-size: 1.2rem;
   font-weight: 600;

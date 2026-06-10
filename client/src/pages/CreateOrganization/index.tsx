@@ -18,11 +18,16 @@ const CreateOrganizationPage: React.FC = () => {
   const [studentFeatures, setStudentFeatures] = useState({
     dashboard: true,
     myCourse: true,
+    topicHub: true,
     classHub: true,
     attendance: true,
     quizzes: true,
     assignments: true,
+    codingSnippets: true,
     mockInterviews: true,
+    scheduledInterviews: true,
+    resumeBuilder: true,
+    learningPlan: true,
     feeDetails: true
   });
   const { setUser } = useAuth();
@@ -31,11 +36,16 @@ const CreateOrganizationPage: React.FC = () => {
   const featureList = [
     { key: 'dashboard', label: 'Dashboard', icon: 'fa-solid fa-gauge-high', desc: 'Student home with progress, upcoming deadlines and widgets' },
     { key: 'myCourse', label: 'My Courses', icon: 'fa-solid fa-book-open', desc: 'Access enrolled courses and topics' },
+    { key: 'topicHub', label: 'Topic Hub', icon: 'fa-solid fa-brain', desc: 'Browse topics and master concepts at your own pace' },
     { key: 'classHub', label: 'Class Hub', icon: 'fa-solid fa-video', desc: 'Live & recorded classes with AI notes and quizzes' },
     { key: 'attendance', label: 'Attendance', icon: 'fa-solid fa-calendar-check', desc: 'View personal attendance records and summaries' },
     { key: 'quizzes', label: 'Quizzes', icon: 'fa-solid fa-circle-question', desc: 'Take assigned quizzes and view results' },
     { key: 'assignments', label: 'Assignments', icon: 'fa-solid fa-file-pen', desc: 'Submit coding and written assignments' },
+    { key: 'codingSnippets', label: 'Code Assessments', icon: 'fa-solid fa-code', desc: 'Practice coding snippets and timed challenges' },
     { key: 'mockInterviews', label: 'Mock Interviews', icon: 'fa-solid fa-comments', desc: 'Practice AI-powered mock interview sessions' },
+    { key: 'scheduledInterviews', label: 'Scheduled Interviews', icon: 'fa-solid fa-calendar-day', desc: 'Attend interviews scheduled by mentors' },
+    { key: 'resumeBuilder', label: 'Resume Builder', icon: 'fa-solid fa-file-lines', desc: 'Build and export a professional resume' },
+    { key: 'learningPlan', label: 'Learning Plan', icon: 'fa-solid fa-calendar-days', desc: 'Follow a personalized day-by-day learning plan' },
     { key: 'feeDetails', label: 'Fee Details', icon: 'fa-solid fa-wallet', desc: 'View payment ledger, receipts, and reservation balances' }
   ];
 

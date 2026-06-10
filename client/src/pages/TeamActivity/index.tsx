@@ -158,7 +158,52 @@ const TeamActivity: React.FC = () => {
             <div className="ta-modal-body">
               {drillLoading ? <div className="ta-msg">Loading…</div> :
                 drillErr ? <div className="ta-msg err">{drillErr}</div> :
-                drillItems.length === 0 ? <div className="ta-msg">No details found.</div> : (
+                drillItems.length === 0 ? <div className="ta-msg">No details found.</div> :
+                drill.type === 'leadsTouched' ? (
+                <ul className="ta-lead-list">
+                  {drillItems.map((it, idx) => (
+                    <li key={idx} className="ta-lead-card">
+                      <div className="ta-lead-head">
+                        <b>{it.leadName || 'Unknown lead'}</b>
+                        {it.phone && <a className="ta-lead-phone" href={`tel:${it.phone}`}>📞 {it.phone}</a>}
+                        {it.email && <span className="ta-lead-email">{it.email}</span>}
+                      </div>
+                      <div className="ta-lead-meta">
+                        <span>🆕 Entered: <b>{new Date(it.enteredAt).toLocaleDateString()}</b></span>
+                        {it.source && <span>📍 Source: <b>{it.source}</b></span>}
+                        {it.stageName && <span>🔖 Stage: <b>{it.stageName}</b></span>}
+                        {it.assignedToName && <span>👤 Owner: <b>{it.assignedToName}</b></span>}
+                      </div>
+                      <div className="ta-lead-touched">
+                        ✋ Touched <b>{it.touchedCount}</b> time{it.touchedCount === 1 ? '' : 's'} this period
+                        {it.touchedTypes?.length ? ` · ${it.touchedTypes.join(', ')}` : ''}
+                      </div>
+                      {it.timeline?.length > 0 && (
+                        <div className="ta-lead-timeline">
+                          <div className="ta-lead-timeline-title">Full timeline ({it.totalActivities})</div>
+                          {it.timeline.map((t: any, ti: number) => (
+                            <div key={ti} className="ta-tl-row">
+                              <span className="ta-tl-icon">{ACTIVITY_ICON[t.type] || '•'}</span>
+                              <div className="ta-tl-body">
+                                <div className="ta-tl-line">
+                                  <span className="ta-tl-type">{t.typeLabel}</span>
+                                  {t.callOutcome && <span className="ta-tl-outcome">{t.callOutcome}</span>}
+                                  <span className="ta-tl-time">{new Date(t.at).toLocaleString()}</span>
+                                </div>
+                                {t.description && <div className="ta-tl-desc">{t.description}</div>}
+                                <div className="ta-tl-by">by {t.byName}</div>
+                              </div>
+                            </div>
+                          ))}
+                          {it.totalActivities > it.timeline.length && (
+                            <div className="ta-tl-more">+{it.totalActivities - it.timeline.length} earlier…</div>
+                          )}
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+                ) : (
                 <ul className="ta-detail-list">
                   {drillItems.map((it, idx) => (
                     <li key={idx} className="ta-detail">

@@ -1545,14 +1545,16 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
       activityMatch['activities.type'] = { $in: types };
     }
 
-    // "Leads Touched" → list each DISTINCT lead the member acted on (not every
-    // activity), with how many activities and which types, so it's clear which
-    // leads were touched.
+    // "Leads Touched" → one rich card per DISTINCT lead the member acted on:
+    // when the lead entered the portal, its source, current stage & owner, what
+    // the member did this period, and the lead's full activity/change timeline.
     if (type === 'leadsTouched') {
       const TYPE_LABEL: Record<string, string> = {
         call: 'Call', whatsapp: 'WhatsApp', note: 'Note', email: 'Email',
-        status_change: 'Stage move', stage_change: 'Stage move',
+        status_change: 'Stage move', stage_change: 'Stage move', assignment: 'Assignment',
+        created: 'Created', meeting: 'Meeting', content_shared: 'Content shared',
       };
+      // 1) which leads this member touched in the period (+ their period summary)
       const grouped = await Lead.aggregate([
         { $match: { tenantId: tenantOid } },
         { $unwind: '$activities' },
@@ -1560,29 +1562,60 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
         {
           $group: {
             _id: '$_id',
-            leadName: { $first: '$name' },
-            phone: { $first: '$phone' },
-            email: { $first: '$email' },
             count: { $sum: 1 },
             types: { $addToSet: '$activities.type' },
             lastAt: { $max: '$activities.createdAt' },
           },
         },
         { $sort: { lastAt: -1 } },
-        { $limit: 500 },
+        { $limit: 200 },
       ]);
-      const items = grouped.map((g: any) => {
-        const labels = Array.from(new Set((g.types || []).map((t: string) => TYPE_LABEL[t] || t)));
+      const ids = grouped.map((g: any) => g._id);
+      const summaryMap: Record<string, any> = {};
+      grouped.forEach((g: any) => { summaryMap[String(g._id)] = g; });
+
+      // 2) full details for those leads (stage, owner, source, entry date, timeline)
+      const leads = await Lead.find({ _id: { $in: ids } })
+        .select('name phone email source createdAt stageId assignedTo activities')
+        .populate('stageId', 'name')
+        .populate('assignedTo', 'firstName lastName')
+        .populate('activities.createdBy', 'firstName lastName email')
+        .lean();
+
+      const items = leads.map((l: any) => {
+        const g = summaryMap[String(l._id)] || {};
+        const timeline = (l.activities || [])
+          .slice()
+          .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .slice(0, 50)
+          .map((a: any) => {
+            const u = a.createdBy;
+            return {
+              type: a.type,
+              typeLabel: TYPE_LABEL[a.type] || a.type,
+              description: a.description,
+              callOutcome: a.callOutcome,
+              byName: u ? (`${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email) : 'System',
+              at: a.createdAt,
+            };
+          });
         return {
-          leadId: g._id,
-          leadName: g.leadName,
-          phone: g.phone,
-          email: g.email,
-          activityType: 'lead',
-          description: `${g.count} activit${g.count === 1 ? 'y' : 'ies'}${labels.length ? ' · ' + labels.join(', ') : ''}`,
-          createdAt: g.lastAt,
+          leadId: l._id,
+          leadName: l.name,
+          phone: l.phone,
+          email: l.email,
+          source: l.source || '',
+          enteredAt: l.createdAt,
+          stageName: l.stageId?.name || '',
+          assignedToName: l.assignedTo ? `${l.assignedTo.firstName || ''} ${l.assignedTo.lastName || ''}`.trim() : '',
+          touchedCount: g.count || 0,
+          touchedTypes: Array.from(new Set((g.types || []).map((t: string) => TYPE_LABEL[t] || t))),
+          lastAt: g.lastAt || l.createdAt,
+          totalActivities: (l.activities || []).length,
+          timeline,
         };
       });
+      items.sort((a: any, b: any) => new Date(b.lastAt).getTime() - new Date(a.lastAt).getTime());
       return res.json({ success: true, message: 'Leads touched fetched', data: { items, range: { start, end } } });
     }
 

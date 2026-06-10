@@ -74,8 +74,9 @@
 .fees-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .fees-form-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px; font-weight: 600; color: #475569; }
 .fees-form-grid label.full { grid-column: 1 / -1; }
-.fees-form-grid input, .fees-form-grid select { height: 40px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 12px; font-size: 14px; color: #1f2937; font-weight: 400; color-scheme: light; }
-.fees-form-grid input:focus, .fees-form-grid select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.fees-form-grid input, .fees-form-grid select { height: 40px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 12px; font-size: 14px; color: #1f2937; font-weight: 400; color-scheme: light; min-width: 0; box-sizing: border-box; }
+.fees-form-grid textarea { border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; color: #1f2937; color-scheme: light; min-width: 0; box-sizing: border-box; width: 100%; }
+.fees-form-grid input:focus, .fees-form-grid select:focus, .fees-form-grid textarea:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
 .fees-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
 .fees-modal { max-height: 90vh; overflow-y: auto; overflow-x: hidden; }
 

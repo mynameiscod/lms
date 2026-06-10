@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { feeApi, FeeRow, FeeSummary, PaymentInput, Installment } from '../../api/feeApi';
+import { feeApi, FeeRow, FeeSummary, PaymentInput, Installment, ReceiptSettings } from '../../api/feeApi';
 import { batchApi } from '../../api';
 import './Fees.css';
 
@@ -19,6 +19,12 @@ const FeesPage: React.FC = () => {
   const [toast, setToast] = useState('');
 
   const [page, setPage] = useState(1);
+
+  // Receipt settings modal
+  const [showSettings, setShowSettings] = useState(false);
+  const [settings, setSettings] = useState<ReceiptSettings>({});
+  const [resolvedPh, setResolvedPh] = useState<any>(null);
+  const [savingSettings, setSavingSettings] = useState(false);
 
   // Payment modal
   const [modalRow, setModalRow] = useState<FeeRow | null>(null);
@@ -160,6 +166,32 @@ const FeesPage: React.FC = () => {
     catch { showToast('❌ Failed to send reminders'); }
   };
 
+  const openSettings = async () => {
+    setShowSettings(true);
+    try {
+      const res = await feeApi.getReceiptSettings();
+      const saved = res.data.data.saved || {};
+      setResolvedPh(res.data.data.resolved || null);
+      setSettings({
+        ...saved,
+        notes: Array.isArray(saved.notes) ? saved.notes.join('\n') : (saved.notes || ''),
+        socials: Array.isArray(saved.socials) ? saved.socials.map((s: any) => `${s.label} | ${s.url}`).join('\n') : (saved.socials || ''),
+      });
+    } catch { showToast('❌ Failed to load receipt settings'); }
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      await feeApi.updateReceiptSettings(settings);
+      setShowSettings(false);
+      showToast('✅ Receipt settings saved');
+    } catch (e: any) { showToast('❌ ' + (e.response?.data?.message || 'Failed to save settings')); }
+    finally { setSavingSettings(false); }
+  };
+
+  const setS = (patch: Partial<ReceiptSettings>) => setSettings(prev => ({ ...prev, ...patch }));
+
   const maxMonthly = Math.max(1, ...(analytics?.monthly || []).map((m: any) => m.amount));
 
   const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
@@ -180,7 +212,10 @@ const FeesPage: React.FC = () => {
           <h1>💳 Fee Management</h1>
           <p>Record payments, track dues, and send reminders</p>
         </div>
-        <button className="fees-btn primary" onClick={remindAll}>🔔 Remind All Pending</button>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <button className="fees-btn" onClick={openSettings}>🧾 Receipt Settings</button>
+          <button className="fees-btn primary" onClick={remindAll}>🔔 Remind All Pending</button>
+        </div>
       </div>
 
       {/* Analytics */}
@@ -362,6 +397,51 @@ const FeesPage: React.FC = () => {
             <div className="fees-modal-actions">
               <button className="fees-btn" onClick={() => setModalRow(null)}>Cancel</button>
               <button className="fees-btn primary" onClick={submitPayment} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Receipt Settings modal */}
+      {showSettings && (
+        <div className="fees-modal-overlay" onClick={() => setShowSettings(false)}>
+          <div className="fees-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
+            <h3>🧾 Receipt Settings</h3>
+            <p className="fees-modal-sub">These details appear on every fee receipt for your organization. Empty fields fall back to sensible defaults.</p>
+
+            <div className="fees-form-grid">
+              <label className="full">Institute Name<input value={settings.instituteName || ''} onChange={e => setS({ instituteName: e.target.value })} placeholder={resolvedPh?.name || 'Your Institute Name'} /></label>
+              <label className="full">Address<input value={settings.address || ''} onChange={e => setS({ address: e.target.value })} placeholder={resolvedPh?.address || 'Full address'} /></label>
+              <label>Phone<input value={settings.phone || ''} onChange={e => setS({ phone: e.target.value })} placeholder={resolvedPh?.phone || '+91 …'} /></label>
+              <label>Email<input value={settings.email || ''} onChange={e => setS({ email: e.target.value })} placeholder={resolvedPh?.email || 'contact@…'} /></label>
+              <label>Website<input value={settings.website || ''} onChange={e => setS({ website: e.target.value })} placeholder={resolvedPh?.website || 'www.…'} /></label>
+              <label>Receipt No. Prefix<input value={settings.receiptPrefix || ''} onChange={e => setS({ receiptPrefix: e.target.value })} placeholder={resolvedPh?.prefix || 'e.g. CB'} /></label>
+              <label className="full">Logo URL<input value={settings.logoUrl || ''} onChange={e => setS({ logoUrl: e.target.value })} placeholder={resolvedPh?.logo || 'https://…/logo.png'} /></label>
+              <label className="full">Signature Image URL<input value={settings.signatureUrl || ''} onChange={e => setS({ signatureUrl: e.target.value })} placeholder="https://…/signature.png" /></label>
+              <label>Authorized Signatory<input value={settings.authorizedSignatory || ''} onChange={e => setS({ authorizedSignatory: e.target.value })} placeholder="Authorized Signatory" /></label>
+              <label>Default Mode
+                <select value={settings.defaultMode || ''} onChange={e => setS({ defaultMode: e.target.value })}>
+                  <option value="">Offline</option><option value="Offline">Offline</option><option value="Online">Online</option><option value="Hybrid">Hybrid</option>
+                </select>
+              </label>
+              <label>Default Mentor<input value={settings.defaultMentor || ''} onChange={e => setS({ defaultMentor: e.target.value })} placeholder={resolvedPh?.defaultMentor || 'Faculty Team'} /></label>
+              <label className="full">Tagline<input value={settings.tagline || ''} onChange={e => setS({ tagline: e.target.value })} placeholder={resolvedPh?.tagline || 'Your tagline'} /></label>
+            </div>
+
+            <div className="fees-form-grid" style={{ marginTop: 12 }}>
+              <label className="full" style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <input type="checkbox" style={{ width: 'auto', height: 'auto' }} checked={!!settings.showQr} onChange={e => setS({ showQr: e.target.checked })} />
+                <span>Show “Scan &amp; Pay” QR on receipts</span>
+              </label>
+              <label>UPI ID (auto-generates QR)<input value={settings.upiId || ''} onChange={e => setS({ upiId: e.target.value })} placeholder="name@bank" /></label>
+              <label>Or QR Image URL<input value={settings.qrUrl || ''} onChange={e => setS({ qrUrl: e.target.value })} placeholder="https://…/qr.png" /></label>
+              <label className="full">Notes (one per line)<textarea rows={3} value={(settings.notes as string) || ''} onChange={e => setS({ notes: e.target.value })} placeholder="Please clear dues before due date…" style={{ resize: 'vertical', padding: 10, fontFamily: 'inherit' }} /></label>
+              <label className="full">Social Links (one per line, “Label | URL”)<textarea rows={3} value={(settings.socials as string) || ''} onChange={e => setS({ socials: e.target.value })} placeholder={'LinkedIn | https://linkedin.com/company/…\nInstagram | https://instagram.com/…'} style={{ resize: 'vertical', padding: 10, fontFamily: 'inherit' }} /></label>
+            </div>
+
+            <div className="fees-modal-actions">
+              <button className="fees-btn" onClick={() => setShowSettings(false)}>Cancel</button>
+              <button className="fees-btn primary" onClick={saveSettings} disabled={savingSettings}>{savingSettings ? 'Saving…' : 'Save Settings'}</button>
             </div>
           </div>
         </div>

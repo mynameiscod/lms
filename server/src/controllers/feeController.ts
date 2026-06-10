@@ -16,9 +16,9 @@ const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const inr2 = (n: number) => `₹${(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const sumPayments = (payments: any[]) => (payments || []).reduce((s, p) => s + (p.amount || 0), 0);
 
-// CodeBegun brand details used on the printed / emailed receipt.
-// Logo, signature and QR are hot-linked from the public site (same host as the
-// assessment-page logo) so they render in email clients and on print.
+// CodeBegun brand details — used as the DEFAULT receipt branding. Each tenant
+// can override every field via tenant.receipt (see resolveReceiptBrand). Logo,
+// signature and QR are hot-linked so they render in email clients and on print.
 const BRAND = {
   name: 'CODEBEGUN INSTITUTE OF TECHNOLOGIES',
   tagline: 'Code Your Career. Begin Your Future.',
@@ -43,7 +43,67 @@ const BRAND = {
 const fmtDate = (d?: Date | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const PAY_METHOD_LABEL: Record<string, string> = { cash: 'Cash', upi: 'UPI', card: 'Card', bank_transfer: 'Bank Transfer', other: 'Other' };
 
+// Effective, fully-resolved branding for one tenant's receipt.
+interface ResolvedBrand {
+  name: string; address: string; phone: string; email: string;
+  website: string; websiteUrl: string; logo: string; signature: string;
+  authorizedSignatory: string; tagline: string;
+  showQr: boolean; qr: string; upiId: string;
+  prefix: string; defaultMode: string; defaultMentor: string;
+  notes: string[]; socials: { label: string; url: string }[];
+  primary: string; primaryDark: string; accent: string;
+}
+
+const isCodeBegunTenant = (t: any) => t?.type === 'codebegun' || /codebegun|code\s*begun/i.test(t?.name || '');
+const nameInitials = (name?: string) => {
+  const parts = (name || '').trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return 'RCT';
+  const ini = parts.map(p => p[0]).join('').toUpperCase().slice(0, 3);
+  return ini.length >= 2 ? ini : (name || '').replace(/[^a-zA-Z0-9]/g, '').slice(0, 3).toUpperCase() || 'RCT';
+};
+const toUrl = (w?: string) => !w ? '' : (/^https?:\/\//i.test(w) ? w : `https://${w.replace(/^\/+/, '')}`);
+const upiQr = (upi: string, name: string) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${upi}&pn=${name}`)}`;
+
+// Merge a tenant's saved receipt config over sensible defaults. CodeBegun (or an
+// unconfigured CodeBegun tenant) falls back to the full BRAND defaults so its
+// receipts are unchanged; other tenants get their own name/contacts/prefix.
+function resolveReceiptBrand(tenant: any): ResolvedBrand {
+  const r = tenant?.receipt || {};
+  const cb = isCodeBegunTenant(tenant);
+  const name = r.instituteName || tenant?.name || BRAND.name;
+  const website = r.website || tenant?.website || (cb ? BRAND.website : '');
+  const phone = r.phone || (cb ? BRAND.phone : '');
+  const email = r.email || (cb ? BRAND.email : '');
+  const defaultNotes = [
+    'Please clear the due amount on or before the due date to avoid late fee.',
+    'Fees once paid are non-refundable and non-transferable.',
+    `For any queries, contact us${(phone || email) ? ` at ${[phone, email].filter(Boolean).join(' or ')}` : ''}`,
+  ];
+  return {
+    name,
+    address: r.address || (cb ? BRAND.address : ''),
+    phone, email, website, websiteUrl: toUrl(website),
+    logo: r.logoUrl || tenant?.logo || (cb ? BRAND.logo : ''),
+    signature: r.signatureUrl || (cb ? BRAND.signature : ''),
+    authorizedSignatory: r.authorizedSignatory || 'Authorized Signatory',
+    tagline: r.tagline || (cb ? BRAND.tagline : ''),
+    showQr: r.showQr === true,
+    qr: r.qrUrl || (r.upiId ? upiQr(r.upiId, name) : ''),
+    upiId: r.upiId || '',
+    prefix: (r.receiptPrefix || (cb ? 'CB' : nameInitials(name))).toUpperCase(),
+    defaultMode: r.defaultMode || 'Offline',
+    defaultMentor: r.defaultMentor || (cb ? 'CodeBegun Expert Team' : 'Faculty Team'),
+    notes: (Array.isArray(r.notes) && r.notes.length) ? r.notes : defaultNotes,
+    socials: (Array.isArray(r.socials) && r.socials.length) ? r.socials : (cb ? BRAND.socials : []),
+    primary: tenant?.branding?.primaryColor || BRAND.primary,
+    primaryDark: tenant?.branding?.primaryColor || BRAND.primaryDark,
+    accent: tenant?.branding?.primaryColor || BRAND.accent,
+  };
+}
+
 interface ReceiptData {
+  brand: ResolvedBrand;
   receiptNo: string; issueDate: Date;
   studentName: string; mobile?: string; email: string; address?: string;
   courseName?: string; batchName?: string; batchStart?: Date | null; batchEnd?: Date | null;
@@ -55,7 +115,8 @@ interface ReceiptData {
 
 // Build a branded, printable HTML fee receipt matching the CodeBegun template.
 function buildReceiptHtml(d: ReceiptData): string {
-  const P = BRAND.primary, PD = BRAND.primaryDark, A = BRAND.accent;
+  const B = d.brand;
+  const P = B.primary, PD = B.primaryDark, A = B.accent;
   const labelCell = (t: string) => `<td style="padding:5px 0;color:#64748b;font-size:12px;width:120px;vertical-align:top">${t}</td><td style="padding:5px 6px;color:#0f172a;font-size:12px;vertical-align:top">:</td>`;
   const detailRow = (label: string, value: string) => `<tr>${labelCell(label)}<td style="padding:5px 0;color:#0f172a;font-size:12px;font-weight:600;vertical-align:top">${value || '—'}</td></tr>`;
 
@@ -79,9 +140,16 @@ function buildReceiptHtml(d: ReceiptData): string {
     <tr><td style="padding:9px 0 3px;font-size:11px;color:#64748b;font-weight:700;letter-spacing:.3px">${label}</td></tr>
     <tr><td style="padding:0 0 8px;font-size:17px;color:${color};font-weight:800;border-bottom:1px solid #dbe3f5">${value}</td></tr>`;
 
-  const social = BRAND.socials.map(s =>
+  const social = (B.socials || []).map(s =>
     `<a href="${s.url}" style="color:#dbe3f5;text-decoration:none;font-size:11px;font-weight:600;margin:0 8px">${s.label}</a>`
   ).join('<span style="color:#3b5bb5">·</span>');
+  const contactLines = [
+    B.address ? `📍 ${B.address}` : '',
+    B.phone ? `📞 ${B.phone}` : '',
+    B.email ? `✉️ ${B.email}` : '',
+    B.website ? `🌐 ${B.website}` : '',
+  ].filter(Boolean).join('<br/>');
+  const notesHtml = (B.notes || []).map(n => `<li>${n}</li>`).join('');
 
   return `
   <style>
@@ -102,18 +170,15 @@ function buildReceiptHtml(d: ReceiptData): string {
     <table style="width:100%;border-collapse:collapse;padding:0">
       <tr>
         <td style="padding:24px 28px 12px;vertical-align:top">
-          <img src="${BRAND.logo}" alt="CodeBegun" style="height:48px;display:block" />
-          <div style="margin-top:14px;color:${P};font-weight:800;font-size:14px;letter-spacing:.3px">${BRAND.name}</div>
+          ${B.logo ? `<img src="${B.logo}" alt="" onerror="this.style.display='none'" style="height:48px;display:block" />` : ''}
+          <div style="margin-top:14px;color:${P};font-weight:800;font-size:14px;letter-spacing:.3px">${B.name}</div>
           <div style="margin-top:8px;color:#475569;font-size:12px;line-height:1.7">
-            📍 ${BRAND.address}<br/>
-            📞 ${BRAND.phone}<br/>
-            ✉️ ${BRAND.email}<br/>
-            🌐 ${BRAND.website}
+            ${contactLines}
           </div>
         </td>
         <td style="padding:24px 28px 12px;vertical-align:top;text-align:right;width:42%">
           <div style="color:${P};font-weight:800;font-size:30px;letter-spacing:1px">FEE RECEIPT</div>
-          <div style="color:#64748b;font-size:12px;margin-top:2px">Thank you for choosing <span style="color:${A};font-weight:700">CodeBegun!</span></div>
+          <div style="color:#64748b;font-size:12px;margin-top:2px">Thank you for your payment!</div>
           <table style="width:100%;border-collapse:collapse;margin-top:14px">
             <tr><td style="border:1px solid #cbd5e1;border-radius:8px;padding:10px 14px;text-align:center">
               <div style="font-size:10px;color:#64748b;font-weight:700;letter-spacing:.5px">RECEIPT NO.</div>
@@ -208,10 +273,15 @@ function buildReceiptHtml(d: ReceiptData): string {
             </table>
           </td>
           <td style="vertical-align:bottom;width:42%;text-align:center">
+            ${B.showQr && B.qr ? `
+            <div style="text-align:center;padding-top:6px">
+              <div style="color:#475569;font-size:11px;margin-bottom:6px">Scan &amp; Pay${B.upiId ? ` · ${B.upiId}` : ''}</div>
+              <img src="${B.qr}" alt="" onerror="this.style.display='none'" style="width:92px;height:92px;border:1px solid #e5e7eb;border-radius:8px;background:#fff" />
+            </div>` : ''}
             <div style="text-align:center;padding-top:18px">
-              <img src="${BRAND.signature}" alt="" onerror="this.style.display='none'" style="height:54px;display:inline-block" />
-              <div style="border-top:1px solid #cbd5e1;margin:4px auto 0;padding-top:6px;color:#0f172a;font-size:12px;font-weight:600;max-width:220px">Authorized Signatory</div>
-              <div style="color:#64748b;font-size:11px">For ${BRAND.name}</div>
+              ${B.signature ? `<img src="${B.signature}" alt="" onerror="this.style.display='none'" style="height:54px;display:inline-block" />` : ''}
+              <div style="border-top:1px solid #cbd5e1;margin:4px auto 0;padding-top:6px;color:#0f172a;font-size:12px;font-weight:600;max-width:220px">${B.authorizedSignatory}</div>
+              <div style="color:#64748b;font-size:11px">For ${B.name}</div>
             </div>
           </td>
         </tr>
@@ -222,9 +292,7 @@ function buildReceiptHtml(d: ReceiptData): string {
     <div style="padding:12px 28px 14px">
       <div style="color:${P};font-weight:700;font-size:12px;letter-spacing:.4px;margin-bottom:6px">📝 NOTES</div>
       <ul style="margin:0;padding-left:18px;color:#64748b;font-size:11.5px;line-height:1.6">
-        <li>Please clear the due amount on or before the due date to avoid late fee.</li>
-        <li>Fees once paid are non-refundable and non-transferable.</li>
-        <li>For any queries, contact us at ${BRAND.phone} or ${BRAND.email}</li>
+        ${notesHtml}
       </ul>
     </div>
 
@@ -238,13 +306,11 @@ function buildReceiptHtml(d: ReceiptData): string {
           <td style="font-size:11px;padding:4px;color:#c7d2fe"><div style="font-weight:700;color:#ffffff;margin-bottom:2px">Career Growth</div><span style="color:#c7d2fe">Your Success is Our Mission</span></td>
         </tr>
       </table>
-      <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid #3b5bb5">
-        ${social}
-      </div>
+      ${social ? `<div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid #3b5bb5">${social}</div>` : ''}
     </div>
-    <div style="background:#fff;padding:12px 28px;text-align:center;color:${A};font-size:12px;font-style:italic;border-top:1px solid #eef2ff">
-      ${BRAND.tagline} &nbsp;·&nbsp; <a href="${BRAND.websiteUrl}" style="color:${A};text-decoration:none">${BRAND.website}</a>
-    </div>
+    ${(B.tagline || B.website) ? `<div style="background:#fff;padding:12px 28px;text-align:center;color:${A};font-size:12px;font-style:italic;border-top:1px solid #eef2ff">
+      ${B.tagline || ''}${B.tagline && B.website ? ' &nbsp;·&nbsp; ' : ''}${B.website ? `<a href="${B.websiteUrl}" style="color:${A};text-decoration:none">${B.website}</a>` : ''}
+    </div>` : ''}
   </div>`;
 }
 
@@ -484,11 +550,13 @@ export async function getFeeAnalytics(req: AuthRequest, res: Response) {
 
 // Gather all data for a student's branded receipt and render the HTML.
 // Shared by the admin receipt route and the student self-service route.
-async function generateStudentReceipt(tenantId: string, studentId: string): Promise<{ html: string; studentEmail: string; hasFee: boolean } | null> {
+async function generateStudentReceipt(tenantId: string, studentId: string): Promise<{ html: string; studentEmail: string; hasFee: boolean; orgName: string } | null> {
   const student = await User.findOne({ _id: studentId, tenantId })
     .select('firstName lastName email phone batchId').lean() as any;
   if (!student) return null;
   const fee = await Fee.findOne({ studentId, tenantId });
+  const tenant = await Tenant.findById(tenantId).select('name type website logo branding receipt').lean() as any;
+  const brand = resolveReceiptBrand(tenant);
 
   // Batch → course + mentor details
   let batch: any = null, course: any = null, mentor = '';
@@ -505,10 +573,10 @@ async function generateStudentReceipt(tenantId: string, studentId: string): Prom
     }
   }
 
-  // Assign a stable receipt number on first generation
+  // Assign a stable receipt number on first generation (tenant-specific prefix)
   if (fee && !fee.receiptNumber) {
     const issued = await Fee.countDocuments({ tenantId, receiptNumber: { $exists: true, $ne: null } });
-    fee.receiptNumber = `CB/${financialYear(new Date())}/${String(issued + 1).padStart(4, '0')}`;
+    fee.receiptNumber = `${brand.prefix}/${financialYear(new Date())}/${String(issued + 1).padStart(4, '0')}`;
     await fee.save();
   }
 
@@ -522,7 +590,8 @@ async function generateStudentReceipt(tenantId: string, studentId: string): Prom
   const courseFee = Math.max(0, total - reg - mat - oth);
 
   const html = buildReceiptHtml({
-    receiptNo: fee?.receiptNumber || `CB/${financialYear(new Date())}/DRAFT`,
+    brand,
+    receiptNo: fee?.receiptNumber || `${brand.prefix}/${financialYear(new Date())}/DRAFT`,
     issueDate: new Date(),
     studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email,
     mobile: student.phone || '',
@@ -532,8 +601,8 @@ async function generateStudentReceipt(tenantId: string, studentId: string): Prom
     batchStart: batch?.startDate || null,
     batchEnd: batch?.endDate || null,
     duration,
-    mode: 'Offline',
-    mentor: mentor || 'CodeBegun Expert Team',
+    mode: brand.defaultMode,
+    mentor: mentor || brand.defaultMentor,
     courseFee,
     registrationFee: reg,
     studyMaterials: mat,
@@ -547,7 +616,7 @@ async function generateStudentReceipt(tenantId: string, studentId: string): Prom
     payments: fee?.payments || [],
   });
 
-  return { html, studentEmail: student.email, hasFee: !!fee };
+  return { html, studentEmail: student.email, hasFee: !!fee, orgName: brand.name };
 }
 
 // GET /fees/:studentId/receipt[?email=true] — printable bill, optionally emailed (admin)
@@ -561,7 +630,7 @@ export async function getReceipt(req: AuthRequest, res: Response) {
     if (!result) return res.status(404).json({ success: false, message: 'Student not found' });
 
     if (sendEmail) {
-      const ok = await emailService.sendGenericEmail(result.studentEmail, `Fee Receipt — ${BRAND.name}`, result.html);
+      const ok = await emailService.sendGenericEmail(result.studentEmail, `Fee Receipt — ${result.orgName}`, result.html);
       return res.json({ success: ok, message: ok ? 'Receipt emailed' : 'Failed to send email', data: { html: result.html } });
     }
     res.json({ success: true, data: { html: result.html } });
@@ -583,12 +652,69 @@ export async function getMyReceipt(req: AuthRequest, res: Response) {
     if (!result.hasFee) return res.status(404).json({ success: false, message: 'No fee record found for your account yet' });
 
     if (sendEmail) {
-      const ok = await emailService.sendGenericEmail(result.studentEmail, `Fee Receipt — ${BRAND.name}`, result.html);
+      const ok = await emailService.sendGenericEmail(result.studentEmail, `Fee Receipt — ${result.orgName}`, result.html);
       return res.json({ success: ok, message: ok ? 'Receipt emailed' : 'Failed to send email', data: { html: result.html } });
     }
     res.json({ success: true, data: { html: result.html } });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to generate receipt' });
+  }
+}
+
+// GET /fees/receipt-settings — current saved config + resolved defaults (for the admin form)
+export async function getReceiptSettings(req: AuthRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId!;
+    const tenant = await Tenant.findById(tenantId).select('name type website logo branding receipt').lean() as any;
+    if (!tenant) return res.status(404).json({ success: false, message: 'Tenant not found' });
+    res.json({ success: true, data: { saved: tenant.receipt || {}, resolved: resolveReceiptBrand(tenant) } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to load receipt settings' });
+  }
+}
+
+// PUT /fees/receipt-settings — save this tenant's receipt config
+export async function updateReceiptSettings(req: AuthRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId!;
+    const b = req.body || {};
+    const str = (v: any) => (typeof v === 'string' ? v.trim() : '') || undefined;
+    const lines = (v: any) => Array.isArray(v)
+      ? v.map((x: any) => String(x).trim()).filter(Boolean)
+      : String(v || '').split('\n').map(s => s.trim()).filter(Boolean);
+
+    const receipt: any = {
+      instituteName: str(b.instituteName),
+      address: str(b.address),
+      phone: str(b.phone),
+      email: str(b.email),
+      website: str(b.website),
+      logoUrl: str(b.logoUrl),
+      signatureUrl: str(b.signatureUrl),
+      authorizedSignatory: str(b.authorizedSignatory),
+      tagline: str(b.tagline),
+      receiptPrefix: str(b.receiptPrefix),
+      defaultMode: str(b.defaultMode),
+      defaultMentor: str(b.defaultMentor),
+      upiId: str(b.upiId),
+      qrUrl: str(b.qrUrl),
+      showQr: b.showQr === true || b.showQr === 'true',
+      notes: lines(b.notes),
+      // socials: array of {label,url} OR newline "Label | URL" text
+      socials: Array.isArray(b.socials)
+        ? b.socials.filter((s: any) => s && (s.label || s.url)).map((s: any) => ({ label: String(s.label || '').trim(), url: String(s.url || '').trim() }))
+        : lines(b.socials).map((ln: string) => {
+            const [label, ...rest] = ln.split('|');
+            return { label: (label || '').trim(), url: rest.join('|').trim() };
+          }).filter((s: any) => s.label && s.url),
+    };
+
+    const tenant = await Tenant.findByIdAndUpdate(tenantId, { $set: { receipt } }, { new: true })
+      .select('name type website logo branding receipt').lean() as any;
+    if (!tenant) return res.status(404).json({ success: false, message: 'Tenant not found' });
+    res.json({ success: true, message: 'Receipt settings saved', data: { saved: tenant.receipt || {}, resolved: resolveReceiptBrand(tenant) } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to save receipt settings' });
   }
 }
 

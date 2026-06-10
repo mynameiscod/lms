@@ -81,6 +81,29 @@ export const feeApi = {
     API.get<{ success: boolean; data: { html: string } }>(`/fees/me/receipt`, { params: email ? { email: true } : {} }),
   remind: (studentId: string) => API.post(`/fees/${studentId}/remind`),
   remindBulk: (batch?: string) => API.post('/fees/remind-bulk', batch ? { batch } : {}),
+  getReceiptSettings: () => API.get<{ success: boolean; data: { saved: ReceiptSettings; resolved: any } }>('/fees/receipt-settings'),
+  updateReceiptSettings: (data: ReceiptSettings) =>
+    API.put<{ success: boolean; data: { saved: ReceiptSettings; resolved: any } }>('/fees/receipt-settings', data),
 };
+
+export interface ReceiptSettings {
+  instituteName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  authorizedSignatory?: string;
+  tagline?: string;
+  receiptPrefix?: string;
+  defaultMode?: string;
+  defaultMentor?: string;
+  upiId?: string;
+  qrUrl?: string;
+  showQr?: boolean;
+  notes?: string[] | string;
+  socials?: { label: string; url: string }[] | string;
+}
 
 export default feeApi;

@@ -57,6 +57,27 @@ export interface ICollegeInfo {
   placementOfficerPhone?: string;
 }
 
+// Per-tenant fee-receipt configuration (all optional — falls back to defaults)
+export interface IReceiptSettings {
+  instituteName?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  logoUrl?: string;
+  signatureUrl?: string;
+  authorizedSignatory?: string;
+  tagline?: string;
+  receiptPrefix?: string;
+  defaultMode?: string;
+  defaultMentor?: string;
+  upiId?: string;
+  qrUrl?: string;
+  showQr?: boolean;
+  notes?: string[];
+  socials?: { label: string; url: string }[];
+}
+
 // White-label branding (all optional — existing tenants get safe defaults)
 export interface IBranding {
   primaryColor?: string;        // e.g. "#6650d8"
@@ -84,6 +105,7 @@ export interface ITenant extends Document {
   modules: ITenantModules;
   collegeInfo?: ICollegeInfo;
   branding?: IBranding;
+  receipt?: IReceiptSettings;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -196,6 +218,26 @@ const TenantSchema: Schema = new Schema(
       coverImageUrl: { type: String, default: null },
       hideCodeBegunBranding: { type: Boolean, default: false },
       customDomain: { type: String, default: null }
+    },
+    // Per-tenant fee-receipt configuration — all optional, defaults applied in code
+    receipt: {
+      instituteName: { type: String },
+      address: { type: String },
+      phone: { type: String },
+      email: { type: String },
+      website: { type: String },
+      logoUrl: { type: String },
+      signatureUrl: { type: String },
+      authorizedSignatory: { type: String },
+      tagline: { type: String },
+      receiptPrefix: { type: String },
+      defaultMode: { type: String },
+      defaultMentor: { type: String },
+      upiId: { type: String },
+      qrUrl: { type: String },
+      showQr: { type: Boolean, default: false },
+      notes: { type: [String], default: undefined },
+      socials: { type: [{ label: String, url: String }], default: undefined }
     }
   },
   { timestamps: true }

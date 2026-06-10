@@ -7,6 +7,8 @@ import {
   getFeeAnalytics,
   getReceipt,
   getMyReceipt,
+  getReceiptSettings,
+  updateReceiptSettings,
   sendReminder,
   sendBulkReminders,
 } from '../controllers/feeController';
@@ -27,6 +29,8 @@ router.use(roleGuard(['manage_billing']));
 // Specific routes before parameterised ones
 router.get('/', listFees);
 router.get('/analytics', getFeeAnalytics);
+router.get('/receipt-settings', getReceiptSettings);
+router.put('/receipt-settings', updateReceiptSettings);
 router.post('/remind-bulk', sendBulkReminders);
 
 router.put('/:studentId', upsertFee);

@@ -80,7 +80,14 @@ const FeesPage: React.FC = () => {
     setPayDate(new Date().toISOString().slice(0, 10));
   };
 
-  const addInstallment = () => setInstallments(prev => [...prev, { amount: 0, dueDate: '', status: 'pending', label: '' }]);
+  const addInstallment = () => setInstallments(prev => {
+    // Auto-fill the new installment with the remaining balance:
+    // net payable (Total − Discount) minus what the earlier installments already cover.
+    const used = prev.reduce((s, i) => s + (Number(i.amount) || 0), 0);
+    const net = Math.max(0, (Number(totalFee) || 0) - (Number(discount) || 0));
+    const remaining = Math.max(0, net - used);
+    return [...prev, { amount: remaining, dueDate: '', status: 'pending', label: `Installment ${prev.length + 1}` }];
+  });
   const updateInstallment = (idx: number, patch: Partial<Installment>) =>
     setInstallments(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
   const removeInstallment = (idx: number) => setInstallments(prev => prev.filter((_, i) => i !== idx));

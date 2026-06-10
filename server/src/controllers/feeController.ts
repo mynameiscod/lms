@@ -33,6 +33,12 @@ const BRAND = {
   primary: '#1b3a8a',
   primaryDark: '#13287a',
   accent: '#1d4ed8',
+  socials: [
+    { label: 'LinkedIn', url: 'https://www.linkedin.com/company/codbegun/' },
+    { label: 'Instagram', url: 'https://www.instagram.com/codebegun/' },
+    { label: 'YouTube', url: 'https://www.youtube.com/@CodeBegun' },
+    { label: 'Facebook', url: 'https://www.facebook.com/share/1ut7vgqnTQdE82tS/' },
+  ],
 };
 
 const fmtDate = (d?: Date | null) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
@@ -74,8 +80,23 @@ function buildReceiptHtml(d: ReceiptData): string {
     <tr><td style="padding:9px 0 3px;font-size:11px;color:#64748b;font-weight:700;letter-spacing:.3px">${label}</td></tr>
     <tr><td style="padding:0 0 8px;font-size:17px;color:${color};font-weight:800;border-bottom:1px solid #dbe3f5">${value}</td></tr>`;
 
+  const social = BRAND.socials.map(s =>
+    `<a href="${s.url}" style="color:#dbe3f5;text-decoration:none;font-size:11px;font-weight:600;margin:0 8px">${s.label}</a>`
+  ).join('<span style="color:#3b5bb5">·</span>');
+
   return `
-  <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:760px;margin:0 auto;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+  <style>
+    .cb-receipt, .cb-receipt * { box-sizing: border-box; }
+    .cb-receipt img { max-width: 100%; }
+    .cb-receipt { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @media print {
+      @page { size: A4 portrait; margin: 5mm; }
+      html, body { margin: 0 !important; padding: 0 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+      /* Compress to a single A4 page */
+      .cb-receipt { zoom: 0.82; border: none !important; border-radius: 0 !important; box-shadow: none !important; max-width: 100% !important; width: 100% !important; page-break-inside: avoid; }
+    }
+  </style>
+  <div class="cb-receipt" style="font-family:'Segoe UI',Arial,sans-serif;max-width:760px;margin:0 auto;background:#fff;color:#1f2937;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
     <div style="height:6px;background:${PD}"></div>
 
     <!-- Header -->
@@ -209,9 +230,9 @@ function buildReceiptHtml(d: ReceiptData): string {
     </div>
 
     <!-- Notes -->
-    <div style="padding:16px 28px 22px">
-      <div style="color:${P};font-weight:700;font-size:12px;letter-spacing:.4px;margin-bottom:8px">📝 NOTES</div>
-      <ul style="margin:0;padding-left:18px;color:#64748b;font-size:11.5px;line-height:1.9">
+    <div style="padding:12px 28px 14px">
+      <div style="color:${P};font-weight:700;font-size:12px;letter-spacing:.4px;margin-bottom:6px">📝 NOTES</div>
+      <ul style="margin:0;padding-left:18px;color:#64748b;font-size:11.5px;line-height:1.6">
         <li>Please clear the due amount on or before the due date to avoid late fee.</li>
         <li>Fees once paid are non-refundable and non-transferable.</li>
         <li>For any queries, contact us at ${BRAND.phone} or ${BRAND.email}</li>
@@ -219,15 +240,18 @@ function buildReceiptHtml(d: ReceiptData): string {
     </div>
 
     <!-- Footer -->
-    <div style="background:${PD};padding:16px 28px;color:#dbe3f5">
+    <div style="background:${PD};padding:14px 28px;color:#dbe3f5">
       <table style="width:100%;border-collapse:collapse;text-align:center">
         <tr>
-          <td style="font-size:11px;padding:4px"><div style="font-weight:700;color:#fff">Expert Mentors</div>Learn from Industry Experts</td>
-          <td style="font-size:11px;padding:4px"><div style="font-weight:700;color:#fff">Practical Learning</div>Projects &amp; Real-world Skills</td>
-          <td style="font-size:11px;padding:4px"><div style="font-weight:700;color:#fff">Placement Support</div>Resume, Interviews &amp; Jobs</td>
-          <td style="font-size:11px;padding:4px"><div style="font-weight:700;color:#fff">Career Growth</div>Your Success is Our Mission</td>
+          <td style="font-size:11px;padding:4px;color:#c7d2fe"><div style="font-weight:700;color:#ffffff;margin-bottom:2px">Expert Mentors</div><span style="color:#c7d2fe">Learn from Industry Experts</span></td>
+          <td style="font-size:11px;padding:4px;color:#c7d2fe"><div style="font-weight:700;color:#ffffff;margin-bottom:2px">Practical Learning</div><span style="color:#c7d2fe">Projects &amp; Real-world Skills</span></td>
+          <td style="font-size:11px;padding:4px;color:#c7d2fe"><div style="font-weight:700;color:#ffffff;margin-bottom:2px">Placement Support</div><span style="color:#c7d2fe">Resume, Interviews &amp; Jobs</span></td>
+          <td style="font-size:11px;padding:4px;color:#c7d2fe"><div style="font-weight:700;color:#ffffff;margin-bottom:2px">Career Growth</div><span style="color:#c7d2fe">Your Success is Our Mission</span></td>
         </tr>
       </table>
+      <div style="text-align:center;margin-top:12px;padding-top:10px;border-top:1px solid #3b5bb5">
+        ${social}
+      </div>
     </div>
     <div style="background:#fff;padding:12px 28px;text-align:center;color:${A};font-size:12px;font-style:italic;border-top:1px solid #eef2ff">
       ${BRAND.tagline} &nbsp;·&nbsp; <a href="${BRAND.websiteUrl}" style="color:${A};text-decoration:none">${BRAND.website}</a>

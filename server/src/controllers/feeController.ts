@@ -29,7 +29,6 @@ const BRAND = {
   websiteUrl: 'https://www.codebegun.com',
   logo: 'https://codebegun.com/images/logo.png',
   signature: 'https://codebegun.com/images/receipt-signature.png',
-  qr: 'https://codebegun.com/images/receipt-qr.png',
   primary: '#1b3a8a',
   primaryDark: '#13287a',
   accent: '#1d4ed8',
@@ -192,7 +191,7 @@ function buildReceiptHtml(d: ReceiptData): string {
       </table>
     </div>
 
-    <!-- Payment history + signature/QR -->
+    <!-- Payment history + signature -->
     <div style="padding:18px 28px 0">
       <table style="width:100%;border-collapse:collapse">
         <tr>
@@ -208,22 +207,12 @@ function buildReceiptHtml(d: ReceiptData): string {
               ${payRows}
             </table>
           </td>
-          <td style="vertical-align:top;width:42%;text-align:center">
-            <table style="width:100%;border-collapse:collapse">
-              <tr>
-                <td style="text-align:center;vertical-align:top;padding-top:6px">
-                  <div style="color:#475569;font-size:11px;margin-bottom:6px">Scan &amp; Pay</div>
-                  <img src="${BRAND.qr}" alt="" onerror="this.style.display='none'" style="width:96px;height:96px;border:1px solid #e5e7eb;border-radius:8px;background:#fff" />
-                </td>
-              </tr>
-              <tr>
-                <td style="text-align:center;padding-top:14px">
-                  <img src="${BRAND.signature}" alt="" onerror="this.style.display='none'" style="height:46px;display:inline-block" />
-                  <div style="border-top:1px solid #cbd5e1;margin-top:4px;padding-top:6px;color:#0f172a;font-size:12px;font-weight:600">Authorized Signatory</div>
-                  <div style="color:#64748b;font-size:11px">For ${BRAND.name}</div>
-                </td>
-              </tr>
-            </table>
+          <td style="vertical-align:bottom;width:42%;text-align:center">
+            <div style="text-align:center;padding-top:18px">
+              <img src="${BRAND.signature}" alt="" onerror="this.style.display='none'" style="height:54px;display:inline-block" />
+              <div style="border-top:1px solid #cbd5e1;margin:4px auto 0;padding-top:6px;color:#0f172a;font-size:12px;font-weight:600;max-width:220px">Authorized Signatory</div>
+              <div style="color:#64748b;font-size:11px">For ${BRAND.name}</div>
+            </div>
           </td>
         </tr>
       </table>

@@ -348,9 +348,37 @@ const DashboardPage: React.FC = () => {
 
   // Admin Dashboard
   const isAdmin = isAdminUser;
+  // The rich overview (org-wide revenue, leads, placements…) is for org admins only.
+  const isOrgAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'TENANT_ADMIN';
 
-  if (isAdmin) {
+  if (isOrgAdmin) {
     return <AdminOverview firstName={user.firstName} />;
+  }
+
+  // Other staff/instructor roles — a simple welcome with quick links, no org metrics.
+  if (isAdmin) {
+    return (
+      <div className="dashboard-container">
+        <div className="admin-dashboard">
+          <div className="dashboard-header">
+            <h1>Dashboard</h1>
+            <p>Welcome back, <strong>{user.firstName}!</strong></p>
+          </div>
+          <div className="dashboard-grid">
+            <div className="dashboard-card">
+              <h2>⚙️ Quick Actions</h2>
+              <div className="card-content">
+                <a href="/courses" className="action-link">📚 Courses</a>
+                <a href="/admin/assignments" className="action-link">📝 Assignments</a>
+                <a href="/quiz-management" className="action-link">❓ Quizzes</a>
+                <a href="/attendance" className="action-link">✅ Attendance</a>
+                {hasLeadPermission && <a href="/leads" className="action-link">🎯 Leads</a>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Student Dashboard - Redesigned to match screenshot theme

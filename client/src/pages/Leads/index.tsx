@@ -297,11 +297,12 @@ const LeadsPage: React.FC = () => {
 
       // ── Config / users (non-critical, load independently) ───────────────────
       try {
-        const [configRes, statsRes, columnsRes, usersRes] = await Promise.all([
+        const [configRes, statsRes, columnsRes, usersRes, sourcesRes] = await Promise.all([
           leadFormConfigApi.getConfig(),
           leadFormConfigApi.getStatsCardsConfig(),
           leadFormConfigApi.getTableColumnsConfig(),
           userApi.getUsers(),
+          leadApi.getSources(),
         ]);
         if (configRes.data) {
           const enabled = (configRes.data.fields || []).filter((f: FormField) => f.enabled).sort((a: FormField, b: FormField) => a.order - b.order);
@@ -310,8 +311,13 @@ const LeadsPage: React.FC = () => {
             enabled.push({ fieldKey: 'assignedTo', label: 'Assigned To', type: 'select', required: false, enabled: true, isBuiltIn: true, order: maxOrder + 1 } as FormField);
           }
           setFormFields(enabled);
-          if (configRes.data.sources?.length > 0) setConfigSources(configRes.data.sources);
         }
+        // Merge configured sources with the distinct sources that actually exist
+        // on leads (e.g. google_sheet from the Sheets integration) so the filter
+        // lists every real source.
+        const baseSources = (configRes.data?.sources?.length ? configRes.data.sources : SOURCES);
+        const distinctSources = (sourcesRes?.data || []) as string[];
+        setConfigSources(Array.from(new Set([...baseSources, ...distinctSources])));
         if (statsRes.data?.length > 0) setStatsCardsConfig(statsRes.data.filter((c: StatsCard) => c.enabled).sort((a: StatsCard, b: StatsCard) => a.order - b.order));
         if (columnsRes.data?.length > 0) setTableColumnsConfig(columnsRes.data.filter((c: TableColumn) => c.enabled).sort((a: TableColumn, b: TableColumn) => a.order - b.order));
         const users = usersRes.data || [];

@@ -20,6 +20,7 @@ import {
   getMyPerformance,
   getTeamActivity,
   getTeamActivityDetails,
+  getLeadSources,
   quickUpdateLead,
   getAgingLeads,
   getDuplicateLeads,
@@ -69,6 +70,7 @@ router.get('/team-activity', authMiddleware, tenantResolver, roleGuard(['manage_
 router.get('/team-activity/details', authMiddleware, tenantResolver, roleGuard(['manage_leads', 'view_lead_analytics', 'view_reports', 'view_analytics']), getTeamActivityDetails);
 
 // Export / Import (need export_leads or manage_leads)
+router.get('/sources', authMiddleware, tenantResolver, roleGuard(['view_leads', 'manage_leads']), getLeadSources);
 router.get('/export', authMiddleware, tenantResolver, roleGuard(['export_leads', 'manage_leads']), exportLeads);
 router.post('/import', authMiddleware, tenantResolver, roleGuard(['export_leads', 'manage_leads']), importLeads);
 

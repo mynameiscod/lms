@@ -1647,6 +1647,18 @@ export const getTeamActivityDetails = async (req: AuthenticatedRequest, res: Res
   }
 };
 
+// GET /leads/sources — distinct source values actually present on leads, so the
+// All-Leads "Source" filter always lists every real source (e.g. google_sheet)
+export const getLeadSources = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tenantOid = new mongoose.Types.ObjectId(req.tenantId as string);
+    const sources = await Lead.distinct('source', { tenantId: tenantOid });
+    res.json({ success: true, message: 'Lead sources fetched', data: (sources || []).filter(Boolean).sort() });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to fetch lead sources', error: error.message });
+  }
+};
+
 // ===================== QUICK STATUS UPDATE (Telecaller) =====================
 
 export const quickUpdateLead = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {

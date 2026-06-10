@@ -1782,6 +1782,9 @@ export const leadApi = {
   getLeadById: async (leadId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/leads/${leadId}`);
   },
+  getSources: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/leads/sources`);
+  },
   createLead: async (data: any) => {
     return authenticatedFetch(`${API_BASE_URL}/leads`, {
       method: 'POST',

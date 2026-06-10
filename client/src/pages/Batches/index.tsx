@@ -1,22 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { batchApi, userApi, courseApi, departmentApi } from '../../api';
-import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
+import { Alert, Spinner } from '../../components/common';
 import { Batch, User } from '../../types';
 import './BatchesPage.css';
 
-interface Department {
-  _id: string;
-  name: string;
-  code: string;
-}
+interface Department { _id: string; name: string; code: string; }
+interface Course { _id: string; title: string; code: string; }
 
-interface Course {
-  _id: string;
-  title: string;
-  code: string;
-}
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const ABBR: Record<string, string> = { Monday: 'Mon', Tuesday: 'Tue', Wednesday: 'Wed', Thursday: 'Thu', Friday: 'Fri', Saturday: 'Sat', Sunday: 'Sun' };
+const STEPS = ['Basic Details', 'Schedule', 'Instructors', 'Review'];
+const PAGE_SIZE = 6;
+const CARD_TINTS = ['blue', 'green', 'purple', 'orange', 'cyan', 'pink'];
 
-const DAYS_OF_WEEK = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+type Timing = { day: string; startTime: string; endTime: string };
+
+const fmtDate = (s?: string) => s ? new Date(s).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
 
 const BatchesPage: React.FC = () => {
   const [batches, setBatches] = useState<Batch[]>([]);
@@ -27,512 +26,334 @@ const BatchesPage: React.FC = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Modal state
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [view, setView] = useState<'list' | 'wizard'>('list');
+  const [step, setStep] = useState(0);
   const [editingBatch, setEditingBatch] = useState<Batch | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    courseId: '',
-    departmentId: '',
-    startDate: '',
-    endDate: '',
-    timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
-    instructors: [] as string[],
-    capacity: 30
-  });
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [page, setPage] = useState(1);
+
+  const [form, setForm] = useState({
+    name: '', courseId: '', departmentId: '', startDate: '', endDate: '',
+    timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }] as Timing[],
+    instructors: [] as string[], capacity: 30,
+  });
+
+  useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [batchesRes, instructorsRes, coursesRes, deptRes] = await Promise.all([
-        batchApi.getBatches(),
-        userApi.getUsers(),
-        courseApi.getCourses({ isActive: true }),
-        departmentApi.list()
+      const [b, u, c, d] = await Promise.all([
+        batchApi.getBatches(), userApi.getUsers(), courseApi.getCourses({ isActive: true }), departmentApi.list(),
       ]);
-
-      setBatches(batchesRes.data || []);
-      setCourses(coursesRes.data || []);
-      setDepartments(deptRes.data || []);
-      // Filter instructors - only users with INSTRUCTOR, TENANT_ADMIN, or SUPER_ADMIN role
-      const instructorUsers = (instructorsRes.data || []).filter(
-        (u: User) => {
-          const role = u.role?.toUpperCase();
-          return role === 'INSTRUCTOR' || role === 'TENANT_ADMIN' || role === 'SUPER_ADMIN';
-        }
-      );
-      setInstructors(instructorUsers);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch data');
-    } finally {
-      setLoading(false);
-    }
+      setBatches(b.data || []);
+      setCourses(c.data || []);
+      setDepartments(d.data || []);
+      setInstructors((u.data || []).filter((x: User) => ['INSTRUCTOR', 'TENANT_ADMIN', 'SUPER_ADMIN'].includes((x.role || '').toUpperCase())));
+    } catch (err: any) { setError(err.message || 'Failed to fetch data'); }
+    finally { setLoading(false); }
   };
 
-  const calculateEndDate = (startDateStr: string) => {
-    if (!startDateStr) return '';
-    const startDate = new Date(startDateStr);
-    const endDate = new Date(startDate.getTime() + 150 * 24 * 60 * 60 * 1000);
-    return endDate.toISOString().split('T')[0];
-  };
+  const calcEnd = (start: string) => start ? new Date(new Date(start).getTime() + 150 * 864e5).toISOString().split('T')[0] : '';
 
-  const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const startDate = e.target.value;
-    setFormData({
-      ...formData,
-      startDate,
-      endDate: calculateEndDate(startDate)
-    });
-  };
-
-  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'capacity' ? parseInt(value) : value
-    });
-  };
-
-  const handleTimingChange = (index: number, field: string, value: string) => {
-    // If changing day, check for duplicate
-    if (field === 'day') {
-      const alreadyUsed = formData.timings.some((t, i) => i !== index && t.day === value);
-      if (alreadyUsed) return; // Don't allow duplicate days
-    }
-    const newTimings = [...formData.timings];
-    newTimings[index] = { ...newTimings[index], [field]: value };
-    setFormData({ ...formData, timings: newTimings });
-  };
-
-  // Get days already used in timings
-  const usedDays = formData.timings.map(t => t.day);
-  const availableDays = DAYS_OF_WEEK.filter(day => !usedDays.includes(day));
-
-  const addTiming = () => {
-    if (formData.timings.length >= 7) return; // Max 7 days
-    const nextDay = availableDays[0] || 'Monday';
-    setFormData({
-      ...formData,
-      timings: [
-        ...formData.timings,
-        { day: nextDay, startTime: '10:00', endTime: '11:30' }
-      ]
-    });
-  };
-
-  const removeTiming = (index: number) => {
-    if (formData.timings.length > 1) {
-      const newTimings = formData.timings.filter((_, i) => i !== index);
-      setFormData({ ...formData, timings: newTimings });
-    }
-  };
-
-  const handleInstructorToggle = (instructorId: string) => {
-    setFormData(prev => ({
-      ...prev,
-      instructors: prev.instructors.includes(instructorId)
-        ? prev.instructors.filter(id => id !== instructorId)
-        : [...prev.instructors, instructorId]
-    }));
-  };
-
-  const openCreateModal = () => {
+  const openCreate = () => {
     const today = new Date().toISOString().split('T')[0];
-    const endDate = calculateEndDate(today);
-
     setEditingBatch(null);
-    setFormData({
-      name: '',
-      courseId: '',
-      departmentId: '',
-      startDate: today,
-      endDate,
-      timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
-      instructors: [],
-      capacity: 30
-    });
-    setIsModalOpen(true);
+    setForm({ name: '', courseId: '', departmentId: '', startDate: today, endDate: calcEnd(today),
+      timings: DAYS.slice(0, 5).map(day => ({ day, startTime: '10:00', endTime: '11:30' })), instructors: [], capacity: 30 });
+    setStep(0); setError(''); setView('wizard');
   };
-
-  const openEditModal = (batch: Batch) => {
+  const openEdit = (batch: Batch) => {
     setEditingBatch(batch);
-    setFormData({
+    setForm({
       name: batch.name,
       courseId: (batch as any).courseId?._id || (batch as any).courseId || '',
       departmentId: (batch as any).departmentId?._id || (batch as any).departmentId || '',
-      startDate: batch.startDate.split('T')[0],
-      endDate: batch.endDate.split('T')[0],
-      timings: batch.timings,
-      instructors: batch.instructors.map(i => i._id),
-      capacity: batch.capacity || 30
+      startDate: batch.startDate.split('T')[0], endDate: batch.endDate.split('T')[0],
+      timings: batch.timings.length ? batch.timings : [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
+      instructors: batch.instructors.map(i => i._id), capacity: batch.capacity || 30,
     });
-    setIsModalOpen(true);
+    setStep(0); setError(''); setView('wizard');
+  };
+  const backToList = () => { setView('list'); setEditingBatch(null); };
+
+  // Schedule helpers (7-day model)
+  const dayOn = (day: string) => form.timings.some(t => t.day === day);
+  const dayTiming = (day: string) => form.timings.find(t => t.day === day) || { day, startTime: '10:00', endTime: '11:30' };
+  const toggleDay = (day: string) => setForm(f => ({ ...f, timings: dayOn(day) ? f.timings.filter(t => t.day !== day) : [...f.timings, { day, startTime: '10:00', endTime: '11:30' }] }));
+  const setDayTime = (day: string, field: 'startTime' | 'endTime', value: string) =>
+    setForm(f => ({ ...f, timings: f.timings.map(t => t.day === day ? { ...t, [field]: value } : t) }));
+  const orderedTimings = useMemo(() => [...form.timings].sort((a, b) => DAYS.indexOf(a.day) - DAYS.indexOf(b.day)), [form.timings]);
+
+  const toggleInstructor = (id: string) => setForm(f => ({ ...f, instructors: f.instructors.includes(id) ? f.instructors.filter(i => i !== id) : [...f.instructors, id] }));
+
+  const courseTitle = (id: string) => courses.find(c => c._id === id)?.title || '';
+  const deptName = (id: string) => departments.find(d => d._id === id)?.name || '';
+
+  const canNext = () => {
+    if (step === 0) return !!(form.name.trim() && form.capacity > 0 && form.courseId && form.startDate && form.endDate);
+    if (step === 1) return form.timings.length > 0;
+    return true;
   };
 
-  const closeModal = () => {
-    setIsModalOpen(false);
-    setEditingBatch(null);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.startDate || !formData.endDate || formData.timings.length === 0) {
-      setError('Please fill all required fields');
-      return;
-    }
-
+  const submit = async () => {
+    if (!form.name || !form.startDate || !form.endDate || form.timings.length === 0) { setError('Please complete all required fields'); return; }
     try {
-      setSubmitting(true);
-      setError('');
-
-      if (editingBatch) {
-        await batchApi.updateBatch(editingBatch._id, formData);
-        setSuccess('Batch updated successfully');
-      } else {
-        await batchApi.createBatch(formData);
-        setSuccess('Batch created successfully');
-      }
-
-      closeModal();
-      fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Operation failed');
-    } finally {
-      setSubmitting(false);
-    }
+      setSubmitting(true); setError('');
+      const payload: any = { ...form };
+      if (editingBatch) { await batchApi.updateBatch(editingBatch._id, payload); setSuccess('Batch updated successfully'); }
+      else { await batchApi.createBatch(payload); setSuccess('Batch created successfully'); }
+      backToList(); fetchData();
+    } catch (err: any) { setError(err.message || 'Operation failed'); }
+    finally { setSubmitting(false); }
   };
 
   const handleDelete = async (batch: Batch) => {
-    if (!window.confirm(`Are you sure you want to delete batch "${batch.name}"?`)) {
-      return;
-    }
-
-    try {
-      setError('');
-      await batchApi.deleteBatch(batch._id);
-      setSuccess('Batch deleted successfully');
-      fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete batch');
-    }
-  };
-
-  const handleDeactivate = async (batch: Batch) => {
-    try {
-      setError('');
-      await batchApi.deactivateBatch(batch._id);
-      setSuccess('Batch deactivated successfully');
-      fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to deactivate batch');
-    }
-  };
-
-  const handleActivate = async (batch: Batch) => {
-    try {
-      setError('');
-      await batchApi.activateBatch(batch._id);
-      setSuccess('Batch activated successfully');
-      fetchData();
-    } catch (err: any) {
-      setError(err.message || 'Failed to activate batch');
-    }
+    if (!window.confirm(`Delete batch "${batch.name}"?`)) return;
+    try { setError(''); await batchApi.deleteBatch(batch._id); setSuccess('Batch deleted'); fetchData(); }
+    catch (err: any) { setError(err.message || 'Failed to delete batch'); }
   };
 
   if (loading) return <Spinner fullScreen />;
 
-  return (
-    <div className="batches-page">
-      <div className="batches-header">
-        <div className="batches-header-text">
-          <h1>Batch Management</h1>
-          <p className="batches-subtitle">Create and manage batches with schedules and instructors</p>
+  // ───────────────────── WIZARD ─────────────────────
+  if (view === 'wizard') {
+    const scheduleChips = orderedTimings.map(t => `${ABBR[t.day]} ${t.startTime} - ${t.endTime}`);
+    return (
+      <div className="bm-page">
+        <button className="bm-back" onClick={backToList}>← Back to Batches</button>
+        <h1 className="bm-title">{editingBatch ? 'Edit Batch' : 'Create New Batch'}</h1>
+        <p className="bm-sub">Set up a {editingBatch ? '' : 'new '}batch with schedule and instructor details</p>
+
+        {/* Stepper */}
+        <div className="bm-stepper">
+          {STEPS.map((label, i) => (
+            <React.Fragment key={label}>
+              <div className={`bm-step ${i === step ? 'active' : ''} ${i < step ? 'done' : ''}`}>
+                <span className="bm-step-num">{i < step ? '✓' : i + 1}</span>
+                <span className="bm-step-label">{label}</span>
+              </div>
+              {i < STEPS.length - 1 && <span className={`bm-step-line ${i < step ? 'done' : ''}`} />}
+            </React.Fragment>
+          ))}
         </div>
-        <Button onClick={openCreateModal}>+ Create Batch</Button>
+
+        {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+
+        <div className="bm-card bm-wizard-card">
+          {/* Step 1 — Basic Details */}
+          {step === 0 && (
+            <>
+              <h3 className="bm-section-title">Basic Information</h3>
+              <div className="bm-grid2">
+                <label className="bm-field"><span className="bm-label">Batch Name <b className="req">*</b></span>
+                  <input className="bm-input" placeholder="e.g. Python Batch - Week 1" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} /></label>
+                <label className="bm-field"><span className="bm-label">Batch Size <b className="req">*</b></span>
+                  <input className="bm-input" type="number" placeholder="e.g. 30" value={form.capacity || ''} onChange={e => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })} /></label>
+                <label className="bm-field"><span className="bm-label">Course <b className="req">*</b></span>
+                  <select className="bm-input" value={form.courseId} onChange={e => setForm({ ...form, courseId: e.target.value })}>
+                    <option value="">-- Select Course --</option>
+                    {courses.map(c => <option key={c._id} value={c._id}>{c.title}{c.code ? ` (${c.code})` : ''}</option>)}
+                  </select></label>
+                <label className="bm-field"><span className="bm-label">Department <span className="opt">(Optional)</span></span>
+                  <select className="bm-input" value={form.departmentId} onChange={e => setForm({ ...form, departmentId: e.target.value })}>
+                    <option value="">-- Select Department --</option>
+                    {departments.map(d => <option key={d._id} value={d._id}>{d.name}{d.code ? ` (${d.code})` : ''}</option>)}
+                  </select></label>
+                <label className="bm-field"><span className="bm-label">Start Date <b className="req">*</b></span>
+                  <input className="bm-input" type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value, endDate: calcEnd(e.target.value) })} /></label>
+                <label className="bm-field"><span className="bm-label">End Date <span className="opt">(Auto-calculated)</span> <b className="req">*</b></span>
+                  <input className="bm-input" type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></label>
+              </div>
+            </>
+          )}
+
+          {/* Step 2 — Schedule */}
+          {step === 1 && (
+            <>
+              <h3 className="bm-section-title">Class Timings</h3>
+              <p className="bm-section-sub">Set the days and time for this batch</p>
+              <div className="bm-days">
+                {DAYS.map(day => {
+                  const on = dayOn(day); const t = dayTiming(day);
+                  return (
+                    <div key={day} className={`bm-day-row ${on ? 'on' : ''}`}>
+                      <label className="bm-day-check">
+                        <input type="checkbox" checked={on} onChange={() => toggleDay(day)} />
+                        <span>{day}</span>
+                      </label>
+                      <input className="bm-input time" type="time" value={t.startTime} disabled={!on} onChange={e => setDayTime(day, 'startTime', e.target.value)} />
+                      <span className="bm-to">to</span>
+                      <input className="bm-input time" type="time" value={t.endTime} disabled={!on} onChange={e => setDayTime(day, 'endTime', e.target.value)} />
+                      <button type="button" className="bm-day-del" disabled={!on} onClick={() => on && toggleDay(day)} title="Remove">🗑️</button>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
+          {/* Step 3 — Instructors */}
+          {step === 2 && (
+            <div className="bm-grid-instr">
+              <div>
+                <h3 className="bm-section-title">Assign Instructors</h3>
+                <p className="bm-section-sub">Select one or more instructors for this batch</p>
+                <div className="bm-instr-list">
+                  {instructors.length === 0 ? <p className="bm-empty">No instructors available</p> :
+                    instructors.map(i => (
+                      <label key={i._id} className={`bm-instr ${form.instructors.includes(i._id) ? 'checked' : ''}`}>
+                        <input type="checkbox" checked={form.instructors.includes(i._id)} onChange={() => toggleInstructor(i._id)} />
+                        <span>{i.firstName} {i.lastName}</span>
+                      </label>
+                    ))}
+                </div>
+              </div>
+              <div className="bm-summary">
+                <h3 className="bm-section-title">Batch Summary</h3>
+                <SummaryRows form={form} courseTitle={courseTitle} deptName={deptName} chips={scheduleChips} instructors={instructors} />
+              </div>
+            </div>
+          )}
+
+          {/* Step 4 — Review */}
+          {step === 3 && (
+            <>
+              <h3 className="bm-section-title">Review &amp; Confirm</h3>
+              <p className="bm-section-sub">Double-check the details, then create the batch</p>
+              <div className="bm-summary review">
+                <SummaryRows form={form} courseTitle={courseTitle} deptName={deptName} chips={scheduleChips} instructors={instructors} />
+              </div>
+            </>
+          )}
+
+          {/* Footer nav */}
+          <div className="bm-wizard-foot">
+            {step > 0 ? <button className="bm-btn" onClick={() => setStep(step - 1)}>← Back</button> : <span />}
+            {step < STEPS.length - 1 ? (
+              <button className="bm-btn primary" disabled={!canNext()} onClick={() => setStep(step + 1)}>Next: {STEPS[step + 1]} →</button>
+            ) : (
+              <button className="bm-btn primary" disabled={submitting} onClick={submit}>{submitting ? 'Saving…' : (editingBatch ? '✓ Update Batch' : '✓ Create Batch')}</button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ───────────────────── LIST ─────────────────────
+  const filtered = batches.filter(b => {
+    const q = search.trim().toLowerCase();
+    const matchesQ = !q || b.name.toLowerCase().includes(q) || courseTitle((b as any).courseId?._id || (b as any).courseId).toLowerCase().includes(q);
+    const matchesS = statusFilter === 'all' || (statusFilter === 'active' ? b.isActive : !b.isActive);
+    return matchesQ && matchesS;
+  });
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const cur = Math.min(page, totalPages);
+  const pageItems = filtered.slice((cur - 1) * PAGE_SIZE, cur * PAGE_SIZE);
+
+  return (
+    <div className="bm-page">
+      <div className="bm-head">
+        <div><h1 className="bm-title">Batch Management</h1><p className="bm-sub">Create and manage batches with schedules and instructors</p></div>
+        <button className="bm-btn primary" onClick={openCreate}>+ Create Batch</button>
       </div>
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
-      <div className="batches-grid">
-        {batches.length === 0 ? (
-          <div className="no-batches">
-            <p>No batches found. Create your first batch to get started.</p>
-          </div>
-        ) : (
-          batches.map((batch) => (
-            <div key={batch._id} className="batch-card">
-              <div className="batch-header">
-                <div>
-                  <h3>{batch.name}</h3>
-                  {(batch as any).courseId && (
-                    <p className="batch-course">
-                      📚 {typeof (batch as any).courseId === 'object' 
-                        ? (batch as any).courseId.title 
-                        : courses.find(c => c._id === (batch as any).courseId)?.title || 'Course'}
-                    </p>
-                  )}
-                  {(batch as any).departmentId && (
-                    <p className="batch-course">
-                      🏛 {typeof (batch as any).departmentId === 'object'
-                        ? `${(batch as any).departmentId.name} (${(batch as any).departmentId.code})`
-                        : departments.find(d => d._id === (batch as any).departmentId)?.name || 'Department'}
-                    </p>
-                  )}
-                  <p className="batch-dates">
-                    {new Date(batch.startDate).toLocaleDateString()} -{' '}
-                    {new Date(batch.endDate).toLocaleDateString()}
-                  </p>
-                </div>
-                <span className={`status-badge ${batch.isActive ? 'active' : 'inactive'}`}>
-                  {batch.isActive ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-
-              <div className="batch-info">
-                <div className="info-item">
-                  <span className="label">Capacity</span>
-                  <span className="value">{batch.enrolledCount}/{batch.capacity}</span>
-                </div>
-              </div>
-
-              <div className="batch-schedule">
-                <span className="schedule-label">Schedule</span>
-                <div className="timings-list">
-                  {batch.timings.map((timing, idx) => (
-                    <div key={idx} className="timing-item">
-                      <span className="day">{timing.day}</span>
-                      <span className="time">
-                        {timing.startTime} - {timing.endTime}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="batch-instructors">
-                <span className="instructors-label">Instructors ({batch.instructors.length})</span>
-                <div className="instructors-list">
-                  {batch.instructors.length === 0 ? (
-                    <span className="no-instructors">No instructors assigned</span>
-                  ) : (
-                    batch.instructors.map((instructor) => (
-                      <span key={instructor._id} className="instructor-tag">
-                        {instructor.firstName} {instructor.lastName}
-                      </span>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className="batch-actions">
-                <button className="action-btn edit-btn" onClick={() => openEditModal(batch)}>
-                  Edit
-                </button>
-                {batch.isActive ? (
-                  <button
-                    className="action-btn deactivate-btn"
-                    onClick={() => handleDeactivate(batch)}
-                  >
-                    Deactivate
-                  </button>
-                ) : (
-                  <button
-                    className="action-btn activate-btn"
-                    onClick={() => handleActivate(batch)}
-                  >
-                    Activate
-                  </button>
-                )}
-                <button
-                  className="action-btn delete-btn"
-                  onClick={() => handleDelete(batch)}
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))
-        )}
+      <div className="bm-toolbar">
+        <div className="bm-search"><span>🔍</span><input placeholder="Search batches…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} /></div>
+        <select className="bm-status" value={statusFilter} onChange={e => { setStatusFilter(e.target.value as any); setPage(1); }}>
+          <option value="all">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
+        </select>
       </div>
 
-      {/* Create/Edit Batch Modal */}
-      <Modal
-        isOpen={isModalOpen}
-        onClose={closeModal}
-        title={editingBatch ? 'Edit Batch' : 'Create New Batch'}
-        size="large"
-      >
-        <form onSubmit={handleSubmit} className="batch-form">
-          <div className="form-row">
-            <Input
-              type="text"
-              name="name"
-              label="Batch Name"
-              placeholder="E.g., Python Batch - Week 1"
-              value={formData.name}
-              onChange={handleFormChange}
-              required
-            />
-            <Input
-              type="number"
-              name="capacity"
-              label="Batch Size"
-              value={formData.capacity.toString()}
-              onChange={handleFormChange}
-              required
-            />
+      {filtered.length === 0 ? (
+        <div className="bm-empty-card">No batches found. Create your first batch to get started.</div>
+      ) : (
+        <>
+          <div className="bm-grid">
+            {pageItems.map((batch, i) => {
+              const tint = CARD_TINTS[(((cur - 1) * PAGE_SIZE) + i) % CARD_TINTS.length];
+              const cId = (batch as any).courseId?._id || (batch as any).courseId;
+              const cTitle = (batch as any).courseId?.title || courseTitle(cId);
+              const ts = [...batch.timings].sort((a, b) => DAYS.indexOf(a.day) - DAYS.indexOf(b.day));
+              const days = ts.map(t => ABBR[t.day] || t.day);
+              const dayLabel = days.length ? (days.length > 2 ? `${days[0]} - ${days[days.length - 1]}` : days.join(', ')) : '—';
+              const timeLabel = ts.length ? `${ts[0].startTime} - ${ts[0].endTime}` : '';
+              const pct = batch.capacity ? Math.min(100, Math.round(((batch.enrolledCount || 0) / batch.capacity) * 100)) : 0;
+              return (
+                <div key={batch._id} className="bm-card bm-batch">
+                  <div className="bm-batch-top">
+                    <span className={`bm-batch-ic ${tint}`}>👥</span>
+                    <div className="bm-batch-title">
+                      <div className="bm-batch-name">{batch.name} <span className={`bm-badge ${batch.isActive ? 'active' : 'inactive'}`}>{batch.isActive ? 'Active' : 'Inactive'}</span></div>
+                      {cTitle && <div className="bm-batch-course">{cTitle}</div>}
+                      <div className="bm-batch-dates">{fmtDate(batch.startDate)} - {fmtDate(batch.endDate)}</div>
+                    </div>
+                    <div className="bm-batch-actions">
+                      <button className="bm-icon-btn" onClick={() => openEdit(batch)} title="Edit">✏️</button>
+                      <button className="bm-icon-btn del" onClick={() => handleDelete(batch)} title="Delete">🗑️</button>
+                    </div>
+                  </div>
+
+                  <div className="bm-cap">
+                    <div className="bm-cap-head"><span>🎟️ Capacity</span><b>{batch.enrolledCount || 0} / {batch.capacity}</b></div>
+                    <div className="bm-cap-bar"><div style={{ width: `${pct}%` }} /></div>
+                  </div>
+
+                  <div className="bm-meta">
+                    <div className="bm-meta-label">Schedule</div>
+                    <div className="bm-meta-val">📅 {dayLabel} {timeLabel && <><span className="bm-dot" /> {timeLabel}</>}</div>
+                  </div>
+                  <div className="bm-meta">
+                    <div className="bm-meta-label">Instructor</div>
+                    <div className="bm-meta-val">👤 {batch.instructors.length ? batch.instructors.map(x => `${x.firstName} ${x.lastName}`).join(', ') : '—'}</div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Course</label>
-            <select
-              name="courseId"
-              value={formData.courseId}
-              onChange={handleFormChange}
-              className="form-select"
-            >
-              <option value="">-- Select Course --</option>
-              {courses.map((course) => (
-                <option key={course._id} value={course._id}>
-                  {course.title} ({course.code})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label className="form-label">Department <span className="text-muted small">(optional)</span></label>
-            <select
-              name="departmentId"
-              value={(formData as any).departmentId || ''}
-              onChange={handleFormChange}
-              className="form-select"
-            >
-              <option value="">-- No Department --</option>
-              {departments.map((dept) => (
-                <option key={dept._id} value={dept._id}>
-                  {dept.name} ({dept.code})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-row">
-            <Input
-              type="date"
-              name="startDate"
-              label="Start Date"
-              value={formData.startDate}
-              onChange={handleStartDateChange}
-              required
-            />
-            <Input
-              type="date"
-              name="endDate"
-              label="End Date (Auto-calculated)"
-              value={formData.endDate}
-              onChange={handleFormChange}
-              required
-            />
-          </div>
-
-          {/* Timings Section */}
-          <div className="timings-section">
-            <label className="section-label">Class Timings</label>
-            {formData.timings.map((timing, idx) => (
-              <div key={idx} className="timing-row">
-                <select
-                  value={timing.day}
-                  onChange={(e) => handleTimingChange(idx, 'day', e.target.value)}
-                  className="day-select"
-                >
-                  {DAYS_OF_WEEK.map(day => {
-                    const isUsed = formData.timings.some((t, i) => i !== idx && t.day === day);
-                    return (
-                      <option key={day} value={day} disabled={isUsed}>
-                        {day}{isUsed ? ' (already added)' : ''}
-                      </option>
-                    );
-                  })}
-                </select>
-
-                <input
-                  type="time"
-                  value={timing.startTime}
-                  onChange={(e) => handleTimingChange(idx, 'startTime', e.target.value)}
-                  className="time-input"
-                />
-
-                <span className="time-separator">to</span>
-
-                <input
-                  type="time"
-                  value={timing.endTime}
-                  onChange={(e) => handleTimingChange(idx, 'endTime', e.target.value)}
-                  className="time-input"
-                />
-
-                {formData.timings.length > 1 && (
-                  <button
-                    type="button"
-                    className="remove-timing-btn"
-                    onClick={() => removeTiming(idx)}
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
-            ))}
-
-            {formData.timings.length < 7 && (
-              <button
-                type="button"
-                className="add-timing-btn"
-                onClick={addTiming}
-              >
-                + Add Another Timing ({7 - formData.timings.length} day{7 - formData.timings.length !== 1 ? 's' : ''} remaining)
-              </button>
-            )}
-          </div>
-
-          {/* Instructors Section */}
-          <div className="instructors-section">
-            <label className="section-label">Assign Instructors</label>
-            <div className="instructors-grid">
-              {instructors.length === 0 ? (
-                <p className="no-options">No instructors available</p>
-              ) : (
-                instructors.map((instructor) => (
-                  <label key={instructor._id} className="instructor-checkbox">
-                    <input
-                      type="checkbox"
-                      checked={formData.instructors.includes(instructor._id)}
-                      onChange={() => handleInstructorToggle(instructor._id)}
-                    />
-                    <span>{instructor.firstName} {instructor.lastName}</span>
-                  </label>
-                ))
-              )}
+          {totalPages > 1 && (
+            <div className="bm-pagination">
+              <button className="bm-page-btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={cur <= 1}>←</button>
+              {Array.from({ length: totalPages }, (_, n) => <button key={n} className={`bm-page-btn ${cur === n + 1 ? 'active' : ''}`} onClick={() => setPage(n + 1)}>{n + 1}</button>)}
+              <button className="bm-page-btn" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={cur >= totalPages}>→</button>
             </div>
-          </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+};
 
-          <div className="modal-actions">
-            <Button type="button" onClick={closeModal} className="btn-secondary">
-              Cancel
-            </Button>
-            <Button type="submit" loading={submitting}>
-              {editingBatch ? 'Update Batch' : 'Create Batch'}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+const SummaryRows: React.FC<{ form: any; courseTitle: (id: string) => string; deptName: (id: string) => string; chips: string[]; instructors: User[] }> = ({ form, courseTitle, deptName, chips, instructors }) => {
+  const insNames = form.instructors.map((id: string) => { const u = instructors.find(x => x._id === id); return u ? `${u.firstName} ${u.lastName}` : ''; }).filter(Boolean);
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="bm-sum-row"><span className="bm-sum-label">{label}</span><span className="bm-sum-val">{value || '—'}</span></div>
+  );
+  return (
+    <div className="bm-sum">
+      {row('Batch Name', form.name)}
+      {row('Batch Size', form.capacity)}
+      {row('Course', courseTitle(form.courseId))}
+      {row('Department', deptName(form.departmentId))}
+      {row('Start Date', fmtDate(form.startDate))}
+      {row('End Date', fmtDate(form.endDate))}
+      <div className="bm-sum-row"><span className="bm-sum-label">Schedule</span>
+        <span className="bm-sum-val">
+          {chips.slice(0, 3).map((c, i) => <span key={i} className="bm-sum-chip">{c}</span>)}
+          {chips.length > 3 && <span className="bm-sum-chip more">+{chips.length - 3} more</span>}
+        </span>
+      </div>
+      <div className="bm-sum-row"><span className="bm-sum-label">Instructors</span>
+        <span className="bm-sum-val">{insNames.length ? insNames.map((n: string, i: number) => <span key={i} className="bm-sum-chip">{n}</span>) : '—'}</span>
+      </div>
     </div>
   );
 };

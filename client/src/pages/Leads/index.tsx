@@ -96,6 +96,12 @@ const LeadsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user: currentUser } = useAuth();
+  // Team-wide lead views (All Assignees filter, etc.) are for managers/BDM + admins,
+  // not individual telecallers who only work their own leads.
+  const canViewTeam = !!currentUser && (
+    currentUser.role === 'SUPER_ADMIN' || currentUser.role === 'TENANT_ADMIN' ||
+    ((currentUser as any).permissions || []).some((p: string) => ['manage_leads', 'view_lead_analytics'].includes(p))
+  );
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [staff, setStaff] = useState<any[]>([]);
@@ -746,7 +752,7 @@ const LeadsPage: React.FC = () => {
             <option value="">All Sources</option>
             {configSources.map(s=><option key={s} value={s}>{SOURCE_LABELS[s]||s.replace(/_/g,' ')}</option>)}
           </select>
-          {staff.length>0&&(
+          {canViewTeam && staff.length>0&&(
             <select className="crm-filter-select" value={filterAssignee} onChange={e=>setFilterAssignee(e.target.value)}>
               <option value="">All Assignees</option>
               {staff.map(u=><option key={u._id} value={u._id}>{u.firstName} {u.lastName}</option>)}
@@ -773,14 +779,16 @@ const LeadsPage: React.FC = () => {
               </button>
             ))}
           </div>
-          {dateRange==='custom'&&(
+        </div>
+        {dateRange==='custom'&&(
+          <div className="crm-toolbar-row crm-date-custom-row">
             <div className="crm-date-custom">
               <input type="date" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}/>
               <span className="crm-date-sep">to</span>
               <input type="date" value={dateTo} onChange={e=>setDateTo(e.target.value)}/>
             </div>
-          )}
-        </div>
+          </div>
+        )}
         {activeFilters.length>0&&(
           <div className="crm-active-filters">
             {activeFilters.map((f,i)=>(

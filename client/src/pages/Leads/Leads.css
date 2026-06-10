@@ -515,6 +515,15 @@
   color: var(--text-muted);
 }
 
+/* Custom date range sits on its own row so it never gets clipped by the
+   horizontally-scrolling toolbar (esp. on mobile). */
+.crm-toolbar-row.crm-date-custom-row { overflow: visible; flex-wrap: wrap; }
+@media (max-width: 768px) {
+  .crm-toolbar-row.crm-date-custom-row { overflow: visible; }
+  .crm-date-custom { width: 100%; }
+  .crm-date-custom input { flex: 1 1 0; min-width: 0; }
+}
+
 /* Active filter chips */
 .crm-active-filters {
   display: flex;

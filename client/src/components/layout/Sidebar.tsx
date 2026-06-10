@@ -230,7 +230,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Analytics', path: '/leads/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-simple', permissions: ['manage_leads', 'view_lead_analytics'] },
         { label: 'My Performance', path: '/lead-my-performance', roles: ['STAFF'], icon: 'fa-solid fa-trophy', permissions: ['view_leads', 'edit_leads', 'create_leads'] },
         { label: 'Manager Board', path: '/lead-manager-board', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-clipboard-user', permissions: ['manage_leads', 'view_lead_analytics'] },
-        { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column' },
+        { label: 'Team Activity', path: '/team-activity', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-column', permissions: ['view_lead_analytics'] },
         { label: 'Sales Content', path: '/sales-content', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice', permissions: ['view_leads', 'create_leads'] },
         { label: 'Lead Sources', path: '/lead-sources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-plug-circle-bolt', permissions: ['manage_leads'] },
         { label: 'Lead Stages', path: '/lead-stages', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-stairs', permissions: ['manage_leads', 'manage_lead_stages'] },
@@ -440,12 +440,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         </div>
       )}
       {isOpen && (
-        <div style={{ padding: '6px 16px 10px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.15)', marginTop: 4 }}>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 2 }}>
+        <div style={{ padding: '8px 16px 12px', textAlign: 'center', borderTop: '1px solid #e8ecf3', marginTop: 4 }}>
+          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 4 }}>
             {currentTime}
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.55)', letterSpacing: '0.5px' }}>
-            v{APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
+          <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.3px' }}>
+            Version {APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
           </div>
         </div>
       )}

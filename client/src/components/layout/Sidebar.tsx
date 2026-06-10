@@ -380,10 +380,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         <div className="brand-icon" onClick={() => { if (mobileOpen) { onMobileClose?.(); } else { setIsOpen(!isOpen); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (mobileOpen) onMobileClose?.(); else setIsOpen(!isOpen); } }}>
           <i className="fa-solid fa-bars"></i>
         </div>
-        <div className="brand-text">
-          <span className="brand-name">CodeBegun</span>
-          <span className="brand-sub">LMS PLATFORM</span>
-        </div>
+        <span className="brand-menu-label">Menu</span>
       </div>
 
       {/* Search */}

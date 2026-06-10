@@ -43,10 +43,8 @@
   transition: background 0.2s;
 }
 .brand-icon:hover { background: #0a2a7a; }
-.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-.brand-name { font-size: 16px; font-weight: 800; color: #051d64; letter-spacing: -0.3px; }
-.brand-sub { font-size: 9px; font-weight: 700; color: #359aad; letter-spacing: 1.5px; text-transform: uppercase; }
-.sidebar.closed .brand-text { display: none; }
+.brand-menu-label { font-size: 13px; font-weight: 700; color: #64748b; letter-spacing: 1px; text-transform: uppercase; }
+.sidebar.closed .brand-menu-label { display: none; }
 .sidebar.closed .sidebar-brand { justify-content: center; padding: 14px 8px; }
 
 /* ---- Search ---- */

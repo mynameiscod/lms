@@ -6,6 +6,7 @@ import {
   deletePayment,
   getFeeAnalytics,
   getReceipt,
+  getMyReceipt,
   sendReminder,
   sendBulkReminders,
 } from '../controllers/feeController';
@@ -17,6 +18,10 @@ const router = express.Router();
 
 router.use(authMiddleware);
 router.use(tenantMiddleware);
+
+// Student self-service — own receipt only. Must be before the billing guard.
+router.get('/me/receipt', getMyReceipt);
+
 router.use(roleGuard(['manage_billing']));
 
 // Specific routes before parameterised ones

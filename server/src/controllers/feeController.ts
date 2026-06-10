@@ -469,80 +469,111 @@ export async function getFeeAnalytics(req: AuthRequest, res: Response) {
   }
 }
 
-// GET /fees/:studentId/receipt[?email=true] — printable bill, optionally emailed
+// Gather all data for a student's branded receipt and render the HTML.
+// Shared by the admin receipt route and the student self-service route.
+async function generateStudentReceipt(tenantId: string, studentId: string): Promise<{ html: string; studentEmail: string; hasFee: boolean } | null> {
+  const student = await User.findOne({ _id: studentId, tenantId })
+    .select('firstName lastName email phone batchId').lean() as any;
+  if (!student) return null;
+  const fee = await Fee.findOne({ studentId, tenantId });
+
+  // Batch → course + mentor details
+  let batch: any = null, course: any = null, mentor = '';
+  if (student.batchId) {
+    batch = await Batch.findById(student.batchId)
+      .select('name startDate endDate courseId instructors').lean() as any;
+    if (batch?.courseId) {
+      const Course = (await import('../models/Course')).default;
+      course = await Course.findById(batch.courseId).select('title duration').lean() as any;
+    }
+    if (batch?.instructors?.length) {
+      const m = await User.findById(batch.instructors[0]).select('firstName lastName').lean() as any;
+      if (m) mentor = `${m.firstName || ''} ${m.lastName || ''}`.trim();
+    }
+  }
+
+  // Assign a stable receipt number on first generation
+  if (fee && !fee.receiptNumber) {
+    const issued = await Fee.countDocuments({ tenantId, receiptNumber: { $exists: true, $ne: null } });
+    fee.receiptNumber = `CB/${financialYear(new Date())}/${String(issued + 1).padStart(4, '0')}`;
+    await fee.save();
+  }
+
+  const durUnit = course?.duration?.unit || 'months';
+  const duration = course?.duration?.value
+    ? `${course.duration.value} ${durUnit.charAt(0).toUpperCase()}${durUnit.slice(1)}`
+    : '';
+
+  const reg = fee?.registrationFee || 0, mat = fee?.studyMaterials || 0, oth = fee?.otherCharges || 0;
+  const total = fee?.totalAmount || 0;
+  const courseFee = Math.max(0, total - reg - mat - oth);
+
+  const html = buildReceiptHtml({
+    receiptNo: fee?.receiptNumber || `CB/${financialYear(new Date())}/DRAFT`,
+    issueDate: new Date(),
+    studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email,
+    mobile: student.phone || '',
+    email: student.email,
+    courseName: course?.title || '',
+    batchName: batch?.name || '',
+    batchStart: batch?.startDate || null,
+    batchEnd: batch?.endDate || null,
+    duration,
+    mode: 'Offline',
+    mentor: mentor || 'CodeBegun Expert Team',
+    courseFee,
+    registrationFee: reg,
+    studyMaterials: mat,
+    otherCharges: oth,
+    totalAmount: total,
+    discount: fee?.discount || 0,
+    paidAmount: fee?.paidAmount || 0,
+    dueAmount: fee?.dueAmount || 0,
+    dueDate: fee?.dueDate || null,
+    status: fee?.status || 'pending',
+    payments: fee?.payments || [],
+  });
+
+  return { html, studentEmail: student.email, hasFee: !!fee };
+}
+
+// GET /fees/:studentId/receipt[?email=true] — printable bill, optionally emailed (admin)
 export async function getReceipt(req: AuthRequest, res: Response) {
   try {
     const tenantId = req.tenantId!;
     const { studentId } = req.params;
     const sendEmail = String(req.query.email) === 'true';
 
-    const student = await User.findOne({ _id: studentId, tenantId })
-      .select('firstName lastName email phone batchId').lean() as any;
-    if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
-    const fee = await Fee.findOne({ studentId, tenantId });
-
-    // Batch → course + mentor details
-    let batch: any = null, course: any = null, mentor = '';
-    if (student.batchId) {
-      batch = await Batch.findById(student.batchId)
-        .select('name startDate endDate courseId instructors').lean() as any;
-      if (batch?.courseId) {
-        const Course = (await import('../models/Course')).default;
-        course = await Course.findById(batch.courseId).select('title duration').lean() as any;
-      }
-      if (batch?.instructors?.length) {
-        const m = await User.findById(batch.instructors[0]).select('firstName lastName').lean() as any;
-        if (m) mentor = `${m.firstName || ''} ${m.lastName || ''}`.trim();
-      }
-    }
-
-    // Assign a stable receipt number on first generation
-    if (fee && !fee.receiptNumber) {
-      const issued = await Fee.countDocuments({ tenantId, receiptNumber: { $exists: true, $ne: null } });
-      fee.receiptNumber = `CB/${financialYear(new Date())}/${String(issued + 1).padStart(4, '0')}`;
-      await fee.save();
-    }
-
-    const durUnit = course?.duration?.unit || 'months';
-    const duration = course?.duration?.value
-      ? `${course.duration.value} ${durUnit.charAt(0).toUpperCase()}${durUnit.slice(1)}`
-      : '';
-
-    const reg = fee?.registrationFee || 0, mat = fee?.studyMaterials || 0, oth = fee?.otherCharges || 0;
-    const total = fee?.totalAmount || 0;
-    const courseFee = Math.max(0, total - reg - mat - oth);
-
-    const html = buildReceiptHtml({
-      receiptNo: fee?.receiptNumber || `CB/${financialYear(new Date())}/DRAFT`,
-      issueDate: new Date(),
-      studentName: `${student.firstName || ''} ${student.lastName || ''}`.trim() || student.email,
-      mobile: student.phone || '',
-      email: student.email,
-      courseName: course?.title || '',
-      batchName: batch?.name || '',
-      batchStart: batch?.startDate || null,
-      batchEnd: batch?.endDate || null,
-      duration,
-      mode: 'Offline',
-      mentor: mentor || 'CodeBegun Expert Team',
-      courseFee,
-      registrationFee: reg,
-      studyMaterials: mat,
-      otherCharges: oth,
-      totalAmount: total,
-      discount: fee?.discount || 0,
-      paidAmount: fee?.paidAmount || 0,
-      dueAmount: fee?.dueAmount || 0,
-      dueDate: fee?.dueDate || null,
-      status: fee?.status || 'pending',
-      payments: fee?.payments || [],
-    });
+    const result = await generateStudentReceipt(tenantId, studentId);
+    if (!result) return res.status(404).json({ success: false, message: 'Student not found' });
 
     if (sendEmail) {
-      const ok = await emailService.sendGenericEmail(student.email, `Fee Receipt — ${BRAND.name}`, html);
-      return res.json({ success: ok, message: ok ? 'Receipt emailed' : 'Failed to send email', data: { html } });
+      const ok = await emailService.sendGenericEmail(result.studentEmail, `Fee Receipt — ${BRAND.name}`, result.html);
+      return res.json({ success: ok, message: ok ? 'Receipt emailed' : 'Failed to send email', data: { html: result.html } });
     }
-    res.json({ success: true, data: { html } });
+    res.json({ success: true, data: { html: result.html } });
+  } catch (err: any) {
+    res.status(500).json({ success: false, message: err.message || 'Failed to generate receipt' });
+  }
+}
+
+// GET /fees/me/receipt[?email=true] — student downloads / emails their own branded receipt
+export async function getMyReceipt(req: AuthRequest, res: Response) {
+  try {
+    const tenantId = req.tenantId!;
+    const studentId = req.user?.id;
+    if (!studentId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const sendEmail = String(req.query.email) === 'true';
+
+    const result = await generateStudentReceipt(tenantId, studentId);
+    if (!result) return res.status(404).json({ success: false, message: 'Student not found' });
+    if (!result.hasFee) return res.status(404).json({ success: false, message: 'No fee record found for your account yet' });
+
+    if (sendEmail) {
+      const ok = await emailService.sendGenericEmail(result.studentEmail, `Fee Receipt — ${BRAND.name}`, result.html);
+      return res.json({ success: ok, message: ok ? 'Receipt emailed' : 'Failed to send email', data: { html: result.html } });
+    }
+    res.json({ success: true, data: { html: result.html } });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to generate receipt' });
   }

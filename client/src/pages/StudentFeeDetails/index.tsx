@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { seatReservationApi } from '../../api';
+import { feeApi } from '../../api/feeApi';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import FeeDetails from '../../components/profile/FeeDetails';
 import './StudentFeeDetails.css';
@@ -59,6 +60,38 @@ const StudentFeeDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [reservations, setReservations] = useState<StudentReservation[]>([]);
   const [error, setError] = useState('');
+  const [receiptBusy, setReceiptBusy] = useState<'' | 'print' | 'email'>('');
+  const [notice, setNotice] = useState('');
+
+  const printReceipt = async () => {
+    setReceiptBusy('print');
+    setNotice('');
+    try {
+      const res = await feeApi.getMyReceipt(false);
+      const w = window.open('', '_blank');
+      if (w) {
+        w.document.write(`<html><head><title>Fee Receipt</title></head><body>${res.data.data.html}<script>window.onload=function(){window.print();}</script></body></html>`);
+        w.document.close();
+      }
+    } catch (err: any) {
+      setNotice(err?.response?.data?.message || 'No receipt available yet.');
+    } finally {
+      setReceiptBusy('');
+    }
+  };
+
+  const emailReceipt = async () => {
+    setReceiptBusy('email');
+    setNotice('');
+    try {
+      await feeApi.getMyReceipt(true);
+      setNotice('✉️ Receipt emailed to you.');
+    } catch (err: any) {
+      setNotice(err?.response?.data?.message || 'Could not email the receipt.');
+    } finally {
+      setReceiptBusy('');
+    }
+  };
 
   useEffect(() => {
     const loadReservations = async () => {
@@ -101,8 +134,17 @@ const StudentFeeDetailsPage: React.FC = () => {
           <h1>Fee Details</h1>
           <p>View your reservation ledger, payments, receipts, and the latest balance.</p>
         </div>
+        <div className="sfd-header-actions">
+          <button className="sfd-btn" onClick={printReceipt} disabled={receiptBusy !== ''}>
+            {receiptBusy === 'print' ? 'Preparing…' : '🧾 Download Receipt'}
+          </button>
+          <button className="sfd-btn ghost" onClick={emailReceipt} disabled={receiptBusy !== ''}>
+            {receiptBusy === 'email' ? 'Sending…' : '✉️ Email me a copy'}
+          </button>
+        </div>
       </div>
 
+      {notice && <div className="sfd-notice">{notice}</div>}
       {error && <div className="sfd-error">{error}</div>}
 
       {loading ? (

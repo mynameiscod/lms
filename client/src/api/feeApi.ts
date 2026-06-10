@@ -77,6 +77,8 @@ export const feeApi = {
     API.delete(`/fees/${studentId}/payments/${paymentId}`),
   getReceipt: (studentId: string, email = false) =>
     API.get<{ success: boolean; data: { html: string } }>(`/fees/${studentId}/receipt`, { params: email ? { email: true } : {} }),
+  getMyReceipt: (email = false) =>
+    API.get<{ success: boolean; data: { html: string } }>(`/fees/me/receipt`, { params: email ? { email: true } : {} }),
   remind: (studentId: string) => API.post(`/fees/${studentId}/remind`),
   remindBulk: (batch?: string) => API.post('/fees/remind-bulk', batch ? { batch } : {}),
 };

@@ -26,6 +26,9 @@ const FeesPage: React.FC = () => {
   const [dueDate, setDueDate] = useState('');
   const [discount, setDiscount] = useState('');
   const [discountReason, setDiscountReason] = useState('');
+  const [registrationFee, setRegistrationFee] = useState('');
+  const [studyMaterials, setStudyMaterials] = useState('');
+  const [otherCharges, setOtherCharges] = useState('');
   const [followupDate, setFollowupDate] = useState('');
   const [installments, setInstallments] = useState<Installment[]>([]);
   const [amount, setAmount] = useState('');
@@ -62,6 +65,9 @@ const FeesPage: React.FC = () => {
     setDueDate(r.dueDate ? r.dueDate.slice(0, 10) : '');
     setDiscount(r.discount ? String(r.discount) : '');
     setDiscountReason(r.discountReason || '');
+    setRegistrationFee(r.registrationFee ? String(r.registrationFee) : '');
+    setStudyMaterials(r.studyMaterials ? String(r.studyMaterials) : '');
+    setOtherCharges(r.otherCharges ? String(r.otherCharges) : '');
     setFollowupDate(r.followupDate ? r.followupDate.slice(0, 10) : '');
     setInstallments((r.installments || []).map(i => ({
       label: i.label || '',
@@ -100,6 +106,9 @@ const FeesPage: React.FC = () => {
         dueDate: dueDate || undefined,
         discount: discount === '' ? 0 : Number(discount),
         discountReason: discountReason || undefined,
+        registrationFee: registrationFee === '' ? 0 : Number(registrationFee),
+        studyMaterials: studyMaterials === '' ? 0 : Number(studyMaterials),
+        otherCharges: otherCharges === '' ? 0 : Number(otherCharges),
         followupDate: followupDate || undefined,
         installments: installments
           .filter(i => Number(i.amount) > 0)
@@ -282,6 +291,18 @@ const FeesPage: React.FC = () => {
               <label>Discount Reason<input value={discountReason} onChange={e => setDiscountReason(e.target.value)} placeholder="e.g. Early bird, scholarship" /></label>
               <label>Follow-up Date<input type="date" value={followupDate} onChange={e => setFollowupDate(e.target.value)} /></label>
               <label>Net Payable<input value={inr(netPayable)} readOnly disabled /></label>
+            </div>
+
+            {/* Receipt fee breakdown (carved out of Total Fee) */}
+            <div className="fees-form-grid" style={{ marginTop: 12 }}>
+              <label className="full" style={{ marginBottom: -4 }}>
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>Receipt breakdown</span>
+                <span style={{ fontWeight: 400, color: '#94a3b8', fontSize: 11.5 }}>These are part of the Total Fee; Course Fee on the receipt = Total − these.</span>
+              </label>
+              <label>Registration Fee (₹)<input type="number" value={registrationFee} onChange={e => setRegistrationFee(e.target.value)} placeholder="0" /></label>
+              <label>Study Materials (₹)<input type="number" value={studyMaterials} onChange={e => setStudyMaterials(e.target.value)} placeholder="0" /></label>
+              <label>Other Charges (₹)<input type="number" value={otherCharges} onChange={e => setOtherCharges(e.target.value)} placeholder="0" /></label>
+              <label>Course Fee (auto)<input value={inr(Math.max(0, (Number(totalFee) || 0) - (Number(registrationFee) || 0) - (Number(studyMaterials) || 0) - (Number(otherCharges) || 0)))} readOnly disabled /></label>
             </div>
 
             {/* Installments */}

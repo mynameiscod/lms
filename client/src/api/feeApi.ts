@@ -25,6 +25,9 @@ export interface FeeRow {
   batchId: string | null;
   batchName: string;
   totalAmount: number;
+  registrationFee: number;
+  studyMaterials: number;
+  otherCharges: number;
   discount: number;
   discountReason: string;
   paidAmount: number;
@@ -63,6 +66,9 @@ export const feeApi = {
     discountReason?: string;
     followupDate?: string;
     installments?: Installment[];
+    registrationFee?: number;
+    studyMaterials?: number;
+    otherCharges?: number;
   }) =>
     API.put(`/fees/${studentId}`, data),
   recordPayment: (studentId: string, data: PaymentInput) =>

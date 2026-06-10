@@ -5,8 +5,12 @@ export interface IFee extends Document {
   tenantId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
   totalAmount: number;
+  registrationFee: number;
+  studyMaterials: number;
+  otherCharges: number;
   discount: number;
   discountReason?: string;
+  receiptNumber?: string;
   paidAmount: number;
   dueAmount: number;
   dueDate?: Date;
@@ -52,11 +56,26 @@ const FeeSchema = new Schema<IFee>(
       required: true,
       default: 0
     },
+    registrationFee: {
+      type: Number,
+      default: 0
+    },
+    studyMaterials: {
+      type: Number,
+      default: 0
+    },
+    otherCharges: {
+      type: Number,
+      default: 0
+    },
     discount: {
       type: Number,
       default: 0
     },
     discountReason: {
+      type: String
+    },
+    receiptNumber: {
       type: String
     },
     paidAmount: {

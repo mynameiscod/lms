@@ -20,29 +20,76 @@ const hash = (code: string) => crypto.createHash('sha256').update(code).digest('
 const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
 async function getWhatsAppCredentials(tenantId: string): Promise<{ phoneNumberId: string; accessToken: string } | null> {
+  let phoneNumberId = '';
+  let accessToken = '';
+
+  // 1) Per-tenant WhatsApp connection (Lead Source config)
   const sourceConfig = await LeadSourceConfig.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).lean();
-  if (!sourceConfig) return null;
-  const wa = (sourceConfig as any).whatsApp;
-  if (!wa?.isConnected || !wa?.config?.phoneNumberId) return null;
-  const tokens = await getDecryptedTokens(tenantId);
-  const accessToken = tokens?.whatsApp?.accessToken || process.env.WHATSAPP_ACCESS_TOKEN;
-  if (!accessToken) return null;
-  return { phoneNumberId: wa.config.phoneNumberId, accessToken };
+  const wa = (sourceConfig as any)?.whatsApp;
+  if (wa?.isConnected && wa?.config?.phoneNumberId) {
+    phoneNumberId = wa.config.phoneNumberId;
+    const tokens = await getDecryptedTokens(tenantId);
+    accessToken = tokens?.whatsApp?.accessToken || '';
+  }
+
+  // 2) Server-level fallback (env) — enables OTP with just env vars, no tenant UI
+  if (!phoneNumberId) phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+  if (!accessToken) accessToken = process.env.WHATSAPP_ACCESS_TOKEN || '';
+
+  if (!phoneNumberId || !accessToken) return null;
+  return { phoneNumberId, accessToken };
 }
 
-async function sendWhatsAppText(phone: string, message: string, creds: { phoneNumberId: string; accessToken: string }): Promise<boolean> {
-  const cleanPhone = phone.replace(/[^0-9+]/g, '');
-  if (!cleanPhone) return false;
+// OTP via an approved WhatsApp Authentication template. Required to message a
+// candidate who hasn't opened a 24h session (i.e. every new lead) — plain text
+// is rejected by Meta in that case. Configure with:
+//   WHATSAPP_OTP_TEMPLATE       (template name, e.g. "cb_otp")  — enables template mode
+//   WHATSAPP_OTP_TEMPLATE_LANG  (language code, default "en")
+//   WHATSAPP_OTP_TEMPLATE_BUTTON ("false" to omit the copy-code button param)
+const OTP_TEMPLATE = process.env.WHATSAPP_OTP_TEMPLATE || '';
+const OTP_TEMPLATE_LANG = process.env.WHATSAPP_OTP_TEMPLATE_LANG || 'en';
+const OTP_TEMPLATE_HAS_BUTTON = String(process.env.WHATSAPP_OTP_TEMPLATE_BUTTON || 'true') !== 'false';
+
+async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<boolean> {
   try {
     const res = await fetch(`https://graph.facebook.com/v18.0/${creds.phoneNumberId}/messages`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${creds.accessToken}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messaging_product: 'whatsapp', to: cleanPhone, type: 'text', text: { body: message } }),
+      body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      const err = await res.text().catch(() => '');
+      console.warn('[assessment-otp] WhatsApp send failed', res.status, err.slice(0, 300));
+    }
     return res.ok;
-  } catch {
+  } catch (e: any) {
+    console.warn('[assessment-otp] WhatsApp send error', e?.message);
     return false;
   }
+}
+
+async function sendWhatsAppOtp(phone: string, code: string, message: string, creds: { phoneNumberId: string; accessToken: string }): Promise<boolean> {
+  const to = phone.replace(/[^0-9+]/g, '').replace(/^\+/, '');
+  if (!to) return false;
+
+  // Preferred: approved Authentication template (works for cold recipients)
+  if (OTP_TEMPLATE) {
+    const components: any[] = [
+      { type: 'body', parameters: [{ type: 'text', text: code }] },
+    ];
+    // Auth templates carry an OTP "copy code" / one-tap button that echoes the code
+    if (OTP_TEMPLATE_HAS_BUTTON) {
+      components.push({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] });
+    }
+    const ok = await waPost(creds, {
+      messaging_product: 'whatsapp', to, type: 'template',
+      template: { name: OTP_TEMPLATE, language: { code: OTP_TEMPLATE_LANG }, components },
+    });
+    if (ok) return true;
+  }
+
+  // Fallback: plain text — only delivers if the user messaged us in the last 24h
+  return waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } });
 }
 
 export interface OtpSendResult {
@@ -69,7 +116,7 @@ export async function sendOtp(tenantId: string, token: string, phone: string): P
   const message = `Your CodeBegun verification code is ${code}. It is valid for 10 minutes.`;
   const creds = await getWhatsAppCredentials(tenantId);
   if (creds) {
-    const ok = await sendWhatsAppText(phone, message, creds);
+    const ok = await sendWhatsAppOtp(phone, code, message, creds);
     if (ok) return { sent: true, channel: 'whatsapp' };
   }
 

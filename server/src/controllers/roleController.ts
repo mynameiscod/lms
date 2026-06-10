@@ -21,7 +21,7 @@ export const createRole = async (
   res: Response<ApiResponse<any>>
 ) => {
   try {
-    const { name, permissions } = req.body;
+    const { name, description, permissions } = req.body;
 
     if (!name) {
       return res.status(400).json({
@@ -33,6 +33,7 @@ export const createRole = async (
 
     const roleData = {
       name,
+      description,
       permissions: permissions || [],
       tenantId: req.tenantId!
     };
@@ -111,10 +112,11 @@ export const updateRole = async (
 ) => {
   try {
     const { roleId } = req.params;
-    const { name, permissions } = req.body;
+    const { name, description, permissions } = req.body;
 
     const updateData: any = {};
     if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
     if (permissions !== undefined) updateData.permissions = permissions;
 
     const role = await roleService.updateRole(roleId, req.tenantId!, updateData);

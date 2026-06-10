@@ -773,17 +773,17 @@ export const roleApi = {
     return response.json();
   },
 
-  createRole: async (name: string, permissions: string[]) => {
+  createRole: async (name: string, permissions: string[], description?: string) => {
     const response = await fetch(`${API_BASE_URL}/roles`, {
       method: 'POST',
       headers: getAuthHeaders(),
-      body: JSON.stringify({ name, permissions })
+      body: JSON.stringify({ name, permissions, description })
     });
     if (!response.ok) throw new Error('Failed to create role');
     return response.json();
   },
 
-  updateRole: async (roleId: string, data: { name?: string; permissions?: string[] }) => {
+  updateRole: async (roleId: string, data: { name?: string; description?: string; permissions?: string[] }) => {
     const response = await fetch(`${API_BASE_URL}/roles/${roleId}`, {
       method: 'PUT',
       headers: getAuthHeaders(),

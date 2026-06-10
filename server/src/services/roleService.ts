@@ -3,6 +3,7 @@ import Role, { IRole } from '../models/Role';
 export class RoleService {
   async createRole(roleData: {
     name: string;
+    description?: string;
     permissions: string[];
     tenantId: string;
   }): Promise<IRole> {
@@ -32,7 +33,7 @@ export class RoleService {
   async updateRole(
     roleId: string,
     tenantId: string,
-    updateData: Partial<Pick<IRole, 'name' | 'permissions'>>
+    updateData: Partial<Pick<IRole, 'name' | 'description' | 'permissions'>>
   ): Promise<IRole | null> {
     // If updating name, check for duplicates
     if (updateData.name) {

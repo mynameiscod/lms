@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IRole extends Document {
   name: string;
+  description?: string;
   permissions: string[];
   tenantId?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -10,13 +11,17 @@ export interface IRole extends Document {
 
 const RoleSchema: Schema = new Schema(
   {
-    name: { 
-      type: String, 
+    name: {
+      type: String,
       required: true,
-      trim: true 
+      trim: true
     },
-    permissions: [{ 
-      type: String 
+    description: {
+      type: String,
+      trim: true
+    },
+    permissions: [{
+      type: String
     }],
     tenantId: { 
       type: mongoose.Types.ObjectId, 

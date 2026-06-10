@@ -12,6 +12,13 @@ import User from '../models/User';
 import Content from '../models/Content';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
+import Batch from '../models/Batch';
+import Fee from '../models/Fee';
+import Lead from '../models/Lead';
+import Attendance from '../models/Attendance';
+import PlacementDrive from '../models/PlacementDrive';
+import ScheduledInterview from '../models/ScheduledInterview';
+import AssessmentSubmission from '../models/AssessmentSubmission';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -315,6 +322,194 @@ class DashboardController {
         message: error instanceof Error ? error.message : 'Failed to load admin stats'
       });
     }
-  };}
+  };
+
+  // Rich admin overview — every widget on the main dashboard, from live data.
+  getAdminOverview = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+      const t = new Types.ObjectId(tenantId);
+
+      const now = new Date();
+      const startThis = new Date(now.getFullYear(), now.getMonth(), 1);
+      const startLast = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const start30 = new Date(now); start30.setDate(now.getDate() - 29); start30.setHours(0, 0, 0, 0);
+      const prev30 = new Date(now); prev30.setDate(now.getDate() - 59); prev30.setHours(0, 0, 0, 0);
+      const in7 = new Date(now); in7.setDate(now.getDate() + 7);
+      const in60 = new Date(now); in60.setDate(now.getDate() + 60);
+
+      const pct = (cur: number, prev: number): number =>
+        prev > 0 ? Math.round(((cur - prev) / prev) * 1000) / 10 : (cur > 0 ? 100 : 0);
+
+      // Count total + this/last month new, return { value, deltaPct }
+      const card = async (Model: any, query: any, field = 'createdAt') => {
+        const [value, thisM, lastM] = await Promise.all([
+          Model.countDocuments(query),
+          Model.countDocuments({ ...query, [field]: { $gte: startThis } }),
+          Model.countDocuments({ ...query, [field]: { $gte: startLast, $lt: startThis } }),
+        ]);
+        return { value, deltaPct: pct(thisM, lastM) };
+      };
+
+      const [students, courses, batchesCard, leadsMonth] = await Promise.all([
+        card(User, { tenantId: t, role: 'STUDENT', isActive: true }),
+        card(Course, { tenantId: t, isActive: true }),
+        card(Batch, { tenantId: t, isActive: true }),
+        Promise.all([
+          Lead.countDocuments({ tenantId: t, createdAt: { $gte: startThis } }),
+          Lead.countDocuments({ tenantId: t, createdAt: { $gte: startLast, $lt: startThis } }),
+        ]),
+      ]);
+
+      // Revenue (sum of fee payments) — total + this/last month
+      const revAgg = await Fee.aggregate([
+        { $match: { tenantId: t } },
+        { $unwind: '$payments' },
+        { $group: {
+          _id: null,
+          total: { $sum: '$payments.amount' },
+          thisM: { $sum: { $cond: [{ $gte: ['$payments.paymentDate', startThis] }, '$payments.amount', 0] } },
+          lastM: { $sum: { $cond: [{ $and: [{ $gte: ['$payments.paymentDate', startLast] }, { $lt: ['$payments.paymentDate', startThis] }] }, '$payments.amount', 0] } },
+        } },
+      ]);
+      const rev = revAgg[0] || { total: 0, thisM: 0, lastM: 0 };
+
+      // Fee collection donut
+      const feeAgg = await Fee.aggregate([
+        { $match: { tenantId: t } },
+        { $group: {
+          _id: null,
+          collected: { $sum: '$paidAmount' },
+          pending: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, 0, '$dueAmount'] } },
+          overdue: { $sum: { $cond: [{ $eq: ['$status', 'overdue'] }, '$dueAmount', 0] } },
+        } },
+      ]);
+      const fees = feeAgg[0] ? { collected: feeAgg[0].collected || 0, pending: feeAgg[0].pending || 0, overdue: feeAgg[0].overdue || 0 } : { collected: 0, pending: 0, overdue: 0 };
+
+      // Placements — distinct users marked "placed" across drives
+      const placedAgg = await PlacementDrive.aggregate([
+        { $match: { tenantId: t } },
+        { $project: { s: { $objectToArray: { $ifNull: ['$applicantStatuses', {} ] } } } },
+        { $unwind: '$s' },
+        { $match: { 's.v': 'placed' } },
+        { $group: { _id: '$s.k' } },
+        { $count: 'n' },
+      ]);
+
+      // Enrollments series — new students/day for last 30 days
+      const enrollAgg = await User.aggregate([
+        { $match: { tenantId: t, role: 'STUDENT', createdAt: { $gte: start30 } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } }, n: { $sum: 1 } } },
+      ]);
+      const enrollMap: Record<string, number> = {};
+      enrollAgg.forEach((d: any) => { enrollMap[d._id] = d.n; });
+      const enrollmentsSeries: { label: string; value: number }[] = [];
+      for (let i = 0; i < 30; i++) {
+        const d = new Date(start30); d.setDate(start30.getDate() + i);
+        const key = d.toISOString().slice(0, 10);
+        enrollmentsSeries.push({ label: key, value: enrollMap[key] || 0 });
+      }
+
+      // Top courses + batch status
+      const [topCoursesRaw, batchRows] = await Promise.all([
+        Course.find({ tenantId: t, isActive: true }).select('title enrollmentCount').sort({ enrollmentCount: -1 }).limit(5).lean(),
+        Batch.find({ tenantId: t, isActive: true }).select('name mode enrolledCount capacity endDate').sort({ createdAt: -1 }).limit(6).lean(),
+      ]);
+      const topCourses = topCoursesRaw.map((c: any) => ({ title: c.title, enrolled: c.enrollmentCount || 0 }));
+      const batchStatus = batchRows.map((b: any) => ({ name: b.name, mode: b.mode || 'offline', enrolled: b.enrolledCount || 0, capacity: b.capacity || 0 }));
+
+      // Upcoming reminders
+      const reminders: { kind: string; title: string; when: Date | null }[] = [];
+      const feeDueCount = await Fee.countDocuments({ tenantId: t, dueAmount: { $gt: 0 }, dueDate: { $gte: now, $lte: in7 } });
+      if (feeDueCount > 0) reminders.push({ kind: 'fee', title: `Fee Due Reminder · ${feeDueCount} student${feeDueCount === 1 ? '' : 's'}`, when: in7 });
+      const endingBatches = await Batch.find({ tenantId: t, isActive: true, endDate: { $gte: now, $lte: in60 } }).select('name endDate').sort({ endDate: 1 }).limit(2).lean();
+      endingBatches.forEach((b: any) => reminders.push({ kind: 'batch', title: `Batch Ending · ${b.name}`, when: b.endDate }));
+      const drives = await PlacementDrive.find({ tenantId: t, isActive: true, driveDate: { $gte: now } }).select('companyName name driveDate').sort({ driveDate: 1 }).limit(2).lean();
+      drives.forEach((d: any) => reminders.push({ kind: 'placement', title: `Placement Drive · ${d.companyName || d.name}`, when: d.driveDate }));
+      const interviews = await ScheduledInterview.find({ tenantId: t, status: 'scheduled', date: { $gte: now } }).select('title date').sort({ date: 1 }).limit(2).lean();
+      interviews.forEach((iv: any) => reminders.push({ kind: 'interview', title: `Interview · ${iv.title || 'Mock Interview'}`, when: iv.date }));
+      reminders.sort((a, b) => (a.when ? a.when.getTime() : 0) - (b.when ? b.when.getTime() : 0));
+
+      // Recent activity — merge a few recent docs from several sources
+      const activity: { icon: string; text: string; when: Date }[] = [];
+      const [recentStudents, recentLeads, recentBatches, recentPays, recentAssess] = await Promise.all([
+        User.find({ tenantId: t, role: 'STUDENT' }).select('firstName lastName createdAt').sort({ createdAt: -1 }).limit(4).lean(),
+        Lead.find({ tenantId: t }).select('name source createdAt').sort({ createdAt: -1 }).limit(4).lean(),
+        Batch.find({ tenantId: t }).select('name createdAt').sort({ createdAt: -1 }).limit(3).lean(),
+        Fee.aggregate([
+          { $match: { tenantId: t, 'payments.0': { $exists: true } } },
+          { $unwind: '$payments' }, { $sort: { 'payments.paymentDate': -1 } }, { $limit: 4 },
+          { $lookup: { from: 'users', localField: 'studentId', foreignField: '_id', as: 'stu' } },
+          { $project: { amount: '$payments.amount', when: '$payments.paymentDate', stu: { $arrayElemAt: ['$stu', 0] } } },
+        ]),
+        AssessmentSubmission.find({ tenantId: t, status: { $in: ['submitted', 'graded'] } }).select('createdAt submittedAt').sort({ createdAt: -1 }).limit(4).lean(),
+      ]);
+      recentStudents.forEach((s: any) => activity.push({ icon: '🎓', text: `New student ${`${s.firstName || ''} ${s.lastName || ''}`.trim()} enrolled`, when: s.createdAt }));
+      recentLeads.forEach((l: any) => activity.push({ icon: '🎯', text: `New lead ${l.name || ''}${l.source ? ` from ${l.source}` : ''}`, when: l.createdAt }));
+      recentBatches.forEach((b: any) => activity.push({ icon: '👥', text: `New batch "${b.name}" created`, when: b.createdAt }));
+      recentPays.forEach((p: any) => activity.push({ icon: '💰', text: `Payment of ₹${(p.amount || 0).toLocaleString('en-IN')} received${p.stu ? ` from ${`${p.stu.firstName || ''} ${p.stu.lastName || ''}`.trim()}` : ''}`, when: p.when }));
+      recentAssess.forEach((a: any) => activity.push({ icon: '📝', text: 'Assessment completed', when: a.submittedAt || a.createdAt }));
+      activity.sort((a, b) => new Date(b.when).getTime() - new Date(a.when).getTime());
+      const recentActivity = activity.slice(0, 6);
+
+      // Bottom strip metrics
+      const [assessThis, assessLast] = await Promise.all([
+        AssessmentSubmission.countDocuments({ tenantId: t, createdAt: { $gte: startThis } }),
+        AssessmentSubmission.countDocuments({ tenantId: t, createdAt: { $gte: startLast, $lt: startThis } }),
+      ]);
+      // Certificates proxy = passed quizzes + passing assignment submissions
+      const [certTotalQ, certTotalA, certThisQ, certThisA, certLastQ, certLastA] = await Promise.all([
+        QuizAttempt.countDocuments({ tenantId: t, passed: true }),
+        Submission.countDocuments({ tenantId: t, isPassing: true }),
+        QuizAttempt.countDocuments({ tenantId: t, passed: true, createdAt: { $gte: startThis } }),
+        Submission.countDocuments({ tenantId: t, isPassing: true, createdAt: { $gte: startThis } }),
+        QuizAttempt.countDocuments({ tenantId: t, passed: true, createdAt: { $gte: startLast, $lt: startThis } }),
+        Submission.countDocuments({ tenantId: t, isPassing: true, createdAt: { $gte: startLast, $lt: startThis } }),
+      ]);
+      const attAgg = await Attendance.aggregate([
+        { $match: { tenantId: t, date: { $gte: prev30 } } },
+        { $group: {
+          _id: null,
+          curPresent: { $sum: { $cond: [{ $and: [{ $gte: ['$date', start30] }, { $eq: ['$status', 'present'] }] }, 1, 0] } },
+          curTotal: { $sum: { $cond: [{ $gte: ['$date', start30] }, 1, 0] } },
+          prevPresent: { $sum: { $cond: [{ $and: [{ $lt: ['$date', start30] }, { $eq: ['$status', 'present'] }] }, 1, 0] } },
+          prevTotal: { $sum: { $cond: [{ $lt: ['$date', start30] }, 1, 0] } },
+        } },
+      ]);
+      const att = attAgg[0] || { curPresent: 0, curTotal: 0, prevPresent: 0, prevTotal: 0 };
+      const curAtt = att.curTotal ? Math.round((att.curPresent / att.curTotal) * 1000) / 10 : 0;
+      const prevAtt = att.prevTotal ? Math.round((att.prevPresent / att.prevTotal) * 1000) / 10 : 0;
+
+      res.json({
+        success: true,
+        data: {
+          stats: {
+            students,
+            courses,
+            batches: batchesCard,
+            revenue: { value: rev.total, deltaPct: pct(rev.thisM, rev.lastM) },
+            placements: { value: placedAgg[0]?.n || 0, deltaPct: null },
+          },
+          enrollmentsSeries,
+          topCourses,
+          fees,
+          batchStatus,
+          reminders: reminders.slice(0, 5),
+          recentActivity,
+          bottom: {
+            newLeads: { value: leadsMonth[0], deltaPct: pct(leadsMonth[0], leadsMonth[1]) },
+            assessments: { value: assessThis, deltaPct: pct(assessThis, assessLast) },
+            certificates: { value: certTotalQ + certTotalA, deltaPct: pct(certThisQ + certThisA, certLastQ + certLastA) },
+            avgAttendance: { value: curAtt, deltaPct: pct(curAtt, prevAtt) },
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Get admin overview error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to load admin overview' });
+    }
+  };
+}
 
 export default new DashboardController();

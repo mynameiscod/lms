@@ -4,6 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { Spinner } from '../../components/common';
 import { attendanceApi, dashboardApi, leadApi, collegeSnapshotApi, placementDriveApi, alumniApi } from '../../api';
+import AdminOverview from './AdminOverview';
 import './DashboardPage.css';
 
 interface DashboardData {
@@ -349,140 +350,7 @@ const DashboardPage: React.FC = () => {
   const isAdmin = isAdminUser;
 
   if (isAdmin) {
-    return (
-      <div className="dashboard-container">
-        <div className="admin-dashboard">
-          <div className="dashboard-header">
-            <h1>Admin Dashboard</h1>
-            <p>Welcome back, <strong>{user.firstName}!</strong></p>
-          </div>
-
-          <div className="dashboard-grid">
-            <div className="dashboard-card">
-              <h2>📊 Overview</h2>
-              <div className="card-content">
-                <div className="stat-item">
-                  <span className="stat-label">Total Students</span>
-                  <span className="stat-value">{stats.totalStudents}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Active Courses</span>
-                  <span className="stat-value">{stats.activeCourses}</span>
-                </div>
-                <div className="stat-item">
-                  <span className="stat-label">Total Content</span>
-                  <span className="stat-value">{stats.totalContent}</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="dashboard-card">
-              <h2>📝 Recent Activity</h2>
-              <div className="card-content">
-                <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
-                  No recent activity yet
-                </p>
-              </div>
-            </div>
-
-            <div className="dashboard-card">
-              <h2>⚙️ Quick Actions</h2>
-              <div className="card-content">
-                <a href="/admin/content" className="action-link">📄 Manage Content</a>
-                <a href="/users" className="action-link">👥 Manage Users</a>
-                <a href="/courses" className="action-link">📚 Manage Courses</a>
-                {hasLeadPermission && <a href="/leads" className="action-link">🎯 Manage Leads</a>}
-              </div>
-            </div>
-
-            <div className="dashboard-card">
-              <h2>📈 Statistics</h2>
-              <div className="card-content">
-                <p style={{ color: '#999', textAlign: 'center', padding: '20px' }}>
-                  Analytics coming soon
-                </p>
-              </div>
-            </div>
-
-            {collegeSnapshot && (
-              <div className="dashboard-card">
-                <h2>🎓 College &amp; Placement</h2>
-                <div className="card-content">
-                  <div className="stat-item">
-                    <span className="stat-label">Active Drives</span>
-                    <span className="stat-value" style={{ color: 'var(--bs-primary)' }}>{collegeSnapshot.activeDrives}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Applicants This Month</span>
-                    <span className="stat-value">{collegeSnapshot.applicantsThisMonth}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Students Placed</span>
-                    <span className="stat-value" style={{ color: '#059669' }}>{collegeSnapshot.placedStudents}</span>
-                  </div>
-                  <div className="stat-item">
-                    <span className="stat-label">Top Recruiter</span>
-                    <span className="stat-value" style={{ fontSize: '0.9rem' }}>{collegeSnapshot.topCompany}</span>
-                  </div>
-                  <div style={{ marginTop: '0.75rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <a href="/admin/college/placement" className="action-link">🚀 Drives</a>
-                    <a href="/admin/college/reports" className="action-link">📊 Reports</a>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Follow-up Reminders Widget — only for users with lead access */}
-          {hasLeadPermission && leadPerf && (
-            <div className="followup-reminder-section">
-              <div className="followup-header">
-                <h2>🔔 Follow-up Reminders</h2>
-                <button className="btn-link-sm" onClick={() => navigate('/leads')}>View All Leads →</button>
-              </div>
-              <div className="followup-cards">
-                <div className="followup-card followup-assigned" onClick={() => navigate('/leads')}>
-                  <div className="followup-card-icon">👥</div>
-                  <div className="followup-card-info">
-                    <span className="followup-card-value">{leadPerf.totalAssigned}</span>
-                    <span className="followup-card-label">Total Assigned</span>
-                  </div>
-                </div>
-                <div
-                  className={`followup-card ${leadPerf.todayFollowUps > 0 ? 'followup-today' : 'followup-done'}`}
-                  onClick={() => navigate('/leads')}
-                >
-                  <div className="followup-card-icon">{leadPerf.todayFollowUps > 0 ? '📅' : '✅'}</div>
-                  <div className="followup-card-info">
-                    <span className="followup-card-value">{leadPerf.todayFollowUps}</span>
-                    <span className="followup-card-label">Today's Follow-ups</span>
-                  </div>
-                  {leadPerf.todayFollowUps > 0 && <span className="followup-badge warn">{leadPerf.todayFollowUps} due</span>}
-                </div>
-                <div
-                  className={`followup-card ${leadPerf.overdueFollowUps > 0 ? 'followup-overdue' : 'followup-done'}`}
-                  onClick={() => navigate('/leads')}
-                >
-                  <div className="followup-card-icon">{leadPerf.overdueFollowUps > 0 ? '⚠️' : '✅'}</div>
-                  <div className="followup-card-info">
-                    <span className="followup-card-value">{leadPerf.overdueFollowUps}</span>
-                    <span className="followup-card-label">Overdue Follow-ups</span>
-                  </div>
-                  {leadPerf.overdueFollowUps > 0 && <span className="followup-badge danger">Needs attention</span>}
-                </div>
-                <div className="followup-card followup-action" onClick={() => navigate('/my-performance')}>
-                  <div className="followup-card-icon">📊</div>
-                  <div className="followup-card-info">
-                    <span className="followup-card-value" style={{ fontSize: '1rem', fontWeight: 700 }}>Track</span>
-                    <span className="followup-card-label">My Performance</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
+    return <AdminOverview firstName={user.firstName} />;
   }
 
   // Student Dashboard - Redesigned to match screenshot theme

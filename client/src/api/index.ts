@@ -1559,6 +1559,13 @@ export const dashboardApi = {
       method: 'GET'
     });
   },
+
+  // Get rich admin overview (full dashboard)
+  getAdminOverview: async () => {
+    return authenticatedFetch(`${API_BASE_URL}/dashboard/admin-overview`, {
+      method: 'GET'
+    });
+  },
 };
 
 // Interview Question API

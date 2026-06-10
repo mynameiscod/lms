@@ -12,6 +12,9 @@ router.use(tenantMiddleware);
 // Admin stats
 router.get('/admin-stats', dashboardController.getAdminStats);
 
+// Rich admin overview (full dashboard)
+router.get('/admin-overview', dashboardController.getAdminOverview);
+
 // Student dashboard
 router.get('/student', dashboardController.getStudentDashboard);
 

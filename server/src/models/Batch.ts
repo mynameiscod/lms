@@ -11,6 +11,7 @@ export interface IBatch extends Document {
     endTime: string; // e.g., "11:30"
   }[];
   instructors: mongoose.Types.ObjectId[]; // References to User documents
+  mode?: 'offline' | 'online' | 'hybrid';
   tenantId: mongoose.Types.ObjectId;
   isActive: boolean;
   capacity?: number;
@@ -71,6 +72,11 @@ const BatchSchema: Schema = new Schema(
         ref: 'User'
       }
     ],
+    mode: {
+      type: String,
+      enum: ['offline', 'online', 'hybrid'],
+      default: 'offline'
+    },
     tenantId: {
       type: mongoose.Types.ObjectId,
       ref: 'Tenant',

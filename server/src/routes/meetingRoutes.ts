@@ -21,9 +21,9 @@ router.get('/upcoming-mine', getMyUpcomingMeetings);
 
 // CRUD
 router.get('/', roleGuard(['manage_leads', 'view_leads']), getMeetings);
-router.post('/', roleGuard(['manage_leads', 'create_lead']), createMeeting);
+router.post('/', roleGuard(['manage_leads', 'create_leads']), createMeeting);
 router.get('/:id', roleGuard(['manage_leads', 'view_leads']), getMeeting);
-router.put('/:id', roleGuard(['manage_leads', 'create_lead']), updateMeeting);
+router.put('/:id', roleGuard(['manage_leads', 'create_leads']), updateMeeting);
 router.delete('/:id', roleGuard(['manage_leads']), deleteMeeting);
 
 export default router;

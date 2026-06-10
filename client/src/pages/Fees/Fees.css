@@ -1,4 +1,4 @@
-.fees-page { padding: 24px 28px 60px; max-width: 1280px; margin: 0 auto; }
+.fees-page { padding: 24px 28px 60px; width: 100%; }
 .fees-toast { position: fixed; top: 20px; right: 24px; background: #0f2942; color: #fff; padding: 12px 18px; border-radius: 10px; font-weight: 600; font-size: 14px; z-index: 9999; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
 
 .fees-header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; flex-wrap: wrap; }
@@ -77,3 +77,24 @@
 .fees-form-grid input, .fees-form-grid select { height: 40px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 12px; font-size: 14px; color: #1f2937; font-weight: 400; color-scheme: light; }
 .fees-form-grid input:focus, .fees-form-grid select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
 .fees-modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+.fees-modal { max-height: 90vh; overflow-y: auto; }
+
+/* Pagination */
+.fees-pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+.fees-page-info { font-size: 13px; color: #64748b; }
+.fees-page-controls { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.fees-page-num { font-size: 13px; color: #0f172a; font-weight: 600; padding: 0 6px; }
+.fees-btn.sm:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Installments */
+.fees-installments { margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 14px; background: #f8fafc; }
+.fees-installments-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.fees-installments-head > span { font-size: 13px; font-weight: 700; color: #0f172a; }
+.fees-installments-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.fees-installment-list { display: flex; flex-direction: column; gap: 8px; }
+.fees-installment-row { display: grid; grid-template-columns: 1.3fr 1fr 1.1fr 0.9fr auto; gap: 8px; align-items: center; }
+.fees-installment-row input, .fees-installment-row select { height: 36px; border: 1px solid #d1d5db; border-radius: 8px; padding: 0 10px; font-size: 13px; color: #1f2937; background: #fff; color-scheme: light; }
+.fees-installment-row input:focus, .fees-installment-row select:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+.fees-installment-total { font-size: 12.5px; color: #16a34a; font-weight: 600; margin-top: 2px; }
+.fees-installment-total.mismatch { color: #dc2626; }
+@media (max-width: 560px) { .fees-installment-row { grid-template-columns: 1fr 1fr; } }

@@ -10,6 +10,14 @@ API.interceptors.request.use((cfg) => {
   return cfg;
 });
 
+export interface Installment {
+  label?: string;
+  amount: number;
+  dueDate?: string | null;
+  status: 'pending' | 'paid';
+  paidDate?: string | null;
+}
+
 export interface FeeRow {
   studentId: string;
   name: string;
@@ -17,11 +25,15 @@ export interface FeeRow {
   batchId: string | null;
   batchName: string;
   totalAmount: number;
+  discount: number;
+  discountReason: string;
   paidAmount: number;
   dueAmount: number;
   status: 'pending' | 'partial' | 'paid' | 'overdue';
   hasFee: boolean;
   dueDate: string | null;
+  followupDate: string | null;
+  installments: Installment[];
   lastPaymentDate: string | null;
   lastPaymentAmount: number | null;
 }
@@ -44,7 +56,14 @@ export const feeApi = {
   list: (params?: { batch?: string; status?: string; search?: string }) =>
     API.get<{ success: boolean; data: FeeRow[]; summary: FeeSummary }>('/fees', { params }),
   analytics: () => API.get<{ success: boolean; data: any }>('/fees/analytics'),
-  upsert: (studentId: string, data: { totalAmount?: number; dueDate?: string }) =>
+  upsert: (studentId: string, data: {
+    totalAmount?: number;
+    dueDate?: string;
+    discount?: number;
+    discountReason?: string;
+    followupDate?: string;
+    installments?: Installment[];
+  }) =>
     API.put(`/fees/${studentId}`, data),
   recordPayment: (studentId: string, data: PaymentInput) =>
     API.post(`/fees/${studentId}/payments`, data),

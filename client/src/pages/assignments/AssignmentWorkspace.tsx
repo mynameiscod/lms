@@ -963,6 +963,31 @@ const AssignmentWorkspace: React.FC = () => {
                   theme="vs-dark"
                   onMount={(editor, monaco) => {
                     editorRef.current = editor;
+
+                    // Anti-cheat: block pasting external code into the editor.
+                    // Students must type their solution rather than paste it.
+                    const notifyPasteBlocked = () => {
+                      setError('📋 Pasting is disabled — please type your code.');
+                      window.setTimeout(() => setError(null), 2500);
+                    };
+                    // Override the paste keybinding (Ctrl/Cmd+V)
+                    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV, () => notifyPasteBlocked());
+                    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyV, () => notifyPasteBlocked());
+                    // Catch context-menu / drag paste at the DOM level (capture phase)
+                    const dom = editor.getDomNode();
+                    if (dom) {
+                      dom.addEventListener('paste', (e) => {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        notifyPasteBlocked();
+                      }, true);
+                      dom.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        notifyPasteBlocked();
+                      }, true);
+                    }
+
                     // Disable built-in JS/TS diagnostics for non-JS/TS languages to avoid false errors
                     const ts = (monaco.languages as any).typescript;
                     if (ts) {
@@ -1079,6 +1104,12 @@ const AssignmentWorkspace: React.FC = () => {
               <textarea
                 value={theoryAnswer}
                 onChange={(e) => setTheoryAnswer(e.target.value)}
+                onPaste={(e) => {
+                  e.preventDefault();
+                  setError('📋 Pasting is disabled — please type your answer.');
+                  window.setTimeout(() => setError(null), 2500);
+                }}
+                onDrop={(e) => e.preventDefault()}
                 placeholder="Write your detailed answer here..."
               />
               <div style={{ 

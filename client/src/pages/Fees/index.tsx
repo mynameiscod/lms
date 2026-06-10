@@ -1,10 +1,11 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { feeApi, FeeRow, FeeSummary, PaymentInput } from '../../api/feeApi';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { feeApi, FeeRow, FeeSummary, PaymentInput, Installment } from '../../api/feeApi';
 import { batchApi } from '../../api';
 import './Fees.css';
 
 const inr = (n: number) => `₹${(n || 0).toLocaleString('en-IN')}`;
 const STATUS_LABEL: Record<string, string> = { paid: 'Paid', partial: 'Partial', pending: 'Pending', overdue: 'Overdue' };
+const PAGE_SIZE = 20;
 
 const FeesPage: React.FC = () => {
   const [rows, setRows] = useState<FeeRow[]>([]);
@@ -17,10 +18,16 @@ const FeesPage: React.FC = () => {
   const [status, setStatus] = useState('');
   const [toast, setToast] = useState('');
 
+  const [page, setPage] = useState(1);
+
   // Payment modal
   const [modalRow, setModalRow] = useState<FeeRow | null>(null);
   const [totalFee, setTotalFee] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [discount, setDiscount] = useState('');
+  const [discountReason, setDiscountReason] = useState('');
+  const [followupDate, setFollowupDate] = useState('');
+  const [installments, setInstallments] = useState<Installment[]>([]);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<PaymentInput['paymentMethod']>('cash');
   const [txnId, setTxnId] = useState('');
@@ -46,25 +53,58 @@ const FeesPage: React.FC = () => {
 
   useEffect(() => { batchApi.getBatches().then((r: any) => setBatches(r.data || r)).catch(() => {}); }, []);
   useEffect(() => { const t = setTimeout(load, 250); return () => clearTimeout(t); }, [load]);
+  // Reset to first page whenever filters change
+  useEffect(() => { setPage(1); }, [search, batch, status]);
 
   const openModal = (r: FeeRow) => {
     setModalRow(r);
     setTotalFee(r.totalAmount ? String(r.totalAmount) : '');
     setDueDate(r.dueDate ? r.dueDate.slice(0, 10) : '');
+    setDiscount(r.discount ? String(r.discount) : '');
+    setDiscountReason(r.discountReason || '');
+    setFollowupDate(r.followupDate ? r.followupDate.slice(0, 10) : '');
+    setInstallments((r.installments || []).map(i => ({
+      label: i.label || '',
+      amount: i.amount,
+      dueDate: i.dueDate ? i.dueDate.slice(0, 10) : '',
+      status: i.status || 'pending',
+      paidDate: i.paidDate ? i.paidDate.slice(0, 10) : null,
+    })));
     setAmount(''); setMethod('cash'); setTxnId(''); setRemarks('');
     setPayDate(new Date().toISOString().slice(0, 10));
+  };
+
+  const addInstallment = () => setInstallments(prev => [...prev, { amount: 0, dueDate: '', status: 'pending', label: '' }]);
+  const updateInstallment = (idx: number, patch: Partial<Installment>) =>
+    setInstallments(prev => prev.map((it, i) => i === idx ? { ...it, ...patch } : it));
+  const removeInstallment = (idx: number) => setInstallments(prev => prev.filter((_, i) => i !== idx));
+  const autoSplit = (n: number) => {
+    const net = Math.max(0, (Number(totalFee) || 0) - (Number(discount) || 0));
+    if (!net || n < 1) return;
+    const base = Math.floor(net / n);
+    const items: Installment[] = Array.from({ length: n }, (_, i) => ({
+      label: `Installment ${i + 1}`,
+      amount: i === n - 1 ? net - base * (n - 1) : base,
+      dueDate: '',
+      status: 'pending',
+    }));
+    setInstallments(items);
   };
 
   const submitPayment = async () => {
     if (!modalRow) return;
     setSaving(true);
     try {
-      if (totalFee !== '' || dueDate) {
-        await feeApi.upsert(modalRow.studentId, {
-          totalAmount: totalFee === '' ? undefined : Number(totalFee),
-          dueDate: dueDate || undefined,
-        });
-      }
+      await feeApi.upsert(modalRow.studentId, {
+        totalAmount: totalFee === '' ? undefined : Number(totalFee),
+        dueDate: dueDate || undefined,
+        discount: discount === '' ? 0 : Number(discount),
+        discountReason: discountReason || undefined,
+        followupDate: followupDate || undefined,
+        installments: installments
+          .filter(i => Number(i.amount) > 0)
+          .map(i => ({ ...i, dueDate: i.dueDate || null })),
+      });
       if (Number(amount) > 0) {
         await feeApi.recordPayment(modalRow.studentId, {
           amount: Number(amount), paymentMethod: method, transactionId: txnId, remarks, paymentDate: payDate,
@@ -105,6 +145,15 @@ const FeesPage: React.FC = () => {
   };
 
   const maxMonthly = Math.max(1, ...(analytics?.monthly || []).map((m: any) => m.amount));
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pagedRows = useMemo(
+    () => rows.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE),
+    [rows, currentPage]
+  );
+  const netPayable = Math.max(0, (Number(totalFee) || 0) - (Number(discount) || 0));
+  const installmentTotal = installments.reduce((s, i) => s + (Number(i.amount) || 0), 0);
 
   return (
     <div className="fees-page">
@@ -180,7 +229,7 @@ const FeesPage: React.FC = () => {
               <th>Student</th><th>Batch</th><th>Total</th><th>Paid</th><th>Due</th><th>Status</th><th>Last Payment</th><th>Actions</th>
             </tr></thead>
             <tbody>
-              {rows.map(r => (
+              {pagedRows.map(r => (
                 <tr key={r.studentId}>
                   <td><div className="fees-student"><b>{r.name}</b><span>{r.email}</span></div></td>
                   <td>{r.batchName}</td>
@@ -204,6 +253,22 @@ const FeesPage: React.FC = () => {
         )}
       </div>
 
+      {/* Pagination */}
+      {!loading && rows.length > 0 && (
+        <div className="fees-pagination">
+          <span className="fees-page-info">
+            Showing {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, rows.length)} of {rows.length}
+          </span>
+          <div className="fees-page-controls">
+            <button className="fees-btn sm" onClick={() => setPage(1)} disabled={currentPage <= 1}>« First</button>
+            <button className="fees-btn sm" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={currentPage <= 1}>‹ Prev</button>
+            <span className="fees-page-num">Page {currentPage} of {totalPages}</span>
+            <button className="fees-btn sm" onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={currentPage >= totalPages}>Next ›</button>
+            <button className="fees-btn sm" onClick={() => setPage(totalPages)} disabled={currentPage >= totalPages}>Last »</button>
+          </div>
+        </div>
+      )}
+
       {/* Payment / Set-fee modal */}
       {modalRow && (
         <div className="fees-modal-overlay" onClick={() => setModalRow(null)}>
@@ -213,7 +278,46 @@ const FeesPage: React.FC = () => {
             <div className="fees-form-grid">
               <label>Total Fee (₹)<input type="number" value={totalFee} onChange={e => setTotalFee(e.target.value)} placeholder="e.g. 50000" /></label>
               <label>Due Date<input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} /></label>
+              <label>Discount (₹)<input type="number" value={discount} onChange={e => setDiscount(e.target.value)} placeholder="0" /></label>
+              <label>Discount Reason<input value={discountReason} onChange={e => setDiscountReason(e.target.value)} placeholder="e.g. Early bird, scholarship" /></label>
+              <label>Follow-up Date<input type="date" value={followupDate} onChange={e => setFollowupDate(e.target.value)} /></label>
+              <label>Net Payable<input value={inr(netPayable)} readOnly disabled /></label>
             </div>
+
+            {/* Installments */}
+            <div className="fees-installments">
+              <div className="fees-installments-head">
+                <span>Installments</span>
+                <div className="fees-installments-actions">
+                  <button type="button" className="fees-btn sm" onClick={() => autoSplit(2)}>Split 2</button>
+                  <button type="button" className="fees-btn sm" onClick={() => autoSplit(3)}>Split 3</button>
+                  <button type="button" className="fees-btn sm" onClick={() => autoSplit(4)}>Split 4</button>
+                  <button type="button" className="fees-btn sm primary" onClick={addInstallment}>+ Add</button>
+                </div>
+              </div>
+              {installments.length === 0 ? (
+                <p className="fees-empty" style={{ margin: '4px 0' }}>No installments — full amount due at once.</p>
+              ) : (
+                <div className="fees-installment-list">
+                  {installments.map((it, idx) => (
+                    <div key={idx} className="fees-installment-row">
+                      <input className="ins-label" placeholder={`Installment ${idx + 1}`} value={it.label || ''} onChange={e => updateInstallment(idx, { label: e.target.value })} />
+                      <input className="ins-amt" type="number" placeholder="Amount" value={it.amount || ''} onChange={e => updateInstallment(idx, { amount: Number(e.target.value) })} />
+                      <input className="ins-date" type="date" value={(it.dueDate as string) || ''} onChange={e => updateInstallment(idx, { dueDate: e.target.value })} />
+                      <select className="ins-status" value={it.status} onChange={e => updateInstallment(idx, { status: e.target.value as any })}>
+                        <option value="pending">Pending</option>
+                        <option value="paid">Paid</option>
+                      </select>
+                      <button type="button" className="fees-icon" title="Remove" onClick={() => removeInstallment(idx)}>🗑️</button>
+                    </div>
+                  ))}
+                  <div className={`fees-installment-total ${installmentTotal !== netPayable ? 'mismatch' : ''}`}>
+                    Installments total: {inr(installmentTotal)} {installmentTotal !== netPayable && `(net payable ${inr(netPayable)})`}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <hr className="fees-divider" />
             <div className="fees-form-grid">
               <label>Payment Amount (₹)<input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0 to only set fee" /></label>

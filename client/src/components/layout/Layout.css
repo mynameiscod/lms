@@ -20,6 +20,15 @@
   min-width: 0;
 }
 
+/* Full-width admin pages — override per-page max-width centering so
+   content fills the available area instead of sitting in a centered column. */
+.main-content > * {
+  max-width: none !important;
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  width: auto !important;
+}
+
 /* Mobile overlay backdrop (rendered by Layout.tsx) */
 .sidebar-mobile-overlay {
   position: fixed;

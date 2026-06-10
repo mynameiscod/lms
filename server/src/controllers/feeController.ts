@@ -18,7 +18,7 @@ const sumPayments = (payments: any[]) => (payments || []).reduce((s, p) => s + (
 // Build a printable HTML receipt / bill for a fee record
 function buildReceiptHtml(opts: {
   orgName: string; studentName: string; email: string; batchName?: string;
-  totalAmount: number; paidAmount: number; dueAmount: number; status: string;
+  totalAmount: number; discount?: number; paidAmount: number; dueAmount: number; status: string;
   payments: any[];
 }): string {
   const rows = (opts.payments || []).map((p, i) => `
@@ -50,6 +50,7 @@ function buildReceiptHtml(opts: {
       </table>
       <table style="width:100%;font-size:14px">
         <tr><td style="padding:4px 0">Total Fee</td><td style="text-align:right">${inr(opts.totalAmount)}</td></tr>
+        ${opts.discount && opts.discount > 0 ? `<tr><td style="padding:4px 0;color:#7c3aed">Discount</td><td style="text-align:right;color:#7c3aed">- ${inr(opts.discount)}</td></tr>` : ''}
         <tr><td style="padding:4px 0;color:#16a34a">Paid</td><td style="text-align:right;color:#16a34a">${inr(opts.paidAmount)}</td></tr>
         <tr><td style="padding:4px 0;color:#dc2626"><strong>Due</strong></td><td style="text-align:right;color:#dc2626"><strong>${inr(opts.dueAmount)}</strong></td></tr>
         <tr><td style="padding:4px 0">Status</td><td style="text-align:right;text-transform:uppercase">${opts.status}</td></tr>
@@ -94,11 +95,15 @@ export async function listFees(req: AuthRequest, res: Response) {
         batchId: s.batchId ? String(s.batchId) : null,
         batchName: s.batchId ? (batchName[String(s.batchId)] || '—') : '—',
         totalAmount: f?.totalAmount || 0,
+        discount: f?.discount || 0,
+        discountReason: f?.discountReason || '',
         paidAmount: f?.paidAmount || 0,
         dueAmount: f?.dueAmount || 0,
         status: f?.status || 'pending',
         hasFee: !!f,
         dueDate: f?.dueDate || null,
+        followupDate: f?.followupDate || null,
+        installments: f?.installments || [],
         lastPaymentDate: last?.paymentDate || null,
         lastPaymentAmount: last?.amount || null,
       };
@@ -133,7 +138,7 @@ export async function upsertFee(req: AuthRequest, res: Response) {
   try {
     const tenantId = req.tenantId!;
     const { studentId } = req.params;
-    const { totalAmount, dueDate } = req.body;
+    const { totalAmount, dueDate, discount, discountReason, followupDate, installments } = req.body;
 
     const student = await User.findOne({ _id: studentId, tenantId }).select('batchId').lean() as any;
     if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
@@ -141,7 +146,21 @@ export async function upsertFee(req: AuthRequest, res: Response) {
     let fee = await Fee.findOne({ studentId, tenantId });
     if (!fee) fee = new Fee({ studentId, tenantId, batchId: student.batchId, totalAmount: 0, paidAmount: 0 });
     if (totalAmount !== undefined && totalAmount !== null) fee.totalAmount = Number(totalAmount);
+    if (discount !== undefined && discount !== null) fee.discount = Number(discount) || 0;
+    if (discountReason !== undefined) fee.discountReason = discountReason || undefined;
     if (dueDate !== undefined) fee.dueDate = dueDate ? new Date(dueDate) : undefined;
+    if (followupDate !== undefined) fee.followupDate = followupDate ? new Date(followupDate) : undefined;
+    if (Array.isArray(installments)) {
+      fee.installments = installments
+        .filter((i: any) => i && Number(i.amount) > 0)
+        .map((i: any) => ({
+          label: i.label || undefined,
+          amount: Number(i.amount),
+          dueDate: i.dueDate ? new Date(i.dueDate) : undefined,
+          status: i.status === 'paid' ? 'paid' : 'pending',
+          paidDate: i.paidDate ? new Date(i.paidDate) : undefined,
+        })) as any;
+    }
     if (student.batchId) fee.batchId = student.batchId;
     await fee.save();
     res.json({ success: true, data: fee });
@@ -278,6 +297,7 @@ export async function getReceipt(req: AuthRequest, res: Response) {
       email: student.email,
       batchName: batch?.name,
       totalAmount: fee?.totalAmount || 0,
+      discount: fee?.discount || 0,
       paidAmount: fee?.paidAmount || 0,
       dueAmount: fee?.dueAmount || 0,
       status: fee?.status || 'pending',

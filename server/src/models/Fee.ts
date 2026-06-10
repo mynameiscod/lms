@@ -5,9 +5,19 @@ export interface IFee extends Document {
   tenantId: mongoose.Types.ObjectId;
   batchId?: mongoose.Types.ObjectId;
   totalAmount: number;
+  discount: number;
+  discountReason?: string;
   paidAmount: number;
   dueAmount: number;
   dueDate?: Date;
+  followupDate?: Date;
+  installments: Array<{
+    label?: string;
+    amount: number;
+    dueDate?: Date;
+    status: 'pending' | 'paid';
+    paidDate?: Date;
+  }>;
   payments: Array<{
     amount: number;
     paymentDate: Date;
@@ -42,6 +52,13 @@ const FeeSchema = new Schema<IFee>(
       required: true,
       default: 0
     },
+    discount: {
+      type: Number,
+      default: 0
+    },
+    discountReason: {
+      type: String
+    },
     paidAmount: {
       type: Number,
       default: 0
@@ -53,6 +70,16 @@ const FeeSchema = new Schema<IFee>(
     dueDate: {
       type: Date
     },
+    followupDate: {
+      type: Date
+    },
+    installments: [{
+      label: String,
+      amount: { type: Number, required: true },
+      dueDate: { type: Date },
+      status: { type: String, enum: ['pending', 'paid'], default: 'pending' },
+      paidDate: { type: Date }
+    }],
     payments: [{
       amount: { type: Number, required: true },
       paymentDate: { type: Date, default: Date.now },
@@ -74,15 +101,18 @@ const FeeSchema = new Schema<IFee>(
   { timestamps: true }
 );
 
-// Calculate due amount before saving
+// Calculate due amount before saving (net of discount)
 FeeSchema.pre('save', function(next) {
-  this.dueAmount = this.totalAmount - this.paidAmount;
-  if (this.dueAmount <= 0) {
+  const net = Math.max(0, (this.totalAmount || 0) - (this.discount || 0));
+  this.dueAmount = net - (this.paidAmount || 0);
+  if (net > 0 && this.dueAmount <= 0) {
     this.status = 'paid';
-  } else if (this.paidAmount > 0) {
+  } else if ((this.paidAmount || 0) > 0) {
     this.status = 'partial';
   } else if (this.dueDate && new Date() > this.dueDate) {
     this.status = 'overdue';
+  } else {
+    this.status = 'pending';
   }
   next();
 });

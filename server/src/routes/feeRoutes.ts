@@ -21,22 +21,25 @@ const router = express.Router();
 router.use(authMiddleware);
 router.use(tenantMiddleware);
 
-// Student self-service — own receipt only. Must be before the billing guard.
+// Student self-service — own receipt only. Must be before the billing guards.
 router.get('/me/receipt', getMyReceipt);
 
-router.use(roleGuard(['manage_billing']));
+// Read access: view_fees OR manage_billing
+const canView = roleGuard(['view_fees', 'manage_billing']);
+// Write access: manage_billing only
+const canManage = roleGuard(['manage_billing']);
 
 // Specific routes before parameterised ones
-router.get('/', listFees);
-router.get('/analytics', getFeeAnalytics);
-router.get('/receipt-settings', getReceiptSettings);
-router.put('/receipt-settings', updateReceiptSettings);
-router.post('/remind-bulk', sendBulkReminders);
+router.get('/', canView, listFees);
+router.get('/analytics', canView, getFeeAnalytics);
+router.get('/receipt-settings', canView, getReceiptSettings);
+router.put('/receipt-settings', canManage, updateReceiptSettings);
+router.post('/remind-bulk', canManage, sendBulkReminders);
 
-router.put('/:studentId', upsertFee);
-router.post('/:studentId/payments', recordPayment);
-router.delete('/:studentId/payments/:paymentId', deletePayment);
-router.get('/:studentId/receipt', getReceipt);
-router.post('/:studentId/remind', sendReminder);
+router.put('/:studentId', canManage, upsertFee);
+router.post('/:studentId/payments', canManage, recordPayment);
+router.delete('/:studentId/payments/:paymentId', canManage, deletePayment);
+router.get('/:studentId/receipt', canView, getReceipt);
+router.post('/:studentId/remind', canManage, sendReminder);
 
 export default router;

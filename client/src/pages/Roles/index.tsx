@@ -20,6 +20,7 @@ const MODULE_META: Record<string, { icon: string; tint: string; desc: string }> 
   interviews:     { icon: '🎤', tint: 'rose',   desc: 'Mock interviews and templates' },
   reports:        { icon: '📊', tint: 'teal',   desc: 'Reports and analytics dashboards' },
   admin:          { icon: '⚙️', tint: 'red',    desc: 'System settings and tenant management' },
+  fees:           { icon: '🧾', tint: 'orange', desc: 'Fees, payments, receipts and billing' },
   leads:          { icon: '🎯', tint: 'pink',   desc: 'Lead creation, tracking and analytics' },
   marketing:      { icon: '📣', tint: 'green',  desc: 'Marketing dashboards and insights' },
   codingSnippets: { icon: '💻', tint: 'indigo', desc: 'Coding snippet assessments' },

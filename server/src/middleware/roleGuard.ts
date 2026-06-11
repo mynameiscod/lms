@@ -95,7 +95,13 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'manage_tenants', label: 'Manage All Tenants (Super Admin)' },
       { key: 'manage_all_users', label: 'Manage All Users (Super Admin)' },
       { key: 'manage_system_settings', label: 'System Settings (Super Admin)' },
-      { key: 'manage_billing', label: 'Manage Billing (Super Admin)' },
+    ]
+  },
+  fees: {
+    label: 'Fee Management',
+    permissions: [
+      { key: 'view_fees', label: 'View Fees, Dues & Receipts' },
+      { key: 'manage_billing', label: 'Record Payments, Set Fees & Send Reminders' },
     ]
   },
   leads: {

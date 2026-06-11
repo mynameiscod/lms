@@ -54,7 +54,7 @@
 .spd-badge.status { background: #fef3c7; color: #92400e; }
 
 .spd-hero-ring {
-  position: relative; width: 80px; height: 80px; flex-shrink: 0;
+  position: relative; width: 92px; height: 92px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
 }
 .spd-ring-label {

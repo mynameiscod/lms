@@ -27,7 +27,11 @@ const avatarColor = (name: string) => {
   return colors[(name?.charCodeAt(0) || 0) % colors.length];
 };
 
-const ring = (pct: number, size = 80) => {
+// Ensure an external profile URL has a protocol — users often save
+// "www.linkedin.com/in/..." which would otherwise resolve as a relative path.
+const extUrl = (u?: string) => !u ? '#' : (/^https?:\/\//i.test(u) ? u : `https://${u.replace(/^\/+/, '')}`);
+
+const ring = (pct: number, size = 92) => {
   const r = size * 0.38;
   const circ = 2 * Math.PI * r;
   const offset = circ - (pct / 100) * circ;
@@ -179,8 +183,8 @@ const StudentProfileDetail: React.FC = () => {
               transform={`rotate(-90 ${rg.cx} ${rg.cy})`} />
           </svg>
           <div className="spd-ring-label">
-            <span style={{ color: rg.color, fontSize: '1.5rem', fontWeight: 800 }}>{pct}%</span>
-            <span style={{ fontSize: '0.75rem', color: '#64748b' }}>Profile</span>
+            <span style={{ color: rg.color, fontSize: '1.1rem', fontWeight: 800, lineHeight: 1 }}>{pct}%</span>
+            <span style={{ fontSize: '0.62rem', color: '#64748b', marginTop: 2 }}>Profile</span>
           </div>
         </div>
         <div className="spd-hero-links">
@@ -188,10 +192,10 @@ const StudentProfileDetail: React.FC = () => {
             <a href={profile.professionalProfiles.resumeUrl} target="_blank" rel="noopener noreferrer" className="spd-link-btn">📄 Resume</a>
           )}
           {profile?.professionalProfiles?.linkedInUrl && (
-            <a href={profile.professionalProfiles.linkedInUrl} target="_blank" rel="noopener noreferrer" className="spd-link-btn">🔗 LinkedIn</a>
+            <a href={extUrl(profile.professionalProfiles.linkedInUrl)} target="_blank" rel="noopener noreferrer" className="spd-link-btn">🔗 LinkedIn</a>
           )}
           {profile?.professionalProfiles?.githubUrl && (
-            <a href={profile.professionalProfiles.githubUrl} target="_blank" rel="noopener noreferrer" className="spd-link-btn">🐙 GitHub</a>
+            <a href={extUrl(profile.professionalProfiles.githubUrl)} target="_blank" rel="noopener noreferrer" className="spd-link-btn">🐙 GitHub</a>
           )}
         </div>
       </div>

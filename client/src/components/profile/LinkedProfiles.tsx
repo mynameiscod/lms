@@ -10,6 +10,10 @@ interface LinkedProfilesProps {
   onChange: (field: string, value: string) => void;
 }
 
+// Prepend https:// when a user saved a URL without a protocol, so the link
+// doesn't resolve as a relative path off the current page.
+const extUrl = (u?: string) => !u ? '#' : (/^https?:\/\//i.test(u) ? u : `https://${u.replace(/^\/+/, '')}`);
+
 export const LinkedProfiles: React.FC<LinkedProfilesProps> = ({
   data,
   isEditing,
@@ -53,7 +57,7 @@ export const LinkedProfiles: React.FC<LinkedProfilesProps> = ({
                 {data.linkedin ? (
                   <>
                     <a
-                      href={data.linkedin}
+                      href={extUrl(data.linkedin)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="profile-link"
@@ -95,7 +99,7 @@ export const LinkedProfiles: React.FC<LinkedProfilesProps> = ({
                 {data.github ? (
                   <>
                     <a
-                      href={data.github}
+                      href={extUrl(data.github)}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="profile-link"

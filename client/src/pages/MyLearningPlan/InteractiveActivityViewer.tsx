@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 /**
- * Renders a self-contained activity (admin-authored HTML) full-width and
- * auto-sized to its content height, so it fills the page with no dead space.
+ * Renders a self-contained activity (admin-authored HTML) full-width and sized
+ * to its real content height, so it fills the page with no dead space and no
+ * scroll feedback loop.
  *
  * The activity HTML may optionally report progress:
  *   parent.postMessage({ type:'cb-activity', done, total, complete }, '*');
@@ -18,21 +19,33 @@ interface Props {
 
 const InteractiveActivityViewer: React.FC<Props> = ({ htmlContent, completed, onComplete }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const roRef = useRef<ResizeObserver | null>(null);
+  const lastH = useRef(0);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
-  const [height, setHeight] = useState(640);
+  const [height, setHeight] = useState(560);
 
-  // Read the iframe's real content height (srcDoc is same-origin) and fit to it.
+  /**
+   * Measure the TRUE content height = the lowest bottom edge of the body's
+   * direct children. This ignores any `min-height:100%`/flex-fill the activity
+   * puts on <body> (which would otherwise echo the iframe height back and grow
+   * forever). No padding is added, so the height is stable once it settles.
+   */
   const measure = useCallback(() => {
     const f = iframeRef.current;
     if (!f) return;
     try {
       const doc = f.contentDocument || f.contentWindow?.document;
-      if (doc?.documentElement) {
-        const h = Math.max(
-          doc.documentElement.scrollHeight,
-          doc.body ? doc.body.scrollHeight : 0,
-        );
-        if (h > 0) setHeight(Math.min(8000, h + 2));
+      if (!doc || !doc.body) return;
+      const kids = doc.body.children;
+      let h = 0;
+      for (let i = 0; i < kids.length; i++) {
+        const r = (kids[i] as HTMLElement).getBoundingClientRect();
+        if (r.bottom > h) h = r.bottom;
+      }
+      h = Math.ceil(h);
+      if (h > 0 && Math.abs(h - lastH.current) > 3) {
+        lastH.current = h;
+        setHeight(Math.min(8000, h));
       }
     } catch { /* cross-origin guard — ignore */ }
   }, []);
@@ -45,16 +58,38 @@ const InteractiveActivityViewer: React.FC<Props> = ({ htmlContent, completed, on
         if (typeof d.done === 'number' && typeof d.total === 'number') setProgress({ done: d.done, total: d.total });
         if (d.complete && !completed) onComplete();
         measure();
-      } else if (d.type === 'cb-activity-height' && typeof d.height === 'number') {
-        setHeight(Math.min(8000, d.height + 2));
       }
+      // NOTE: cb-activity-height messages are intentionally ignored — we measure
+      // the real content height ourselves to avoid a resize feedback loop.
     };
     window.addEventListener('message', onMsg);
-    const iv = window.setInterval(measure, 500); // keeps the frame fitted as slides change
-    return () => { window.removeEventListener('message', onMsg); window.clearInterval(iv); };
+    const iv = window.setInterval(measure, 600); // catches slide changes (incl. shrink)
+    return () => {
+      window.removeEventListener('message', onMsg);
+      window.clearInterval(iv);
+      roRef.current?.disconnect();
+      roRef.current = null;
+    };
   }, [completed, onComplete, measure]);
 
-  const onLoad = () => { measure(); setTimeout(measure, 200); setTimeout(measure, 800); };
+  // Reset baseline when the activity HTML changes.
+  useEffect(() => { lastH.current = 0; }, [htmlContent]);
+
+  const onLoad = () => {
+    measure();
+    setTimeout(measure, 150);
+    setTimeout(measure, 500);
+    try {
+      const doc = iframeRef.current?.contentDocument;
+      const target = doc?.body?.firstElementChild || doc?.body;
+      if (doc && target && 'ResizeObserver' in window) {
+        roRef.current?.disconnect();
+        const ro = new ResizeObserver(() => measure());
+        ro.observe(target);
+        roRef.current = ro;
+      }
+    } catch { /* ignore */ }
+  };
 
   const pct = progress && progress.total ? Math.round((progress.done / progress.total) * 100) : (completed ? 100 : 0);
 
@@ -76,7 +111,7 @@ const InteractiveActivityViewer: React.FC<Props> = ({ htmlContent, completed, on
         onLoad={onLoad}
         scrolling="no"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
-        style={{ display: 'block', width: '100%', height, border: 'none', background: 'transparent' }}
+        style={{ display: 'block', width: '100%', height, border: 'none', background: 'transparent', overflow: 'hidden' }}
       />
 
       {!completed && (

@@ -978,7 +978,10 @@
 .workspace-container {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  /* Fill #root (which compensates the global zoom) instead of a fixed 100vh,
+     which the zoom shrinks and leaves dead white space below the workspace. */
+  flex: 1 1 auto;
+  min-height: 0;
   background: #1e1e2e;
   overflow: hidden;
 }

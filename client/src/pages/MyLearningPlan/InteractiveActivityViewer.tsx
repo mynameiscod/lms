@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Renders a self-contained activity (admin-authored HTML) full-width and sized
@@ -17,8 +17,26 @@ interface Props {
   onComplete: () => void;
 }
 
+/**
+ * Forces every activity to render full-width: any centering wrapper the author
+ * put directly under <body> (e.g. `.app { max-width: 760px; margin: 0 auto }`)
+ * gets its cap removed via !important, so the activity spans the whole page
+ * without the author hand-editing CSS. Injected at the END of <head> so it wins.
+ */
+const FULL_WIDTH_CSS =
+  '<style id="cb-ia-fullwidth">html,body{margin:0!important}body{width:100%!important}'
+  + 'body>*{max-width:none!important}</style>';
+
+const withFullWidth = (html: string): string => {
+  if (!html) return html;
+  if (/<\/head>/i.test(html)) return html.replace(/<\/head>/i, `${FULL_WIDTH_CSS}</head>`);
+  if (/<body[^>]*>/i.test(html)) return html.replace(/<body[^>]*>/i, (m) => m + FULL_WIDTH_CSS);
+  return FULL_WIDTH_CSS + html;
+};
+
 const InteractiveActivityViewer: React.FC<Props> = ({ htmlContent, completed, onComplete }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const srcDoc = useMemo(() => withFullWidth(htmlContent), [htmlContent]);
   const roRef = useRef<ResizeObserver | null>(null);
   const lastH = useRef(0);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
@@ -107,7 +125,7 @@ const InteractiveActivityViewer: React.FC<Props> = ({ htmlContent, completed, on
       <iframe
         ref={iframeRef}
         title="Activity"
-        srcDoc={htmlContent}
+        srcDoc={srcDoc}
         onLoad={onLoad}
         scrolling="no"
         sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"

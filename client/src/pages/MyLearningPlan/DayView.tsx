@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import { learningContentLibraryApi, CONTENT_TYPE_ICONS, CONTENT_TYPE_COLORS } from '../../api/learningContentLibraryApi';
 import { interactiveLessonApi } from '../../api/interactiveLessonApi';
+import InteractiveActivityViewer from './InteractiveActivityViewer';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
 
@@ -424,6 +425,13 @@ function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }
             )}
             {(content.type === 'practice_coding' || content.type === 'practice_theory' || content.type === 'aptitude') && (
               <PracticeViewer content={content} />
+            )}
+            {content.type === 'interactive_activity' && content.htmlContent && (
+              <InteractiveActivityViewer
+                htmlContent={content.htmlContent}
+                completed={completed}
+                onComplete={handleMarkComplete}
+              />
             )}
             {content.type === 'interactive_lesson' && content.conceptLessonId && (
               <div style={{ textAlign: 'center', padding: '20px 0' }}>

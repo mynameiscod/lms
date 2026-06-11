@@ -8,7 +8,8 @@ export type ContentLibraryType =
   | 'practice_coding'
   | 'practice_theory'
   | 'aptitude'
-  | 'interactive_lesson';
+  | 'interactive_lesson'
+  | 'interactive_activity';
 
 export type VideoSource = 'upload' | 'youtube' | 'vimeo';
 export type NotesSource = 'upload' | 'richtext';
@@ -67,6 +68,11 @@ export interface ILearningContentLibrary extends Document {
   notesSource?: NotesSource;
   notesFilePath?: string;
   notesContent?: string;
+
+  // Interactive activity — a self-contained HTML "do-it-yourself" activity
+  // (e.g. "Build your LinkedIn profile"). Reusable on any day of any curriculum.
+  htmlContent?: string;
+  activitySteps?: number; // total steps, for progress display
 
   // Q&A (tech_qa, behavioral_qa)
   qaItems: IQAItem[];
@@ -133,7 +139,7 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     description: { type: String, trim: true },
     type: {
       type: String,
-      enum: ['video', 'notes', 'tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude', 'interactive_lesson'],
+      enum: ['video', 'notes', 'tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude', 'interactive_lesson', 'interactive_activity'],
       required: true,
     },
 
@@ -154,6 +160,10 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     notesSource:   { type: String, enum: ['upload', 'richtext'] },
     notesFilePath: { type: String },
     notesContent:  { type: String },
+
+    // Interactive activity (self-contained HTML)
+    htmlContent:   { type: String },
+    activitySteps: { type: Number },
 
     // Q&A
     qaItems: [QAItemSchema],

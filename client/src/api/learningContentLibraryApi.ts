@@ -23,6 +23,9 @@ export interface ContentLibraryItem {
   notesSource?: 'upload' | 'richtext';
   notesFilePath?: string;
   notesContent?: string;
+  // Interactive activity (self-contained HTML)
+  htmlContent?: string;
+  activitySteps?: number;
   // Q&A
   qaItems: QAItem[];
   // Practice
@@ -44,7 +47,8 @@ export type ContentLibraryType =
   | 'practice_coding'
   | 'practice_theory'
   | 'aptitude'
-  | 'interactive_lesson';
+  | 'interactive_lesson'
+  | 'interactive_activity';
 
 export interface QAItem {
   question: string;
@@ -167,6 +171,7 @@ export const CONTENT_TYPE_LABELS: Record<ContentLibraryType, string> = {
   practice_theory:     'Practice (Theory)',
   aptitude:            'Aptitude',
   interactive_lesson:  'Interactive Lesson',
+  interactive_activity:'Interactive Activity',
 };
 
 export const CONTENT_TYPE_ICONS: Record<ContentLibraryType, string> = {
@@ -178,6 +183,7 @@ export const CONTENT_TYPE_ICONS: Record<ContentLibraryType, string> = {
   practice_theory:     '📝',
   aptitude:            '🧠',
   interactive_lesson:  '🎮',
+  interactive_activity:'🧩',
 };
 
 export const CONTENT_TYPE_COLORS: Record<ContentLibraryType, string> = {
@@ -189,4 +195,5 @@ export const CONTENT_TYPE_COLORS: Record<ContentLibraryType, string> = {
   practice_theory:     '#6366f1',
   aptitude:            '#f97316',
   interactive_lesson:  '#ec4899',
+  interactive_activity:'#14a89c',
 };

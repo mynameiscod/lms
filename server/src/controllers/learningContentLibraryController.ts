@@ -89,6 +89,10 @@ export const createContent = async (req: Request, res: Response) => {
       notesContent:  body.notesContent,
       notesFilePath: (req as any).notesFilePath,
 
+      // Interactive activity
+      htmlContent:   body.htmlContent,
+      activitySteps: body.activitySteps !== undefined ? Number(body.activitySteps) : undefined,
+
       // Q&A
       qaItems: parseJson(body.qaItems) || [],
 
@@ -121,6 +125,7 @@ export const updateContent = async (req: Request, res: Response) => {
       'estimatedDuration', 'isPublished',
       'videoSource', 'videoUrl', 'videoDuration', 'videoThumbnail', 'completionThreshold',
       'notesSource', 'notesContent',
+      'htmlContent', 'activitySteps',
       'qaItems', 'practiceQuestions',
     ];
 

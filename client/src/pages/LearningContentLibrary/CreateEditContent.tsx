@@ -21,6 +21,7 @@ const TYPE_OPTIONS: { value: ContentLibraryType; label: string; icon: string; de
   { value: 'practice_coding',  icon: '⌨️', label: 'Practice Coding',  desc: 'Coding problems with test cases (auto-graded)' },
   { value: 'practice_theory',  icon: '📝', label: 'Practice Theory',  desc: 'Written/MCQ practice with self-rating or auto-grade' },
   { value: 'aptitude',         icon: '🧠', label: 'Aptitude',         desc: 'MCQ aptitude questions with timer support' },
+  { value: 'interactive_activity', icon: '🧩', label: 'Interactive Activity', desc: 'A self-contained step-by-step HTML activity (e.g. "Build your LinkedIn") — reusable on any day' },
 ];
 
 const LANGUAGES = ['javascript', 'typescript', 'java', 'python', 'cpp', 'c', 'sql', 'html', 'css'];
@@ -206,6 +207,8 @@ export default function CreateEditContent() {
           completionThreshold: form.completionThreshold || 0,
           notesSource:       form.notesSource,
           notesContent:      form.notesContent,
+          htmlContent:       form.htmlContent,
+          activitySteps:     form.activitySteps,
           qaItems:           (form.qaItems || []).filter(q => q.question.trim()),
           practiceQuestions: (form.practiceQuestions || []).filter(q => q.title.trim()),
         };
@@ -453,6 +456,32 @@ export default function CreateEditContent() {
               </span>
             </div>
           </Field>
+        </Section>
+      )}
+
+      {type === 'interactive_activity' && (
+        <Section title="Interactive Activity (self-contained HTML)">
+          <p style={{ margin: '0 0 12px', fontSize: 13, color: '#64748b', lineHeight: 1.6 }}>
+            Paste a complete, self-contained HTML page (inline CSS + vanilla JS). It runs in a sandboxed frame in the student's day plan.
+            To auto-track progress, the page can optionally post messages to the parent:
+            <code style={{ display: 'block', marginTop: 6, background: '#0f172a', color: '#a5f3fc', padding: '8px 10px', borderRadius: 6, fontSize: 12, whiteSpace: 'pre-wrap' }}>
+{`parent.postMessage({ type:'cb-activity', done, total, complete:true }, '*');
+parent.postMessage({ type:'cb-activity-height', height }, '*');`}
+            </code>
+            If it doesn't post messages, students simply tap "I've completed this activity".
+          </p>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Total steps (optional, for the progress bar)</label>
+            <input type="number" min={0} value={form.activitySteps ?? ''} onChange={e => set('activitySteps', e.target.value === '' ? undefined : Number(e.target.value))} style={{ ...inputStyle, maxWidth: 160 }} placeholder="e.g. 9" />
+          </div>
+          <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 6 }}>HTML content *</label>
+          <textarea
+            value={form.htmlContent || ''}
+            onChange={e => set('htmlContent', e.target.value)}
+            placeholder="<!doctype html><html>… your self-contained activity …</html>"
+            rows={16}
+            style={{ ...inputStyle, fontFamily: 'monospace', fontSize: 12.5, lineHeight: 1.5, resize: 'vertical' }}
+          />
         </Section>
       )}
 

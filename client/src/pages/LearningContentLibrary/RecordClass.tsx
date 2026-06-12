@@ -121,25 +121,33 @@ export default function RecordClass() {
       pipRef.current.vids.push(v);
       return v;
     };
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); // guarantee a first frame
+
     const sv = mkVid(screen, sTrack);
     const cTrack = cam.getVideoTracks()[0];
     const cv = mkVid(cam, cTrack);
 
-    const draw = () => {
-      try { ctx.drawImage(sv, 0, 0, W, H); } catch { /* not ready */ }
-      const cs = cTrack.getSettings();
-      const cAsp = (cs.width && cs.height) ? cs.width / cs.height : 4 / 3;
-      const cw = Math.round(W * 0.2);
-      const ch = Math.round(cw / cAsp);
-      const x = W - cw - Math.round(W * 0.015);
-      const y = H - ch - Math.round(W * 0.015);
-      ctx.fillStyle = '#000';
-      ctx.fillRect(x - 3, y - 3, cw + 6, ch + 6);
-      try { ctx.drawImage(cv, x, y, cw, ch); } catch { /* not ready */ }
+    const FPS = 15, interval = 1000 / FPS;
+    let last = 0;
+    const draw = (ts: number) => {
       pipRef.current.raf = requestAnimationFrame(draw);
+      if (ts - last < interval) return;             // throttle to ~15fps (was ~60 → GPU overload)
+      last = ts;
+      if (sv.readyState >= 2) { try { ctx.drawImage(sv, 0, 0, W, H); } catch { /* not ready */ } }
+      if (cv.readyState >= 2) {
+        const cs = cTrack.getSettings();
+        const cAsp = (cs.width && cs.height) ? cs.width / cs.height : 4 / 3;
+        const cw = Math.round(W * 0.2);
+        const ch = Math.round(cw / cAsp);
+        const x = W - cw - Math.round(W * 0.015);
+        const y = H - ch - Math.round(W * 0.015);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(x - 3, y - 3, cw + 6, ch + 6);
+        try { ctx.drawImage(cv, x, y, cw, ch); } catch { /* not ready */ }
+      }
     };
-    draw();
-    return (canvas as any).captureStream(15) as MediaStream;
+    pipRef.current.raf = requestAnimationFrame(draw);
+    return (canvas as any).captureStream() as MediaStream;
   };
 
   // cleanup on unmount

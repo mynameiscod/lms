@@ -128,7 +128,7 @@ const InteractiveActivityViewer: React.FC<Props> = ({ htmlContent, completed, on
         srcDoc={srcDoc}
         onLoad={onLoad}
         scrolling="no"
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox"
+        sandbox="allow-scripts allow-same-origin allow-popups allow-forms allow-popups-to-escape-sandbox allow-downloads"
         style={{ display: 'block', width: '100%', height, border: 'none', background: 'transparent', overflow: 'hidden' }}
       />
 

@@ -16,16 +16,15 @@ import axios from 'axios';
  * changing this recorder UX.
  */
 
-type Mode = 'screen_mic' | 'screen_cam' | 'camera_mic' | 'screen';
+type Mode = 'screen_mic' | 'camera_mic' | 'screen';
 type Status = 'idle' | 'recording' | 'recorded' | 'saving' | 'saved';
 
 const MAX_BYTES = 490 * 1024 * 1024; // keep under the server's 500 MB limit
 
 const MODE_LABELS: Record<Mode, { title: string; sub: string; icon: string }> = {
-  screen_mic: { title: 'Screen + Mic',    sub: 'Slides, coding, projector + your voice', icon: '🖥️🎙️' },
-  screen_cam: { title: 'Screen + Camera', sub: 'Screen with your webcam in the corner',  icon: '🖥️🧑' },
-  camera_mic: { title: 'Camera + Mic',    sub: 'Webcam / USB cam on the whiteboard',     icon: '📷🎙️' },
-  screen:     { title: 'Screen only',     sub: 'Screen + tab audio, no microphone',      icon: '🖥️' },
+  screen_mic: { title: 'Screen + Mic', sub: 'Slides, coding, projector + your voice', icon: '🖥️🎙️' },
+  camera_mic: { title: 'Camera + Mic', sub: 'Webcam / USB cam on the whiteboard',     icon: '📷🎙️' },
+  screen:     { title: 'Screen only',  sub: 'Screen + tab audio, no microphone',      icon: '🖥️' },
 };
 
 const pickMime = (): string => {
@@ -54,7 +53,6 @@ export default function RecordClass() {
   const streamRef    = useRef<MediaStream | null>(null);   // combined (recorded)
   const rawStreams   = useRef<MediaStream[]>([]);          // sources to stop
   const audioCtxRef  = useRef<AudioContext | null>(null);
-  const pipRef       = useRef<{ raf: number; vids: HTMLVideoElement[] }>({ raf: 0, vids: [] });
   const previewStreamRef = useRef<MediaStream | null>(null); // camera-only/safe stream to show (never the screen)
   const secondsRef   = useRef(0);
 
@@ -94,61 +92,11 @@ export default function RecordClass() {
   }, [status]);
 
   const stopAllTracks = useCallback(() => {
-    if (pipRef.current.raf) { cancelAnimationFrame(pipRef.current.raf); pipRef.current.raf = 0; }
-    pipRef.current.vids.forEach(v => { try { (v.srcObject as MediaStream)?.getTracks().forEach(t => t.stop()); } catch { /* noop */ } v.srcObject = null; });
-    pipRef.current.vids = [];
     rawStreams.current.forEach(s => s.getTracks().forEach(t => t.stop()));
     rawStreams.current = [];
     if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
     if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
   }, []);
-
-  // Composite screen + camera (corner) onto a canvas and return its stream.
-  const startPiP = (screen: MediaStream, cam: MediaStream): MediaStream => {
-    const sTrack = screen.getVideoTracks()[0];
-    const s = sTrack.getSettings();
-    const sw = s.width || 1280, sh = s.height || 720;
-    const scale = Math.min(1, 1280 / sw);           // cap at 1280-wide to avoid 4K memory blowups
-    const W = Math.round(sw * scale), H = Math.round(sh * scale);
-    const canvas = document.createElement('canvas');
-    canvas.width = W; canvas.height = H;
-    const ctx = canvas.getContext('2d')!;
-
-    const mkVid = (stream: MediaStream, track: MediaStreamTrack) => {
-      const v = document.createElement('video');
-      v.srcObject = new MediaStream([track]); v.muted = true; (v as any).playsInline = true;
-      v.play().catch(() => {});
-      pipRef.current.vids.push(v);
-      return v;
-    };
-    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, H); // guarantee a first frame
-
-    const sv = mkVid(screen, sTrack);
-    const cTrack = cam.getVideoTracks()[0];
-    const cv = mkVid(cam, cTrack);
-
-    const FPS = 15, interval = 1000 / FPS;
-    let last = 0;
-    const draw = (ts: number) => {
-      pipRef.current.raf = requestAnimationFrame(draw);
-      if (ts - last < interval) return;             // throttle to ~15fps (was ~60 → GPU overload)
-      last = ts;
-      if (sv.readyState >= 2) { try { ctx.drawImage(sv, 0, 0, W, H); } catch { /* not ready */ } }
-      if (cv.readyState >= 2) {
-        const cs = cTrack.getSettings();
-        const cAsp = (cs.width && cs.height) ? cs.width / cs.height : 4 / 3;
-        const cw = Math.round(W * 0.2);
-        const ch = Math.round(cw / cAsp);
-        const x = W - cw - Math.round(W * 0.015);
-        const y = H - ch - Math.round(W * 0.015);
-        ctx.fillStyle = '#000';
-        ctx.fillRect(x - 3, y - 3, cw + 6, ch + 6);
-        try { ctx.drawImage(cv, x, y, cw, ch); } catch { /* not ready */ }
-      }
-    };
-    pipRef.current.raf = requestAnimationFrame(draw);
-    return (canvas as any).captureStream() as MediaStream;
-  };
 
   // cleanup on unmount
   useEffect(() => () => { stopAllTracks(); if (previewUrl) URL.revokeObjectURL(previewUrl); }, [stopAllTracks, previewUrl]);
@@ -181,17 +129,6 @@ export default function RecordClass() {
         camStream = cam;
         videoTrack = cam.getVideoTracks()[0];
         audioStreams.push(cam);
-      } else if (mode === 'screen_cam') {
-        const disp = await (navigator.mediaDevices as any).getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: true });
-        rawStreams.current.push(disp);
-        if (disp.getAudioTracks().length) audioStreams.push(disp);
-        const cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 } }, audio: true });
-        rawStreams.current.push(cam);
-        camStream = cam;
-        audioStreams.push(cam);
-        const canvasStream = startPiP(disp, cam);
-        videoTrack = canvasStream.getVideoTracks()[0];
-        disp.getVideoTracks()[0].addEventListener('ended', () => stopRecording());
       } else {
         const disp = await (navigator.mediaDevices as any).getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: true });
         rawStreams.current.push(disp);
@@ -353,13 +290,13 @@ export default function RecordClass() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#0f172a', color: '#fff', borderRadius: 12, padding: '22px 24px' }}>
               <span style={{ fontSize: 30 }}>🖥️</span>
               <div>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>Recording your screen{mode === 'screen_cam' ? ' + camera' : ''}…</div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Recording your screen…</div>
                 <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 2 }}>The live screen is hidden here on purpose (mirroring it back would crash the tab). Keep teaching — it's all being captured.</div>
               </div>
             </div>
           )}
-          {(mode === 'camera_mic' || mode === 'screen_cam') && (
-            <video ref={previewRef} autoPlay muted playsInline style={{ display: 'block', width: mode === 'screen_cam' ? '320px' : '100%', height: 'auto', borderRadius: 12, background: '#000', marginTop: mode === 'screen_cam' ? 12 : 0 }} />
+          {mode === 'camera_mic' && (
+            <video ref={previewRef} autoPlay muted playsInline style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
           )}
           <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
             {!paused

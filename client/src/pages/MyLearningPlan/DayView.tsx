@@ -347,6 +347,17 @@ function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }
       {/* Header bar */}
       <div style={{ height: '3px', background: completed ? '#10b981' : color }} />
 
+      {/* Video thumbnail */}
+      {content?.type === 'video' && content?.videoThumbnail && !isLocked && (
+        <div
+          onClick={() => !isInteractiveLesson && setExpanded(e => !e)}
+          style={{ height: '150px', background: '#0f172a', overflow: 'hidden', position: 'relative', cursor: 'pointer' }}
+        >
+          <img src={content.videoThumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
+          <span style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '40px', color: '#fff', textShadow: '0 2px 8px rgba(0,0,0,.5)' }}>▶</span>
+        </div>
+      )}
+
       <div style={{ padding: '14px 16px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {/* Type icon */}

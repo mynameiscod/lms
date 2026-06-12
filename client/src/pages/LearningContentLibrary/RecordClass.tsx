@@ -231,8 +231,10 @@ export default function RecordClass() {
   const input: React.CSSProperties = { width: '100%', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 14, marginTop: 6 };
   const label: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: '#334155' };
 
+  const big = status === 'recording' || status === 'recorded' || status === 'saving';
+
   return (
-    <div style={{ maxWidth: 920, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: big ? 1320 : 920, margin: '0 auto', padding: 24 }}>
       <style>{`@keyframes recpulse{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}`}</style>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
@@ -279,7 +281,7 @@ export default function RecordClass() {
               {paused ? 'PAUSED' : 'REC'} · {fmtTime(seconds)}
             </span>
           </div>
-          <video ref={previewRef} autoPlay muted playsInline style={{ width: '100%', borderRadius: 12, background: '#000', maxHeight: 460 }} />
+          <video ref={previewRef} autoPlay muted playsInline style={{ width: '100%', height: '74vh', maxHeight: 'none', objectFit: 'contain', borderRadius: 12, background: '#000' }} />
           <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
             {!paused
               ? <button style={ghost} onClick={pauseRecording}>⏸ Pause</button>
@@ -292,7 +294,7 @@ export default function RecordClass() {
       {/* ── RECORDED / SAVING: preview + details ── */}
       {(status === 'recorded' || status === 'saving') && (
         <div style={{ marginTop: 16 }}>
-          <video src={previewUrl} controls style={{ width: '100%', borderRadius: 12, background: '#000', maxHeight: 460 }} />
+          <video src={previewUrl} controls style={{ width: '100%', height: '64vh', maxHeight: 'none', objectFit: 'contain', borderRadius: 12, background: '#000' }} />
           <div style={{ fontSize: 13, color: '#64748b', margin: '8px 0 16px' }}>
             Length {fmtTime(seconds)} · Size {blob ? fmtSize(blob.size) : '—'}
             {blob && blob.size > MAX_BYTES && <span style={{ color: '#dc2626', fontWeight: 600 }}> · over 490 MB limit</span>}

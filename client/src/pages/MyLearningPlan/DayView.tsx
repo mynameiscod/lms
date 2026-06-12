@@ -381,20 +381,20 @@ function ContentItemCard({ item, enrollmentId, dayNumber, isLocked, onComplete }
 
           {/* Complete button */}
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
-            {!isLocked && !completed && (
+            {!isLocked && (
               isInteractiveLesson && content?.conceptLessonId ? (
                 <button
                   onClick={() => navigate(`/interactive-lesson/play/${content.conceptLessonId}`)}
                   style={{ padding: '6px 12px', border: 'none', borderRadius: '7px', background: '#ec4899', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  🎮 Start
+                  🎮 {completed ? 'Replay' : 'Start'}
                 </button>
               ) : (
                 <button
                   onClick={() => setExpanded(e => !e)}
                   style={{ padding: '6px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', background: '#fff', color: '#374151', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
                 >
-                  {expanded ? 'Hide' : 'Open'}
+                  {expanded ? 'Hide' : (completed ? 'Review' : 'Open')}
                 </button>
               )
             )}

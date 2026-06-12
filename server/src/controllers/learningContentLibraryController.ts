@@ -72,12 +72,12 @@ export const createContent = async (req: Request, res: Response) => {
       type:              body.type,
       topicTags:         parseJson(body.topicTags)  || [],
       courseTags:        parseJson(body.courseTags) || [],
-      difficulty:        body.difficulty,
+      difficulty:        body.difficulty || undefined,
       estimatedDuration: Number(body.estimatedDuration) || 0,
       isPublished:       body.isPublished === 'true' || body.isPublished === true,
 
       // Video
-      videoSource:         body.videoSource,
+      videoSource:         body.videoSource || undefined,
       videoUrl:            body.videoUrl,
       videoFilePath:       (req as any).videoFilePath,
       videoDuration:       Number(body.videoDuration) || undefined,
@@ -87,7 +87,7 @@ export const createContent = async (req: Request, res: Response) => {
       completionThreshold: Number(body.completionThreshold) || 0,
 
       // Notes
-      notesSource:   body.notesSource,
+      notesSource:   body.notesSource || undefined,
       notesContent:  body.notesContent,
       notesFilePath: (req as any).notesFilePath,
 
@@ -137,6 +137,11 @@ export const updateContent = async (req: Request, res: Response) => {
         const parsed = parseJson(body[key]);
         (item as any)[key] = parsed;
       }
+    }
+
+    // Empty-string enum fields → unset (multipart sends '' which fails enum validation)
+    for (const k of ['difficulty', 'videoSource', 'notesSource'] as const) {
+      if ((item as any)[k] === '') (item as any)[k] = undefined;
     }
 
     // Handle boolean

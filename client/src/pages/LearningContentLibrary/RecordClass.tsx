@@ -55,6 +55,7 @@ export default function RecordClass() {
   const rawStreams   = useRef<MediaStream[]>([]);          // sources to stop
   const audioCtxRef  = useRef<AudioContext | null>(null);
   const pipRef       = useRef<{ raf: number; vids: HTMLVideoElement[] }>({ raf: 0, vids: [] });
+  const previewStreamRef = useRef<MediaStream | null>(null); // camera-only/safe stream to show (never the screen)
   const secondsRef   = useRef(0);
 
   const [mode,    setMode]    = useState<Mode>('screen_mic');
@@ -82,10 +83,11 @@ export default function RecordClass() {
     return () => clearInterval(iv);
   }, [status, paused]);
 
-  // attach the live stream once the recording UI (and its <video>) is mounted
+  // attach the SAFE preview stream (camera only) once the recording UI mounts.
+  // The screen is never mirrored on-screen — that would cause a capture feedback loop.
   useEffect(() => {
-    if (status === 'recording' && previewRef.current && streamRef.current) {
-      previewRef.current.srcObject = streamRef.current;
+    if (status === 'recording' && previewRef.current && previewStreamRef.current) {
+      previewRef.current.srcObject = previewStreamRef.current;
       previewRef.current.muted = true;
       previewRef.current.play().catch(() => {});
     }
@@ -105,7 +107,9 @@ export default function RecordClass() {
   const startPiP = (screen: MediaStream, cam: MediaStream): MediaStream => {
     const sTrack = screen.getVideoTracks()[0];
     const s = sTrack.getSettings();
-    const W = s.width || 1280, H = s.height || 720;
+    const sw = s.width || 1280, sh = s.height || 720;
+    const scale = Math.min(1, 1280 / sw);           // cap at 1280-wide to avoid 4K memory blowups
+    const W = Math.round(sw * scale), H = Math.round(sh * scale);
     const canvas = document.createElement('canvas');
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext('2d')!;
@@ -158,6 +162,7 @@ export default function RecordClass() {
     setError('');
     try {
       let videoTrack: MediaStreamTrack;
+      let camStream: MediaStream | null = null;
       const audioStreams: MediaStream[] = [];
       // native aspect (don't force 16:9 onto a 4:3 webcam → avoids baked-in black bars)
       const camConstraints = { video: { width: { ideal: 1280 } }, audio: true };
@@ -165,6 +170,7 @@ export default function RecordClass() {
       if (mode === 'camera_mic') {
         const cam = await navigator.mediaDevices.getUserMedia(camConstraints);
         rawStreams.current.push(cam);
+        camStream = cam;
         videoTrack = cam.getVideoTracks()[0];
         audioStreams.push(cam);
       } else if (mode === 'screen_cam') {
@@ -173,6 +179,7 @@ export default function RecordClass() {
         if (disp.getAudioTracks().length) audioStreams.push(disp);
         const cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 } }, audio: true });
         rawStreams.current.push(cam);
+        camStream = cam;
         audioStreams.push(cam);
         const canvasStream = startPiP(disp, cam);
         videoTrack = canvasStream.getVideoTracks()[0];
@@ -196,7 +203,8 @@ export default function RecordClass() {
       if (audioTrack) tracks.push(audioTrack);
       const combined = new MediaStream(tracks);
       streamRef.current = combined;
-      if (previewRef.current) { previewRef.current.srcObject = combined; previewRef.current.muted = true; previewRef.current.play().catch(() => {}); }
+      // Show ONLY the camera as a live preview (safe). Never mirror the screen → avoids feedback-loop crash.
+      previewStreamRef.current = camStream ? new MediaStream(camStream.getVideoTracks()) : null;
 
       // auto-stop if the user ends screen-share from the browser bar
       videoTrack.addEventListener('ended', () => stopRecording());
@@ -333,7 +341,18 @@ export default function RecordClass() {
               {paused ? 'PAUSED' : 'REC'} · {fmtTime(seconds)}
             </span>
           </div>
-          <video ref={previewRef} autoPlay muted playsInline style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
+          {mode !== 'camera_mic' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#0f172a', color: '#fff', borderRadius: 12, padding: '22px 24px' }}>
+              <span style={{ fontSize: 30 }}>🖥️</span>
+              <div>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Recording your screen{mode === 'screen_cam' ? ' + camera' : ''}…</div>
+                <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 2 }}>The live screen is hidden here on purpose (mirroring it back would crash the tab). Keep teaching — it's all being captured.</div>
+              </div>
+            </div>
+          )}
+          {(mode === 'camera_mic' || mode === 'screen_cam') && (
+            <video ref={previewRef} autoPlay muted playsInline style={{ display: 'block', width: mode === 'screen_cam' ? '320px' : '100%', height: 'auto', borderRadius: 12, background: '#000', marginTop: mode === 'screen_cam' ? 12 : 0 }} />
+          )}
           <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
             {!paused
               ? <button style={ghost} onClick={pauseRecording}>⏸ Pause</button>

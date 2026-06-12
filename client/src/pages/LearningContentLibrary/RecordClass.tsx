@@ -200,20 +200,22 @@ export default function RecordClass() {
     try {
       const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
       const fd = new FormData();
-      fd.append('videoFile', blob, `class-recording-${Date.now()}.${ext}`);
+      // Text fields first; file last. The route decides file handling from ?type=video
+      // (for multipart, req.body isn't parsed until multer runs).
       fd.append('type', 'video');
-      fd.append('videoSource', 'upload');
       fd.append('title', title.trim());
       if (desc.trim()) fd.append('description', desc.trim());
+      fd.append('videoSource', 'upload');
       fd.append('topicTags', JSON.stringify(splitTags(topics)));
       fd.append('courseTags', JSON.stringify(splitTags(courses)));
       fd.append('estimatedDuration', String(Math.max(1, Math.round(secondsRef.current / 60))));
       fd.append('videoDuration', String(secondsRef.current));
       fd.append('isPublished', 'true');
+      fd.append('videoFile', blob, `class-recording-${Date.now()}.${ext}`);
 
       const token = localStorage.getItem('token');
       const tenantId = localStorage.getItem('tenantId');
-      const { data } = await axios.post('/api/v1/learning-library', fd, {
+      const { data } = await axios.post('/api/v1/learning-library?type=video', fd, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),

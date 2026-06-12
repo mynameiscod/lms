@@ -281,7 +281,7 @@ export default function RecordClass() {
               {paused ? 'PAUSED' : 'REC'} · {fmtTime(seconds)}
             </span>
           </div>
-          <video ref={previewRef} autoPlay muted playsInline style={{ width: '100%', height: '74vh', maxHeight: 'none', objectFit: 'contain', borderRadius: 12, background: '#000' }} />
+          <video ref={previewRef} autoPlay muted playsInline style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
           <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
             {!paused
               ? <button style={ghost} onClick={pauseRecording}>⏸ Pause</button>
@@ -294,7 +294,7 @@ export default function RecordClass() {
       {/* ── RECORDED / SAVING: preview + details ── */}
       {(status === 'recorded' || status === 'saving') && (
         <div style={{ marginTop: 16 }}>
-          <video src={previewUrl} controls style={{ width: '100%', height: '64vh', maxHeight: 'none', objectFit: 'contain', borderRadius: 12, background: '#000' }} />
+          <video src={previewUrl} controls style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
           <div style={{ fontSize: 13, color: '#64748b', margin: '8px 0 16px' }}>
             Length {fmtTime(seconds)} · Size {blob ? fmtSize(blob.size) : '—'}
             {blob && blob.size > MAX_BYTES && <span style={{ color: '#dc2626', fontWeight: 600 }}> · over 490 MB limit</span>}

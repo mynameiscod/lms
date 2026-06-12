@@ -96,6 +96,8 @@ router.get('/tags/courses', ctrl.getCourseTags);
 // Bunny Stream — create video + resumable upload authorization
 router.get('/bunny/config',  bunny.bunnyConfigured);
 router.post('/bunny/videos', bunny.createBunnyVideo);
+// Bunny content item — pure JSON (no multer), so the body reaches the controller intact
+router.post('/bunny/content', ctrl.createContent);
 
 // CRUD
 router.get('/',     ctrl.listContent);

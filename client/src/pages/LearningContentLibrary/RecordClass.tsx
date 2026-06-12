@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import * as tus from 'tus-js-client';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 
@@ -215,8 +216,11 @@ export default function RecordClass() {
         upload.start();
       });
 
-      // 3) save the Content Library item pointing at the Bunny video
-      const data = await learningContentLibraryApi.createJson({
+      // 3) save the Content Library item pointing at the Bunny video.
+      //    Dedicated JSON endpoint (no multer) so the body reaches the controller intact.
+      const token = localStorage.getItem('token');
+      const tenantId = localStorage.getItem('tenantId');
+      const { data } = await axios.post('/api/v1/learning-library/bunny/content', {
         type: 'video',
         videoSource: 'bunny',
         bunnyVideoId: meta.videoId,
@@ -228,6 +232,11 @@ export default function RecordClass() {
         estimatedDuration: Math.max(1, Math.round(secondsRef.current / 60)),
         videoDuration: secondsRef.current,
         isPublished: true,
+      }, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
+        },
       });
       setSavedId(data?._id || '');
       setStatus('saved');

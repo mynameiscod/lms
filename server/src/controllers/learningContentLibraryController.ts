@@ -81,7 +81,7 @@ export const createContent = async (req: Request, res: Response) => {
       videoUrl:            body.videoUrl,
       videoFilePath:       (req as any).videoFilePath,
       videoDuration:       Number(body.videoDuration) || undefined,
-      videoThumbnail:      body.videoThumbnail,
+      videoThumbnail:      (req as any).thumbnailUrl || body.videoThumbnail,
       bunnyVideoId:        body.bunnyVideoId,
       bunnyLibraryId:      body.bunnyLibraryId !== undefined ? Number(body.bunnyLibraryId) : undefined,
       completionThreshold: Number(body.completionThreshold) || 0,
@@ -142,6 +142,11 @@ export const updateContent = async (req: Request, res: Response) => {
     // Handle boolean
     if (body.isPublished !== undefined) {
       item.isPublished = body.isPublished === 'true' || body.isPublished === true;
+    }
+
+    // New thumbnail uploaded → replace
+    if ((req as any).thumbnailUrl) {
+      item.videoThumbnail = (req as any).thumbnailUrl;
     }
 
     // Handle new file uploads

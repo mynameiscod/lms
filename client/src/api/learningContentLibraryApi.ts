@@ -114,8 +114,10 @@ export const learningContentLibraryApi = {
     return data;
   },
 
-  create: async (formData: FormData): Promise<ContentLibraryItem> => {
-    const { data } = await axios.post(BASE, formData, {
+  create: async (formData: FormData, contentType?: string): Promise<ContentLibraryItem> => {
+    // contentType in the query so the upload middleware runs for multipart (req.body isn't parsed yet)
+    const q = contentType ? `?type=${encodeURIComponent(contentType)}` : '';
+    const { data } = await axios.post(`${BASE}${q}`, formData, {
       headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' },
     });
     return data;
@@ -137,8 +139,9 @@ export const learningContentLibraryApi = {
     return data;
   },
 
-  update: async (id: string, formData: FormData): Promise<ContentLibraryItem> => {
-    const { data } = await axios.put(`${BASE}/${id}`, formData, {
+  update: async (id: string, formData: FormData, contentType?: string): Promise<ContentLibraryItem> => {
+    const q = contentType ? `?type=${encodeURIComponent(contentType)}` : '';
+    const { data } = await axios.put(`${BASE}/${id}${q}`, formData, {
       headers: { ...authHeader(), 'Content-Type': 'multipart/form-data' },
     });
     return data;

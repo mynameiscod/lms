@@ -285,6 +285,14 @@ function ContentCard({ item, onEdit, onDelete, onTogglePublish, isDeleting, isTo
       {/* Color band */}
       <div style={{ height: '4px', background: color }} />
 
+      {/* Video thumbnail */}
+      {item.type === 'video' && item.videoThumbnail && (
+        <div style={{ height: '150px', background: '#0f172a', overflow: 'hidden', position: 'relative' }}>
+          <img src={item.videoThumbnail} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }} />
+          <span style={{ position: 'absolute', right: '8px', bottom: '8px', background: 'rgba(0,0,0,.6)', color: '#fff', borderRadius: '6px', padding: '2px 8px', fontSize: '12px', fontWeight: 600 }}>▶ Video</span>
+        </div>
+      )}
+
       <div style={{ padding: '16px' }}>
         {/* Type badge + publish toggle */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>

@@ -74,6 +74,7 @@ function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: 
       <video
         ref={videoRef}
         src={streamUrl}
+        poster={content.videoThumbnail || undefined}
         controls
         onTimeUpdate={handleTimeUpdate}
         style={{ width: '100%', borderRadius: '10px', background: '#000' }}

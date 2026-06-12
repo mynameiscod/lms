@@ -50,9 +50,11 @@ export default function CreateEditContent() {
   const [loading,     setLoading]     = useState(isEdit);
   const [videoFile,   setVideoFile]   = useState<File | null>(null);
   const [notesFile,   setNotesFile]   = useState<File | null>(null);
+  const [thumbFile,   setThumbFile]   = useState<File | null>(null);
   const [uploadPct,   setUploadPct]   = useState(0);
   const videoRef = useRef<HTMLInputElement>(null);
   const notesRef = useRef<HTMLInputElement>(null);
+  const thumbRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<FormState>({
     type:              'video',
@@ -168,7 +170,7 @@ export default function CreateEditContent() {
     setSaving(true);
     setUploadPct(0);
     try {
-      const needsFile = (form.type === 'video' && form.videoSource === 'upload' && videoFile) ||
+      const needsFile = (form.type === 'video' && (videoFile || thumbFile)) ||
                         (form.type === 'notes' && form.notesSource === 'upload' && notesFile);
 
       let result: ContentLibraryItem;
@@ -184,14 +186,17 @@ export default function CreateEditContent() {
         fd.append('estimatedDuration', String(form.estimatedDuration || 0));
         fd.append('isPublished',       String(form.isPublished || false));
         fd.append('videoSource',       form.videoSource || '');
+        fd.append('videoUrl',          form.videoUrl || '');
+        fd.append('videoThumbnail',    form.videoThumbnail || '');
         fd.append('completionThreshold', String(form.completionThreshold || 0));
         fd.append('notesSource',       form.notesSource || '');
         if (videoFile) fd.append('videoFile', videoFile);
+        if (thumbFile) fd.append('thumbnailFile', thumbFile);
         if (notesFile) fd.append('notesFile', notesFile);
 
         result = isEdit
-          ? await learningContentLibraryApi.update(id!, fd)
-          : await learningContentLibraryApi.create(fd);
+          ? await learningContentLibraryApi.update(id!, fd, form.type)
+          : await learningContentLibraryApi.create(fd, form.type);
       } else {
         const body: Partial<ContentLibraryItem> = {
           type:              form.type,
@@ -204,6 +209,7 @@ export default function CreateEditContent() {
           isPublished:       form.isPublished || false,
           videoSource:       form.videoSource,
           videoUrl:          form.videoUrl,
+          videoThumbnail:    form.videoThumbnail,
           completionThreshold: form.completionThreshold || 0,
           notesSource:       form.notesSource,
           notesContent:      form.notesContent,
@@ -454,6 +460,34 @@ export default function CreateEditContent() {
               <span style={{ fontWeight: 700, minWidth: '50px', color: '#0f172a' }}>
                 {form.completionThreshold === 0 ? 'Just open' : `${form.completionThreshold}%`}
               </span>
+            </div>
+          </Field>
+
+          <Field label="Thumbnail (optional — shown in the library)">
+            <input ref={thumbRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => setThumbFile(e.target.files?.[0] || null)} />
+            <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+              <div
+                onClick={() => thumbRef.current?.click()}
+                style={{ width: '160px', height: '90px', borderRadius: '10px', border: '2px dashed #cbd5e1', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', flexShrink: 0 }}
+              >
+                {thumbFile ? (
+                  <img src={URL.createObjectURL(thumbFile)} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : form.videoThumbnail ? (
+                  <img src={form.videoThumbnail} alt="thumb" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  <span style={{ fontSize: '26px' }}>🖼️</span>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', color: '#475569', marginBottom: '6px' }}>Click the box to upload an image, or paste an image URL:</div>
+                <input
+                  value={form.videoThumbnail || ''}
+                  onChange={e => set('videoThumbnail', e.target.value)}
+                  placeholder="https://… .jpg  (optional)"
+                  style={inputStyle}
+                />
+                {thumbFile && <div style={{ fontSize: '12px', color: '#10b981', marginTop: '6px' }}>✓ New thumbnail selected — saved on submit</div>}
+              </div>
             </div>
           </Field>
         </Section>

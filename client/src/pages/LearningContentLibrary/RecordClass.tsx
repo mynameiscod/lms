@@ -225,6 +225,7 @@ export default function RecordClass() {
         videoSource: 'bunny',
         bunnyVideoId: meta.videoId,
         bunnyLibraryId: meta.libraryId,
+        videoThumbnail: meta.cdnHostname ? `https://${meta.cdnHostname}/${meta.videoId}/thumbnail.jpg` : undefined,
         title: title.trim(),
         description: desc.trim() || undefined,
         topicTags: splitTags(topics),

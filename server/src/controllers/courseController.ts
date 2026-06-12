@@ -22,21 +22,21 @@ export const createCourse = async (
       learningOutcomes
     } = req.body;
 
-    if (!title || !code || !description || !category || !instructor) {
+    if (!title || !code) {
       return res.status(400).json({
         success: false,
         message: 'Missing required fields',
-        error: 'Title, code, description, category, and instructor are required'
+        error: 'Title and code are required'
       });
     }
 
     const courseData = {
       title,
       code,
-      description,
-      category,
+      description: description || '',
+      category: category || 'General',
       level: level || 'beginner',
-      instructor,
+      instructor: instructor || (req as any).user?.id || (req as any).user?._id || undefined,
       thumbnail,
       duration: duration || { value: 3, unit: 'months' },
       prerequisites: prerequisites || [],

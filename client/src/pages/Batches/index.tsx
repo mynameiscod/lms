@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { batchApi, userApi, courseApi, departmentApi } from '../../api';
 import { Alert, Spinner } from '../../components/common';
+import CourseSelect from '../../components/common/CourseSelect';
 import { Batch, User } from '../../types';
 import './BatchesPage.css';
 
@@ -154,10 +155,12 @@ const BatchesPage: React.FC = () => {
                 <label className="bm-field"><span className="bm-label">Batch Size <b className="req">*</b></span>
                   <input className="bm-input" type="number" placeholder="e.g. 30" value={form.capacity || ''} onChange={e => setForm({ ...form, capacity: parseInt(e.target.value) || 0 })} /></label>
                 <label className="bm-field"><span className="bm-label">Course <b className="req">*</b></span>
-                  <select className="bm-input" value={form.courseId} onChange={e => setForm({ ...form, courseId: e.target.value })}>
-                    <option value="">-- Select Course --</option>
-                    {courses.map(c => <option key={c._id} value={c._id}>{c.title}{c.code ? ` (${c.code})` : ''}</option>)}
-                  </select></label>
+                  <CourseSelect
+                    className="bm-input"
+                    value={form.courseId}
+                    onChange={id => setForm({ ...form, courseId: id })}
+                    onCreated={c => setCourses(prev => [...prev, { _id: c._id, title: c.title, code: c.code || '' }])}
+                  /></label>
                 <label className="bm-field"><span className="bm-label">Department <span className="opt">(Optional)</span></span>
                   <select className="bm-input" value={form.departmentId} onChange={e => setForm({ ...form, departmentId: e.target.value })}>
                     <option value="">-- Select Department --</option>

@@ -13,6 +13,7 @@ import {
   MCQQuestion
 } from '../../api/assignmentApi';
 import { courseApi, subjectApi, chapterApi, quizApi, batchApi, userApi } from '../../api';
+import CourseSelect from '../../components/common/CourseSelect';
 import './assignments.css';
 
 type ActiveTab = 'basic' | 'coding' | 'mcq' | 'rubric' | 'settings';
@@ -1030,18 +1031,12 @@ const AdminAssignmentForm: React.FC = () => {
               <div className="form-row" style={{ padding: '12px 16px' }}>
                 <div className="form-group">
                   <label className="form-label">Course</label>
-                  <select
+                  <CourseSelect
                     className="form-control"
                     value={selectedCourse}
-                    onChange={(e) => setSelectedCourse(e.target.value)}
-                  >
-                    <option value="">-- Select Course --</option>
-                    {courses.map((course) => (
-                      <option key={course._id} value={course._id}>
-                        {course.title}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(id) => setSelectedCourse(id)}
+                    onCreated={(c) => setCourses((prev) => [...prev, c])}
+                  />
                 </div>
 
                 <div className="form-group">

@@ -36,29 +36,28 @@ const CourseSchema: Schema = new Schema(
       trim: true,
       uppercase: true
     },
-    description: { 
-      type: String, 
-      required: true,
-      trim: true 
+    description: {
+      type: String,
+      trim: true,
+      default: ''
     },
     thumbnail: {
       type: String,
       trim: true
     },
-    instructor: { 
-      type: mongoose.Types.ObjectId, 
-      ref: 'User', 
-      required: true 
+    instructor: {
+      type: mongoose.Types.ObjectId,
+      ref: 'User'
     },
-    tenantId: { 
-      type: mongoose.Types.ObjectId, 
-      ref: 'Tenant', 
-      required: true 
+    tenantId: {
+      type: mongoose.Types.ObjectId,
+      ref: 'Tenant',
+      required: true
     },
-    category: { 
-      type: String, 
-      required: true,
-      trim: true 
+    category: {
+      type: String,
+      trim: true,
+      default: 'General'
     },
     level: { 
       type: String, 

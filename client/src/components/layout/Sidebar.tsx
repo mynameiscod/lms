@@ -59,12 +59,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   const menuItems: MenuItem[] = [
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-gauge-high', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
-    { label: 'My Course', path: '/my-course', roles: ['STUDENT'], icon: 'fa-solid fa-book-open', featureKey: 'myCourse', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Topic Hub', path: '/topic-hub', roles: ['STUDENT'], icon: 'fa-solid fa-brain', featureKey: 'topicHub', moduleKey: 'courses', permissions: ['enroll_courses', 'view_courses'] },
     { label: '🎓 My Classes', path: '/class-hub', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'classHub' as keyof StudentFeatures, moduleKey: 'classRecordings', permissions: ['enroll_courses', 'view_courses', 'view_attendance', 'view_quiz'] },
     { label: 'Fee Details', path: '/student/fee-details', roles: ['STUDENT'], icon: 'fa-solid fa-wallet', featureKey: 'feeDetails' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Courses', path: '/courses', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'courses', permissions: ['view_courses'] },
-    { label: 'Course Management', path: '/course-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-bolt', moduleKey: 'courses', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
     { label: 'Fees', path: '/fees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-money-bill-wave', permissions: ['view_fees', 'manage_billing'] },
     { label: 'Roles', path: '/roles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-user-shield', permissions: ['manage_roles'] },

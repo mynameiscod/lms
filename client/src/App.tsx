@@ -17,9 +17,6 @@ import ResetPassword from './pages/ResetPassword';
 import { SetupPassword } from './pages/SetupPassword/SetupPassword';
 import { ProfileCompletion } from './pages/ProfileCompletion/ProfileCompletion';
 import DashboardPage from './pages/Dashboard';
-import CoursesPage from './pages/Courses';
-import MyCoursePage from './pages/MyCourse';
-import CourseManagementPage from './pages/CourseManagement';
 import UsersPage from './pages/Users';
 import RolesPage from './pages/Roles';
 import BatchesPage from './pages/Batches';
@@ -115,7 +112,6 @@ import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, Cont
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
 import AdminTopicMasteryPage from './pages/AdminTopicMastery';
-import TopicHubPage from './pages/TopicHub';
 import AdminLearningRequestsPage from './pages/AdminLearningRequests';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
@@ -331,30 +327,6 @@ const AppRoutes: React.FC = () => {
       />
 
       <Route
-        path="/courses"
-        element={
-          <ProtectedRoute>
-            <Layout>
-              <CoursesPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/my-course"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT']}>
-            <FeatureRoute feature="myCourse">
-              <Layout>
-                <MyCoursePage />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
         path="/interview-questions/:chapterId"
         element={
           <ProtectedRoute requiredRoles={['STUDENT']}>
@@ -432,16 +404,6 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      <Route
-        path="/course-management"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <CourseManagementPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
 
       <Route
         path="/users"
@@ -1630,18 +1592,6 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <AdminTopicMasteryPage />
             </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/topic-hub"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT']}>
-            <FeatureRoute feature="myCourse">
-              <Layout>
-                <TopicHubPage />
-              </Layout>
-            </FeatureRoute>
           </ProtectedRoute>
         }
       />

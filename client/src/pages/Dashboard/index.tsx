@@ -368,7 +368,7 @@ const DashboardPage: React.FC = () => {
             <div className="dashboard-card">
               <h2>⚙️ Quick Actions</h2>
               <div className="card-content">
-                <a href="/courses" className="action-link">📚 Courses</a>
+                <a href="/learning-library" className="action-link">📚 Content Library</a>
                 <a href="/admin/assignments" className="action-link">📝 Assignments</a>
                 <a href="/quiz-management" className="action-link">❓ Quizzes</a>
                 <a href="/attendance" className="action-link">✅ Attendance</a>
@@ -427,7 +427,7 @@ const DashboardPage: React.FC = () => {
           <div className="sd-hero-right">
             <div className="sd-hero-pct">{data.courseProgress.percentage}%</div>
             <span className="sd-hero-pct-label">course progress</span>
-            <button className="sd-hero-btn" onClick={() => navigate('/my-course')}>
+            <button className="sd-hero-btn" onClick={() => navigate('/my-learning')}>
               <i className="fa-solid fa-play"></i> Resume lesson
             </button>
           </div>
@@ -481,7 +481,7 @@ const DashboardPage: React.FC = () => {
             <div className="sd-card">
               <div className="sd-card-header">
                 <h3>Course progress</h3>
-                <button className="sd-link" onClick={() => navigate('/my-course')}>View all modules →</button>
+                <button className="sd-link" onClick={() => navigate('/my-learning')}>View all modules →</button>
               </div>
               <div className="sd-course-list">
                 {data?.course && (

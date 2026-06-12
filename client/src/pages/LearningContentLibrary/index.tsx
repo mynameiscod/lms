@@ -116,6 +116,16 @@ export default function LearningContentLibrary() {
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
+            onClick={() => navigate('/learning-library/record')}
+            style={{
+              background: '#dc2626', color: '#fff', border: 'none',
+              borderRadius: '8px', padding: '10px 20px',
+              fontWeight: 600, fontSize: '14px', cursor: 'pointer',
+            }}
+          >
+            🔴 Record Class
+          </button>
+          <button
             onClick={() => navigate('/interactive-lessons/new')}
             style={{
               background: '#ec4899', color: '#fff', border: 'none',

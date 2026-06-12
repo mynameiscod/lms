@@ -135,6 +135,7 @@ import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 // Learning Content Library
 import LearningContentLibraryPage from './pages/LearningContentLibrary';
 import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditContent';
+import RecordClassPage from './pages/LearningContentLibrary/RecordClass';
 
 // Interactive Lesson System
 import InteractiveLessonBuilderPage from './pages/InteractiveLessonBuilder';
@@ -1687,6 +1688,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><CreateEditContentPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/learning-library/record"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><RecordClassPage /></Layout>
           </ProtectedRoute>
         }
       />

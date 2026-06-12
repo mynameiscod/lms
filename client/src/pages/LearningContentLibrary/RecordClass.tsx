@@ -80,6 +80,15 @@ export default function RecordClass() {
     return () => clearInterval(iv);
   }, [status, paused]);
 
+  // attach the live stream once the recording UI (and its <video>) is mounted
+  useEffect(() => {
+    if (status === 'recording' && previewRef.current && streamRef.current) {
+      previewRef.current.srcObject = streamRef.current;
+      previewRef.current.muted = true;
+      previewRef.current.play().catch(() => {});
+    }
+  }, [status]);
+
   const stopAllTracks = useCallback(() => {
     rawStreams.current.forEach(s => s.getTracks().forEach(t => t.stop()));
     rawStreams.current = [];

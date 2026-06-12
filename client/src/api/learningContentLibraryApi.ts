@@ -13,8 +13,10 @@ export interface ContentLibraryItem {
   difficulty?: 'beginner' | 'intermediate' | 'advanced';
   estimatedDuration: number;
   // Video
-  videoSource?: 'upload' | 'youtube' | 'vimeo';
+  videoSource?: 'upload' | 'youtube' | 'vimeo' | 'bunny';
   videoUrl?: string;
+  bunnyVideoId?: string;
+  bunnyLibraryId?: number;
   videoFilePath?: string;
   videoDuration?: number;
   videoThumbnail?: string;
@@ -121,6 +123,17 @@ export const learningContentLibraryApi = {
 
   createJson: async (body: Partial<ContentLibraryItem>): Promise<ContentLibraryItem> => {
     const { data } = await axios.post(BASE, body, { headers: authHeader() });
+    return data;
+  },
+
+  // Bunny Stream: create a video object + get resumable (TUS) upload auth
+  createBunnyVideo: async (title: string): Promise<{
+    videoId: string;
+    libraryId: number;
+    cdnHostname: string;
+    tus: { endpoint: string; expiration: number; signature: string };
+  }> => {
+    const { data } = await axios.post(`${BASE}/bunny/videos`, { title }, { headers: authHeader() });
     return data;
   },
 

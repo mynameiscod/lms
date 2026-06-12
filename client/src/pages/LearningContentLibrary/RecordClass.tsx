@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import * as tus from 'tus-js-client';
+import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 
 /**
  * Record Class — in-app class recorder (Slice 1).
@@ -18,8 +19,6 @@ import axios from 'axios';
 
 type Mode = 'screen_mic' | 'camera_mic' | 'screen';
 type Status = 'idle' | 'recording' | 'recorded' | 'saving' | 'saved';
-
-const MAX_BYTES = 490 * 1024 * 1024; // keep under the server's 500 MB limit
 
 const MODE_LABELS: Record<Mode, { title: string; sub: string; icon: string }> = {
   screen_mic: { title: 'Screen + Mic', sub: 'Slides, coding, projector + your voice', icon: '🖥️🎙️' },
@@ -192,35 +191,43 @@ export default function RecordClass() {
   const save = async () => {
     if (!blob) return;
     if (!title.trim()) { setError('Please enter a title.'); return; }
-    if (blob.size > MAX_BYTES) {
-      setError(`This recording is ${fmtSize(blob.size)} — over the 490 MB limit. Record a shorter session (Bunny hosting in the next slice removes this cap).`);
-      return;
-    }
     setError(''); setStatus('saving'); setUploadPct(0);
     try {
-      const ext = blob.type.includes('mp4') ? 'mp4' : 'webm';
-      const fd = new FormData();
-      // Text fields first; file last. The route decides file handling from ?type=video
-      // (for multipart, req.body isn't parsed until multer runs).
-      fd.append('type', 'video');
-      fd.append('title', title.trim());
-      if (desc.trim()) fd.append('description', desc.trim());
-      fd.append('videoSource', 'upload');
-      fd.append('topicTags', JSON.stringify(splitTags(topics)));
-      fd.append('courseTags', JSON.stringify(splitTags(courses)));
-      fd.append('estimatedDuration', String(Math.max(1, Math.round(secondsRef.current / 60))));
-      fd.append('videoDuration', String(secondsRef.current));
-      fd.append('isPublished', 'true');
-      fd.append('videoFile', blob, `class-recording-${Date.now()}.${ext}`);
+      // 1) create the Bunny video object + get a resumable-upload authorization
+      const meta = await learningContentLibraryApi.createBunnyVideo(title.trim());
 
-      const token = localStorage.getItem('token');
-      const tenantId = localStorage.getItem('tenantId');
-      const { data } = await axios.post('/api/v1/learning-library?type=video', fd, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
-        },
-        onUploadProgress: (e) => { if (e.total) setUploadPct(Math.round((e.loaded / e.total) * 100)); },
+      // 2) upload the recording DIRECTLY to Bunny (resumable, no size cap, no VPS bandwidth)
+      await new Promise<void>((resolve, reject) => {
+        const upload = new tus.Upload(blob, {
+          endpoint: meta.tus.endpoint,
+          retryDelays: [0, 2000, 5000, 10000, 20000],
+          headers: {
+            AuthorizationSignature: meta.tus.signature,
+            AuthorizationExpire: String(meta.tus.expiration),
+            VideoId: meta.videoId,
+            LibraryId: String(meta.libraryId),
+          },
+          metadata: { filetype: blob.type || 'video/webm', title: title.trim() },
+          onError: (err) => reject(err),
+          onProgress: (sent, total) => { if (total) setUploadPct(Math.round((sent / total) * 100)); },
+          onSuccess: () => resolve(),
+        });
+        upload.start();
+      });
+
+      // 3) save the Content Library item pointing at the Bunny video
+      const data = await learningContentLibraryApi.createJson({
+        type: 'video',
+        videoSource: 'bunny',
+        bunnyVideoId: meta.videoId,
+        bunnyLibraryId: meta.libraryId,
+        title: title.trim(),
+        description: desc.trim() || undefined,
+        topicTags: splitTags(topics),
+        courseTags: splitTags(courses),
+        estimatedDuration: Math.max(1, Math.round(secondsRef.current / 60)),
+        videoDuration: secondsRef.current,
+        isPublished: true,
       });
       setSavedId(data?._id || '');
       setStatus('saved');
@@ -274,7 +281,7 @@ export default function RecordClass() {
           <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '4px 0 8px' }}>2. Start</div>
           <button style={btn('#dc2626')} onClick={startRecording}>⏺ Start Recording</button>
           <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 12 }}>
-            For the screen modes, your browser will ask which screen / window / tab to share. Use a clip-on mic for clear audio. Keep recordings under ~45 min for now (490 MB cap — lifted when we add Bunny hosting). Works best in Chrome / Edge.
+            For the screen modes, your browser will ask which screen / window / tab to share. Use a clip-on mic for clear audio. Recordings upload privately to Bunny Stream (no size cap). Works best in Chrome / Edge.
           </p>
         </>
       )}
@@ -314,8 +321,7 @@ export default function RecordClass() {
         <div style={{ marginTop: 16 }}>
           <video src={previewUrl} controls style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
           <div style={{ fontSize: 13, color: '#64748b', margin: '8px 0 16px' }}>
-            Length {fmtTime(seconds)} · Size {blob ? fmtSize(blob.size) : '—'}
-            {blob && blob.size > MAX_BYTES && <span style={{ color: '#dc2626', fontWeight: 600 }}> · over 490 MB limit</span>}
+            Length {fmtTime(seconds)} · Size {blob ? fmtSize(blob.size) : '—'} · uploads privately to Bunny Stream
           </div>
 
           <div style={{ display: 'grid', gap: 14, maxWidth: 640 }}>

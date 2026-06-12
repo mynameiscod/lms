@@ -38,6 +38,21 @@ function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: 
     );
   }
 
+  if (content.videoSource === 'bunny' && content.bunnyVideoId && content.bunnyLibraryId) {
+    return (
+      <div style={{ position: 'relative', paddingBottom: '56.25%', height: 0, borderRadius: '10px', overflow: 'hidden' }}>
+        <iframe
+          src={`https://iframe.mediadelivery.net/embed/${content.bunnyLibraryId}/${content.bunnyVideoId}?autoplay=false&preload=true&responsive=true`}
+          loading="lazy"
+          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+          allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
+          allowFullScreen
+          title={content.title}
+        />
+      </div>
+    );
+  }
+
   if (content.videoSource === 'vimeo' && content.videoUrl) {
     const vimeoId = content.videoUrl.match(/vimeo\.com\/(\d+)/)?.[1];
     return (

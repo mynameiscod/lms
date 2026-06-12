@@ -82,6 +82,8 @@ export const createContent = async (req: Request, res: Response) => {
       videoFilePath:       (req as any).videoFilePath,
       videoDuration:       Number(body.videoDuration) || undefined,
       videoThumbnail:      body.videoThumbnail,
+      bunnyVideoId:        body.bunnyVideoId,
+      bunnyLibraryId:      body.bunnyLibraryId !== undefined ? Number(body.bunnyLibraryId) : undefined,
       completionThreshold: Number(body.completionThreshold) || 0,
 
       // Notes
@@ -124,6 +126,7 @@ export const updateContent = async (req: Request, res: Response) => {
       'title', 'description', 'topicTags', 'courseTags', 'difficulty',
       'estimatedDuration', 'isPublished',
       'videoSource', 'videoUrl', 'videoDuration', 'videoThumbnail', 'completionThreshold',
+      'bunnyVideoId', 'bunnyLibraryId',
       'notesSource', 'notesContent',
       'htmlContent', 'activitySteps',
       'qaItems', 'practiceQuestions',

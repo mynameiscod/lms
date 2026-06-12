@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import * as ctrl from '../controllers/learningContentLibraryController';
+import * as bunny from '../controllers/bunnyController';
 
 const router = express.Router();
 
@@ -91,6 +92,10 @@ router.use(tenantMiddleware);
 // Tags (for filter dropdowns)
 router.get('/tags/topics',  ctrl.getTopicTags);
 router.get('/tags/courses', ctrl.getCourseTags);
+
+// Bunny Stream — create video + resumable upload authorization
+router.get('/bunny/config',  bunny.bunnyConfigured);
+router.post('/bunny/videos', bunny.createBunnyVideo);
 
 // CRUD
 router.get('/',     ctrl.listContent);

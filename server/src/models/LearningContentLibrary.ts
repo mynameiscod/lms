@@ -11,7 +11,7 @@ export type ContentLibraryType =
   | 'interactive_lesson'
   | 'interactive_activity';
 
-export type VideoSource = 'upload' | 'youtube' | 'vimeo';
+export type VideoSource = 'upload' | 'youtube' | 'vimeo' | 'bunny';
 export type NotesSource = 'upload' | 'richtext';
 export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
 export type GradingMode = 'auto' | 'self';
@@ -62,6 +62,8 @@ export interface ILearningContentLibrary extends Document {
   videoFilePath?: string;
   videoDuration?: number;
   videoThumbnail?: string;
+  bunnyVideoId?: string;   // Bunny Stream video GUID (videoSource === 'bunny')
+  bunnyLibraryId?: number; // Bunny Stream library ID
   completionThreshold: number; // 0 = just open, 80 = watch 80%
 
   // Notes
@@ -149,11 +151,13 @@ const LearningContentLibrarySchema = new Schema<ILearningContentLibrary>(
     estimatedDuration: { type: Number, default: 0 },
 
     // Video
-    videoSource:         { type: String, enum: ['upload', 'youtube', 'vimeo'] },
+    videoSource:         { type: String, enum: ['upload', 'youtube', 'vimeo', 'bunny'] },
     videoUrl:            { type: String },
     videoFilePath:       { type: String },
     videoDuration:       { type: Number },
     videoThumbnail:      { type: String },
+    bunnyVideoId:        { type: String },
+    bunnyLibraryId:      { type: Number },
     completionThreshold: { type: Number, default: 0, min: 0, max: 100 },
 
     // Notes

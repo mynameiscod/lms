@@ -1,6 +1,42 @@
 import { Request, Response } from 'express';
 import interviewTemplateService from '../services/interviewTemplateService';
 
+// Template fields the take page needs (no answer keys here)
+const STUDENT_TEMPLATE_FIELDS = 'title description interviewCategories totalDuration sectionNavigationMode blockMultipleTabs allowResume showResultImmediately';
+
+/**
+ * Strip per-question grading + any correct-answer hints from an attempt before
+ * sending it to a student mid-interview. Grades are revealed only via the
+ * report endpoint once the attempt is published/evaluated.
+ */
+function sanitizeAttemptForStudent(attemptDoc: any) {
+  const a = attemptDoc && typeof attemptDoc.toObject === 'function' ? attemptDoc.toObject() : attemptDoc;
+  if (!a) return a;
+  const inProgress = a.status === 'in_progress';
+  for (const sec of a.sectionAttempts || []) {
+    if (inProgress) {
+      delete sec.totalScore; delete sec.percentage; delete sec.passed;
+      delete sec.communicationScores; delete sec.hrScores; delete sec.technicalScores;
+    }
+    for (const qr of sec.questionResponses || []) {
+      delete qr.score; delete qr.feedback; delete qr.strengths; delete qr.weaknesses;
+      delete qr.missedPoints; delete qr.keywordsCovered; delete qr.keywordsMissed;
+      delete qr.categoryScores; delete qr.betterAnswerSuggestion;
+      if (Array.isArray(qr.mcqOptions)) {
+        qr.mcqOptions = qr.mcqOptions.map((o: any) => ({ label: o.label, text: o.text }));
+      }
+    }
+  }
+  return a;
+}
+
+async function respondStudentAttempt(res: Response, attempt: any, statusCode = 200) {
+  if (attempt && typeof attempt.populate === 'function') {
+    try { await attempt.populate('templateId', STUDENT_TEMPLATE_FIELDS); } catch { /* already populated / lean */ }
+  }
+  res.status(statusCode).json({ success: true, data: sanitizeAttemptForStudent(attempt) });
+}
+
 // ─── Template CRUD ───────────────────────────────────────────────────────────
 
 export const createTemplate = async (req: Request, res: Response) => {
@@ -340,7 +376,7 @@ export const startAttempt = async (req: Request, res: Response) => {
     }
 
     const attempt = await interviewTemplateService.startAttempt(templateId, userId, tenantId, assignmentId);
-    res.status(201).json({ success: true, data: attempt });
+    await respondStudentAttempt(res, attempt, 201);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -351,7 +387,7 @@ export const getAttempt = async (req: Request, res: Response) => {
     const tenantId = (req as any).tenantId;
     const attempt = await interviewTemplateService.getAttempt(req.params.attemptId, tenantId);
     if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
-    res.json({ success: true, data: attempt });
+    await respondStudentAttempt(res, attempt);
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -372,7 +408,7 @@ export const saveAnswer = async (req: Request, res: Response) => {
       { answerText, answerCode, selectedMCQOption, answerAudioUrl, responseTimeSeconds }
     );
 
-    res.json({ success: true, data: attempt });
+    await respondStudentAttempt(res, attempt);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -388,7 +424,7 @@ export const skipQuestion = async (req: Request, res: Response) => {
       req.params.attemptId, tenantId, userId, sectionIndex, questionIndex
     );
 
-    res.json({ success: true, data: attempt });
+    await respondStudentAttempt(res, attempt);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
@@ -404,7 +440,7 @@ export const completeSection = async (req: Request, res: Response) => {
       req.params.attemptId, tenantId, userId, sectionIndex
     );
 
-    res.json({ success: true, data: attempt });
+    await respondStudentAttempt(res, attempt);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

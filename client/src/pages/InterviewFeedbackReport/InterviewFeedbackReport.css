@@ -4,6 +4,11 @@
 .ifr-header h1 { font-size: 22px; font-weight: 700; color: #1a1a2e; margin: 0; }
 .ifr-subtitle { font-size: 14px; color: #6b7280; margin: 4px 0 0; }
 .ifr-loading, .ifr-empty { text-align: center; padding: 60px; color: #6b7280; }
+.ifr-empty h2 { color: #1a1a2e; margin: 0 0 8px; }
+.ifr-empty .ifr-back { margin-top: 16px; }
+.ifr-sw-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+.ifr-sw-grid .ifr-feedback-box { margin-bottom: 0; }
+@media (max-width: 640px) { .ifr-sw-grid { grid-template-columns: 1fr; } }
 
 /* Overall Score */
 .ifr-overall { display: flex; gap: 28px; align-items: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 24px; margin-bottom: 20px; flex-wrap: wrap; }

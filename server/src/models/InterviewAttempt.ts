@@ -8,6 +8,16 @@ export interface ISectionQuestionResponse {
   questionType: string;
   answerMode: string;
 
+  // Question display metadata (snapshotted at attempt start; safe to show student —
+  // never contains the correct answer / isCorrect flags)
+  questionHint?: string;
+  difficulty?: string;
+  topic?: string;
+  mcqOptions?: { label: string; text: string }[];
+  codeLanguage?: string;
+  codeStarterTemplate?: string;
+  suggestedTimeSeconds?: number;
+
   // Student answer
   answerText?: string;
   answerAudioUrl?: string;
@@ -147,6 +157,14 @@ const SectionQuestionResponseSchema = new Schema<ISectionQuestionResponse>({
   questionText:     { type: String, required: true },
   questionType:     { type: String, required: true },
   answerMode:       { type: String, required: true },
+
+  questionHint:        { type: String },
+  difficulty:          { type: String },
+  topic:               { type: String },
+  mcqOptions:          [{ label: String, text: String, _id: false }],
+  codeLanguage:        { type: String },
+  codeStarterTemplate: { type: String },
+  suggestedTimeSeconds:{ type: Number },
 
   answerText:       { type: String },
   answerAudioUrl:   { type: String },

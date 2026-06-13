@@ -4,6 +4,12 @@ import { studentInterviewApi } from '../../api/interviewModuleApi';
 import { useMediaRecorder } from '../../hooks/useMediaRecorder';
 import './TakeStructuredInterview.css';
 
+/**
+ * Student take flow for the structured AI interview.
+ * One question at a time; answers (text / MCQ / code, plus optional audio/video)
+ * are saved + silently AI-evaluated on the server. Grades are never shown here —
+ * they're revealed on the report after submit.
+ */
 const TakeStructuredInterview: React.FC = () => {
   const { templateId } = useParams<{ templateId: string }>();
   const [searchParams] = useSearchParams();
@@ -18,162 +24,136 @@ const TakeStructuredInterview: React.FC = () => {
   const [answer, setAnswer] = useState('');
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [sectionTimer, setSectionTimer] = useState(0);
-  const [questionTimer, setQuestionTimer] = useState(0);
+  const [overallRemaining, setOverallRemaining] = useState(0);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [tabWarnings, setTabWarnings] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const questionStartRef = useRef<number>(Date.now());
+  const submitOnceRef = useRef(false);
 
-  // ── Media Recording for audio/video answer modes ────────────────────
+  // ── Media recording for audio/video answer modes ────────────────────
+  const sectionsRef = attempt?.sectionAttempts || [];
+  const liveSection = sectionsRef[currentSectionIdx];
+  const liveQuestion = liveSection?.questionResponses?.[currentQuestionIdx];
+  const qMode: string = liveQuestion?.answerMode || 'text';
+
   const [answerMediaMode, setAnswerMediaMode] = useState<'text' | 'video' | 'audio'>('text');
-  const mediaRecorder = useMediaRecorder(
-    answerMediaMode === 'audio' ? 'audio' : 'video',
-    false
-  );
+  const mediaRecorder = useMediaRecorder(answerMediaMode === 'audio' ? 'audio' : 'video', false);
   const videoPreviewRef = useRef<HTMLVideoElement>(null);
 
-  // Attach live stream to video preview
   useEffect(() => {
     if (videoPreviewRef.current && mediaRecorder.stream && answerMediaMode === 'video') {
       videoPreviewRef.current.srcObject = mediaRecorder.stream;
     }
   }, [mediaRecorder.stream, answerMediaMode]);
 
-  // Determine effective answer mode for current question
+  // Sync media mode with the current question's answer mode
   useEffect(() => {
-    if (!attempt) return;
-    const secs = attempt?.sectionAttempts || [];
-    const sec = secs[currentSectionIdx];
-    const qs = sec?.questions || [];
-    const q = qs[currentQuestionIdx];
-    if (!sec && !q) return;
-    const mode = sec?.answerMode || q?.questionRef?.answerMode || 'text';
-    if (mode === 'video' || mode === 'audio') {
-      setAnswerMediaMode(mode);
+    if (qMode === 'video' || qMode === 'audio') {
+      setAnswerMediaMode(qMode);
       mediaRecorder.requestPermission();
     } else {
       setAnswerMediaMode('text');
     }
-  }, [currentSectionIdx, currentQuestionIdx, attempt]);
+    questionStartRef.current = Date.now();
+  }, [currentSectionIdx, currentQuestionIdx, qMode]);
 
-  // ── Start / Resume attempt ──────────────────────────────────────────
-
+  // ── Start / resume attempt ──────────────────────────────────────────
   useEffect(() => {
-    const startAttempt = async () => {
+    const start = async () => {
       try {
         setLoading(true);
         const res = await studentInterviewApi.startAttempt(templateId!, assignmentId);
-        setAttempt(res.data);
-        // Restore position from attempt
-        const sections = res.data?.sectionAttempts || [];
-        const activeSec = sections.findIndex((s: any) => s.status !== 'completed');
-        if (activeSec >= 0) {
-          setCurrentSectionIdx(activeSec);
-          const activeQ = (sections[activeSec]?.questions || []).findIndex((q: any) => !q.answeredAt && !q.skippedAt);
-          setCurrentQuestionIdx(Math.max(0, activeQ));
-        }
+        const a = res.data;
+        setAttempt(a);
+        const secs = a?.sectionAttempts || [];
+        const activeSec = Math.max(0, secs.findIndex((s: any) => s.status !== 'completed'));
+        setCurrentSectionIdx(activeSec >= 0 ? activeSec : 0);
+        const qs = secs[activeSec]?.questionResponses || [];
+        const activeQ = qs.findIndex((q: any) => q.status === 'not_started');
+        setCurrentQuestionIdx(activeQ >= 0 ? activeQ : 0);
       } catch (err: any) {
         setError(err.message || 'Failed to start interview');
       } finally {
         setLoading(false);
       }
     };
-    if (templateId) startAttempt();
+    if (templateId) start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [templateId, assignmentId]);
 
-  // ── Tab detection ───────────────────────────────────────────────────
-
+  // ── Overall timer (from template.totalDuration) ─────────────────────
   useEffect(() => {
-    if (!attempt?.blockMultipleTabs) return;
-    const handleVisibility = () => {
+    if (!attempt) return;
+    const totalMin = attempt.templateId?.totalDuration || 0;
+    if (!totalMin || !attempt.startedAt) { setOverallRemaining(0); return; }
+    const tick = () => {
+      const elapsed = (Date.now() - new Date(attempt.startedAt).getTime()) / 1000;
+      const remaining = Math.max(0, totalMin * 60 - elapsed);
+      setOverallRemaining(remaining);
+      if (remaining <= 0 && !submitOnceRef.current) {
+        submitOnceRef.current = true;
+        handleSubmitInterview();
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt?.startedAt, attempt?.templateId?.totalDuration]);
+
+  // ── Tab detection ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!attempt?.templateId?.blockMultipleTabs) return;
+    const onVisibility = () => {
       if (document.hidden) {
         setTabWarnings(prev => {
           const next = prev + 1;
-          if (next >= 3) {
-            handleSubmitInterview();
-          }
+          if (next >= 3 && !submitOnceRef.current) { submitOnceRef.current = true; handleSubmitInterview(); }
           return next;
         });
       }
     };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [attempt]);
 
-  // ── Timers ──────────────────────────────────────────────────────────
-
-  useEffect(() => {
-    if (!attempt) return;
-    const section = attempt.sectionAttempts?.[currentSectionIdx];
-    if (section?.sectionTimeLimit > 0) {
-      const elapsed = section.startedAt ? (Date.now() - new Date(section.startedAt).getTime()) / 1000 : 0;
-      setSectionTimer(Math.max(0, section.sectionTimeLimit * 60 - elapsed));
-    } else {
-      setSectionTimer(0);
-    }
-  }, [attempt, currentSectionIdx]);
-
-  useEffect(() => {
-    if (sectionTimer <= 0) return;
-    timerRef.current = setInterval(() => {
-      setSectionTimer(prev => {
-        if (prev <= 1) {
-          clearInterval(timerRef.current!);
-          handleCompleteSection();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  }, [sectionTimer > 0]);
-
-  // ── Current section/question ────────────────────────────────────────
-
+  // ── Derived current section/question ────────────────────────────────
   const sections = attempt?.sectionAttempts || [];
   const currentSection = sections[currentSectionIdx];
-  const questions = currentSection?.questions || [];
+  const questions = currentSection?.questionResponses || [];
   const currentQuestion = questions[currentQuestionIdx];
+  const navMode = attempt?.templateId?.sectionNavigationMode || 'sequential';
 
-  // ── Load existing answer ────────────────────────────────────────────
-
+  // ── Load existing answer when navigating ────────────────────────────
   useEffect(() => {
-    if (currentQuestion?.textAnswer) {
-      setAnswer(currentQuestion.textAnswer);
-    } else if (currentQuestion?.selectedMcqOption) {
-      setAnswer(currentQuestion.selectedMcqOption);
-    } else if (currentQuestion?.codeAnswer) {
-      setAnswer(currentQuestion.codeAnswer);
-    } else {
-      setAnswer('');
-    }
+    if (!currentQuestion) { setAnswer(''); return; }
+    setAnswer(
+      currentQuestion.answerText ||
+      currentQuestion.selectedMCQOption ||
+      currentQuestion.answerCode ||
+      ''
+    );
   }, [currentSectionIdx, currentQuestionIdx, attempt]);
 
   // ── Save answer ─────────────────────────────────────────────────────
-
   const handleSaveAnswer = useCallback(async () => {
     if (!attempt || !currentQuestion) return;
     try {
       setSaving(true);
-      const payload: any = { sectionIndex: currentSectionIdx, questionIndex: currentQuestionIdx };
-      if (currentSection?.answerMode === 'mcq' || currentQuestion.questionRef?.answerMode === 'mcq') {
-        payload.selectedMcqOption = answer;
-      } else if (currentSection?.answerMode === 'code' || currentQuestion.questionRef?.answerMode === 'code') {
-        payload.codeAnswer = answer;
-      } else {
-        payload.textAnswer = answer;
-      }
+      const responseTimeSeconds = Math.round((Date.now() - questionStartRef.current) / 1000);
+      const payload: any = { sectionIndex: currentSectionIdx, questionIndex: currentQuestionIdx, responseTimeSeconds };
+      if (qMode === 'mcq') payload.selectedMCQOption = answer;
+      else if (qMode === 'code') payload.answerCode = answer;
+      else payload.answerText = answer;
+
       const res = await studentInterviewApi.saveAnswer(attempt._id, payload);
       setAttempt(res.data);
 
-      // Upload recorded media if present
       if (mediaRecorder.recordedBlob) {
         try {
           await studentInterviewApi.uploadAnswerRecording(
-            attempt._id,
-            mediaRecorder.recordedBlob,
-            currentSectionIdx,
-            currentQuestionIdx
+            attempt._id, mediaRecorder.recordedBlob, currentSectionIdx, currentQuestionIdx, responseTimeSeconds
           );
         } catch (uploadErr) {
           console.error('Recording upload failed (non-blocking):', uploadErr);
@@ -184,10 +164,10 @@ const TakeStructuredInterview: React.FC = () => {
     } finally {
       setSaving(false);
     }
-  }, [attempt, answer, currentSectionIdx, currentQuestionIdx, mediaRecorder.recordedBlob]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt, answer, currentSectionIdx, currentQuestionIdx, qMode, mediaRecorder.recordedBlob]);
 
-  // ── Skip question ───────────────────────────────────────────────────
-
+  // ── Skip ────────────────────────────────────────────────────────────
   const handleSkip = async () => {
     if (!attempt || !currentQuestion) return;
     try {
@@ -198,28 +178,21 @@ const TakeStructuredInterview: React.FC = () => {
   };
 
   // ── Navigation ──────────────────────────────────────────────────────
-
   const goNextQuestion = () => {
     if (currentQuestionIdx < questions.length - 1) {
       setCurrentQuestionIdx(prev => prev + 1);
       mediaRecorder.reset();
     }
   };
-
   const goPrevQuestion = () => {
     if (currentQuestionIdx > 0) {
       setCurrentQuestionIdx(prev => prev - 1);
       mediaRecorder.reset();
     }
   };
-
-  const handleSaveAndNext = async () => {
-    await handleSaveAnswer();
-    goNextQuestion();
-  };
+  const handleSaveAndNext = async () => { await handleSaveAnswer(); goNextQuestion(); };
 
   // ── Complete section ────────────────────────────────────────────────
-
   const handleCompleteSection = async () => {
     if (!attempt) return;
     try {
@@ -234,8 +207,7 @@ const TakeStructuredInterview: React.FC = () => {
     } catch (err: any) { alert(err.message); }
   };
 
-  // ── Submit interview ────────────────────────────────────────────────
-
+  // ── Submit ──────────────────────────────────────────────────────────
   const handleSubmitInterview = async () => {
     if (!attempt) return;
     try {
@@ -248,7 +220,6 @@ const TakeStructuredInterview: React.FC = () => {
   };
 
   // ── Render ──────────────────────────────────────────────────────────
-
   if (loading) return <div className="tsi-loading"><div className="tsi-spinner" />Starting interview...</div>;
   if (error) return <div className="tsi-error">{error}<br /><button onClick={() => navigate('/student/interviews')}>Back to Hub</button></div>;
   if (!attempt) return <div className="tsi-error">No attempt data.</div>;
@@ -259,8 +230,10 @@ const TakeStructuredInterview: React.FC = () => {
     return `${m}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const answeredCount = questions.filter((q: any) => q.answeredAt).length;
-  const skippedCount = questions.filter((q: any) => q.skippedAt && !q.answeredAt).length;
+  const isAnswered = (q: any) => q.status === 'answered';
+  const isSkipped = (q: any) => q.status === 'skipped';
+  const answeredCount = questions.filter(isAnswered).length;
+  const skippedCount = questions.filter(isSkipped).length;
 
   return (
     <div className="tsi-container">
@@ -273,9 +246,9 @@ const TakeStructuredInterview: React.FC = () => {
           </span>
         </div>
         <div className="tsi-topbar-right">
-          {sectionTimer > 0 && (
-            <span className={`tsi-timer ${sectionTimer < 60 ? 'tsi-timer-danger' : ''}`}>
-              ⏱ {formatTime(sectionTimer)}
+          {overallRemaining > 0 && (
+            <span className={`tsi-timer ${overallRemaining < 60 ? 'tsi-timer-danger' : ''}`}>
+              ⏱ {formatTime(overallRemaining)}
             </span>
           )}
           {tabWarnings > 0 && <span className="tsi-tab-warning">⚠ Tab warnings: {tabWarnings}/3</span>}
@@ -292,15 +265,15 @@ const TakeStructuredInterview: React.FC = () => {
               key={i}
               className={`tsi-sidebar-sec ${i === currentSectionIdx ? 'active' : ''} ${sec.status === 'completed' ? 'completed' : ''}`}
               onClick={() => {
-                if (attempt.sectionNavigationMode !== 'sequential' || i <= currentSectionIdx) {
+                if (navMode !== 'sequential' || i <= currentSectionIdx) {
                   setCurrentSectionIdx(i);
                   setCurrentQuestionIdx(0);
                 }
               }}
-              disabled={attempt.sectionNavigationMode === 'sequential' && i > currentSectionIdx}
+              disabled={navMode === 'sequential' && i > currentSectionIdx}
             >
               <span>{sec.sectionTitle || `Section ${i + 1}`}</span>
-              <span className="tsi-sidebar-type">{sec.category}</span>
+              <span className="tsi-sidebar-type">{sec.sectionType}</span>
             </button>
           ))}
 
@@ -309,7 +282,7 @@ const TakeStructuredInterview: React.FC = () => {
             {questions.map((q: any, i: number) => (
               <button
                 key={i}
-                className={`tsi-qmap-btn ${i === currentQuestionIdx ? 'current' : ''} ${q.answeredAt ? 'answered' : ''} ${q.skippedAt && !q.answeredAt ? 'skipped' : ''}`}
+                className={`tsi-qmap-btn ${i === currentQuestionIdx ? 'current' : ''} ${isAnswered(q) ? 'answered' : ''} ${isSkipped(q) ? 'skipped' : ''}`}
                 onClick={() => setCurrentQuestionIdx(i)}
               >
                 {i + 1}
@@ -329,41 +302,23 @@ const TakeStructuredInterview: React.FC = () => {
             <>
               <div className="tsi-question-header">
                 <span className="tsi-q-number">Question {currentQuestionIdx + 1} of {questions.length}</span>
-                {currentQuestion.questionRef?.difficulty && (
-                  <span className="tsi-q-diff">{currentQuestion.questionRef.difficulty}</span>
-                )}
-                {currentQuestion.questionRef?.topic && (
-                  <span className="tsi-q-topic">{currentQuestion.questionRef.topic}</span>
-                )}
+                {currentQuestion.difficulty && <span className="tsi-q-diff">{currentQuestion.difficulty}</span>}
+                {currentQuestion.topic && <span className="tsi-q-topic">{currentQuestion.topic}</span>}
               </div>
 
               <div className="tsi-question-text">
-                {currentQuestion.questionRef?.questionText || currentQuestion.questionText || 'Loading question...'}
+                {currentQuestion.questionText || 'Loading question...'}
               </div>
 
-              {currentQuestion.questionRef?.questionHint && (
-                <p className="tsi-hint">💡 Hint: {currentQuestion.questionRef.questionHint}</p>
+              {currentQuestion.questionHint && (
+                <p className="tsi-hint">💡 Hint: {currentQuestion.questionHint}</p>
               )}
 
               {/* Answer Area */}
               <div className="tsi-answer-area">
-                {/* Media mode selector for video/audio capable questions */}
+                {/* Media mode (audio/video questions) */}
                 {(answerMediaMode === 'video' || answerMediaMode === 'audio') && (
                   <div className="tsi-media-controls" style={{ marginBottom: 12 }}>
-                    <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                      <button
-                        className={`tsi-btn-nav ${answerMediaMode === 'video' ? 'active' : ''}`}
-                        onClick={() => { setAnswerMediaMode('video'); mediaRecorder.reset(); mediaRecorder.requestPermission(); }}
-                        style={{ background: answerMediaMode === 'video' ? '#3b82f6' : undefined, color: answerMediaMode === 'video' ? '#fff' : undefined }}
-                      >🎥 Video</button>
-                      <button
-                        className={`tsi-btn-nav ${answerMediaMode === 'audio' ? 'active' : ''}`}
-                        onClick={() => { setAnswerMediaMode('audio'); mediaRecorder.reset(); mediaRecorder.requestPermission(); }}
-                        style={{ background: answerMediaMode === 'audio' ? '#3b82f6' : undefined, color: answerMediaMode === 'audio' ? '#fff' : undefined }}
-                      >🎤 Audio</button>
-                    </div>
-
-                    {/* Video preview */}
                     {answerMediaMode === 'video' && (
                       <div style={{ position: 'relative', background: '#000', borderRadius: 8, overflow: 'hidden', marginBottom: 8, minHeight: 200 }}>
                         {mediaRecorder.previewUrl ? (
@@ -372,14 +327,10 @@ const TakeStructuredInterview: React.FC = () => {
                           <video ref={videoPreviewRef} autoPlay muted playsInline style={{ width: '100%', maxHeight: 280, transform: 'scaleX(-1)', display: 'block' }} />
                         )}
                         {mediaRecorder.isRecording && (
-                          <div className="tsi-rec-indicator">
-                            <span className="tsi-rec-dot" /> REC {formatTime(mediaRecorder.duration)}
-                          </div>
+                          <div className="tsi-rec-indicator"><span className="tsi-rec-dot" /> REC {formatTime(mediaRecorder.duration)}</div>
                         )}
                       </div>
                     )}
-
-                    {/* Audio preview */}
                     {answerMediaMode === 'audio' && (
                       <div style={{ background: '#f1f5f9', borderRadius: 8, padding: 24, textAlign: 'center', minHeight: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
                         {mediaRecorder.previewUrl ? (
@@ -387,15 +338,11 @@ const TakeStructuredInterview: React.FC = () => {
                         ) : (
                           <>
                             <div style={{ fontSize: '3rem' }}>{mediaRecorder.isRecording ? '🔴' : '🎤'}</div>
-                            {mediaRecorder.isRecording && (
-                              <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 8 }}>Recording... {formatTime(mediaRecorder.duration)}</div>
-                            )}
+                            {mediaRecorder.isRecording && <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 8 }}>Recording... {formatTime(mediaRecorder.duration)}</div>}
                           </>
                         )}
                       </div>
                     )}
-
-                    {/* Recording controls */}
                     {mediaRecorder.error && (
                       <div style={{ color: '#b45309', background: '#fef3c7', padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 8 }}>
                         {mediaRecorder.error}
@@ -418,8 +365,6 @@ const TakeStructuredInterview: React.FC = () => {
                         )}
                       </div>
                     )}
-
-                    {/* Optional text notes */}
                     <textarea
                       className="tsi-text-answer"
                       value={answer}
@@ -433,39 +378,39 @@ const TakeStructuredInterview: React.FC = () => {
 
                 {answerMediaMode === 'text' && (
                   <>
-                    {(currentSection?.answerMode === 'mcq' || currentQuestion.questionRef?.answerMode === 'mcq') ? (
-                  <div className="tsi-mcq-options">
-                    {(currentQuestion.questionRef?.mcqOptions || []).map((opt: any, i: number) => (
-                      <label key={i} className={`tsi-mcq-option ${answer === opt.optionId ? 'selected' : ''}`}>
-                        <input
-                          type="radio"
-                          name="mcq"
-                          value={opt.optionId}
-                          checked={answer === opt.optionId}
-                          onChange={e => setAnswer(e.target.value)}
-                        />
-                        <span>{opt.optionText}</span>
-                      </label>
-                    ))}
-                  </div>
-                ) : (currentSection?.answerMode === 'code' || currentQuestion.questionRef?.answerMode === 'code') ? (
-                  <textarea
-                    className="tsi-code-editor"
-                    value={answer}
-                    onChange={e => setAnswer(e.target.value)}
-                    placeholder="Write your code here..."
-                    rows={12}
-                    spellCheck={false}
-                  />
-                ) : (
-                  <textarea
-                    className="tsi-text-answer"
-                    value={answer}
-                    onChange={e => setAnswer(e.target.value)}
-                    placeholder="Type your answer here..."
-                    rows={8}
-                  />
-                )}
+                    {qMode === 'mcq' ? (
+                      <div className="tsi-mcq-options">
+                        {(currentQuestion.mcqOptions || []).map((opt: any, i: number) => (
+                          <label key={i} className={`tsi-mcq-option ${answer === opt.label ? 'selected' : ''}`}>
+                            <input
+                              type="radio"
+                              name="mcq"
+                              value={opt.label}
+                              checked={answer === opt.label}
+                              onChange={e => setAnswer(e.target.value)}
+                            />
+                            <span><strong>{opt.label}.</strong> {opt.text}</span>
+                          </label>
+                        ))}
+                      </div>
+                    ) : qMode === 'code' ? (
+                      <textarea
+                        className="tsi-code-editor"
+                        value={answer}
+                        onChange={e => setAnswer(e.target.value)}
+                        placeholder={currentQuestion.codeStarterTemplate || 'Write your code here...'}
+                        rows={12}
+                        spellCheck={false}
+                      />
+                    ) : (
+                      <textarea
+                        className="tsi-text-answer"
+                        value={answer}
+                        onChange={e => setAnswer(e.target.value)}
+                        placeholder="Type your answer here..."
+                        rows={8}
+                      />
+                    )}
                   </>
                 )}
               </div>
@@ -473,9 +418,7 @@ const TakeStructuredInterview: React.FC = () => {
               {/* Action Buttons */}
               <div className="tsi-actions">
                 <div className="tsi-actions-left">
-                  <button className="tsi-btn-nav" onClick={goPrevQuestion} disabled={currentQuestionIdx === 0}>
-                    ← Previous
-                  </button>
+                  <button className="tsi-btn-nav" onClick={goPrevQuestion} disabled={currentQuestionIdx === 0}>← Previous</button>
                 </div>
                 <div className="tsi-actions-right">
                   <button className="tsi-btn-skip" onClick={handleSkip}>Skip</button>
@@ -484,7 +427,7 @@ const TakeStructuredInterview: React.FC = () => {
                       {saving ? 'Saving...' : 'Save & Next →'}
                     </button>
                   ) : (
-                    <button className="tsi-btn-complete-section" onClick={async () => { await handleSaveAnswer(); handleCompleteSection(); }}>
+                    <button className="tsi-btn-complete-section" onClick={async () => { await handleSaveAnswer(); handleCompleteSection(); }} disabled={saving}>
                       {currentSectionIdx < sections.length - 1 ? 'Complete Section →' : 'Finish & Review'}
                     </button>
                   )}
@@ -496,13 +439,9 @@ const TakeStructuredInterview: React.FC = () => {
               <h3>Section Complete!</h3>
               <p>All questions in this section have been answered.</p>
               {currentSectionIdx < sections.length - 1 ? (
-                <button className="tsi-btn-next" onClick={() => { setCurrentSectionIdx(prev => prev + 1); setCurrentQuestionIdx(0); }}>
-                  Next Section →
-                </button>
+                <button className="tsi-btn-next" onClick={() => { setCurrentSectionIdx(prev => prev + 1); setCurrentQuestionIdx(0); }}>Next Section →</button>
               ) : (
-                <button className="tsi-btn-submit" onClick={() => setShowConfirmSubmit(true)}>
-                  Submit Interview
-                </button>
+                <button className="tsi-btn-submit" onClick={() => setShowConfirmSubmit(true)}>Submit Interview</button>
               )}
             </div>
           )}
@@ -515,7 +454,7 @@ const TakeStructuredInterview: React.FC = () => {
           <div className="tsi-modal" onClick={e => e.stopPropagation()}>
             <h3>Submit Interview?</h3>
             <p>You have answered <strong>{answeredCount}</strong> out of <strong>{questions.length}</strong> questions in this section.</p>
-            <p>Once submitted, you cannot go back to edit your answers.</p>
+            <p>Once submitted, our AI will evaluate your answers and generate your feedback report.</p>
             <div className="tsi-modal-actions">
               <button onClick={() => setShowConfirmSubmit(false)}>Continue Interview</button>
               <button className="tsi-btn-submit" onClick={handleSubmitInterview} disabled={submitting}>

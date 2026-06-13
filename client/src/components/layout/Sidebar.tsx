@@ -144,17 +144,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       ]
     },
     {
-      label: 'Learning Hub',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'],
-      icon: 'fa-solid fa-lightbulb',
-      moduleKey: 'courses',
-      permissions: ['view_reports', 'manage_tenant_users'],
-      submenu: [
-        { label: 'Topic Mastery Heatmap', path: '/admin/topic-mastery', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-fire', permissions: ['view_reports'] },
-        { label: 'Learning Requests', path: '/admin/learning-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-hand-holding-heart', permissions: ['view_reports', 'manage_tenant_users'] },
-      ]
-    },
-    {
       label: 'Learning Plans',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
       icon: 'fa-solid fa-calendar-days',

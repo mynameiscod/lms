@@ -111,8 +111,6 @@ import LeadKanbanPage from './pages/LeadKanban';
 import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas, CampaignManagement, StageAnalytics } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
-import AdminTopicMasteryPage from './pages/AdminTopicMastery';
-import AdminLearningRequestsPage from './pages/AdminLearningRequests';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
 import LeadSourcesPage from './pages/LeadSources';
@@ -1476,27 +1474,6 @@ const AppRoutes: React.FC = () => {
       />
 
 
-      {/* Topic Mastery & Learning Hub */}
-      <Route
-        path="/admin/topic-mastery"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
-            <Layout>
-              <AdminTopicMasteryPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/learning-requests"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF']}>
-            <Layout>
-              <AdminLearningRequestsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
 
       {/* Website Registrations */}
       <Route

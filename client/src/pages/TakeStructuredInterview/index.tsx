@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import * as tus from 'tus-js-client';
 import { studentInterviewApi } from '../../api/interviewModuleApi';
+import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import { useMediaRecorder } from '../../hooks/useMediaRecorder';
 import { useInterviewVoice } from '../../hooks/useInterviewVoice';
 import './TakeStructuredInterview.css';
@@ -31,6 +33,16 @@ const TakeStructuredInterview: React.FC = () => {
   const [voiceMode, setVoiceMode] = useState(false);
   const questionStartRef = useRef<number>(Date.now());
   const submitOnceRef = useRef(false);
+
+  // ── Continuous video recording (template-level) ─────────────────────
+  const [camState, setCamState] = useState<'idle' | 'requesting' | 'on' | 'denied'>('idle');
+  const [recError, setRecError] = useState('');
+  const [uploadingRec, setUploadingRec] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const camStreamRef = useRef<MediaStream | null>(null);
+  const recorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const selfViewRef = useRef<HTMLVideoElement>(null);
 
   // ── Media recording for audio/video answer modes ────────────────────
   const sectionsRef = attempt?.sectionAttempts || [];
@@ -178,6 +190,85 @@ const TakeStructuredInterview: React.FC = () => {
   const questions = currentSection?.questionResponses || [];
   const currentQuestion = questions[currentQuestionIdx];
   const navMode = attempt?.templateId?.sectionNavigationMode || 'sequential';
+  const recordVideo = !!attempt?.templateId?.recordVideo;
+  const videoFallback = attempt?.templateId?.videoFallback || 'allow_text';
+
+  // Request camera + start ONE continuous recording for the whole interview
+  useEffect(() => {
+    if (!attempt || !recordVideo || camState !== 'idle') return;
+    let cancelled = false;
+    (async () => {
+      setCamState('requesting');
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
+        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
+        camStreamRef.current = stream;
+        const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+          .find(t => (window as any).MediaRecorder?.isTypeSupported?.(t)) || '';
+        const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+        chunksRef.current = [];
+        rec.ondataavailable = e => { if (e.data && e.data.size) chunksRef.current.push(e.data); };
+        rec.start(2000);
+        recorderRef.current = rec;
+        setCamState('on');
+        studentInterviewApi.saveRecording(attempt._id, { status: 'recording' }).catch(() => {});
+      } catch {
+        setCamState('denied');
+        setRecError('Camera and microphone access is needed for this video interview.');
+      }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attempt, recordVideo, camState]);
+
+  // Bind the live stream to the self-view element
+  useEffect(() => {
+    if (selfViewRef.current && camStreamRef.current) selfViewRef.current.srcObject = camStreamRef.current;
+  }, [camState, currentSectionIdx, currentQuestionIdx]);
+
+  // Stop camera + recorder on unmount
+  useEffect(() => () => {
+    try { if (recorderRef.current && recorderRef.current.state !== 'inactive') recorderRef.current.stop(); } catch { /* ignore */ }
+    camStreamRef.current?.getTracks().forEach(t => t.stop());
+  }, []);
+
+  const stopAndUploadRecording = async () => {
+    const rec = recorderRef.current;
+    if (!rec || !attempt) return;
+    const blob: Blob = await new Promise(resolve => {
+      rec.onstop = () => resolve(new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'video/webm' }));
+      try { if (rec.state !== 'inactive') rec.stop(); else resolve(new Blob(chunksRef.current, { type: 'video/webm' })); }
+      catch { resolve(new Blob(chunksRef.current, { type: 'video/webm' })); }
+    });
+    camStreamRef.current?.getTracks().forEach(t => t.stop());
+    if (!blob.size) return;
+    try {
+      setUploadingRec(true); setUploadPct(0);
+      const meta = await learningContentLibraryApi.createBunnyVideo(`Interview ${attempt._id}`);
+      await new Promise<void>((resolve, reject) => {
+        const up = new tus.Upload(blob, {
+          endpoint: meta.tus.endpoint,
+          retryDelays: [0, 3000, 6000],
+          headers: {
+            AuthorizationSignature: meta.tus.signature,
+            AuthorizationExpire: String(meta.tus.expiration),
+            VideoId: meta.videoId,
+            LibraryId: String(meta.libraryId),
+          },
+          metadata: { filetype: blob.type || 'video/webm' },
+          onError: reject,
+          onProgress: (sent, total) => setUploadPct(Math.round((sent / total) * 100)),
+          onSuccess: () => resolve(),
+        });
+        up.start();
+      });
+      await studentInterviewApi.saveRecording(attempt._id, { bunnyVideoId: meta.videoId, bunnyLibraryId: meta.libraryId, status: 'uploaded' });
+    } catch {
+      await studentInterviewApi.saveRecording(attempt._id, { status: 'failed' }).catch(() => {});
+    } finally {
+      setUploadingRec(false);
+    }
+  };
 
   // ── Load existing answer when navigating ────────────────────────────
   useEffect(() => {
@@ -266,6 +357,9 @@ const TakeStructuredInterview: React.FC = () => {
     if (!attempt) return;
     try {
       setSubmitting(true);
+      if (recordVideo && (camState === 'on' || recorderRef.current)) {
+        await stopAndUploadRecording();
+      }
       await studentInterviewApi.submitAttempt(attempt._id);
       navigate(`/student/interviews/report/${attempt._id}`);
     } catch (err: any) {
@@ -277,6 +371,19 @@ const TakeStructuredInterview: React.FC = () => {
   if (loading) return <div className="tsi-loading"><div className="tsi-spinner" />Starting interview...</div>;
   if (error) return <div className="tsi-error">{error}<br /><button onClick={() => navigate('/student/interviews')}>Back to Hub</button></div>;
   if (!attempt) return <div className="tsi-error">No attempt data.</div>;
+
+  if (recordVideo && camState === 'denied' && videoFallback === 'block') {
+    return (
+      <div className="tsi-error">
+        <h3>📷 Camera & microphone required</h3>
+        <p>{recError || 'This is a video interview — please allow camera and microphone access to continue.'}</p>
+        <div style={{ marginTop: 12 }}>
+          <button onClick={() => { setCamState('idle'); setRecError(''); }}>Retry camera</button>
+          <button onClick={() => navigate('/student/interviews')} style={{ marginLeft: 8 }}>Back to Hub</button>
+        </div>
+      </div>
+    );
+  }
 
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
@@ -361,6 +468,28 @@ const TakeStructuredInterview: React.FC = () => {
 
         {/* Main question area */}
         <div className="tsi-main">
+          {recordVideo && (
+            <div className="tsi-interviewer-bar">
+              <div className="tsi-interviewer">
+                {currentSection?.avatarImageUrl
+                  ? <img src={currentSection.avatarImageUrl} alt="Interviewer" className="tsi-avatar-img" />
+                  : <div className="tsi-avatar-fallback">🧑‍💼</div>}
+                <span className="tsi-interviewer-label">Interviewer{voice.speaking ? ' • speaking…' : ''}</span>
+              </div>
+              <div className="tsi-selfview-wrap">
+                {camState === 'on'
+                  ? <video ref={selfViewRef} autoPlay muted playsInline className="tsi-selfview" />
+                  : <div className="tsi-selfview placeholder">{camState === 'requesting' ? 'Starting camera…' : 'Camera off'}</div>}
+                {camState === 'on' && <span className="tsi-rec-badge"><span className="tsi-rec-dot" /> REC</span>}
+              </div>
+              {camState === 'denied' && videoFallback === 'allow_text' && (
+                <div className="tsi-voice-note">
+                  Recording unavailable — continuing without video.
+                  <button onClick={() => setCamState('idle')} style={{ marginLeft: 6, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#b45309' }}>Retry</button>
+                </div>
+              )}
+            </div>
+          )}
           {currentQuestion ? (
             <>
               <div className="tsi-question-header">
@@ -529,6 +658,17 @@ const TakeStructuredInterview: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Uploading recording overlay */}
+      {uploadingRec && (
+        <div className="tsi-modal-overlay">
+          <div className="tsi-modal" style={{ textAlign: 'center' }}>
+            <h3>Saving your interview…</h3>
+            <p>Uploading your video recording ({uploadPct}%). Please keep this tab open.</p>
+            <div className="tsi-upload-bar"><div className="tsi-upload-fill" style={{ width: `${uploadPct}%` }} /></div>
+          </div>
+        </div>
+      )}
 
       {/* Confirm Submit Modal */}
       {showConfirmSubmit && (

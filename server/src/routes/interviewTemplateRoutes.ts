@@ -37,6 +37,28 @@ const uploadInterviewRecording = multer({
   },
 });
 
+// ── Multer config for section interviewer avatar images ──────────────────
+const avatarUploadsDir = path.join(__dirname, '../../uploads/interview-avatars');
+if (!fs.existsSync(avatarUploadsDir)) {
+  fs.mkdirSync(avatarUploadsDir, { recursive: true });
+}
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, avatarUploadsDir),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    const ext = path.extname(file.originalname) || '.png';
+    cb(null, `avatar-${unique}${ext}`);
+  },
+});
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+  fileFilter: (_req, file, cb) => {
+    if (/^image\//.test(file.mimetype)) cb(null, true);
+    else cb(new Error('Only image files are allowed'));
+  },
+});
+
 // All routes require auth + tenant
 router.use(authMiddleware);
 router.use(tenantResolver);
@@ -107,6 +129,14 @@ router.post(
   '/question-bank/ai-generate',
   roleGuard(['manage_interview_templates']),
   ctrl.aiGenerateQuestions
+);
+
+// Admin: upload a section interviewer avatar image
+router.post(
+  '/avatars',
+  roleGuard(['manage_interview_templates']),
+  uploadAvatar.single('avatar'),
+  ctrl.uploadInterviewAvatar
 );
 
 router.get(
@@ -255,6 +285,12 @@ router.post(
   '/student/attempts/:attemptId/submit',
   roleGuard(['attempt_interviews']),
   ctrl.submitAttempt
+);
+
+router.post(
+  '/student/attempts/:attemptId/recording',
+  roleGuard(['attempt_interviews']),
+  ctrl.saveAttemptRecording
 );
 
 router.get(

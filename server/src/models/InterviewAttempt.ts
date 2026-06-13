@@ -55,6 +55,7 @@ export interface ISectionAttempt {
   sectionTitle: string;
   sectionType: 'communication' | 'hr' | 'technical';
   sectionOrder: number;
+  avatarImageUrl?: string;                   // snapshot of the section's interviewer avatar
 
   // Progress
   status: 'not_started' | 'in_progress' | 'completed' | 'skipped' | 'timed_out';
@@ -211,6 +212,7 @@ const SectionAttemptSchema = new Schema<ISectionAttempt>({
   sectionTitle: { type: String, required: true },
   sectionType:  { type: String, enum: ['communication', 'hr', 'technical'], required: true },
   sectionOrder: { type: Number, required: true },
+  avatarImageUrl: { type: String },
 
   status: {
     type: String,

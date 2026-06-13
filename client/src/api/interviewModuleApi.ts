@@ -78,6 +78,21 @@ export const interviewTemplateApi = {
 
   duplicate: (templateId: string) =>
     apiFetch(`${MODULE_URL}/templates/${templateId}/duplicate`, { method: 'POST' }),
+
+  /** Upload a section interviewer avatar image; returns { data: { url } }. */
+  uploadAvatar: async (file: File) => {
+    const fd = new FormData();
+    fd.append('avatar', file);
+    const token = localStorage.getItem('token');
+    const tenantId = localStorage.getItem('tenantId');
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (tenantId) headers['X-Tenant-Id'] = tenantId;
+    const r = await fetch(`${MODULE_URL}/avatars`, { method: 'POST', headers, body: fd });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Avatar upload failed');
+    return data;
+  },
 };
 
 // ─── Question Bank API ───────────────────────────────────────────────────────
@@ -230,6 +245,9 @@ export const studentInterviewApi = {
 
   submitAttempt: (attemptId: string) =>
     apiFetch(`${MODULE_URL}/student/attempts/${attemptId}/submit`, { method: 'POST' }),
+
+  saveRecording: (attemptId: string, body: { bunnyVideoId?: string; bunnyLibraryId?: string | number; status?: string }) =>
+    apiFetch(`${MODULE_URL}/student/attempts/${attemptId}/recording`, { method: 'POST', body: JSON.stringify(body) }),
 
   getReport: (attemptId: string) =>
     apiFetch(`${MODULE_URL}/student/attempts/${attemptId}/report`),

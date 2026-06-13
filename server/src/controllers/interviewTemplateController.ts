@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import interviewTemplateService from '../services/interviewTemplateService';
 
 // Template fields the take page needs (no answer keys here)
-const STUDENT_TEMPLATE_FIELDS = 'title description interviewCategories totalDuration sectionNavigationMode blockMultipleTabs allowResume showResultImmediately';
+const STUDENT_TEMPLATE_FIELDS = 'title description interviewCategories totalDuration sectionNavigationMode blockMultipleTabs allowResume showResultImmediately recordVideo videoFallback';
 
 /**
  * Strip per-question grading + any correct-answer hints from an attempt before
@@ -608,5 +608,37 @@ export const uploadAnswerRecording = async (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('Error uploading answer recording:', error);
     res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ─── Admin: upload a section interviewer avatar image ─────────────────────────
+
+export const uploadInterviewAvatar = async (req: Request, res: Response) => {
+  try {
+    const file = (req as any).file;
+    if (!file) return res.status(400).json({ success: false, message: 'No image uploaded' });
+    const url = `/uploads/interview-avatars/${file.filename}`;
+    res.status(201).json({ success: true, data: { url } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ─── Student: attach a Bunny recording id to the attempt ─────────────────────
+
+export const saveAttemptRecording = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const userId = (req as any).userId;
+    const { attemptId } = req.params;
+    const { bunnyVideoId, bunnyLibraryId, status } = req.body;
+    const attempt = await interviewTemplateService.saveAttemptRecording(
+      attemptId, tenantId, userId,
+      { bunnyVideoId, bunnyLibraryId, status }
+    );
+    if (!attempt) return res.status(404).json({ success: false, message: 'Attempt not found' });
+    res.json({ success: true, data: { recordingStatus: attempt.recordingStatus } });
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
   }
 };

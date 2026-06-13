@@ -578,6 +578,7 @@ class InterviewTemplateService {
         sectionTitle: section.sectionTitle,
         sectionType: section.sectionType,
         sectionOrder: section.sectionOrder,
+        avatarImageUrl: (section as any).avatarImageUrl,
         status: 'not_started',
         currentQuestionIndex: 0,
         questionResponses: questionResponses as ISectionQuestionResponse[],
@@ -615,6 +616,25 @@ class InterviewTemplateService {
     }
 
     return saved;
+  }
+
+  async saveAttemptRecording(
+    attemptId: string,
+    tenantId: string,
+    studentId: string,
+    data: { bunnyVideoId?: string; bunnyLibraryId?: string; status?: string }
+  ): Promise<IInterviewAttempt | null> {
+    const update: any = {};
+    if (data.bunnyVideoId) update.recordingBunnyVideoId = data.bunnyVideoId;
+    if (data.bunnyLibraryId) update.recordingBunnyLibraryId = String(data.bunnyLibraryId);
+    update.recordingStatus = data.status && ['recording', 'uploaded', 'failed', 'none'].includes(data.status)
+      ? data.status
+      : (data.bunnyVideoId ? 'uploaded' : 'failed');
+    return InterviewAttempt.findOneAndUpdate(
+      { _id: attemptId, tenantId, studentId },
+      { $set: update },
+      { new: true }
+    );
   }
 
   async getAttempt(attemptId: string, tenantId: string): Promise<IInterviewAttempt | null> {

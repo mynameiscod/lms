@@ -67,6 +67,8 @@ const InterviewTemplateCreate: React.FC = () => {
     requireMicrophone: false,
     microphoneFallback: 'text_fallback',
     enableCodeEditor: false,
+    recordVideo: false,
+    videoFallback: 'allow_text',
   });
 
   useEffect(() => {
@@ -183,6 +185,15 @@ const InterviewTemplateCreate: React.FC = () => {
       setAiMsg(err.message || 'Generation failed. Make sure AI is configured on the server.');
     } finally {
       setAiGenerating(false);
+    }
+  };
+
+  const handleAvatarUpload = async (sectionIndex: number, file: File) => {
+    try {
+      const res = await interviewTemplateApi.uploadAvatar(file);
+      updateSection(sectionIndex, 'avatarImageUrl', res.data.url);
+    } catch (e: any) {
+      alert(e.message || 'Avatar upload failed');
     }
   };
 
@@ -349,6 +360,21 @@ const InterviewTemplateCreate: React.FC = () => {
               <label><input type="checkbox" checked={form.enableCodeEditor || false} onChange={e => updateForm('enableCodeEditor', e.target.checked)} /> Enable Code Editor</label>
             </div>
           </div>
+          <div className="itc-row">
+            <div className="itc-field itc-checkbox">
+              <label><input type="checkbox" checked={form.recordVideo || false} onChange={e => updateForm('recordVideo', e.target.checked)} /> 🎥 Record as Video Interview</label>
+            </div>
+            {form.recordVideo && (
+              <div className="itc-field">
+                <label>If camera/mic is denied</label>
+                <select value={form.videoFallback || 'allow_text'} onChange={e => updateForm('videoFallback', e.target.value)}>
+                  <option value="allow_text">Allow continue without video</option>
+                  <option value="block">Block until camera is allowed</option>
+                </select>
+              </div>
+            )}
+          </div>
+          {form.recordVideo && <p className="itc-hint">The whole interview is recorded (webcam + mic) and saved to Bunny. Upload a per-section interviewer avatar below for a real-interview feel.</p>}
         </section>
 
         {/* ── Schedule ───────────────────────────────────────── */}
@@ -563,6 +589,21 @@ const InterviewTemplateCreate: React.FC = () => {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {form.recordVideo && (
+                <div className="itc-field">
+                  <label>Interviewer Avatar (shown to the student during this section)</label>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    {section.avatarImageUrl && (
+                      <img src={section.avatarImageUrl} alt="avatar" style={{ width: 56, height: 56, borderRadius: '50%', objectFit: 'cover', border: '1px solid #e5e7eb' }} />
+                    )}
+                    <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) handleAvatarUpload(idx, f); }} />
+                    {section.avatarImageUrl && (
+                      <button type="button" className="itc-btn-sm" onClick={() => updateSection(idx, 'avatarImageUrl', '')}>Remove</button>
+                    )}
+                  </div>
                 </div>
               )}
 

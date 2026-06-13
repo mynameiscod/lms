@@ -24,6 +24,7 @@ export interface ISectionDefinition {
   canBeSkipped: boolean;
   answerMode: 'text' | 'audio' | 'video' | 'mcq' | 'code' | 'mixed';
   instructions?: string;
+  avatarImageUrl?: string;   // per-section "interviewer" avatar shown during video interviews
 }
 
 // ─── Main Template Interface ─────────────────────────────────────────────────
@@ -88,6 +89,10 @@ export interface IInterviewTemplate extends Document {
   microphoneFallback: 'block' | 'text_fallback';
   enableCodeEditor: boolean;
 
+  // Video interview
+  recordVideo: boolean;
+  videoFallback: 'allow_text' | 'block';   // what to do if the student denies camera/mic
+
   // Lifecycle
   status: 'draft' | 'published' | 'scheduled' | 'active' | 'expired' | 'cancelled' | 'archived';
   publishedAt?: Date;
@@ -122,6 +127,7 @@ const SectionDefinitionSchema = new Schema<ISectionDefinition>({
   canBeSkipped:         { type: Boolean, default: false },
   answerMode:           { type: String, enum: ['text', 'audio', 'video', 'mcq', 'code', 'mixed'], default: 'text' },
   instructions:         { type: String },
+  avatarImageUrl:       { type: String },
 }, { _id: true });
 
 // ─── Main Template Schema ────────────────────────────────────────────────────
@@ -180,6 +186,9 @@ const InterviewTemplateSchema = new Schema<IInterviewTemplate>(
     requireMicrophone:  { type: Boolean, default: false },
     microphoneFallback: { type: String, enum: ['block', 'text_fallback'], default: 'text_fallback' },
     enableCodeEditor:   { type: Boolean, default: false },
+
+    recordVideo:   { type: Boolean, default: false },
+    videoFallback: { type: String, enum: ['allow_text', 'block'], default: 'allow_text' },
 
     status:      { type: String, enum: ['draft', 'published', 'scheduled', 'active', 'expired', 'cancelled', 'archived'], default: 'draft' },
     publishedAt: { type: Date },

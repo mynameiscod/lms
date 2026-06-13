@@ -92,6 +92,23 @@ const InterviewFeedbackReport: React.FC = () => {
         </div>
       )}
 
+      {/* Interview recording (admin only) */}
+      {isAdminView && attempt.recordingBunnyVideoId && attempt.recordingBunnyLibraryId && (
+        <div className="ifr-feedback-box">
+          <h3>🎥 Interview Recording</h3>
+          <div style={{ position: 'relative', paddingTop: '56.25%', borderRadius: 8, overflow: 'hidden' }}>
+            <iframe
+              title="Interview recording"
+              src={`https://iframe.mediadelivery.net/embed/${attempt.recordingBunnyLibraryId}/${attempt.recordingBunnyVideoId}`}
+              loading="lazy"
+              style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', border: 0 }}
+              allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture"
+              allowFullScreen
+            />
+          </div>
+        </div>
+      )}
+
       {/* Strengths & Weaknesses */}
       {(attempt.topStrengths?.length || attempt.topWeaknesses?.length) && (
         <div className="ifr-sw-grid">

@@ -41,3 +41,20 @@
 .ia-modal-actions { display: flex; justify-content: flex-end; gap: 10px; padding-top: 12px; border-top: 1px solid #f3f4f6; }
 .ia-modal-actions button { padding: 8px 20px; border: 1px solid #d1d5db; border-radius: 6px; cursor: pointer; font-size: 14px; background: #fff; }
 .ia-btn-save { background: #4f46e5 !important; color: #fff !important; border: none !important; font-weight: 600; }
+
+/* ── Student picker ──────────────────────────────────────────────────── */
+.ia-student-picker {
+  max-height: 240px; overflow-y: auto; border: 1px solid #e5e7eb;
+  border-radius: 8px; background: #fff;
+}
+.ia-student-row {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-bottom: 1px solid #f1f5f9; cursor: pointer; font-size: 14px;
+}
+.ia-student-row:last-child { border-bottom: none; }
+.ia-student-row:hover { background: #f8fafc; }
+.ia-student-row.selected { background: #eef2ff; }
+.ia-student-row input { margin: 0; }
+.ia-student-name { font-weight: 600; color: #1f2937; }
+.ia-student-email { color: #6b7280; font-size: 12px; margin-left: auto; }
+.ia-picker-empty { padding: 16px; text-align: center; color: #9ca3af; font-size: 13px; }

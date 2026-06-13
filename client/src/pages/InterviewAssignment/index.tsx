@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { interviewAssignmentApi, interviewTemplateApi } from '../../api/interviewModuleApi';
+import { userApi, batchApi, courseApi } from '../../api';
 import './InterviewAssignment.css';
+
+const studentLabel = (u: any) =>
+  u.name || [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email || u._id;
 
 const STATUS_COLORS: Record<string, string> = {
   assigned: '#3b82f6', in_progress: '#f59e0b', completed: '#10b981', cancelled: '#ef4444', expired: '#6b7280',
@@ -34,8 +38,10 @@ const InterviewAssignment: React.FC = () => {
   useEffect(() => { fetchAssignments(); }, [fetchAssignments]);
 
   useEffect(() => {
-    interviewTemplateApi.getAll({ status: 'published', limit: 100 }).then(res => {
-      setTemplates(res.templates || []);
+    // Assignable = anything that's been published (status becomes active/scheduled).
+    interviewTemplateApi.getAll({ limit: 100 }).then(res => {
+      const assignable = (res.templates || []).filter((t: any) => ['active', 'published', 'scheduled'].includes(t.status));
+      setTemplates(assignable);
     }).catch(() => {});
   }, []);
 
@@ -155,12 +161,37 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
   const [pushing, setPushing] = useState(false);
   const [pushMode, setPushMode] = useState<'individual' | 'batch' | 'course'>('individual');
   const [form, setForm] = useState({
-    templateId: initialTemplateId || '', studentIds: '', batchId: '', courseId: '',
+    templateId: initialTemplateId || '', batchId: '', courseId: '',
     pushReason: '', maxAttempts: 1,
     availableFrom: '', dueDate: '', expiresAt: '',
   });
 
   const updateForm = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
+
+  // Pickers: students (searchable multi-select), batches + courses (dropdowns)
+  const [students, setStudents] = useState<any[]>([]);
+  const [batches, setBatches] = useState<any[]>([]);
+  const [courses, setCourses] = useState<any[]>([]);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+
+  useEffect(() => {
+    userApi.getUsers().then((res: any) => {
+      const all = res.users || res.data || res || [];
+      setStudents(all.filter((u: any) => u.role === 'STUDENT' && u.isActive !== false));
+    }).catch(() => {});
+    batchApi.getBatches().then((res: any) => setBatches(res.batches || res.data || res || [])).catch(() => {});
+    courseApi.getCourses({ isActive: true }).then((res: any) => setCourses(res.courses || res.data || res || [])).catch(() => {});
+  }, []);
+
+  const toggleStudent = (id: string) =>
+    setSelectedStudents(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+
+  const q = studentSearch.trim().toLowerCase();
+  const filteredStudents = (q
+    ? students.filter(u => studentLabel(u).toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
+    : students
+  ).slice(0, 60);
 
   const handlePush = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,14 +208,13 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
       };
 
       if (pushMode === 'individual') {
-        const ids = form.studentIds.split(',').map(s => s.trim()).filter(Boolean);
-        if (ids.length === 0) { alert('Enter student IDs'); return; }
-        await interviewAssignmentApi.push({ templateId: form.templateId, ...commonPayload, studentIds: ids });
+        if (selectedStudents.length === 0) { alert('Select at least one student'); return; }
+        await interviewAssignmentApi.push({ templateId: form.templateId, ...commonPayload, studentIds: selectedStudents });
       } else if (pushMode === 'batch') {
-        if (!form.batchId) { alert('Enter batch ID'); return; }
+        if (!form.batchId) { alert('Select a batch'); return; }
         await interviewAssignmentApi.pushToBatch({ templateId: form.templateId, ...commonPayload, batchIds: [form.batchId] });
       } else {
-        if (!form.courseId) { alert('Enter course ID'); return; }
+        if (!form.courseId) { alert('Select a course'); return; }
         await interviewAssignmentApi.pushToCourse({ templateId: form.templateId, ...commonPayload, courseIds: [form.courseId] });
       }
       onPushed();
@@ -223,20 +253,43 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
 
           {pushMode === 'individual' && (
             <div className="ia-modal-field">
-              <label>Student IDs (comma-separated)</label>
-              <textarea value={form.studentIds} onChange={e => updateForm('studentIds', e.target.value)} rows={3} placeholder="student1-id, student2-id" />
+              <label>Students ({selectedStudents.length} selected)</label>
+              <input
+                type="text"
+                value={studentSearch}
+                onChange={e => setStudentSearch(e.target.value)}
+                placeholder="Search by name or email…"
+                style={{ marginBottom: 8 }}
+              />
+              <div className="ia-student-picker">
+                {filteredStudents.length === 0 ? (
+                  <div className="ia-picker-empty">{students.length ? 'No matching students.' : 'Loading students…'}</div>
+                ) : filteredStudents.map(u => (
+                  <label key={u._id} className={`ia-student-row ${selectedStudents.includes(u._id) ? 'selected' : ''}`}>
+                    <input type="checkbox" checked={selectedStudents.includes(u._id)} onChange={() => toggleStudent(u._id)} />
+                    <span className="ia-student-name">{studentLabel(u)}</span>
+                    {u.email && <span className="ia-student-email">{u.email}</span>}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
           {pushMode === 'batch' && (
             <div className="ia-modal-field">
-              <label>Batch ID</label>
-              <input type="text" value={form.batchId} onChange={e => updateForm('batchId', e.target.value)} />
+              <label>Batch</label>
+              <select value={form.batchId} onChange={e => updateForm('batchId', e.target.value)}>
+                <option value="">Select a batch…</option>
+                {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+              </select>
             </div>
           )}
           {pushMode === 'course' && (
             <div className="ia-modal-field">
-              <label>Course ID</label>
-              <input type="text" value={form.courseId} onChange={e => updateForm('courseId', e.target.value)} />
+              <label>Course</label>
+              <select value={form.courseId} onChange={e => updateForm('courseId', e.target.value)}>
+                <option value="">Select a course…</option>
+                {courses.map(c => <option key={c._id} value={c._id}>{c.title || c.name}</option>)}
+              </select>
             </div>
           )}
 

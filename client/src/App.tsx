@@ -57,10 +57,6 @@ import DeptReportsPage from './pages/DeptReports';
 import BulkUploadPage from './pages/BulkUpload';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
-import MockInterviewHub from './pages/MockInterviewHub';
-import TakeInterview from './pages/TakeInterview';
-import InterviewResult from './pages/InterviewResult';
-import AssignInterviewPage from './pages/AssignInterview';
 
 // Structured Interview Module Pages
 import InterviewTemplateList from './pages/InterviewTemplateList';
@@ -324,72 +320,6 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
-
-      {/* Mock Interview Routes */}
-      <Route
-        path="/mock-interviews"
-        element={
-          <ProtectedRoute>
-            <FeatureRoute feature="mockInterviews">
-              <Layout>
-                <MockInterviewHub />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/mock-interviews/history"
-        element={
-          <ProtectedRoute>
-            <FeatureRoute feature="mockInterviews">
-              <Layout>
-                <MockInterviewHub />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/mock-interviews/:interviewId/take"
-        element={
-          <ProtectedRoute>
-            <FeatureRoute feature="mockInterviews">
-              <Layout>
-                <TakeInterview />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/mock-interviews/:interviewId/result"
-        element={
-          <ProtectedRoute>
-            <FeatureRoute feature="mockInterviews">
-              <Layout>
-                <InterviewResult />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Admin: Assign Interviews */}
-      <Route
-        path="/mock-interviews/assign"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <AssignInterviewPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
 
       <Route
         path="/users"

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { interviewAssignmentApi, interviewTemplateApi } from '../../api/interviewModuleApi';
 import './InterviewAssignment.css';
 
@@ -7,6 +8,8 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const InterviewAssignment: React.FC = () => {
+  const [searchParams] = useSearchParams();
+  const presetTemplateId = searchParams.get('templateId') || '';
   const [assignments, setAssignments] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -35,6 +38,11 @@ const InterviewAssignment: React.FC = () => {
       setTemplates(res.templates || []);
     }).catch(() => {});
   }, []);
+
+  // Arriving from a template's "Assign" button (?templateId=…): open the push modal preselected.
+  useEffect(() => {
+    if (presetTemplateId) setShowPushModal(true);
+  }, [presetTemplateId]);
 
   const handleCancel = async (assignmentId: string) => {
     if (!window.confirm('Cancel this assignment?')) return;
@@ -125,6 +133,7 @@ const InterviewAssignment: React.FC = () => {
       {showPushModal && (
         <PushAssignmentModal
           templates={templates}
+          initialTemplateId={presetTemplateId}
           onClose={() => setShowPushModal(false)}
           onPushed={() => { setShowPushModal(false); fetchAssignments(); }}
         />
@@ -137,15 +146,16 @@ const InterviewAssignment: React.FC = () => {
 
 interface PushModalProps {
   templates: any[];
+  initialTemplateId?: string;
   onClose: () => void;
   onPushed: () => void;
 }
 
-const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, onClose, onPushed }) => {
+const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTemplateId, onClose, onPushed }) => {
   const [pushing, setPushing] = useState(false);
   const [pushMode, setPushMode] = useState<'individual' | 'batch' | 'course'>('individual');
   const [form, setForm] = useState({
-    templateId: '', studentIds: '', batchId: '', courseId: '',
+    templateId: initialTemplateId || '', studentIds: '', batchId: '', courseId: '',
     pushReason: '', maxAttempts: 1,
     availableFrom: '', dueDate: '', expiresAt: '',
   });

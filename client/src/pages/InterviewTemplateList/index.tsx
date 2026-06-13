@@ -185,7 +185,7 @@ const InterviewTemplateList: React.FC = () => {
                   </button>
                 )}
                 {['active', 'published'].includes(template.status) && (
-                  <button className="itl-btn-sm itl-btn-blue" onClick={() => navigate(`/admin/interviews/assign?templateId=${template._id}`)}>
+                  <button className="itl-btn-sm itl-btn-blue" onClick={() => navigate(`/admin/interviews/assignments?templateId=${template._id}`)}>
                     Assign
                   </button>
                 )}

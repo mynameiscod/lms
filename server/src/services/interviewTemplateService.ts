@@ -5,6 +5,7 @@ import InterviewAttempt, { IInterviewAttempt, ISectionAttempt, ISectionQuestionR
 import InterviewAssignment, { IInterviewAssignment } from '../models/InterviewAssignment';
 import User from '../models/User';
 import { v4 as uuidv4 } from 'uuid';
+import * as interviewAI from './interviewAIService';
 
 // ─── Template Service ────────────────────────────────────────────────────────
 
@@ -154,6 +155,38 @@ class InterviewTemplateService {
       createdBy: userId,
     }));
     return InterviewQuestionBankModel.insertMany(docs) as unknown as IInterviewQuestionBank[];
+  }
+
+  /**
+   * AI-generate question-bank items and persist them. Best-effort: returns the
+   * questions actually created (empty if the LLM is unavailable). `persist=false`
+   * returns the drafts without saving (for preview).
+   */
+  async aiGenerateQuestions(
+    specs: interviewAI.QGenSpec[],
+    tenantId: string,
+    userId: string,
+    opts: { persist?: boolean } = { persist: true }
+  ): Promise<{ created: IInterviewQuestionBank[]; generated: number; aiEnabled: boolean }> {
+    if (!interviewAI.isInterviewAIEnabled()) {
+      return { created: [], generated: 0, aiEnabled: false };
+    }
+
+    const drafts: any[] = [];
+    for (const spec of specs) {
+      try {
+        const items = await interviewAI.generateQuestions(spec);
+        drafts.push(...items);
+      } catch { /* skip this spec */ }
+    }
+
+    if (!drafts.length) return { created: [], generated: 0, aiEnabled: true };
+    if (opts.persist === false) {
+      return { created: drafts as any, generated: drafts.length, aiEnabled: true };
+    }
+
+    const created = await this.bulkCreateQuestions(drafts, tenantId, userId);
+    return { created, generated: created.length, aiEnabled: true };
   }
 
   async getQuestions(tenantId: string, filters: {
@@ -760,8 +793,8 @@ class InterviewTemplateService {
       attempt.passStatus = 'fail';
     }
 
-    // Generate overall feedback
-    this.generateOverallFeedback(attempt);
+    // Generate overall feedback (AI summary, deterministic fallback inside)
+    await this.aiGenerateOverallFeedback(attempt);
 
     attempt.status = 'submitted';
     attempt.submittedAt = new Date();
@@ -1156,7 +1189,26 @@ class InterviewTemplateService {
       };
     }
 
-    // Keyword-based evaluation
+    // AI evaluation (real LLM) — preferred for open/text/code/voice answers.
+    // Falls through to the deterministic keyword-based logic below when the
+    // ANTHROPIC_API_KEY is missing or the call fails.
+    if (answer.trim()) {
+      const ai = await interviewAI.evaluateAnswer({
+        questionText: question.questionText,
+        questionType: question.questionType,
+        sectionType: sectionType as 'communication' | 'hr' | 'technical',
+        answer,
+        maxScore: question.maxScore || qr.maxScore || 10,
+        expectedAnswerPoints: question.expectedAnswerPoints,
+        sampleStrongAnswer: question.sampleStrongAnswer,
+        evaluationRubric: question.evaluationRubric,
+        keywordsForMatching: question.keywordsForMatching,
+        codeLanguage: question.codeLanguage,
+      });
+      if (ai) return ai;
+    }
+
+    // Keyword-based evaluation (fallback)
     const keywords = question.keywordsForMatching || question.expectedAnswerPoints || [];
     const covered: string[] = [];
     const missed: string[] = [];
@@ -1290,6 +1342,43 @@ class InterviewTemplateService {
         practicalUnderstanding: avgCategoryScore('practicalUnderstanding'),
       };
     }
+  }
+
+  /**
+   * AI-written overall verdict. Falls back to the deterministic
+   * generateOverallFeedback() when the LLM is unavailable or fails.
+   */
+  private async aiGenerateOverallFeedback(attempt: IInterviewAttempt): Promise<void> {
+    try {
+      const summary = await interviewAI.summarizeAttempt({
+        overallPercentage: attempt.overallPercentage,
+        sections: attempt.sectionAttempts.map((s) => ({
+          sectionTitle: s.sectionTitle,
+          sectionType: s.sectionType,
+          percentage: s.percentage,
+          passed: s.passed,
+          status: s.status,
+          notableFeedback: s.questionResponses
+            .map((qr) => qr.feedback)
+            .filter((f): f is string => !!f)
+            .slice(0, 2),
+        })),
+      });
+
+      if (summary) {
+        attempt.overallFeedback = summary.overallFeedback;
+        attempt.topStrengths = summary.topStrengths;
+        attempt.topWeaknesses = summary.topWeaknesses;
+        attempt.recommendedPracticeAreas = summary.recommendedPracticeAreas.length
+          ? summary.recommendedPracticeAreas
+          : [...new Set(attempt.sectionAttempts.filter((s) => !s.passed && s.status === 'completed').map((s) => s.sectionType))];
+        attempt.readinessLevel = summary.readinessLevel;
+        return;
+      }
+    } catch {
+      /* fall through to deterministic */
+    }
+    this.generateOverallFeedback(attempt);
   }
 
   private generateOverallFeedback(attempt: IInterviewAttempt): void {

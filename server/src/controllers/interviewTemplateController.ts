@@ -117,6 +117,31 @@ export const bulkCreateQuestions = async (req: Request, res: Response) => {
   }
 };
 
+export const aiGenerateQuestions = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const userId = (req as any).userId;
+    let { specs, persist } = req.body;
+    // Accept either { specs: [...] } or a single spec object in the body
+    if (!Array.isArray(specs)) {
+      specs = req.body && req.body.topic ? [req.body] : [];
+    }
+    if (!specs.length) {
+      return res.status(400).json({ success: false, message: 'specs array (or a single spec) is required' });
+    }
+    const result = await interviewTemplateService.aiGenerateQuestions(specs, tenantId, userId, {
+      persist: persist !== false,
+    });
+    if (!result.aiEnabled) {
+      return res.status(503).json({ success: false, message: 'AI generation is not configured (ANTHROPIC_API_KEY missing).' });
+    }
+    res.status(201).json({ success: true, data: result.created, count: result.generated });
+  } catch (error: any) {
+    console.error('Error AI-generating interview questions:', error);
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 export const getQuestions = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;

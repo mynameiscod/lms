@@ -103,6 +103,12 @@ router.post(
   ctrl.bulkCreateQuestions
 );
 
+router.post(
+  '/question-bank/ai-generate',
+  roleGuard(['manage_interview_templates']),
+  ctrl.aiGenerateQuestions
+);
+
 router.get(
   '/question-bank',
   roleGuard(['manage_interview_templates']),

@@ -1297,16 +1297,6 @@ const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/fee-management"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
-            <Layout>
-              <SeatReservationsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/lead-aging"
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>

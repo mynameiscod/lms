@@ -156,17 +156,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: '📅 My Learning Plan',   path: '/my-learning',         roles: ['STUDENT'],                                   icon: 'fa-solid fa-graduation-cap', permissions: ['enroll_courses', 'view_courses'] },
       ]
     },
-    {
-      label: 'Fee Management',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'],
-      icon: 'fa-solid fa-wallet',
-      moduleKey: 'feeManagement',
-      permissions: ['manage_leads', 'view_leads', 'convert_leads'],
-      submenu: [
-        { label: 'Reservations & Fees', path: '/fee-management', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-file-invoice-dollar', permissions: ['manage_leads', 'view_leads', 'convert_leads'] },
-        { label: 'Fee Analytics', path: '/fee-management/analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-pie', permissions: ['manage_leads', 'view_lead_analytics'] },
-      ]
-    },
     { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-toggle-on', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: '🪲 API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['manage_tenant_settings', 'manage_tenant', 'view_reports'] },
     { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },

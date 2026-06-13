@@ -108,7 +108,6 @@ import LeadAgingPage from './pages/LeadAging';
 import LeadDuplicatesPage from './pages/LeadDuplicates';
 import LeadApprovalsPage from './pages/LeadApprovals';
 import LeadKanbanPage from './pages/LeadKanban';
-import { MarketingDashboard, CompetitorManagement, AdCapture, InsightsFeed, ContentGenerator, MarketingIdeas, CampaignManagement, StageAnalytics } from './pages/Marketing';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
@@ -1337,87 +1336,6 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Marketing Intelligence */}
-      <Route
-        path="/marketing"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <MarketingDashboard />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/marketing/competitors"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <CompetitorManagement />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/marketing/ads"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <AdCapture />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/marketing/insights"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <InsightsFeed />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/marketing/generate/:insightId"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <ContentGenerator />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/marketing/ideas"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <MarketingIdeas />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/marketing/campaigns"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <CampaignManagement />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/lead-stage-analytics"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
-            <Layout>
-              <StageAnalytics />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
 
       {/* Code Snippet Assessment Routes */}
       <Route

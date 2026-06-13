@@ -203,22 +203,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: '🤖 AI Call Config', path: '/ai-call-config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-phone-volume', permissions: ['manage_leads'] },
       ]
     },
-    {
-      label: 'Marketing',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN'],
-      icon: 'fa-solid fa-bullhorn',
-      moduleKey: 'marketing',
-      permissions: ['manage_marketing'],
-      submenu: [
-        { label: 'Dashboard', path: '/marketing', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-chart-area', permissions: ['manage_marketing'] },
-        { label: 'Campaigns', path: '/marketing/campaigns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-paper-plane', permissions: ['manage_marketing'] },
-        { label: 'Stage Analytics', path: '/lead-stage-analytics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-diagram-project', permissions: ['manage_marketing'] },
-        { label: 'Competitors', path: '/marketing/competitors', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-scale-balanced', permissions: ['manage_marketing'] },
-        { label: 'Ad Capture', path: '/marketing/ads', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-rectangle-ad', permissions: ['manage_marketing'] },
-        { label: 'Insights', path: '/marketing/insights', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-magnifying-glass-chart', permissions: ['manage_marketing'] },
-        { label: 'Marketing Ideas', path: '/marketing/ideas', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['manage_marketing'] },
-      ]
-    },
   ];
 
   const hasAccessToMenu = (item: MenuItem): boolean => {

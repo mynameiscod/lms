@@ -27,8 +27,8 @@ const StudentInterviewHub: React.FC = () => {
           studentInterviewApi.getAttempts(),
           studentInterviewApi.getAnalytics().catch(() => ({ data: null })),
         ]);
-        setAssignments(assignRes.assignments || []);
-        setAttempts(histRes.attempts || []);
+        setAssignments(assignRes.data || assignRes.assignments || []);
+        setAttempts(histRes.attempts || histRes.data || []);
         setAnalytics(analRes.data);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }

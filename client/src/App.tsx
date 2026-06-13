@@ -94,7 +94,6 @@ import LeadFormSettingsPage from './pages/LeadFormSettings';
 import LeadManagerBoardPage from './pages/LeadManagerBoard';
 import LeadMyPerformancePage from './pages/LeadMyPerformance';
 import LeadAuditLogsPage from './pages/LeadAuditLogs';
-import TelecallerConsolePage from './pages/TelecallerConsole';
 import LeadPrioritySettingsPage from './pages/LeadPrioritySettings';
 import LeadDispositionSettingsPage from './pages/LeadDispositionSettings';
 import QualificationSettingsPage from './pages/QualificationSettings';
@@ -1151,16 +1150,6 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadAuditLogsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/telecaller-console"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
-            <Layout>
-              <TelecallerConsolePage />
             </Layout>
           </ProtectedRoute>
         }

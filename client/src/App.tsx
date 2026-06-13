@@ -119,10 +119,6 @@ import LeadSourcesPage from './pages/LeadSources';
 import AICallConfigPage from './pages/AICallConfig';
 
 // Class Recording Pages
-import StartRecording from './pages/ClassRecording/StartRecording';
-import RecordingsList from './pages/ClassRecording/RecordingsList';
-import RecordingView from './pages/ClassRecording/RecordingView';
-import StudentRecordingsList from './pages/ClassRecording/StudentRecordingsList';
 
 // Registrations
 import AllRegistrations from './pages/PublicQuizAdmin/AllRegistrations';
@@ -166,12 +162,6 @@ import ScheduledInterviewsPage from './pages/ScheduledInterviews';
 import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
 import MyInterviewsPage from './pages/MyInterviews';
 
-// Class Flow (new unified flow)
-import ClassFlowPage from './pages/ClassFlow/ClassFlowPage';
-import StudentMyClasses from './pages/StudentClassHub/StudentMyClasses';
-import StudentClassHub from './pages/StudentClassHub/StudentClassHub';
-// Live classroom join page (for participants via invite link)
-import LiveJoinPage from './pages/LiveJoin/LiveJoinPage';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -1485,104 +1475,6 @@ const AppRoutes: React.FC = () => {
         }
       />
 
-      {/* Class Recordings */}
-      <Route
-        path="/admin/class-recordings"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <RecordingsList />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/class-recordings/start"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <StartRecording />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/class-recordings/:id"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <RecordingView />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Class Flow — new unified teacher wizard */}
-      <Route
-        path="/admin/class-flow"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <ClassFlowPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Live classroom join — participants access via invite link */}
-      <Route
-        path="/live/:sessionId"
-        element={
-          <ProtectedRoute>
-            <LiveJoinPage />
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Student Class Hub — new unified student pages */}
-      <Route
-        path="/class-hub"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT']}>
-            <FeatureRoute feature="classHub">
-              <Layout>
-                <StudentMyClasses />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/class-hub/:id"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <FeatureRoute feature="classHub">
-              <Layout>
-                <StudentClassHub />
-              </Layout>
-            </FeatureRoute>
-          </ProtectedRoute>
-        }
-      />
-
-      <Route
-        path="/class-recordings"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT']}>
-            <Layout>
-              <StudentRecordingsList />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/class-recordings/:id"
-        element={
-          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
-            <Layout>
-              <RecordingView />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
 
       {/* Topic Mastery & Learning Hub */}
       <Route

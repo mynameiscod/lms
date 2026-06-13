@@ -59,7 +59,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
 
   const menuItems: MenuItem[] = [
     { label: 'Dashboard', path: '/dashboard', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'], icon: 'fa-solid fa-gauge-high', featureKey: 'dashboard', permissions: ['view_analytics', 'view_reports', 'view_courses', 'view_attendance'] },
-    { label: '🎓 My Classes', path: '/class-hub', roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', featureKey: 'classHub' as keyof StudentFeatures, moduleKey: 'classRecordings', permissions: ['enroll_courses', 'view_courses', 'view_attendance', 'view_quiz'] },
     { label: 'Fee Details', path: '/student/fee-details', roles: ['STUDENT'], icon: 'fa-solid fa-wallet', featureKey: 'feeDetails' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Users', path: '/users', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-users', permissions: ['manage_tenant_users'] },
     { label: 'Fees', path: '/fees', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'], icon: 'fa-solid fa-money-bill-wave', permissions: ['view_fees', 'manage_billing'] },
@@ -119,20 +118,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'My Assessments', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal', permissions: ['view_snippets'] },
         { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-gears', permissions: ['manage_snippets'] },
         { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-star-half-stroke', permissions: ['manage_snippets', 'grade_snippets'] },
-      ]
-    },
-    {
-      label: 'Class Recordings',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
-      icon: 'fa-solid fa-video',
-      moduleKey: 'classRecordings',
-      featureKey: 'classHub' as keyof StudentFeatures,
-      permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'view_courses'],
-      submenu: [
-        { label: 'All Recordings', path: '/admin/class-recordings', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-list', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        { label: '✨ Class Flow', path: '/admin/class-flow', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-wand-magic-sparkles', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        { label: 'Start Class', path: '/admin/class-recordings/start', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-circle-dot', permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
-        { label: 'Watch Recordings', path: '/class-recordings', roles: ['STUDENT'], icon: 'fa-solid fa-play-circle', permissions: ['view_courses'] },
       ]
     },
     // Student Reports & Student Profiles merged into the unified Student Detail page — click a student in Users.
@@ -365,7 +350,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const isStudent = user?.role === 'STUDENT';
   
   const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'Mock Interviews', 'Topic Hub', '🎓 My Classes', 'Learning Plans', 'Resume Builder', 'My Interviews'].includes(i.label));
+  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'Mock Interviews', 'Learning Plans', 'Resume Builder', 'My Interviews'].includes(i.label));
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
   const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
 

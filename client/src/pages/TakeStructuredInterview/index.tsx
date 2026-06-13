@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { studentInterviewApi } from '../../api/interviewModuleApi';
 import { useMediaRecorder } from '../../hooks/useMediaRecorder';
+import { useInterviewVoice } from '../../hooks/useInterviewVoice';
 import './TakeStructuredInterview.css';
 
 /**
@@ -27,6 +28,7 @@ const TakeStructuredInterview: React.FC = () => {
   const [overallRemaining, setOverallRemaining] = useState(0);
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [tabWarnings, setTabWarnings] = useState(0);
+  const [voiceMode, setVoiceMode] = useState(false);
   const questionStartRef = useRef<number>(Date.now());
   const submitOnceRef = useRef(false);
 
@@ -56,6 +58,58 @@ const TakeStructuredInterview: React.FC = () => {
     }
     questionStartRef.current = Date.now();
   }, [currentSectionIdx, currentQuestionIdx, qMode]);
+
+  // ── Voice layer (browser TTS/STT) ───────────────────────────────────
+  const voice = useInterviewVoice();
+  const baseAnswerRef = useRef('');
+  const lastSpokenRef = useRef('');
+
+  const questionSpeech = useCallback(() => {
+    if (!liveQuestion) return '';
+    const opts = qMode === 'mcq' && liveQuestion.mcqOptions?.length
+      ? '. Options: ' + liveQuestion.mcqOptions.map((o: any) => `${o.label}. ${o.text}`).join('. ')
+      : '';
+    return `${liveQuestion.questionText}${opts}`;
+  }, [liveQuestion, qMode]);
+
+  const toggleVoiceMode = () => {
+    setVoiceMode(prev => {
+      const next = !prev;
+      if (next) { lastSpokenRef.current = ''; }       // re-speak current question
+      else { voice.stopSpeaking(); voice.stopListening(); }
+      return next;
+    });
+  };
+
+  // Speak the question once when it changes (voice mode only)
+  useEffect(() => {
+    if (!voiceMode || !liveQuestion || loading) return;
+    const key = `${currentSectionIdx}:${currentQuestionIdx}`;
+    if (lastSpokenRef.current === key) return;
+    lastSpokenRef.current = key;
+    voice.speak(questionSpeech());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voiceMode, currentSectionIdx, currentQuestionIdx, liveQuestion, qMode]);
+
+  // Live transcript → answer box
+  useEffect(() => {
+    if (voice.listening) setAnswer((baseAnswerRef.current + voice.transcript).trim());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [voice.transcript, voice.listening]);
+
+  // Stop voice when leaving a question
+  useEffect(() => {
+    voice.stopListening();
+    voice.resetTranscript();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSectionIdx, currentQuestionIdx]);
+
+  const handleMic = () => {
+    if (voice.listening) { voice.stopListening(); return; }
+    baseAnswerRef.current = answer ? answer + ' ' : '';
+    voice.resetTranscript();
+    voice.startListening();
+  };
 
   // ── Start / resume attempt ──────────────────────────────────────────
   useEffect(() => {
@@ -252,6 +306,15 @@ const TakeStructuredInterview: React.FC = () => {
             </span>
           )}
           {tabWarnings > 0 && <span className="tsi-tab-warning">⚠ Tab warnings: {tabWarnings}/3</span>}
+          {voice.ttsSupported && (
+            <button
+              className={`tsi-voice-toggle ${voiceMode ? 'on' : ''}`}
+              onClick={toggleVoiceMode}
+              title="Hear questions read aloud and answer by speaking"
+            >
+              {voiceMode ? '🔊 Voice On' : '🔈 Voice Off'}
+            </button>
+          )}
           <button className="tsi-btn-submit" onClick={() => setShowConfirmSubmit(true)}>Submit Interview</button>
         </div>
       </div>
@@ -309,6 +372,12 @@ const TakeStructuredInterview: React.FC = () => {
               <div className="tsi-question-text">
                 {currentQuestion.questionText || 'Loading question...'}
               </div>
+
+              {voiceMode && voice.ttsSupported && (
+                <button className="tsi-replay" onClick={() => voice.speak(questionSpeech())}>
+                  {voice.speaking ? '🔊 Speaking…' : '🔁 Replay question'}
+                </button>
+              )}
 
               {currentQuestion.questionHint && (
                 <p className="tsi-hint">💡 Hint: {currentQuestion.questionHint}</p>
@@ -378,6 +447,19 @@ const TakeStructuredInterview: React.FC = () => {
 
                 {answerMediaMode === 'text' && (
                   <>
+                    {voiceMode && (qMode === 'text' || qMode === 'code') && (
+                      <div className="tsi-voice-input">
+                        {voice.sttSupported ? (
+                          <button className={`tsi-mic ${voice.listening ? 'listening' : ''}`} onClick={handleMic}>
+                            {voice.listening ? '⏹ Stop & use answer' : '🎤 Speak your answer'}
+                          </button>
+                        ) : (
+                          <span className="tsi-voice-note">🎤 Voice input isn't supported in this browser — please type below.</span>
+                        )}
+                        {voice.listening && <span className="tsi-listening-dot">● listening…</span>}
+                        {voice.error && <span className="tsi-voice-note">{voice.error}</span>}
+                      </div>
+                    )}
                     {qMode === 'mcq' ? (
                       <div className="tsi-mcq-options">
                         {(currentQuestion.mcqOptions || []).map((opt: any, i: number) => (

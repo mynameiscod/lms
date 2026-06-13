@@ -56,3 +56,17 @@
   .itc-field { min-width: 100%; }
   .itc-categories { flex-direction: column; }
 }
+
+/* ── AI question generation ──────────────────────────────────────────── */
+.itc-qs-actions { display: flex; gap: 8px; }
+.itc-btn-ai {
+  background: linear-gradient(135deg, #7c3aed, #2563eb); color: #fff; border: none;
+}
+.itc-btn-ai:hover { opacity: 0.92; }
+.itc-ai-panel {
+  background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 8px;
+  padding: 14px; margin: 10px 0;
+}
+.itc-ai-panel .itc-hint { margin-top: 0; }
+.itc-ai-panel-actions { display: flex; align-items: center; gap: 12px; margin-top: 8px; flex-wrap: wrap; }
+.itc-ai-msg { font-size: 13px; color: #4338ca; }

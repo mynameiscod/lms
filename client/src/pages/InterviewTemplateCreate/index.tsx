@@ -37,6 +37,12 @@ const InterviewTemplateCreate: React.FC = () => {
   const [availableQuestions, setAvailableQuestions] = useState<any[]>([]);
   const [questionSearchCategory, setQuestionSearchCategory] = useState<string>('');
 
+  // AI question generation panel (per section)
+  const [aiPanelSection, setAiPanelSection] = useState<number | null>(null);
+  const [aiSpec, setAiSpec] = useState({ topic: '', difficulty: 'medium', answerMode: 'text', count: 5 });
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiMsg, setAiMsg] = useState('');
+
   const [form, setForm] = useState<Partial<IInterviewTemplateShared>>({
     title: '',
     description: '',
@@ -134,6 +140,49 @@ const InterviewTemplateCreate: React.FC = () => {
       setAvailableQuestions(res.questions || []);
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  // ── AI Question Generation ───────────────────────────────────────────
+
+  const handleAiGenerate = async (sectionIndex: number) => {
+    const section = (form.sections || [])[sectionIndex];
+    if (!section) return;
+    if (!aiSpec.topic.trim()) { setAiMsg('Please enter a topic first.'); return; }
+    try {
+      setAiGenerating(true);
+      setAiMsg('');
+      const res = await interviewQuestionBankApi.aiGenerate({
+        interviewCategory: section.sectionType,
+        topic: aiSpec.topic.trim(),
+        difficulty: aiSpec.difficulty,
+        answerMode: aiSpec.answerMode,
+        count: aiSpec.count,
+        roleTarget: form.targetAudience || undefined,
+        experienceLevel: form.experienceLevel || undefined,
+      });
+      const created: any[] = res.data || [];
+      if (!created.length) { setAiMsg('No questions were generated — try a different topic or run again.'); return; }
+
+      // Add the new questions to this section and ensure source uses the bank
+      const sections = [...(form.sections || [])];
+      const ids = new Set(sections[sectionIndex].questionIds || []);
+      created.forEach(q => ids.add(q._id));
+      sections[sectionIndex].questionIds = Array.from(ids);
+      sections[sectionIndex].questionSource = 'question_bank';
+      updateForm('sections', sections);
+
+      // Surface them in the selectable list (checked)
+      setQuestionSearchCategory(section.sectionType);
+      setAvailableQuestions(prev => {
+        const seen = new Set(prev.map((p: any) => p._id));
+        return [...created.filter(q => !seen.has(q._id)), ...prev];
+      });
+      setAiMsg(`✅ Generated and added ${created.length} question${created.length > 1 ? 's' : ''}.`);
+    } catch (err: any) {
+      setAiMsg(err.message || 'Generation failed. Make sure AI is configured on the server.');
+    } finally {
+      setAiGenerating(false);
     }
   };
 
@@ -438,10 +487,65 @@ const InterviewTemplateCreate: React.FC = () => {
                 <div className="itc-question-selector">
                   <div className="itc-question-selector-header">
                     <strong>Questions ({section.questionIds?.length || 0} selected)</strong>
-                    <button type="button" className="itc-btn-sm" onClick={() => loadQuestions(section.sectionType)}>
-                      Load Questions
-                    </button>
+                    <div className="itc-qs-actions">
+                      <button type="button" className="itc-btn-sm" onClick={() => loadQuestions(section.sectionType)}>
+                        Load Questions
+                      </button>
+                      <button
+                        type="button"
+                        className="itc-btn-sm itc-btn-ai"
+                        onClick={() => { setAiPanelSection(aiPanelSection === idx ? null : idx); setAiMsg(''); }}
+                      >
+                        ✨ AI Generate
+                      </button>
+                    </div>
                   </div>
+
+                  {aiPanelSection === idx && (
+                    <div className="itc-ai-panel">
+                      <p className="itc-hint">Claude writes interview questions for this <strong>{section.sectionType}</strong> section and adds them to the bank.</p>
+                      <div className="itc-row">
+                        <div className="itc-field">
+                          <label>Topic</label>
+                          <input
+                            type="text"
+                            value={aiSpec.topic}
+                            onChange={e => setAiSpec({ ...aiSpec, topic: e.target.value })}
+                            placeholder={
+                              section.sectionType === 'technical' ? 'e.g., Java, Aptitude, Logical Reasoning, SQL' :
+                              section.sectionType === 'hr' ? 'e.g., Behavioral, Teamwork, Conflict' :
+                              'e.g., Self Introduction, Fluency'
+                            }
+                          />
+                        </div>
+                        <div className="itc-field">
+                          <label>Format</label>
+                          <select value={aiSpec.answerMode} onChange={e => setAiSpec({ ...aiSpec, answerMode: e.target.value })}>
+                            <option value="text">Open-ended (AI-graded)</option>
+                            <option value="mcq">Multiple choice (auto-graded)</option>
+                          </select>
+                        </div>
+                        <div className="itc-field">
+                          <label>Difficulty</label>
+                          <select value={aiSpec.difficulty} onChange={e => setAiSpec({ ...aiSpec, difficulty: e.target.value })}>
+                            <option value="easy">Easy</option>
+                            <option value="medium">Medium</option>
+                            <option value="hard">Hard</option>
+                          </select>
+                        </div>
+                        <div className="itc-field">
+                          <label>How many</label>
+                          <input type="number" min={1} max={15} value={aiSpec.count} onChange={e => setAiSpec({ ...aiSpec, count: parseInt(e.target.value) || 5 })} />
+                        </div>
+                      </div>
+                      <div className="itc-ai-panel-actions">
+                        <button type="button" className="itc-btn-save" disabled={aiGenerating} onClick={() => handleAiGenerate(idx)}>
+                          {aiGenerating ? 'Generating… (~15s)' : '✨ Generate & Add'}
+                        </button>
+                        {aiMsg && <span className="itc-ai-msg">{aiMsg}</span>}
+                      </div>
+                    </div>
+                  )}
                   {questionSearchCategory === section.sectionType && availableQuestions.length > 0 && (
                     <div className="itc-question-list">
                       {availableQuestions.map(q => (

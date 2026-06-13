@@ -89,6 +89,12 @@ export const interviewQuestionBankApi = {
   bulkCreate: (questions: Partial<IInterviewQuestionShared>[]) =>
     apiFetch(`${MODULE_URL}/question-bank/bulk`, { method: 'POST', body: JSON.stringify({ questions }) }),
 
+  /** AI-generate question-bank items for a topic (returns the created questions). */
+  aiGenerate: (spec: {
+    interviewCategory: string; topic: string; difficulty: string; answerMode: string;
+    count: number; questionType?: string; roleTarget?: string; experienceLevel?: string; context?: string;
+  }) => apiFetch(`${MODULE_URL}/question-bank/ai-generate`, { method: 'POST', body: JSON.stringify(spec) }),
+
   getAll: (params?: {
     interviewCategory?: string; questionType?: string; topic?: string;
     difficulty?: string; roleTarget?: string; experienceLevel?: string;

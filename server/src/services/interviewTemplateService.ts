@@ -167,20 +167,24 @@ class InterviewTemplateService {
     tenantId: string,
     userId: string,
     opts: { persist?: boolean } = { persist: true }
-  ): Promise<{ created: IInterviewQuestionBank[]; generated: number; aiEnabled: boolean }> {
+  ): Promise<{ created: IInterviewQuestionBank[]; generated: number; aiEnabled: boolean; error?: string }> {
     if (!interviewAI.isInterviewAIEnabled()) {
       return { created: [], generated: 0, aiEnabled: false };
     }
 
     const drafts: any[] = [];
+    let lastError = '';
     for (const spec of specs) {
       try {
         const items = await interviewAI.generateQuestions(spec);
         drafts.push(...items);
-      } catch { /* skip this spec */ }
+      } catch (e: any) {
+        lastError = e?.message || 'AI generation failed';
+        console.error('[aiGenerateQuestions] spec failed:', spec.topic, e?.status || '', lastError);
+      }
     }
 
-    if (!drafts.length) return { created: [], generated: 0, aiEnabled: true };
+    if (!drafts.length) return { created: [], generated: 0, aiEnabled: true, error: lastError || 'The AI returned no usable questions. Try a different topic or run again.' };
     if (opts.persist === false) {
       return { created: drafts as any, generated: drafts.length, aiEnabled: true };
     }

@@ -19,7 +19,18 @@ import Anthropic from '@anthropic-ai/sdk';
  */
 
 const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
-const MODEL = process.env.INTERVIEW_AI_MODEL || 'claude-sonnet-4-6';
+// Try the configured model first, then resilient fallbacks if the API reports the
+// model name is unknown (model ids drift over time). The first one that works is
+// cached for the rest of the process.
+const MODEL_FALLBACKS = [
+  process.env.INTERVIEW_AI_MODEL,
+  process.env.ASSESSMENT_GEN_MODEL,
+  'claude-sonnet-4-6',
+  'claude-sonnet-4-5',
+  'claude-3-7-sonnet-latest',
+  'claude-3-5-sonnet-latest',
+].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
+let workingModel: string | null = null;
 
 export const isInterviewAIEnabled = () => !!client;
 
@@ -32,19 +43,46 @@ export const CATEGORY_KEYS: Record<string, string[]> = {
 
 // ─── Shared Claude call (returns parsed JSON, or null) ───────────────────────
 
+/** Call Claude and return raw text. Throws on API error; tries model fallbacks
+ *  only when the error looks like an unknown-model error. */
+async function callClaudeText(system: string, user: string, maxTokens = 1500): Promise<string> {
+  if (!client) throw new Error('AI is not configured (ANTHROPIC_API_KEY missing).');
+  const models = workingModel ? [workingModel] : MODEL_FALLBACKS;
+  let lastErr: any;
+  for (const model of models) {
+    try {
+      const resp = await client.messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] });
+      workingModel = model;
+      return resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
+    } catch (e: any) {
+      lastErr = e;
+      const status = e?.status;
+      const isModelIssue = status === 404 || /not_found|model/i.test(e?.message || '');
+      if (!isModelIssue) throw e;   // auth / rate-limit / other — don't burn fallbacks
+      // otherwise try the next model id
+    }
+  }
+  throw lastErr || new Error('No usable Claude model.');
+}
+
+function parseJSONLoose(text: string): any {
+  const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
+  try { return JSON.parse(cleaned); }
+  catch {
+    const m = cleaned.match(/[[{][\s\S]*[\]}]/);   // first JSON array/object in the text
+    if (m) return JSON.parse(m[0]);
+    throw new Error('AI did not return valid JSON.');
+  }
+}
+
+/** Graceful variant: returns null (+ logs) on any failure. For grading paths that
+ *  must never block a submission. */
 async function callClaudeJSON(system: string, user: string, maxTokens = 1500): Promise<any | null> {
   if (!client) return null;
   try {
-    const resp = await client.messages.create({
-      model: MODEL,
-      max_tokens: maxTokens,
-      system,
-      messages: [{ role: 'user', content: user }],
-    });
-    const text = resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
-    const cleaned = text.replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
-    return JSON.parse(cleaned);
-  } catch {
+    return parseJSONLoose(await callClaudeText(system, user, maxTokens));
+  } catch (e: any) {
+    console.error('[interviewAI] call failed:', e?.status || '', (e?.message || '').slice(0, 200));
     return null;
   }
 }
@@ -231,7 +269,8 @@ export async function generateQuestions(spec: QGenSpec): Promise<any[]> {
     `Return ONLY a raw JSON array. Each element matches: ${schema}.`,
   ].filter(Boolean).join('\n');
 
-  const arr = await callClaudeJSON(system, user, 3000);
+  // Let errors propagate here so the admin UI can show why generation failed.
+  const arr = parseJSONLoose(await callClaudeText(system, user, 3000));
   const items = Array.isArray(arr) ? arr : arr ? [arr] : [];
   const out: any[] = [];
 

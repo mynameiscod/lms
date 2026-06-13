@@ -150,7 +150,7 @@ const InterviewTemplateList: React.FC = () => {
                 <span className="itl-difficulty">{template.difficultyLevel}</span>
               </div>
 
-              <h3 className="itl-card-title" onClick={() => navigate(`/admin/interviews/templates/${template._id}`)}>
+              <h3 className="itl-card-title" onClick={() => navigate(`/admin/interviews/templates/${template._id}/edit`)}>
                 {template.title}
               </h3>
 
@@ -176,7 +176,7 @@ const InterviewTemplateList: React.FC = () => {
               </div>
 
               <div className="itl-card-actions">
-                <button className="itl-btn-sm" onClick={() => navigate(`/admin/interviews/templates/${template._id}`)}>
+                <button className="itl-btn-sm" onClick={() => navigate(`/admin/interviews/templates/${template._id}/edit`)}>
                   Edit
                 </button>
                 {template.status === 'draft' && (

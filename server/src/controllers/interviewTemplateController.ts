@@ -171,6 +171,9 @@ export const aiGenerateQuestions = async (req: Request, res: Response) => {
     if (!result.aiEnabled) {
       return res.status(503).json({ success: false, message: 'AI generation is not configured (ANTHROPIC_API_KEY missing).' });
     }
+    if (!result.generated) {
+      return res.status(502).json({ success: false, message: result.error || 'The AI returned no usable questions. Try again.' });
+    }
     res.status(201).json({ success: true, data: result.created, count: result.generated });
   } catch (error: any) {
     console.error('Error AI-generating interview questions:', error);

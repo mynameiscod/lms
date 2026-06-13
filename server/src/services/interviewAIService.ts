@@ -75,6 +75,33 @@ function parseJSONLoose(text: string): any {
   }
 }
 
+/**
+ * Salvage as many complete top-level {…} objects as possible from text that may
+ * be a truncated/garbled JSON array (e.g. when the model hit the token limit
+ * mid-array). String- and escape-aware brace matching; drops the trailing
+ * partial object.
+ */
+function extractObjects(text: string): any[] {
+  const out: any[] = [];
+  let i = text.indexOf('{');
+  while (i !== -1) {
+    let depth = 0, inStr = false, esc = false, end = -1;
+    for (let j = i; j < text.length; j++) {
+      const c = text[j];
+      if (esc) { esc = false; continue; }
+      if (c === '\\') { esc = true; continue; }
+      if (c === '"') { inStr = !inStr; continue; }
+      if (inStr) continue;
+      if (c === '{') depth++;
+      else if (c === '}') { depth--; if (depth === 0) { end = j; break; } }
+    }
+    if (end === -1) break;                       // last object is truncated → stop
+    try { out.push(JSON.parse(text.slice(i, end + 1))); } catch { /* skip */ }
+    i = text.indexOf('{', end + 1);
+  }
+  return out;
+}
+
 /** Graceful variant: returns null (+ logs) on any failure. For grading paths that
  *  must never block a submission. */
 async function callClaudeJSON(system: string, user: string, maxTokens = 1500): Promise<any | null> {
@@ -269,9 +296,18 @@ export async function generateQuestions(spec: QGenSpec): Promise<any[]> {
     `Return ONLY a raw JSON array. Each element matches: ${schema}.`,
   ].filter(Boolean).join('\n');
 
-  // Let errors propagate here so the admin UI can show why generation failed.
-  const arr = parseJSONLoose(await callClaudeText(system, user, 3000));
-  const items = Array.isArray(arr) ? arr : arr ? [arr] : [];
+  // Generous token budget; open-ended items (rubric + sample answer) are large.
+  // Let API errors propagate so the admin UI can show why generation failed,
+  // but salvage complete objects if the JSON array gets truncated.
+  const text = await callClaudeText(system, user, 8000);
+  let items: any[];
+  try {
+    const arr = parseJSONLoose(text);
+    items = Array.isArray(arr) ? arr : arr ? [arr] : [];
+  } catch {
+    items = extractObjects(text);
+  }
+  if (!items.length) throw new Error('AI did not return any parseable questions — please try again.');
   const out: any[] = [];
 
   for (const raw of items.slice(0, spec.count + 2)) {

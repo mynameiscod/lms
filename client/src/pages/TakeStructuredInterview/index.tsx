@@ -43,6 +43,8 @@ const TakeStructuredInterview: React.FC = () => {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const selfViewRef = useRef<HTMLVideoElement>(null);
+  const camStartedRef = useRef(false);
+  const [camRetry, setCamRetry] = useState(0);
 
   // ── Media recording for audio/video answer modes ────────────────────
   const sectionsRef = attempt?.sectionAttempts || [];
@@ -193,16 +195,19 @@ const TakeStructuredInterview: React.FC = () => {
   const recordVideo = !!attempt?.templateId?.recordVideo;
   const videoFallback = attempt?.templateId?.videoFallback || 'allow_text';
 
-  // Request camera + start ONE continuous recording for the whole interview
+  // Request camera + start ONE continuous recording for the whole interview.
+  // Guarded by a ref so it runs exactly once (attempt changes on every save,
+  // and we must not re-trigger / cancel the in-flight getUserMedia).
   useEffect(() => {
-    if (!attempt || !recordVideo || camState !== 'idle') return;
-    let cancelled = false;
+    if (!attempt || !recordVideo || camStartedRef.current) return;
+    camStartedRef.current = true;
+    setCamState('requesting');
     (async () => {
-      setCamState('requesting');
       try {
+        if (!navigator.mediaDevices?.getUserMedia) throw new Error('no getUserMedia');
         const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: true });
-        if (cancelled) { stream.getTracks().forEach(t => t.stop()); return; }
         camStreamRef.current = stream;
+        if (selfViewRef.current) selfViewRef.current.srcObject = stream;
         const mime = ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
           .find(t => (window as any).MediaRecorder?.isTypeSupported?.(t)) || '';
         const rec = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -213,13 +218,15 @@ const TakeStructuredInterview: React.FC = () => {
         setCamState('on');
         studentInterviewApi.saveRecording(attempt._id, { status: 'recording' }).catch(() => {});
       } catch {
+        camStartedRef.current = false;   // allow retry
         setCamState('denied');
         setRecError('Camera and microphone access is needed for this video interview.');
       }
     })();
-    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attempt, recordVideo, camState]);
+  }, [attempt, recordVideo, camRetry]);
+
+  const retryCamera = () => { camStartedRef.current = false; setRecError(''); setCamState('idle'); setCamRetry(n => n + 1); };
 
   // Bind the live stream to the self-view element
   useEffect(() => {
@@ -378,7 +385,7 @@ const TakeStructuredInterview: React.FC = () => {
         <h3>📷 Camera & microphone required</h3>
         <p>{recError || 'This is a video interview — please allow camera and microphone access to continue.'}</p>
         <div style={{ marginTop: 12 }}>
-          <button onClick={() => { setCamState('idle'); setRecError(''); }}>Retry camera</button>
+          <button onClick={retryCamera}>Retry camera</button>
           <button onClick={() => navigate('/student/interviews')} style={{ marginLeft: 8 }}>Back to Hub</button>
         </div>
       </div>
@@ -485,7 +492,7 @@ const TakeStructuredInterview: React.FC = () => {
               {camState === 'denied' && videoFallback === 'allow_text' && (
                 <div className="tsi-voice-note">
                   Recording unavailable — continuing without video.
-                  <button onClick={() => setCamState('idle')} style={{ marginLeft: 6, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#b45309' }}>Retry</button>
+                  <button onClick={retryCamera} style={{ marginLeft: 6, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#b45309' }}>Retry</button>
                 </div>
               )}
             </div>

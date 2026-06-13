@@ -670,6 +670,13 @@ class InterviewTemplateService {
     qr.keywordsMissed = evaluation.keywordsMissed;
     qr.categoryScores = evaluation.categoryScores;
 
+    // Accumulate AI cost for this attempt
+    if (evaluation.usage) {
+      attempt.aiInputTokens = (attempt.aiInputTokens || 0) + (evaluation.usage.inputTokens || 0);
+      attempt.aiOutputTokens = (attempt.aiOutputTokens || 0) + (evaluation.usage.outputTokens || 0);
+      attempt.aiCostUsd = interviewAI.costOf({ inputTokens: attempt.aiInputTokens, outputTokens: attempt.aiOutputTokens });
+    }
+
     // Mark section in progress if not already
     if (section.status === 'not_started') {
       section.status = 'in_progress';
@@ -1059,9 +1066,19 @@ class InterviewTemplateService {
       { $sort: { _id: 1 } },
     ]);
 
+    // AI usage / cost rollup
+    const costAgg = await InterviewAttempt.aggregate([
+      { $match: { tenantId: new mongoose.Types.ObjectId(tenantId) } },
+      { $group: { _id: null, totalCost: { $sum: '$aiCostUsd' }, totalIn: { $sum: '$aiInputTokens' }, totalOut: { $sum: '$aiOutputTokens' } } },
+    ]);
+    const aiAgg = costAgg[0] || { totalCost: 0, totalIn: 0, totalOut: 0 };
+
     return {
       totalTemplates,
       activeTemplates,
+      aiTotalCost: +(aiAgg.totalCost || 0).toFixed(4),
+      aiTotalInputTokens: aiAgg.totalIn || 0,
+      aiTotalOutputTokens: aiAgg.totalOut || 0,
       totalAssignments,
       totalAttempts,
       completedAttempts,
@@ -1171,6 +1188,7 @@ class InterviewTemplateService {
     keywordsCovered: string[];
     keywordsMissed: string[];
     categoryScores: Record<string, number>;
+    usage?: interviewAI.Usage;
   }> {
     // Get question details for evaluation
     const question = await InterviewQuestionBankModel.findById(qr.questionId).lean();
@@ -1378,6 +1396,11 @@ class InterviewTemplateService {
       });
 
       if (summary) {
+        if (summary.usage) {
+          attempt.aiInputTokens = (attempt.aiInputTokens || 0) + (summary.usage.inputTokens || 0);
+          attempt.aiOutputTokens = (attempt.aiOutputTokens || 0) + (summary.usage.outputTokens || 0);
+          attempt.aiCostUsd = interviewAI.costOf({ inputTokens: attempt.aiInputTokens, outputTokens: attempt.aiOutputTokens });
+        }
         attempt.overallFeedback = summary.overallFeedback;
         attempt.topStrengths = summary.topStrengths;
         attempt.topWeaknesses = summary.topWeaknesses;

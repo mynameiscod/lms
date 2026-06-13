@@ -71,6 +71,10 @@ const InterviewAnalytics: React.FC = () => {
           <span className="ianalytics-card-label">Avg Duration</span>
           <span className="ianalytics-card-value">{analytics.averageDuration?.toFixed(0) || 0} min</span>
         </div>
+        <div className="ianalytics-card">
+          <span className="ianalytics-card-label">AI Cost (total)</span>
+          <span className="ianalytics-card-value">${Number(analytics.aiTotalCost || 0).toFixed(2)}</span>
+        </div>
       </div>
 
       {/* Score Distribution */}

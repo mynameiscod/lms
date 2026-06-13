@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { studentInterviewApi } from '../../api/interviewModuleApi';
+import { studentInterviewApi, interviewAnalyticsApi } from '../../api/interviewModuleApi';
 import './InterviewFeedbackReport.css';
 
 const SCORE_COLOR = (score: number) => (score >= 70 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444');
@@ -20,15 +20,19 @@ const InterviewFeedbackReport: React.FC = () => {
   const [attempt, setAttempt] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<number | null>(0);
+  const [expandedSection, setExpandedSection] = useState<number | null>(null);
+
+  const isAdminView = typeof window !== 'undefined' && window.location.pathname.includes('/admin/');
 
   useEffect(() => {
     if (!attemptId) return;
-    studentInterviewApi.getReport(attemptId)
-      .then(res => setAttempt(res.data))
+    const req = isAdminView
+      ? interviewAnalyticsApi.getAttemptReport(attemptId)
+      : studentInterviewApi.getReport(attemptId);
+    req.then(res => setAttempt(res.data))
       .catch(() => setPending(true))   // report endpoint 404s while awaiting review
       .finally(() => setLoading(false));
-  }, [attemptId]);
+  }, [attemptId, isAdminView]);
 
   if (loading) return <div className="ifr-loading">Loading report...</div>;
 
@@ -71,6 +75,12 @@ const InterviewFeedbackReport: React.FC = () => {
           <div className="ifr-detail"><span>Total Score</span><strong>{(attempt.overallScore || 0).toFixed(1)} / {attempt.overallMaxScore || 0}</strong></div>
           <div className="ifr-detail"><span>Started</span><strong>{attempt.startedAt ? new Date(attempt.startedAt).toLocaleString() : '—'}</strong></div>
           <div className="ifr-detail"><span>Submitted</span><strong>{attempt.submittedAt ? new Date(attempt.submittedAt).toLocaleString() : '—'}</strong></div>
+          {attempt.aiCostUsd != null && (
+            <div className="ifr-detail"><span>AI Cost</span><strong>${Number(attempt.aiCostUsd).toFixed(4)}</strong></div>
+          )}
+          {attempt.recordingBunnyVideoId && (
+            <div className="ifr-detail"><span>Recording</span><strong className="pass">Video saved ✓</strong></div>
+          )}
         </div>
       </div>
 

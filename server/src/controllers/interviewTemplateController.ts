@@ -527,7 +527,13 @@ export const getAttemptReport = async (req: Request, res: Response) => {
     );
 
     if (!attempt) return res.status(404).json({ success: false, message: 'Report not found or not yet published' });
-    res.json({ success: true, data: attempt });
+    // Students don't see AI cost/token usage — admin/evaluator only.
+    let data: any = attempt;
+    if (studentId) {
+      data = (attempt as any).toObject ? (attempt as any).toObject() : attempt;
+      delete data.aiCostUsd; delete data.aiInputTokens; delete data.aiOutputTokens;
+    }
+    res.json({ success: true, data });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message });
   }

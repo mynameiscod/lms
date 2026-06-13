@@ -146,6 +146,16 @@ export interface IInterviewAttempt extends Document {
   evaluatedBy?: mongoose.Types.ObjectId;
   evaluatorComments?: string;
 
+  // AI usage / cost (accumulated across answer evaluations + summary)
+  aiInputTokens: number;
+  aiOutputTokens: number;
+  aiCostUsd: number;
+
+  // Continuous video recording (Bunny Stream)
+  recordingBunnyVideoId?: string;
+  recordingBunnyLibraryId?: string;
+  recordingStatus?: 'none' | 'recording' | 'uploaded' | 'failed';
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -293,6 +303,14 @@ const InterviewAttemptSchema = new Schema<IInterviewAttempt>(
 
     evaluatedBy:       { type: Schema.Types.ObjectId, ref: 'User' },
     evaluatorComments: { type: String },
+
+    aiInputTokens:  { type: Number, default: 0 },
+    aiOutputTokens: { type: Number, default: 0 },
+    aiCostUsd:      { type: Number, default: 0 },
+
+    recordingBunnyVideoId:   { type: String },
+    recordingBunnyLibraryId: { type: String },
+    recordingStatus:         { type: String, enum: ['none', 'recording', 'uploaded', 'failed'], default: 'none' },
   },
   { timestamps: true }
 );

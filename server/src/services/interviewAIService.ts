@@ -32,6 +32,13 @@ const MODEL_FALLBACKS = [
 ].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
 let workingModel: string | null = null;
 
+// Pricing (USD per 1M tokens) — override per deployment. Defaults ≈ Claude Sonnet.
+const PRICE_IN = Number(process.env.INTERVIEW_AI_PRICE_IN || 3) / 1e6;
+const PRICE_OUT = Number(process.env.INTERVIEW_AI_PRICE_OUT || 15) / 1e6;
+export type Usage = { inputTokens: number; outputTokens: number };
+export const costOf = (u?: Usage | null): number =>
+  u ? +((u.inputTokens * PRICE_IN) + (u.outputTokens * PRICE_OUT)).toFixed(6) : 0;
+
 export const isInterviewAIEnabled = () => !!client;
 
 // Category keys per section — MUST match InterviewAttempt.{communication,hr,technical}Scores
@@ -45,7 +52,7 @@ export const CATEGORY_KEYS: Record<string, string[]> = {
 
 /** Call Claude and return raw text. Throws on API error; tries model fallbacks
  *  only when the error looks like an unknown-model error. */
-async function callClaudeText(system: string, user: string, maxTokens = 1500): Promise<string> {
+async function callClaudeText(system: string, user: string, maxTokens = 1500): Promise<{ text: string; usage: Usage }> {
   if (!client) throw new Error('AI is not configured (ANTHROPIC_API_KEY missing).');
   const models = workingModel ? [workingModel] : MODEL_FALLBACKS;
   let lastErr: any;
@@ -53,7 +60,9 @@ async function callClaudeText(system: string, user: string, maxTokens = 1500): P
     try {
       const resp = await client.messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] });
       workingModel = model;
-      return resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
+      const text = resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
+      const usage: Usage = { inputTokens: resp.usage?.input_tokens || 0, outputTokens: resp.usage?.output_tokens || 0 };
+      return { text, usage };
     } catch (e: any) {
       lastErr = e;
       const status = e?.status;
@@ -104,10 +113,11 @@ function extractObjects(text: string): any[] {
 
 /** Graceful variant: returns null (+ logs) on any failure. For grading paths that
  *  must never block a submission. */
-async function callClaudeJSON(system: string, user: string, maxTokens = 1500): Promise<any | null> {
+async function callClaudeJSON(system: string, user: string, maxTokens = 1500): Promise<{ data: any; usage: Usage } | null> {
   if (!client) return null;
   try {
-    return parseJSONLoose(await callClaudeText(system, user, maxTokens));
+    const r = await callClaudeText(system, user, maxTokens);
+    return { data: parseJSONLoose(r.text), usage: r.usage };
   } catch (e: any) {
     console.error('[interviewAI] call failed:', e?.status || '', (e?.message || '').slice(0, 200));
     return null;
@@ -145,6 +155,7 @@ export interface AIEvalResult {
   keywordsCovered: string[];
   keywordsMissed: string[];
   categoryScores: Record<string, number>;
+  usage?: Usage;
 }
 
 export async function evaluateAnswer(input: AIEvalInput): Promise<AIEvalResult | null> {
@@ -178,8 +189,9 @@ export async function evaluateAnswer(input: AIEvalInput): Promise<AIEvalResult |
     `{"score": <0-${input.maxScore}>, "feedback": "<2-3 sentence constructive feedback addressed to the candidate>", "strengths": ["..."], "weaknesses": ["..."], "missedPoints": ["expected points the answer failed to cover"], "keywordsCovered": ["..."], "keywordsMissed": ["..."], "categoryScores": {${catKeys.map((k) => `"${k}": <0-10>`).join(', ')}}}`,
   ].filter(Boolean).join('\n');
 
-  const raw = await callClaudeJSON(system, user, 1200);
-  if (!raw || typeof raw !== 'object') return null;
+  const resp = await callClaudeJSON(system, user, 1200);
+  if (!resp || typeof resp.data !== 'object') return null;
+  const raw = resp.data;
 
   const categoryScores: Record<string, number> = {};
   for (const k of catKeys) categoryScores[k] = clamp(raw.categoryScores?.[k], 0, 10, 0);
@@ -193,6 +205,7 @@ export async function evaluateAnswer(input: AIEvalInput): Promise<AIEvalResult |
     keywordsCovered: strArr(raw.keywordsCovered),
     keywordsMissed: strArr(raw.keywordsMissed),
     categoryScores,
+    usage: resp.usage,
   };
 }
 
@@ -213,6 +226,7 @@ export interface AISummaryResult {
   topWeaknesses: string[];
   recommendedPracticeAreas: string[];
   readinessLevel: 'not_ready' | 'needs_improvement' | 'almost_ready' | 'interview_ready';
+  usage?: Usage;
 }
 
 const READINESS = new Set(['not_ready', 'needs_improvement', 'almost_ready', 'interview_ready']);
@@ -240,8 +254,9 @@ export async function summarizeAttempt(input: {
     '{"overallFeedback": "<3-4 sentence summary addressed to the candidate>", "topStrengths": ["..."], "topWeaknesses": ["..."], "recommendedPracticeAreas": ["concrete topics/skills to practice"], "readinessLevel": "not_ready|needs_improvement|almost_ready|interview_ready"}',
   ].join('\n');
 
-  const raw = await callClaudeJSON(system, user, 900);
-  if (!raw || typeof raw !== 'object') return null;
+  const resp = await callClaudeJSON(system, user, 900);
+  if (!resp || typeof resp.data !== 'object') return null;
+  const raw = resp.data;
 
   const readiness = String(raw.readinessLevel || '').trim();
   return {
@@ -250,6 +265,7 @@ export async function summarizeAttempt(input: {
     topWeaknesses: strArr(raw.topWeaknesses),
     recommendedPracticeAreas: strArr(raw.recommendedPracticeAreas),
     readinessLevel: (READINESS.has(readiness) ? readiness : 'needs_improvement') as AISummaryResult['readinessLevel'],
+    usage: resp.usage,
   };
 }
 
@@ -299,7 +315,7 @@ export async function generateQuestions(spec: QGenSpec): Promise<any[]> {
   // Generous token budget; open-ended items (rubric + sample answer) are large.
   // Let API errors propagate so the admin UI can show why generation failed,
   // but salvage complete objects if the JSON array gets truncated.
-  const text = await callClaudeText(system, user, 8000);
+  const { text } = await callClaudeText(system, user, 8000);
   let items: any[];
   try {
     const arr = parseJSONLoose(text);

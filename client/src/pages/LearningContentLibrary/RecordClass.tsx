@@ -5,199 +5,203 @@ import * as tus from 'tus-js-client';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 
 /**
- * Record Class — in-app class recorder (Slice 1).
+ * Record Class — in-app scene-switching recorder.
  *
- * Captures screen + mic (or camera + mic) entirely in the browser via
- * getDisplayMedia / getUserMedia + MediaRecorder, then uploads the recording
- * through the existing learning-library video endpoint (videoSource: 'upload',
- * field name `videoFile`). The result lands in the Content Library and can be
- * assigned to any day — no external software for trainers.
+ * One continuous recording where the trainer switches SCENES live:
+ *   📷 Camera (whiteboard)  ·  🖥️ Screen  ·  🖥️+📷 Screen + Camera (PiP)
+ * Everything is composited onto a single <canvas> (mic always on; screen/tab
+ * audio mixed in when sharing), recorded via MediaRecorder, and uploaded
+ * directly to Bunny Stream. Switching scenes never splits the file.
  *
- * Hosting note: Slice 1 stores via the existing upload+stream pipeline (500 MB
- * cap). Slice 2 swaps storage to Bunny Stream (resumable upload) without
- * changing this recorder UX.
+ * Crash-safety (vs the earlier canvas crash): canvas capped at 720p, draw loop
+ * throttled to ~15fps. Trainers should share a Window/Tab (not Entire Screen)
+ * to avoid mirror feedback with the on-page preview.
  */
 
-type Mode = 'screen_mic' | 'camera_mic' | 'screen';
+type Scene = 'camera' | 'screen' | 'both';
 type Status = 'idle' | 'recording' | 'recorded' | 'saving' | 'saved';
 
-const MODE_LABELS: Record<Mode, { title: string; sub: string; icon: string }> = {
-  screen_mic: { title: 'Screen + Mic', sub: 'Slides, coding, projector + your voice', icon: '🖥️🎙️' },
-  camera_mic: { title: 'Camera + Mic', sub: 'Webcam / USB cam on the whiteboard',     icon: '📷🎙️' },
-  screen:     { title: 'Screen only',  sub: 'Screen + tab audio, no microphone',      icon: '🖥️' },
-};
+const SCENES: { key: Scene; label: string; icon: string }[] = [
+  { key: 'camera', label: 'Camera / Whiteboard', icon: '📷' },
+  { key: 'screen', label: 'Screen', icon: '🖥️' },
+  { key: 'both',   label: 'Screen + Camera',     icon: '🖥️📷' },
+];
 
 const pickMime = (): string => {
-  const cands = [
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm',
-    'video/mp4',
-  ];
-  for (const c of cands) {
+  for (const c of ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm', 'video/mp4']) {
     try { if ((window as any).MediaRecorder?.isTypeSupported?.(c)) return c; } catch { /* noop */ }
   }
   return '';
 };
-
 const fmtTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
-const fmtSize = (b: number) => (b > 1024 * 1024 ? `${(b / 1024 / 1024).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`);
+const fmtSize = (b: number) => (b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${(b / 1024).toFixed(0)} KB`);
 const splitTags = (s: string) => s.split(',').map(t => t.trim()).filter(Boolean);
+
+const CW = 1280, CH = 720;
 
 export default function RecordClass() {
   const navigate = useNavigate();
 
-  const previewRef   = useRef<HTMLVideoElement>(null);
-  const recRef       = useRef<MediaRecorder | null>(null);
-  const chunksRef    = useRef<Blob[]>([]);
-  const streamRef    = useRef<MediaStream | null>(null);   // combined (recorded)
-  const rawStreams   = useRef<MediaStream[]>([]);          // sources to stop
-  const audioCtxRef  = useRef<AudioContext | null>(null);
-  const previewStreamRef = useRef<MediaStream | null>(null); // camera-only/safe stream to show (never the screen)
-  const secondsRef   = useRef(0);
+  const canvasRef   = useRef<HTMLCanvasElement>(null);
+  const camVidRef   = useRef<HTMLVideoElement | null>(null);
+  const scrVidRef   = useRef<HTMLVideoElement | null>(null);
+  const camStreamRef = useRef<MediaStream | null>(null);
+  const scrStreamRef = useRef<MediaStream | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const destRef     = useRef<MediaStreamAudioDestinationNode | null>(null);
+  const recRef      = useRef<MediaRecorder | null>(null);
+  const chunksRef   = useRef<Blob[]>([]);
+  const rafRef      = useRef<number>(0);
+  const lastDraw    = useRef<number>(0);
+  const sceneRef    = useRef<Scene>('camera');
+  const streamRef   = useRef<MediaStream | null>(null);
+  const secondsRef  = useRef(0);
 
-  const [mode,    setMode]    = useState<Mode>('screen_mic');
-  const [status,  setStatus]  = useState<Status>('idle');
-  const [paused,  setPaused]  = useState(false);
+  const [status, setStatus]   = useState<Status>('idle');
+  const [scene, setScene]     = useState<Scene>('camera');
+  const [paused, setPaused]   = useState(false);
   const [seconds, setSeconds] = useState(0);
-  const [error,   setError]   = useState('');
-
-  const [blob,       setBlob]       = useState<Blob | null>(null);
+  const [error, setError]     = useState('');
+  const [blob, setBlob]       = useState<Blob | null>(null);
   const [previewUrl, setPreviewUrl] = useState('');
-
-  const [title,    setTitle]    = useState('');
-  const [desc,     setDesc]     = useState('');
-  const [topics,   setTopics]   = useState('');
-  const [courses,  setCourses]  = useState('');
+  const [title, setTitle]     = useState('');
+  const [desc, setDesc]       = useState('');
+  const [topics, setTopics]   = useState('');
+  const [courses, setCourses] = useState('');
   const [uploadPct, setUploadPct] = useState(0);
-  const [savedId,  setSavedId]  = useState('');
+  const [savedId, setSavedId] = useState('');
 
   useEffect(() => { secondsRef.current = seconds; }, [seconds]);
-
-  // duration timer
   useEffect(() => {
     if (status !== 'recording' || paused) return;
     const iv = setInterval(() => setSeconds(p => p + 1), 1000);
     return () => clearInterval(iv);
   }, [status, paused]);
 
-  // attach the SAFE preview stream (camera only) once the recording UI mounts.
-  // The screen is never mirrored on-screen — that would cause a capture feedback loop.
-  useEffect(() => {
-    if (status === 'recording' && previewRef.current && previewStreamRef.current) {
-      previewRef.current.srcObject = previewStreamRef.current;
-      previewRef.current.muted = true;
-      previewRef.current.play().catch(() => {});
-    }
-  }, [status]);
-
-  const stopAllTracks = useCallback(() => {
-    rawStreams.current.forEach(s => s.getTracks().forEach(t => t.stop()));
-    rawStreams.current = [];
-    if (streamRef.current) { streamRef.current.getTracks().forEach(t => t.stop()); streamRef.current = null; }
+  const cleanup = useCallback(() => {
+    if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = 0; }
+    [camStreamRef, scrStreamRef, streamRef].forEach(r => { r.current?.getTracks().forEach(t => t.stop()); r.current = null; });
+    [camVidRef, scrVidRef].forEach(r => { if (r.current) { r.current.srcObject = null; r.current = null; } });
     if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null; }
+    destRef.current = null;
   }, []);
+  useEffect(() => () => { cleanup(); if (previewUrl) URL.revokeObjectURL(previewUrl); }, [cleanup, previewUrl]);
 
-  // cleanup on unmount
-  useEffect(() => () => { stopAllTracks(); if (previewUrl) URL.revokeObjectURL(previewUrl); }, [stopAllTracks, previewUrl]);
-
-  // mix 0..n audio streams into a single track
-  const mixAudio = (streams: MediaStream[]): MediaStreamTrack | null => {
-    const withAudio = streams.filter(s => s.getAudioTracks().length);
-    if (withAudio.length === 0) return null;
-    if (withAudio.length === 1) return withAudio[0].getAudioTracks()[0];
-    const Ctx = (window as any).AudioContext || (window as any).webkitAudioContext;
-    const ctx: AudioContext = new Ctx();
-    audioCtxRef.current = ctx;
-    const dest = ctx.createMediaStreamDestination();
-    withAudio.forEach(s => ctx.createMediaStreamSource(s).connect(dest));
-    return dest.stream.getAudioTracks()[0];
+  const drawFit = (ctx: CanvasRenderingContext2D, v: HTMLVideoElement, dx: number, dy: number, dw: number, dh: number, cover: boolean) => {
+    const vw = v.videoWidth || 16, vh = v.videoHeight || 9;
+    const s = cover ? Math.max(dw / vw, dh / vh) : Math.min(dw / vw, dh / vh);
+    const w = vw * s, h = vh * s;
+    try { ctx.drawImage(v, dx + (dw - w) / 2, dy + (dh - h) / 2, w, h); } catch { /* not ready */ }
   };
 
-  const startRecording = async () => {
-    setError('');
-    try {
-      let videoTrack: MediaStreamTrack;
-      let camStream: MediaStream | null = null;
-      const audioStreams: MediaStream[] = [];
-      // native aspect (don't force 16:9 onto a 4:3 webcam → avoids baked-in black bars)
-      const camConstraints = { video: { width: { ideal: 1280 } }, audio: true };
-
-      if (mode === 'camera_mic') {
-        const cam = await navigator.mediaDevices.getUserMedia(camConstraints);
-        rawStreams.current.push(cam);
-        camStream = cam;
-        videoTrack = cam.getVideoTracks()[0];
-        audioStreams.push(cam);
-      } else {
-        const disp = await (navigator.mediaDevices as any).getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: true });
-        rawStreams.current.push(disp);
-        videoTrack = disp.getVideoTracks()[0];
-        if (disp.getAudioTracks().length) audioStreams.push(disp);
-        if (mode === 'screen_mic') {
-          try {
-            const mic = await navigator.mediaDevices.getUserMedia({ audio: true });
-            rawStreams.current.push(mic);
-            audioStreams.push(mic);
-          } catch { /* mic optional */ }
+  const startDraw = () => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext('2d')!;
+    const loop = (ts: number) => {
+      rafRef.current = requestAnimationFrame(loop);
+      if (ts - lastDraw.current < 66) return;   // ~15fps
+      lastDraw.current = ts;
+      const cam = camVidRef.current, scr = scrVidRef.current, sc = sceneRef.current;
+      ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, CW, CH);
+      if (sc === 'camera') {
+        if (cam && cam.readyState >= 2) drawFit(ctx, cam, 0, 0, CW, CH, true);
+      } else if (sc === 'screen') {
+        if (scr && scr.readyState >= 2) drawFit(ctx, scr, 0, 0, CW, CH, false);
+        else if (cam && cam.readyState >= 2) drawFit(ctx, cam, 0, 0, CW, CH, true);
+      } else { // both
+        if (scr && scr.readyState >= 2) drawFit(ctx, scr, 0, 0, CW, CH, false);
+        if (cam && cam.readyState >= 2) {
+          const pw = Math.round(CW * 0.24), ph = Math.round(pw * 9 / 16);
+          const x = CW - pw - 18, y = CH - ph - 18;
+          ctx.fillStyle = '#000'; ctx.fillRect(x - 3, y - 3, pw + 6, ph + 6);
+          drawFit(ctx, cam, x, y, pw, ph, true);
         }
       }
+    };
+    rafRef.current = requestAnimationFrame(loop);
+  };
 
-      const audioTrack = mixAudio(audioStreams);
-      const tracks: MediaStreamTrack[] = [videoTrack];
-      if (audioTrack) tracks.push(audioTrack);
-      const combined = new MediaStream(tracks);
+  const ensureScreen = async (): Promise<boolean> => {
+    if (scrStreamRef.current) return true;
+    try {
+      const disp = await (navigator.mediaDevices as any).getDisplayMedia({ video: { frameRate: { ideal: 15 } }, audio: true });
+      scrStreamRef.current = disp;
+      const sv = document.createElement('video'); sv.srcObject = disp; sv.muted = true; (sv as any).playsInline = true;
+      await sv.play().catch(() => {}); scrVidRef.current = sv;
+      if (disp.getAudioTracks().length && audioCtxRef.current && destRef.current) {
+        audioCtxRef.current.createMediaStreamSource(new MediaStream(disp.getAudioTracks())).connect(destRef.current);
+      }
+      disp.getVideoTracks()[0].addEventListener('ended', () => {
+        scrStreamRef.current?.getTracks().forEach(t => t.stop());
+        scrStreamRef.current = null; scrVidRef.current = null;
+        sceneRef.current = 'camera'; setScene('camera');   // screen-share stopped → back to camera
+      });
+      return true;
+    } catch { return false; }
+  };
+
+  const switchScene = async (s: Scene) => {
+    if (s === 'screen' || s === 'both') { const ok = await ensureScreen(); if (!ok) return; }
+    sceneRef.current = s; setScene(s);
+  };
+
+  const onRecStop = () => {
+    const b = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'video/webm' });
+    setBlob(b);
+    setPreviewUrl(URL.createObjectURL(b));
+    setTitle(`Class Recording — ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+    setStatus('recorded');
+    cleanup();
+  };
+
+  const start = async () => {
+    setError('');
+    try {
+      const cam = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 1280 } }, audio: true });
+      camStreamRef.current = cam;
+      const cv = document.createElement('video'); cv.srcObject = cam; cv.muted = true; (cv as any).playsInline = true;
+      await cv.play().catch(() => {}); camVidRef.current = cv;
+
+      const canvas = canvasRef.current!; canvas.width = CW; canvas.height = CH;
+      const ctx = canvas.getContext('2d')!; ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, CW, CH);
+
+      const ACtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const actx: AudioContext = new ACtx(); audioCtxRef.current = actx;
+      const dest = actx.createMediaStreamDestination(); destRef.current = dest;
+      if (cam.getAudioTracks().length) actx.createMediaStreamSource(new MediaStream(cam.getAudioTracks())).connect(dest);
+
+      sceneRef.current = 'camera'; setScene('camera');
+      startDraw();
+
+      const canvasStream = (canvas as any).captureStream(15) as MediaStream;
+      const combined = new MediaStream([canvasStream.getVideoTracks()[0], ...dest.stream.getAudioTracks()]);
       streamRef.current = combined;
-      // Show ONLY the camera as a live preview (safe). Never mirror the screen → avoids feedback-loop crash.
-      previewStreamRef.current = camStream ? new MediaStream(camStream.getVideoTracks()) : null;
-
-      // auto-stop if the user ends screen-share from the browser bar
-      videoTrack.addEventListener('ended', () => stopRecording());
 
       const mime = pickMime();
-      const rec = new MediaRecorder(combined, mime ? { mimeType: mime, videoBitsPerSecond: 1_000_000, audioBitsPerSecond: 128_000 } : undefined);
+      const rec = new MediaRecorder(combined, mime ? { mimeType: mime, videoBitsPerSecond: 1_200_000, audioBitsPerSecond: 128_000 } : undefined);
       chunksRef.current = [];
-      rec.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
-      rec.onstop = () => {
-        const b = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'video/webm' });
-        setBlob(b);
-        setPreviewUrl(URL.createObjectURL(b));
-        setTitle(`Class Recording — ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
-        setStatus('recorded');
-        stopAllTracks();
-      };
-      recRef.current = rec;
-      rec.start(2000); // gather chunks every 2s
-      setStatus('recording');
-      setSeconds(0);
-      setPaused(false);
+      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onstop = onRecStop;
+      recRef.current = rec; rec.start(2000);
+      setStatus('recording'); setSeconds(0); setPaused(false);
     } catch (e: any) {
-      stopAllTracks();
-      setError(e?.name === 'NotAllowedError'
-        ? 'Permission denied or the picker was cancelled. Click Start and choose a screen/window to share.'
-        : (e?.message || 'Could not start recording in this browser. Use Chrome or Edge.'));
+      cleanup();
+      setError(e?.name === 'NotAllowedError' ? 'Camera/mic permission denied — allow them and try again.' : (e?.message || 'Could not start. Use Chrome or Edge.'));
     }
   };
 
-  const pauseRecording  = () => { if (recRef.current?.state === 'recording') { recRef.current.pause(); setPaused(true); } };
-  const resumeRecording = () => { if (recRef.current?.state === 'paused') { recRef.current.resume(); setPaused(false); } };
-  const stopRecording   = useCallback(() => { if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop(); }, []);
+  const pause = () => { if (recRef.current?.state === 'recording') { recRef.current.pause(); setPaused(true); } };
+  const resume = () => { if (recRef.current?.state === 'paused') { recRef.current.resume(); setPaused(false); } };
+  const stop = () => { if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop(); };
 
-  const discard = () => {
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setBlob(null); setPreviewUrl(''); setSeconds(0); setUploadPct(0);
-    setStatus('idle');
-  };
+  const discard = () => { if (previewUrl) URL.revokeObjectURL(previewUrl); setBlob(null); setPreviewUrl(''); setSeconds(0); setUploadPct(0); setStatus('idle'); };
 
   const save = async () => {
     if (!blob) return;
     if (!title.trim()) { setError('Please enter a title.'); return; }
     setError(''); setStatus('saving'); setUploadPct(0);
     try {
-      // 1) create the Bunny video object + get a resumable-upload authorization
       const meta = await learningContentLibraryApi.createBunnyVideo(title.trim());
-
-      // 2) upload the recording DIRECTLY to Bunny (resumable, no size cap, no VPS bandwidth)
       await new Promise<void>((resolve, reject) => {
         const upload = new tus.Upload(blob, {
           endpoint: meta.tus.endpoint,
@@ -215,9 +219,6 @@ export default function RecordClass() {
         });
         upload.start();
       });
-
-      // 3) save the Content Library item pointing at the Bunny video.
-      //    Dedicated JSON endpoint (no multer) so the body reaches the controller intact.
       const token = localStorage.getItem('token');
       const tenantId = localStorage.getItem('tenantId');
       const { data } = await axios.post('/api/v1/learning-library/bunny/content', {
@@ -233,12 +234,7 @@ export default function RecordClass() {
         estimatedDuration: Math.max(1, Math.round(secondsRef.current / 60)),
         videoDuration: secondsRef.current,
         isPublished: true,
-      }, {
-        headers: {
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}),
-        },
-      });
+      }, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}) } });
       setSavedId(data?._id || '');
       setStatus('saved');
     } catch (e: any) {
@@ -247,109 +243,78 @@ export default function RecordClass() {
     }
   };
 
-  // ── styles ──
   const btn = (bg: string): React.CSSProperties => ({ background: bg, color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer' });
   const ghost: React.CSSProperties = { background: '#fff', color: '#0f172a', border: '1.5px solid #cbd5e1', borderRadius: 10, padding: '12px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer' };
   const input: React.CSSProperties = { width: '100%', border: '1px solid #cbd5e1', borderRadius: 8, padding: '10px 12px', fontSize: 14, marginTop: 6 };
   const label: React.CSSProperties = { fontSize: 13, fontWeight: 600, color: '#334155' };
-
-  const big = status === 'recording' || status === 'recorded' || status === 'saving';
+  const recording = status === 'recording';
 
   return (
-    <div style={{ maxWidth: big ? 1320 : 920, margin: '0 auto', padding: 24 }}>
+    <div style={{ maxWidth: recording || status === 'recorded' || status === 'saving' ? 1100 : 820, margin: '0 auto', padding: 24 }}>
       <style>{`@keyframes recpulse{0%{opacity:1}50%{opacity:.35}100%{opacity:1}}`}</style>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
         <div>
           <h2 style={{ margin: 0, fontSize: 24, fontWeight: 700, color: '#0f172a' }}>🔴 Record Class</h2>
-          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>Record a class right here — it saves to your Content Library to assign to any day.</p>
+          <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: 14 }}>Start on the whiteboard, share your screen mid-class, switch back — one recording, saved to your Library.</p>
         </div>
         <button style={ghost} onClick={() => navigate('/learning-library')}>← Back to Library</button>
       </div>
 
-      {error && (
-        <div style={{ background: '#fdecec', border: '1px solid #f3c9c9', color: '#b3261e', padding: '10px 14px', borderRadius: 10, margin: '12px 0', fontSize: 14 }}>{error}</div>
-      )}
+      {error && <div style={{ background: '#fdecec', border: '1px solid #f3c9c9', color: '#b3261e', padding: '10px 14px', borderRadius: 10, margin: '12px 0', fontSize: 14 }}>{error}</div>}
 
-      {/* ── IDLE: choose mode ── */}
+      {/* IDLE */}
       {status === 'idle' && (
-        <>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '18px 0 8px' }}>1. Choose what to record</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12, margin: '6px 0 16px' }}>
-            {(Object.keys(MODE_LABELS) as Mode[]).map(m => (
-              <button key={m} onClick={() => setMode(m)} style={{
-                textAlign: 'left', cursor: 'pointer', borderRadius: 14, padding: 16,
-                border: mode === m ? '2px solid #0a66c2' : '1.5px solid #e2e8f0',
-                background: mode === m ? '#eff6ff' : '#fff',
-              }}>
-                <div style={{ fontSize: 24 }}>{MODE_LABELS[m].icon}</div>
-                <div style={{ fontWeight: 700, color: '#0f172a', marginTop: 6 }}>{MODE_LABELS[m].title}</div>
-                <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>{MODE_LABELS[m].sub}</div>
-              </button>
-            ))}
+        <div style={{ marginTop: 14 }}>
+          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 16, marginBottom: 16, fontSize: 14, color: '#1e3a5f' }}>
+            You'll be asked for <b>camera + mic</b> first. During the class, switch scenes with the buttons:
+            <b> 📷 Camera</b> (whiteboard), <b>🖥️ Screen</b> (you'll pick what to share), <b>🖥️📷 Screen + Camera</b>.
+            <div style={{ marginTop: 6, color: '#475569' }}>💡 When sharing, choose a <b>Window or Tab</b> (not "Entire Screen") to avoid a mirror flicker.</div>
           </div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', margin: '4px 0 8px' }}>2. Start</div>
-          <button style={btn('#dc2626')} onClick={startRecording}>⏺ Start Recording</button>
-          <p style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 12 }}>
-            For the screen modes, your browser will ask which screen / window / tab to share. Use a clip-on mic for clear audio. Recordings upload privately to Bunny Stream (no size cap). Works best in Chrome / Edge.
-          </p>
-        </>
-      )}
-
-      {/* ── RECORDING ── */}
-      {status === 'recording' && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fef2f2', color: '#dc2626', fontWeight: 700, padding: '6px 12px', borderRadius: 999 }}>
-              <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#dc2626', animation: paused ? 'none' : 'recpulse 1.2s infinite' }} />
-              {paused ? 'PAUSED' : 'REC'} · {fmtTime(seconds)}
-            </span>
-          </div>
-          {mode !== 'camera_mic' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#0f172a', color: '#fff', borderRadius: 12, padding: '22px 24px' }}>
-              <span style={{ fontSize: 30 }}>🖥️</span>
-              <div>
-                <div style={{ fontWeight: 700, fontSize: 16 }}>Recording your screen…</div>
-                <div style={{ fontSize: 13, color: '#cbd5e1', marginTop: 2 }}>The live screen is hidden here on purpose (mirroring it back would crash the tab). Keep teaching — it's all being captured.</div>
-              </div>
-            </div>
-          )}
-          {mode === 'camera_mic' && (
-            <video ref={previewRef} autoPlay muted playsInline style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
-          )}
-          <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-            {!paused
-              ? <button style={ghost} onClick={pauseRecording}>⏸ Pause</button>
-              : <button style={ghost} onClick={resumeRecording}>▶ Resume</button>}
-            <button style={btn('#0f172a')} onClick={stopRecording}>⏹ Stop &amp; Review</button>
-          </div>
+          <button style={btn('#dc2626')} onClick={start}>⏺ Start Recording</button>
         </div>
       )}
 
-      {/* ── RECORDED / SAVING: preview + details ── */}
-      {(status === 'recorded' || status === 'saving') && (
-        <div style={{ marginTop: 16 }}>
-          <video src={previewUrl} controls style={{ display: 'block', width: '100%', height: 'auto', borderRadius: 12, background: '#000' }} />
-          <div style={{ fontSize: 13, color: '#64748b', margin: '8px 0 16px' }}>
-            Length {fmtTime(seconds)} · Size {blob ? fmtSize(blob.size) : '—'} · uploads privately to Bunny Stream
-          </div>
+      {/* RECORDING — live composite preview + scene switcher */}
+      <div style={{ display: recording ? 'block' : 'none', marginTop: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: '#fef2f2', color: '#dc2626', fontWeight: 700, padding: '6px 12px', borderRadius: 999 }}>
+            <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#dc2626', animation: paused ? 'none' : 'recpulse 1.2s infinite' }} />
+            {paused ? 'PAUSED' : 'REC'} · {fmtTime(seconds)}
+          </span>
+        </div>
+        <canvas ref={canvasRef} style={{ width: '100%', borderRadius: 12, background: '#0b1020', display: 'block' }} />
+        <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+          {SCENES.map(s => (
+            <button key={s.key} onClick={() => switchScene(s.key)}
+              style={{ ...(scene === s.key ? btn('#4f46e5') : ghost), padding: '10px 16px' }}>
+              {s.icon} {s.label}{scene === s.key ? ' ●' : ''}
+            </button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          {!paused ? <button style={ghost} onClick={pause}>⏸ Pause</button> : <button style={ghost} onClick={resume}>▶ Resume</button>}
+          <button style={btn('#0f172a')} onClick={stop}>⏹ Stop &amp; Review</button>
+        </div>
+      </div>
 
+      {/* RECORDED / SAVING */}
+      {(status === 'recorded' || status === 'saving') && (
+        <div style={{ marginTop: 14 }}>
+          <video src={previewUrl} controls style={{ width: '100%', borderRadius: 12, background: '#000', display: 'block' }} />
+          <div style={{ fontSize: 13, color: '#64748b', margin: '8px 0 16px' }}>Length {fmtTime(seconds)} · Size {blob ? fmtSize(blob.size) : '—'} · uploads privately to Bunny Stream</div>
           <div style={{ display: 'grid', gap: 14, maxWidth: 640 }}>
             <div><span style={label}>Title *</span><input style={input} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Java — Day 12: Spring Boot Controllers" /></div>
             <div><span style={label}>Description</span><input style={input} value={desc} onChange={e => setDesc(e.target.value)} placeholder="Optional — what was covered" /></div>
-            <div><span style={label}>Topic tags (comma-separated)</span><input style={input} value={topics} onChange={e => setTopics(e.target.value)} placeholder="Spring Boot, REST, Controllers" /></div>
+            <div><span style={label}>Topic tags (comma-separated)</span><input style={input} value={topics} onChange={e => setTopics(e.target.value)} placeholder="Spring Boot, REST" /></div>
             <div><span style={label}>Course tags (comma-separated)</span><input style={input} value={courses} onChange={e => setCourses(e.target.value)} placeholder="Java Full Stack" /></div>
           </div>
-
           {status === 'saving' && (
             <div style={{ margin: '16px 0', maxWidth: 640 }}>
-              <div style={{ height: 10, background: '#e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
-                <div style={{ width: `${uploadPct}%`, height: '100%', background: '#0a66c2', transition: 'width .2s' }} />
-              </div>
+              <div style={{ height: 10, background: '#e5e7eb', borderRadius: 6, overflow: 'hidden' }}><div style={{ width: `${uploadPct}%`, height: '100%', background: '#0a66c2', transition: 'width .2s' }} /></div>
               <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>Uploading… {uploadPct}% — keep this tab open.</div>
             </div>
           )}
-
           <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
             <button style={{ ...btn('#16a34a'), opacity: status === 'saving' ? 0.6 : 1 }} disabled={status === 'saving'} onClick={save}>💾 Save to Library</button>
             <button style={{ ...ghost, opacity: status === 'saving' ? 0.6 : 1 }} disabled={status === 'saving'} onClick={discard}>🗑 Discard &amp; Re-record</button>
@@ -357,12 +322,12 @@ export default function RecordClass() {
         </div>
       )}
 
-      {/* ── SAVED ── */}
+      {/* SAVED */}
       {status === 'saved' && (
         <div style={{ marginTop: 24, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: 24, textAlign: 'center' }}>
           <div style={{ fontSize: 40 }}>✅</div>
           <h3 style={{ margin: '8px 0 4px', color: '#166534' }}>Recording saved to the Library</h3>
-          <p style={{ color: '#15803d', margin: '0 0 16px', fontSize: 14 }}>You can now add it to a day plan, or record another class.</p>
+          <p style={{ color: '#15803d', margin: '0 0 16px', fontSize: 14 }}>Add it to a day plan, or record another class.</p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
             <button style={btn('#0f172a')} onClick={() => navigate('/learning-library')}>Go to Library</button>
             {savedId && <button style={ghost} onClick={() => navigate(`/learning-library/edit/${savedId}`)}>Edit details</button>}

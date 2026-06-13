@@ -58,6 +58,7 @@ import googleAdsRoutes from './googleAdsRoutes';
 import aiCallRoutes from './aiCallRoutes';
 import adminPublicQuizRoutes from './adminPublicQuizRoutes';
 import learningContentLibraryRoutes from './learningContentLibraryRoutes';
+import liveSessionRoutes from './liveSessionRoutes';
 import learningCurriculumRoutes from './curriculumRoutes';
 import enrollmentPlanRoutes from './enrollmentPlanRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
@@ -142,6 +143,7 @@ router.use('/public-quizzes', adminPublicQuizRoutes);
 
 // ─── Learning Plan Module ──────────────────────────────────────────────────────
 router.use('/learning-library', learningContentLibraryRoutes);
+router.use('/live-classes', liveSessionRoutes);
 router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
 router.use('/concept-lessons', conceptLessonRoutes);

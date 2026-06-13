@@ -123,6 +123,7 @@ import RegistrationDetail from './pages/PublicQuizAdmin/RegistrationDetail';
 import LearningContentLibraryPage from './pages/LearningContentLibrary';
 import CreateEditContentPage from './pages/LearningContentLibrary/CreateEditContent';
 import RecordClassPage from './pages/LearningContentLibrary/RecordClass';
+import LiveClassPage from './pages/LiveClass';
 
 // Interactive Lesson System
 import InteractiveLessonBuilderPage from './pages/InteractiveLessonBuilder';
@@ -1401,6 +1402,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><RecordClassPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/live-class"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT']}>
+            <Layout><LiveClassPage /></Layout>
           </ProtectedRoute>
         }
       />

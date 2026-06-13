@@ -95,7 +95,6 @@ import LeadManagerBoardPage from './pages/LeadManagerBoard';
 import LeadMyPerformancePage from './pages/LeadMyPerformance';
 import LeadAuditLogsPage from './pages/LeadAuditLogs';
 import LeadPrioritySettingsPage from './pages/LeadPrioritySettings';
-import LeadDispositionSettingsPage from './pages/LeadDispositionSettings';
 import QualificationSettingsPage from './pages/QualificationSettings';
 import SalesContentLibraryPage from './pages/SalesContentLibrary';
 import LeadAnalyticsPage from './pages/LeadAnalytics';
@@ -1160,16 +1159,6 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
             <Layout>
               <LeadPrioritySettingsPage />
-            </Layout>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/lead-disposition-settings"
-        element={
-          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
-            <Layout>
-              <LeadDispositionSettingsPage />
             </Layout>
           </ProtectedRoute>
         }

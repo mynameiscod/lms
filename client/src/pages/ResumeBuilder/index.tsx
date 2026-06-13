@@ -3,9 +3,9 @@ import { CircularProgressbar, buildStyles } from 'react-circular-progressbar';
 import 'react-circular-progressbar/dist/styles.css';
 import {
   resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience,
-  ResumeEducation, ResumeProject, ResumeCertification, ResumeTemplate,
+  ResumeEducation, ResumeProject, ResumeCertification, ResumeTemplate, ResumeDesign,
 } from '../../api/resumeApi';
-import { ResumeDocument, TEMPLATES } from './templates';
+import { ResumeDocument, TEMPLATES, FONT_OPTIONS } from './templates';
 import './ResumeBuilder.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -168,8 +168,8 @@ const ScorePanel: React.FC<{
 
 // ── Live Resume Preview ─────────────────────────────────────────────────────
 
-const ResumePreview: React.FC<{ sections: ResumeSections; template: ResumeTemplate }> = ({ sections, template }) => (
-  <div className="resume-print-area"><ResumeDocument sections={sections} template={template} /></div>
+const ResumePreview: React.FC<{ sections: ResumeSections; template: ResumeTemplate; design?: ResumeDesign }> = ({ sections, template, design }) => (
+  <div className="resume-print-area"><ResumeDocument sections={sections} template={template} design={design} /></div>
 );
 
 // ── Upload modal ────────────────────────────────────────────────────────────
@@ -423,6 +423,7 @@ const ResumeBuilder: React.FC = () => {
   const [scoring, setScoring] = useState(false);
   const [toast, setToast] = useState('');
   const [template, setTemplate] = useState<ResumeTemplate>('classic');
+  const [design, setDesign] = useState<ResumeDesign>({});
   const [sharing, setSharing] = useState(false);
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [menuOpen, setMenuOpen] = useState(false);
@@ -441,6 +442,7 @@ const ResumeBuilder: React.FC = () => {
           setResume(r);
           setSections(r.sections);
           setTemplate(r.template || 'classic');
+          setDesign(r.design || {});
         }
       })
       .catch(() => {})
@@ -455,21 +457,28 @@ const ResumeBuilder: React.FC = () => {
     saveTimer.current = setTimeout(async () => {
       try {
         setSaveStatus('saving');
-        const res = await resumeApi.saveSections(sections, template);
+        const res = await resumeApi.saveSections(sections, template, design);
         setResume(res.data.data);
         setSaveStatus('saved');
       } catch { setSaveStatus('dirty'); }
     }, 1200);
     return () => { if (saveTimer.current) clearTimeout(saveTimer.current); };
-  }, [sections, template]);
+  }, [sections, template, design]);
 
   const handleSelectTemplate = (t: ResumeTemplate) => setTemplate(t);
   const handleDownload = () => window.print();
 
+  // Design panel styles
+  const dLbl: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 };
+  const dRow: React.CSSProperties = { display: 'flex', gap: 6, flexWrap: 'wrap' };
+  const dSel: React.CSSProperties = { width: '100%', border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 11px', fontSize: 13, marginTop: 6 };
+  const dChip = (on: boolean): React.CSSProperties => ({ border: on ? '1.5px solid #4f46e5' : '1.5px solid #e2e8f0', background: on ? '#eef2ff' : '#fff', color: on ? '#4f46e5' : '#334155', borderRadius: 8, padding: '7px 12px', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' });
+  const setD = (patch: Partial<ResumeDesign>) => setDesign(d => ({ ...d, ...patch }));
+
   const handleSaveNow = async () => {
     try {
       setSaveStatus('saving');
-      const res = await resumeApi.saveSections(sections, template);
+      const res = await resumeApi.saveSections(sections, template, design);
       setResume(res.data.data);
       setSaveStatus('saved');
       showToast('✅ Draft saved');
@@ -479,7 +488,7 @@ const ResumeBuilder: React.FC = () => {
   const handleShare = async () => {
     try {
       setSharing(true);
-      await resumeApi.saveSections(sections, template);
+      await resumeApi.saveSections(sections, template, design);
       const res = await resumeApi.share();
       const url = `${window.location.origin}/resume/view/${res.data.data.shareToken}`;
       try { await navigator.clipboard.writeText(url); showToast('🔗 Share link copied!'); }
@@ -495,7 +504,7 @@ const ResumeBuilder: React.FC = () => {
 
   const handleScore = async () => {
     try {
-      await resumeApi.saveSections(sections, template);
+      await resumeApi.saveSections(sections, template, design);
       setScoring(true);
       const scoreRes = await resumeApi.score();
       setResume(prev => prev ? { ...prev, score: scoreRes.data.data.score, scoredAt: new Date().toISOString() } : prev);
@@ -620,7 +629,7 @@ const ResumeBuilder: React.FC = () => {
                   </div>
                 </div>
                 <div className={`rb-preview-frame ${device}`}>
-                  <ResumePreview sections={sections} template={template} />
+                  <ResumePreview sections={sections} template={template} design={design} />
                 </div>
               </div>
             </div>
@@ -655,13 +664,56 @@ const ResumeBuilder: React.FC = () => {
                 </button>
               ))}
             </div>
+
+            {/* Design customization */}
+            <div style={{ marginTop: 18, borderTop: '1px solid #eef2f7', paddingTop: 14 }}>
+              <div className="rb-block-label">Customize Design</div>
+              <div style={{ display: 'grid', gap: 14, marginTop: 8 }}>
+                <label>
+                  <span style={dLbl}>Font style</span>
+                  <select value={design.fontFamily || ''} onChange={e => setD({ fontFamily: e.target.value || undefined })} style={dSel}>
+                    {FONT_OPTIONS.map(o => <option key={o.label} value={o.value}>{o.label}</option>)}
+                  </select>
+                </label>
+                <div>
+                  <span style={dLbl}>Font size</span>
+                  <div style={dRow}>
+                    {([['Small', 0.9], ['Normal', 1], ['Large', 1.12]] as [string, number][]).map(([t, v]) => (
+                      <button key={t} type="button" style={dChip((design.scale || 1) === v)} onClick={() => setD({ scale: v })}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span style={dLbl}>Line spacing</span>
+                  <div style={dRow}>
+                    {([['Compact', 1.35], ['Normal', 1.5], ['Relaxed', 1.7]] as [string, number][]).map(([t, v]) => (
+                      <button key={t} type="button" style={dChip(design.lineHeight === v)} onClick={() => setD({ lineHeight: v })}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span style={dLbl}>Header alignment</span>
+                  <div style={dRow}>
+                    {([['Left', 'left'], ['Center', 'center']] as [string, 'left' | 'center'][]).map(([t, v]) => (
+                      <button key={t} type="button" style={dChip(design.align === v)} onClick={() => setD({ align: v })}>{t}</button>
+                    ))}
+                  </div>
+                </div>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <span style={{ ...dLbl, marginBottom: 0 }}>Accent colour</span>
+                  <input type="color" value={design.accent || '#1e3a5f'} onChange={e => setD({ accent: e.target.value })} style={{ width: 46, height: 32, border: '1px solid #cbd5e1', borderRadius: 8, cursor: 'pointer', padding: 2 }} />
+                </label>
+                <button type="button" style={{ ...dChip(false), alignSelf: 'flex-start' }} onClick={() => setDesign({})}>↺ Reset to template default</button>
+              </div>
+            </div>
+
             <div className="rb-preview-step-actions">
               <button className="rb-tb-btn" onClick={handleShare} disabled={sharing}>{sharing ? '…' : '🔗 Share Link'}</button>
               <button className="rb-tb-btn primary" onClick={handleDownload}>⬇ Download PDF</button>
             </div>
           </div>
           <div className="rb-card rb-bigpreview">
-            <ResumePreview sections={sections} template={template} />
+            <ResumePreview sections={sections} template={template} design={design} />
           </div>
         </div>
       )}

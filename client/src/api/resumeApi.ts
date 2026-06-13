@@ -12,6 +12,14 @@ API.interceptors.request.use(cfg => {
 
 export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional';
 
+export interface ResumeDesign {
+  fontFamily?: string;          // '' = template default
+  scale?: number;               // 0.85 .. 1.2 (overall font size)
+  accent?: string;              // hex colour
+  lineHeight?: number;          // 1.3 .. 1.8
+  align?: 'left' | 'center';    // header alignment
+}
+
 export const resumeApi = {
   getMy: () => API.get('/resume/my'),
   upload: (file: File) => {
@@ -19,8 +27,8 @@ export const resumeApi = {
     fd.append('resume', file);
     return API.post('/resume/upload', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
   },
-  saveSections: (sections: any, template?: ResumeTemplate) =>
-    API.put('/resume/sections', { sections, template }),
+  saveSections: (sections: any, template?: ResumeTemplate, design?: ResumeDesign) =>
+    API.put('/resume/sections', { sections, template, design }),
   score: () => API.post('/resume/score'),
   share: () => API.post('/resume/share'),
   getPublic: (token: string) => API.get(`/resume/public/${token}`),
@@ -69,6 +77,7 @@ export interface ResumeData {
   _id: string;
   mode: 'uploaded' | 'built';
   template?: ResumeTemplate;
+  design?: ResumeDesign;
   sections: ResumeSections;
   score: ResumeScore | null;
   uploadedFileUrl?: string;

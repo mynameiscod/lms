@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { resumeApi, ResumeSections, ResumeTemplate } from '../../api/resumeApi';
+import { resumeApi, ResumeSections, ResumeTemplate, ResumeDesign } from '../../api/resumeApi';
 import { ResumeDocument } from './templates';
 import './ResumeBuilder.css';
 
@@ -8,6 +8,7 @@ const PublicResumeView: React.FC = () => {
   const { token } = useParams<{ token: string }>();
   const [sections, setSections] = useState<ResumeSections | null>(null);
   const [template, setTemplate] = useState<ResumeTemplate>('classic');
+  const [design, setDesign] = useState<ResumeDesign>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -17,6 +18,7 @@ const PublicResumeView: React.FC = () => {
       .then(res => {
         setSections(res.data.data.sections);
         setTemplate(res.data.data.template || 'classic');
+        setDesign(res.data.data.design || {});
       })
       .catch(() => setError('This resume link is invalid or no longer available.'))
       .finally(() => setLoading(false));
@@ -47,7 +49,7 @@ const PublicResumeView: React.FC = () => {
         <button className="rb-btn-primary sm" onClick={() => window.print()}>⬇️ Download PDF</button>
       </div>
       <div className="resume-print-area rb-public-doc">
-        <ResumeDocument sections={sections} template={template} />
+        <ResumeDocument sections={sections} template={template} design={design} />
       </div>
     </div>
   );

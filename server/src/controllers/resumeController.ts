@@ -65,13 +65,14 @@ export async function saveSections(req: AuthRequest, res: Response) {
     const tenantId = req.tenantId;
     if (!userId || !tenantId) return res.status(401).json({ message: 'Unauthorized' });
 
-    const { sections, template } = req.body;
+    const { sections, template, design } = req.body;
     if (!sections) return res.status(400).json({ success: false, message: 'sections required' });
 
     const update: any = { mode: 'built', sections, $inc: { version: 1 } };
     if (template && ['classic', 'modern', 'minimal', 'professional'].includes(template)) {
       update.template = template;
     }
+    if (design && typeof design === 'object') update.design = design;
 
     const resume = await Resume.findOneAndUpdate(
       { userId, tenantId },
@@ -113,10 +114,10 @@ export async function getPublicResume(req: Request, res: Response) {
     const { token } = req.params;
     if (!token) return res.status(400).json({ success: false, message: 'Invalid link' });
 
-    const resume = await Resume.findOne({ shareToken: token }).select('sections template');
+    const resume = await Resume.findOne({ shareToken: token }).select('sections template design');
     if (!resume) return res.status(404).json({ success: false, message: 'Resume not found' });
 
-    res.json({ success: true, data: { sections: resume.sections, template: resume.template } });
+    res.json({ success: true, data: { sections: resume.sections, template: resume.template, design: resume.design } });
   } catch (err) {
     res.status(500).json({ success: false, message: 'Failed to load resume' });
   }

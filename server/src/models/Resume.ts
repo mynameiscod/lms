@@ -86,6 +86,7 @@ export interface IResume extends Document {
   tenantId: mongoose.Types.ObjectId;
   mode: 'uploaded' | 'built';
   template: ResumeTemplate;
+  design?: { fontFamily?: string; scale?: number; accent?: string; lineHeight?: number; align?: 'left' | 'center' };
   sections: IResumeSections;
   score: IResumeScore | null;
   uploadedFileUrl?: string;
@@ -142,6 +143,13 @@ const ResumeSchema = new Schema<IResume>({
   tenantId: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   mode: { type: String, enum: ['uploaded', 'built'], default: 'built' },
   template: { type: String, enum: ['classic', 'modern', 'minimal', 'professional'], default: 'classic' },
+  design: {
+    fontFamily: { type: String },
+    scale:      { type: Number },
+    accent:     { type: String },
+    lineHeight: { type: Number },
+    align:      { type: String, enum: ['left', 'center'] },
+  },
   sections: { type: ResumeSectionsSchema, default: () => ({}) },
   score: { type: ResumeScoreSchema, default: null },
   uploadedFileUrl: { type: String },

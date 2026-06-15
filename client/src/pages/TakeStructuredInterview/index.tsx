@@ -31,6 +31,10 @@ const TakeStructuredInterview: React.FC = () => {
   const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
   const [tabWarnings, setTabWarnings] = useState(0);
   const [voiceMode, setVoiceMode] = useState(false);
+  const [tool, setTool] = useState<'' | 'notes' | 'calculator' | 'whiteboard' | 'code'>('');
+  const [notes, setNotes] = useState('');
+  const [calcExpr, setCalcExpr] = useState('');
+  const [scratchCode, setScratchCode] = useState('');
   const questionStartRef = useRef<number>(Date.now());
   const submitOnceRef = useRef(false);
 
@@ -228,6 +232,20 @@ const TakeStructuredInterview: React.FC = () => {
 
   const retryCamera = () => { camStartedRef.current = false; setRecError(''); setCamState('idle'); setCamRetry(n => n + 1); };
 
+  // ── Interview control tools (notes / calculator / whiteboard / code) ──
+  const wbRef = useRef<HTMLCanvasElement | null>(null);
+  const wbDrawing = useRef(false);
+  const wbPos = (e: React.MouseEvent) => { const r = wbRef.current!.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const wbStart = (e: React.MouseEvent) => { wbDrawing.current = true; const ctx = wbRef.current!.getContext('2d')!; const p = wbPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); };
+  const wbMove = (e: React.MouseEvent) => { if (!wbDrawing.current) return; const ctx = wbRef.current!.getContext('2d')!; const p = wbPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); };
+  const wbEnd = () => { wbDrawing.current = false; };
+  const wbClear = () => { const c = wbRef.current; if (c) c.getContext('2d')!.clearRect(0, 0, c.width, c.height); };
+  const calcResult = (() => {
+    if (!calcExpr.trim()) return '';
+    if (!/^[-+*/().\d\s]*$/.test(calcExpr)) return 'invalid expression';
+    try { /* eslint-disable-next-line no-new-func */ return String(Function(`"use strict";return (${calcExpr})`)()); } catch { return 'error'; }
+  })();
+
   // Bind the live stream to the self-view element
   useEffect(() => {
     if (selfViewRef.current && camStreamRef.current) selfViewRef.current.srcObject = camStreamRef.current;
@@ -402,269 +420,194 @@ const TakeStructuredInterview: React.FC = () => {
   const isSkipped = (q: any) => q.status === 'skipped';
   const answeredCount = questions.filter(isAnswered).length;
   const skippedCount = questions.filter(isSkipped).length;
+  const totalQ = questions.length;
+  const remainingQ = Math.max(0, totalQ - answeredCount - skippedCount);
+  const progressPct = totalQ ? Math.round((answeredCount / totalQ) * 100) : 0;
+  const isLastQ = currentQuestionIdx >= totalQ - 1;
+  const isLastSection = currentSectionIdx >= sections.length - 1;
+  const nextLabel = !isLastQ ? 'Save & Next →' : (isLastSection ? 'Finish & Review →' : 'Complete Section →');
+  const onNext = async () => { if (!isLastQ) { await handleSaveAndNext(); } else { await handleSaveAnswer(); handleCompleteSection(); } };
+  const reportIssue = () => window.open(`mailto:support@codebegun.com?subject=Interview%20issue%20-%20Q${currentQuestionIdx + 1}`);
 
   return (
     <div className="tsi-container">
-      {/* Top Bar */}
-      <div className="tsi-topbar">
-        <div className="tsi-topbar-left">
+      {/* Top bar */}
+      <div className="tsi-top">
+        <div className="tsi-brand"><span className="logo">🟦</span><b>CodeBegun</b></div>
+        <div className="tsi-top-title">
           <h2>{attempt.templateId?.title || 'Interview'}</h2>
-          <span className="tsi-section-label">
-            Section {currentSectionIdx + 1}/{sections.length}: {currentSection?.sectionTitle}
-          </span>
+          <span>Section {currentSectionIdx + 1}/{sections.length}: {currentSection?.sectionTitle}</span>
         </div>
-        <div className="tsi-topbar-right">
-          {overallRemaining > 0 && (
-            <span className={`tsi-timer ${overallRemaining < 60 ? 'tsi-timer-danger' : ''}`}>
-              ⏱ {formatTime(overallRemaining)}
-            </span>
-          )}
-          {tabWarnings > 0 && <span className="tsi-tab-warning">⚠ Tab warnings: {tabWarnings}/3</span>}
+        <div className="tsi-top-right">
+          <span className="tsi-timer2">⏱ {overallRemaining > 0 ? formatTime(overallRemaining) : '∞'}</span>
           {voice.ttsSupported && (
-            <button
-              className={`tsi-voice-toggle ${voiceMode ? 'on' : ''}`}
-              onClick={toggleVoiceMode}
-              title="Hear questions read aloud and answer by speaking"
-            >
+            <button className={`tsi-voice-btn ${voiceMode ? 'on' : ''}`} onClick={toggleVoiceMode}>
               {voiceMode ? '🔊 Voice On' : '🔈 Voice Off'}
             </button>
           )}
-          <button className="tsi-btn-submit" onClick={() => setShowConfirmSubmit(true)}>Submit Interview</button>
+          <button className="tsi-end" onClick={() => setShowConfirmSubmit(true)}>End Interview</button>
         </div>
       </div>
 
+      {/* Body */}
       <div className="tsi-body">
-        {/* Sidebar */}
-        <div className="tsi-sidebar">
-          <h4>Sections</h4>
-          {sections.map((sec: any, i: number) => (
-            <button
-              key={i}
-              className={`tsi-sidebar-sec ${i === currentSectionIdx ? 'active' : ''} ${sec.status === 'completed' ? 'completed' : ''}`}
-              onClick={() => {
-                if (navMode !== 'sequential' || i <= currentSectionIdx) {
-                  setCurrentSectionIdx(i);
-                  setCurrentQuestionIdx(0);
-                }
-              }}
-              disabled={navMode === 'sequential' && i > currentSectionIdx}
-            >
-              <span>{sec.sectionTitle || `Section ${i + 1}`}</span>
-              <span className="tsi-sidebar-type">{sec.sectionType}</span>
-            </button>
-          ))}
+        {/* Main question card */}
+        <div className="tsi-main2">
+          {currentQuestion ? (<>
+            <div className="tsi-qhead">
+              <span className="tsi-qnum">Question {currentQuestionIdx + 1} of {totalQ}</span>
+              {currentQuestion.difficulty && <span className="tsi-badge diff">{currentQuestion.difficulty}</span>}
+              {currentQuestion.topic && <span className="tsi-badge topic">{currentQuestion.topic}</span>}
+              <button className="tsi-report" onClick={reportIssue}>🚩 Report an Issue</button>
+            </div>
 
-          <h4>Questions</h4>
-          <div className="tsi-question-map">
-            {questions.map((q: any, i: number) => (
-              <button
-                key={i}
-                className={`tsi-qmap-btn ${i === currentQuestionIdx ? 'current' : ''} ${isAnswered(q) ? 'answered' : ''} ${isSkipped(q) ? 'skipped' : ''}`}
-                onClick={() => setCurrentQuestionIdx(i)}
-              >
-                {i + 1}
-              </button>
-            ))}
-          </div>
-          <div className="tsi-sidebar-stats">
-            <span>✅ {answeredCount} answered</span>
-            <span>⏭ {skippedCount} skipped</span>
-            <span>📝 {questions.length - answeredCount - skippedCount} remaining</span>
-          </div>
+            <div className="tsi-qtext">{currentQuestion.questionText || 'Loading question…'}</div>
+            {voiceMode && voice.ttsSupported && (
+              <button className="tsi-replay" onClick={() => voice.speak(questionSpeech())}>{voice.speaking ? '🔊 Speaking…' : '🔁 Replay question'}</button>
+            )}
+
+            {/* Answer area */}
+            <div className="tsi-ans">
+              {voiceMode && (qMode === 'text' || qMode === 'code') && (
+                <div className="tsi-voice-input">
+                  {voice.sttSupported
+                    ? <button className={`tsi-mic ${voice.listening ? 'listening' : ''}`} onClick={handleMic}>{voice.listening ? '⏹ Stop & use answer' : '🎤 Speak your answer'}</button>
+                    : <span className="tsi-voice-note">Voice input not supported — please type.</span>}
+                  {voice.listening && <span className="tsi-listening-dot">● listening…</span>}
+                </div>
+              )}
+
+              {qMode === 'mcq' ? (
+                <div className="tsi-mcq">
+                  {(currentQuestion.mcqOptions || []).map((opt: any, i: number) => (
+                    <label key={i} className={`tsi-mcq-opt ${answer === opt.label ? 'sel' : ''}`}>
+                      <input type="radio" name="mcq" value={opt.label} checked={answer === opt.label} onChange={e => setAnswer(e.target.value)} />
+                      <span><strong>{opt.label}.</strong> {opt.text}</span>
+                    </label>
+                  ))}
+                </div>
+              ) : qMode === 'code' ? (
+                <>
+                  <textarea className="tsi-code2" value={answer} onChange={e => setAnswer(e.target.value)} placeholder={currentQuestion.codeStarterTemplate || 'Write your code here…'} spellCheck={false} />
+                  <div className="tsi-count">{answer.length} chars</div>
+                </>
+              ) : (
+                <>
+                  <div className="tsi-ans-toolbar">
+                    <button title="Bold"><b>B</b></button><button title="Italic"><i>I</i></button><button title="Underline"><u>U</u></button>
+                    <span className="sep" /><button title="Bulleted list">☰</button><button title="Numbered list">≡</button><button title="Indent">⇥</button>
+                    <span className="sep" /><button title="Quote">❝</button><button title="Link">🔗</button>
+                    <span className="sep" /><button title="Undo">↶</button><button title="Redo">↷</button>
+                  </div>
+                  <textarea className="tsi-textarea" value={answer} maxLength={5000} onChange={e => setAnswer(e.target.value)} placeholder="Type your answer here…" />
+                  <div className="tsi-count">{answer.length} / 5000</div>
+                </>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="tsi-qfoot">
+              <span className="tsi-saved">{saving ? '⏳ Saving…' : '✓ Auto-saved'}</span>
+              <div className="tsi-foot-right">
+                <button className="tsi-skip" onClick={handleSkip}>Skip</button>
+                <button className="tsi-next" onClick={onNext} disabled={saving}>{nextLabel}</button>
+              </div>
+            </div>
+          </>) : (
+            <div style={{ padding: 60, textAlign: 'center' }}>
+              <h3 style={{ color: '#16a34a' }}>Section Complete!</h3>
+              <p style={{ color: '#64748b' }}>All questions in this section are done.</p>
+              <button className="tsi-next" onClick={() => setShowConfirmSubmit(true)}>Finish & Review</button>
+            </div>
+          )}
         </div>
 
-        {/* Main question area */}
-        <div className="tsi-main">
-          {recordVideo && (
-            <div className="tsi-interviewer-bar">
-              <div className="tsi-interviewer">
-                {currentSection?.avatarImageUrl
-                  ? <img src={currentSection.avatarImageUrl} alt="Interviewer" className="tsi-avatar-img" />
-                  : <div className="tsi-avatar-fallback">🧑‍💼</div>}
-                <span className="tsi-interviewer-label">Interviewer{voice.speaking ? ' • speaking…' : ''}</span>
+        {/* Right column */}
+        <div className="tsi-right2">
+          {/* Interviewer */}
+          <div className="tsi-panel">
+            <div className="tsi-panel-h"><span className="lbl">INTERVIEWER</span><span className="tsi-live">LIVE</span><span className="ico">📶</span><span className="grow"><span className="ico">⛶</span></span></div>
+            <div className="tsi-vid">
+              {currentSection?.avatarImageUrl
+                ? <img src={currentSection.avatarImageUrl} alt="Interviewer" />
+                : <div className="ph">🧑‍💼 Interviewer</div>}
+              <div className="tsi-vid-ctrls">
+                <button className="tsi-vctl" title="Mic">🎤</button>
+                <button className="tsi-vctl" title="Camera">🎥</button>
+                <button className="tsi-vctl" title="More">⋯</button>
               </div>
-              <div className="tsi-selfview-wrap">
-                {camState === 'on'
-                  ? <video ref={selfViewRef} autoPlay muted playsInline className="tsi-selfview" />
-                  : <div className="tsi-selfview placeholder">{camState === 'requesting' ? 'Starting camera…' : 'Camera off'}</div>}
-                {camState === 'on' && <span className="tsi-rec-badge"><span className="tsi-rec-dot" /> REC</span>}
-              </div>
-              {camState === 'denied' && videoFallback === 'allow_text' && (
-                <div className="tsi-voice-note">
-                  Recording unavailable — continuing without video.
-                  <button onClick={retryCamera} style={{ marginLeft: 6, textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', color: '#b45309' }}>Retry</button>
-                </div>
-              )}
             </div>
-          )}
-          {currentQuestion ? (
-            <>
-              <div className="tsi-question-header">
-                <span className="tsi-q-number">Question {currentQuestionIdx + 1} of {questions.length}</span>
-                {currentQuestion.difficulty && <span className="tsi-q-diff">{currentQuestion.difficulty}</span>}
-                {currentQuestion.topic && <span className="tsi-q-topic">{currentQuestion.topic}</span>}
-              </div>
+          </div>
 
-              <div className="tsi-question-text">
-                {currentQuestion.questionText || 'Loading question...'}
-              </div>
-
-              {voiceMode && voice.ttsSupported && (
-                <button className="tsi-replay" onClick={() => voice.speak(questionSpeech())}>
-                  {voice.speaking ? '🔊 Speaking…' : '🔁 Replay question'}
-                </button>
-              )}
-
-              {currentQuestion.questionHint && (
-                <p className="tsi-hint">💡 Hint: {currentQuestion.questionHint}</p>
-              )}
-
-              {/* Answer Area */}
-              <div className="tsi-answer-area">
-                {/* Media mode (audio/video questions) */}
-                {(answerMediaMode === 'video' || answerMediaMode === 'audio') && (
-                  <div className="tsi-media-controls" style={{ marginBottom: 12 }}>
-                    {answerMediaMode === 'video' && (
-                      <div style={{ position: 'relative', background: '#000', borderRadius: 8, overflow: 'hidden', marginBottom: 8, minHeight: 200 }}>
-                        {mediaRecorder.previewUrl ? (
-                          <video src={mediaRecorder.previewUrl} controls style={{ width: '100%', maxHeight: 280, display: 'block' }} />
-                        ) : (
-                          <video ref={videoPreviewRef} autoPlay muted playsInline style={{ width: '100%', maxHeight: 280, transform: 'scaleX(-1)', display: 'block' }} />
-                        )}
-                        {mediaRecorder.isRecording && (
-                          <div className="tsi-rec-indicator"><span className="tsi-rec-dot" /> REC {formatTime(mediaRecorder.duration)}</div>
-                        )}
-                      </div>
-                    )}
-                    {answerMediaMode === 'audio' && (
-                      <div style={{ background: '#f1f5f9', borderRadius: 8, padding: 24, textAlign: 'center', minHeight: 120, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                        {mediaRecorder.previewUrl ? (
-                          <audio src={mediaRecorder.previewUrl} controls style={{ width: '100%' }} />
-                        ) : (
-                          <>
-                            <div style={{ fontSize: '3rem' }}>{mediaRecorder.isRecording ? '🔴' : '🎤'}</div>
-                            {mediaRecorder.isRecording && <div style={{ color: '#ef4444', fontWeight: 600, marginTop: 8 }}>Recording... {formatTime(mediaRecorder.duration)}</div>}
-                          </>
-                        )}
-                      </div>
-                    )}
-                    {mediaRecorder.error && (
-                      <div style={{ color: '#b45309', background: '#fef3c7', padding: '8px 12px', borderRadius: 6, fontSize: 13, marginBottom: 8 }}>
-                        {mediaRecorder.error}
-                        <button onClick={() => mediaRecorder.requestPermission()} style={{ marginLeft: 8, color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>Retry</button>
-                      </div>
-                    )}
-                    {mediaRecorder.hasPermission && (
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        {!mediaRecorder.isRecording && !mediaRecorder.recordedBlob && (
-                          <button className="tsi-btn-next" onClick={mediaRecorder.startRecording} style={{ background: '#ef4444' }}>⏺ Start Recording</button>
-                        )}
-                        {mediaRecorder.isRecording && (
-                          <button className="tsi-btn-skip" onClick={mediaRecorder.stopRecording}>⏹ Stop Recording</button>
-                        )}
-                        {mediaRecorder.recordedBlob && !mediaRecorder.isRecording && (
-                          <>
-                            <button className="tsi-btn-nav" onClick={mediaRecorder.reset}>🔄 Re-record</button>
-                            <span style={{ color: '#10b981', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>✅ {formatTime(mediaRecorder.duration)} recorded</span>
-                          </>
-                        )}
-                      </div>
-                    )}
-                    <textarea
-                      className="tsi-text-answer"
-                      value={answer}
-                      onChange={e => setAnswer(e.target.value)}
-                      placeholder="Optional text notes..."
-                      rows={3}
-                      style={{ marginTop: 8 }}
-                    />
-                  </div>
-                )}
-
-                {answerMediaMode === 'text' && (
-                  <>
-                    {voiceMode && (qMode === 'text' || qMode === 'code') && (
-                      <div className="tsi-voice-input">
-                        {voice.sttSupported ? (
-                          <button className={`tsi-mic ${voice.listening ? 'listening' : ''}`} onClick={handleMic}>
-                            {voice.listening ? '⏹ Stop & use answer' : '🎤 Speak your answer'}
-                          </button>
-                        ) : (
-                          <span className="tsi-voice-note">🎤 Voice input isn't supported in this browser — please type below.</span>
-                        )}
-                        {voice.listening && <span className="tsi-listening-dot">● listening…</span>}
-                        {voice.error && <span className="tsi-voice-note">{voice.error}</span>}
-                      </div>
-                    )}
-                    {qMode === 'mcq' ? (
-                      <div className="tsi-mcq-options">
-                        {(currentQuestion.mcqOptions || []).map((opt: any, i: number) => (
-                          <label key={i} className={`tsi-mcq-option ${answer === opt.label ? 'selected' : ''}`}>
-                            <input
-                              type="radio"
-                              name="mcq"
-                              value={opt.label}
-                              checked={answer === opt.label}
-                              onChange={e => setAnswer(e.target.value)}
-                            />
-                            <span><strong>{opt.label}.</strong> {opt.text}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : qMode === 'code' ? (
-                      <textarea
-                        className="tsi-code-editor"
-                        value={answer}
-                        onChange={e => setAnswer(e.target.value)}
-                        placeholder={currentQuestion.codeStarterTemplate || 'Write your code here...'}
-                        rows={12}
-                        spellCheck={false}
-                      />
-                    ) : (
-                      <textarea
-                        className="tsi-text-answer"
-                        value={answer}
-                        onChange={e => setAnswer(e.target.value)}
-                        placeholder="Type your answer here..."
-                        rows={8}
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="tsi-actions">
-                <div className="tsi-actions-left">
-                  <button className="tsi-btn-nav" onClick={goPrevQuestion} disabled={currentQuestionIdx === 0}>← Previous</button>
-                </div>
-                <div className="tsi-actions-right">
-                  <button className="tsi-btn-skip" onClick={handleSkip}>Skip</button>
-                  {currentQuestionIdx < questions.length - 1 ? (
-                    <button className="tsi-btn-next" onClick={handleSaveAndNext} disabled={saving}>
-                      {saving ? 'Saving...' : 'Save & Next →'}
-                    </button>
-                  ) : (
-                    <button className="tsi-btn-complete-section" onClick={async () => { await handleSaveAnswer(); handleCompleteSection(); }} disabled={saving}>
-                      {currentSectionIdx < sections.length - 1 ? 'Complete Section →' : 'Finish & Review'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="tsi-section-complete">
-              <h3>Section Complete!</h3>
-              <p>All questions in this section have been answered.</p>
-              {currentSectionIdx < sections.length - 1 ? (
-                <button className="tsi-btn-next" onClick={() => { setCurrentSectionIdx(prev => prev + 1); setCurrentQuestionIdx(0); }}>Next Section →</button>
-              ) : (
-                <button className="tsi-btn-submit" onClick={() => setShowConfirmSubmit(true)}>Submit Interview</button>
-              )}
+          {/* You */}
+          <div className="tsi-panel">
+            <div className="tsi-panel-h"><span className="lbl">YOU</span>{camState === 'on' && <span className="tsi-live">LIVE</span>}<span className="grow"><span className="ico">⛶</span></span></div>
+            <div className="tsi-vid">
+              {camState === 'on'
+                ? <video ref={selfViewRef} autoPlay muted playsInline className="self" />
+                : <div className="ph">{camState === 'requesting' ? 'Starting camera…' : (recordVideo ? 'Camera off' : 'Camera not used')}</div>}
+              {camState === 'on' && <span className="tsi-rec-badge"><span className="tsi-rec-dot" /> REC</span>}
+              {recordVideo && camState !== 'on' && <span className="tsi-mute-badge">🔇</span>}
             </div>
-          )}
+            {camState === 'denied' && videoFallback === 'allow_text' && (
+              <div style={{ padding: '8px 12px', fontSize: 12, color: '#b45309' }}>Recording unavailable — continuing without video. <button onClick={retryCamera} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', textDecoration: 'underline' }}>Retry</button></div>
+            )}
+          </div>
+
+          {/* Interview controls */}
+          <div className="tsi-panel">
+            <div className="tsi-ctrls-h">INTERVIEW CONTROLS</div>
+            <div className="tsi-ctrls">
+              <button className="tsi-ctrl" onClick={() => setTool('notes')}><span className="i">📝</span> Take Notes</button>
+              <button className="tsi-ctrl" onClick={() => setTool('calculator')}><span className="i">🧮</span> Calculator</button>
+              <button className="tsi-ctrl" onClick={() => setTool('whiteboard')}><span className="i">🖊️</span> Whiteboard</button>
+              <button className="tsi-ctrl" onClick={() => setTool('code')}><span className="i">{'</>'}</span> Code Editor</button>
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Bottom progress */}
+      <div className="tsi-bottom">
+        <span>{answeredCount} of {totalQ} answered</span>
+        <div className="tsi-prog"><div className="tsi-prog-fill" style={{ width: `${progressPct}%` }} /></div>
+        <span>{progressPct}%</span>
+        <div className="tsi-bottom-right">
+          <span><span className="tsi-dot-a">✓</span> Answered ({answeredCount})</span>
+          <span><span className="tsi-dot-r">◐</span> Review ({skippedCount})</span>
+          <span><span className="tsi-dot-rem">○</span> Remaining ({remainingQ})</span>
+        </div>
+      </div>
+
+      {/* Tool modals */}
+      {tool && (
+        <div className="tsi-modal-overlay" onClick={() => setTool('')}>
+          <div className="tsi-tool" onClick={e => e.stopPropagation()}>
+            <div className="tsi-tool-h">
+              {tool === 'notes' ? '📝 Notes' : tool === 'calculator' ? '🧮 Calculator' : tool === 'whiteboard' ? '🖊️ Whiteboard' : '</> Scratch Code'}
+              <button onClick={() => setTool('')} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 20, color: '#94a3b8' }}>×</button>
+            </div>
+            <div className="tsi-tool-b">
+              {tool === 'notes' && <textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Jot down your thoughts (not submitted)…" />}
+              {tool === 'code' && <textarea value={scratchCode} onChange={e => setScratchCode(e.target.value)} placeholder="Scratch code area (not submitted)…" style={{ fontFamily: 'monospace' }} />}
+              {tool === 'calculator' && (
+                <>
+                  <div className="tsi-calc-out">{calcResult || '0'}</div>
+                  <input className="tsi-textarea" style={{ minHeight: 'auto', width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: 12, fontFamily: 'monospace' } as any}
+                    value={calcExpr} onChange={e => setCalcExpr(e.target.value)} placeholder="e.g. (12 + 8) * 3" />
+                </>
+              )}
+              {tool === 'whiteboard' && (
+                <>
+                  <canvas ref={wbRef} width={520} height={320} style={{ border: '1px solid #e2e8f0', borderRadius: 8, width: '100%', background: '#fff', cursor: 'crosshair' }}
+                    onMouseDown={wbStart} onMouseMove={wbMove} onMouseUp={wbEnd} onMouseLeave={wbEnd} />
+                  <button onClick={wbClear} style={{ marginTop: 10, border: '1px solid #e2e8f0', background: '#fff', borderRadius: 8, padding: '6px 14px', cursor: 'pointer' }}>Clear</button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Uploading recording overlay */}
       {uploadingRec && (
@@ -677,18 +620,16 @@ const TakeStructuredInterview: React.FC = () => {
         </div>
       )}
 
-      {/* Confirm Submit Modal */}
+      {/* Confirm Submit */}
       {showConfirmSubmit && (
         <div className="tsi-modal-overlay" onClick={() => setShowConfirmSubmit(false)}>
           <div className="tsi-modal" onClick={e => e.stopPropagation()}>
-            <h3>Submit Interview?</h3>
-            <p>You have answered <strong>{answeredCount}</strong> out of <strong>{questions.length}</strong> questions in this section.</p>
+            <h3>End &amp; Submit Interview?</h3>
+            <p>You have answered <strong>{answeredCount}</strong> of <strong>{totalQ}</strong> questions in this section.</p>
             <p>Once submitted, our AI will evaluate your answers and generate your feedback report.</p>
             <div className="tsi-modal-actions">
               <button onClick={() => setShowConfirmSubmit(false)}>Continue Interview</button>
-              <button className="tsi-btn-submit" onClick={handleSubmitInterview} disabled={submitting}>
-                {submitting ? 'Submitting...' : 'Confirm Submit'}
-              </button>
+              <button className="tsi-btn-submit" onClick={handleSubmitInterview} disabled={submitting}>{submitting ? 'Submitting…' : 'Confirm Submit'}</button>
             </div>
           </div>
         </div>

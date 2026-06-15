@@ -1,10 +1,13 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import { playgroundApi } from '../../api/playgroundApi';
+import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { runSql, SqlResult } from '../../utils/sqlRunner';
+import './CodePlayground.css';
 
-interface Lang { key: string; label: string; monaco: string; starter: string; }
+interface Lang { key: string; label: string; icon: string; monaco: string; file: string; starter: string; }
 
+const hello = (s: string) => s;
 const WEB_STARTER = `<!doctype html>
 <html>
 <head>
@@ -14,7 +17,7 @@ const WEB_STARTER = `<!doctype html>
   </style>
 </head>
 <body>
-  <h1>Hello, Web!</h1>
+  <h1>Hello, CodeBegun! 👋</h1>
   <button onclick="document.getElementById('o').textContent = 'Clicked at ' + new Date().toLocaleTimeString()">Click me</button>
   <p id="o"></p>
 </body>
@@ -27,48 +30,42 @@ SELECT name, marks FROM students ORDER BY marks DESC;
 `;
 
 const LANGS: Lang[] = [
-  { key: 'python', label: 'Python', monaco: 'python', starter: 'print("Hello, World!")\n' },
-  { key: 'javascript', label: 'JavaScript', monaco: 'javascript', starter: 'console.log("Hello, World!");\n' },
-  { key: 'typescript', label: 'TypeScript', monaco: 'typescript', starter: 'const msg: string = "Hello, World!";\nconsole.log(msg);\n' },
-  { key: 'java', label: 'Java', monaco: 'java', starter: 'import java.util.*;\n\npublic class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, World!");\n  }\n}\n' },
-  { key: 'cpp', label: 'C++', monaco: 'cpp', starter: '#include <iostream>\nusing namespace std;\nint main() {\n  cout << "Hello, World!" << endl;\n  return 0;\n}\n' },
-  { key: 'c', label: 'C', monaco: 'c', starter: '#include <stdio.h>\nint main() {\n  printf("Hello, World!\\n");\n  return 0;\n}\n' },
-  { key: 'csharp', label: 'C#', monaco: 'csharp', starter: 'using System;\nclass Program {\n  static void Main() {\n    Console.WriteLine("Hello, World!");\n  }\n}\n' },
-  { key: 'web', label: 'Web (HTML/CSS/JS)', monaco: 'html', starter: WEB_STARTER },
-  { key: 'sql', label: 'SQL (SQLite)', monaco: 'sql', starter: SQL_STARTER },
+  { key: 'java', label: 'Java (JDK 17)', icon: '☕', monaco: 'java', file: 'Main.java', starter: hello('public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello, CodeBegun! 👋");\n  }\n}\n') },
+  { key: 'python', label: 'Python 3', icon: '🐍', monaco: 'python', file: 'main.py', starter: 'print("Hello, CodeBegun! 👋")\n' },
+  { key: 'cpp', label: 'C++ (GCC 13)', icon: '🟦', monaco: 'cpp', file: 'main.cpp', starter: '#include <iostream>\nusing namespace std;\nint main() {\n  cout << "Hello, CodeBegun!" << endl;\n  return 0;\n}\n' },
+  { key: 'c', label: 'C (GCC 13)', icon: '🔵', monaco: 'c', file: 'main.c', starter: '#include <stdio.h>\nint main() {\n  printf("Hello, CodeBegun!\\n");\n  return 0;\n}\n' },
+  { key: 'javascript', label: 'JavaScript (Node.js 20)', icon: '🟨', monaco: 'javascript', file: 'index.js', starter: 'console.log("Hello, CodeBegun! 👋");\n' },
+  { key: 'typescript', label: 'TypeScript', icon: '🔷', monaco: 'typescript', file: 'index.ts', starter: 'const msg: string = "Hello, CodeBegun!";\nconsole.log(msg);\n' },
+  { key: 'csharp', label: 'C#', icon: '🟩', monaco: 'csharp', file: 'Program.cs', starter: 'using System;\nclass Program {\n  static void Main() {\n    Console.WriteLine("Hello, CodeBegun!");\n  }\n}\n' },
+  { key: 'web', label: 'Web (HTML/CSS/JS)', icon: '🌐', monaco: 'html', file: 'index.html', starter: WEB_STARTER },
+  { key: 'sql', label: 'SQL (SQLite)', icon: '🗄️', monaco: 'sql', file: 'query.sql', starter: SQL_STARTER },
 ];
 const STARTERS = new Set(LANGS.map(l => l.starter));
 const byKey = (k: string) => LANGS.find(l => l.key === k) || LANGS[0];
-const kindFor = (lang: string): string => (lang === 'web' ? 'web' : lang === 'sql' ? 'sql' : 'single');
+const kindFor = (lang: string) => (lang === 'web' ? 'web' : lang === 'sql' ? 'sql' : 'single');
 
-// Multi-file frameworks run in an embedded StackBlitz (WebContainers) — full
-// npm/build/dev-server in the browser. These aren't saved to our DB; students
-// use StackBlitz's own Save/Fork/Share inside the embed.
-interface Framework { key: string; label: string; url: string; }
+interface Framework { key: string; label: string; icon: string; url: string; }
 const FRAMEWORKS: Framework[] = [
-  { key: 'fw-react', label: 'React', url: 'https://stackblitz.com/fork/react?embed=1&view=both' },
-  { key: 'fw-react-ts', label: 'React + TypeScript', url: 'https://stackblitz.com/fork/react-ts?embed=1&view=both' },
-  { key: 'fw-angular', label: 'Angular', url: 'https://stackblitz.com/fork/angular?embed=1&view=both' },
-  { key: 'fw-vue', label: 'Vue', url: 'https://stackblitz.com/fork/vue?embed=1&view=both' },
-  { key: 'fw-node', label: 'Node.js / Express (MERN backend)', url: 'https://stackblitz.com/fork/node?embed=1&view=both' },
+  { key: 'fw-react', label: 'React', icon: '⚛️', url: 'https://stackblitz.com/fork/react?embed=1&view=both' },
+  { key: 'fw-react-ts', label: 'React + TypeScript', icon: '⚛️', url: 'https://stackblitz.com/fork/react-ts?embed=1&view=both' },
+  { key: 'fw-angular', label: 'Angular', icon: '🅰️', url: 'https://stackblitz.com/fork/angular?embed=1&view=both' },
+  { key: 'fw-vue', label: 'Vue', icon: '🟩', url: 'https://stackblitz.com/fork/vue?embed=1&view=both' },
+  { key: 'fw-node', label: 'Node.js / Express (MERN)', icon: '🟢', url: 'https://stackblitz.com/fork/node?embed=1&view=both' },
 ];
 const fwByKey = (k: string) => FRAMEWORKS.find(f => f.key === k);
 
-// Languages the Python Tutor step-debugger supports → its `py` param.
 const DEBUG_LANG: Record<string, string> = { python: '3', javascript: 'js', java: 'java', c: 'c', cpp: 'cpp' };
-const buildDebugUrl = (lang: string, code: string, stdin: string): string => {
+const buildDebugUrl = (lang: string, code: string, stdin: string) => {
   const params = new URLSearchParams({
-    code,
-    cumulative: 'false', curInstr: '0', heapPrimitives: 'nevernest', mode: 'display',
-    origin: 'opt-frontend.js', py: DEBUG_LANG[lang], rawInputLstJSON: JSON.stringify(stdin ? stdin.split('\n') : []),
-    textReferences: 'false',
+    code, cumulative: 'false', curInstr: '0', heapPrimitives: 'nevernest', mode: 'display',
+    origin: 'opt-frontend.js', py: DEBUG_LANG[lang], rawInputLstJSON: JSON.stringify(stdin ? stdin.split('\n') : []), textReferences: 'false',
   });
   return `https://pythontutor.com/iframe-embed.html#${params.toString()}`;
 };
 
 const CodePlayground: React.FC = () => {
-  const [language, setLanguage] = useState('python');
-  const [code, setCode] = useState(byKey('python').starter);
+  const [language, setLanguage] = useState('java');
+  const [code, setCode] = useState(byKey('java').starter);
   const [stdin, setStdin] = useState('');
   const [title, setTitle] = useState('Untitled');
   const [output, setOutput] = useState('');
@@ -77,15 +74,25 @@ const CodePlayground: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [programs, setPrograms] = useState<any[]>([]);
   const [currentId, setCurrentId] = useState<string | null>(null);
-  const [preview, setPreview] = useState('');          // web srcdoc
+  const [preview, setPreview] = useState('');
   const [sqlRows, setSqlRows] = useState<SqlResult[] | null>(null);
   const [debugUrl, setDebugUrl] = useState<string | null>(null);
   const [pushing, setPushing] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const [langSearch, setLangSearch] = useState('');
+  const [progsOpen, setProgsOpen] = useState(false);
+  const [rightTab, setRightTab] = useState<'input' | 'output'>('input');
+  const [full, setFull] = useState(false);
+  const [pos, setPos] = useState({ ln: 1, col: 1 });
+  const [ghModal, setGhModal] = useState(false);
+  const [ghConnecting, setGhConnecting] = useState(false);
+  const editorRef = useRef<any>(null);
 
   const isWeb = language === 'web';
   const isSql = language === 'sql';
   const isFramework = language.startsWith('fw-');
   const canDebug = !!DEBUG_LANG[language];
+  const current = isFramework ? null : byKey(language);
 
   const loadList = useCallback(async () => {
     try { const r = await playgroundApi.list(); setPrograms(r.data || []); } catch { /* ignore */ }
@@ -93,31 +100,25 @@ const CodePlayground: React.FC = () => {
   useEffect(() => { loadList(); }, [loadList]);
 
   const changeLanguage = (key: string) => {
-    setLanguage(key);
-    if (key.startsWith('fw-')) return;   // frameworks render an embed, not the editor
-    // Only swap in the new starter if the editor is empty or still a starter.
+    setLangOpen(false); setLanguage(key);
+    if (key.startsWith('fw-')) return;
     if (!code.trim() || STARTERS.has(code)) setCode(byKey(key).starter);
   };
 
   const handleRun = async () => {
-    setOutput(''); setError(''); setSqlRows(null);
-    // Web: render in a sandboxed iframe (client-side, no server)
+    setOutput(''); setError(''); setSqlRows(null); setRightTab('output');
     if (isWeb) { setPreview(code); return; }
     setPreview('');
-    // SQL: run against in-browser SQLite (sql.js)
     if (isSql) {
       setRunning(true);
-      try { setSqlRows(await runSql(code)); }
-      catch (e: any) { setError(e.message || 'SQL error'); }
+      try { setSqlRows(await runSql(code)); } catch (e: any) { setError(e.message || 'SQL error'); }
       finally { setRunning(false); }
       return;
     }
-    // Compiled / scripting languages: execute on the server (Piston)
     setRunning(true);
     try {
       const r = await playgroundApi.run({ language, code, stdin });
-      setOutput(r.data?.output ?? '');
-      setError(r.data?.error ?? '');
+      setOutput(r.data?.output ?? ''); setError(r.data?.error ?? '');
     } catch (e: any) { setError(e.message || 'Run failed'); }
     finally { setRunning(false); }
   };
@@ -134,35 +135,18 @@ const CodePlayground: React.FC = () => {
   };
 
   const loadProgram = async (id: string) => {
+    setProgsOpen(false);
     try {
-      const r = await playgroundApi.get(id);
-      const p = r.data;
+      const r = await playgroundApi.get(id); const p = r.data;
       setCurrentId(p._id); setTitle(p.title); setLanguage(p.language);
       setCode(p.code || ''); setStdin(p.stdin || ''); setOutput(''); setError(''); setPreview(''); setSqlRows(null);
     } catch { /* ignore */ }
   };
 
-  const handlePushGithub = async () => {
-    // Ensure the program is saved first so we have an id with the latest code
-    let id = currentId;
-    setPushing(true);
-    try {
-      const body = { title: title.trim() || 'Untitled', language, code, stdin, kind: kindFor(language) };
-      if (id) { await playgroundApi.update(id, body); }
-      else { const r = await playgroundApi.create(body); id = r.data?._id; setCurrentId(id); loadList(); }
-      const suggested = (title.trim() || 'playground').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-      const repoName = window.prompt('GitHub repository name:', suggested);
-      if (repoName === null) { setPushing(false); return; }
-      const r = await playgroundApi.pushGithub(id as string, { repoName });
-      if (window.confirm(`Pushed to ${r.data?.repo}. Open it on GitHub?`)) window.open(r.data?.url, '_blank');
-    } catch (e: any) {
-      alert(e.message || 'GitHub push failed');
-    } finally { setPushing(false); }
-  };
-
   const newProgram = () => {
     setCurrentId(null); setTitle('Untitled');
-    setCode(byKey(language).starter); setStdin(''); setOutput(''); setError(''); setPreview(''); setSqlRows(null);
+    setCode(byKey(language.startsWith('fw-') ? 'java' : language).starter);
+    setStdin(''); setOutput(''); setError(''); setPreview(''); setSqlRows(null);
   };
 
   const del = async (id: string, e: React.MouseEvent) => {
@@ -171,124 +155,224 @@ const CodePlayground: React.FC = () => {
     try { await playgroundApi.remove(id); if (currentId === id) newProgram(); loadList(); } catch { /* ignore */ }
   };
 
+  // GitHub push — check connection first, prompt to connect if missing
+  const handlePushGithub = async () => {
+    try {
+      const st = await studentProfileAPI.getOAuthStatus();
+      if (!st?.data?.github?.connected) { setGhModal(true); return; }
+    } catch { /* if status fails, attempt push anyway */ }
+    setPushing(true);
+    try {
+      let id = currentId;
+      const body = { title: title.trim() || 'Untitled', language, code, stdin, kind: kindFor(language) };
+      if (id) await playgroundApi.update(id, body);
+      else { const r = await playgroundApi.create(body); id = r.data?._id; setCurrentId(id); loadList(); }
+      const suggested = (title.trim() || 'playground').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const repoName = window.prompt('GitHub repository name:', suggested);
+      if (repoName === null) { setPushing(false); return; }
+      const r = await playgroundApi.pushGithub(id as string, { repoName });
+      if (window.confirm(`Pushed to ${r.data?.repo}. Open it on GitHub?`)) window.open(r.data?.url, '_blank');
+    } catch (e: any) {
+      if (/connect.*github/i.test(e.message || '')) setGhModal(true); else alert(e.message || 'GitHub push failed');
+    } finally { setPushing(false); }
+  };
+
+  const connectGithub = async () => {
+    setGhConnecting(true);
+    try {
+      const c = await studentProfileAPI.connectGitHub();
+      if (c?.authUrl) window.open(c.authUrl, '_blank', 'width=760,height=820');
+    } catch (e: any) { alert(e.message || 'Could not start GitHub connect'); }
+    finally { setGhConnecting(false); }
+  };
+
+  const formatCode = () => { try { editorRef.current?.getAction('editor.action.formatDocument')?.run(); } catch { /* ignore */ } };
+  const resetCode = () => { if (current) setCode(current.starter); setOutput(''); setError(''); setPreview(''); setSqlRows(null); };
+  const downloadCode = () => {
+    const blob = new Blob([code], { type: 'text/plain' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = current?.file || 'program.txt'; a.click(); URL.revokeObjectURL(a.href);
+  };
+  const share = async () => { try { await navigator.clipboard.writeText(code); alert('Code copied to clipboard.'); } catch { /* ignore */ } };
+
+  const visibleLangs = LANGS.filter(l => l.label.toLowerCase().includes(langSearch.toLowerCase()));
+  const visibleFw = FRAMEWORKS.filter(f => f.label.toLowerCase().includes(langSearch.toLowerCase()));
+  const langLabel = isFramework ? (fwByKey(language)?.label || 'Framework') : byKey(language).label;
+  const langIcon = isFramework ? (fwByKey(language)?.icon || '📦') : byKey(language).icon;
+
   return (
-    <div style={{ display: 'flex', height: 'calc(100vh - 60px)' }}>
-      {/* Saved list */}
-      <div style={{ width: 230, borderRight: '1px solid #e5e7eb', background: '#fff', overflowY: 'auto', flexShrink: 0 }}>
-        <div style={{ padding: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <strong style={{ fontSize: 13, color: '#334155' }}>My Programs</strong>
-          <button onClick={newProgram} style={{ border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', cursor: 'pointer', padding: '2px 8px', fontSize: 13 }}>+ New</button>
+    <div className={`cp-root ${full ? 'cp-full' : ''}`}>
+      {/* Tabs */}
+      <div className="cp-tabbar">
+        <div className="cp-tab active">
+          <span>{isFramework ? (fwByKey(language)?.label) : (title.trim() ? `${title}` : current?.file)}</span>
+          <span className="cp-tab-x" onClick={newProgram} title="New">✕</span>
         </div>
-        {programs.length === 0 ? <div style={{ padding: 12, color: '#94a3b8', fontSize: 12 }}>No saved programs yet.</div> :
-          programs.map(p => (
-            <div key={p._id} onClick={() => loadProgram(p._id)}
-              style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid #f1f5f9', background: currentId === p._id ? '#eff6ff' : '#fff', display: 'flex', justifyContent: 'space-between', gap: 6 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.title}</div>
-                <div style={{ fontSize: 11, color: '#94a3b8' }}>{byKey(p.language).label}</div>
-              </div>
-              <button onClick={(e) => del(p._id, e)} title="Delete" style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444' }}>🗑</button>
-            </div>
-          ))}
+        <button className="cp-tab-add" onClick={newProgram} title="New program">+</button>
       </div>
 
-      {/* Editor + controls */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', borderBottom: '1px solid #e5e7eb', background: '#fff', flexWrap: 'wrap' }}>
-          <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Program title"
-            style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '6px 10px', fontSize: 14, width: 220 }} />
-          <select value={language} onChange={e => changeLanguage(e.target.value)} style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '6px 10px', fontSize: 14 }}>
-            <optgroup label="Languages">
-              {LANGS.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
-            </optgroup>
-            <optgroup label="Frameworks (StackBlitz)">
-              {FRAMEWORKS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
-            </optgroup>
-          </select>
-          {!isFramework && <button onClick={handleRun} disabled={running} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontWeight: 700, cursor: 'pointer', opacity: running ? 0.6 : 1 }}>
-            {running ? 'Running…' : '▶ Run'}
-          </button>}
-          {!isFramework && <button onClick={handleSave} disabled={saving} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
-            {saving ? 'Saving…' : '💾 Save'}
-          </button>}
-          {!isFramework && canDebug && (
-            <button onClick={() => setDebugUrl(buildDebugUrl(language, code, stdin))} title="Step through your program line by line"
-              style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer' }}>
-              🐞 Debug
-            </button>
-          )}
-          {!isFramework && <button onClick={handlePushGithub} disabled={pushing} title="Save this program to a GitHub repo"
-            style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: pushing ? 0.6 : 1 }}>
-            {pushing ? 'Pushing…' : '⬆ Push to GitHub'}
-          </button>}
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
-            {isFramework ? 'Runs in StackBlitz — use its Save/Fork/Share inside the embed' :
-              `${canDebug ? 'Debug = step-through visualizer' : 'Debug not available for this language'} · Push needs GitHub connected in Profile`}
-          </span>
+      {/* Toolbar */}
+      <div className="cp-toolbar">
+        <div className={`cp-lang ${langOpen ? 'open' : ''}`} onClick={() => setLangOpen(o => !o)}>
+          <span>{langIcon}</span><span>{langLabel}</span><span className="chev">▾</span>
+        </div>
+        {langOpen && (
+          <div className="cp-lang-panel" onMouseLeave={() => setLangOpen(false)}>
+            <input className="cp-lang-search" autoFocus placeholder="Search language…" value={langSearch} onChange={e => setLangSearch(e.target.value)} />
+            <div className="cp-lang-list">
+              <div className="cp-lang-group">POPULAR LANGUAGES</div>
+              {visibleLangs.map(l => (
+                <div key={l.key} className={`cp-lang-item ${language === l.key ? 'sel' : ''}`} onClick={() => changeLanguage(l.key)}>
+                  <span className="cp-lang-dot">{l.icon}</span>{l.label}{language === l.key && ' ✓'}
+                </div>
+              ))}
+              {visibleFw.length > 0 && <div className="cp-lang-group">FRAMEWORKS (StackBlitz)</div>}
+              {visibleFw.map(f => (
+                <div key={f.key} className={`cp-lang-item ${language === f.key ? 'sel' : ''}`} onClick={() => changeLanguage(f.key)}>
+                  <span className="cp-lang-dot">{f.icon}</span>{f.label}{language === f.key && ' ✓'}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleRun} disabled={running}>▶ {running ? 'Running…' : 'Run'}</button>}
+        {!isFramework && canDebug && <button className="cp-btn" onClick={() => setDebugUrl(buildDebugUrl(language, code, stdin))}>⚙ Debug</button>}
+        {!isFramework && <button className="cp-btn" onClick={resetCode}>↺ Reset</button>}
+        {!isFramework && <button className="cp-btn" onClick={formatCode}>≣ Format</button>}
+
+        <div className="cp-toolbar-right">
+          {!isFramework && <button className="cp-btn" onClick={share}>↗ Share</button>}
+          {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleSave} disabled={saving}>💾 {saving ? 'Saving…' : 'Save'}</button>}
+          <button className="cp-icon-btn" onClick={() => setProgsOpen(o => !o)} title="My Programs">⋮</button>
+          <button className="cp-icon-btn" onClick={() => setFull(f => !f)} title="Fullscreen">⛶</button>
         </div>
 
-        <div style={{ flex: 1, minHeight: 0 }}>
+        {progsOpen && (
+          <div className="cp-progs" onMouseLeave={() => setProgsOpen(false)}>
+            <div className="cp-lang-group">MY PROGRAMS</div>
+            {programs.length === 0 ? <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>No saved programs yet.</div> :
+              programs.map(p => (
+                <div key={p._id} className="cp-prog" onClick={() => loadProgram(p._id)}>
+                  <div><div className="t">{p.title}</div><div className="s">{byKey(p.language).label}</div></div>
+                  <button onClick={(e) => del(p._id, e)} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#ef4444' }}>🗑</button>
+                </div>
+              ))}
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="cp-body">
+        <div className="cp-editor-wrap">
           {isFramework ? (
-            <iframe title="framework-sandbox" src={fwByKey(language)?.url} style={{ width: '100%', height: '100%', border: 'none' }}
-              allow="cross-origin-isolated" />
+            <iframe title="framework-sandbox" src={fwByKey(language)?.url} style={{ width: '100%', height: '100%', border: 'none' }} />
           ) : (
             <Editor
               height="100%"
               language={byKey(language).monaco}
               value={code}
               onChange={(v) => setCode(v ?? '')}
-              theme="vs-dark"
-              options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true }}
+              onMount={(ed) => { editorRef.current = ed; ed.onDidChangeCursorPosition((e: any) => setPos({ ln: e.position.lineNumber, col: e.position.column })); }}
+              theme="light"
+              options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4 }}
             />
           )}
         </div>
+
+        {!isFramework && (
+          <div className="cp-right">
+            <div className="cp-right-head">
+              <span className={`cp-rtab ${rightTab === 'input' ? 'active' : ''}`} onClick={() => setRightTab('input')}>Input</span>
+              <span className={`cp-rtab ${rightTab === 'output' ? 'active' : ''}`} onClick={() => setRightTab('output')}>Output</span>
+              <span className="cp-run-input" onClick={handleRun}>▶ Run{isWeb || isSql ? '' : ' with Input'}</span>
+            </div>
+
+            {isWeb ? (
+              <div className="cp-sec" style={{ flex: 1 }}>
+                <div className="cp-sec-label">LIVE PREVIEW</div>
+                {preview ? <iframe title="preview" srcDoc={preview} sandbox="allow-scripts allow-modals" style={{ width: '100%', height: 380, border: '1px solid #e2e8f0', borderRadius: 8 }} />
+                  : <div className="cp-output muted">Click ▶ Run to render your page.</div>}
+              </div>
+            ) : isSql ? (
+              <div className="cp-sec" style={{ flex: 1 }}>
+                <div className="cp-sec-label">RESULT</div>
+                {error ? <div className="cp-output err">{error}</div> :
+                  sqlRows === null ? <div className="cp-output muted">Run a query to see results.</div> :
+                  sqlRows.length === 0 ? <div className="cp-output" style={{ color: '#16a34a' }}>✅ Query executed (no rows).</div> :
+                  sqlRows.map((rs, i) => (
+                    <table key={i} className="cp-sql-table">
+                      <thead><tr>{rs.columns.map(c => <th key={c}>{c}</th>)}</tr></thead>
+                      <tbody>{rs.values.map((row, ri) => <tr key={ri}>{row.map((v, ci) => <td key={ci}>{String(v)}</td>)}</tr>)}</tbody>
+                    </table>
+                  ))}
+              </div>
+            ) : (
+              <>
+                <div className="cp-sec">
+                  <div className="cp-sec-label">STDIN (Input)</div>
+                  <textarea className="cp-stdin" value={stdin} onChange={e => setStdin(e.target.value)} placeholder="Enter input for your program (if any)" />
+                </div>
+                <div className="cp-sec">
+                  <div className="cp-sec-label">Output</div>
+                  <div className="cp-output">
+                    {error ? <span className="err">{error}</span> : (output || <span className="muted">Your program output will appear here.</span>)}
+                  </div>
+                </div>
+              </>
+            )}
+
+            <div className="cp-sec-label" style={{ padding: '4px 16px 0' }}>Quick Actions</div>
+            <div className="cp-quick">
+              <div className="cp-qcard" onClick={resetCode}><span className="ic">{'</>'}</span><span className="lbl">Generate Boilerplate</span></div>
+              <div className="cp-qcard" onClick={handleSave}><span className="ic">🔖</span><span className="lbl">Add to My Programs</span></div>
+              <div className="cp-qcard" onClick={downloadCode}><span className="ic">⬇</span><span className="lbl">Download Code</span></div>
+              <div className="cp-qcard" onClick={handlePushGithub}><span className="ic">⬆</span><span className="lbl">{pushing ? 'Pushing…' : 'Push to GitHub'}</span></div>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Right panel: Web preview, SQL results, or STDIN+Output (hidden for frameworks) */}
-      {isFramework ? null : isWeb ? (
-        <div style={{ width: 480, borderLeft: '1px solid #e5e7eb', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 700, color: '#334155' }}>LIVE PREVIEW</div>
-          {preview
-            ? <iframe title="preview" srcDoc={preview} sandbox="allow-scripts allow-modals" style={{ flex: 1, border: 'none', width: '100%' }} />
-            : <div style={{ padding: 16, color: '#94a3b8', fontSize: 13 }}>Click ▶ Run to render your page.</div>}
-        </div>
-      ) : isSql ? (
-        <div style={{ width: 480, borderLeft: '1px solid #e5e7eb', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0, overflow: 'auto' }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 700, color: '#334155' }}>RESULT</div>
-          <div style={{ padding: 12 }}>
-            {error ? <div style={{ color: '#dc2626', fontFamily: 'monospace', fontSize: 13 }}>{error}</div> :
-              sqlRows === null ? <div style={{ color: '#94a3b8', fontSize: 13 }}>Run a query to see results.</div> :
-              sqlRows.length === 0 ? <div style={{ color: '#16a34a', fontSize: 13 }}>✅ Query executed (no rows returned).</div> :
-              sqlRows.map((rs, i) => (
-                <table key={i} style={{ borderCollapse: 'collapse', marginBottom: 16, fontSize: 13, width: '100%' }}>
-                  <thead><tr>{rs.columns.map(c => <th key={c} style={{ border: '1px solid #e5e7eb', padding: '6px 10px', background: '#f8fafc', textAlign: 'left' }}>{c}</th>)}</tr></thead>
-                  <tbody>{rs.values.map((row, ri) => <tr key={ri}>{row.map((v, ci) => <td key={ci} style={{ border: '1px solid #e5e7eb', padding: '6px 10px' }}>{String(v)}</td>)}</tr>)}</tbody>
-                </table>
-              ))}
+      {/* Status bar */}
+      <div className="cp-status">
+        <span>Ln {pos.ln}, Col {pos.col}</span>
+        <span>Spaces: 4</span>
+        <span>UTF-8</span>
+        <span className="ok">● {running ? 'Running' : 'Ready'}</span>
+        <span style={{ marginLeft: 'auto' }}>{isFramework ? 'StackBlitz sandbox' : langLabel}</span>
+      </div>
+
+      {/* Tip bar */}
+      <div className="cp-tip">
+        💡 <span>Tip: Use <b>Ctrl + Enter</b> to run, <b>Ctrl + S</b> to save.</span>
+        <span className="right">
+          <span onClick={share}>🔗 Share Code</span>
+          <span onClick={() => window.open('mailto:support@codebegun.com?subject=Playground%20Feedback')}>💬 Feedback</span>
+        </span>
+      </div>
+
+      {/* Debugger modal */}
+      {debugUrl && (
+        <div className="cp-modal-overlay" onClick={() => setDebugUrl(null)}>
+          <div className="cp-modal-dbg" onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
+              <strong>🐞 Step-through Debugger — {byKey(language).label}</strong>
+              <button className="cp-btn" onClick={() => setDebugUrl(null)}>✕ Close</button>
+            </div>
+            <iframe title="debugger" src={debugUrl} style={{ flex: 1, border: 'none', width: '100%' }} />
           </div>
-        </div>
-      ) : (
-        <div style={{ width: 360, borderLeft: '1px solid #e5e7eb', background: '#0b1020', color: '#e2e8f0', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #1e293b', fontSize: 12, fontWeight: 700, color: '#93c5fd' }}>STDIN (input)</div>
-          <textarea value={stdin} onChange={e => setStdin(e.target.value)} placeholder="Type input passed to your program…"
-            style={{ background: '#0b1020', color: '#e2e8f0', border: 'none', borderBottom: '1px solid #1e293b', padding: 12, fontFamily: 'monospace', fontSize: 13, resize: 'none', height: 120, outline: 'none' }} />
-          <div style={{ padding: '10px 14px', borderBottom: '1px solid #1e293b', fontSize: 12, fontWeight: 700, color: '#86efac' }}>OUTPUT</div>
-          <pre style={{ flex: 1, margin: 0, padding: 12, overflow: 'auto', fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap' }}>
-            {error ? <span style={{ color: '#fca5a5' }}>{error}</span> : (output || <span style={{ color: '#64748b' }}>Run your program to see output here.</span>)}
-          </pre>
         </div>
       )}
 
-      {/* Step-through debugger (Python Tutor) */}
-      {debugUrl && (
-        <div onClick={() => setDebugUrl(null)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: '94vw', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
-              <strong style={{ color: '#0f172a' }}>🐞 Step-through Debugger — {byKey(language).label}</strong>
-              <button onClick={() => setDebugUrl(null)} style={{ border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', cursor: 'pointer', padding: '4px 12px' }}>✕ Close</button>
-            </div>
-            <iframe title="debugger" src={debugUrl} style={{ flex: 1, border: 'none', width: '100%' }} />
+      {/* GitHub connect modal */}
+      {ghModal && (
+        <div className="cp-modal-overlay" onClick={() => setGhModal(false)}>
+          <div className="cp-modal" onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 40 }}>🐙</div>
+            <h3>Connect your GitHub</h3>
+            <p>To push your code to a repository, connect your GitHub account once. A GitHub window will open — approve access, then come back and click <b>Push to GitHub</b> again.</p>
+            <button className="gh-btn" onClick={connectGithub} disabled={ghConnecting}>{ghConnecting ? 'Opening…' : '🐙 Connect GitHub'}</button>
+            <div className="link" onClick={() => setGhModal(false)}>Maybe later</div>
           </div>
         </div>
       )}

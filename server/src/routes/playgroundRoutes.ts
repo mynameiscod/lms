@@ -16,6 +16,7 @@ router.get('/', roleGuard(perms), ctrl.listPrograms);
 router.post('/', roleGuard(perms), ctrl.createProgram);
 router.get('/:id', roleGuard(perms), ctrl.getProgram);
 router.put('/:id', roleGuard(perms), ctrl.updateProgram);
+router.post('/:id/push-github', roleGuard(perms), ctrl.pushToGithub);
 router.delete('/:id', roleGuard(perms), ctrl.deleteProgram);
 
 export default router;

@@ -67,6 +67,7 @@ const CodePlayground: React.FC = () => {
   const [preview, setPreview] = useState('');          // web srcdoc
   const [sqlRows, setSqlRows] = useState<SqlResult[] | null>(null);
   const [debugUrl, setDebugUrl] = useState<string | null>(null);
+  const [pushing, setPushing] = useState(false);
 
   const isWeb = language === 'web';
   const isSql = language === 'sql';
@@ -126,6 +127,24 @@ const CodePlayground: React.FC = () => {
     } catch { /* ignore */ }
   };
 
+  const handlePushGithub = async () => {
+    // Ensure the program is saved first so we have an id with the latest code
+    let id = currentId;
+    setPushing(true);
+    try {
+      const body = { title: title.trim() || 'Untitled', language, code, stdin, kind: kindFor(language) };
+      if (id) { await playgroundApi.update(id, body); }
+      else { const r = await playgroundApi.create(body); id = r.data?._id; setCurrentId(id); loadList(); }
+      const suggested = (title.trim() || 'playground').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      const repoName = window.prompt('GitHub repository name:', suggested);
+      if (repoName === null) { setPushing(false); return; }
+      const r = await playgroundApi.pushGithub(id as string, { repoName });
+      if (window.confirm(`Pushed to ${r.data?.repo}. Open it on GitHub?`)) window.open(r.data?.url, '_blank');
+    } catch (e: any) {
+      alert(e.message || 'GitHub push failed');
+    } finally { setPushing(false); }
+  };
+
   const newProgram = () => {
     setCurrentId(null); setTitle('Untitled');
     setCode(byKey(language).starter); setStdin(''); setOutput(''); setError(''); setPreview(''); setSqlRows(null);
@@ -178,8 +197,12 @@ const CodePlayground: React.FC = () => {
               🐞 Debug
             </button>
           )}
+          <button onClick={handlePushGithub} disabled={pushing} title="Save this program to a GitHub repo"
+            style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: pushing ? 0.6 : 1 }}>
+            {pushing ? 'Pushing…' : '⬆ Push to GitHub'}
+          </button>
           <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
-            {canDebug ? 'Debug = step-through visualizer' : 'Debug not available for this language'} · GitHub push coming soon
+            {canDebug ? 'Debug = step-through visualizer' : 'Debug not available for this language'} · Push needs GitHub connected in Profile
           </span>
         </div>
 

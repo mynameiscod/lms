@@ -23,5 +23,7 @@ export const playgroundApi = {
   get: (id: string) => j(`${BASE}/${id}`),
   create: (body: any) => j(BASE, { method: 'POST', body: JSON.stringify(body) }),
   update: (id: string, body: any) => j(`${BASE}/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+  pushGithub: (id: string, body: { repoName?: string; private?: boolean }) =>
+    j(`${BASE}/${id}/push-github`, { method: 'POST', body: JSON.stringify(body) }),
   remove: (id: string) => j(`${BASE}/${id}`, { method: 'DELETE' }),
 };

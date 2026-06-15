@@ -97,7 +97,24 @@ const CodePlayground: React.FC = () => {
   const [breakpoints, setBreakpoints] = useState<number[]>([]);
   const [dbgLoading, setDbgLoading] = useState(false);
   const [consoleTab, setConsoleTab] = useState<'Console' | 'Input' | 'Output' | 'Errors'>('Console');
+  const [rightW, setRightW] = useState(400);
+  const [consoleH, setConsoleH] = useState(220);
   const cur = trace ? trace[Math.min(step, trace.length - 1)] : null;
+
+  const startColDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const move = (ev: MouseEvent) => setRightW(Math.min(820, Math.max(280, window.innerWidth - ev.clientX)));
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); document.body.style.userSelect = ''; };
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  };
+  const startRowDrag = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const move = (ev: MouseEvent) => setConsoleH(Math.min(window.innerHeight * 0.65, Math.max(90, window.innerHeight - ev.clientY)));
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); document.body.style.userSelect = ''; };
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', move); window.addEventListener('mouseup', up);
+  };
   const lastIdx = trace ? trace.length - 1 : 0;
   const depthAt = (i: number) => trace?.[i]?.stack_to_render?.length || 0;
 
@@ -351,8 +368,9 @@ const CodePlayground: React.FC = () => {
           )}
         </div>
 
+        {!isFramework && !debugMode && <div className="cp-vdiv" onMouseDown={startColDrag} />}
         {!isFramework && !debugMode && (
-          <div className="cp-right">
+          <div className="cp-right" style={{ width: rightW }}>
             <div className="cp-right-head">
               <span className={`cp-rtab ${rightTab === 'input' ? 'active' : ''}`} onClick={() => setRightTab('input')}>Input</span>
               <span className={`cp-rtab ${rightTab === 'output' ? 'active' : ''}`} onClick={() => setRightTab('output')}>Output</span>
@@ -408,8 +426,9 @@ const CodePlayground: React.FC = () => {
           const stack: any[] = cur.stack_to_render || [];
           const top = stack.find((f: any) => f.is_highlighted) || stack[stack.length - 1];
           const codeLines = code.split('\n');
-          return (
-            <div className="cp-right">
+          return (<>
+            <div className="cp-vdiv" onMouseDown={startColDrag} />
+            <div className="cp-right" style={{ width: rightW }}>
               <div className="cp-dbg-bar">
                 <span className="ttl">Debug</span>
                 <button className="cp-dbg-act resume" onClick={resume} disabled={step >= lastIdx}>▶ Resume</button>
@@ -454,13 +473,14 @@ const CodePlayground: React.FC = () => {
                 <div className="cp-qcard" onClick={handlePushGithub}><span className="ic">⬆</span><span className="lbl">Push to GitHub</span></div>
               </div>
             </div>
-          );
+          </>);
         })()}
       </div>
 
-      {/* Debug console */}
+      {/* Debug console (resizable) */}
+      {debugMode && <div className="cp-hdiv" onMouseDown={startRowDrag} />}
       {debugMode && (
-        <div className="cp-console">
+        <div className="cp-console" style={{ height: consoleH }}>
           <div className="cp-console-tabs">
             {(['Console', 'Input', 'Output', 'Errors'] as const).map(t => (
               <span key={t} className={`cp-console-tab ${consoleTab === t ? 'active' : ''}`} onClick={() => setConsoleTab(t)}>{t}</span>

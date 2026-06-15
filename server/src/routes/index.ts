@@ -64,6 +64,7 @@ import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
 import scheduledInterviewRoutes from './scheduledInterviewRoutes';
+import recordingLogRoutes from './recordingLogRoutes';
 import resumeRoutes from './resumeRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
@@ -153,6 +154,7 @@ router.use('/fees', feeRoutes);
 
 // ─── Scheduled Interviews ─────────────────────────────────────────────────────
 router.use('/scheduled-interviews', scheduledInterviewRoutes);
+router.use('/recording-logs', recordingLogRoutes);
 
 // ─── Admin Utilities ───────────────────────────────────────────────────────────
 router.use('/admin/logs', adminLogsRoute);

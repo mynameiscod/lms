@@ -55,6 +55,7 @@ import StudentCollegePortal from './pages/StudentCollegePortal';
 import StudentFeeDetailsPage from './pages/StudentFeeDetails';
 import DeptReportsPage from './pages/DeptReports';
 import BulkUploadPage from './pages/BulkUpload';
+import RecordingDiagnostics from './pages/RecordingDiagnostics';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -317,6 +318,17 @@ const AppRoutes: React.FC = () => {
                 <InterviewQuestionsPage />
               </Layout>
             </FeatureRoute>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/recording-diagnostics"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <RecordingDiagnostics />
+            </Layout>
           </ProtectedRoute>
         }
       />

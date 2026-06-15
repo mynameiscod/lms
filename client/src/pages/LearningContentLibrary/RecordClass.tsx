@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import * as tus from 'tus-js-client';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
+import { newSessionId, logRecording } from '../../api/recordingLogApi';
 
 /**
  * Record Class — stable single-source recorder.
@@ -45,6 +46,13 @@ export default function RecordClass() {
   const previewStreamRef = useRef<MediaStream | null>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const secondsRef  = useRef(0);
+  const sessionRef  = useRef('');
+  const statusRef   = useRef<Status>('idle');
+  const lastPctRef  = useRef(-1);
+
+  // telemetry helper — fire-and-forget
+  const rlog = useCallback((type: string, opts?: { message?: string; data?: any }) =>
+    logRecording(sessionRef.current, type, { source: 'class_recording', message: opts?.message, data: opts?.data }), []);
 
   const [mode, setMode]       = useState<Mode>('screen_mic');
   const [status, setStatus]   = useState<Status>('idle');
@@ -61,6 +69,30 @@ export default function RecordClass() {
   const [savedId, setSavedId] = useState('');
 
   useEffect(() => { secondsRef.current = seconds; }, [seconds]);
+  useEffect(() => { statusRef.current = status; }, [status]);
+
+  // Capture tab close / navigate-away while a recording is unsaved — the #1 cause
+  // of "recording stopped and not saved".
+  useEffect(() => {
+    const onLeave = () => {
+      const s = statusRef.current;
+      if (s === 'recording' || s === 'recorded' || s === 'saving') {
+        rlog('page_unload', { data: { status: s } });
+      }
+    };
+    const onVis = () => { if (document.hidden) {
+      const s = statusRef.current;
+      if (s === 'recording' || s === 'saving') rlog('tab_hidden', { data: { status: s } });
+    }};
+    window.addEventListener('beforeunload', onLeave);
+    window.addEventListener('pagehide', onLeave);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('beforeunload', onLeave);
+      window.removeEventListener('pagehide', onLeave);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [rlog]);
   useEffect(() => {
     if (status !== 'recording' || paused) return;
     const iv = setInterval(() => setSeconds(p => p + 1), 1000);
@@ -97,6 +129,9 @@ export default function RecordClass() {
 
   const start = async () => {
     setError('');
+    sessionRef.current = newSessionId();
+    lastPctRef.current = -1;
+    rlog('session_start', { data: { mode } });
     try {
       let videoTrack: MediaStreamTrack;
       let camStream: MediaStream | null = null;
@@ -123,37 +158,48 @@ export default function RecordClass() {
       streamRef.current = combined;
       previewStreamRef.current = camStream ? new MediaStream(camStream.getVideoTracks()) : null;
 
-      videoTrack.addEventListener('ended', () => stop());
+      rlog('permission_granted', { data: { mode, hasAudio: audioStreams.length > 0 } });
+      videoTrack.addEventListener('ended', () => { rlog('track_ended', { message: 'screen share / camera track ended' }); stop(); });
 
       const mime = pickMime();
       const rec = new MediaRecorder(combined, mime ? { mimeType: mime, videoBitsPerSecond: 1_200_000, audioBitsPerSecond: 128_000 } : undefined);
       chunksRef.current = [];
       rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rec.onerror = (ev: any) => rlog('recorder_error', { message: ev?.error?.name || ev?.error?.message || 'MediaRecorder error' });
       rec.onstop = () => {
         const b = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'video/webm' });
         setBlob(b); setPreviewUrl(URL.createObjectURL(b));
         setTitle(`Class Recording — ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
         setStatus('recorded'); stopAllTracks();
+        rlog('recording_stopped', { data: { durationSec: secondsRef.current, sizeBytes: b.size, chunks: chunksRef.current.length } });
       };
       recRef.current = rec; rec.start(2000);
       setStatus('recording'); setSeconds(0); setPaused(false);
+      rlog('recording_started', { data: { mime } });
     } catch (e: any) {
       stopAllTracks();
-      setError(e?.name === 'NotAllowedError' ? 'Permission denied / picker cancelled. Click Start and choose what to share.' : (e?.message || 'Could not start. Use Chrome or Edge.'));
+      const msg = e?.name === 'NotAllowedError' ? 'Permission denied / picker cancelled. Click Start and choose what to share.' : (e?.message || 'Could not start. Use Chrome or Edge.');
+      setError(msg);
+      rlog('permission_denied', { message: e?.name ? `${e.name}: ${e.message || ''}` : msg });
     }
   };
 
-  const pause  = () => { if (recRef.current?.state === 'recording') { recRef.current.pause(); setPaused(true); } };
-  const resume = () => { if (recRef.current?.state === 'paused') { recRef.current.resume(); setPaused(false); } };
+  const pause  = () => { if (recRef.current?.state === 'recording') { recRef.current.pause(); setPaused(true); rlog('paused'); } };
+  const resume = () => { if (recRef.current?.state === 'paused') { recRef.current.resume(); setPaused(false); rlog('resumed'); } };
   const stop   = useCallback(() => { if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop(); }, []);
-  const discard = () => { if (previewUrl) URL.revokeObjectURL(previewUrl); setBlob(null); setPreviewUrl(''); setSeconds(0); setUploadPct(0); setStatus('idle'); };
+  const discard = () => { rlog('discard'); if (previewUrl) URL.revokeObjectURL(previewUrl); setBlob(null); setPreviewUrl(''); setSeconds(0); setUploadPct(0); setStatus('idle'); };
 
   const save = async () => {
     if (!blob) return;
     if (!title.trim()) { setError('Please enter a title.'); return; }
     setError(''); setStatus('saving'); setUploadPct(0);
+    rlog('save_clicked', { data: { sizeBytes: blob.size, durationSec: secondsRef.current } });
+    let stage = 'bunny_create';
     try {
       const meta = await learningContentLibraryApi.createBunnyVideo(title.trim());
+      rlog('bunny_create_ok', { data: { bunnyVideoId: meta.videoId, libraryId: meta.libraryId } });
+      stage = 'upload';
+      rlog('upload_started', { data: { endpoint: meta.tus.endpoint, sizeBytes: blob.size } });
       await new Promise<void>((resolve, reject) => {
         const upload = new tus.Upload(blob, {
           endpoint: meta.tus.endpoint,
@@ -161,11 +207,18 @@ export default function RecordClass() {
           headers: { AuthorizationSignature: meta.tus.signature, AuthorizationExpire: String(meta.tus.expiration), VideoId: meta.videoId, LibraryId: String(meta.libraryId) },
           metadata: { filetype: blob.type || 'video/webm', title: title.trim() },
           onError: (err) => reject(err),
-          onProgress: (sent, total) => { if (total) setUploadPct(Math.round((sent / total) * 100)); },
+          onProgress: (sent, total) => {
+            if (!total) return;
+            const pct = Math.round((sent / total) * 100);
+            setUploadPct(pct);
+            if (pct >= lastPctRef.current + 10 || pct === 100) { lastPctRef.current = pct; rlog('upload_progress', { data: { pct } }); }
+          },
           onSuccess: () => resolve(),
         });
         upload.start();
       });
+      rlog('upload_success', { data: { bunnyVideoId: meta.videoId } });
+      stage = 'content_save';
       const token = localStorage.getItem('token');
       const tenantId = localStorage.getItem('tenantId');
       const { data } = await axios.post('/api/v1/learning-library/bunny/content', {
@@ -176,8 +229,11 @@ export default function RecordClass() {
         estimatedDuration: Math.max(1, Math.round(secondsRef.current / 60)), videoDuration: secondsRef.current, isPublished: true,
       }, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}) } });
       setSavedId(data?._id || ''); setStatus('saved');
+      rlog('content_save_ok', { data: { contentId: data?._id, bunnyVideoId: meta.videoId } });
     } catch (e: any) {
-      setError(e?.response?.data?.message || e?.message || 'Upload failed. Please try again.'); setStatus('recorded');
+      const msg = e?.response?.data?.message || e?.message || 'Upload failed. Please try again.';
+      setError(msg); setStatus('recorded');
+      rlog(stage === 'bunny_create' ? 'bunny_create_error' : stage === 'upload' ? 'upload_error' : 'content_save_error', { message: `${stage}: ${msg}` });
     }
   };
 

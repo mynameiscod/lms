@@ -211,18 +211,13 @@ const InterviewTemplateCreate: React.FC = () => {
 
   // ── Save ─────────────────────────────────────────────────────────────
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const doSave = async () => {
     if (!form.title) { alert('Title is required'); return; }
     if (!form.interviewCategories?.length) { alert('Select at least one interview category'); return; }
-
     try {
       setSaving(true);
-      if (isEditing) {
-        await interviewTemplateApi.update(templateId!, form);
-      } else {
-        await interviewTemplateApi.create(form);
-      }
+      if (isEditing) await interviewTemplateApi.update(templateId!, form);
+      else await interviewTemplateApi.create(form);
       navigate('/admin/interviews/templates');
     } catch (err: any) {
       alert(err.message || 'Failed to save template');
@@ -230,27 +225,37 @@ const InterviewTemplateCreate: React.FC = () => {
       setSaving(false);
     }
   };
+  const handleSave = (e: React.FormEvent) => { e.preventDefault(); doSave(); };
 
   if (loading) return <div className="itc-loading">Loading template...</div>;
 
   return (
     <div className="itc-container">
-      <div className="itc-header">
+      <div className="itc-topbar">
         <button className="itc-back-btn" onClick={() => navigate('/admin/interviews/templates')}>&larr; Back</button>
-        <h1>{isEditing ? 'Edit Interview Template' : 'Create Interview Template'}</h1>
+        <div className="itc-title-block">
+          <h1>{isEditing ? 'Edit Interview Template' : 'Create Interview Template'}</h1>
+          <p>Create a structured interview with sections, questions and evaluation criteria.</p>
+        </div>
+        <div className="itc-topbar-actions">
+          <button className="itc-btn-draft" onClick={doSave} disabled={saving}>Save as Draft</button>
+          <button className="itc-btn-save" onClick={doSave} disabled={saving}>{saving ? 'Saving…' : (isEditing ? 'Update Template' : 'Create Template')}</button>
+        </div>
       </div>
 
       <form onSubmit={handleSave} className="itc-form">
         {/* ── Basic Info ─────────────────────────────────────── */}
         <section className="itc-section">
-          <h2>Basic Information</h2>
-          <div className="itc-field">
-            <label>Title *</label>
-            <input type="text" value={form.title || ''} onChange={e => updateForm('title', e.target.value)} required />
-          </div>
-          <div className="itc-field">
-            <label>Description</label>
-            <textarea value={form.description || ''} onChange={e => updateForm('description', e.target.value)} rows={3} />
+          <h2><span className="itc-ic">📋</span> Basic Information</h2>
+          <div className="itc-row cols-2" style={{ marginBottom: 16 }}>
+            <div className="itc-field">
+              <label>Title *</label>
+              <input type="text" value={form.title || ''} onChange={e => updateForm('title', e.target.value)} placeholder="e.g. Java Developer - Level 2" required />
+            </div>
+            <div className="itc-field">
+              <label>Description</label>
+              <input type="text" value={form.description || ''} onChange={e => updateForm('description', e.target.value)} placeholder="Brief description of this interview template…" />
+            </div>
           </div>
           <div className="itc-row">
             <div className="itc-field">
@@ -263,47 +268,6 @@ const InterviewTemplateCreate: React.FC = () => {
                 <option value="practice">Practice</option>
                 <option value="assessment">Assessment</option>
                 <option value="placement">Placement</option>
-              </select>
-            </div>
-          </div>
-        </section>
-
-        {/* ── Categories ─────────────────────────────────────── */}
-        <section className="itc-section">
-          <h2>Interview Categories *</h2>
-          <p className="itc-hint">Select one or more categories. Combined interviews will have separate rounds.</p>
-          <div className="itc-categories">
-            {(['communication', 'hr', 'technical'] as InterviewCategory[]).map(cat => (
-              <label key={cat} className={`itc-cat-option ${form.interviewCategories?.includes(cat) ? 'selected' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={form.interviewCategories?.includes(cat) || false}
-                  onChange={() => toggleCategory(cat)}
-                />
-                <span className="itc-cat-label">
-                  {cat === 'communication' ? '🗣️ Communication Interview' :
-                   cat === 'hr' ? '👔 HR Interview' : '💻 Technical Interview'}
-                </span>
-              </label>
-            ))}
-          </div>
-        </section>
-
-        {/* ── Configuration ──────────────────────────────────── */}
-        <section className="itc-section">
-          <h2>Configuration</h2>
-          <div className="itc-row">
-            <div className="itc-field">
-              <label>Total Duration (minutes)</label>
-              <input type="number" value={form.totalDuration} onChange={e => updateForm('totalDuration', parseInt(e.target.value) || 0)} min={10} max={300} />
-            </div>
-            <div className="itc-field">
-              <label>Difficulty Level</label>
-              <select value={form.difficultyLevel} onChange={e => updateForm('difficultyLevel', e.target.value)}>
-                <option value="easy">Easy</option>
-                <option value="medium">Medium</option>
-                <option value="hard">Hard</option>
-                <option value="mixed">Mixed</option>
               </select>
             </div>
             <div className="itc-field">
@@ -319,101 +283,121 @@ const InterviewTemplateCreate: React.FC = () => {
           </div>
         </section>
 
-        {/* ── Attempt & Resume Rules ─────────────────────────── */}
+        {/* ── Categories ─────────────────────────────────────── */}
         <section className="itc-section">
-          <h2>Attempt & Resume Rules</h2>
-          <div className="itc-row">
+          <h2><span className="itc-ic">🗂️</span> Interview Categories *</h2>
+          <p className="itc-hint">Select the type(s) of interview this template is for. Each becomes a round.</p>
+          <div className="itc-categories">
+            {([
+              { k: 'technical', label: '💻 Technical Interview' },
+              { k: 'hr', label: '👔 HR Interview' },
+              { k: 'communication', label: '🗣️ Communication' },
+            ] as { k: InterviewCategory; label: string }[]).map(({ k, label }) => (
+              <label key={k} className={`itc-cat-option ${form.interviewCategories?.includes(k) ? 'selected' : ''}`}>
+                <input type="checkbox" checked={form.interviewCategories?.includes(k) || false} onChange={() => toggleCategory(k)} />
+                <span className="itc-cat-label">{label}</span>
+                <span className="itc-cat-circle" />
+              </label>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Configuration ──────────────────────────────────── */}
+        <section className="itc-section">
+          <h2><span className="itc-ic">⚙️</span> Configuration</h2>
+          <div className="itc-row cols-2">
             <div className="itc-field">
-              <label>Max Attempts</label>
-              <input type="number" value={form.maxAttempts} onChange={e => updateForm('maxAttempts', parseInt(e.target.value) || 1)} min={1} max={10} />
+              <label>Total Duration (minutes)</label>
+              <input type="number" value={form.totalDuration} onChange={e => updateForm('totalDuration', parseInt(e.target.value) || 0)} min={10} max={300} placeholder="e.g. 60" />
             </div>
             <div className="itc-field">
-              <label>Section Navigation</label>
-              <select value={form.sectionNavigationMode} onChange={e => updateForm('sectionNavigationMode', e.target.value)}>
-                <option value="sequential">Sequential (must complete in order)</option>
-                <option value="free">Free Navigation</option>
+              <label>Difficulty Level</label>
+              <select value={form.difficultyLevel} onChange={e => updateForm('difficultyLevel', e.target.value)}>
+                <option value="easy">Easy</option>
+                <option value="medium">Medium</option>
+                <option value="hard">Hard</option>
+                <option value="mixed">Mixed</option>
               </select>
             </div>
           </div>
-          <div className="itc-row">
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.allowResume || false} onChange={e => updateForm('allowResume', e.target.checked)} /> Allow Resume on Disconnect</label>
-            </div>
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.autoSubmitOnExpiry || false} onChange={e => updateForm('autoSubmitOnExpiry', e.target.checked)} /> Auto-Submit on Expiry</label>
-            </div>
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.showResultImmediately || false} onChange={e => updateForm('showResultImmediately', e.target.checked)} /> Show Result Immediately</label>
-            </div>
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.requireReviewBeforePublish || false} onChange={e => updateForm('requireReviewBeforePublish', e.target.checked)} /> Require Manual Review</label>
-            </div>
-          </div>
-          <div className="itc-row">
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.blockMultipleTabs || false} onChange={e => updateForm('blockMultipleTabs', e.target.checked)} /> Block Multiple Tabs</label>
-            </div>
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.requireMicrophone || false} onChange={e => updateForm('requireMicrophone', e.target.checked)} /> Require Microphone</label>
-            </div>
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.enableCodeEditor || false} onChange={e => updateForm('enableCodeEditor', e.target.checked)} /> Enable Code Editor</label>
-            </div>
-          </div>
-          <div className="itc-row">
-            <div className="itc-field itc-checkbox">
-              <label><input type="checkbox" checked={form.recordVideo || false} onChange={e => updateForm('recordVideo', e.target.checked)} /> 🎥 Record as Video Interview</label>
-            </div>
-            {form.recordVideo && (
+        </section>
+
+        {/* ── Attempt & Resume Rules ─────────────────────────── */}
+        <section className="itc-section">
+          <h2><span className="itc-ic">🔁</span> Attempts &amp; Resume Rules</h2>
+          <div className="itc-rules-cols">
+            <div className="itc-rules-col">
+              <h4>Attempts</h4>
               <div className="itc-field">
-                <label>If camera/mic is denied</label>
-                <select value={form.videoFallback || 'allow_text'} onChange={e => updateForm('videoFallback', e.target.value)}>
-                  <option value="allow_text">Allow continue without video</option>
-                  <option value="block">Block until camera is allowed</option>
+                <label>Max Attempts</label>
+                <input type="number" value={form.maxAttempts} onChange={e => updateForm('maxAttempts', parseInt(e.target.value) || 1)} min={1} max={10} />
+              </div>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.allowResume || false} onChange={e => updateForm('allowResume', e.target.checked)} /> Allow Resume on Disconnect</label></div>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.autoSubmitOnExpiry || false} onChange={e => updateForm('autoSubmitOnExpiry', e.target.checked)} /> Auto-Submit on Expiry</label></div>
+            </div>
+            <div className="itc-rules-col">
+              <h4>Results &amp; Review</h4>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.requireReviewBeforePublish || false} onChange={e => updateForm('requireReviewBeforePublish', e.target.checked)} /> Require Manual Review</label></div>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.showResultImmediately || false} onChange={e => updateForm('showResultImmediately', e.target.checked)} /> Show Result to Candidate</label></div>
+              <div className="itc-field">
+                <label>Section Navigation</label>
+                <select value={form.sectionNavigationMode} onChange={e => updateForm('sectionNavigationMode', e.target.value)}>
+                  <option value="sequential">Sequential</option>
+                  <option value="free">Free navigation</option>
                 </select>
               </div>
-            )}
+            </div>
+            <div className="itc-rules-col">
+              <h4>Other Rules</h4>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.blockMultipleTabs || false} onChange={e => updateForm('blockMultipleTabs', e.target.checked)} /> Block Multiple Tabs</label></div>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.requireMicrophone || false} onChange={e => updateForm('requireMicrophone', e.target.checked)} /> Require Microphone</label></div>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.enableCodeEditor || false} onChange={e => updateForm('enableCodeEditor', e.target.checked)} /> Enable Code Editor</label></div>
+              <div className="itc-checkbox"><label><input type="checkbox" checked={form.recordVideo || false} onChange={e => updateForm('recordVideo', e.target.checked)} /> 🎥 Record as Video Interview</label></div>
+              {form.recordVideo && (
+                <div className="itc-field" style={{ marginTop: 8 }}>
+                  <label>If camera/mic is denied</label>
+                  <select value={form.videoFallback || 'allow_text'} onChange={e => updateForm('videoFallback', e.target.value)}>
+                    <option value="allow_text">Allow continue without video</option>
+                    <option value="block">Block until camera is allowed</option>
+                  </select>
+                </div>
+              )}
+            </div>
           </div>
-          {form.recordVideo && <p className="itc-hint">The whole interview is recorded (webcam + mic) and saved to Bunny. Upload a per-section interviewer avatar below for a real-interview feel.</p>}
+          {form.recordVideo && <p className="itc-hint" style={{ marginTop: 14, marginBottom: 0 }}>The whole interview is recorded (webcam + mic) and saved to Bunny. Upload a per-section interviewer avatar below for a real-interview feel.</p>}
         </section>
 
         {/* ── Schedule ───────────────────────────────────────── */}
         <section className="itc-section">
-          <h2>Schedule</h2>
-          <div className="itc-row">
+          <h2><span className="itc-ic">📅</span> Schedule</h2>
+          <div className="itc-row cols-2">
             <div className="itc-field">
               <label>Schedule Type</label>
-              <select value={form.scheduleType} onChange={e => updateForm('scheduleType', e.target.value)}>
-                <option value="immediate">Immediate (available now)</option>
-                <option value="scheduled">Scheduled (future date)</option>
-              </select>
+              <div className="itc-sched" style={{ paddingTop: 6 }}>
+                <label className="itc-radio"><input type="radio" name="sched" checked={form.scheduleType !== 'scheduled'} onChange={() => updateForm('scheduleType', 'immediate')} /> Immediate (Available Now)</label>
+                <label className="itc-radio"><input type="radio" name="sched" checked={form.scheduleType === 'scheduled'} onChange={() => updateForm('scheduleType', 'scheduled')} /> Schedule for Later</label>
+              </div>
             </div>
-            {form.scheduleType === 'scheduled' && (
-              <>
-                <div className="itc-field">
-                  <label>Start Date</label>
-                  <input type="datetime-local" value={form.scheduledStartDate || ''} onChange={e => updateForm('scheduledStartDate', e.target.value)} />
-                </div>
-                <div className="itc-field">
-                  <label>End Date</label>
-                  <input type="datetime-local" value={form.scheduledEndDate || ''} onChange={e => updateForm('scheduledEndDate', e.target.value)} />
-                </div>
-              </>
-            )}
             <div className="itc-field">
-              <label>Expiry Date</label>
+              <label>Expiry Date (Optional)</label>
               <input type="datetime-local" value={form.expiryDate || ''} onChange={e => updateForm('expiryDate', e.target.value)} />
             </div>
           </div>
+          {form.scheduleType === 'scheduled' && (
+            <div className="itc-row cols-2" style={{ marginTop: 14 }}>
+              <div className="itc-field"><label>Start Date</label><input type="datetime-local" value={form.scheduledStartDate || ''} onChange={e => updateForm('scheduledStartDate', e.target.value)} /></div>
+              <div className="itc-field"><label>End Date</label><input type="datetime-local" value={form.scheduledEndDate || ''} onChange={e => updateForm('scheduledEndDate', e.target.value)} /></div>
+            </div>
+          )}
         </section>
 
         {/* ── Sections ───────────────────────────────────────── */}
         <section className="itc-section">
           <div className="itc-section-header">
-            <h2>Interview Sections</h2>
+            <h2><span className="itc-ic">🧩</span> Interview Sections</h2>
             <button type="button" className="itc-btn-secondary" onClick={addSection}>+ Add Section</button>
           </div>
-          <p className="itc-hint">Define sections for each round of the interview. Each section can be a different type.</p>
+          <p className="itc-hint">Add sections, questions, and evaluation criteria.</p>
 
           {(form.sections || []).length === 0 && (
             <div className="itc-empty-sections">
@@ -613,6 +597,9 @@ const InterviewTemplateCreate: React.FC = () => {
               </div>
             </div>
           ))}
+          {(form.sections || []).length > 0 && (
+            <button type="button" className="itc-add-another" onClick={addSection}>+ Add Another Section</button>
+          )}
         </section>
 
         {/* ── Submit ─────────────────────────────────────────── */}

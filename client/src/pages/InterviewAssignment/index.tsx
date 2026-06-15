@@ -174,6 +174,8 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
   const [courses, setCourses] = useState<any[]>([]);
   const [studentSearch, setStudentSearch] = useState('');
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [notify, setNotify] = useState(true);
+  const [timezone, setTimezone] = useState('Asia/Kolkata (IST)');
 
   useEffect(() => {
     userApi.getUsers().then((res: any) => {
@@ -191,7 +193,14 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
   const filteredStudents = (q
     ? students.filter(u => studentLabel(u).toLowerCase().includes(q) || (u.email || '').toLowerCase().includes(q))
     : students
-  ).slice(0, 60);
+  ).slice(0, 100);
+  const allSelected = filteredStudents.length > 0 && filteredStudents.every(u => selectedStudents.includes(u._id));
+  const toggleAll = () => {
+    if (allSelected) setSelectedStudents(prev => prev.filter(id => !filteredStudents.some(u => u._id === id)));
+    else setSelectedStudents(prev => Array.from(new Set([...prev, ...filteredStudents.map(u => u._id)])));
+  };
+  const batchName = (u: any) => u.batchName || batches.find(b => b._id === (u.batchId?._id || u.batchId))?.name || '—';
+  const initials = (u: any) => studentLabel(u).split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase();
 
   const handlePush = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -223,109 +232,114 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
     } finally { setPushing(false); }
   };
 
+  const selectedTemplate = templates.find(t => t._id === form.templateId);
+  const footerCount = pushMode === 'individual'
+    ? `${selectedStudents.length} Student${selectedStudents.length === 1 ? '' : 's'} Selected`
+    : pushMode === 'batch'
+      ? (form.batchId ? `Batch: ${batches.find(b => b._id === form.batchId)?.name || ''}` : 'No batch selected')
+      : (form.courseId ? `Course selected` : 'No course selected');
+
+  const Step = ({ n, label, extra }: { n: number; label: string; extra?: React.ReactNode }) => (
+    <div className="ia2-step-h"><span className="ia2-step-n">{n}</span>{label}{extra}</div>
+  );
+
   return (
     <div className="ia-modal-overlay" onClick={onClose}>
-      <div className="ia-modal" onClick={e => e.stopPropagation()}>
-        <div className="ia-modal-header">
-          <h2>Push Interview Assignment</h2>
-          <button onClick={onClose}>&times;</button>
+      <div className="ia2-modal" onClick={e => e.stopPropagation()}>
+        <div className="ia2-head">
+          <div>
+            <h2>Push Interview Assignment</h2>
+            <p>Assign an interview template to students with scheduling and rules.</p>
+          </div>
+          <button className="ia2-x" onClick={onClose}>×</button>
         </div>
-        <form onSubmit={handlePush} className="ia-modal-body">
-          <div className="ia-modal-field">
-            <label>Template *</label>
-            <select value={form.templateId} onChange={e => updateForm('templateId', e.target.value)}>
-              <option value="">Select a published template...</option>
-              {templates.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
-            </select>
-          </div>
 
-          <div className="ia-modal-field">
-            <label>Push To</label>
-            <div className="ia-push-modes">
-              {(['individual', 'batch', 'course'] as const).map(mode => (
-                <label key={mode} className={pushMode === mode ? 'active' : ''}>
-                  <input type="radio" name="pushMode" checked={pushMode === mode} onChange={() => setPushMode(mode)} />
-                  {mode.charAt(0).toUpperCase() + mode.slice(1)}
-                </label>
-              ))}
+        <div className="ia2-body">
+          {/* 1 & 2 */}
+          <div className="ia2-grid2">
+            <div>
+              <Step n={1} label="Select Template" />
+              <select className="ia2-input" value={form.templateId} onChange={e => updateForm('templateId', e.target.value)}>
+                <option value="">Select a published template…</option>
+                {templates.map(t => <option key={t._id} value={t._id}>{t.title}</option>)}
+              </select>
+              {selectedTemplate && <a className="ia2-link" href={`/admin/interviews/templates/${form.templateId}/edit`} target="_blank" rel="noreferrer">↗ Preview Template</a>}
             </div>
-          </div>
-
-          {pushMode === 'individual' && (
-            <div className="ia-modal-field">
-              <label>Students ({selectedStudents.length} selected)</label>
-              <input
-                type="text"
-                value={studentSearch}
-                onChange={e => setStudentSearch(e.target.value)}
-                placeholder="Search by name or email…"
-                style={{ marginBottom: 8 }}
-              />
-              <div className="ia-student-picker">
-                {filteredStudents.length === 0 ? (
-                  <div className="ia-picker-empty">{students.length ? 'No matching students.' : 'Loading students…'}</div>
-                ) : filteredStudents.map(u => (
-                  <label key={u._id} className={`ia-student-row ${selectedStudents.includes(u._id) ? 'selected' : ''}`}>
-                    <input type="checkbox" checked={selectedStudents.includes(u._id)} onChange={() => toggleStudent(u._id)} />
-                    <span className="ia-student-name">{studentLabel(u)}</span>
-                    {u.email && <span className="ia-student-email">{u.email}</span>}
-                  </label>
+            <div>
+              <Step n={2} label="Push To" />
+              <div className="ia2-modes">
+                {(['individual', 'batch', 'course'] as const).map(mode => (
+                  <button key={mode} type="button" className={`ia2-mode ${pushMode === mode ? 'active' : ''}`} onClick={() => setPushMode(mode)}>
+                    {mode === 'individual' ? '👤 Individual' : mode === 'batch' ? '👥 Batch' : '📚 Course'}
+                  </button>
                 ))}
               </div>
             </div>
-          )}
-          {pushMode === 'batch' && (
-            <div className="ia-modal-field">
-              <label>Batch</label>
-              <select value={form.batchId} onChange={e => updateForm('batchId', e.target.value)}>
+          </div>
+
+          {/* 3 - selection */}
+          {pushMode === 'individual' ? (
+            <div className="ia2-section">
+              <Step n={3} label="Select Students" extra={<span className="ia2-step-right"><span className="ia2-count">{selectedStudents.length} selected</span><button type="button" className="ia2-selall" onClick={toggleAll}>{allSelected ? 'Clear All' : 'Select All'}</button></span>} />
+              <input className="ia2-input" placeholder="🔍 Search by name or email…" value={studentSearch} onChange={e => setStudentSearch(e.target.value)} />
+              <div className="ia2-table">
+                <div className="ia2-tr ia2-th">
+                  <span><input type="checkbox" checked={allSelected} onChange={toggleAll} /></span>
+                  <span>Student Name</span><span>Email</span><span>Batch</span><span>Status</span>
+                </div>
+                {filteredStudents.length === 0 ? <div className="ia2-empty">{students.length ? 'No matching students.' : 'Loading students…'}</div> :
+                  filteredStudents.map(u => (
+                    <label key={u._id} className={`ia2-tr ${selectedStudents.includes(u._id) ? 'sel' : ''}`}>
+                      <span><input type="checkbox" checked={selectedStudents.includes(u._id)} onChange={() => toggleStudent(u._id)} /></span>
+                      <span className="ia2-stu"><span className="ia2-av">{initials(u)}</span>{studentLabel(u)}</span>
+                      <span className="ia2-muted">{u.email}</span>
+                      <span className="ia2-muted">{batchName(u)}</span>
+                      <span><span className={`ia2-badge ${u.isActive !== false ? 'on' : 'off'}`}>● {u.isActive !== false ? 'Active' : 'Inactive'}</span></span>
+                    </label>
+                  ))}
+              </div>
+            </div>
+          ) : pushMode === 'batch' ? (
+            <div className="ia2-section">
+              <Step n={3} label="Select Batch" />
+              <select className="ia2-input" value={form.batchId} onChange={e => updateForm('batchId', e.target.value)}>
                 <option value="">Select a batch…</option>
                 {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
               </select>
             </div>
-          )}
-          {pushMode === 'course' && (
-            <div className="ia-modal-field">
-              <label>Course</label>
-              <select value={form.courseId} onChange={e => updateForm('courseId', e.target.value)}>
+          ) : (
+            <div className="ia2-section">
+              <Step n={3} label="Select Course" />
+              <select className="ia2-input" value={form.courseId} onChange={e => updateForm('courseId', e.target.value)}>
                 <option value="">Select a course…</option>
                 {courses.map(c => <option key={c._id} value={c._id}>{c.title || c.name}</option>)}
               </select>
             </div>
           )}
 
-          <div className="ia-modal-row">
-            <div className="ia-modal-field">
-              <label>Max Attempts</label>
-              <input type="number" value={form.maxAttempts} onChange={e => updateForm('maxAttempts', parseInt(e.target.value) || 1)} min={1} />
-            </div>
-            <div className="ia-modal-field">
-              <label>Push Reason</label>
-              <input type="text" value={form.pushReason} onChange={e => updateForm('pushReason', e.target.value)} placeholder="e.g., Placement prep week" />
+          {/* 4-9 */}
+          <div className="ia2-grid4">
+            <div><Step n={4} label="Max Attempts" /><input className="ia2-input" type="number" min={1} value={form.maxAttempts} onChange={e => updateForm('maxAttempts', parseInt(e.target.value) || 1)} /></div>
+            <div><Step n={5} label="Push Reason" /><input className="ia2-input" value={form.pushReason} onChange={e => updateForm('pushReason', e.target.value)} placeholder="e.g. Placement prep" /></div>
+            <div><Step n={6} label="Available From" /><input className="ia2-input" type="datetime-local" value={form.availableFrom} onChange={e => updateForm('availableFrom', e.target.value)} /></div>
+            <div><Step n={7} label="Due Date" /><input className="ia2-input" type="datetime-local" value={form.dueDate} onChange={e => updateForm('dueDate', e.target.value)} /></div>
+          </div>
+          <div className="ia2-grid4">
+            <div><Step n={8} label="Expires At (Optional)" /><input className="ia2-input" type="datetime-local" value={form.expiresAt} onChange={e => updateForm('expiresAt', e.target.value)} /></div>
+            <div><Step n={9} label="Time Zone" /><select className="ia2-input" value={timezone} onChange={e => setTimezone(e.target.value)}><option>Asia/Kolkata (IST)</option><option>UTC</option><option>America/New_York (EST)</option><option>Europe/London (GMT)</option></select></div>
+            <div style={{ gridColumn: 'span 2' }}><Step n={10} label="Notification" />
+              <label className="ia2-notify"><input type="checkbox" checked={notify} onChange={e => setNotify(e.target.checked)} /> Send email &amp; in-app notification to selected students</label>
             </div>
           </div>
+        </div>
 
-          <div className="ia-modal-row">
-            <div className="ia-modal-field">
-              <label>Available From</label>
-              <input type="datetime-local" value={form.availableFrom} onChange={e => updateForm('availableFrom', e.target.value)} />
-            </div>
-            <div className="ia-modal-field">
-              <label>Due Date</label>
-              <input type="datetime-local" value={form.dueDate} onChange={e => updateForm('dueDate', e.target.value)} />
-            </div>
-            <div className="ia-modal-field">
-              <label>Expires At</label>
-              <input type="datetime-local" value={form.expiresAt} onChange={e => updateForm('expiresAt', e.target.value)} />
-            </div>
+        <div className="ia2-foot">
+          <div className="ia2-foot-count"><span className="ia2-foot-ic">👥</span><div><strong>{footerCount}</strong><div className="ia2-muted">This assignment will be sent to the selection above.</div></div></div>
+          <div className="ia2-foot-actions">
+            <button type="button" className="ia2-cancel" onClick={onClose}>Cancel</button>
+            <button type="button" className="ia2-push" disabled={pushing} onClick={() => handlePush({ preventDefault: () => {} } as any)}>{pushing ? 'Pushing…' : '➤ Push Assignment'}</button>
           </div>
-
-          <div className="ia-modal-actions">
-            <button type="button" onClick={onClose}>Cancel</button>
-            <button type="submit" className="ia-btn-save" disabled={pushing}>
-              {pushing ? 'Pushing...' : 'Push Assignment'}
-            </button>
-          </div>
-        </form>
+        </div>
       </div>
     </div>
   );

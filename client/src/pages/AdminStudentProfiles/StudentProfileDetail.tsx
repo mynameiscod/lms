@@ -117,6 +117,16 @@ const StudentProfileDetail: React.FC = () => {
       .catch(() => setAiInterviews([]));
   }, [userId, activeTab, aiInterviews]);
 
+  const publishAttempt = async (a: any) => {
+    try {
+      if (a.status === 'submitted' || a.status === 'under_review') {
+        await interviewAnalyticsApi.evaluateAttempt(a._id, {});
+      }
+      await interviewAnalyticsApi.publishResult(a._id);
+      setAiInterviews(null);   // refetch
+    } catch (e: any) { alert(e.message || 'Failed to publish'); }
+  };
+
   if (loadingProfile) return <div className="spd-loading"><Spinner /></div>;
 
   // A student may not have a StudentProfile yet — don't hard-fail. Fall back to
@@ -212,7 +222,7 @@ const StudentProfileDetail: React.FC = () => {
 
       {/* Tabs */}
       <div className="spd-tabs">
-        {(['overview', 'attendance', 'quizzes', 'assignments', 'exams', 'fees', 'snippets'] as DetailTab[]).map(t => (
+        {(['overview', 'attendance', 'quizzes', 'assignments', 'interviews', 'exams', 'fees', 'snippets'] as DetailTab[]).map(t => (
           <button
             key={t}
             className={`spd-tab ${activeTab === t ? 'active' : ''}`}
@@ -587,11 +597,15 @@ const StudentProfileDetail: React.FC = () => {
                         <td>{a.templateId?.title || 'Interview'}</td>
                         <td>{(a.overallPercentage ?? 0).toFixed(0)}%</td>
                         <td style={{ textTransform: 'capitalize' }}>{(a.readinessLevel || '—').replace(/_/g, ' ')}</td>
-                        <td><span className={`status-badge ${a.passStatus || a.status}`}>{a.passStatus || a.status}</span></td>
-                        <td>
-                          {['evaluated', 'published'].includes(a.status) && (
+                        <td><span className={`status-badge ${a.passStatus || a.status}`}>{a.status === 'submitted' ? 'awaiting review' : (a.passStatus || a.status)}</span></td>
+                        <td style={{ display: 'flex', gap: 6 }}>
+                          {!['in_progress', 'not_started'].includes(a.status) && (
                             <button className="spd-pill blue" style={{ border: 'none', cursor: 'pointer' }}
                               onClick={() => navigate(`/admin/interviews/report/${a._id}`)}>View report</button>
+                          )}
+                          {['submitted', 'under_review', 'evaluated'].includes(a.status) && (
+                            <button className="spd-pill green" style={{ border: 'none', cursor: 'pointer' }}
+                              onClick={() => publishAttempt(a)} title="Make results visible to the student">Publish to student</button>
                           )}
                         </td>
                       </tr>

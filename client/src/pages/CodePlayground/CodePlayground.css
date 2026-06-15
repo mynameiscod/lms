@@ -1,6 +1,11 @@
 /* ── Code Playground (CodeBegun) ─────────────────────────────────────────── */
-.cp-root { display: flex; flex-direction: column; height: calc(100vh - 60px); background: #f1f5f9; color: #0f172a; }
-.cp-root.cp-full { position: fixed; inset: 0; height: 100vh; z-index: 2000; }
+/* Fill the content area below the 64px navbar (minus the 5px main-content padding),
+   and cancel that padding so the IDE is edge-to-edge. overflow:hidden keeps the
+   internal flex panes scrolling instead of the page. */
+.cp-root { display: flex; flex-direction: column; height: calc(100vh - 64px); margin: -5px; background: #f1f5f9; color: #0f172a; overflow: hidden; }
+.cp-root.cp-full { position: fixed; inset: 0; height: 100vh; margin: 0; z-index: 2000; }
+.cp-body { min-height: 0; }
+.cp-editor-wrap { min-height: 0; }
 
 /* Tab bar */
 .cp-tabbar { display: flex; align-items: center; gap: 4px; padding: 6px 12px 0; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
@@ -71,8 +76,12 @@
 .cp-modal { background: #fff; border-radius: 14px; width: 440px; max-width: 94vw; padding: 24px; text-align: center; }
 .cp-modal h3 { margin: 0 0 8px; font-size: 18px; }
 .cp-modal p { color: #475569; font-size: 14px; line-height: 1.5; margin: 0 0 18px; }
-.cp-modal .gh-btn { background: #111827; color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-weight: 700; cursor: pointer; }
-.cp-modal .link { display: inline-block; margin-top: 12px; color: #2563eb; font-size: 13px; cursor: pointer; }
+.cp-modal .gh-actions { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.cp-modal .gh-btn { background: #111827; color: #fff; border: none; border-radius: 8px; padding: 11px 22px; font-weight: 700; cursor: pointer; font-size: 14px; }
+.cp-modal .gh-btn:hover { background: #1f2937; }
+.cp-modal .gh-btn:disabled { opacity: .6; cursor: default; }
+.cp-modal .gh-later { background: none; border: none; color: #64748b; font-size: 13px; cursor: pointer; }
+.cp-modal .gh-later:hover { color: #2563eb; }
 .cp-modal-dbg { background: #fff; border-radius: 12px; width: 94vw; height: 90vh; display: flex; flex-direction: column; overflow: hidden; }
 
 /* My Programs popover */

@@ -371,8 +371,10 @@ const CodePlayground: React.FC = () => {
             <div style={{ fontSize: 40 }}>🐙</div>
             <h3>Connect your GitHub</h3>
             <p>To push your code to a repository, connect your GitHub account once. A GitHub window will open — approve access, then come back and click <b>Push to GitHub</b> again.</p>
-            <button className="gh-btn" onClick={connectGithub} disabled={ghConnecting}>{ghConnecting ? 'Opening…' : '🐙 Connect GitHub'}</button>
-            <div className="link" onClick={() => setGhModal(false)}>Maybe later</div>
+            <div className="gh-actions">
+              <button className="gh-btn" onClick={connectGithub} disabled={ghConnecting}>{ghConnecting ? 'Opening…' : '🐙 Connect GitHub'}</button>
+              <button className="gh-later" onClick={() => setGhModal(false)}>Maybe later</button>
+            </div>
           </div>
         </div>
       )}

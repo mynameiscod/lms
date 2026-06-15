@@ -90,18 +90,37 @@ const CodePlayground: React.FC = () => {
   const monacoRef = useRef<any>(null);
   const decoRef = useRef<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
+  const fullRef = useRef(false);
 
-  // Pin the parent .main-content to the exact area under the navbar (and drop its
-  // padding) so the IDE fills it with no blank space. Restored on unmount.
+  // Pin the playground as a fixed overlay over the content area (right of the
+  // sidebar, below the navbar). This decouples it from page flow, so a tall
+  // sidebar can't leave blank space below the editor. Auto-adapts to navbar
+  // height + sidebar width; page scroll is disabled while it's open.
   useEffect(() => {
-    const mc = rootRef.current?.parentElement as HTMLElement | null;
-    if (!mc) return;
-    const prev = { height: mc.style.height, padding: mc.style.padding, overflow: mc.style.overflow };
-    const apply = () => { mc.style.height = `${window.innerHeight - 64}px`; mc.style.padding = '0'; mc.style.overflow = 'hidden'; };
-    apply();
-    window.addEventListener('resize', apply);
-    return () => { window.removeEventListener('resize', apply); mc.style.height = prev.height; mc.style.padding = prev.padding; mc.style.overflow = prev.overflow; };
+    const root = rootRef.current;
+    const mc = root?.parentElement as HTMLElement | null;
+    if (!root || !mc) return;
+    const prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const place = () => {
+      if (fullRef.current) {
+        Object.assign(root.style, { position: 'fixed', top: '0px', left: '0px', width: '100vw', height: '100vh' });
+        return;
+      }
+      const r = mc.getBoundingClientRect();
+      Object.assign(root.style, {
+        position: 'fixed', top: `${Math.max(0, r.top)}px`, left: `${r.left}px`,
+        width: `${r.width}px`, height: `${window.innerHeight - Math.max(0, r.top)}px`,
+      });
+    };
+    place();
+    window.addEventListener('resize', place);
+    const ro = new ResizeObserver(place); ro.observe(mc); ro.observe(document.body);
+    const id = window.setInterval(place, 400); // catch sidebar open/close width changes
+    return () => { window.removeEventListener('resize', place); ro.disconnect(); clearInterval(id); document.body.style.overflow = prevBodyOverflow; };
   }, []);
+
+  useEffect(() => { fullRef.current = full; const root = rootRef.current; if (root) { /* re-place */ const ev = new Event('resize'); window.dispatchEvent(ev); } }, [full]);
 
   // Debugger
   const [debugMode, setDebugMode] = useState(false);

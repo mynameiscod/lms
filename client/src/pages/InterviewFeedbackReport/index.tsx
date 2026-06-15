@@ -192,6 +192,21 @@ const InterviewFeedbackReport: React.FC = () => {
                         <div className="ifr-q-answer"><strong>Selected:</strong> {q.selectedMCQOption}</div>
                       )}
                       {q.status === 'skipped' && <div className="ifr-q-skipped">⏭ Skipped</div>}
+
+                      {/* Correct / model answer */}
+                      {q.correctAnswer && (
+                        <div className="ifr-q-correct"><strong>✅ Correct Answer:</strong> {q.correctAnswer}</div>
+                      )}
+                      {q.sampleStrongAnswer && (
+                        <div className="ifr-q-correct"><strong>💡 Model Answer:</strong><p>{q.sampleStrongAnswer}</p></div>
+                      )}
+                      {q.expectedAnswerPoints?.length > 0 && (
+                        <div className="ifr-q-keypoints">
+                          <strong>Key points expected:</strong>
+                          <ul>{q.expectedAnswerPoints.map((p: string, i: number) => <li key={i}>{p}</li>)}</ul>
+                        </div>
+                      )}
+
                       {q.feedback && (
                         <div className="ifr-q-feedback"><strong>Feedback:</strong> {q.feedback}</div>
                       )}

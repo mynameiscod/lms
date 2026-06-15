@@ -80,3 +80,10 @@
   .ifr-overall { flex-direction: column; text-align: center; }
   .ifr-overall-details { justify-content: center; }
 }
+
+/* Correct / model answer in review */
+.ifr-q-correct { background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 13.5px; color: #166534; }
+.ifr-q-correct p { margin: 6px 0 0; color: #14532d; white-space: pre-wrap; line-height: 1.5; }
+.ifr-q-keypoints { background: #eff6ff; border: 1px solid #dbeafe; border-radius: 8px; padding: 10px 12px; margin-top: 8px; font-size: 13px; color: #1e3a8a; }
+.ifr-q-keypoints ul { margin: 6px 0 0; padding-left: 18px; }
+.ifr-q-keypoints li { margin-bottom: 3px; }

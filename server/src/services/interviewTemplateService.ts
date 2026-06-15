@@ -966,7 +966,7 @@ class InterviewTemplateService {
     return { attempts: attempts as IInterviewAttempt[], total };
   }
 
-  async getAttemptReport(attemptId: string, tenantId: string, studentId?: string): Promise<IInterviewAttempt | null> {
+  async getAttemptReport(attemptId: string, tenantId: string, studentId?: string): Promise<any> {
     const query: any = { _id: attemptId, tenantId };
     if (studentId) query.studentId = studentId;
 
@@ -975,10 +975,33 @@ class InterviewTemplateService {
       query.status = { $in: ['published', 'evaluated'] };
     }
 
-    return InterviewAttempt.findOne(query)
+    const attempt: any = await InterviewAttempt.findOne(query)
       .populate('templateId', 'title description interviewCategories difficultyLevel')
       .populate('studentId', 'firstName lastName email')
-      .populate('evaluatedBy', 'firstName lastName');
+      .populate('evaluatedBy', 'firstName lastName')
+      .lean();
+    if (!attempt) return null;
+
+    // Enrich each answered question with its model / correct answer (report is
+    // post-submission, so revealing the answer key here is intended).
+    const ids: any[] = [];
+    (attempt.sectionAttempts || []).forEach((s: any) => (s.questionResponses || []).forEach((qr: any) => qr.questionId && ids.push(qr.questionId)));
+    if (ids.length) {
+      const qs = await InterviewQuestionBankModel.find({ _id: { $in: ids } })
+        .select('mcqOptions sampleStrongAnswer expectedAnswerPoints').lean();
+      const map = new Map(qs.map((q: any) => [String(q._id), q]));
+      (attempt.sectionAttempts || []).forEach((s: any) => (s.questionResponses || []).forEach((qr: any) => {
+        const q: any = map.get(String(qr.questionId));
+        if (!q) return;
+        if (q.mcqOptions?.length) {
+          const c = q.mcqOptions.find((o: any) => o.isCorrect);
+          if (c) qr.correctAnswer = `${c.label}. ${c.text}`;
+        }
+        if (q.sampleStrongAnswer) qr.sampleStrongAnswer = q.sampleStrongAnswer;
+        if (q.expectedAnswerPoints?.length) qr.expectedAnswerPoints = q.expectedAnswerPoints;
+      }));
+    }
+    return attempt;
   }
 
   // ── Analytics ────────────────────────────────────────────────────────────

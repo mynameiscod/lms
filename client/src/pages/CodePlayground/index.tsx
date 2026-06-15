@@ -41,6 +41,19 @@ const STARTERS = new Set(LANGS.map(l => l.starter));
 const byKey = (k: string) => LANGS.find(l => l.key === k) || LANGS[0];
 const kindFor = (lang: string): string => (lang === 'web' ? 'web' : lang === 'sql' ? 'sql' : 'single');
 
+// Multi-file frameworks run in an embedded StackBlitz (WebContainers) — full
+// npm/build/dev-server in the browser. These aren't saved to our DB; students
+// use StackBlitz's own Save/Fork/Share inside the embed.
+interface Framework { key: string; label: string; url: string; }
+const FRAMEWORKS: Framework[] = [
+  { key: 'fw-react', label: 'React', url: 'https://stackblitz.com/fork/react?embed=1&view=both' },
+  { key: 'fw-react-ts', label: 'React + TypeScript', url: 'https://stackblitz.com/fork/react-ts?embed=1&view=both' },
+  { key: 'fw-angular', label: 'Angular', url: 'https://stackblitz.com/fork/angular?embed=1&view=both' },
+  { key: 'fw-vue', label: 'Vue', url: 'https://stackblitz.com/fork/vue?embed=1&view=both' },
+  { key: 'fw-node', label: 'Node.js / Express (MERN backend)', url: 'https://stackblitz.com/fork/node?embed=1&view=both' },
+];
+const fwByKey = (k: string) => FRAMEWORKS.find(f => f.key === k);
+
 // Languages the Python Tutor step-debugger supports → its `py` param.
 const DEBUG_LANG: Record<string, string> = { python: '3', javascript: 'js', java: 'java', c: 'c', cpp: 'cpp' };
 const buildDebugUrl = (lang: string, code: string, stdin: string): string => {
@@ -71,6 +84,7 @@ const CodePlayground: React.FC = () => {
 
   const isWeb = language === 'web';
   const isSql = language === 'sql';
+  const isFramework = language.startsWith('fw-');
   const canDebug = !!DEBUG_LANG[language];
 
   const loadList = useCallback(async () => {
@@ -80,6 +94,7 @@ const CodePlayground: React.FC = () => {
 
   const changeLanguage = (key: string) => {
     setLanguage(key);
+    if (key.startsWith('fw-')) return;   // frameworks render an embed, not the editor
     // Only swap in the new starter if the editor is empty or still a starter.
     if (!code.trim() || STARTERS.has(code)) setCode(byKey(key).starter);
   };
@@ -183,43 +198,54 @@ const CodePlayground: React.FC = () => {
           <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Program title"
             style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '6px 10px', fontSize: 14, width: 220 }} />
           <select value={language} onChange={e => changeLanguage(e.target.value)} style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '6px 10px', fontSize: 14 }}>
-            {LANGS.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+            <optgroup label="Languages">
+              {LANGS.map(l => <option key={l.key} value={l.key}>{l.label}</option>)}
+            </optgroup>
+            <optgroup label="Frameworks (StackBlitz)">
+              {FRAMEWORKS.map(f => <option key={f.key} value={f.key}>{f.label}</option>)}
+            </optgroup>
           </select>
-          <button onClick={handleRun} disabled={running} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontWeight: 700, cursor: 'pointer', opacity: running ? 0.6 : 1 }}>
+          {!isFramework && <button onClick={handleRun} disabled={running} style={{ background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 18px', fontWeight: 700, cursor: 'pointer', opacity: running ? 0.6 : 1 }}>
             {running ? 'Running…' : '▶ Run'}
-          </button>
-          <button onClick={handleSave} disabled={saving} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
+          </button>}
+          {!isFramework && <button onClick={handleSave} disabled={saving} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving…' : '💾 Save'}
-          </button>
-          {canDebug && (
+          </button>}
+          {!isFramework && canDebug && (
             <button onClick={() => setDebugUrl(buildDebugUrl(language, code, stdin))} title="Step through your program line by line"
               style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer' }}>
               🐞 Debug
             </button>
           )}
-          <button onClick={handlePushGithub} disabled={pushing} title="Save this program to a GitHub repo"
+          {!isFramework && <button onClick={handlePushGithub} disabled={pushing} title="Save this program to a GitHub repo"
             style={{ background: '#111827', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: pushing ? 0.6 : 1 }}>
             {pushing ? 'Pushing…' : '⬆ Push to GitHub'}
-          </button>
+          </button>}
           <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
-            {canDebug ? 'Debug = step-through visualizer' : 'Debug not available for this language'} · Push needs GitHub connected in Profile
+            {isFramework ? 'Runs in StackBlitz — use its Save/Fork/Share inside the embed' :
+              `${canDebug ? 'Debug = step-through visualizer' : 'Debug not available for this language'} · Push needs GitHub connected in Profile`}
           </span>
         </div>
 
         <div style={{ flex: 1, minHeight: 0 }}>
-          <Editor
-            height="100%"
-            language={byKey(language).monaco}
-            value={code}
-            onChange={(v) => setCode(v ?? '')}
-            theme="vs-dark"
-            options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true }}
-          />
+          {isFramework ? (
+            <iframe title="framework-sandbox" src={fwByKey(language)?.url} style={{ width: '100%', height: '100%', border: 'none' }}
+              allow="cross-origin-isolated" />
+          ) : (
+            <Editor
+              height="100%"
+              language={byKey(language).monaco}
+              value={code}
+              onChange={(v) => setCode(v ?? '')}
+              theme="vs-dark"
+              options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Right panel: Web preview, SQL results, or STDIN+Output */}
-      {isWeb ? (
+      {/* Right panel: Web preview, SQL results, or STDIN+Output (hidden for frameworks) */}
+      {isFramework ? null : isWeb ? (
         <div style={{ width: 480, borderLeft: '1px solid #e5e7eb', background: '#fff', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid #e5e7eb', fontSize: 12, fontWeight: 700, color: '#334155' }}>LIVE PREVIEW</div>
           {preview

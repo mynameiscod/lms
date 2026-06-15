@@ -41,6 +41,18 @@ const STARTERS = new Set(LANGS.map(l => l.starter));
 const byKey = (k: string) => LANGS.find(l => l.key === k) || LANGS[0];
 const kindFor = (lang: string): string => (lang === 'web' ? 'web' : lang === 'sql' ? 'sql' : 'single');
 
+// Languages the Python Tutor step-debugger supports → its `py` param.
+const DEBUG_LANG: Record<string, string> = { python: '3', javascript: 'js', java: 'java', c: 'c', cpp: 'cpp' };
+const buildDebugUrl = (lang: string, code: string, stdin: string): string => {
+  const params = new URLSearchParams({
+    code,
+    cumulative: 'false', curInstr: '0', heapPrimitives: 'nevernest', mode: 'display',
+    origin: 'opt-frontend.js', py: DEBUG_LANG[lang], rawInputLstJSON: JSON.stringify(stdin ? stdin.split('\n') : []),
+    textReferences: 'false',
+  });
+  return `https://pythontutor.com/iframe-embed.html#${params.toString()}`;
+};
+
 const CodePlayground: React.FC = () => {
   const [language, setLanguage] = useState('python');
   const [code, setCode] = useState(byKey('python').starter);
@@ -54,9 +66,11 @@ const CodePlayground: React.FC = () => {
   const [currentId, setCurrentId] = useState<string | null>(null);
   const [preview, setPreview] = useState('');          // web srcdoc
   const [sqlRows, setSqlRows] = useState<SqlResult[] | null>(null);
+  const [debugUrl, setDebugUrl] = useState<string | null>(null);
 
   const isWeb = language === 'web';
   const isSql = language === 'sql';
+  const canDebug = !!DEBUG_LANG[language];
 
   const loadList = useCallback(async () => {
     try { const r = await playgroundApi.list(); setPrograms(r.data || []); } catch { /* ignore */ }
@@ -158,7 +172,15 @@ const CodePlayground: React.FC = () => {
           <button onClick={handleSave} disabled={saving} style={{ background: '#2563eb', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer', opacity: saving ? 0.6 : 1 }}>
             {saving ? 'Saving…' : '💾 Save'}
           </button>
-          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>Debugger & GitHub push coming soon</span>
+          {canDebug && (
+            <button onClick={() => setDebugUrl(buildDebugUrl(language, code, stdin))} title="Step through your program line by line"
+              style={{ background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 6, padding: '7px 16px', fontWeight: 700, cursor: 'pointer' }}>
+              🐞 Debug
+            </button>
+          )}
+          <span style={{ marginLeft: 'auto', fontSize: 12, color: '#94a3b8' }}>
+            {canDebug ? 'Debug = step-through visualizer' : 'Debug not available for this language'} · GitHub push coming soon
+          </span>
         </div>
 
         <div style={{ flex: 1, minHeight: 0 }}>
@@ -205,6 +227,20 @@ const CodePlayground: React.FC = () => {
           <pre style={{ flex: 1, margin: 0, padding: 12, overflow: 'auto', fontFamily: 'monospace', fontSize: 13, whiteSpace: 'pre-wrap' }}>
             {error ? <span style={{ color: '#fca5a5' }}>{error}</span> : (output || <span style={{ color: '#64748b' }}>Run your program to see output here.</span>)}
           </pre>
+        </div>
+      )}
+
+      {/* Step-through debugger (Python Tutor) */}
+      {debugUrl && (
+        <div onClick={() => setDebugUrl(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, width: '94vw', height: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid #e5e7eb' }}>
+              <strong style={{ color: '#0f172a' }}>🐞 Step-through Debugger — {byKey(language).label}</strong>
+              <button onClick={() => setDebugUrl(null)} style={{ border: '1px solid #cbd5e1', borderRadius: 6, background: '#fff', cursor: 'pointer', padding: '4px 12px' }}>✕ Close</button>
+            </div>
+            <iframe title="debugger" src={debugUrl} style={{ flex: 1, border: 'none', width: '100%' }} />
+          </div>
         </div>
       )}
     </div>

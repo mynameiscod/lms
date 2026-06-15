@@ -56,6 +56,8 @@ import StudentFeeDetailsPage from './pages/StudentFeeDetails';
 import DeptReportsPage from './pages/DeptReports';
 import BulkUploadPage from './pages/BulkUpload';
 import RecordingDiagnostics from './pages/RecordingDiagnostics';
+import MyLeave from './pages/MyLeave';
+import LeaveRequests from './pages/LeaveRequests';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -328,6 +330,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <RecordingDiagnostics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/my-leave"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout>
+              <MyLeave />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/leave-requests"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <LeaveRequests />
             </Layout>
           </ProtectedRoute>
         }

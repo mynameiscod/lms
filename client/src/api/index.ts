@@ -2501,6 +2501,19 @@ export const placementDriveApi = {
     authenticatedFetch(`${API_BASE_URL}/college/placement/my-applications`),
 };
 
+export const leaveApi = {
+  apply: (body: { fromDate: string; toDate: string; reason: string }) =>
+    authenticatedFetch(`${API_BASE_URL}/leave-requests`, { method: 'POST', body: JSON.stringify(body) }),
+  my: () =>
+    authenticatedFetch(`${API_BASE_URL}/leave-requests/my`),
+  list: (status?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/leave-requests${status ? `?status=${status}` : ''}`),
+  approve: (id: string, reviewNote?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/leave-requests/${id}/approve`, { method: 'POST', body: JSON.stringify({ reviewNote }) }),
+  reject: (id: string, reviewNote?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/leave-requests/${id}/reject`, { method: 'POST', body: JSON.stringify({ reviewNote }) }),
+};
+
 export const notificationApi = {
   list: () =>
     authenticatedFetch(`${API_BASE_URL}/notifications`),

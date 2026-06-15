@@ -10,6 +10,14 @@ export const list = async (req: AuthenticatedRequest, res: Response) => {
   } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };
 
+// Lightweight: just the unread badge count (polled frequently by the bell)
+export const unreadCount = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const unreadCount = await svc.getUnreadCount(req.user!.id, req.user!.tenantId);
+    res.json({ success: true, unreadCount });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
 export const markRead = async (req: AuthenticatedRequest, res: Response) => {
   try {
     await svc.markRead(req.params.id, req.user!.id);

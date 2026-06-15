@@ -7,6 +7,7 @@ const router = Router();
 router.use(authMiddleware, tenantMiddleware);
 
 router.get('/',              ctrl.list);
+router.get('/unread-count',  ctrl.unreadCount);
 router.patch('/:id/read',   ctrl.markRead);
 router.post('/read-all',     ctrl.markAllRead);
 

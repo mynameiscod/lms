@@ -2505,6 +2505,9 @@ export const notificationApi = {
   list: () =>
     authenticatedFetch(`${API_BASE_URL}/notifications`),
 
+  unreadCount: () =>
+    authenticatedFetch(`${API_BASE_URL}/notifications/unread-count`),
+
   markRead: (id: string) =>
     authenticatedFetch(`${API_BASE_URL}/notifications/${id}/read`, { method: 'PATCH' }),
 

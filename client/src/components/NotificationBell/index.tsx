@@ -18,21 +18,37 @@ const NotificationBell: React.FC = () => {
   const [unreadCount, setUnreadCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // Lightweight: poll only the unread badge count (one cheap query).
+  const fetchUnreadCount = useCallback(async () => {
+    try {
+      const res = await notificationApi.unreadCount();
+      setUnreadCount(res.unreadCount || 0);
+    } catch { /* bell must never break the app */ }
+  }, []);
+
+  // Heavy: fetch the full list — only when the user opens the dropdown.
   const fetchNotifications = useCallback(async () => {
     try {
       const res = await notificationApi.list();
       setNotifications(res.data || []);
       setUnreadCount(res.unreadCount || 0);
-    } catch {
-      // silently fail — bell should never break the app
-    }
+    } catch { /* ignore */ }
   }, []);
 
+  // Poll the count every 60s, but skip while the tab is hidden; refresh on focus.
   useEffect(() => {
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 30000); // poll every 30s
-    return () => clearInterval(interval);
-  }, [fetchNotifications]);
+    fetchUnreadCount();
+    let interval: ReturnType<typeof setInterval> | null = null;
+    const start = () => { if (!interval) interval = setInterval(fetchUnreadCount, 60000); };
+    const stop = () => { if (interval) { clearInterval(interval); interval = null; } };
+    const onVisibility = () => {
+      if (document.hidden) { stop(); }
+      else { fetchUnreadCount(); start(); }   // catch up immediately on return
+    };
+    if (!document.hidden) start();
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility); };
+  }, [fetchUnreadCount]);
 
   // Close on outside click
   useEffect(() => {
@@ -46,7 +62,11 @@ const NotificationBell: React.FC = () => {
   }, []);
 
   const handleOpen = () => {
-    setOpen(o => !o);
+    setOpen(o => {
+      const next = !o;
+      if (next) fetchNotifications();   // load the full list only when opening
+      return next;
+    });
   };
 
   const handleMarkRead = async (id: string) => {

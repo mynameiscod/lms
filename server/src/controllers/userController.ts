@@ -8,6 +8,8 @@ import Enrollment from '../models/Enrollment';
 import Course from '../models/Course';
 import User from '../models/User';
 import Role from '../models/Role';
+import StudentProfile from '../models/StudentProfile';
+import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
 
@@ -148,6 +150,15 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     } else {
       users = await userService.getUsersByTenant(req.tenantId!);
     }
+
+    // Attach profile completeness % per user (for the admin Users list)
+    try {
+      const ids = (users as any[]).map(u => u._id);
+      const profiles = await StudentProfile.find({ tenantId: req.tenantId, userId: { $in: ids } }).lean();
+      const byUser: Record<string, number> = {};
+      for (const p of profiles) byUser[String((p as any).userId)] = computeProfileCompleteness(p);
+      users = (users as any[]).map(u => ({ ...(u.toObject ? u.toObject() : u), completeness: byUser[String(u._id)] ?? 0 }));
+    } catch { /* non-fatal — return users without completeness */ }
 
     res.json({ success: true, message: 'Users fetched successfully', data: users });
   } catch (error: any) {

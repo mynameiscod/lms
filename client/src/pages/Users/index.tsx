@@ -579,6 +579,11 @@ const UsersPage: React.FC = () => {
                             <span className="you-badge">You</span>
                           )}
                         </div>
+                        {user.role === 'STUDENT' && user.completeness != null && (
+                          <div style={{ fontSize: 11, fontWeight: 600, marginTop: 2, color: user.completeness >= 70 ? '#16a34a' : user.completeness >= 40 ? '#d97706' : '#dc2626' }} title="Profile completeness">
+                            {user.completeness}% profile complete
+                          </div>
+                        )}
                       </div>
                     </div>
                   </td>

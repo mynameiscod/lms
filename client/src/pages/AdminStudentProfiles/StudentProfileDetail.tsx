@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { getStudentReport } from '../../api/studentReportApi';
+import { interviewAnalyticsApi } from '../../api/interviewModuleApi';
 import { Spinner } from '../../components/common';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
@@ -59,6 +60,7 @@ const StudentProfileDetail: React.FC = () => {
   const [notes, setNotes] = useState<any[]>([]);
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [aiInterviews, setAiInterviews] = useState<any[] | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -107,6 +109,14 @@ const StudentProfileDetail: React.FC = () => {
       .finally(() => setLoadingReport(false));
   }, [userId, activeTab, report]);
 
+  // AI mock-interview attempts (load when the Interviews tab opens)
+  useEffect(() => {
+    if (!userId || activeTab !== 'interviews' || aiInterviews !== null) return;
+    interviewAnalyticsApi.getStudentAttempts(userId)
+      .then((r: any) => setAiInterviews(r?.attempts || r?.data || []))
+      .catch(() => setAiInterviews([]));
+  }, [userId, activeTab, aiInterviews]);
+
   if (loadingProfile) return <div className="spd-loading"><Spinner /></div>;
 
   // A student may not have a StudentProfile yet — don't hard-fail. Fall back to
@@ -119,7 +129,7 @@ const StudentProfileDetail: React.FC = () => {
   const surname = p.surname || passedUser?.lastName || '';
   const fullName = `${firstName} ${p.middleName || ''} ${surname}`.trim() || 'Student';
   const email = p.email || passedUser?.email || '';
-  const pct = profile?.profileCompletionPercentage || 0;
+  const pct = profile?.completeness ?? profile?.profileCompletionPercentage ?? 0;
   const rg = ring(pct);
 
   const att = activity?.attendance;
@@ -563,6 +573,32 @@ const StudentProfileDetail: React.FC = () => {
                 )}
               </tbody>
             </table>
+
+            {/* ── AI Mock Interviews ── */}
+            <h4 style={{ marginTop: 28 }}>🤖 AI Mock Interviews</h4>
+            {aiInterviews === null ? <p className="spd-empty">Loading…</p> :
+              aiInterviews.length === 0 ? <p className="spd-empty">No AI mock interviews attempted yet.</p> : (
+                <table className="data-table">
+                  <thead><tr><th>Date</th><th>Interview</th><th>Score</th><th>Readiness</th><th>Status</th><th></th></tr></thead>
+                  <tbody>
+                    {aiInterviews.map((a: any) => (
+                      <tr key={a._id}>
+                        <td>{new Date(a.createdAt).toLocaleDateString()}</td>
+                        <td>{a.templateId?.title || 'Interview'}</td>
+                        <td>{(a.overallPercentage ?? 0).toFixed(0)}%</td>
+                        <td style={{ textTransform: 'capitalize' }}>{(a.readinessLevel || '—').replace(/_/g, ' ')}</td>
+                        <td><span className={`status-badge ${a.passStatus || a.status}`}>{a.passStatus || a.status}</span></td>
+                        <td>
+                          {['evaluated', 'published'].includes(a.status) && (
+                            <button className="spd-pill blue" style={{ border: 'none', cursor: 'pointer' }}
+                              onClick={() => navigate(`/admin/interviews/report/${a._id}`)}>View report</button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
           </div>
         )}
 

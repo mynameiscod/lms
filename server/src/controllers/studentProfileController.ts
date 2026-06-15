@@ -7,6 +7,7 @@ import Submission from '../models/Submission';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import Attendance from '../models/Attendance';
 import { AuthRequest } from '../types/express';
+import { computeProfileCompleteness } from '../utils/profileCompleteness';
 
 // GET - Get current user's student profile
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
@@ -278,7 +279,7 @@ export const getProfileByUserId = async (req: AuthRequest, res: Response) => {
 
     res.json({
       success: true,
-      data: profile,
+      data: { ...profile.toObject(), completeness: computeProfileCompleteness(profile.toObject()) },
     });
   } catch (error) {
     console.error('Get profile by user ID error:', error);

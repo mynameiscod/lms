@@ -20,6 +20,7 @@ export interface User {
   linkedin?: string;
   github?: string;
   profileComplete?: boolean;
+  completeness?: number;   // student profile completeness % (admin Users list)
 }
 
 export interface TenantBranding {

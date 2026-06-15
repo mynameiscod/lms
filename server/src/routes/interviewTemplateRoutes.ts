@@ -235,6 +235,13 @@ router.get(
   ctrl.getAdminAnalytics
 );
 
+// Admin: a specific student's interview attempts (user profile page)
+router.get(
+  '/students/:studentId/attempts',
+  roleGuard(['manage_interview_templates', 'evaluate_interviews', 'manage_tenant_users', 'manage_tenant']),
+  ctrl.getAttemptsByStudent
+);
+
 // ═══════════════════════════════════════════════════════════════════════════
 // STUDENT — Interview Flow
 // ═══════════════════════════════════════════════════════════════════════════

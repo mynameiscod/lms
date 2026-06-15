@@ -541,6 +541,17 @@ export const getAttemptReport = async (req: Request, res: Response) => {
 
 // ─── Analytics ───────────────────────────────────────────────────────────────
 
+// Admin: interview attempts for a specific student (for the user profile page)
+export const getAttemptsByStudent = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const result = await interviewTemplateService.getStudentAttempts(req.params.studentId, tenantId, { limit: 50 });
+    res.json({ success: true, ...result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getAdminAnalytics = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;

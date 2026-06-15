@@ -309,4 +309,8 @@ export const interviewAnalyticsApi = {
 
   getAttemptReport: (attemptId: string) =>
     apiFetch(`${MODULE_URL}/attempts/${attemptId}/report`),
+
+  // Admin: a specific student's interview attempts (for the user profile page)
+  getStudentAttempts: (studentId: string) =>
+    apiFetch(`${MODULE_URL}/students/${studentId}/attempts`),
 };

@@ -58,6 +58,7 @@ import BulkUploadPage from './pages/BulkUpload';
 import RecordingDiagnostics from './pages/RecordingDiagnostics';
 import MyLeave from './pages/MyLeave';
 import LeaveRequests from './pages/LeaveRequests';
+import CodePlayground from './pages/CodePlayground';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -341,6 +342,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT']}>
             <Layout>
               <MyLeave />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/playground"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <CodePlayground />
             </Layout>
           </ProtectedRoute>
         }

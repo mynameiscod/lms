@@ -66,6 +66,7 @@ import adminLogsRoute from './adminLogsRoute';
 import scheduledInterviewRoutes from './scheduledInterviewRoutes';
 import recordingLogRoutes from './recordingLogRoutes';
 import leaveRequestRoutes from './leaveRequestRoutes';
+import playgroundRoutes from './playgroundRoutes';
 import resumeRoutes from './resumeRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
@@ -157,6 +158,7 @@ router.use('/fees', feeRoutes);
 router.use('/scheduled-interviews', scheduledInterviewRoutes);
 router.use('/recording-logs', recordingLogRoutes);
 router.use('/leave-requests', leaveRequestRoutes);
+router.use('/playground', playgroundRoutes);
 
 // ─── Admin Utilities ───────────────────────────────────────────────────────────
 router.use('/admin/logs', adminLogsRoute);

@@ -12,6 +12,7 @@ router.use(tenantResolver);
 const perms = ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'];
 
 router.post('/run', roleGuard(perms), ctrl.run);
+router.post('/trace', roleGuard(perms), ctrl.traceDebug);
 router.get('/', roleGuard(perms), ctrl.listPrograms);
 router.post('/', roleGuard(perms), ctrl.createProgram);
 router.get('/:id', roleGuard(perms), ctrl.getProgram);

@@ -87,6 +87,19 @@ const CodePlayground: React.FC = () => {
   const [ghModal, setGhModal] = useState(false);
   const [ghConnecting, setGhConnecting] = useState(false);
   const editorRef = useRef<any>(null);
+  const monacoRef = useRef<any>(null);
+  const decoRef = useRef<string[]>([]);
+
+  // Debugger
+  const [debugMode, setDebugMode] = useState(false);
+  const [trace, setTrace] = useState<any[] | null>(null);
+  const [step, setStep] = useState(0);
+  const [breakpoints, setBreakpoints] = useState<number[]>([]);
+  const [dbgLoading, setDbgLoading] = useState(false);
+  const [consoleTab, setConsoleTab] = useState<'Console' | 'Input' | 'Output' | 'Errors'>('Console');
+  const cur = trace ? trace[Math.min(step, trace.length - 1)] : null;
+  const lastIdx = trace ? trace.length - 1 : 0;
+  const depthAt = (i: number) => trace?.[i]?.stack_to_render?.length || 0;
 
   const isWeb = language === 'web';
   const isSql = language === 'sql';
@@ -186,6 +199,54 @@ const CodePlayground: React.FC = () => {
     finally { setGhConnecting(false); }
   };
 
+  // ── Debugger ──────────────────────────────────────────────────────────────
+  const startDebug = async () => {
+    setDbgLoading(true);
+    try {
+      const r = await playgroundApi.trace({ language, code, stdin });
+      const t: any[] = r.data?.trace || [];
+      if (!t.length) throw new Error('empty trace');
+      setTrace(t); setStep(0); setConsoleTab('Console'); setDebugMode(true);
+    } catch {
+      setDebugUrl(buildDebugUrl(language, code, stdin));   // fallback to Python Tutor iframe
+    } finally { setDbgLoading(false); }
+  };
+  const stopDebug = () => { setDebugMode(false); setTrace(null); };
+  const stepInto = () => setStep(s => Math.min(lastIdx, s + 1));
+  const stepOver = () => { const c = depthAt(step); let i = step + 1; while (i <= lastIdx && depthAt(i) > c) i++; setStep(Math.min(i, lastIdx)); };
+  const stepOut = () => { const c = depthAt(step); let i = step + 1; while (i <= lastIdx && depthAt(i) >= c) i++; setStep(Math.min(i, lastIdx)); };
+  const resume = () => { const bp = new Set(breakpoints); let i = step + 1; while (i <= lastIdx && !bp.has(trace![i].line)) i++; setStep(Math.min(i, lastIdx)); };
+  const toggleBreakpoint = (ln: number) => setBreakpoints(b => b.includes(ln) ? b.filter(x => x !== ln) : [...b, ln]);
+
+  const renderVal = (v: any, heap: any): string => {
+    if (v === null || v === undefined) return 'null';
+    if (Array.isArray(v)) {
+      if (v[0] === 'REF') {
+        const h = heap?.[v[1]]; const ty = h?.[0];
+        if (ty === 'LIST') return `Array[${Math.max(0, (h.length - 1))}] (id=${v[1]})`;
+        if (ty === 'INSTANCE') return `${h[1]} (id=${v[1]})`;
+        if (ty === 'DICT') return `Map (id=${v[1]})`;
+        return `${ty || 'ref'} (id=${v[1]})`;
+      }
+      return JSON.stringify(v);
+    }
+    if (typeof v === 'object') return JSON.stringify(v);
+    return String(v);
+  };
+
+  // Editor decorations: breakpoints + current debug line
+  useEffect(() => {
+    const ed = editorRef.current, monaco = monacoRef.current;
+    if (!ed || !monaco) return;
+    const decos: any[] = [];
+    breakpoints.forEach(ln => decos.push({ range: new monaco.Range(ln, 1, ln, 1), options: { glyphMarginClassName: 'cp-bp-glyph' } }));
+    if (debugMode && cur?.line) {
+      decos.push({ range: new monaco.Range(cur.line, 1, cur.line, 1), options: { isWholeLine: true, className: 'cp-curline' } });
+      try { ed.revealLineInCenterIfOutsideViewport(cur.line); } catch { /* ignore */ }
+    }
+    decoRef.current = ed.deltaDecorations(decoRef.current, decos);
+  }, [breakpoints, step, debugMode, cur?.line]);
+
   const formatCode = () => { try { editorRef.current?.getAction('editor.action.formatDocument')?.run(); } catch { /* ignore */ } };
   const resetCode = () => { if (current) setCode(current.starter); setOutput(''); setError(''); setPreview(''); setSqlRows(null); };
   const downloadCode = () => {
@@ -237,7 +298,9 @@ const CodePlayground: React.FC = () => {
         )}
 
         {!isFramework && <button className="cp-btn cp-btn-run" onClick={handleRun} disabled={running}>▶ {running ? 'Running…' : 'Run'}</button>}
-        {!isFramework && canDebug && <button className="cp-btn" onClick={() => setDebugUrl(buildDebugUrl(language, code, stdin))}>⚙ Debug</button>}
+        {!isFramework && canDebug && (debugMode
+          ? <button className="cp-btn" onClick={stopDebug}>■ Stop Debug</button>
+          : <button className="cp-btn" onClick={startDebug} disabled={dbgLoading}>⚙ {dbgLoading ? 'Starting…' : 'Debug'}</button>)}
         {!isFramework && <button className="cp-btn" onClick={resetCode}>↺ Reset</button>}
         {!isFramework && <button className="cp-btn" onClick={formatCode}>≣ Format</button>}
 
@@ -273,14 +336,22 @@ const CodePlayground: React.FC = () => {
               language={byKey(language).monaco}
               value={code}
               onChange={(v) => setCode(v ?? '')}
-              onMount={(ed) => { editorRef.current = ed; ed.onDidChangeCursorPosition((e: any) => setPos({ ln: e.position.lineNumber, col: e.position.column })); }}
+              onMount={(ed, monaco) => {
+                editorRef.current = ed; monacoRef.current = monaco;
+                ed.onDidChangeCursorPosition((e: any) => setPos({ ln: e.position.lineNumber, col: e.position.column }));
+                ed.onMouseDown((e: any) => {
+                  if (e.target?.type === monaco.editor.MouseTargetType.GUTTER_GLYPH_MARGIN && e.target?.position) {
+                    toggleBreakpoint(e.target.position.lineNumber);
+                  }
+                });
+              }}
               theme="light"
-              options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4 }}
+              options={{ minimap: { enabled: false }, fontSize: 14, scrollBeyondLastLine: false, automaticLayout: true, tabSize: 4, glyphMargin: true }}
             />
           )}
         </div>
 
-        {!isFramework && (
+        {!isFramework && !debugMode && (
           <div className="cp-right">
             <div className="cp-right-head">
               <span className={`cp-rtab ${rightTab === 'input' ? 'active' : ''}`} onClick={() => setRightTab('input')}>Input</span>
@@ -331,7 +402,79 @@ const CodePlayground: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Debug panel */}
+        {!isFramework && debugMode && cur && (() => {
+          const stack: any[] = cur.stack_to_render || [];
+          const top = stack.find((f: any) => f.is_highlighted) || stack[stack.length - 1];
+          const codeLines = code.split('\n');
+          return (
+            <div className="cp-right">
+              <div className="cp-dbg-bar">
+                <span className="ttl">Debug</span>
+                <button className="cp-dbg-act resume" onClick={resume} disabled={step >= lastIdx}>▶ Resume</button>
+                <button className="cp-dbg-act" onClick={stepOver} disabled={step >= lastIdx}>⤼ Step Over</button>
+                <button className="cp-dbg-act" onClick={stepInto} disabled={step >= lastIdx}>⤓ Step Into</button>
+                <button className="cp-dbg-act" onClick={stepOut} disabled={step >= lastIdx}>⤴ Step Out</button>
+                <button className="cp-dbg-act stop" onClick={stopDebug}>■ Stop</button>
+              </div>
+              <div className="cp-dbg-cols">
+                <div className="cp-dbg-col">
+                  <div className="cp-dbg-h">VARIABLES</div>
+                  <div className="cp-dbg-sub">▾ Locals</div>
+                  {top ? (top.ordered_varnames || []).filter((n: string) => n !== '__return__').map((n: string) => (
+                    <div key={n} className="cp-var"><span className="k">{n}</span><span className="v">{renderVal(top.encoded_locals?.[n], cur.heap)}</span></div>
+                  )) : <div className="cp-var"><span className="k" style={{ color: '#94a3b8' }}>—</span></div>}
+                  <div className="cp-dbg-h" style={{ marginTop: 16 }}>WATCH</div>
+                  <div className="cp-watch-add">+ Add watch</div>
+                </div>
+                <div className="cp-dbg-col">
+                  <div className="cp-dbg-h">CALL STACK</div>
+                  {[...stack].reverse().map((f: any, i: number) => (
+                    <div key={i} className="cp-frame"><div className="fn">{f.func_name}</div><div className="sig">{f.func_name?.split(':')[0]}({(f.ordered_varnames || []).join(', ')})</div></div>
+                  ))}
+                  <div className="cp-thread" style={{ marginTop: 6 }}>Thread: main</div>
+                </div>
+                <div className="cp-dbg-col">
+                  <div className="cp-dbg-h">BREAKPOINTS</div>
+                  {breakpoints.length === 0 ? <div style={{ fontSize: 13, color: '#94a3b8' }}>Click the gutter to add a breakpoint.</div> :
+                    [...breakpoints].sort((a, b) => a - b).map(ln => (
+                      <div key={ln}>
+                        <div className="cp-bp"><input type="checkbox" checked readOnly onClick={() => toggleBreakpoint(ln)} /><span className="dot">●</span> {current?.file || 'code'}:{ln}</div>
+                        <div className="src">{(codeLines[ln - 1] || '').trim()}</div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+              <div className="cp-sec-label" style={{ padding: '12px 16px 0' }}>QUICK ACTIONS</div>
+              <div className="cp-quick">
+                <div className="cp-qcard" onClick={resetCode}><span className="ic">{'</>'}</span><span className="lbl">Generate Boilerplate</span></div>
+                <div className="cp-qcard" onClick={handleSave}><span className="ic">🔖</span><span className="lbl">Add to My Programs</span></div>
+                <div className="cp-qcard" onClick={downloadCode}><span className="ic">⬇</span><span className="lbl">Download Code</span></div>
+                <div className="cp-qcard" onClick={handlePushGithub}><span className="ic">⬆</span><span className="lbl">Push to GitHub</span></div>
+              </div>
+            </div>
+          );
+        })()}
       </div>
+
+      {/* Debug console */}
+      {debugMode && (
+        <div className="cp-console">
+          <div className="cp-console-tabs">
+            {(['Console', 'Input', 'Output', 'Errors'] as const).map(t => (
+              <span key={t} className={`cp-console-tab ${consoleTab === t ? 'active' : ''}`} onClick={() => setConsoleTab(t)}>{t}</span>
+            ))}
+            <span className="cp-console-clear">Step {Math.min(step + 1, lastIdx + 1)} / {lastIdx + 1}</span>
+          </div>
+          <div className="cp-console-body">
+            {consoleTab === 'Console' && <><span className="info">Program started in debug mode…</span>{'\n'}{cur?.stdout || ''}</>}
+            {consoleTab === 'Output' && (cur?.stdout || <span style={{ color: '#94a3b8' }}>No output yet.</span>)}
+            {consoleTab === 'Input' && <textarea className="cp-stdin" value={stdin} onChange={e => setStdin(e.target.value)} placeholder="STDIN — re-run Debug to apply" style={{ width: '100%' }} />}
+            {consoleTab === 'Errors' && (cur?.event === 'exception' || cur?.exception_msg ? <span className="err">{cur.exception_msg || 'Runtime exception'}</span> : <span style={{ color: '#16a34a' }}>No errors.</span>)}
+          </div>
+        </div>
+      )}
 
       {/* Status bar */}
       <div className="cp-status">

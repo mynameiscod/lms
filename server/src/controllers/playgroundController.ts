@@ -41,6 +41,34 @@ export const run = async (req: Request, res: Response) => {
   }
 };
 
+// POST /playground/trace — produce a step-execution trace (for the debugger)
+const TUTOR_ENDPOINT: Record<string, string> = {
+  java: 'web_exec_java.py', python: 'web_exec_py3.py', javascript: 'web_exec_js.py',
+  c: 'web_exec_c.py', cpp: 'web_exec_cpp.py',
+};
+export const traceDebug = async (req: Request, res: Response) => {
+  try {
+    const { language, code, stdin } = req.body;
+    const ep = TUTOR_ENDPOINT[language];
+    if (!ep) return res.status(400).json({ success: false, message: `Step-debugging isn't supported for ${language}.` });
+    const resp = await axios.get(`https://pythontutor.com/${ep}`, {
+      params: {
+        user_script: code,
+        options_json: JSON.stringify({ cumulative_mode: false, heap_primitives: false }),
+        raw_input_json: JSON.stringify(stdin ? stdin.split('\n') : []),
+      },
+      timeout: 25000,
+    });
+    const data = resp.data;
+    if (!data || !Array.isArray(data.trace)) {
+      return res.status(502).json({ success: false, message: 'Could not produce an execution trace.' });
+    }
+    res.json({ success: true, data: { trace: data.trace, code: data.code } });
+  } catch (error: any) {
+    res.status(502).json({ success: false, message: error?.message || 'Trace service unavailable' });
+  }
+};
+
 // GET /playground — my saved programs
 export const listPrograms = async (req: Request, res: Response) => {
   try {

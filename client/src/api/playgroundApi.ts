@@ -19,6 +19,8 @@ const j = async (url: string, opts: RequestInit = {}) => {
 export const playgroundApi = {
   run: (body: { language: string; code: string; stdin?: string }) =>
     j(`${BASE}/run`, { method: 'POST', body: JSON.stringify(body) }),
+  trace: (body: { language: string; code: string; stdin?: string }) =>
+    j(`${BASE}/trace`, { method: 'POST', body: JSON.stringify(body) }),
   list: () => j(BASE),
   get: (id: string) => j(`${BASE}/${id}`),
   create: (body: any) => j(BASE, { method: 'POST', body: JSON.stringify(body) }),

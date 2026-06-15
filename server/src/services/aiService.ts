@@ -1,4 +1,4 @@
-import OpenAI from 'openai';
+import { getOpenAI } from './aiClients';
 
 export interface GeneratedQuestion {
   question: string;
@@ -97,12 +97,10 @@ Return exactly ${count} questions. No markdown, no code blocks, only the JSON ob
 export async function generateQuestionsWithAI(
   params: GenerateQuestionsParams
 ): Promise<GeneratedQuestion[]> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const openai = getOpenAI();
+  if (!openai) {
     throw new Error('OPENAI_API_KEY is not configured on the server.');
   }
-
-  const openai = new OpenAI({ apiKey });
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -268,12 +266,10 @@ Return exactly ${testCaseCount} test cases. No markdown, no code blocks, only th
 export async function generateCodingAssignmentWithAI(
   params: GenerateCodingAssignmentParams
 ): Promise<GeneratedCodingAssignment> {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
+  const openai = getOpenAI();
+  if (!openai) {
     throw new Error('OPENAI_API_KEY is not configured on the server.');
   }
-
-  const openai = new OpenAI({ apiKey });
 
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',

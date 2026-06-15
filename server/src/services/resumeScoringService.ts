@@ -1,7 +1,5 @@
-import OpenAI from 'openai';
+import { getOpenAI } from './aiClients';
 import { IResumeSections, IResumeScore } from '../models/Resume';
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 export async function scoreResume(sections: IResumeSections): Promise<IResumeScore> {
   const prompt = `You are an expert resume evaluator and ATS specialist. Score this resume and provide actionable feedback.
@@ -49,6 +47,8 @@ Keep suggestions specific and actionable (max 6). Only flag real issues you see.
 Resume data:
 ${JSON.stringify(sections, null, 2).slice(0, 4000)}`;
 
+  const openai = getOpenAI();
+  if (!openai) throw new Error('OPENAI_API_KEY is not configured on the server.');
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],

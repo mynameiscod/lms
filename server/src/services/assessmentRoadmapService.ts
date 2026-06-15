@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { getAnthropic } from './aiClients';
+import * as settings from './settingsService';
 import mongoose from 'mongoose';
 import LearningCurriculum, { ILearningCurriculum } from '../models/LearningCurriculum';
 import { IAssessmentSubmission, IRoadmap } from '../models/AssessmentSubmission';
@@ -12,8 +13,7 @@ import { DIMENSION_LABELS } from '../constants/assessment';
  * curricula are unavailable, so a roadmap is always produced.
  */
 
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
-const MODEL = process.env.ASSESSMENT_ROADMAP_MODEL || 'claude-sonnet-4-6';
+const MODEL = () => settings.getStr('ASSESSMENT_ROADMAP_MODEL', 'claude-sonnet-4-6');
 
 const SYSTEM_PROMPT = `You are a senior software-career mentor at a coding academy.
 A candidate has finished a skill assessment. Using ONLY the provided list of available
@@ -92,13 +92,14 @@ export async function generateRoadmap(submission: IAssessmentSubmission): Promis
       .lean<ILearningCurriculum[]>();
 
     if (!curricula.length) return fallbackRoadmap(submission, []);
+    const client = getAnthropic();
     if (!client) return fallbackRoadmap(submission, curricula);
 
     const catalog = buildCatalog(curricula);
     const profile = buildProfile(submission);
 
     const resp = await client.messages.create({
-      model: MODEL,
+      model: MODEL(),
       max_tokens: 700,
       system: [
         { type: 'text', text: SYSTEM_PROMPT },
@@ -121,7 +122,7 @@ export async function generateRoadmap(submission: IAssessmentSubmission): Promis
       targetRole: json.targetRole || submission.candidate.targetRole,
       salaryBand: json.salaryBand || '',
       timelineWeeks: Number(json.timelineWeeks) || undefined,
-      generatedBy: MODEL,
+      generatedBy: MODEL(),
     };
   } catch (err) {
     // Any failure → deterministic fallback so the candidate always gets a roadmap.

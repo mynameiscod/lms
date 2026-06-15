@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { getAnthropic, isAnthropicEnabled } from './aiClients';
+import * as settings from './settingsService';
 import AssessmentItem from '../models/AssessmentItem';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
@@ -12,8 +13,7 @@ import { AssessmentDimension, AssessmentItemType, DIMENSION_LABELS } from '../co
  * questions reliably auto-gradable ("validate AI tests before use").
  */
 
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
-const MODEL = process.env.ASSESSMENT_GEN_MODEL || 'claude-sonnet-4-6';
+const MODEL = () => settings.getStr('ASSESSMENT_GEN_MODEL', 'claude-sonnet-4-6');
 
 export interface GenSpec {
   type: AssessmentItemType;
@@ -60,9 +60,10 @@ function buildPrompt(spec: GenSpec): string {
 }
 
 async function callClaude(spec: GenSpec): Promise<any[]> {
+  const client = getAnthropic();
   if (!client) return [];
   const resp = await client.messages.create({
-    model: MODEL,
+    model: MODEL(),
     max_tokens: 2200,
     system: 'You are an expert technical interviewer writing precise, auto-gradable coding-assessment items. Output only raw JSON.',
     messages: [{ role: 'user', content: buildPrompt(spec) }],
@@ -149,7 +150,7 @@ async function finalizeItem(raw: any, spec: GenSpec): Promise<any | null> {
  * Returns the items actually created.
  */
 export async function generateItems(tenantId: string, spec: GenSpec, opts: { persist?: boolean } = {}): Promise<any[]> {
-  if (!client || spec.count <= 0) return [];
+  if (!isAnthropicEnabled() || spec.count <= 0) return [];
   let raws: any[] = [];
   try { raws = await callClaude(spec); } catch { return []; }
 
@@ -182,7 +183,7 @@ export async function ensureBankCoverage(
   blueprint: any,
   opts: { language?: string; context?: string } = {}
 ): Promise<number> {
-  if (!client || !blueprint?.stages?.length) return 0;
+  if (!isAnthropicEnabled() || !blueprint?.stages?.length) return 0;
   let generated = 0;
   for (const stage of blueprint.stages) {
     const band: [number, number] = Array.isArray(stage.difficultyBand) && stage.difficultyBand.length === 2

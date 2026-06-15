@@ -1,9 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import OpenAI from 'openai';
+import { getOpenAI } from './aiClients';
 import { IResumeSections } from '../models/Resume';
-
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 // Extract raw text from PDF or DOCX file
 export async function extractTextFromFile(filePath: string): Promise<string> {
@@ -86,6 +84,8 @@ Group skills logically (Languages, Frameworks, Tools, Databases, Cloud, etc.).
 Resume text:
 ${rawText.slice(0, 6000)}`;
 
+  const openai = getOpenAI();
+  if (!openai) throw new Error('OPENAI_API_KEY is not configured on the server.');
   const response = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [{ role: 'user', content: prompt }],

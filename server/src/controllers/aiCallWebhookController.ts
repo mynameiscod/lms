@@ -13,7 +13,7 @@
  */
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
-import OpenAI from 'openai';
+import { getOpenAI } from '../services/aiClients';
 import axios from 'axios';
 import Lead from '../models/Lead';
 import AICallConfig from '../models/AICallConfig';
@@ -21,9 +21,6 @@ import { mapExotelStatus, ExotelCallbackPayload } from '../services/exotelServic
 import { enqueueAICallRetry } from '../services/aiCallQueueService';
 import { autoAssignLead } from '../services/leadDistributionService';
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
 
 /**
  * POST /api/v1/ai-calls/webhook/exotel
@@ -161,6 +158,7 @@ async function processCallTranscript(
   try {
     console.log(`[AIWebhook] Processing transcript for lead=${leadId}`);
 
+    const openai = getOpenAI();
     let transcript = '';
 
     // Download + transcribe if OpenAI available

@@ -5,6 +5,7 @@ import app from './app';
 import http from 'http';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
+import { initSettings } from './services/settingsService';
 import { syncAllActiveSheets } from './services/googleSheetSyncService';
 import { fireFollowUpReminders, CRON_INTERVAL_MS } from './jobs/followUpCron';
 import { startDailySummaryScheduler } from './jobs/dailySummaryCron';
@@ -21,6 +22,9 @@ const startServer = async () => {
     // Connect to database
     await connectDB();
     console.log('✅ MongoDB connection successful');
+
+    // Load admin-managed configuration from DB (keys/models set in the UI).
+    await initSettings();
 
     console.log('📦 Creating HTTP server with Socket.io...');
     // Create HTTP server with Socket.io

@@ -72,6 +72,7 @@ import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
+import systemSettingsRoutes from './systemSettingsRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -162,5 +163,6 @@ router.use('/playground', playgroundRoutes);
 
 // ─── Admin Utilities ───────────────────────────────────────────────────────────
 router.use('/admin/logs', adminLogsRoute);
+router.use('/system-settings', systemSettingsRoutes);
 
 export default router;

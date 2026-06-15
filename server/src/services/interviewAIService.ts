@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { getAnthropic, isAnthropicEnabled } from './aiClients';
+import * as settings from './settingsService';
 
 /**
  * Interview AI brain — the real LLM layer behind the structured Interview Module.
@@ -18,28 +19,31 @@ import Anthropic from '@anthropic-ai/sdk';
  * assessmentQuestionGeneratorService.ts.
  */
 
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
 // Try the configured model first, then resilient fallbacks if the API reports the
 // model name is unknown (model ids drift over time). The first one that works is
-// cached for the rest of the process.
-const MODEL_FALLBACKS = [
-  process.env.INTERVIEW_AI_MODEL,
-  process.env.ASSESSMENT_GEN_MODEL,
-  'claude-sonnet-4-6',
-  'claude-sonnet-4-5',
-  'claude-3-7-sonnet-latest',
-  'claude-3-5-sonnet-latest',
-].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
+// cached for the rest of the process. Keys & models resolve live from
+// settingsService (UI value → .env fallback), so the Platform Settings UI takes
+// effect without a redeploy.
+const modelFallbacks = (): string[] =>
+  [
+    settings.get('INTERVIEW_AI_MODEL'),
+    settings.get('ASSESSMENT_GEN_MODEL'),
+    'claude-sonnet-4-6',
+    'claude-sonnet-4-5',
+    'claude-3-7-sonnet-latest',
+    'claude-3-5-sonnet-latest',
+  ].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
 let workingModel: string | null = null;
 
-// Pricing (USD per 1M tokens) — override per deployment. Defaults ≈ Claude Sonnet.
-const PRICE_IN = Number(process.env.INTERVIEW_AI_PRICE_IN || 3) / 1e6;
-const PRICE_OUT = Number(process.env.INTERVIEW_AI_PRICE_OUT || 15) / 1e6;
+// Pricing (USD per 1M tokens) — override from the UI/.env. Defaults ≈ Claude Sonnet.
 export type Usage = { inputTokens: number; outputTokens: number };
-export const costOf = (u?: Usage | null): number =>
-  u ? +((u.inputTokens * PRICE_IN) + (u.outputTokens * PRICE_OUT)).toFixed(6) : 0;
+export const costOf = (u?: Usage | null): number => {
+  const priceIn = settings.getNum('INTERVIEW_AI_PRICE_IN', 3) / 1e6;
+  const priceOut = settings.getNum('INTERVIEW_AI_PRICE_OUT', 15) / 1e6;
+  return u ? +((u.inputTokens * priceIn) + (u.outputTokens * priceOut)).toFixed(6) : 0;
+};
 
-export const isInterviewAIEnabled = () => !!client;
+export const isInterviewAIEnabled = () => isAnthropicEnabled();
 
 // Category keys per section — MUST match InterviewAttempt.{communication,hr,technical}Scores
 export const CATEGORY_KEYS: Record<string, string[]> = {
@@ -53,8 +57,9 @@ export const CATEGORY_KEYS: Record<string, string[]> = {
 /** Call Claude and return raw text. Throws on API error; tries model fallbacks
  *  only when the error looks like an unknown-model error. */
 async function callClaudeText(system: string, user: string, maxTokens = 1500): Promise<{ text: string; usage: Usage }> {
+  const client = getAnthropic();
   if (!client) throw new Error('AI is not configured (ANTHROPIC_API_KEY missing).');
-  const models = workingModel ? [workingModel] : MODEL_FALLBACKS;
+  const models = workingModel ? [workingModel] : modelFallbacks();
   let lastErr: any;
   for (const model of models) {
     try {
@@ -114,7 +119,7 @@ function extractObjects(text: string): any[] {
 /** Graceful variant: returns null (+ logs) on any failure. For grading paths that
  *  must never block a submission. */
 async function callClaudeJSON(system: string, user: string, maxTokens = 1500): Promise<{ data: any; usage: Usage } | null> {
-  if (!client) return null;
+  if (!isInterviewAIEnabled()) return null;
   try {
     const r = await callClaudeText(system, user, maxTokens);
     return { data: parseJSONLoose(r.text), usage: r.usage };
@@ -159,7 +164,7 @@ export interface AIEvalResult {
 }
 
 export async function evaluateAnswer(input: AIEvalInput): Promise<AIEvalResult | null> {
-  if (!client) return null;
+  if (!isInterviewAIEnabled()) return null;
 
   const answer = (input.answer || '').trim();
   if (!answer) return null; // nothing to grade — let caller handle (skip/zero)
@@ -235,7 +240,7 @@ export async function summarizeAttempt(input: {
   overallPercentage: number;
   sections: AISummarySection[];
 }): Promise<AISummaryResult | null> {
-  if (!client) return null;
+  if (!isInterviewAIEnabled()) return null;
 
   const sectionLines = input.sections.map((s) =>
     `- ${s.sectionTitle} [${s.sectionType}]: ${s.percentage}% (${s.passed ? 'passed' : 'not passed'}, ${s.status})` +
@@ -288,7 +293,7 @@ export interface QGenSpec {
  * caller adds tenantId/createdBy and inserts). Empty array on failure.
  */
 export async function generateQuestions(spec: QGenSpec): Promise<any[]> {
-  if (!client || spec.count <= 0) return [];
+  if (!isInterviewAIEnabled() || spec.count <= 0) return [];
 
   const isMCQ = spec.answerMode === 'mcq';
   const schema = isMCQ

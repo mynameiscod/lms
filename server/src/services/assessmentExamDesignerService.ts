@@ -1,4 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { getAnthropic } from './aiClients';
+import * as settings from './settingsService';
 import AssessmentSubmission, { IAssessmentSubmission } from '../models/AssessmentSubmission';
 import { DEFAULT_BLUEPRINTS } from './assessmentBlueprintService';
 import { ensureBankCoverage } from './assessmentQuestionGeneratorService';
@@ -20,8 +21,7 @@ import {
  * themselves come from the bank / AI generator (Phase 3).
  */
 
-const client = process.env.ANTHROPIC_API_KEY ? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY }) : null;
-const MODEL = process.env.ASSESSMENT_DESIGN_MODEL || 'claude-sonnet-4-6';
+const MODEL = () => settings.getStr('ASSESSMENT_DESIGN_MODEL', 'claude-sonnet-4-6');
 
 const DIM_SET = new Set<string>(ASSESSMENT_DIMENSIONS as unknown as string[]);
 const TYPE_SET = new Set<string>(ASSESSMENT_ITEM_TYPES as unknown as string[]);
@@ -105,10 +105,11 @@ export async function designExamForSubmission(submissionId: string): Promise<voi
   const def = DEFAULT_BLUEPRINTS[submission.candidate.segment];
   let designed: any = null;
 
+  const client = getAnthropic();
   if (client) {
     try {
       const resp = await client.messages.create({
-        model: MODEL,
+        model: MODEL(),
         max_tokens: 1100,
         system: SYSTEM_PROMPT,
         messages: [{ role: 'user', content: `Candidate profile:\n${buildProfile(submission)}\n\nReturn the blueprint JSON.` }],

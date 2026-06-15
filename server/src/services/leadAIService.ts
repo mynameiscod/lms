@@ -1,21 +1,16 @@
 import mongoose from 'mongoose';
 import Lead, { ILead, IAISummary } from '../models/Lead';
-import OpenAI from 'openai';
+import { getOpenAI } from './aiClients';
 
 /**
  * Lead AI Service
  * Generates AI-powered summaries and insights for leads
  */
 class LeadAIService {
-  private openai: OpenAI | null = null;
-
-  constructor() {
-    // Initialize OpenAI client if API key is available
-    if (process.env.OPENAI_API_KEY) {
-      this.openai = new OpenAI({
-        apiKey: process.env.OPENAI_API_KEY
-      });
-    }
+  // Resolves live from settingsService (UI value → .env fallback), so a key set
+  // in the Platform Settings UI takes effect without a redeploy.
+  private get openai() {
+    return getOpenAI();
   }
 
   /**

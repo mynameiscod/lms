@@ -1,6 +1,4 @@
-import Anthropic from '@anthropic-ai/sdk';
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+import { getAnthropic } from './aiClients';
 
 export const SUPPORTED_MODELS = {
   'claude-opus-4-7':          'Opus 4.7 — Best Quality',
@@ -198,6 +196,8 @@ The drag_drop should categorize things related to ${input.concept}.
 The fill_blank should use actual ${input.language} code with ___  for missing tokens.
 The code_run starter should have comments guiding the student on what to write.`;
 
+  const client = getAnthropic();
+  if (!client) throw new Error('AI is not configured (ANTHROPIC_API_KEY missing).');
   const message = await client.messages.create({
     model: selectedModel,
     max_tokens: 4096,

@@ -56,6 +56,7 @@ import StudentFeeDetailsPage from './pages/StudentFeeDetails';
 import DeptReportsPage from './pages/DeptReports';
 import BulkUploadPage from './pages/BulkUpload';
 import RecordingDiagnostics from './pages/RecordingDiagnostics';
+import PlatformSettings from './pages/PlatformSettings';
 import MyLeave from './pages/MyLeave';
 import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
@@ -331,6 +332,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <RecordingDiagnostics />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/platform-settings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN']}>
+            <Layout>
+              <PlatformSettings />
             </Layout>
           </ProtectedRoute>
         }

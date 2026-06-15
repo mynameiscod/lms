@@ -89,6 +89,19 @@ const CodePlayground: React.FC = () => {
   const editorRef = useRef<any>(null);
   const monacoRef = useRef<any>(null);
   const decoRef = useRef<string[]>([]);
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  // Pin the parent .main-content to the exact area under the navbar (and drop its
+  // padding) so the IDE fills it with no blank space. Restored on unmount.
+  useEffect(() => {
+    const mc = rootRef.current?.parentElement as HTMLElement | null;
+    if (!mc) return;
+    const prev = { height: mc.style.height, padding: mc.style.padding, overflow: mc.style.overflow };
+    const apply = () => { mc.style.height = `${window.innerHeight - 64}px`; mc.style.padding = '0'; mc.style.overflow = 'hidden'; };
+    apply();
+    window.addEventListener('resize', apply);
+    return () => { window.removeEventListener('resize', apply); mc.style.height = prev.height; mc.style.padding = prev.padding; mc.style.overflow = prev.overflow; };
+  }, []);
 
   // Debugger
   const [debugMode, setDebugMode] = useState(false);
@@ -279,7 +292,7 @@ const CodePlayground: React.FC = () => {
   const langIcon = isFramework ? (fwByKey(language)?.icon || '📦') : byKey(language).icon;
 
   return (
-    <div className={`cp-root ${full ? 'cp-full' : ''}`}>
+    <div className={`cp-root ${full ? 'cp-full' : ''}`} ref={rootRef}>
       {/* Tabs */}
       <div className="cp-tabbar">
         <div className="cp-tab active">

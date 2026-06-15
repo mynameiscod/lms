@@ -5,7 +5,7 @@
 /* Pin the content area to exactly the space under the 64px navbar and drop the
    page padding, so the IDE fills it with no leftover blank space. */
 .main-content:has(> .cp-root) { padding: 0; height: calc(100vh - 64px); overflow: hidden; }
-.cp-root { display: flex; flex-direction: column; height: calc(100vh - 64px); background: #f1f5f9; color: #0f172a; overflow: hidden; }
+.cp-root { display: flex; flex-direction: column; height: 100%; min-height: 0; background: #f1f5f9; color: #0f172a; overflow: hidden; }
 .cp-root.cp-full { position: fixed; inset: 0; height: 100vh; z-index: 2000; }
 .cp-body { min-height: 0; }
 .cp-editor-wrap { min-height: 0; }

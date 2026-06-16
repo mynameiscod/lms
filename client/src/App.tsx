@@ -136,6 +136,7 @@ import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
 
 // Enrollment Plans
 import EnrollmentPlansPage from './pages/EnrollmentPlans';
+import BatchOfferingsPage from './pages/BatchOfferings';
 
 // My Learning Plan (student)
 import MyLearningPlanPage from './pages/MyLearningPlan';
@@ -1472,6 +1473,16 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><EnrollmentPlansPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Batch Offerings (admin) ── */}
+      <Route
+        path="/batch-offerings"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><BatchOfferingsPage /></Layout>
           </ProtectedRoute>
         }
       />

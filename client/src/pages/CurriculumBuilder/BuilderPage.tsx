@@ -49,7 +49,7 @@ interface PickerModalProps {
   onClose: () => void;
 }
 
-function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
+export function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
   const [activeKind, setActiveKind] = useState<DayActivityKind>('content');
   const [rows, setRows]       = useState<PickedActivity[]>([]);
   const [search, setSearch]   = useState('');

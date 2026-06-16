@@ -332,6 +332,7 @@ function ModuleItemCard({ item }: { item: any }) {
             <span style={{ background: `${meta.color}15`, color: meta.color, borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 700 }}>{meta.label}</span>
             <span style={{ background: st.bg, color: st.fg, borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 600 }}>{st.label}</span>
             {typeof item.moduleScore === 'number' && <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Score: {Math.round(item.moduleScore)}%</span>}
+            {item.dueAt && <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 600 }}>Due {new Date(item.dueAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>}
             {item.slot !== 'anytime' && (
               <span style={{ background: slotColors[item.slot] || '#f1f5f9', color: '#475569', borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 500, textTransform: 'capitalize' }}>{item.slot}</span>
             )}

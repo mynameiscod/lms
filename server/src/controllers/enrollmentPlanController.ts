@@ -10,6 +10,9 @@ import QuizAttempt from '../models/QuizAttempt';
 import Submission from '../models/Submission';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import InterviewAttempt from '../models/InterviewAttempt';
+import BatchOffering from '../models/BatchOffering';
+import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
+import { workingDateForDay, planDayForDate } from '../utils/planSchedule';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -221,7 +224,7 @@ export const enrollStudent = async (req: Request, res: Response) => {
   try {
     const tId = tenantId(req);
     const {
-      curriculumId, studentId, startDate, batchId, batchName,
+      curriculumId, studentId, startDate, batchId, batchName, offeringId,
       settings,
     } = req.body;
 
@@ -243,6 +246,7 @@ export const enrollStudent = async (req: Request, res: Response) => {
       studentEmail: student.email,
       batchId: batchId || undefined,
       batchName: batchName || undefined,
+      offeringId: offeringId || undefined,
       startDate: new Date(startDate),
       settings: settings || {},
       enrolledBy: userId(req),
@@ -265,7 +269,7 @@ export const enrollStudent = async (req: Request, res: Response) => {
 export const enrollBatch = async (req: Request, res: Response) => {
   try {
     const tId = tenantId(req);
-    const { curriculumId, batchId, startDate, settings } = req.body;
+    const { curriculumId, batchId, startDate, settings, offeringId } = req.body;
 
     // Validate curriculum
     const curriculum = await LearningCurriculum.findOne({ _id: curriculumId, tenantId: tId }).lean();
@@ -297,6 +301,7 @@ export const enrollBatch = async (req: Request, res: Response) => {
       studentEmail: student.email,
       batchId,
       batchName: batch.name,
+      offeringId: offeringId || undefined,
       startDate: start,
       settings: settings || {},
       enrolledBy: userId(req),
@@ -460,10 +465,14 @@ export const markContentComplete = async (req: Request, res: Response) => {
     // Check if all items in this day are done
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
     if (dayPlan) {
-      // A day is complete when every item is done — content (via completedItems)
-      // and module activities (via a submission/attempt; must-attempt).
-      const moduleStatus = await resolveModuleStatuses(sId, dayPlan.items);
-      const allDone = dayPlan.items.every(item => itemDone(item, dayNumber, enrollment.completedItems, moduleStatus));
+      // A day is complete when every (override-applied) item is done — content
+      // (via completedItems) and module activities (via a submission; must-attempt).
+      const offering = enrollment.offeringId
+        ? await BatchOffering.findOne({ _id: enrollment.offeringId, tenantId: tId }).lean()
+        : null;
+      const dayItems = effectiveItemsForDay(dayPlan.items, offering, dayNumber);
+      const moduleStatus = await resolveModuleStatuses(sId, dayItems);
+      const allDone = dayItems.every((item: any) => itemDone(item, dayNumber, enrollment.completedItems, moduleStatus));
       if (allDone && !enrollment.completedDays.includes(dayNumber)) {
         enrollment.completedDays.push(dayNumber);
         // Advance currentDay
@@ -524,12 +533,19 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Invalid day number' });
     }
 
+    // Cohort offering (optional): provides the calendar (start + holidays) and
+    // per-batch day overrides. Absent → self-paced from enrollment.startDate.
+    const offering = enrollment.offeringId
+      ? await BatchOffering.findOne({ _id: enrollment.offeringId, tenantId: tId }).lean()
+      : null;
+    const hSet = offering ? holidaySet(offering) : new Set<string>();
+
     // Sequential lock check: if enforceSequential, previous day must be completed
     let isLocked = false;
     if (enrollment.settings.enforceSequential && dayNumber > 1) {
       const prevDayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: dayNumber - 1 }).lean();
       if (prevDayPlan) {
-        const gatingItems = prevDayPlan.items.filter(i => i.isGating);
+        const gatingItems = effectiveItemsForDay(prevDayPlan.items, offering, dayNumber - 1).filter((i: any) => i.isGating);
         if (gatingItems.length > 0) {
           const prevModuleStatus = await resolveModuleStatuses(sId, gatingItems);
           const allGatingDone = gatingItems.every(gi => itemDone(gi, dayNumber - 1, enrollment.completedItems, prevModuleStatus));
@@ -543,36 +559,46 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       isLocked = true;
     }
 
-    // Compute calendar date for this day
-    const dayDate = weekdayForDay(enrollment.startDate, dayNumber);
+    // Compute calendar date for this day (offering = holiday-aware cohort calendar)
+    const dayDate = offering
+      ? workingDateForDay(offering.startDate, dayNumber, hSet)
+      : weekdayForDay(enrollment.startDate, dayNumber);
+    const dueAtForItem = (item: any): string => {
+      const off = Number(item.dueOffsetDays || 0);
+      return off > 0
+        ? (offering ? workingDateForDay(offering.startDate, dayNumber + off, hSet) : weekdayForDay(enrollment.startDate, dayNumber + off)).toISOString()
+        : dayDate.toISOString();
+    };
 
     // Find topic for this day
     const topic = curriculum.topics.find(t => dayNumber >= t.startDay && dayNumber <= t.endDay);
 
-    // Fetch day plan
+    // Fetch day plan + apply offering's per-batch overrides
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
+    const dayItems: any[] = dayPlan ? effectiveItemsForDay(dayPlan.items, offering, dayNumber) : [];
 
     // Populate items — library content AND module activities (quiz/assignment/
     // code snippet/mock interview). Module items resolve their per-student status
     // on demand and carry a launchPath to their own student UI.
     let populatedItems: any[] = [];
     let dayJustCompleted = false;
-    if (dayPlan && dayPlan.items.length > 0) {
-      const contentItems = dayPlan.items.filter(it => (!(it as any).kind || (it as any).kind === 'content') && it.contentId);
-      const contentIds = contentItems.map(i => i.contentId);
+    if (dayItems.length > 0) {
+      const contentItems = dayItems.filter((it: any) => (!it.kind || it.kind === 'content') && it.contentId);
+      const contentIds = contentItems.map((i: any) => i.contentId);
       const contents = await LearningContentLibrary.find({ _id: { $in: contentIds } }).lean();
       const contentMap: Record<string, any> = {};
       contents.forEach(c => { contentMap[c._id.toString()] = c; });
 
-      const moduleStatus = await resolveModuleStatuses(sId, dayPlan.items);
+      const moduleStatus = await resolveModuleStatuses(sId, dayItems);
 
-      populatedItems = dayPlan.items.map(item => {
-        const kind = (item as any).kind || 'content';
+      populatedItems = dayItems.map((item: any) => {
+        const kind = item.kind || 'content';
         if (kind === 'content') {
           const cid = item.contentId!.toString();
           return {
             ...item, kind,
             content: contentMap[cid] || null,
+            dueAt: dueAtForItem(item),
             isCompleted: enrollment.completedItems.some(ci => ci.contentId === cid && ci.dayNumber === dayNumber),
           };
         }
@@ -584,13 +610,14 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
           moduleStatus: st.status,
           moduleScore: st.score,
           launchPath: launchPath(kind, sid),
+          dueAt: dueAtForItem(item),
           isCompleted: st.attempted,
         };
       });
 
       // Derive day completion (must-attempt): when every item is done, mark the
       // day complete and advance currentDay. Persisted idempotently.
-      const allDone = dayPlan.items.every(it => itemDone(it, dayNumber, enrollment.completedItems, moduleStatus));
+      const allDone = dayItems.every((it: any) => itemDone(it, dayNumber, enrollment.completedItems, moduleStatus));
       if (allDone && !enrollment.completedDays.includes(dayNumber)) {
         await CurriculumEnrollment.updateOne(
           { _id: enrollmentId },
@@ -602,7 +629,9 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
 
     // Get completion info
     const isDayCompleted = enrollment.completedDays.includes(dayNumber) || dayJustCompleted;
-    const todayPlanDay   = currentPlanDay(enrollment.startDate, curriculum.totalDays);
+    const todayPlanDay   = offering
+      ? planDayForDate(offering.startDate, curriculum.totalDays, hSet)
+      : currentPlanDay(enrollment.startDate, curriculum.totalDays);
 
     res.json({
       enrollment: {

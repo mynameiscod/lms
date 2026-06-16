@@ -113,6 +113,7 @@ export const enrollmentPlanApi = {
     curriculumId: string;
     batchId: string;
     startDate: string;
+    offeringId?: string;
     settings?: Partial<EnrollmentSettings>;
   }): Promise<EnrollBatchResult> => {
     const { data } = await axios.post(`${BASE}/batch`, body, { headers: authHeader() });

@@ -60,6 +60,7 @@ import learningContentLibraryRoutes from './learningContentLibraryRoutes';
 import liveSessionRoutes from './liveSessionRoutes';
 import learningCurriculumRoutes from './curriculumRoutes';
 import enrollmentPlanRoutes from './enrollmentPlanRoutes';
+import batchOfferingRoutes from './batchOfferingRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -148,6 +149,7 @@ router.use('/learning-library', learningContentLibraryRoutes);
 router.use('/live-classes', liveSessionRoutes);
 router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
+router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);
 

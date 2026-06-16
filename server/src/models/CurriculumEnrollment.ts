@@ -22,6 +22,7 @@ export interface ICurriculumEnrollment extends Document {
   studentEmail: string;
   batchId?: mongoose.Types.ObjectId;
   batchName?: string;
+  offeringId?: mongoose.Types.ObjectId; // links to a BatchOffering (cohort calendar + overrides)
   startDate: Date;
   status: EnrollmentStatus;
   settings: IEnrollmentSettings;
@@ -66,6 +67,7 @@ const CurriculumEnrollmentSchema = new Schema<ICurriculumEnrollment>(
     studentEmail:   { type: String, required: true },
     batchId:        { type: Schema.Types.ObjectId, ref: 'Batch' },
     batchName:      { type: String },
+    offeringId:     { type: Schema.Types.ObjectId, ref: 'BatchOffering' },
     startDate:      { type: Date, required: true },
     status:         { type: String, enum: ['active', 'paused', 'completed', 'dropped'], default: 'active' },
     settings:       { type: EnrollmentSettingsSchema, default: () => ({}) },

@@ -153,6 +153,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: '📚 Content Library',    path: '/learning-library',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-book',          permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: '🏗 Curriculum Builder', path: '/curriculum-builder',  roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-sitemap',       permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: '🎓 Enrollments',        path: '/enrollment-plans',    roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-graduate',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
+        { label: '📅 Batch Offerings',    path: '/batch-offerings',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
         { label: '📅 My Learning Plan',   path: '/my-learning',         roles: ['STUDENT'],                                   icon: 'fa-solid fa-graduation-cap', permissions: ['enroll_courses', 'view_courses'] },
       ]
     },

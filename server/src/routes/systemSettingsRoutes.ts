@@ -1,7 +1,7 @@
 import express, { Response, NextFunction } from 'express';
 import { authMiddleware } from '../middleware/auth';
 import { AuthenticatedRequest } from '../types';
-import { getSettings, updateSettings, testProvider } from '../controllers/systemSettingsController';
+import { getSettings, updateSettings, testProvider, sendTestEmail, listTenantsForSettings } from '../controllers/systemSettingsController';
 
 const router = express.Router();
 
@@ -17,6 +17,8 @@ router.use(authMiddleware, superAdminOnly);
 
 router.get('/', getSettings);
 router.put('/', updateSettings);
+router.get('/tenants', listTenantsForSettings);
+router.post('/test-email', sendTestEmail);
 router.post('/test/:provider', testProvider);
 
 export default router;

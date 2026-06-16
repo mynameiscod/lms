@@ -15,16 +15,22 @@ import axios from 'axios';
  *   BUNNY_STREAM_API_KEY      the library's Stream API key (secret)
  *   BUNNY_STREAM_CDN_HOSTNAME e.g. vz-xxxx.b-cdn.net
  */
-const LIBRARY_ID = process.env.BUNNY_STREAM_LIBRARY_ID || '';
-const API_KEY    = process.env.BUNNY_STREAM_API_KEY || '';
-const CDN_HOST   = process.env.BUNNY_STREAM_CDN_HOSTNAME || '';
+// Read at call time so values set in the Platform Settings UI (mirrored into
+// process.env by settingsService.applyToEnv) take effect without a redeploy.
+const bunnyCfg = () => ({
+  LIBRARY_ID: process.env.BUNNY_STREAM_LIBRARY_ID || '',
+  API_KEY:    process.env.BUNNY_STREAM_API_KEY || '',
+  CDN_HOST:   process.env.BUNNY_STREAM_CDN_HOSTNAME || '',
+});
 
 export const bunnyConfigured = (_req: Request, res: Response) => {
+  const { LIBRARY_ID, API_KEY, CDN_HOST } = bunnyCfg();
   res.json({ configured: Boolean(LIBRARY_ID && API_KEY), libraryId: LIBRARY_ID ? Number(LIBRARY_ID) : null, cdnHostname: CDN_HOST });
 };
 
 export const createBunnyVideo = async (req: Request, res: Response) => {
   try {
+    const { LIBRARY_ID, API_KEY, CDN_HOST } = bunnyCfg();
     if (!LIBRARY_ID || !API_KEY) {
       return res.status(500).json({ message: 'Bunny Stream is not configured on the server.' });
     }

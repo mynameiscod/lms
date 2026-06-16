@@ -46,9 +46,10 @@ async function getWhatsAppCredentials(tenantId: string): Promise<{ phoneNumberId
 //   WHATSAPP_OTP_TEMPLATE       (template name, e.g. "cb_otp")  — enables template mode
 //   WHATSAPP_OTP_TEMPLATE_LANG  (language code, default "en")
 //   WHATSAPP_OTP_TEMPLATE_BUTTON ("false" to omit the copy-code button param)
-const OTP_TEMPLATE = process.env.WHATSAPP_OTP_TEMPLATE || '';
-const OTP_TEMPLATE_LANG = process.env.WHATSAPP_OTP_TEMPLATE_LANG || 'en';
-const OTP_TEMPLATE_HAS_BUTTON = String(process.env.WHATSAPP_OTP_TEMPLATE_BUTTON || 'true') !== 'false';
+// Read at call time so Platform Settings UI values (mirrored to process.env) apply.
+const otpTemplate = () => process.env.WHATSAPP_OTP_TEMPLATE || '';
+const otpTemplateLang = () => process.env.WHATSAPP_OTP_TEMPLATE_LANG || 'en';
+const otpTemplateHasButton = () => String(process.env.WHATSAPP_OTP_TEMPLATE_BUTTON || 'true') !== 'false';
 
 async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<boolean> {
   try {
@@ -73,17 +74,17 @@ async function sendWhatsAppOtp(phone: string, code: string, message: string, cre
   if (!to) return false;
 
   // Preferred: approved Authentication template (works for cold recipients)
-  if (OTP_TEMPLATE) {
+  if (otpTemplate()) {
     const components: any[] = [
       { type: 'body', parameters: [{ type: 'text', text: code }] },
     ];
     // Auth templates carry an OTP "copy code" / one-tap button that echoes the code
-    if (OTP_TEMPLATE_HAS_BUTTON) {
+    if (otpTemplateHasButton()) {
       components.push({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] });
     }
     const ok = await waPost(creds, {
       messaging_product: 'whatsapp', to, type: 'template',
-      template: { name: OTP_TEMPLATE, language: { code: OTP_TEMPLATE_LANG }, components },
+      template: { name: otpTemplate(), language: { code: otpTemplateLang() }, components },
     });
     if (ok) return true;
   }

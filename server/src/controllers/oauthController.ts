@@ -3,8 +3,9 @@ import axios from 'axios';
 import StudentProfile from '../models/StudentProfile';
 import { AuthenticatedRequest } from '../types';
 
-// OAuth Configuration
-const GITHUB_CONFIG = {
+// OAuth config — read at call time so values set in the Platform Settings UI
+// (mirrored into process.env by settingsService.applyToEnv) take effect.
+const GH = () => ({
   clientId: process.env.GITHUB_CLIENT_ID || '',
   clientSecret: process.env.GITHUB_CLIENT_SECRET || '',
   callbackUrl: process.env.GITHUB_CALLBACK_URL || 'http://localhost:5000/api/v1/oauth/github/callback',
@@ -12,9 +13,9 @@ const GITHUB_CONFIG = {
   tokenUrl: 'https://github.com/login/oauth/access_token',
   userUrl: 'https://api.github.com/user',
   scope: 'user:email repo',
-};
+});
 
-const LINKEDIN_CONFIG = {
+const LI = () => ({
   clientId: process.env.LINKEDIN_CLIENT_ID || '',
   clientSecret: process.env.LINKEDIN_CLIENT_SECRET || '',
   callbackUrl: process.env.LINKEDIN_CALLBACK_URL || 'http://localhost:5000/api/v1/oauth/linkedin/callback',
@@ -22,9 +23,9 @@ const LINKEDIN_CONFIG = {
   tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
   userUrl: 'https://api.linkedin.com/v2/userinfo',
   scope: 'openid profile email w_member_social',
-};
+});
 
-const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
+const FE = () => process.env[['FRONTEND', 'URL'].join('_')] || 'http://localhost:3000';
 
 // ============ GitHub OAuth ============
 
@@ -43,10 +44,10 @@ export const initiateGitHubOAuth = async (req: AuthenticatedRequest, res: Respon
     // Generate state for CSRF protection (includes userId)
     const state = Buffer.from(JSON.stringify({ userId, timestamp: Date.now() })).toString('base64');
 
-    const authUrl = new URL(GITHUB_CONFIG.authUrl);
-    authUrl.searchParams.append('client_id', GITHUB_CONFIG.clientId);
-    authUrl.searchParams.append('redirect_uri', GITHUB_CONFIG.callbackUrl);
-    authUrl.searchParams.append('scope', GITHUB_CONFIG.scope);
+    const authUrl = new URL(GH().authUrl);
+    authUrl.searchParams.append('client_id', GH().clientId);
+    authUrl.searchParams.append('redirect_uri', GH().callbackUrl);
+    authUrl.searchParams.append('scope', GH().scope);
     authUrl.searchParams.append('state', state);
 
     res.json({
@@ -68,7 +69,7 @@ export const handleGitHubCallback = async (req: Request, res: Response) => {
     const { code, state } = req.query;
 
     if (!code || !state) {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=missing_params&provider=github`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=missing_params&provider=github`);
     }
 
     // Decode state to get userId
@@ -76,19 +77,19 @@ export const handleGitHubCallback = async (req: Request, res: Response) => {
     try {
       stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
     } catch {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=invalid_state&provider=github`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=invalid_state&provider=github`);
     }
 
     const { userId } = stateData;
 
     // Exchange code for access token
     const tokenResponse = await axios.post(
-      GITHUB_CONFIG.tokenUrl,
+      GH().tokenUrl,
       {
-        client_id: GITHUB_CONFIG.clientId,
-        client_secret: GITHUB_CONFIG.clientSecret,
+        client_id: GH().clientId,
+        client_secret: GH().clientSecret,
         code,
-        redirect_uri: GITHUB_CONFIG.callbackUrl,
+        redirect_uri: GH().callbackUrl,
       },
       {
         headers: { Accept: 'application/json' },
@@ -98,11 +99,11 @@ export const handleGitHubCallback = async (req: Request, res: Response) => {
     const { access_token, refresh_token } = tokenResponse.data;
 
     if (!access_token) {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=no_token&provider=github`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=no_token&provider=github`);
     }
 
     // Get GitHub user info
-    const userResponse = await axios.get(GITHUB_CONFIG.userUrl, {
+    const userResponse = await axios.get(GH().userUrl, {
       headers: { Authorization: `Bearer ${access_token}` },
     });
 
@@ -127,10 +128,10 @@ export const handleGitHubCallback = async (req: Request, res: Response) => {
     );
 
     // Redirect to frontend with success
-    res.redirect(`${FRONTEND_URL}/profile/oauth-callback?success=true&provider=github&username=${githubUser.login}`);
+    res.redirect(`${FE()}/profile/oauth-callback?success=true&provider=github&username=${githubUser.login}`);
   } catch (error: any) {
     console.error('GitHub OAuth callback error:', error.response?.data || error.message);
-    res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=callback_failed&provider=github`);
+    res.redirect(`${FE()}/profile/oauth-callback?error=callback_failed&provider=github`);
   }
 };
 
@@ -173,11 +174,11 @@ export const initiateLinkedInOAuth = async (req: AuthenticatedRequest, res: Resp
     // Generate state for CSRF protection
     const state = Buffer.from(JSON.stringify({ userId, timestamp: Date.now() })).toString('base64');
 
-    const authUrl = new URL(LINKEDIN_CONFIG.authUrl);
+    const authUrl = new URL(LI().authUrl);
     authUrl.searchParams.append('response_type', 'code');
-    authUrl.searchParams.append('client_id', LINKEDIN_CONFIG.clientId);
-    authUrl.searchParams.append('redirect_uri', LINKEDIN_CONFIG.callbackUrl);
-    authUrl.searchParams.append('scope', LINKEDIN_CONFIG.scope);
+    authUrl.searchParams.append('client_id', LI().clientId);
+    authUrl.searchParams.append('redirect_uri', LI().callbackUrl);
+    authUrl.searchParams.append('scope', LI().scope);
     authUrl.searchParams.append('state', state);
 
     res.json({
@@ -199,11 +200,11 @@ export const handleLinkedInCallback = async (req: Request, res: Response) => {
     const { code, state, error } = req.query;
 
     if (error) {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=${error}&provider=linkedin`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=${error}&provider=linkedin`);
     }
 
     if (!code || !state) {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=missing_params&provider=linkedin`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=missing_params&provider=linkedin`);
     }
 
     // Decode state to get userId
@@ -211,20 +212,20 @@ export const handleLinkedInCallback = async (req: Request, res: Response) => {
     try {
       stateData = JSON.parse(Buffer.from(state as string, 'base64').toString());
     } catch {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=invalid_state&provider=linkedin`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=invalid_state&provider=linkedin`);
     }
 
     const { userId } = stateData;
 
     // Exchange code for access token
     const tokenResponse = await axios.post(
-      LINKEDIN_CONFIG.tokenUrl,
+      LI().tokenUrl,
       new URLSearchParams({
         grant_type: 'authorization_code',
         code: code as string,
-        redirect_uri: LINKEDIN_CONFIG.callbackUrl,
-        client_id: LINKEDIN_CONFIG.clientId,
-        client_secret: LINKEDIN_CONFIG.clientSecret,
+        redirect_uri: LI().callbackUrl,
+        client_id: LI().clientId,
+        client_secret: LI().clientSecret,
       }),
       {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -234,11 +235,11 @@ export const handleLinkedInCallback = async (req: Request, res: Response) => {
     const { access_token, refresh_token } = tokenResponse.data;
 
     if (!access_token) {
-      return res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=no_token&provider=linkedin`);
+      return res.redirect(`${FE()}/profile/oauth-callback?error=no_token&provider=linkedin`);
     }
 
     // Get LinkedIn user info using OpenID Connect
-    const userResponse = await axios.get(LINKEDIN_CONFIG.userUrl, {
+    const userResponse = await axios.get(LI().userUrl, {
       headers: { Authorization: `Bearer ${access_token}` },
     });
 
@@ -262,10 +263,10 @@ export const handleLinkedInCallback = async (req: Request, res: Response) => {
     );
 
     // Redirect to frontend with success
-    res.redirect(`${FRONTEND_URL}/profile/oauth-callback?success=true&provider=linkedin&name=${encodeURIComponent(linkedinUser.name || '')}`);
+    res.redirect(`${FE()}/profile/oauth-callback?success=true&provider=linkedin&name=${encodeURIComponent(linkedinUser.name || '')}`);
   } catch (error: any) {
     console.error('LinkedIn OAuth callback error:', error.response?.data || error.message);
-    res.redirect(`${FRONTEND_URL}/profile/oauth-callback?error=callback_failed&provider=linkedin`);
+    res.redirect(`${FE()}/profile/oauth-callback?error=callback_failed&provider=linkedin`);
   }
 };
 

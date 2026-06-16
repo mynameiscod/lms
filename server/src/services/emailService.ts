@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
-import { 
+import * as settings from './settingsService';
+import {
   getStudentWelcomeEmailHtml, 
   getStudentWelcomeEmailPlainText,
   getPasswordResetEmailHtml,
@@ -11,68 +12,77 @@ import {
 } from './emailTemplates';
 
 export class EmailService {
-  private transporter: nodemailer.Transporter | null = null;
-  private useBrevoApi: boolean = false;
+  // Optional tenantId → resolves that tenant's own email config (sender/SMTP),
+  // falling back to the platform settings and then .env. Built lazily so values
+  // set in the Platform Settings UI take effect without a redeploy.
+  private tenantId?: string;
+  private _transporter: nodemailer.Transporter | null = null;
+  private _sig = '';
 
-  constructor() {
-    console.log('\n📧 [EMAIL SERVICE] Initializing Email Service');
-    
-    const emailService = process.env.EMAIL_SERVICE || 'gmail';
-    
-    // Configure email transporter based on service type
-    if (emailService === 'brevo') {
-      // Brevo (formerly Sendinblue) - Use HTTP API
-      console.log('   Service Type: Brevo (HTTP API)');
-      console.log('   Email From:', process.env.EMAIL_FROM || process.env.EMAIL_USER);
-      this.useBrevoApi = true;
-      console.log('   Status: ✅ Brevo API Configured\n');
-    } else if (emailService === 'smtp') {
-      // Custom SMTP configuration (e.g., Ethereal, SendGrid SMTP, etc.)
-      console.log('   Service Type: SMTP');
-      console.log('   SMTP Host:', process.env.SMTP_HOST);
-      console.log('   SMTP Port:', process.env.SMTP_PORT);
-      console.log('   Email User:', process.env.EMAIL_USER);
-      
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: parseInt(process.env.SMTP_PORT || '587'),
-        secure: process.env.SMTP_SECURE === 'true', // false for STARTTLS, true for TLS
-        auth: {
-          user: process.env.EMAIL_USER,
-          pass: process.env.EMAIL_PASSWORD
-        }
+  constructor(tenantId?: string) {
+    this.tenantId = tenantId;
+  }
+
+  private cfg(key: string): string {
+    return settings.getStr(key, '', this.tenantId);
+  }
+
+  private get useBrevoApi(): boolean {
+    return (this.cfg('EMAIL_SERVICE') || 'gmail') === 'brevo';
+  }
+
+  private fromHeader(): string {
+    return this.cfg('EMAIL_FROM') || `CodeBegun <${this.cfg('EMAIL_USER')}>`;
+  }
+
+  private get transporter(): nodemailer.Transporter {
+    const service = this.cfg('EMAIL_SERVICE') || 'gmail';
+    const sig = [service, this.cfg('SMTP_HOST'), this.cfg('SMTP_PORT'), this.cfg('SMTP_SECURE'), this.cfg('EMAIL_USER'), this.cfg('EMAIL_PASSWORD')].join('|');
+    if (this._transporter && this._sig === sig) return this._transporter;
+    this._sig = sig;
+
+    if (service === 'smtp') {
+      this._transporter = nodemailer.createTransport({
+        host: this.cfg('SMTP_HOST'),
+        port: parseInt(this.cfg('SMTP_PORT') || '587'),
+        secure: this.cfg('SMTP_SECURE') === 'true', // false for STARTTLS, true for TLS
+        auth: { user: this.cfg('EMAIL_USER'), pass: this.cfg('EMAIL_PASSWORD') },
       });
-      console.log('   Status: ✅ SMTP Transporter Created\n');
     } else {
-      // Gmail — port 587 with STARTTLS.
-      // VPS providers (DigitalOcean, AWS, etc.) block outbound port 465 (SSL).
-      // Port 587 is the standard submission port and is rarely blocked.
-      // If 587 is also blocked, switch to EMAIL_SERVICE=brevo and add BREVO_API_KEY.
-      console.log('   Service Type: Gmail (port 587 STARTTLS)');
-      console.log('   Email User:', process.env.EMAIL_USER);
-
-      this.transporter = nodemailer.createTransport({
+      // Gmail — port 587 with STARTTLS (465 is blocked on most VPS providers).
+      this._transporter = nodemailer.createTransport({
         host: 'smtp.gmail.com',
         port: 587,
-        secure: false,           // false = STARTTLS on port 587
+        secure: false,
         auth: {
-          user: process.env.EMAIL_USER || 'your-email@gmail.com',
-          pass: process.env.EMAIL_PASSWORD || 'your-app-password',
+          user: this.cfg('EMAIL_USER') || 'your-email@gmail.com',
+          pass: this.cfg('EMAIL_PASSWORD') || 'your-app-password',
         },
-        tls: {
-          rejectUnauthorized: false,
-        },
-        connectionTimeout: 15_000,  // fail in 15 s instead of hanging minutes
-        greetingTimeout:   10_000,
-        socketTimeout:     30_000,
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 15_000,
+        greetingTimeout: 10_000,
+        socketTimeout: 30_000,
       });
-      console.log('   Status: ✅ Gmail Transporter Created (port 587 STARTTLS)\n');
+    }
+    return this._transporter;
+  }
+
+  /** Send a plain test email to verify the current (platform or tenant) config. */
+  async sendTestEmail(to: string): Promise<void> {
+    const subject = '✅ CodeBegun email configuration test';
+    const html = `<div style="font-family:Arial,sans-serif"><h2>It works! 🎉</h2><p>Your CodeBegun email configuration is sending correctly.</p><p style="color:#888;font-size:12px">Provider: ${this.cfg('EMAIL_SERVICE') || 'gmail'} · From: ${this.fromHeader()}</p></div>`;
+    const text = 'It works! Your CodeBegun email configuration is sending correctly.';
+    if (this.useBrevoApi) {
+      await this.sendViaBrevoApi(to, subject, html, text);
+    } else {
+      await this.transporter.sendMail({ from: this.fromHeader(), to, subject, html, text });
     }
   }
 
   private async sendViaBrevoApi(to: string, subject: string, htmlContent: string, textContent: string): Promise<void> {
-    const fromEmail = process.env.EMAIL_FROM?.match(/<(.+)>/)?.[1] || process.env.EMAIL_USER;
-    const fromName = process.env.EMAIL_FROM?.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
+    const fromRaw = this.cfg('EMAIL_FROM');
+    const fromEmail = fromRaw.match(/<(.+)>/)?.[1] || this.cfg('EMAIL_USER');
+    const fromName = fromRaw.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
     
     console.log('   📤 Brevo API Call:');
     console.log('      From:', fromName, '<' + fromEmail + '>');
@@ -83,7 +93,7 @@ export class EmailService {
       method: 'POST',
       headers: {
         'accept': 'application/json',
-        'api-key': process.env.BREVO_API_KEY || '',
+        'api-key': this.cfg('BREVO_API_KEY'),
         'content-type': 'application/json'
       },
       body: JSON.stringify({
@@ -139,7 +149,7 @@ export class EmailService {
       } else {
         // Use nodemailer transporter
         const mailOptions = {
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email,
           subject: DEFAULT_SUBJECT_LINE,
           html: htmlContent,
@@ -169,7 +179,7 @@ export class EmailService {
         await this.sendViaBrevoApi(email, subject, htmlContent, text);
       } else {
         await this.transporter!.sendMail({
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email,
           subject,
           html: htmlContent,
@@ -213,7 +223,7 @@ export class EmailService {
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
       } else {
         const mailOptions = {
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email,
           subject: subject,
           html: htmlContent,
@@ -309,7 +319,7 @@ This is an automated message from CodeBegun Learning Management System.
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
       } else {
         const mailOptions = {
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email,
           subject: subject,
           html: htmlContent,
@@ -532,7 +542,7 @@ ${quizDescription ? `📖 Description: ${quizDescription}\n` : ''}
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
       } else {
         const mailOptions = {
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email,
           subject: subject,
           html: htmlContent,
@@ -665,7 +675,7 @@ This is an automated message from CodeBegun Learning Management System.
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY (Brevo API)');
       } else {
         const mailOptions = {
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email,
           subject: subject,
           html: htmlContent,
@@ -725,7 +735,7 @@ This is an automated message from CodeBegun Learning Management System.
         await this.sendViaBrevoApi(email, subject, html, text);
       } else {
         await this.transporter!.sendMail({
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email, subject, html, text
         });
       }
@@ -770,7 +780,7 @@ This is an automated message from CodeBegun Learning Management System.
         await this.sendViaBrevoApi(email, subject, html, text);
       } else {
         await this.transporter!.sendMail({
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email, subject, html, text
         });
       }
@@ -1044,7 +1054,7 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
         await this.sendViaBrevoApi(email, subject, html, text);
       } else {
         await this.transporter!.sendMail({
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: email, subject, html, text,
         });
       }
@@ -1067,7 +1077,7 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
         await this.sendViaBrevoApi(data.email, subject, html, text);
       } else {
         await this.transporter!.sendMail({
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: data.email,
           subject,
           html,
@@ -1141,7 +1151,7 @@ ${googleCalUrl ? `Add to Calendar: ${googleCalUrl}` : ''}
         await this.sendViaBrevoApi(opts.email, subject, html, text);
       } else {
         await this.transporter!.sendMail({
-          from: process.env.EMAIL_FROM || `CodeBegun <${process.env.EMAIL_USER}>`,
+          from: this.fromHeader(),
           to: opts.email,
           subject,
           html,

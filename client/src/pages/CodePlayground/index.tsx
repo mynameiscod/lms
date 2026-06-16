@@ -107,10 +107,17 @@ const CodePlayground: React.FC = () => {
         Object.assign(root.style, { position: 'fixed', top: '0px', left: '0px', width: '100vw', height: '100vh' });
         return;
       }
+      // left comes from the sidebar margin (stable); derive width from the
+      // viewport, NOT from r.width — once this root is position:fixed the parent
+      // has no in-flow content and r.width can collapse, which would shrink the
+      // overlay leftward on every re-measure.
       const r = mc.getBoundingClientRect();
+      const left = Math.max(0, r.left);
+      const top = Math.max(0, r.top);
       Object.assign(root.style, {
-        position: 'fixed', top: `${Math.max(0, r.top)}px`, left: `${r.left}px`,
-        width: `${r.width}px`, height: `${window.innerHeight - Math.max(0, r.top)}px`,
+        position: 'fixed', top: `${top}px`, left: `${left}px`,
+        width: `${Math.max(320, window.innerWidth - left)}px`,
+        height: `${window.innerHeight - top}px`,
       });
     };
     place();

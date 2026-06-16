@@ -41,10 +41,6 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
   const planDone = planItems.filter(i => i.isCompleted).length;
   const planPct = planTotal > 0 ? Math.round((planDone / planTotal) * 100) : 0;
 
-  // Donut geometry
-  const R = 52, C = 2 * Math.PI * R;
-  const dash = (attPct / 100) * C;
-
   const cards = [
     { icon: '✓', bg: '#22c55e', label: 'Assignments Done', value: stats.completedAssignments ?? 0, sub: `of ${stats.totalAssignments ?? 0} total · ${stats.pendingAssignments ?? 0} pending`, badge: todaySubs > 0 ? `+${todaySubs} today` : 'On track', badgeCls: 'good' },
     { icon: '⏰', bg: '#f59e0b', label: 'Pending Tasks', value: totalPending, sub: `${dueTomorrow} due tomorrow · ${dueThisWeek} this week`, badge: 'Due soon', badgeCls: 'warn' },
@@ -140,28 +136,6 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
 
         {/* Right column */}
         <div className="sd2-col">
-          {/* Attendance Overview */}
-          <div className="sd2-card">
-            <div className="sd2-card-head">
-              <span className="sd2-card-title">Attendance Overview</span>
-              <button className="sd2-link" onClick={() => navigate('/my-attendance')}>Details</button>
-            </div>
-            <div className="sd2-donut-wrap">
-              <svg width="140" height="140" viewBox="0 0 140 140">
-                <circle cx="70" cy="70" r={R} fill="none" stroke="#eef2f7" strokeWidth="12" />
-                <circle cx="70" cy="70" r={R} fill="none" stroke="#0ea5b7" strokeWidth="12" strokeLinecap="round"
-                  strokeDasharray={`${dash} ${C - dash}`} transform="rotate(-90 70 70)" />
-                <text x="70" y="66" textAnchor="middle" fontSize="26" fontWeight="800" fill="#0f172a">{attPct}%</text>
-                <text x="70" y="86" textAnchor="middle" fontSize="12" fill="#94a3b8">Overall</text>
-              </svg>
-            </div>
-            <div className="sd2-att-stats">
-              <div><div className="n" style={{ color: '#16a34a' }}>{present}</div><div className="l">Present</div></div>
-              <div><div className="n" style={{ color: '#dc2626' }}>{absent}</div><div className="l">Absent</div></div>
-              <div><div className="n">{totalAtt}</div><div className="l">Total</div></div>
-            </div>
-          </div>
-
           {/* Upcoming Deadlines */}
           <div className="sd2-card">
             <div className="sd2-card-head">

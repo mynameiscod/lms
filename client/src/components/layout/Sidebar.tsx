@@ -390,8 +390,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         )}
       </nav>
 
-      {/* User card at bottom */}
-      {isOpen && user && (
+      {/* User card at bottom — hidden for students (shown top-right navbar already) */}
+      {isOpen && user && !isStudent && (
         <div className="sidebar-user" onClick={() => navigate('/profile')}>
           <div className="sidebar-user-avatar">
             {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
@@ -403,16 +403,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           <i className="fa-solid fa-chevron-right sidebar-user-arrow"></i>
         </div>
       )}
-      {isOpen && (
+      {/* Time + version footer — staff only (students don't need it) */}
+      {isOpen && !isStudent && (
         <div style={{ padding: '8px 16px 12px', textAlign: 'center', borderTop: '1px solid #e8ecf3', marginTop: 4 }}>
-          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600, letterSpacing: '0.5px', marginBottom: isStudent ? 0 : 4 }}>
+          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 4 }}>
             {currentTime}
           </div>
-          {!isStudent && (
-            <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.3px' }}>
-              Version {APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
-            </div>
-          )}
+          <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.3px' }}>
+            Version {APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
+          </div>
         </div>
       )}
     </aside>

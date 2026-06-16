@@ -42,15 +42,30 @@ export interface Curriculum {
 
 export type ContentSlot = 'morning' | 'afternoon' | 'evening' | 'anytime';
 
+export type DayActivityKind = 'content' | 'quiz' | 'assignment' | 'codeSnippet' | 'mockInterview';
+
 export interface DayContentItem {
   _id?: string;
-  contentId: string;
+  kind?: DayActivityKind;       // defaults to 'content' (back-compat)
+  contentId?: string;           // for kind === 'content'
+  sourceModel?: string;         // for module kinds: 'Quiz' | 'Assignment' | 'CodeSnippetAssessment' | 'InterviewTemplate'
+  sourceId?: string;            // module id for non-content kinds
   contentTitle: string;
   contentType: string;
   slot: ContentSlot;
   isGating: boolean;
+  required?: boolean;
+  points?: number;
   order: number;
   estimatedDuration: number;
+}
+
+export interface ActivityBankItem {
+  id: string;
+  title: string;
+  sourceModel: string;
+  kind: DayActivityKind;
+  meta?: string;
 }
 
 export interface DayPlan {
@@ -114,6 +129,15 @@ export const curriculumApi = {
   clone: async (id: string, title?: string): Promise<Curriculum> => {
     const { data } = await axios.post(`${BASE}/${id}/clone`, { title }, { headers: authHeader() });
     return data;
+  },
+
+  // ── Activity bank (standalone modules pickable into a day) ──────────────────
+
+  activityBank: async (kind: DayActivityKind, search?: string): Promise<ActivityBankItem[]> => {
+    const qs = new URLSearchParams({ kind });
+    if (search) qs.set('search', search);
+    const { data } = await axios.get(`${BASE}/activity-bank?${qs}`, { headers: authHeader() });
+    return data.items || [];
   },
 
   // ── Day Plans ──────────────────────────────────────────────────────────────

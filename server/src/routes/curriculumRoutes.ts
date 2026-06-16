@@ -7,6 +7,9 @@ const router = express.Router();
 
 router.use(authMiddleware, tenantMiddleware);
 
+// Activity bank (standalone modules pickable into a day) — must precede '/:id'
+router.get('/activity-bank', ctrl.getActivityBank);
+
 // Curriculum CRUD
 router.get('/',           ctrl.listCurricula);
 router.post('/',          ctrl.createCurriculum);

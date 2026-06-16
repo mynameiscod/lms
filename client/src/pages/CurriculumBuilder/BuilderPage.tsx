@@ -6,13 +6,13 @@ import {
   CurriculumTopic,
   DayPlan,
   DayContentItem,
+  DayActivityKind,
   WeekendPlan,
   WEEKEND_TYPE_LABELS,
   SLOT_LABELS,
 } from '../../api/curriculumApi';
 import {
   learningContentLibraryApi,
-  ContentLibraryItem,
   CONTENT_TYPE_ICONS,
   CONTENT_TYPE_LABELS,
   CONTENT_TYPE_COLORS,
@@ -22,15 +22,36 @@ type Tab = 'overview' | 'topics' | 'daily' | 'weekend';
 
 const TOPIC_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#ec4899','#0ea5e9','#f97316'];
 
-// ─── Content Picker Modal ──────────────────────────────────────────────────────
+// A picked activity normalized from either the content library or a module bank.
+export interface PickedActivity {
+  kind: DayActivityKind;
+  id: string;             // contentId (content) or module sourceId
+  title: string;
+  contentType: string;    // library type, or the kind (for modules)
+  sourceModel?: string;
+  estimatedDuration?: number;
+}
+
+const KIND_TABS: { kind: DayActivityKind; label: string; icon: string }[] = [
+  { kind: 'content',       label: 'Library',        icon: '📚' },
+  { kind: 'quiz',          label: 'Quiz',           icon: '📝' },
+  { kind: 'assignment',    label: 'Assignment',     icon: '📋' },
+  { kind: 'codeSnippet',   label: 'Code Snippet',   icon: '⌨️' },
+  { kind: 'mockInterview', label: 'Mock Interview', icon: '🎤' },
+];
+const KIND_ICON: Record<string, string> = { content: '📄', quiz: '📝', assignment: '📋', codeSnippet: '⌨️', mockInterview: '🎤' };
+const KIND_COLOR: Record<string, string> = { content: '#64748b', quiz: '#7c3aed', assignment: '#2563eb', codeSnippet: '#0ea5e9', mockInterview: '#f59e0b' };
+
+// ─── Activity Picker Modal (content library + standalone modules) ───────────────
 
 interface PickerModalProps {
-  onSelect: (item: ContentLibraryItem) => void;
+  onSelect: (item: PickedActivity) => void;
   onClose: () => void;
 }
 
-function ContentPickerModal({ onSelect, onClose }: PickerModalProps) {
-  const [items, setItems]     = useState<ContentLibraryItem[]>([]);
+function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
+  const [activeKind, setActiveKind] = useState<DayActivityKind>('content');
+  const [rows, setRows]       = useState<PickedActivity[]>([]);
   const [search, setSearch]   = useState('');
   const [typeFilter, setType] = useState('');
   const [loading, setLoading] = useState(false);
@@ -38,18 +59,27 @@ function ContentPickerModal({ onSelect, onClose }: PickerModalProps) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await learningContentLibraryApi.list({
-        search: search || undefined,
-        type: typeFilter as any || undefined,
-        published: 'true',
-      });
-      setItems(res.items);
+      if (activeKind === 'content') {
+        const res = await learningContentLibraryApi.list({
+          search: search || undefined,
+          type: (typeFilter as any) || undefined,
+          published: 'true',
+        });
+        setRows(res.items.map(i => ({
+          kind: 'content', id: i._id, title: i.title, contentType: i.type, estimatedDuration: i.estimatedDuration || 0,
+        })));
+      } else {
+        const items = await curriculumApi.activityBank(activeKind, search || undefined);
+        setRows(items.map(i => ({
+          kind: activeKind, id: i.id, title: i.title, contentType: activeKind, sourceModel: i.sourceModel,
+        })));
+      }
     } catch {
-      // ignore
+      setRows([]);
     } finally {
       setLoading(false);
     }
-  }, [search, typeFilter]);
+  }, [activeKind, search, typeFilter]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -61,24 +91,45 @@ function ContentPickerModal({ onSelect, onClose }: PickerModalProps) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
     >
       <div style={{
-        background: '#fff', borderRadius: '12px', width: '640px', maxHeight: '80vh',
+        background: '#fff', borderRadius: '12px', width: '680px', maxHeight: '82vh',
         display: 'flex', flexDirection: 'column', overflow: 'hidden',
         boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
       }}>
-        <div style={{ padding: '20px', borderBottom: '1px solid #f1f5f9' }}>
+        <div style={{ padding: '18px 20px 0', borderBottom: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Pick Content from Library</h3>
+            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Add Activity to Day</h3>
             <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}>×</button>
           </div>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input
-              autoFocus
-              type="text"
-              placeholder="Search by title..."
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              style={{ flex: 1, padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', fontSize: '13px', outline: 'none' }}
-            />
+          {/* Source tabs */}
+          <div style={{ display: 'flex', gap: '4px' }}>
+            {KIND_TABS.map(t => (
+              <button
+                key={t.kind}
+                onClick={() => { setActiveKind(t.kind); setSearch(''); setType(''); }}
+                style={{
+                  padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer',
+                  fontWeight: 600, fontSize: '13px',
+                  color: activeKind === t.kind ? '#0f172a' : '#64748b',
+                  borderBottom: activeKind === t.kind ? '2px solid #0f172a' : '2px solid transparent',
+                  marginBottom: '-1px',
+                }}
+              >
+                {t.icon} {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ padding: '12px 20px', display: 'flex', gap: '8px' }}>
+          <input
+            autoFocus
+            type="text"
+            placeholder={`Search ${KIND_TABS.find(t => t.kind === activeKind)?.label.toLowerCase()}...`}
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ flex: 1, padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', fontSize: '13px', outline: 'none' }}
+          />
+          {activeKind === 'content' && (
             <select
               value={typeFilter}
               onChange={e => setType(e.target.value)}
@@ -94,27 +145,30 @@ function ContentPickerModal({ onSelect, onClose }: PickerModalProps) {
               <option value="practice_theory">📝 Practice Theory</option>
               <option value="aptitude">🧠 Aptitude</option>
             </select>
-          </div>
+          )}
         </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 8px' }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading...</div>
-          ) : items.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>No published content found</div>
+          ) : rows.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
+              {activeKind === 'content' ? 'No published content found' : `No ${KIND_TABS.find(t => t.kind === activeKind)?.label.toLowerCase()}s found`}
+            </div>
           ) : (
-            items.map(item => {
-              const color = CONTENT_TYPE_COLORS[item.type] || '#64748b';
-              const icon  = CONTENT_TYPE_ICONS[item.type]  || '📄';
-              const label = CONTENT_TYPE_LABELS[item.type] || item.type;
+            rows.map(item => {
+              const isContent = item.kind === 'content';
+              const color = isContent ? (CONTENT_TYPE_COLORS[item.contentType as any] || '#64748b') : KIND_COLOR[item.kind];
+              const icon  = isContent ? (CONTENT_TYPE_ICONS[item.contentType as any]  || '📄') : KIND_ICON[item.kind];
+              const label = isContent ? (CONTENT_TYPE_LABELS[item.contentType as any] || item.contentType) : (KIND_TABS.find(t => t.kind === item.kind)?.label || item.kind);
               return (
                 <div
-                  key={item._id}
+                  key={`${item.kind}-${item.id}`}
                   onClick={() => onSelect(item)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: '12px',
                     padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
-                    border: '1.5px solid transparent',
-                    marginBottom: '4px',
+                    border: '1.5px solid transparent', marginBottom: '4px',
                   }}
                   onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
@@ -131,8 +185,7 @@ function ContentPickerModal({ onSelect, onClose }: PickerModalProps) {
                       {item.title}
                     </div>
                     <div style={{ fontSize: '12px', color: '#64748b' }}>
-                      {label} {item.estimatedDuration > 0 && `· ${item.estimatedDuration}m`}
-                      {item.difficulty && ` · ${item.difficulty}`}
+                      {label}{isContent && item.estimatedDuration ? ` · ${item.estimatedDuration}m` : ''}
                     </div>
                   </div>
                   <span style={{ background: `${color}15`, color, borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>
@@ -157,8 +210,11 @@ interface DayContentRowProps {
 }
 
 function DayContentRow({ item, onRemove, onChange }: DayContentRowProps) {
-  const color = CONTENT_TYPE_COLORS[item.contentType as any] || '#64748b';
-  const icon  = CONTENT_TYPE_ICONS[item.contentType as any]  || '📄';
+  const kind = item.kind || 'content';
+  const isContent = kind === 'content';
+  const color = isContent ? (CONTENT_TYPE_COLORS[item.contentType as any] || '#64748b') : KIND_COLOR[kind];
+  const icon  = isContent ? (CONTENT_TYPE_ICONS[item.contentType as any]  || '📄') : KIND_ICON[kind];
+  const kindLabel = KIND_TABS.find(t => t.kind === kind)?.label || kind;
 
   return (
     <div style={{
@@ -168,6 +224,11 @@ function DayContentRow({ item, onRemove, onChange }: DayContentRowProps) {
       border: '1px solid #e2e8f0',
     }}>
       <span style={{ fontSize: '14px', flexShrink: 0 }}>{icon}</span>
+      {!isContent && (
+        <span style={{ background: `${color}15`, color, borderRadius: '5px', padding: '1px 7px', fontSize: '10px', fontWeight: 700, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
+          {kindLabel}
+        </span>
+      )}
       <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {item.contentTitle}
       </span>
@@ -358,20 +419,29 @@ export default function BuilderPage() {
     }
   };
 
-  const addContentToDay = (day: number, content: ContentLibraryItem) => {
+  const pickedToItem = (p: PickedActivity, order: number): DayContentItem => ({
+    kind: p.kind,
+    contentId: p.kind === 'content' ? p.id : undefined,
+    sourceModel: p.kind === 'content' ? undefined : p.sourceModel,
+    sourceId: p.kind === 'content' ? undefined : p.id,
+    contentTitle: p.title,
+    contentType: p.kind === 'content' ? p.contentType : p.kind,
+    slot: 'anytime',
+    isGating: false,
+    required: true,
+    points: 0,
+    order,
+    estimatedDuration: p.estimatedDuration || 0,
+  });
+
+  const isDuplicate = (items: DayContentItem[], p: PickedActivity) =>
+    items.some(i => p.kind === 'content' ? (i.kind || 'content') === 'content' && i.contentId === p.id : i.sourceId === p.id);
+
+  const addContentToDay = (day: number, p: PickedActivity) => {
     setDayPlanDrafts(prev => {
       const existing = prev[day] || getDayDraft(day);
-      const alreadyAdded = existing.items.some(i => i.contentId === content._id);
-      if (alreadyAdded) return prev;
-      const newItem: DayContentItem = {
-        contentId: content._id,
-        contentTitle: content.title,
-        contentType: content.type,
-        slot: 'anytime',
-        isGating: false,
-        order: existing.items.length,
-        estimatedDuration: content.estimatedDuration || 0,
-      };
+      if (isDuplicate(existing.items, p)) return prev;
+      const newItem = pickedToItem(p, existing.items.length);
       return { ...prev, [day]: { ...existing, items: [...existing.items, newItem] } };
     });
     setShowPicker(false);
@@ -418,16 +488,12 @@ export default function BuilderPage() {
     }
   };
 
-  const addContentToWeekend = (week: number, day: 'saturday' | 'sunday', content: ContentLibraryItem) => {
+  const addContentToWeekend = (week: number, day: 'saturday' | 'sunday', p: PickedActivity) => {
     const key = weekKey(week, day);
     setWeekendDrafts(prev => {
       const existing = prev[key] || getWeekendDraft(week, day);
-      if (existing.items.some(i => i.contentId === content._id)) return prev;
-      const newItem: DayContentItem = {
-        contentId: content._id, contentTitle: content.title, contentType: content.type,
-        slot: 'anytime', isGating: false, order: existing.items.length,
-        estimatedDuration: content.estimatedDuration || 0,
-      };
+      if (isDuplicate(existing.items, p)) return prev;
+      const newItem = pickedToItem(p, existing.items.length);
       return { ...prev, [key]: { ...existing, items: [...existing.items, newItem] } };
     });
     setShowPicker(false);
@@ -891,7 +957,7 @@ export default function BuilderPage() {
                               />
                               {draft.items.map((item, idx) => (
                                 <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', padding: '4px 6px', background: '#f8fafc', borderRadius: '5px', marginBottom: '3px' }}>
-                                  <span>{CONTENT_TYPE_ICONS[item.contentType as any] || '📄'}</span>
+                                  <span>{(item.kind && item.kind !== 'content') ? KIND_ICON[item.kind] : (CONTENT_TYPE_ICONS[item.contentType as any] || '📄')}</span>
                                   <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.contentTitle}</span>
                                   <button
                                     onClick={() => setWeekendDrafts(prev => ({
@@ -939,9 +1005,9 @@ export default function BuilderPage() {
         </div>
       )}
 
-      {/* Content Picker Modal */}
+      {/* Activity Picker Modal */}
       {showPicker && (
-        <ContentPickerModal
+        <ActivityPickerModal
           onSelect={item => {
             if (pickerDay !== null) {
               addContentToDay(pickerDay, item);

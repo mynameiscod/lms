@@ -345,8 +345,11 @@ export const markContentComplete = async (req: Request, res: Response) => {
     // Check if all items in this day are done
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
     if (dayPlan) {
-      const allDone = dayPlan.items.every(item =>
-        enrollment.completedItems.some(ci => ci.contentId === item.contentId.toString() && ci.dayNumber === dayNumber)
+      // Only content items gate day-completion for now; module activities
+      // (quiz/assignment/interview/snippet) get their own completion in Slice 2.
+      const contentItems = dayPlan.items.filter(it => (!(it as any).kind || (it as any).kind === 'content') && it.contentId);
+      const allDone = contentItems.every(item =>
+        enrollment.completedItems.some(ci => ci.contentId === item.contentId!.toString() && ci.dayNumber === dayNumber)
       );
       if (allDone && !enrollment.completedDays.includes(dayNumber)) {
         enrollment.completedDays.push(dayNumber);
@@ -413,10 +416,11 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     if (enrollment.settings.enforceSequential && dayNumber > 1) {
       const prevDayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: dayNumber - 1 }).lean();
       if (prevDayPlan) {
-        const gatingItems = prevDayPlan.items.filter(i => i.isGating);
+        // Only content gating items count until module completion lands in Slice 2.
+        const gatingItems = prevDayPlan.items.filter(i => i.isGating && (!(i as any).kind || (i as any).kind === 'content') && i.contentId);
         if (gatingItems.length > 0) {
           const allGatingDone = gatingItems.every(gi =>
-            enrollment.completedItems.some(ci => ci.contentId === gi.contentId.toString() && ci.dayNumber === dayNumber - 1)
+            enrollment.completedItems.some(ci => ci.contentId === gi.contentId!.toString() && ci.dayNumber === dayNumber - 1)
           );
           isLocked = !allGatingDone;
         }
@@ -437,19 +441,22 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // Fetch day plan
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
 
-    // Populate content items
+    // Populate content items. Module activities (quiz/assignment/interview/snippet)
+    // are authored onto the day in Slice 1 but not yet surfaced to students —
+    // their student-facing rendering lands in Slice 2. Show only content items now.
     let populatedItems: any[] = [];
     if (dayPlan && dayPlan.items.length > 0) {
-      const contentIds = dayPlan.items.map(i => i.contentId);
+      const contentItems = dayPlan.items.filter(it => (!(it as any).kind || (it as any).kind === 'content') && it.contentId);
+      const contentIds = contentItems.map(i => i.contentId);
       const contents = await LearningContentLibrary.find({ _id: { $in: contentIds } }).lean();
       const contentMap: Record<string, any> = {};
       contents.forEach(c => { contentMap[c._id.toString()] = c; });
 
-      populatedItems = dayPlan.items.map(item => ({
+      populatedItems = contentItems.map(item => ({
         ...item,
-        content: contentMap[item.contentId.toString()] || null,
+        content: contentMap[item.contentId!.toString()] || null,
         isCompleted: enrollment.completedItems.some(
-          ci => ci.contentId === item.contentId.toString() && ci.dayNumber === dayNumber
+          ci => ci.contentId === item.contentId!.toString() && ci.dayNumber === dayNumber
         ),
       }));
     }

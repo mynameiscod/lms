@@ -3,6 +3,10 @@ import mongoose from 'mongoose';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
 import WeekendPlan from '../models/WeekendPlan';
+import Quiz from '../models/Quiz';
+import Assignment from '../models/Assignment';
+import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
+import InterviewTemplate from '../models/InterviewTemplate';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -173,6 +177,54 @@ export const cloneCurriculum = async (req: Request, res: Response) => {
 };
 
 // ─── Day Plans ───────────────────────────────────────────────────────────────
+
+// ─── Activity bank ───────────────────────────────────────────────────────────
+// Normalized list of standalone-module items (Quiz / Assignment / Code Snippet /
+// Mock Interview) so the day builder can drop them onto a day. Content library
+// has its own picker (learningContentLibraryApi). Tenant fields differ per model
+// (some String, some ObjectId) so we handle both.
+export const getActivityBank = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const kind = String(req.query.kind || '');
+    const search = String(req.query.search || '').trim();
+    const rx = search ? { $regex: search, $options: 'i' } : undefined;
+    const oid = mongoose.Types.ObjectId.isValid(tId) ? new mongoose.Types.ObjectId(tId) : null;
+
+    let items: Array<{ id: any; title: string; sourceModel: string; kind: string; meta?: string }> = [];
+
+    if (kind === 'quiz') {
+      const q: any = { tenantId: tId };
+      if (rx) q.title = rx;
+      const rows = await Quiz.find(q).select('title').sort({ createdAt: -1 }).limit(100).lean();
+      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'Quiz', kind }));
+    } else if (kind === 'assignment') {
+      const q: any = {};
+      if (oid) q.tenant = oid;
+      if (rx) q.title = rx;
+      const rows = await Assignment.find(q).select('title type difficulty').sort({ createdAt: -1 }).limit(100).lean();
+      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'Assignment', kind, meta: r.type || r.difficulty }));
+    } else if (kind === 'codeSnippet') {
+      const q: any = {};
+      if (oid) q.tenantId = oid;
+      if (rx) q.title = rx;
+      const rows = await CodeSnippetAssessment.find(q).select('title status').sort({ createdAt: -1 }).limit(100).lean();
+      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'CodeSnippetAssessment', kind, meta: r.status }));
+    } else if (kind === 'mockInterview') {
+      const q: any = {};
+      if (oid) q.tenantId = oid;
+      if (rx) q.title = rx;
+      const rows = await InterviewTemplate.find(q).select('title status').sort({ createdAt: -1 }).limit(100).lean();
+      items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'InterviewTemplate', kind, meta: r.status }));
+    } else {
+      return res.status(400).json({ message: 'Unknown activity kind' });
+    }
+
+    res.json({ items });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load activity bank', error: String(err) });
+  }
+};
 
 export const getDayPlans = async (req: Request, res: Response) => {
   try {

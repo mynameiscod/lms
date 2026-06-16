@@ -12,6 +12,7 @@ router.post('/',              ctrl.createOffering);
 router.get('/:id',            ctrl.getOffering);
 router.put('/:id',            ctrl.updateOffering);
 router.delete('/:id',         ctrl.deleteOffering);
+router.get('/:id/progress',   ctrl.getOfferingProgress);
 router.get('/:id/day/:day',   ctrl.getOfferingDay);
 router.put('/:id/day/:day',   ctrl.upsertDayOverride);
 

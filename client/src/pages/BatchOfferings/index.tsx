@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { batchOfferingApi, BatchOffering } from '../../api/batchOfferingApi';
 import { curriculumApi, Curriculum, DayPlan, DayContentItem } from '../../api/curriculumApi';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
@@ -21,6 +22,7 @@ const pickedToItem = (p: PickedActivity, order: number): DayContentItem => ({
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 
 export default function BatchOfferings() {
+  const navigate = useNavigate();
   const [offerings, setOfferings] = useState<BatchOffering[]>([]);
   const [curricula, setCurricula] = useState<Curriculum[]>([]);
   const [batches, setBatches] = useState<any[]>([]);
@@ -197,9 +199,14 @@ export default function BatchOfferings() {
               <button onClick={addHoliday} style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer' }}>+ Holiday</button>
             </div>
           </div>
-          <button onClick={enrollBatch} style={{ alignSelf: 'flex-end', background: '#0f172a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-            👥 Enroll this batch
-          </button>
+          <div style={{ alignSelf: 'flex-end', display: 'flex', gap: 8 }}>
+            <button onClick={() => navigate(`/batch-offerings/${sel._id}/progress`)} style={{ background: '#fff', color: '#4338ca', border: '1.5px solid #c7d2fe', borderRadius: 8, padding: '10px 16px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              📊 View progress
+            </button>
+            <button onClick={enrollBatch} style={{ background: '#0f172a', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+              👥 Enroll this batch
+            </button>
+          </div>
         </div>
 
         {/* Day override editor */}

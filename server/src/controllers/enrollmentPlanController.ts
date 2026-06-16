@@ -493,6 +493,62 @@ export const markContentComplete = async (req: Request, res: Response) => {
   }
 };
 
+// ─── Student: unified to-do feed across all active enrollments ────────────────
+// Aggregates pending plan activities (content + module) from a window around each
+// enrollment's currentDay into one source-tagged list (overdue / today / upcoming).
+export const getMyTasks = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const sId = userId(req);
+    const enrolls = await CurriculumEnrollment.find({ tenantId: tId, studentId: sId, status: 'active' }).lean();
+
+    const tasks: any[] = [];
+    for (const en of enrolls) {
+      const curriculum = await LearningCurriculum.findById(en.curriculumId).select('title totalDays').lean();
+      if (!curriculum) continue;
+      const offering = en.offeringId ? await BatchOffering.findOne({ _id: en.offeringId, tenantId: tId }).lean() : null;
+      const hSet = offering ? holidaySet(offering) : new Set<string>();
+
+      const from = Math.max(1, en.currentDay - 7);
+      const to = Math.min(curriculum.totalDays, en.currentDay + 2);
+      const plans = await DayPlan.find({ curriculumId: en.curriculumId, dayNumber: { $gte: from, $lte: to } }).lean();
+      const planMap: Record<number, any> = {};
+      plans.forEach(p => { planMap[p.dayNumber] = p; });
+
+      for (let day = from; day <= to; day++) {
+        const dp = planMap[day];
+        if (!dp) continue;
+        const items = effectiveItemsForDay(dp.items, offering, day);
+        if (items.length === 0) continue;
+        const moduleStatus = await resolveModuleStatuses(sId, items);
+        const dayDate = offering ? workingDateForDay(offering.startDate, day, hSet) : weekdayForDay(en.startDate, day);
+        for (const it of items) {
+          if (itemDone(it, day, en.completedItems, moduleStatus)) continue;
+          const kind = it.kind || 'content';
+          const sid = it.sourceId ? it.sourceId.toString() : '';
+          tasks.push({
+            source: 'plan',
+            enrollmentId: en._id,
+            curriculumTitle: en.curriculumTitle,
+            dayNumber: day,
+            kind,
+            title: it.contentTitle,
+            contentType: it.contentType,
+            dueAt: dayDate.toISOString(),
+            overdue: day < en.currentDay,
+            launchPath: kind === 'content' ? `/my-learning/${en._id}/day/${day}` : launchPath(kind, sid),
+          });
+        }
+      }
+    }
+
+    tasks.sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+    res.json({ tasks });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load tasks', error: String(err) });
+  }
+};
+
 // ─── Admin: stats for a curriculum's enrollments ─────────────────────────────
 
 export const getCurriculumEnrollmentStats = async (req: Request, res: Response) => {

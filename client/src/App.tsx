@@ -137,6 +137,8 @@ import CurriculumBuilderPage from './pages/CurriculumBuilder/BuilderPage';
 // Enrollment Plans
 import EnrollmentPlansPage from './pages/EnrollmentPlans';
 import BatchOfferingsPage from './pages/BatchOfferings';
+import CohortProgressPage from './pages/CohortProgress';
+import MyTasksPage from './pages/MyTasks';
 
 // My Learning Plan (student)
 import MyLearningPlanPage from './pages/MyLearningPlan';
@@ -1483,6 +1485,24 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout><BatchOfferingsPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/batch-offerings/:id/progress"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout><CohortProgressPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── My Tasks (student unified feed) ── */}
+      <Route
+        path="/my-tasks"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT']}>
+            <Layout><MyTasksPage /></Layout>
           </ProtectedRoute>
         }
       />

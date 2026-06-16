@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import BatchOffering from '../models/BatchOffering';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
+import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import { workingDateForDay } from '../utils/planSchedule';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
@@ -139,6 +140,50 @@ export const upsertDayOverride = async (req: Request, res: Response) => {
     res.json(offering);
   } catch (err) {
     res.status(500).json({ message: 'Failed to save day override', error: String(err) });
+  }
+};
+
+// ─── Cohort progress dashboard ─────────────────────────────────────────────────
+
+export const getOfferingProgress = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const offering = await BatchOffering.findOne({ _id: req.params.id, tenantId: tId }).lean();
+    if (!offering) return res.status(404).json({ message: 'Offering not found' });
+
+    const curriculum = await LearningCurriculum.findById(offering.curriculumId).select('totalDays title').lean();
+    const totalDays = curriculum?.totalDays || 0;
+
+    const enrollments = await CurriculumEnrollment.find({ tenantId: tId, offeringId: offering._id })
+      .select('studentId studentName studentEmail currentDay completedDays status lastActivityAt')
+      .sort({ studentName: 1 }).lean();
+
+    const students = enrollments.map((e: any) => {
+      const completed = (e.completedDays || []).length;
+      return {
+        studentId: e.studentId,
+        name: e.studentName,
+        email: e.studentEmail,
+        status: e.status,
+        currentDay: e.currentDay,
+        completedDays: e.completedDays || [],
+        completedCount: completed,
+        percent: totalDays ? Math.round((completed / totalDays) * 100) : 0,
+        lastActivityAt: e.lastActivityAt || null,
+      };
+    });
+
+    const avgPercent = students.length ? Math.round(students.reduce((s, x) => s + x.percent, 0) / students.length) : 0;
+    const activeCount = students.filter(s => s.status === 'active').length;
+
+    res.json({
+      offering: { _id: offering._id, curriculumTitle: offering.curriculumTitle, batchName: offering.batchName, startDate: offering.startDate, status: offering.status },
+      totalDays,
+      summary: { students: students.length, active: activeCount, avgPercent },
+      students,
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to load progress', error: String(err) });
   }
 };
 

@@ -10,6 +10,7 @@ router.use(authMiddleware, tenantMiddleware);
 
 // Student routes
 router.get('/my',                                   ctrl.getMyEnrollments);
+router.get('/my-tasks',                             ctrl.getMyTasks);
 router.get('/:id/day/:day',                         ctrl.getStudentDayPlan);
 router.patch('/:id/complete-item',                  ctrl.markContentComplete);
 

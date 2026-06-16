@@ -57,6 +57,19 @@ export interface EnrollBatchResult {
   message: string;
 }
 
+export interface PlanTask {
+  source: 'plan';
+  enrollmentId: string;
+  curriculumTitle: string;
+  dayNumber: number;
+  kind: 'content' | 'quiz' | 'assignment' | 'codeSnippet' | 'mockInterview';
+  title: string;
+  contentType: string;
+  dueAt: string;
+  overdue: boolean;
+  launchPath: string;
+}
+
 export const enrollmentPlanApi = {
   // Admin
   listAll: async (params: {
@@ -118,6 +131,11 @@ export const enrollmentPlanApi = {
   }): Promise<EnrollBatchResult> => {
     const { data } = await axios.post(`${BASE}/batch`, body, { headers: authHeader() });
     return data;
+  },
+
+  myTasks: async (): Promise<PlanTask[]> => {
+    const { data } = await axios.get(`${BASE}/my-tasks`, { headers: authHeader() });
+    return data.tasks || [];
   },
 
   updateStatus: async (id: string, status: EnrollmentStatus): Promise<CurriculumEnrollment> => {

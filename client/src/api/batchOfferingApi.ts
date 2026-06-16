@@ -69,4 +69,26 @@ export const batchOfferingApi = {
     const { data } = await axios.put(`${BASE}/${id}/day/${day}`, body, { headers: authHeader() });
     return data;
   },
+  getProgress: async (id: string): Promise<OfferingProgress> => {
+    const { data } = await axios.get(`${BASE}/${id}/progress`, { headers: authHeader() });
+    return data;
+  },
 };
+
+export interface ProgressStudent {
+  studentId: string;
+  name: string;
+  email: string;
+  status: string;
+  currentDay: number;
+  completedDays: number[];
+  completedCount: number;
+  percent: number;
+  lastActivityAt: string | null;
+}
+export interface OfferingProgress {
+  offering: { _id: string; curriculumTitle: string; batchName: string; startDate: string; status: string };
+  totalDays: number;
+  summary: { students: number; active: number; avgPercent: number };
+  students: ProgressStudent[];
+}

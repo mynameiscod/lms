@@ -95,6 +95,47 @@ const CodePlayground: React.FC = () => {
   // content area via the .main-content:has(> .cp-root) rule — no JS measurement,
   // so it can't mis-size from DPR/zoom or a collapsing parent.
 
+  // ── Open tabs (in-memory documents) ────────────────────────────────────────
+  type Tab = { id: string; title: string; language: string; code: string; stdin: string; currentId: string | null };
+  const newTabId = () => `t-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const [tabs, setTabs] = useState<Tab[]>(() => [
+    { id: 't-1', title: 'Untitled', language: 'java', code: byKey('java').starter, stdin: '', currentId: null },
+  ]);
+  const [activeTabId, setActiveTabId] = useState('t-1');
+
+  // Keep the active tab's snapshot in sync with the live editor state.
+  useEffect(() => {
+    setTabs(prev => prev.map(t => (t.id === activeTabId ? { ...t, title, language, code, stdin, currentId } : t)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, language, code, stdin, currentId, activeTabId]);
+
+  const loadIntoEditor = (t: Tab) => {
+    setTitle(t.title); setLanguage(t.language); setCode(t.code); setStdin(t.stdin); setCurrentId(t.currentId);
+    setOutput(''); setError(''); setPreview(''); setSqlRows(null); setDebugMode(false);
+  };
+  const switchTab = (id: string) => {
+    if (id === activeTabId) return;
+    const t = tabs.find(x => x.id === id); if (!t) return;
+    setActiveTabId(id); loadIntoEditor(t);
+  };
+  const addTab = () => {
+    const id = newTabId();
+    const t: Tab = { id, title: 'Untitled', language: 'java', code: byKey('java').starter, stdin: '', currentId: null };
+    setTabs(prev => [...prev, t]);
+    setActiveTabId(id); loadIntoEditor(t);
+  };
+  const closeTab = (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (tabs.length === 1) { newProgram(); return; }
+    const idx = tabs.findIndex(t => t.id === id);
+    const next = tabs.filter(t => t.id !== id);
+    setTabs(next);
+    if (id === activeTabId) {
+      const nb = next[Math.max(0, idx - 1)];
+      setActiveTabId(nb.id); loadIntoEditor(nb);
+    }
+  };
+
   // Debugger
   const [debugMode, setDebugMode] = useState(false);
   const [trace, setTrace] = useState<any[] | null>(null);
@@ -287,11 +328,18 @@ const CodePlayground: React.FC = () => {
     <div className={`cp-root ${full ? 'cp-full' : ''}`} ref={rootRef}>
       {/* Tabs */}
       <div className="cp-tabbar">
-        <div className="cp-tab active">
-          <span>{isFramework ? (fwByKey(language)?.label) : (title.trim() ? `${title}` : current?.file)}</span>
-          <span className="cp-tab-x" onClick={newProgram} title="New">✕</span>
-        </div>
-        <button className="cp-tab-add" onClick={newProgram} title="New program">+</button>
+        {tabs.map(t => (
+          <div
+            key={t.id}
+            className={`cp-tab ${t.id === activeTabId ? 'active' : ''}`}
+            onClick={() => switchTab(t.id)}
+            title={t.title || 'Untitled'}
+          >
+            <span>{(t.title && t.title.trim()) || 'Untitled'}</span>
+            <span className="cp-tab-x" onClick={(e) => closeTab(t.id, e)} title="Close tab">✕</span>
+          </div>
+        ))}
+        <button className="cp-tab-add" onClick={addTab} title="New tab">+</button>
       </div>
 
       {/* Toolbar */}
@@ -407,9 +455,9 @@ const CodePlayground: React.FC = () => {
                   <div className="cp-sec-label">STDIN (Input)</div>
                   <textarea className="cp-stdin" value={stdin} onChange={e => setStdin(e.target.value)} placeholder="Enter input for your program (if any)" />
                 </div>
-                <div className="cp-sec">
+                <div className="cp-sec" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                   <div className="cp-sec-label">Output</div>
-                  <div className="cp-output">
+                  <div className="cp-output" style={{ flex: 1 }}>
                     {error ? <span className="err">{error}</span> : (output || <span className="muted">Your program output will appear here.</span>)}
                   </div>
                 </div>

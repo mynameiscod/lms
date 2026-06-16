@@ -4,7 +4,9 @@
    internal flex panes scrolling instead of the page. */
 /* Pin the content area to exactly the space under the 64px navbar and drop the
    page padding, so the IDE fills it with no leftover blank space. */
-.main-content:has(> .cp-root) { padding: 0 !important; height: calc(100vh - 64px); overflow: hidden; }
+/* Fill the content area below the 64px navbar; 4px right gutter so the IDE
+   isn't flush against the viewport edge (product polish). */
+.main-content:has(> .cp-root) { padding: 0 4px 0 0 !important; height: calc(100vh - 64px); overflow: hidden; }
 /* Stop the page scrolling behind the IDE while it's open (replaces old JS body lock). */
 body:has(.cp-root) { overflow: hidden; }
 /* Fill the content area. The .main-content > .cp-root selector (specificity 0,2,0)

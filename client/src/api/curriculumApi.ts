@@ -32,12 +32,25 @@ export interface Curriculum {
   totalDays: number;
   topics: CurriculumTopic[];
   isPublished: boolean;
+  shared?: boolean;
   clonedFrom?: string;
   createdBy: string;
   enrollmentCount: number;
   plannedDays?: number; // populated in list
   createdAt: string;
   updatedAt: string;
+}
+
+export interface CurriculumTemplate {
+  _id: string;
+  title: string;
+  description?: string;
+  targetCourse?: string;
+  totalDays: number;
+  topicCount: number;
+  enrollmentCount: number;
+  updatedAt: string;
+  isOwn: boolean;
 }
 
 export type ContentSlot = 'morning' | 'afternoon' | 'evening' | 'anytime';
@@ -128,6 +141,24 @@ export const curriculumApi = {
 
   clone: async (id: string, title?: string): Promise<Curriculum> => {
     const { data } = await axios.post(`${BASE}/${id}/clone`, { title }, { headers: authHeader() });
+    return data;
+  },
+
+  // ── Cross-tenant template library ───────────────────────────────────────────
+
+  share: async (id: string, shared?: boolean): Promise<{ shared: boolean }> => {
+    const { data } = await axios.post(`${BASE}/${id}/share`, { shared }, { headers: authHeader() });
+    return data;
+  },
+
+  listTemplates: async (search?: string): Promise<CurriculumTemplate[]> => {
+    const qs = search ? `?search=${encodeURIComponent(search)}` : '';
+    const { data } = await axios.get(`${BASE}/templates${qs}`, { headers: authHeader() });
+    return data;
+  },
+
+  cloneTemplate: async (id: string, title?: string): Promise<{ curriculum: Curriculum; copiedContent: number; skippedModules: number }> => {
+    const { data } = await axios.post(`${BASE}/templates/${id}/clone`, { title }, { headers: authHeader() });
     return data;
   },
 

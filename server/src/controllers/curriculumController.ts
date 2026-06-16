@@ -7,6 +7,7 @@ import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
 import InterviewTemplate from '../models/InterviewTemplate';
+import LearningContentLibrary from '../models/LearningContentLibrary';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -177,6 +178,127 @@ export const cloneCurriculum = async (req: Request, res: Response) => {
 };
 
 // ─── Day Plans ───────────────────────────────────────────────────────────────
+
+// ─── Cross-tenant template library ─────────────────────────────────────────────
+
+// Toggle/set whether a curriculum is published to the shared template library.
+export const shareCurriculum = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const curriculum = await LearningCurriculum.findOne({ _id: req.params.id, tenantId: tId });
+    if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });
+    curriculum.shared = typeof req.body.shared === 'boolean' ? req.body.shared : !curriculum.shared;
+    await curriculum.save();
+    res.json({ shared: curriculum.shared });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to update sharing', error: String(err) });
+  }
+};
+
+// List shared templates from ALL tenants (the marketplace). isOwn flags the
+// caller's own shared curricula.
+export const listTemplates = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const filter: any = { shared: true };
+    if (req.query.search) filter.title = { $regex: req.query.search, $options: 'i' };
+    const rows = await LearningCurriculum.find(filter)
+      .select('title description targetCourse totalDays topics tenantId enrollmentCount updatedAt')
+      .sort({ updatedAt: -1 }).limit(100).lean();
+    res.json(rows.map((r: any) => ({
+      _id: r._id, title: r.title, description: r.description, targetCourse: r.targetCourse,
+      totalDays: r.totalDays, topicCount: (r.topics || []).length,
+      enrollmentCount: r.enrollmentCount, updatedAt: r.updatedAt,
+      isOwn: r.tenantId === tId,
+    })));
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to list templates', error: String(err) });
+  }
+};
+
+/**
+ * Import a shared template (from any tenant) INTO the caller's tenant.
+ * Copies curriculum + topics + day/weekend structure; deep-copies referenced
+ * library content into this tenant (remapping ids). Module activities
+ * (quiz/assignment/code/interview) are tenant-owned and cannot be carried —
+ * they're skipped; the admin re-adds their own in the builder.
+ */
+export const cloneTemplate = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const uId = userId(req);
+    const source = await LearningCurriculum.findOne({ _id: req.params.id, shared: true }).lean();
+    if (!source) return res.status(404).json({ message: 'Shared template not found' });
+
+    const newCurriculum = await LearningCurriculum.create({
+      tenantId: tId,
+      title: req.body.title || `${source.title} (Imported)`,
+      description: source.description,
+      targetCourse: source.targetCourse,
+      totalDays: source.totalDays,
+      topics: source.topics,
+      isPublished: false,
+      shared: false,
+      clonedFrom: source._id,
+      createdBy: uId,
+    });
+
+    const srcDays = await DayPlan.find({ curriculumId: source._id }).lean();
+    const srcWeekends = await WeekendPlan.find({ curriculumId: source._id }).lean();
+
+    // Collect referenced content ids
+    const contentIds = new Set<string>();
+    const collect = (items: any[]) => (items || []).forEach((it: any) => {
+      if ((!it.kind || it.kind === 'content') && it.contentId) contentIds.add(it.contentId.toString());
+    });
+    srcDays.forEach(d => collect(d.items));
+    srcWeekends.forEach(w => collect(w.items));
+
+    // Deep-copy content into this tenant
+    const map: Record<string, mongoose.Types.ObjectId> = {};
+    if (contentIds.size > 0) {
+      const srcContents = await LearningContentLibrary.find({ _id: { $in: [...contentIds] } }).lean();
+      for (const c of srcContents) {
+        const { _id, createdAt, updatedAt, viewCount, usageCount, ...rest } = c as any;
+        const copy = await LearningContentLibrary.create({ ...rest, tenantId: tId, createdBy: uId, viewCount: 0, usageCount: 0 });
+        map[String(_id)] = copy._id as mongoose.Types.ObjectId;
+      }
+    }
+
+    let skippedModules = 0;
+    const remap = (items: any[]): any[] => {
+      const out: any[] = [];
+      for (const it of (items || [])) {
+        const kind = it.kind || 'content';
+        if (kind === 'content') {
+          const nid = it.contentId ? map[it.contentId.toString()] : null;
+          if (!nid) continue; // content missing → skip
+          out.push({ ...it, _id: new mongoose.Types.ObjectId(), contentId: nid });
+        } else {
+          skippedModules++; // module refs are tenant-owned
+        }
+      }
+      return out;
+    };
+
+    if (srcDays.length > 0) {
+      await DayPlan.insertMany(srcDays.map(d => ({
+        ...d, _id: new mongoose.Types.ObjectId(), tenantId: tId, curriculumId: newCurriculum._id,
+        items: remap(d.items), createdAt: new Date(), updatedAt: new Date(),
+      })));
+    }
+    if (srcWeekends.length > 0) {
+      await WeekendPlan.insertMany(srcWeekends.map(w => ({
+        ...w, _id: new mongoose.Types.ObjectId(), tenantId: tId, curriculumId: newCurriculum._id,
+        items: remap(w.items), createdAt: new Date(), updatedAt: new Date(),
+      })));
+    }
+
+    res.status(201).json({ curriculum: newCurriculum, copiedContent: Object.keys(map).length, skippedModules });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to import template', error: String(err) });
+  }
+};
 
 // ─── Activity bank ───────────────────────────────────────────────────────────
 // Normalized list of standalone-module items (Quiz / Assignment / Code Snippet /

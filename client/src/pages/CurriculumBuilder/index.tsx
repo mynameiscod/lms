@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { curriculumApi, Curriculum } from '../../api/curriculumApi';
+import { curriculumApi, Curriculum, CurriculumTemplate } from '../../api/curriculumApi';
 
 export default function CurriculumList() {
   const navigate = useNavigate();
+  const [view, setView]           = useState<'mine' | 'library'>('mine');
   const [curricula, setCurricula] = useState<Curriculum[]>([]);
   const [total, setTotal]         = useState(0);
   const [loading, setLoading]     = useState(true);
@@ -11,6 +12,10 @@ export default function CurriculumList() {
   const [deleting, setDeleting]   = useState<string | null>(null);
   const [cloning, setCloning]     = useState<string | null>(null);
   const [toggling, setToggling]   = useState<string | null>(null);
+  const [sharing, setSharing]     = useState<string | null>(null);
+  const [templates, setTemplates] = useState<CurriculumTemplate[]>([]);
+  const [tplLoading, setTplLoading] = useState(false);
+  const [importing, setImporting] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -68,6 +73,46 @@ export default function CurriculumList() {
     }
   };
 
+  const handleShare = async (c: Curriculum) => {
+    setSharing(c._id);
+    try {
+      const res = await curriculumApi.share(c._id, !c.shared);
+      setCurricula(prev => prev.map(x => x._id === c._id ? { ...x, shared: res.shared } : x));
+    } catch {
+      alert('Failed to update sharing');
+    } finally {
+      setSharing(null);
+    }
+  };
+
+  const loadTemplates = useCallback(async () => {
+    setTplLoading(true);
+    try { setTemplates(await curriculumApi.listTemplates(search || undefined)); }
+    catch { /* ignore */ }
+    finally { setTplLoading(false); }
+  }, [search]);
+
+  useEffect(() => { if (view === 'library') loadTemplates(); }, [view, loadTemplates]);
+
+  const handleImport = async (t: CurriculumTemplate) => {
+    const title = window.prompt('Import as (name in your tenant):', `${t.title}`);
+    if (!title) return;
+    setImporting(t._id);
+    try {
+      const r = await curriculumApi.cloneTemplate(t._id, title);
+      const note = `Imported "${title}".\n${r.copiedContent} content item(s) copied.` +
+        (r.skippedModules > 0 ? `\n${r.skippedModules} module activity(ies) skipped — re-add your own quizzes/assignments in the builder.` : '');
+      alert(note);
+      setView('mine');
+      load();
+      navigate(`/curriculum-builder/${r.curriculum._id}`);
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Failed to import template');
+    } finally {
+      setImporting(null);
+    }
+  };
+
   const pct = (c: Curriculum) =>
     c.totalDays > 0 ? Math.round(((c.plannedDays || 0) / c.totalDays) * 100) : 0;
 
@@ -96,11 +141,22 @@ export default function CurriculumList() {
         </button>
       </div>
 
+      {/* View tabs */}
+      <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid #e2e8f0', marginBottom: '20px' }}>
+        {([['mine', '📚 My Curricula'], ['library', '🌐 Template Library']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setView(k)} style={{
+            padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
+            fontWeight: 600, fontSize: '14px', color: view === k ? '#0f172a' : '#64748b',
+            borderBottom: view === k ? '2px solid #0f172a' : '2px solid transparent', marginBottom: '-2px',
+          }}>{label}</button>
+        ))}
+      </div>
+
       {/* Search */}
       <div style={{ marginBottom: '24px' }}>
         <input
           type="text"
-          placeholder="Search curricula..."
+          placeholder={view === 'mine' ? 'Search curricula...' : 'Search shared templates...'}
           value={search}
           onChange={e => setSearch(e.target.value)}
           style={{
@@ -112,7 +168,7 @@ export default function CurriculumList() {
       </div>
 
       {/* Stats row */}
-      {!loading && (
+      {view === 'mine' && !loading && (
         <div style={{ marginBottom: '20px', color: '#64748b', fontSize: '14px' }}>
           {total} curriculum{total !== 1 ? 'a' : ''}
           {curricula.filter(c => c.isPublished).length > 0 && (
@@ -123,7 +179,7 @@ export default function CurriculumList() {
         </div>
       )}
 
-      {loading ? (
+      {view === 'mine' && (loading ? (
         <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
           Loading curricula...
         </div>
@@ -231,6 +287,18 @@ export default function CurriculumList() {
                       🏗 Open Builder
                     </button>
                     <button
+                      onClick={() => handleShare(c)}
+                      disabled={sharing === c._id}
+                      title={c.shared ? 'Shared as template — click to unshare' : 'Share as cross-tenant template'}
+                      style={{
+                        padding: '8px 12px', border: `1.5px solid ${c.shared ? '#c7d2fe' : '#e2e8f0'}`,
+                        borderRadius: '7px', background: c.shared ? '#eef2ff' : '#fff',
+                        color: c.shared ? '#4338ca' : '#374151', fontSize: '13px', cursor: 'pointer',
+                      }}
+                    >
+                      {sharing === c._id ? '...' : (c.shared ? '🌐 Shared' : '🌐')}
+                    </button>
+                    <button
                       onClick={() => handleClone(c)}
                       disabled={cloning === c._id}
                       title="Clone curriculum"
@@ -260,6 +328,42 @@ export default function CurriculumList() {
             );
           })}
         </div>
+      ))}
+
+      {/* Template Library (cross-tenant) */}
+      {view === 'library' && (
+        tplLoading ? (
+          <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Loading templates...</div>
+        ) : templates.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '80px 24px', background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0' }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🌐</div>
+            <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>No shared templates</h3>
+            <p style={{ color: '#64748b', margin: 0 }}>Publish a curriculum as a template (Share) to make it importable across tenants.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: '16px' }}>
+            {templates.map(t => (
+              <div key={t._id} style={{ background: '#fff', borderRadius: '12px', border: '1.5px solid #e2e8f0', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
+                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a', lineHeight: 1.3 }}>{t.title}</h3>
+                  {t.isOwn && <span style={{ flexShrink: 0, background: '#eef2ff', color: '#4338ca', borderRadius: '12px', padding: '3px 10px', fontSize: '12px', fontWeight: 600 }}>Yours</span>}
+                </div>
+                {t.description && <p style={{ margin: '0 0 10px', fontSize: '13px', color: '#64748b', lineHeight: 1.5 }}>{t.description}</p>}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
+                  {t.targetCourse && <span style={{ background: '#eff6ff', color: '#2563eb', borderRadius: '6px', padding: '2px 8px', fontSize: '12px', fontWeight: 500 }}>{t.targetCourse}</span>}
+                  <span style={{ background: '#f8fafc', color: '#475569', borderRadius: '6px', padding: '2px 8px', fontSize: '12px' }}>📅 {t.totalDays} days</span>
+                  <span style={{ background: '#f8fafc', color: '#475569', borderRadius: '6px', padding: '2px 8px', fontSize: '12px' }}>📚 {t.topicCount} topics</span>
+                </div>
+                <button onClick={() => handleImport(t)} disabled={importing === t._id} style={{
+                  width: '100%', padding: '9px', border: 'none', borderRadius: '8px',
+                  background: '#0f172a', color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                }}>
+                  {importing === t._id ? 'Importing…' : '⬇ Import to my tenant'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );

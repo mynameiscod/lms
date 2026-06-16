@@ -18,6 +18,7 @@ export interface ILearningCurriculum extends Document {
   totalDays: number;
   topics: ICurriculumTopic[];
   isPublished: boolean;
+  shared: boolean;            // published to the cross-tenant template library
   clonedFrom?: mongoose.Types.ObjectId;
   createdBy: string;
   enrollmentCount: number;
@@ -46,6 +47,7 @@ const LearningCurriculumSchema = new Schema<ILearningCurriculum>(
     totalDays:       { type: Number, default: 145, min: 1 },
     topics:          [CurriculumTopicSchema],
     isPublished:     { type: Boolean, default: false },
+    shared:          { type: Boolean, default: false, index: true },
     clonedFrom:      { type: Schema.Types.ObjectId, ref: 'LearningCurriculum' },
     createdBy:       { type: String, required: true },
     enrollmentCount: { type: Number, default: 0 },

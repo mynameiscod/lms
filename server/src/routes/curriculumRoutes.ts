@@ -7,8 +7,10 @@ const router = express.Router();
 
 router.use(authMiddleware, tenantMiddleware);
 
-// Activity bank (standalone modules pickable into a day) — must precede '/:id'
+// Activity bank + template library (static paths) — must precede '/:id'
 router.get('/activity-bank', ctrl.getActivityBank);
+router.get('/templates', ctrl.listTemplates);
+router.post('/templates/:id/clone', ctrl.cloneTemplate);
 
 // Curriculum CRUD
 router.get('/',           ctrl.listCurricula);
@@ -17,6 +19,7 @@ router.get('/:id',        ctrl.getCurriculum);
 router.put('/:id',        ctrl.updateCurriculum);
 router.delete('/:id',     ctrl.deleteCurriculum);
 router.patch('/:id/publish', ctrl.togglePublish);
+router.post('/:id/share', ctrl.shareCurriculum);
 router.post('/:id/clone', ctrl.cloneCurriculum);
 
 // Day plans

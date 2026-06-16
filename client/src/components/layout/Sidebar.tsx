@@ -344,7 +344,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         <div className="brand-icon" onClick={() => { if (mobileOpen) { onMobileClose?.(); } else { setIsOpen(!isOpen); } }} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { if (mobileOpen) onMobileClose?.(); else setIsOpen(!isOpen); } }}>
           <i className="fa-solid fa-bars"></i>
         </div>
-        <span className="brand-menu-label">Menu</span>
+        {!isStudent && <span className="brand-menu-label">Menu</span>}
       </div>
 
       {/* Search */}
@@ -405,12 +405,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       )}
       {isOpen && (
         <div style={{ padding: '8px 16px 12px', textAlign: 'center', borderTop: '1px solid #e8ecf3', marginTop: 4 }}>
-          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 4 }}>
+          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600, letterSpacing: '0.5px', marginBottom: isStudent ? 0 : 4 }}>
             {currentTime}
           </div>
-          <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.3px' }}>
-            Version {APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
-          </div>
+          {!isStudent && (
+            <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.3px' }}>
+              Version {APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
+            </div>
+          )}
         </div>
       )}
     </aside>

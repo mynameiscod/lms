@@ -44,27 +44,38 @@ function TaskCard({ t }: { t: PlanTask }) {
   );
 }
 
+const PAGE_SIZE = 8;
+const GROUP_META: Record<string, { label: string; color: string }> = {
+  overdue:  { label: 'Overdue',  color: '#dc2626' },
+  today:    { label: 'Today',    color: '#2563eb' },
+  upcoming: { label: 'Upcoming', color: '#64748b' },
+};
+
 export default function MyTasks() {
   const [tasks, setTasks] = useState<PlanTask[]>([]);
   const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     enrollmentPlanApi.myTasks().then(setTasks).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   const today = startOfDay(new Date()).getTime();
-  const groups: { key: string; label: string; color: string; items: PlanTask[] }[] = [
-    { key: 'overdue',  label: 'Overdue',  color: '#dc2626', items: [] },
-    { key: 'today',    label: 'Today',    color: '#2563eb', items: [] },
-    { key: 'upcoming', label: 'Upcoming', color: '#64748b', items: [] },
-  ];
-  tasks.forEach(t => {
-    if (!t.dueAt) { groups[2].items.push(t); return; }
+  const groupOf = (t: PlanTask): 'overdue' | 'today' | 'upcoming' => {
+    if (!t.dueAt) return 'upcoming';
     const due = startOfDay(new Date(t.dueAt)).getTime();
-    if (t.overdue || due < today) groups[0].items.push(t);
-    else if (due === today) groups[1].items.push(t);
-    else groups[2].items.push(t);
-  });
+    if (t.overdue || due < today) return 'overdue';
+    if (due === today) return 'today';
+    return 'upcoming';
+  };
+  // Flat, ordered (overdue → today → upcoming) with a group tag for headers.
+  const order = { overdue: 0, today: 1, upcoming: 2 } as const;
+  const flat = tasks.map(t => ({ t, g: groupOf(t) })).sort((a, b) => order[a.g] - order[b.g]);
+  const overdueCount = flat.filter(x => x.g === 'overdue').length;
+
+  const totalPages = Math.max(1, Math.ceil(flat.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = flat.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#94a3b8' }}>Loading your tasks…</div>;
 
@@ -82,9 +93,9 @@ export default function MyTasks() {
           <p style={{ margin: '3px 0 0', fontSize: 13.5, color: '#64748b' }}>Everything assigned to you across your learning plans — in one place.</p>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 26, fontWeight: 800, color: groups[0].items.length ? '#dc2626' : '#0f172a' }}>{tasks.length}</div>
+          <div style={{ fontSize: 26, fontWeight: 800, color: overdueCount ? '#dc2626' : '#0f172a' }}>{tasks.length}</div>
           <div style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>
-            {groups[0].items.length > 0 ? `${groups[0].items.length} overdue` : 'pending'}
+            {overdueCount > 0 ? `${overdueCount} overdue` : 'pending'}
           </div>
         </div>
       </div>
@@ -95,18 +106,55 @@ export default function MyTasks() {
           <h3 style={{ color: '#0f172a', margin: '0 0 6px' }}>You're all caught up</h3>
           <p style={{ margin: 0 }}>No pending tasks right now.</p>
         </div>
-      ) : groups.filter(g => g.items.length > 0).map(g => (
-        <div key={g.key} style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', background: g.color }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: g.color }}>{g.label}</span>
-            <span style={{ fontSize: 12, color: '#94a3b8', fontWeight: 600 }}>({g.items.length})</span>
-          </div>
+      ) : (
+        <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {g.items.map((t, i) => <TaskCard key={i} t={t} />)}
+            {pageItems.map(({ t, g }, i) => {
+              const prevG = i > 0 ? pageItems[i - 1].g : null;
+              const showHeader = g !== prevG;
+              const gm = GROUP_META[g];
+              return (
+                <React.Fragment key={i}>
+                  {showHeader && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: i === 0 ? '0 0 2px' : '12px 0 2px' }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: gm.color }} />
+                      <span style={{ fontSize: 14, fontWeight: 700, color: gm.color }}>{gm.label}</span>
+                    </div>
+                  )}
+                  <TaskCard t={t} />
+                </React.Fragment>
+              );
+            })}
           </div>
-        </div>
-      ))}
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginTop: 22 }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={safePage === 1}
+                style={{ padding: '7px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, background: '#fff', color: safePage === 1 ? '#cbd5e1' : '#334155', fontSize: 13, fontWeight: 600, cursor: safePage === 1 ? 'default' : 'pointer' }}
+              >‹ Prev</button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(n => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  style={{
+                    minWidth: 34, padding: '7px 0', border: '1.5px solid', borderColor: n === safePage ? '#0f172a' : '#e2e8f0',
+                    borderRadius: 8, background: n === safePage ? '#0f172a' : '#fff', color: n === safePage ? '#fff' : '#334155',
+                    fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                  }}
+                >{n}</button>
+              ))}
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={safePage === totalPages}
+                style={{ padding: '7px 14px', border: '1.5px solid #e2e8f0', borderRadius: 8, background: '#fff', color: safePage === totalPages ? '#cbd5e1' : '#334155', fontSize: 13, fontWeight: 600, cursor: safePage === totalPages ? 'default' : 'pointer' }}
+              >Next ›</button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }

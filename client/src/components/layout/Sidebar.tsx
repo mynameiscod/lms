@@ -123,7 +123,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // Students: module pages live here as a results/history archive — the action
     // hub is "My Tasks" and the journey is "My Learning Plan".
     {
-      label: 'My Results',
+      label: 'My Work',
       roles: ['STUDENT'],
       icon: 'fa-solid fa-folder-open',
       permissions: ['view_quiz', 'view_grades', 'view_snippets'],
@@ -333,7 +333,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const isStudent = user?.role === 'STUDENT';
   
   const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'My Results', 'Resume Builder', 'My Interviews', 'Apply Leave', 'Code Playground'].includes(i.label));
+  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'My Work', 'Resume Builder', 'My Interviews', 'Apply Leave', 'Code Playground'].includes(i.label));
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
   const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
 

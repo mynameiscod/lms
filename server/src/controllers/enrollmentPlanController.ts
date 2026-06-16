@@ -6,9 +6,124 @@ import DayPlan from '../models/DayPlan';
 import WeekendPlan from '../models/WeekendPlan';
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import User from '../models/User';
+import QuizAttempt from '../models/QuizAttempt';
+import Submission from '../models/Submission';
+import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
+import InterviewAttempt from '../models/InterviewAttempt';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
+
+const toOid = (s: any) => (mongoose.Types.ObjectId.isValid(s) ? new mongoose.Types.ObjectId(s) : s);
+
+// Deep-link a module activity to its student-facing page.
+function launchPath(kind: string, sourceId: string): string {
+  switch (kind) {
+    case 'quiz':          return `/quiz/${sourceId}/take`;
+    case 'assignment':    return `/assignments/${sourceId}/workspace`;
+    case 'mockInterview': return `/student/interviews/take/${sourceId}`;
+    case 'codeSnippet':   return `/coding-snippets`;
+    default:              return '';
+  }
+}
+
+/**
+ * Resolve the per-student status of module activities (quiz/assignment/code
+ * snippet/mock interview) referenced on a day. "attempted" = has any submission/
+ * attempt (drives must-attempt gating + day completion). Also returns a display
+ * status + best score. Queried in bulk per kind.
+ */
+async function resolveModuleStatuses(
+  studentId: string,
+  items: Array<{ kind?: string; sourceId?: any }>
+): Promise<Record<string, { attempted: boolean; status: string; score: number | null }>> {
+  const out: Record<string, { attempted: boolean; status: string; score: number | null }> = {};
+  const byKind: Record<string, string[]> = {};
+  for (const it of items) {
+    if (it.kind && it.kind !== 'content' && it.sourceId) {
+      (byKind[it.kind] ||= []).push(it.sourceId.toString());
+    }
+  }
+
+  // Quiz — QuizAttempt {quizId:String, studentId:String, status, percentage, passed}
+  if (byKind.quiz?.length) {
+    const rows = await QuizAttempt.find({ studentId, quizId: { $in: byKind.quiz }, status: { $in: ['submitted', 'grading'] } })
+      .select('quizId percentage passed').lean();
+    const best: Record<string, { score: number | null; passed: boolean }> = {};
+    rows.forEach((r: any) => {
+      const k = r.quizId.toString();
+      const sc = typeof r.percentage === 'number' ? r.percentage : null;
+      if (!best[k] || (sc ?? -1) > (best[k].score ?? -1)) best[k] = { score: sc, passed: !!r.passed };
+    });
+    for (const id of byKind.quiz) out[id] = best[id]
+      ? { attempted: true, status: best[id].passed ? 'passed' : 'submitted', score: best[id].score }
+      : { attempted: false, status: 'not_started', score: null };
+  }
+
+  // Assignment — Submission {assignment:ObjectId, student:ObjectId, status, percentage, submittedAt}
+  if (byKind.assignment?.length) {
+    const ids = byKind.assignment.map(toOid);
+    const rows = await Submission.find({ student: toOid(studentId), assignment: { $in: ids }, submittedAt: { $ne: null } })
+      .select('assignment percentage status').lean();
+    const map: Record<string, any> = {};
+    rows.forEach((r: any) => { map[r.assignment.toString()] = r; });
+    for (const id of byKind.assignment) {
+      const r = map[id];
+      out[id] = r
+        ? { attempted: true, status: r.status === 'graded' ? 'graded' : 'submitted', score: typeof r.percentage === 'number' ? r.percentage : null }
+        : { attempted: false, status: 'not_started', score: null };
+    }
+  }
+
+  // Code Snippet — CodeSnippetSubmission {assessmentId:ObjectId, studentId:ObjectId, status, score}
+  if (byKind.codeSnippet?.length) {
+    const ids = byKind.codeSnippet.map(toOid);
+    const rows = await CodeSnippetSubmission.find({ studentId: toOid(studentId), assessmentId: { $in: ids } })
+      .select('assessmentId status score').lean();
+    const map: Record<string, any> = {};
+    rows.forEach((r: any) => { map[r.assessmentId.toString()] = r; });
+    for (const id of byKind.codeSnippet) {
+      const r = map[id];
+      out[id] = r
+        ? { attempted: true, status: r.status === 'graded' ? 'graded' : 'submitted', score: typeof r.score === 'number' ? r.score : null }
+        : { attempted: false, status: 'not_started', score: null };
+    }
+  }
+
+  // Mock Interview — InterviewAttempt {templateId:ObjectId, studentId:ObjectId, status, overallPercentage}
+  if (byKind.mockInterview?.length) {
+    const ids = byKind.mockInterview.map(toOid);
+    const rows = await InterviewAttempt.find({
+      studentId: toOid(studentId), templateId: { $in: ids },
+      status: { $in: ['submitted', 'under_review', 'evaluated', 'published'] },
+    }).select('templateId overallPercentage status').lean();
+    const best: Record<string, any> = {};
+    rows.forEach((r: any) => {
+      const k = r.templateId.toString();
+      const sc = typeof r.overallPercentage === 'number' ? r.overallPercentage : null;
+      if (!best[k] || (sc ?? -1) > (best[k].score ?? -1)) best[k] = { score: sc, status: r.status };
+    });
+    for (const id of byKind.mockInterview) out[id] = best[id]
+      ? { attempted: true, status: ['evaluated', 'published'].includes(best[id].status) ? 'evaluated' : 'submitted', score: best[id].score }
+      : { attempted: false, status: 'not_started', score: null };
+  }
+
+  return out;
+}
+
+// True when a day item is "done" for must-attempt gating/day-completion.
+function itemDone(
+  item: any,
+  dayNumber: number,
+  completedItems: Array<{ contentId: string; dayNumber: number }>,
+  moduleStatus: Record<string, { attempted: boolean }>
+): boolean {
+  const kind = item.kind || 'content';
+  if (kind === 'content') {
+    return !!item.contentId && completedItems.some(ci => ci.contentId === item.contentId.toString() && ci.dayNumber === dayNumber);
+  }
+  return !!item.sourceId && !!moduleStatus[item.sourceId.toString()]?.attempted;
+}
 
 // ─── Weekday calculator ──────────────────────────────────────────────────────
 // Returns the calendar date for a given plan day number starting from startDate.
@@ -345,12 +460,10 @@ export const markContentComplete = async (req: Request, res: Response) => {
     // Check if all items in this day are done
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
     if (dayPlan) {
-      // Only content items gate day-completion for now; module activities
-      // (quiz/assignment/interview/snippet) get their own completion in Slice 2.
-      const contentItems = dayPlan.items.filter(it => (!(it as any).kind || (it as any).kind === 'content') && it.contentId);
-      const allDone = contentItems.every(item =>
-        enrollment.completedItems.some(ci => ci.contentId === item.contentId!.toString() && ci.dayNumber === dayNumber)
-      );
+      // A day is complete when every item is done — content (via completedItems)
+      // and module activities (via a submission/attempt; must-attempt).
+      const moduleStatus = await resolveModuleStatuses(sId, dayPlan.items);
+      const allDone = dayPlan.items.every(item => itemDone(item, dayNumber, enrollment.completedItems, moduleStatus));
       if (allDone && !enrollment.completedDays.includes(dayNumber)) {
         enrollment.completedDays.push(dayNumber);
         // Advance currentDay
@@ -416,12 +529,10 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     if (enrollment.settings.enforceSequential && dayNumber > 1) {
       const prevDayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: dayNumber - 1 }).lean();
       if (prevDayPlan) {
-        // Only content gating items count until module completion lands in Slice 2.
-        const gatingItems = prevDayPlan.items.filter(i => i.isGating && (!(i as any).kind || (i as any).kind === 'content') && i.contentId);
+        const gatingItems = prevDayPlan.items.filter(i => i.isGating);
         if (gatingItems.length > 0) {
-          const allGatingDone = gatingItems.every(gi =>
-            enrollment.completedItems.some(ci => ci.contentId === gi.contentId!.toString() && ci.dayNumber === dayNumber - 1)
-          );
+          const prevModuleStatus = await resolveModuleStatuses(sId, gatingItems);
+          const allGatingDone = gatingItems.every(gi => itemDone(gi, dayNumber - 1, enrollment.completedItems, prevModuleStatus));
           isLocked = !allGatingDone;
         }
       }
@@ -441,10 +552,11 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // Fetch day plan
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
 
-    // Populate content items. Module activities (quiz/assignment/interview/snippet)
-    // are authored onto the day in Slice 1 but not yet surfaced to students —
-    // their student-facing rendering lands in Slice 2. Show only content items now.
+    // Populate items — library content AND module activities (quiz/assignment/
+    // code snippet/mock interview). Module items resolve their per-student status
+    // on demand and carry a launchPath to their own student UI.
     let populatedItems: any[] = [];
+    let dayJustCompleted = false;
     if (dayPlan && dayPlan.items.length > 0) {
       const contentItems = dayPlan.items.filter(it => (!(it as any).kind || (it as any).kind === 'content') && it.contentId);
       const contentIds = contentItems.map(i => i.contentId);
@@ -452,17 +564,44 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       const contentMap: Record<string, any> = {};
       contents.forEach(c => { contentMap[c._id.toString()] = c; });
 
-      populatedItems = contentItems.map(item => ({
-        ...item,
-        content: contentMap[item.contentId!.toString()] || null,
-        isCompleted: enrollment.completedItems.some(
-          ci => ci.contentId === item.contentId!.toString() && ci.dayNumber === dayNumber
-        ),
-      }));
+      const moduleStatus = await resolveModuleStatuses(sId, dayPlan.items);
+
+      populatedItems = dayPlan.items.map(item => {
+        const kind = (item as any).kind || 'content';
+        if (kind === 'content') {
+          const cid = item.contentId!.toString();
+          return {
+            ...item, kind,
+            content: contentMap[cid] || null,
+            isCompleted: enrollment.completedItems.some(ci => ci.contentId === cid && ci.dayNumber === dayNumber),
+          };
+        }
+        const sid = item.sourceId ? item.sourceId.toString() : '';
+        const st = moduleStatus[sid] || { attempted: false, status: 'not_started', score: null };
+        return {
+          ...item, kind,
+          content: null,
+          moduleStatus: st.status,
+          moduleScore: st.score,
+          launchPath: launchPath(kind, sid),
+          isCompleted: st.attempted,
+        };
+      });
+
+      // Derive day completion (must-attempt): when every item is done, mark the
+      // day complete and advance currentDay. Persisted idempotently.
+      const allDone = dayPlan.items.every(it => itemDone(it, dayNumber, enrollment.completedItems, moduleStatus));
+      if (allDone && !enrollment.completedDays.includes(dayNumber)) {
+        await CurriculumEnrollment.updateOne(
+          { _id: enrollmentId },
+          { $addToSet: { completedDays: dayNumber }, $max: { currentDay: dayNumber + 1 }, $set: { lastActivityAt: new Date() } }
+        );
+        dayJustCompleted = true;
+      }
     }
 
     // Get completion info
-    const isDayCompleted = enrollment.completedDays.includes(dayNumber);
+    const isDayCompleted = enrollment.completedDays.includes(dayNumber) || dayJustCompleted;
     const todayPlanDay   = currentPlanDay(enrollment.startDate, curriculum.totalDays);
 
     res.json({

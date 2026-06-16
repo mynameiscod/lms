@@ -292,6 +292,68 @@ function PracticeViewer({ content }: { content: any }) {
 
 // ─── Content Item Card ────────────────────────────────────────────────────────
 
+// ─── Module activity card (quiz / assignment / code snippet / mock interview) ──
+
+const MODULE_META: Record<string, { icon: string; label: string; color: string; verb: string }> = {
+  quiz:          { icon: '📝', label: 'Quiz',           color: '#7c3aed', verb: 'Start Quiz' },
+  assignment:    { icon: '📋', label: 'Assignment',     color: '#2563eb', verb: 'Open Assignment' },
+  codeSnippet:   { icon: '⌨️', label: 'Code Snippet',   color: '#0ea5e9', verb: 'Solve' },
+  mockInterview: { icon: '🎤', label: 'Mock Interview', color: '#f59e0b', verb: 'Start Interview' },
+};
+const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
+  not_started: { label: 'Not started', bg: '#f1f5f9', fg: '#94a3b8' },
+  in_progress: { label: 'In progress', bg: '#fef3c7', fg: '#b45309' },
+  submitted:   { label: 'Submitted',   bg: '#dbeafe', fg: '#1d4ed8' },
+  graded:      { label: 'Graded',      bg: '#dcfce7', fg: '#16a34a' },
+  evaluated:   { label: 'Evaluated',   bg: '#dcfce7', fg: '#16a34a' },
+  passed:      { label: 'Passed',      bg: '#dcfce7', fg: '#16a34a' },
+  failed:      { label: 'Needs work',  bg: '#fee2e2', fg: '#dc2626' },
+};
+
+function ModuleItemCard({ item }: { item: any }) {
+  const navigate = useNavigate();
+  const meta = MODULE_META[item.kind] || { icon: '📦', label: item.kind, color: '#64748b', verb: 'Open' };
+  const st = STATUS_META[item.moduleStatus] || STATUS_META.not_started;
+  const done = !!item.isCompleted;
+  const slotColors: Record<string, string> = { morning: '#fef3c7', afternoon: '#dbeafe', evening: '#f3e8ff', anytime: '#f1f5f9' };
+
+  return (
+    <div style={{ borderRadius: '12px', border: `1.5px solid ${done ? '#86efac' : '#e2e8f0'}`, overflow: 'hidden', background: done ? '#f0fdf4' : '#fff' }}>
+      <div style={{ height: '3px', background: done ? '#10b981' : meta.color }} />
+      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: `${meta.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', flexShrink: 0 }}>
+          {meta.icon}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: '14px', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {item.contentTitle || meta.label}
+          </div>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '3px', flexWrap: 'wrap', alignItems: 'center' }}>
+            <span style={{ background: `${meta.color}15`, color: meta.color, borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 700 }}>{meta.label}</span>
+            <span style={{ background: st.bg, color: st.fg, borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 600 }}>{st.label}</span>
+            {typeof item.moduleScore === 'number' && <span style={{ fontSize: '11px', color: '#475569', fontWeight: 600 }}>Score: {Math.round(item.moduleScore)}%</span>}
+            {item.slot !== 'anytime' && (
+              <span style={{ background: slotColors[item.slot] || '#f1f5f9', color: '#475569', borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 500, textTransform: 'capitalize' }}>{item.slot}</span>
+            )}
+            {item.isGating && <span style={{ background: '#fef3c7', color: '#b45309', borderRadius: '4px', padding: '1px 7px', fontSize: '11px', fontWeight: 600 }}>🔑 Gating</span>}
+          </div>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+          {done && <span style={{ color: '#10b981', fontWeight: 600, fontSize: '13px' }}>✓ Done</span>}
+          {item.launchPath && (
+            <button
+              onClick={() => navigate(item.launchPath)}
+              style={{ padding: '7px 14px', border: 'none', borderRadius: '8px', background: meta.color, color: '#fff', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+            >
+              {done ? 'Review' : meta.verb}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 interface ContentItemCardProps {
   item: any;
   enrollmentId: string;
@@ -666,14 +728,18 @@ export default function DayView() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {items.map((item: any, idx: number) => (
-            <ContentItemCard
-              key={idx}
-              item={item}
-              enrollmentId={enrollmentId!}
-              dayNumber={dayNumber}
-              isLocked={false}
-              onComplete={handleItemComplete}
-            />
+            (item.kind && item.kind !== 'content') ? (
+              <ModuleItemCard key={idx} item={item} />
+            ) : (
+              <ContentItemCard
+                key={idx}
+                item={item}
+                enrollmentId={enrollmentId!}
+                dayNumber={dayNumber}
+                isLocked={false}
+                onComplete={handleItemComplete}
+              />
+            )
           ))}
           {isDayCompleted && (
             <div style={{

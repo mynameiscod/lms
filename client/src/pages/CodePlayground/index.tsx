@@ -90,47 +90,10 @@ const CodePlayground: React.FC = () => {
   const monacoRef = useRef<any>(null);
   const decoRef = useRef<string[]>([]);
   const rootRef = useRef<HTMLDivElement>(null);
-  const fullRef = useRef(false);
 
-  // Pin the playground as a fixed overlay over the content area (right of the
-  // sidebar, below the navbar). This decouples it from page flow, so a tall
-  // sidebar can't leave blank space below the editor. Auto-adapts to navbar
-  // height + sidebar width; page scroll is disabled while it's open.
-  useEffect(() => {
-    const root = rootRef.current;
-    const mc = root?.parentElement as HTMLElement | null;
-    if (!root || !mc) return;
-    const prevBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    // NOTE: set width/left/etc with `important` priority — Layout.css has
-    // `.main-content > * { width: auto !important }` which would otherwise beat
-    // our inline width (a stylesheet !important wins over plain inline styles),
-    // collapsing the overlay to its content width.
-    const setImp = (k: string, v: string) => root.style.setProperty(k, v, 'important');
-    const place = () => {
-      if (fullRef.current) {
-        setImp('position', 'fixed'); setImp('top', '0px'); setImp('left', '0px');
-        setImp('width', '100vw'); setImp('height', '100vh');
-        return;
-      }
-      // left comes from the sidebar margin (stable); derive width from the
-      // viewport, NOT from r.width — once this root is position:fixed the parent
-      // has no in-flow content and r.width can collapse.
-      const r = mc.getBoundingClientRect();
-      const left = Math.max(0, r.left);
-      const top = Math.max(0, r.top);
-      setImp('position', 'fixed'); setImp('top', `${top}px`); setImp('left', `${left}px`);
-      setImp('width', `${Math.max(320, window.innerWidth - left)}px`);
-      setImp('height', `${window.innerHeight - top}px`);
-    };
-    place();
-    window.addEventListener('resize', place);
-    const ro = new ResizeObserver(place); ro.observe(mc); ro.observe(document.body);
-    const id = window.setInterval(place, 400); // catch sidebar open/close width changes
-    return () => { window.removeEventListener('resize', place); ro.disconnect(); clearInterval(id); document.body.style.overflow = prevBodyOverflow; };
-  }, []);
-
-  useEffect(() => { fullRef.current = full; const root = rootRef.current; if (root) { /* re-place */ const ev = new Event('resize'); window.dispatchEvent(ev); } }, [full]);
+  // Sizing is now pure CSS (see CodePlayground.css). The playground fills the
+  // content area via the .main-content:has(> .cp-root) rule — no JS measurement,
+  // so it can't mis-size from DPR/zoom or a collapsing parent.
 
   // Debugger
   const [debugMode, setDebugMode] = useState(false);

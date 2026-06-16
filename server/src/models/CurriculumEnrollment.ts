@@ -30,6 +30,7 @@ export interface ICurriculumEnrollment extends Document {
   completedDays: number[];
   completedItems: ICompletedItem[];
   lastActivityAt?: Date;
+  lastReminderOn?: Date;   // due-reminder cron dedupe (one per day)
   completedAt?: Date;
   enrolledBy: string;
   // Assessment-funnel gating: a free "taste" then locked until a mentor/payment unlocks.
@@ -75,6 +76,7 @@ const CurriculumEnrollmentSchema = new Schema<ICurriculumEnrollment>(
     completedDays:  [{ type: Number }],
     completedItems: [CompletedItemSchema],
     lastActivityAt: { type: Date },
+    lastReminderOn: { type: Date },
     completedAt:    { type: Date },
     enrolledBy:     { type: String, required: true },
     assessmentOriginated: { type: Boolean, default: false },

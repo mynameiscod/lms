@@ -29,6 +29,7 @@ export default function MyTasks() {
     { key: 'upcoming', label: '🗓 Upcoming', color: '#64748b', items: [] },
   ];
   tasks.forEach(t => {
+    if (!t.dueAt) { groups[2].items.push(t); return; }        // no due date → Upcoming
     const due = startOfDay(new Date(t.dueAt)).getTime();
     if (t.overdue || due < today) groups[0].items.push(t);
     else if (due === today) groups[1].items.push(t);
@@ -59,8 +60,10 @@ export default function MyTasks() {
                     <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</div>
                     <div style={{ display: 'flex', gap: 8, marginTop: 3, flexWrap: 'wrap', alignItems: 'center' }}>
                       <span style={{ background: `${m.color}15`, color: m.color, borderRadius: 4, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>{m.label}</span>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{t.curriculumTitle} · Day {t.dayNumber}</span>
-                      <span style={{ fontSize: 11, color: t.overdue ? '#dc2626' : '#64748b', fontWeight: 600 }}>Due {fmt(t.dueAt)}</span>
+                      {t.source === 'adhoc'
+                        ? <span style={{ background: '#fef3c7', color: '#b45309', borderRadius: 4, padding: '1px 7px', fontSize: 11, fontWeight: 700 }}>Direct</span>
+                        : <span style={{ fontSize: 11, color: '#94a3b8' }}>{t.curriculumTitle} · Day {t.dayNumber}</span>}
+                      {t.dueAt && <span style={{ fontSize: 11, color: t.overdue ? '#dc2626' : '#64748b', fontWeight: 600 }}>Due {fmt(t.dueAt)}</span>}
                     </div>
                   </div>
                   <button onClick={() => navigate(t.launchPath)} style={{ padding: '7px 14px', border: 'none', borderRadius: 8, background: m.color, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>

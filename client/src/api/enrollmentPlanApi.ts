@@ -58,14 +58,14 @@ export interface EnrollBatchResult {
 }
 
 export interface PlanTask {
-  source: 'plan';
-  enrollmentId: string;
+  source: 'plan' | 'adhoc';
+  enrollmentId: string | null;
   curriculumTitle: string;
-  dayNumber: number;
+  dayNumber: number | null;
   kind: 'content' | 'quiz' | 'assignment' | 'codeSnippet' | 'mockInterview';
   title: string;
   contentType: string;
-  dueAt: string;
+  dueAt: string | null;
   overdue: boolean;
   launchPath: string;
 }

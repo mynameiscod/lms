@@ -12,6 +12,7 @@ import { startDailySummaryScheduler } from './jobs/dailySummaryCron';
 import { startSlaCronScheduler } from './jobs/slaCron';
 import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
+import { startDueReminderScheduler } from './jobs/dueReminderCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -282,6 +283,9 @@ const startServer = async () => {
 
     // Start quiz auto-archive scheduler
     startArchiveQuizScheduler();
+
+    // Start learning-plan due-date reminder scheduler (in-app, daily)
+    startDueReminderScheduler();
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

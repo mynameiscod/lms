@@ -10,6 +10,11 @@ import QuizAttempt from '../models/QuizAttempt';
 import Submission from '../models/Submission';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import InterviewAttempt from '../models/InterviewAttempt';
+import Quiz from '../models/Quiz';
+import Assignment from '../models/Assignment';
+import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
+import InterviewTemplate from '../models/InterviewTemplate';
+import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
 import { workingDateForDay, planDayForDate } from '../utils/planSchedule';
@@ -36,7 +41,7 @@ function launchPath(kind: string, sourceId: string): string {
  * attempt (drives must-attempt gating + day completion). Also returns a display
  * status + best score. Queried in bulk per kind.
  */
-async function resolveModuleStatuses(
+export async function resolveModuleStatuses(
   studentId: string,
   items: Array<{ kind?: string; sourceId?: any }>
 ): Promise<Record<string, { attempted: boolean; status: string; score: number | null }>> {
@@ -115,7 +120,7 @@ async function resolveModuleStatuses(
 }
 
 // True when a day item is "done" for must-attempt gating/day-completion.
-function itemDone(
+export function itemDone(
   item: any,
   dayNumber: number,
   completedItems: Array<{ contentId: string; dayNumber: number }>,
@@ -144,7 +149,7 @@ function weekdayForDay(startDate: Date, dayNumber: number): Date {
 }
 
 // Returns which plan day number corresponds to today, or null if before start
-function currentPlanDay(startDate: Date, totalDays: number): number | null {
+export function currentPlanDay(startDate: Date, totalDays: number): number | null {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const start = new Date(startDate);
@@ -493,6 +498,78 @@ export const markContentComplete = async (req: Request, res: Response) => {
   }
 };
 
+// Pending standalone (ad-hoc, non-plan) module assignments for a student, using
+// each module's own targeting. Deduped against plan task keys (`kind:sourceId`).
+async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): Promise<any[]> {
+  const out: any[] = [];
+  const user = await User.findById(sId).select('batchId').lean() as any;
+  const batchId = user?.batchId ? user.batchId.toString() : null;
+  const oid = (x: string) => (mongoose.Types.ObjectId.isValid(x) ? new mongoose.Types.ObjectId(x) : x);
+  const push = (kind: string, id: string, title: string, due: any, launch: string) => {
+    if (planKeys.has(`${kind}:${id}`)) return;
+    out.push({
+      source: 'adhoc', enrollmentId: null, curriculumTitle: 'Direct assignment', dayNumber: null,
+      kind, title, contentType: kind,
+      dueAt: due ? new Date(due).toISOString() : null,
+      overdue: due ? new Date(due).getTime() < Date.now() : false,
+      launchPath: launch,
+    });
+  };
+
+  // Quiz
+  try {
+    const access: any[] = [{ accessibleTo: 'everyone' }, { access: 'public' }, { accessibleTo: 'individual', selectedStudents: sId }];
+    if (batchId) access.push({ accessibleTo: 'batch_wise', selectedBatches: batchId });
+    const quizzes = await Quiz.find({ tenantId: tId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null, $or: access }).select('title endDate').lean();
+    if (quizzes.length) {
+      const ids = quizzes.map((q: any) => q._id.toString());
+      const done = await QuizAttempt.find({ studentId: sId, quizId: { $in: ids }, status: 'submitted' }).select('quizId').lean();
+      const doneSet = new Set(done.map((d: any) => d.quizId.toString()));
+      quizzes.forEach((q: any) => { if (!doneSet.has(q._id.toString())) push('quiz', q._id.toString(), q.title, q.endDate, `/quiz/${q._id}/take`); });
+    }
+  } catch (e) { console.warn('[my-tasks] quiz adhoc failed', e); }
+
+  // Assignment
+  try {
+    const access: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: 'individual', selectedStudents: sId }];
+    if (batchId) access.push({ accessibleTo: 'batch_wise', batch: oid(batchId) });
+    const asgs = await Assignment.find({ tenant: oid(tId), status: 'published', $or: access }).select('title dueDate').lean();
+    if (asgs.length) {
+      const ids = asgs.map((a: any) => a._id);
+      const subs = await Submission.find({ student: oid(sId), assignment: { $in: ids }, status: { $in: ['submitted', 'graded'] } }).select('assignment').lean();
+      const doneSet = new Set(subs.map((s: any) => s.assignment.toString()));
+      asgs.forEach((a: any) => { if (!doneSet.has(a._id.toString())) push('assignment', a._id.toString(), a.title, a.dueDate, `/assignments/${a._id}/workspace`); });
+    }
+  } catch (e) { console.warn('[my-tasks] assignment adhoc failed', e); }
+
+  // Code Snippet (batch-targeted)
+  try {
+    if (batchId) {
+      const snips = await CodeSnippetAssessment.find({ tenantId: oid(tId), status: 'published', batchIds: batchId }).select('title dueDate').lean();
+      if (snips.length) {
+        const ids = snips.map((s: any) => s._id);
+        const subs = await CodeSnippetSubmission.find({ studentId: oid(sId), assessmentId: { $in: ids } }).select('assessmentId').lean();
+        const doneSet = new Set(subs.map((s: any) => s.assessmentId.toString()));
+        snips.forEach((s: any) => { if (!doneSet.has(s._id.toString())) push('codeSnippet', s._id.toString(), s.title, s.dueDate, `/coding-snippets`); });
+      }
+    }
+  } catch (e) { console.warn('[my-tasks] snippet adhoc failed', e); }
+
+  // Mock Interview (direct assignments)
+  try {
+    const asn = await InterviewAssignment.find({ studentId: oid(sId), status: { $in: ['assigned', 'in_progress'] } }).select('templateId dueDate expiresAt').lean();
+    if (asn.length) {
+      const tplIds = asn.map((a: any) => a.templateId);
+      const tpls = await InterviewTemplate.find({ _id: { $in: tplIds } }).select('title').lean();
+      const tMap: Record<string, string> = {};
+      tpls.forEach((t: any) => { tMap[t._id.toString()] = t.title; });
+      asn.forEach((a: any) => { const tid = a.templateId.toString(); push('mockInterview', tid, tMap[tid] || 'Mock Interview', a.dueDate || a.expiresAt, `/student/interviews/take/${tid}`); });
+    }
+  } catch (e) { console.warn('[my-tasks] interview adhoc failed', e); }
+
+  return out;
+}
+
 // ─── Student: unified to-do feed across all active enrollments ────────────────
 // Aggregates pending plan activities (content + module) from a window around each
 // enrollment's currentDay into one source-tagged list (overdue / today / upcoming).
@@ -503,6 +580,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
     const enrolls = await CurriculumEnrollment.find({ tenantId: tId, studentId: sId, status: 'active' }).lean();
 
     const tasks: any[] = [];
+    const planKeys = new Set<string>(); // `${kind}:${sourceId}` of plan module tasks, for ad-hoc dedupe
     for (const en of enrolls) {
       const curriculum = await LearningCurriculum.findById(en.curriculumId).select('title totalDays').lean();
       if (!curriculum) continue;
@@ -526,6 +604,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
           if (itemDone(it, day, en.completedItems, moduleStatus)) continue;
           const kind = it.kind || 'content';
           const sid = it.sourceId ? it.sourceId.toString() : '';
+          if (kind !== 'content' && sid) planKeys.add(`${kind}:${sid}`);
           tasks.push({
             source: 'plan',
             enrollmentId: en._id,
@@ -542,7 +621,13 @@ export const getMyTasks = async (req: Request, res: Response) => {
       }
     }
 
-    tasks.sort((a, b) => new Date(a.dueAt).getTime() - new Date(b.dueAt).getTime());
+    // Fold in ad-hoc (non-plan) standalone module assignments.
+    const adhoc = await getAdhocTasks(sId, tId, planKeys);
+    tasks.push(...adhoc);
+
+    // Sort by due date; tasks with no due date sort last.
+    const t = (x: any) => (x.dueAt ? new Date(x.dueAt).getTime() : Number.MAX_SAFE_INTEGER);
+    tasks.sort((a, b) => t(a) - t(b));
     res.json({ tasks });
   } catch (err) {
     res.status(500).json({ message: 'Failed to load tasks', error: String(err) });

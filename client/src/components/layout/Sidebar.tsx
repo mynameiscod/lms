@@ -81,7 +81,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     },
     {
       label: 'Quizzes',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: 'fa-solid fa-clipboard-question',
       featureKey: 'quizzes',
       moduleKey: 'quizzes',
@@ -96,7 +96,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     },
     {
       label: 'Assignments',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: 'fa-solid fa-file-pen',
       featureKey: 'assignments',
       moduleKey: 'assignments',
@@ -109,7 +109,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     },
     {
       label: 'Code Snippets',
-      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT'],
+      roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'],
       icon: 'fa-solid fa-code',
       featureKey: 'codingSnippets',
       moduleKey: 'codeAssessments',
@@ -119,6 +119,19 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Manage Assessments', path: '/admin/coding-snippets', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-gears', permissions: ['manage_snippets'] },
         { label: 'Grade Submissions', path: '/admin/coding-snippets/grade', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-star-half-stroke', permissions: ['manage_snippets', 'grade_snippets'] },
       ]
+    },
+    // Students: module pages live here as a results/history archive — the action
+    // hub is "My Tasks" and the journey is "My Learning Plan".
+    {
+      label: 'My Results',
+      roles: ['STUDENT'],
+      icon: 'fa-solid fa-folder-open',
+      permissions: ['view_quiz', 'view_grades', 'view_snippets'],
+      submenu: [
+        { label: 'My Quizzes',     path: '/quizzes',         roles: ['STUDENT'], icon: 'fa-solid fa-list-check',  permissions: ['view_quiz'] },
+        { label: 'My Assignments', path: '/assignments',     roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  permissions: ['submit_assignments', 'view_grades'] },
+        { label: 'My Code Practice', path: '/coding-snippets', roles: ['STUDENT'], icon: 'fa-solid fa-terminal',  permissions: ['view_snippets'] },
+      ],
     },
     // Student Reports & Student Profiles merged into the unified Student Detail page — click a student in Users.
     { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
@@ -320,7 +333,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const isStudent = user?.role === 'STUDENT';
   
   const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'Resume Builder', 'My Interviews', 'Apply Leave', 'Code Playground'].includes(i.label));
+  const academicItems = filteredItems.filter(i => ['Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'My Results', 'Resume Builder', 'My Interviews', 'Apply Leave', 'Code Playground'].includes(i.label));
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
   const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
 

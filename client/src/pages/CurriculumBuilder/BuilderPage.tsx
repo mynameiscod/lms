@@ -17,6 +17,7 @@ import {
   CONTENT_TYPE_LABELS,
   CONTENT_TYPE_COLORS,
 } from '../../api/learningContentLibraryApi';
+import './CurriculumBuilder.css';
 
 type Tab = 'overview' | 'topics' | 'daily' | 'weekend';
 
@@ -49,152 +50,175 @@ interface PickerModalProps {
   onClose: () => void;
 }
 
+interface PickerRow extends PickedActivity { meta?: string; tags?: string[]; }
+
+const CONTENT_TYPE_FILTERS: { label: string; icon: string; types: string[] }[] = [
+  { label: 'Video',                icon: '🎬', types: ['video'] },
+  { label: 'Interactive Activity', icon: '🧩', types: ['interactive_activity', 'interactive_lesson'] },
+  { label: 'Document',             icon: '📄', types: ['notes'] },
+  { label: 'Q&A / Practice',       icon: '💻', types: ['tech_qa', 'behavioral_qa', 'practice_coding', 'practice_theory', 'aptitude'] },
+];
+const DURATIONS = [
+  { key: 'any', label: 'Any duration' },
+  { key: 'lt15', label: 'Under 15 minutes' },
+  { key: '15-30', label: '15–30 minutes' },
+  { key: '30-60', label: '30–60 minutes' },
+  { key: 'gt60', label: 'Over 60 minutes' },
+];
+
 export function ActivityPickerModal({ onSelect, onClose }: PickerModalProps) {
+  const navigate = useNavigate();
   const [activeKind, setActiveKind] = useState<DayActivityKind>('content');
-  const [rows, setRows]       = useState<PickedActivity[]>([]);
+  const [rows, setRows]       = useState<PickerRow[]>([]);
   const [search, setSearch]   = useState('');
   const [typeFilter, setType] = useState('');
+  const [ctypes, setCtypes]   = useState<Set<string>>(new Set());
+  const [duration, setDuration] = useState('any');
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       if (activeKind === 'content') {
-        const res = await learningContentLibraryApi.list({
-          search: search || undefined,
-          type: (typeFilter as any) || undefined,
-          published: 'true',
-        });
-        setRows(res.items.map(i => ({
-          kind: 'content', id: i._id, title: i.title, contentType: i.type, estimatedDuration: i.estimatedDuration || 0,
+        const res = await learningContentLibraryApi.list({ search: search || undefined, type: (typeFilter as any) || undefined, published: 'true' });
+        setRows(res.items.map((i: any) => ({
+          kind: 'content', id: i._id, title: i.title, contentType: i.type,
+          estimatedDuration: i.estimatedDuration || 0, tags: i.topicTags || [],
         })));
       } else {
         const items = await curriculumApi.activityBank(activeKind, search || undefined);
-        setRows(items.map(i => ({
-          kind: activeKind, id: i.id, title: i.title, contentType: activeKind, sourceModel: i.sourceModel,
-        })));
+        setRows(items.map(i => ({ kind: activeKind, id: i.id, title: i.title, contentType: activeKind, sourceModel: i.sourceModel, meta: i.meta })));
       }
-    } catch {
-      setRows([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setRows([]); } finally { setLoading(false); }
   }, [activeKind, search, typeFilter]);
 
   useEffect(() => { load(); }, [load]);
 
+  const resetFilters = () => { setSearch(''); setType(''); setCtypes(new Set()); setDuration('any'); };
+  const toggleCtype = (types: string[]) => setCtypes(prev => {
+    const n = new Set(prev); const key = types[0];
+    if (n.has(key)) n.delete(key); else n.add(key);
+    return n;
+  });
+  const inDuration = (m: number) => duration === 'any' || (duration === 'lt15' && m < 15) || (duration === '15-30' && m >= 15 && m <= 30) || (duration === '30-60' && m > 30 && m <= 60) || (duration === 'gt60' && m > 60);
+
+  const filtered = rows.filter(r => {
+    if (activeKind !== 'content') return true;
+    if (ctypes.size > 0) {
+      const matchType = CONTENT_TYPE_FILTERS.some(f => ctypes.has(f.types[0]) && f.types.includes(r.contentType));
+      if (!matchType) return false;
+    }
+    if (!inDuration(r.estimatedDuration || 0)) return false;
+    return true;
+  });
+
+  const activeLabel = KIND_TABS.find(t => t.kind === activeKind)?.label || '';
+
   return (
-    <div style={{
-      position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
-    }}
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
-      <div style={{
-        background: '#fff', borderRadius: '12px', width: '680px', maxHeight: '82vh',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
-      }}>
-        <div style={{ padding: '18px 20px 0', borderBottom: '1px solid #f1f5f9' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700 }}>Add Activity to Day</h3>
-            <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '20px', color: '#64748b' }}>×</button>
+    <div className="cbp-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="cbp-modal">
+        <div className="cbp-head">
+          <div className="cbp-head-top">
+            <div>
+              <h3>Add Activity to Day</h3>
+              <p>Select an activity type and choose content to add to this day.</p>
+            </div>
+            <button className="cbp-x" onClick={onClose}>×</button>
           </div>
-          {/* Source tabs */}
-          <div style={{ display: 'flex', gap: '4px' }}>
+          <div className="cbp-tabs">
             {KIND_TABS.map(t => (
-              <button
-                key={t.kind}
-                onClick={() => { setActiveKind(t.kind); setSearch(''); setType(''); }}
-                style={{
-                  padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer',
-                  fontWeight: 600, fontSize: '13px',
-                  color: activeKind === t.kind ? '#0f172a' : '#64748b',
-                  borderBottom: activeKind === t.kind ? '2px solid #0f172a' : '2px solid transparent',
-                  marginBottom: '-1px',
-                }}
-              >
-                {t.icon} {t.label}
+              <button key={t.kind} className={`cbp-tab ${activeKind === t.kind ? 'active' : ''}`} onClick={() => { setActiveKind(t.kind); resetFilters(); }}>
+                <span>{t.icon}</span> {t.label}
               </button>
             ))}
           </div>
         </div>
 
-        <div style={{ padding: '12px 20px', display: 'flex', gap: '8px' }}>
-          <input
-            autoFocus
-            type="text"
-            placeholder={`Search ${KIND_TABS.find(t => t.kind === activeKind)?.label.toLowerCase()}...`}
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            style={{ flex: 1, padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', fontSize: '13px', outline: 'none' }}
-          />
-          {activeKind === 'content' && (
-            <select
-              value={typeFilter}
-              onChange={e => setType(e.target.value)}
-              style={{ padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: '7px', fontSize: '13px' }}
-            >
-              <option value="">All Types</option>
-              <option value="interactive_lesson">🎮 Interactive Lesson</option>
-              <option value="video">🎬 Video</option>
-              <option value="notes">📄 Notes</option>
-              <option value="tech_qa">💻 Tech Q&A</option>
-              <option value="behavioral_qa">🤝 Behavioral Q&A</option>
-              <option value="practice_coding">⌨️ Practice Coding</option>
-              <option value="practice_theory">📝 Practice Theory</option>
-              <option value="aptitude">🧠 Aptitude</option>
-            </select>
-          )}
-        </div>
-
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 8px' }}>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>Loading...</div>
-          ) : rows.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#94a3b8' }}>
-              {activeKind === 'content' ? 'No published content found' : `No ${KIND_TABS.find(t => t.kind === activeKind)?.label.toLowerCase()}s found`}
+        <div className="cbp-body">
+          {/* Filters */}
+          <div className="cbp-filters">
+            <div className="cbp-filters-head">
+              <span className="h">Filters</span>
+              <button className="cbp-reset" onClick={resetFilters}>↺ Reset</button>
             </div>
-          ) : (
-            rows.map(item => {
-              const isContent = item.kind === 'content';
-              const color = isContent ? (CONTENT_TYPE_COLORS[item.contentType as any] || '#64748b') : KIND_COLOR[item.kind];
-              const icon  = isContent ? (CONTENT_TYPE_ICONS[item.contentType as any]  || '📄') : KIND_ICON[item.kind];
-              const label = isContent ? (CONTENT_TYPE_LABELS[item.contentType as any] || item.contentType) : (KIND_TABS.find(t => t.kind === item.kind)?.label || item.kind);
-              return (
-                <div
-                  key={`${item.kind}-${item.id}`}
-                  onClick={() => onSelect(item)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: '12px',
-                    padding: '10px 12px', borderRadius: '8px', cursor: 'pointer',
-                    border: '1.5px solid transparent', marginBottom: '4px',
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#f8fafc')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <div style={{
-                    width: '36px', height: '36px', borderRadius: '8px',
-                    background: `${color}15`, display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', fontSize: '16px', flexShrink: 0,
-                  }}>
-                    {icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, fontSize: '14px', color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.title}
+            <input className="cbp-search" placeholder={`Search ${activeLabel.toLowerCase()}…`} value={search} onChange={e => setSearch(e.target.value)} autoFocus />
+            {activeKind === 'content' ? (
+              <>
+                <div className="cbp-flabel">Type</div>
+                <select className="cbp-select" value={typeFilter} onChange={e => setType(e.target.value)}>
+                  <option value="">All Types</option>
+                  <option value="video">Video</option>
+                  <option value="notes">Notes</option>
+                  <option value="interactive_lesson">Interactive Lesson</option>
+                  <option value="interactive_activity">Interactive Activity</option>
+                  <option value="tech_qa">Tech Q&A</option>
+                  <option value="practice_coding">Practice Coding</option>
+                  <option value="aptitude">Aptitude</option>
+                </select>
+                <div className="cbp-flabel">Content Type</div>
+                {CONTENT_TYPE_FILTERS.map(f => (
+                  <label key={f.label} className="cbp-check">
+                    <input type="checkbox" checked={ctypes.has(f.types[0])} onChange={() => toggleCtype(f.types)} />
+                    <span>{f.icon} {f.label}</span>
+                  </label>
+                ))}
+                <div className="cbp-flabel">Duration</div>
+                {DURATIONS.map(d => (
+                  <label key={d.key} className="cbp-radio">
+                    <input type="radio" name="cbp-dur" checked={duration === d.key} onChange={() => setDuration(d.key)} />
+                    <span>{d.label}</span>
+                  </label>
+                ))}
+              </>
+            ) : (
+              <div style={{ fontSize: 12.5, color: '#94a3b8', marginTop: 8 }}>Search {activeLabel.toLowerCase()}s by title above.</div>
+            )}
+          </div>
+
+          {/* List */}
+          <div className="cbp-main">
+            <div className="cbp-main-head">
+              <span className="ct">{activeKind === 'content' ? 'All Library Content' : `${activeLabel}s`}</span>
+              <span className="cbp-count">{filtered.length} items</span>
+              <div className="right">
+                <span style={{ fontSize: 12.5, color: '#94a3b8' }}>Sort by</span>
+                <select className="cbp-sort" defaultValue="recent"><option value="recent">Recently Added</option></select>
+              </div>
+            </div>
+            <div className="cbp-list">
+              {loading ? (
+                <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>Loading…</div>
+              ) : filtered.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40, color: '#94a3b8' }}>No {activeKind === 'content' ? 'content' : activeLabel.toLowerCase() + 's'} found.</div>
+              ) : filtered.map(item => {
+                const isContent = item.kind === 'content';
+                const color = isContent ? (CONTENT_TYPE_COLORS[item.contentType as any] || '#64748b') : KIND_COLOR[item.kind];
+                const icon  = isContent ? (CONTENT_TYPE_ICONS[item.contentType as any]  || '📄') : KIND_ICON[item.kind];
+                const label = isContent ? (CONTENT_TYPE_LABELS[item.contentType as any] || item.contentType) : (KIND_TABS.find(t => t.kind === item.kind)?.label || item.kind);
+                const meta = isContent ? `${label}${item.estimatedDuration ? ` · ${item.estimatedDuration} min` : ''}` : `${label}${item.meta ? ` · ${item.meta}` : ''}`;
+                return (
+                  <div className="cbp-item" key={`${item.kind}-${item.id}`}>
+                    <div className="cbp-item-ic" style={{ background: `${color}15` }}>{icon}</div>
+                    <div className="cbp-item-main">
+                      <div className="cbp-item-title">{item.title}</div>
+                      <div className="cbp-item-meta">{meta}</div>
+                      {!!(item.tags && item.tags.length) && (
+                        <div className="cbp-item-tags">{item.tags.slice(0, 3).map(t => <span key={t} className="cbp-tag">{t}</span>)}</div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>
-                      {label}{isContent && item.estimatedDuration ? ` · ${item.estimatedDuration}m` : ''}
-                    </div>
+                    <button className="cbp-add" onClick={() => onSelect(item)}>+ Add</button>
                   </div>
-                  <span style={{ background: `${color}15`, color, borderRadius: '6px', padding: '2px 8px', fontSize: '11px', fontWeight: 600, flexShrink: 0 }}>
-                    + Add
-                  </span>
-                </div>
-              );
-            })
-          )}
+                );
+              })}
+            </div>
+            <div className="cbp-foot">
+              <button className="cbp-cancel" onClick={onClose}>Cancel</button>
+              <span className="cbp-tip">💡 Tip: build your day from the library or any module.</span>
+              {activeKind === 'content' && (
+                <button className="cbp-add" onClick={() => { onClose(); navigate('/learning-library/create'); }}>+ Add Custom Content</button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -217,42 +241,17 @@ function DayContentRow({ item, onRemove, onChange }: DayContentRowProps) {
   const kindLabel = KIND_TABS.find(t => t.kind === kind)?.label || kind;
 
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', gap: '8px',
-      padding: '8px 10px', background: '#f8fafc',
-      borderRadius: '8px', marginBottom: '4px',
-      border: '1px solid #e2e8f0',
-    }}>
-      <span style={{ fontSize: '14px', flexShrink: 0 }}>{icon}</span>
-      {!isContent && (
-        <span style={{ background: `${color}15`, color, borderRadius: '5px', padding: '1px 7px', fontSize: '10px', fontWeight: 700, flexShrink: 0, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          {kindLabel}
-        </span>
-      )}
-      <span style={{ flex: 1, fontSize: '13px', fontWeight: 500, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-        {item.contentTitle}
-      </span>
-      <select
-        value={item.slot}
-        onChange={e => onChange({ ...item, slot: e.target.value as any })}
-        style={{ padding: '3px 6px', border: '1px solid #e2e8f0', borderRadius: '5px', fontSize: '12px', background: '#fff' }}
-      >
+    <div className="cb-item">
+      <div className="cb-item-ic" style={{ background: `${color}15` }}>{icon}</div>
+      {!isContent && <span className="cb-item-kind" style={{ background: `${color}15`, color }}>{kindLabel}</span>}
+      <span className="cb-item-title">{item.contentTitle}</span>
+      <select className="cb-slot" value={item.slot} onChange={e => onChange({ ...item, slot: e.target.value as any })}>
         {Object.entries(SLOT_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
       </select>
-      <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: '#64748b', flexShrink: 0 }}>
-        <input
-          type="checkbox"
-          checked={item.isGating}
-          onChange={e => onChange({ ...item, isGating: e.target.checked })}
-        />
-        Gating
+      <label className="cb-gating">
+        <input type="checkbox" checked={item.isGating} onChange={e => onChange({ ...item, isGating: e.target.checked })} /> Gating
       </label>
-      <button
-        onClick={onRemove}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', fontSize: '14px', padding: '0 4px', flexShrink: 0 }}
-      >
-        ×
-      </button>
+      <button className="cb-icon-btn del" onClick={onRemove} title="Remove">🗑</button>
     </div>
   );
 }
@@ -280,6 +279,9 @@ export default function BuilderPage() {
   const [pickerDay, setPickerDay]       = useState<number | null>(null);
   const [dayPlanDrafts, setDayPlanDrafts] = useState<Record<number, DayPlan>>({});
   const [savingDay, setSavingDay]       = useState<number | null>(null);
+  const [topicSearch, setTopicSearch]   = useState('');
+  const [expandedDays, setExpandedDays] = useState<Set<number>>(new Set());
+  const toggleDay = (d: number) => setExpandedDays(prev => { const n = new Set(prev); n.has(d) ? n.delete(d) : n.add(d); return n; });
 
   // Weekend planner state
   const [pickerWeekend, setPickerWeekend] = useState<{ week: number; day: 'saturday' | 'sunday' } | null>(null);
@@ -508,62 +510,52 @@ export default function BuilderPage() {
   }
 
   return (
-    <div style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
+    <div className="cb-wrap">
+
+      <button className="cb-back" onClick={() => navigate('/curriculum-builder')}>← Back to Hub</button>
 
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px', flexWrap: 'wrap' }}>
-        <button
-          onClick={() => navigate('/curriculum-builder')}
-          style={{ background: 'none', border: '1.5px solid #e2e8f0', borderRadius: '7px', padding: '6px 12px', cursor: 'pointer', fontSize: '13px', color: '#475569' }}
-        >
-          ← Back
-        </button>
-        <div style={{ flex: 1 }}>
-          <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#0f172a' }}>
+      <div className="cb-head">
+        <div className="cb-head-ic">📅</div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <h1 className="cb-head-title">
             {isCreate ? '+ New Curriculum' : (curriculum.title || 'Curriculum Builder')}
-          </h2>
+            {!isCreate && (
+              <button
+                className={`cb-pub ${curriculum.isPublished ? 'on' : 'off'}`}
+                onClick={() => curriculumApi.togglePublish(id!).then(r => setCurriculum(prev => ({ ...prev, isPublished: r.isPublished })))}
+              >
+                {curriculum.isPublished ? '● Published' : '○ Draft'}
+              </button>
+            )}
+          </h1>
           {!isCreate && curriculum.totalDays && (
-            <p style={{ margin: '2px 0 0', color: '#64748b', fontSize: '13px' }}>
-              {curriculum.totalDays}-day plan · {(curriculum.topics || []).length} topics
-            </p>
+            <p className="cb-head-sub">{curriculum.totalDays}-day plan · {(curriculum.topics || []).length} topic{(curriculum.topics || []).length !== 1 ? 's' : ''}</p>
           )}
         </div>
         {!isCreate && (
-          <button
-            onClick={() => curriculumApi.togglePublish(id!).then(r => setCurriculum(prev => ({ ...prev, isPublished: r.isPublished })))}
-            style={{
-              background: curriculum.isPublished ? '#dcfce7' : '#f1f5f9',
-              color: curriculum.isPublished ? '#16a34a' : '#94a3b8',
-              border: 'none', borderRadius: '20px', padding: '6px 14px',
-              fontSize: '13px', fontWeight: 600, cursor: 'pointer',
-            }}
-          >
-            {curriculum.isPublished ? '● Published' : '○ Draft'}
-          </button>
+          <div className="cb-head-actions">
+            <button className="cb-btn" onClick={() => setTab('overview')}>👁 Preview Plan</button>
+            <button
+              className={`cb-btn ${curriculum.shared ? 'on' : ''}`}
+              onClick={() => curriculumApi.share(id!, !curriculum.shared).then(r => setCurriculum(prev => ({ ...prev, shared: r.shared })))}
+            >
+              🔗 {curriculum.shared ? 'Shared' : 'Share Plan'}
+            </button>
+            <button className="cb-btn primary" onClick={() => setTab('daily')}>✏ Edit Plan</button>
+          </div>
         )}
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', borderBottom: '2px solid #e2e8f0', marginBottom: '24px' }}>
+      <div className="cb-tabs">
         {([
           { key: 'overview', label: '📋 Overview' },
           { key: 'topics',   label: '📚 Topics' },
           { key: 'daily',    label: '📅 Daily Plan', disabled: isCreate },
           { key: 'weekend',  label: '🏖 Weekend Plan', disabled: isCreate },
         ] as { key: Tab; label: string; disabled?: boolean }[]).map(t => (
-          <button
-            key={t.key}
-            onClick={() => !t.disabled && setTab(t.key)}
-            disabled={t.disabled}
-            style={{
-              padding: '10px 18px', border: 'none', background: 'none',
-              cursor: t.disabled ? 'not-allowed' : 'pointer',
-              fontWeight: 600, fontSize: '14px',
-              color: tab === t.key ? '#0f172a' : t.disabled ? '#cbd5e1' : '#64748b',
-              borderBottom: tab === t.key ? '2px solid #0f172a' : '2px solid transparent',
-              marginBottom: '-2px',
-            }}
-          >
+          <button key={t.key} className={`cb-tab ${tab === t.key ? 'active' : ''}`} onClick={() => !t.disabled && setTab(t.key)} disabled={t.disabled}>
             {t.label}
           </button>
         ))}
@@ -787,119 +779,88 @@ export default function BuilderPage() {
 
       {/* ── Daily Plan Tab ───────────────────────────────────────────────── */}
       {tab === 'daily' && !isCreate && (
-        <div style={{ display: 'flex', gap: '16px', minHeight: '600px' }}>
+        <div className="cb-daily">
 
           {/* Left: Topic selector */}
-          <div style={{ width: '220px', flexShrink: 0 }}>
-            <h4 style={{ margin: '0 0 10px', fontSize: '13px', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              Topics
-            </h4>
+          <div className="cb-topics">
+            <h4>Topics</h4>
+            <input className="cb-topic-search" placeholder="🔍 Search topics..." value={topicSearch} onChange={e => setTopicSearch(e.target.value)} />
             {(curriculum.topics || []).length === 0 ? (
-              <div style={{ fontSize: '13px', color: '#94a3b8', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
-                Add topics in the Topics tab first.
-              </div>
+              <div style={{ fontSize: 13, color: '#94a3b8', padding: 12 }}>Add topics in the Topics tab first.</div>
             ) : (
-              (curriculum.topics || []).map((t, i) => {
-                const daysInTopic = Array.from({ length: t.endDay - t.startDay + 1 }, (_, i) => t.startDay + i);
-                const plannedCount = daysInTopic.filter(d => (dayPlanDrafts[d]?.items?.length || 0) > 0).length;
-                return (
-                  <div
-                    key={i}
-                    onClick={() => setActiveTopic(t)}
-                    style={{
-                      padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', marginBottom: '4px',
-                      background: activeTopic?._id === t._id || (activeTopic?.title === t.title && activeTopic?.startDay === t.startDay) ? '#0f172a' : '#f8fafc',
-                      color:      activeTopic?._id === t._id || (activeTopic?.title === t.title && activeTopic?.startDay === t.startDay) ? '#fff' : '#374151',
-                      border: '1.5px solid',
-                      borderColor: activeTopic?._id === t._id || (activeTopic?.title === t.title && activeTopic?.startDay === t.startDay) ? '#0f172a' : '#e2e8f0',
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
-                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: t.color, flexShrink: 0 }} />
-                      <span style={{ fontWeight: 600, fontSize: '13px' }}>{t.title}</span>
+              (curriculum.topics || [])
+                .filter(t => !topicSearch || t.title.toLowerCase().includes(topicSearch.toLowerCase()))
+                .map((t, i) => {
+                  const daysInTopic = Array.from({ length: t.endDay - t.startDay + 1 }, (_, i) => t.startDay + i);
+                  const plannedCount = daysInTopic.filter(d => (dayPlanDrafts[d]?.items?.length || 0) > 0).length;
+                  const isActive = activeTopic?._id === t._id || (activeTopic?.title === t.title && activeTopic?.startDay === t.startDay);
+                  return (
+                    <div key={i} className={`cb-topic-card ${isActive ? 'active' : ''}`} onClick={() => setActiveTopic(t)}>
+                      <div className="t"><span className="cb-topic-dot" style={{ background: t.color }} />{t.title}</div>
+                      <div className="s">Days {t.startDay}–{t.endDay} · {plannedCount}/{daysInTopic.length} planned</div>
                     </div>
-                    <div style={{ fontSize: '11px', opacity: 0.7 }}>
-                      Days {t.startDay}–{t.endDay} · {plannedCount}/{daysInTopic.length} planned
-                    </div>
-                  </div>
-                );
-              })
+                  );
+                })
             )}
           </div>
 
           {/* Right: Day list */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="cb-pane">
             {!activeTopic ? (
-              <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8', background: '#f8fafc', borderRadius: '10px' }}>
-                Select a topic to plan its days
-              </div>
-            ) : (
-              <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-                  <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: activeTopic.color }} />
-                  <h3 style={{ margin: 0, fontSize: '16px', fontWeight: 700, color: '#0f172a' }}>{activeTopic.title}</h3>
-                  <span style={{ fontSize: '13px', color: '#64748b' }}>Days {activeTopic.startDay}–{activeTopic.endDay}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {Array.from({ length: activeTopic.endDay - activeTopic.startDay + 1 }, (_, i) => {
-                    const day   = activeTopic.startDay + i;
+              <div className="cb-empty">Select a topic to plan its days</div>
+            ) : (() => {
+              const span = activeTopic.endDay - activeTopic.startDay + 1;
+              const days = Array.from({ length: span }, (_, i) => activeTopic.startDay + i);
+              const plannedCount = days.filter(d => (dayPlanDrafts[d]?.items?.length || 0) > 0).length;
+              const progress = span > 0 ? Math.round((plannedCount / span) * 100) : 0;
+              return (
+                <>
+                  <div className="cb-topic-head">
+                    <span className="cb-topic-dot" style={{ background: activeTopic.color, width: 12, height: 12 }} />
+                    <h3>{activeTopic.title}</h3>
+                    <span className="range">Days {activeTopic.startDay}–{activeTopic.endDay}</span>
+                    <div className="pills">
+                      <span className="cb-chip plan">{plannedCount}/{span} Planned</span>
+                      <span className="cb-chip prog">{progress}% Progress</span>
+                    </div>
+                  </div>
+
+                  {days.map(day => {
                     const draft = getDayDraft(day);
                     const hasContent = draft.items.length > 0;
-                    const totalMins  = draft.items.reduce((sum, item) => sum + (item.estimatedDuration || 0), 0);
+                    const totalMins = draft.items.reduce((s, item) => s + (item.estimatedDuration || 0), 0);
+                    const open = expandedDays.has(day) || (hasContent && expandedDays.size === 0 && day === activeTopic.startDay);
                     return (
-                      <div key={day} style={{
-                        background: '#fff', borderRadius: '10px',
-                        border: `1.5px solid ${hasContent ? '#bfdbfe' : '#e2e8f0'}`,
-                        overflow: 'hidden',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', background: hasContent ? '#eff6ff' : '#f8fafc' }}>
-                          <span style={{ fontWeight: 700, fontSize: '13px', color: '#0f172a', minWidth: '56px' }}>Day {day}</span>
-                          <span style={{ flex: 1, fontSize: '12px', color: '#64748b' }}>
+                      <div key={day} className={`cb-day ${hasContent ? 'has' : ''}`}>
+                        <div className="cb-day-head" onClick={() => toggleDay(day)}>
+                          <span className="cb-day-num">Day {day}</span>
+                          <span className={`cb-day-meta ${hasContent ? 'has' : ''}`}>
                             {hasContent ? `${draft.items.length} item${draft.items.length !== 1 ? 's' : ''} · ${totalMins}m` : 'No content assigned'}
                           </span>
-                          <button
-                            onClick={() => { setPickerDay(day); setShowPicker(true); }}
-                            style={{
-                              background: '#0f172a', color: '#fff', border: 'none',
-                              borderRadius: '6px', padding: '4px 10px', fontSize: '12px',
-                              fontWeight: 600, cursor: 'pointer',
-                            }}
-                          >
-                            + Add
-                          </button>
-                          {hasContent && (
-                            <button
-                              onClick={() => saveDayPlan(day)}
-                              disabled={savingDay === day}
-                              style={{
-                                background: '#10b981', color: '#fff', border: 'none',
-                                borderRadius: '6px', padding: '4px 10px', fontSize: '12px',
-                                fontWeight: 600, cursor: savingDay === day ? 'not-allowed' : 'pointer',
-                                opacity: savingDay === day ? 0.7 : 1,
-                              }}
-                            >
-                              {savingDay === day ? '...' : 'Save'}
-                            </button>
-                          )}
+                          <div className="cb-day-actions" onClick={e => e.stopPropagation()}>
+                            <button className="cb-add" onClick={() => { setPickerDay(day); setShowPicker(true); }}>+ Add Activity</button>
+                            {hasContent && (
+                              <button className="cb-save" onClick={() => saveDayPlan(day)} disabled={savingDay === day}>
+                                {savingDay === day ? '…' : 'Save Day'}
+                              </button>
+                            )}
+                            <span className={`cb-chev ${open ? 'open' : ''}`} onClick={() => toggleDay(day)}>▾</span>
+                          </div>
                         </div>
-                        {hasContent && (
-                          <div style={{ padding: '8px 14px 10px' }}>
+                        {open && hasContent && (
+                          <div className="cb-day-body">
                             {draft.items.map((item, idx) => (
-                              <DayContentRow
-                                key={idx}
-                                item={item}
-                                onRemove={() => removeContentFromDay(day, idx)}
-                                onChange={updated => updateDayItem(day, idx, updated)}
-                              />
+                              <DayContentRow key={idx} item={item} onRemove={() => removeContentFromDay(day, idx)} onChange={updated => updateDayItem(day, idx, updated)} />
                             ))}
+                            <button className="cb-add-another" onClick={() => { setPickerDay(day); setShowPicker(true); }}>+ Add another activity</button>
                           </div>
                         )}
                       </div>
                     );
                   })}
-                </div>
-              </>
-            )}
+                </>
+              );
+            })()}
           </div>
         </div>
       )}

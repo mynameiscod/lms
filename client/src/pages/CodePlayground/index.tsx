@@ -102,23 +102,26 @@ const CodePlayground: React.FC = () => {
     if (!root || !mc) return;
     const prevBodyOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    // NOTE: set width/left/etc with `important` priority — Layout.css has
+    // `.main-content > * { width: auto !important }` which would otherwise beat
+    // our inline width (a stylesheet !important wins over plain inline styles),
+    // collapsing the overlay to its content width.
+    const setImp = (k: string, v: string) => root.style.setProperty(k, v, 'important');
     const place = () => {
       if (fullRef.current) {
-        Object.assign(root.style, { position: 'fixed', top: '0px', left: '0px', width: '100vw', height: '100vh' });
+        setImp('position', 'fixed'); setImp('top', '0px'); setImp('left', '0px');
+        setImp('width', '100vw'); setImp('height', '100vh');
         return;
       }
       // left comes from the sidebar margin (stable); derive width from the
       // viewport, NOT from r.width — once this root is position:fixed the parent
-      // has no in-flow content and r.width can collapse, which would shrink the
-      // overlay leftward on every re-measure.
+      // has no in-flow content and r.width can collapse.
       const r = mc.getBoundingClientRect();
       const left = Math.max(0, r.left);
       const top = Math.max(0, r.top);
-      Object.assign(root.style, {
-        position: 'fixed', top: `${top}px`, left: `${left}px`,
-        width: `${Math.max(320, window.innerWidth - left)}px`,
-        height: `${window.innerHeight - top}px`,
-      });
+      setImp('position', 'fixed'); setImp('top', `${top}px`); setImp('left', `${left}px`);
+      setImp('width', `${Math.max(320, window.innerWidth - left)}px`);
+      setImp('height', `${window.innerHeight - top}px`);
     };
     place();
     window.addEventListener('resize', place);

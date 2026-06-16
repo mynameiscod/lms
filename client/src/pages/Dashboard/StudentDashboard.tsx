@@ -12,6 +12,11 @@ interface Props {
   navigate: (to: string) => void;
 }
 
+const CT_LABEL: Record<string, string> = {
+  video: 'Video', notes: 'Notes', interactive_lesson: 'Interactive Lesson', interactive_activity: 'Activity',
+  tech_qa: 'Tech Q&A', behavioral_qa: 'Behavioral Q&A', practice_coding: 'Practice', practice_theory: 'Practice', aptitude: 'Aptitude',
+};
+
 const KIND_META: Record<string, { icon: string; color: string; verb: string }> = {
   content:       { icon: '🎬', color: '#7c3aed', verb: 'Open' },
   video:         { icon: '🎬', color: '#7c3aed', verb: 'Open' },
@@ -37,9 +42,6 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
   const dueThisWeek = allDeadlines.filter(d => d.daysLeft <= 7).length;
 
   const planItems: any[] = todayPlan?.items || [];
-  const planTotal = planItems.length;
-  const planDone = planItems.filter(i => i.isCompleted).length;
-  const planPct = planTotal > 0 ? Math.round((planDone / planTotal) * 100) : 0;
 
   const cards = [
     { icon: '✓', bg: '#22c55e', label: 'Assignments Done', value: stats.completedAssignments ?? 0, sub: `of ${stats.totalAssignments ?? 0} total · ${stats.pendingAssignments ?? 0} pending`, badge: todaySubs > 0 ? `+${todaySubs} today` : 'On track', badgeCls: 'good' },
@@ -76,15 +78,8 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
           {/* Today's Plan */}
           <div className="sd2-card">
             <div className="sd2-card-head">
-              <span className="sd2-card-title">📅 Today's Plan</span>
-              {todayPlan && <span className="sd2-card-sub">Day {todayPlan.dayNumber} · {todayPlan.dayDate ? new Date(todayPlan.dayDate).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : ''}</span>}
-              {todayPlan && (
-                <div className="sd2-prog">
-                  <span className="sd2-prog-txt">{planDone} / {planTotal} items</span>
-                  <div className="sd2-prog-bar"><div className="sd2-prog-fill" style={{ width: `${planPct}%` }} /></div>
-                  <span className="sd2-prog-pct">{planPct}%</span>
-                </div>
-              )}
+              <span className="sd2-card-title">Today's Plan</span>
+              {todayPlan && <span className="sd2-day-label">Day {todayPlan.dayNumber} · {todayPlan.dayDate ? new Date(todayPlan.dayDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : ''}</span>}
             </div>
             <div className="sd2-plan">
               {!todayPlan || planItems.length === 0 ? (
@@ -93,20 +88,29 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
                 const kind = it.kind || 'content';
                 const m = KIND_META[kind] || KIND_META.content;
                 const title = it.content?.title || it.contentTitle || 'Activity';
-                const sub = kind === 'content'
-                  ? `${(it.contentType || 'Lesson')}${it.estimatedDuration ? ` · ${it.estimatedDuration} min` : ''}`
-                  : `${kind === 'codeSnippet' ? 'Code Snippet' : kind === 'mockInterview' ? 'Mock Interview' : kind.charAt(0).toUpperCase() + kind.slice(1)}`;
+                const typeLabel = kind === 'content' ? (CT_LABEL[it.contentType] || 'Lesson')
+                  : kind === 'codeSnippet' ? 'Code Snippet' : kind === 'mockInterview' ? 'Mock Interview' : kind.charAt(0).toUpperCase() + kind.slice(1);
+                const slot = it.slot && it.slot !== 'anytime' ? it.slot.charAt(0).toUpperCase() + it.slot.slice(1) : '';
+                const dueToday = it.dueAt && new Date(it.dueAt).toDateString() === new Date().toDateString();
                 const go = () => navigate(kind === 'content' ? `/my-learning/${todayPlan.enrollmentId}/day/${todayPlan.dayNumber}` : (it.launchPath || '/my-tasks'));
                 return (
-                  <div className="sd2-plan-row" key={idx}>
-                    <div className="sd2-plan-ic" style={{ background: `${m.color}15` }}>{m.icon}</div>
-                    <div className="sd2-plan-main">
-                      <div className="sd2-plan-title">{title}</div>
-                      <div className="sd2-plan-sub">{sub}{it.dueAt ? ' · Due today' : ''}</div>
+                  <div className="sd2-prow" key={idx}>
+                    <span className="sd2-prow-dot" style={it.isCompleted ? { background: '#22c55e', borderColor: '#22c55e' } : { borderColor: m.color }}>
+                      {it.isCompleted ? <span style={{ color: '#fff', fontSize: 9 }}>✓</span> : null}
+                    </span>
+                    <div className="sd2-prow-ic" style={{ background: `${m.color}15` }}>{m.icon}</div>
+                    <div className="sd2-prow-main">
+                      <div className="sd2-prow-title">{title}</div>
+                      <div className="sd2-prow-meta">
+                        {slot && <span>{slot} · </span>}
+                        <span>{typeLabel}</span>
+                        {kind === 'content' && it.estimatedDuration ? <span> · {it.estimatedDuration} min</span> : null}
+                        {dueToday && <span className="due"> · Due today</span>}
+                      </div>
                     </div>
                     {it.isCompleted
-                      ? <span className="sd2-done">✓ Completed</span>
-                      : <button className="sd2-act" style={{ background: m.color }} onClick={go}>{m.verb}</button>}
+                      ? <span className="sd2-done2">✓ Done</span>
+                      : <button className="sd2-act2" style={{ color: m.color, borderColor: `${m.color}55` }} onClick={go}>{m.verb} →</button>}
                   </div>
                 );
               })}

@@ -33,8 +33,23 @@
 .sd2-prog-fill { height: 100%; background: #22c55e; border-radius: 999px; }
 .sd2-prog-pct { font-size: 12.5px; font-weight: 700; color: #16a34a; }
 
-/* Plan rows */
-.sd2-plan { display: flex; flex-direction: column; gap: 10px; }
+.sd2-day-label { margin-left: auto; font-size: 12.5px; color: #94a3b8; font-weight: 600; }
+
+/* Plan rows (flat, divider style) */
+.sd2-plan { display: flex; flex-direction: column; }
+.sd2-prow { display: flex; align-items: center; gap: 12px; padding: 14px 2px; border-top: 1px solid #f1f5f9; }
+.sd2-prow:first-child { border-top: none; }
+.sd2-prow-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid #cbd5e1; background: #fff; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; }
+.sd2-prow-ic { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.sd2-prow-main { flex: 1; min-width: 0; }
+.sd2-prow-title { font-weight: 700; font-size: 14px; color: #0f172a; overflow: hidden; text-overflow: ellipsis; }
+.sd2-prow-meta { font-size: 12px; color: #94a3b8; margin-top: 3px; }
+.sd2-prow-meta .due { color: #ef4444; font-weight: 600; }
+.sd2-act2 { background: #fff; border: 1.5px solid; border-radius: 9px; padding: 8px 14px; font-size: 13px; font-weight: 700; cursor: pointer; flex-shrink: 0; white-space: nowrap; }
+.sd2-done2 { background: #dcfce7; color: #16a34a; border-radius: 999px; padding: 6px 14px; font-size: 13px; font-weight: 700; flex-shrink: 0; display: inline-flex; align-items: center; gap: 5px; }
+
+/* (legacy boxed plan row — kept for safety) */
+.sd2-plan-row-legacy { display: flex; flex-direction: column; gap: 10px; }
 .sd2-plan-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid #f1f5f9; border-radius: 12px; }
 .sd2-plan-ic { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .sd2-plan-main { flex: 1; min-width: 0; }

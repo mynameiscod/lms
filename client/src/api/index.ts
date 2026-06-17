@@ -3090,6 +3090,12 @@ export const scheduledInterviewApi = {
     }),
   releaseAll: (id: string) =>
     authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/release-all`, { method: 'PATCH' }),
+  resendEmail: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}/resend-email`, { method: 'POST' }),
+  setStatus: (id: string, status: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/${id}`, { method: 'PUT', body: JSON.stringify({ status }) }),
+  getStudentInterviews: (studentId: string) =>
+    authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/student/${studentId}`),
   // Student endpoints
   getMyInterviews: () =>
     authenticatedFetch(`${API_BASE_URL}/scheduled-interviews/my`),

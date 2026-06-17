@@ -226,6 +226,40 @@ export const updateInterview = async (req: AuthenticatedRequest, res: Response<A
   }
 };
 
+// ─── Resend invite emails ─────────────────────────────────────────────────────
+
+export const resendInvites = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const interview = await ScheduledInterview.findOne({
+      _id: req.params.id, tenantId: new mongoose.Types.ObjectId(String(req.tenantId)),
+    });
+    if (!interview) return res.status(404).json({ success: false, message: 'Interview not found' });
+    const ids = (interview.students || []) as any[];
+    sendBulkInvites(interview, ids).catch(err => console.error('[ScheduledInterview] resend invite error:', err.message));
+    interview.emailSent = true;
+    await interview.save();
+    res.json({ success: true, message: `Invites re-sent to ${ids.length} student(s)` });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to resend invites', error: error.message });
+  }
+};
+
+// ─── Admin: all mock interviews + feedback for one student (for the profile) ────
+
+export const getStudentInterviewsAdmin = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {
+  try {
+    const tId = new mongoose.Types.ObjectId(String(req.tenantId));
+    const sId = new mongoose.Types.ObjectId(req.params.studentId);
+    const [interviews, feedback] = await Promise.all([
+      ScheduledInterview.find({ tenantId: tId, students: sId }).sort({ date: -1 }).lean(),
+      InterviewScheduleFeedback.find({ tenantId: tId, studentId: sId }).lean(),
+    ]);
+    res.json({ success: true, message: 'OK', data: { interviews, feedback } });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to load student interviews', error: error.message });
+  }
+};
+
 // ─── Delete Interview ─────────────────────────────────────────────────────────
 
 export const deleteInterview = async (req: AuthenticatedRequest, res: Response<ApiResponse<any>>) => {

@@ -13,6 +13,8 @@ import {
   getMyInterviews,
   getMyFeedback,
   getMyFeedbackForInterview,
+  resendInvites,
+  getStudentInterviewsAdmin,
 } from '../controllers/scheduledInterviewController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
@@ -34,6 +36,8 @@ router.get('/:id', authMiddleware, tenantResolver, getInterviewById);
 router.put('/:id', authMiddleware, tenantResolver, updateInterview);
 router.delete('/:id', authMiddleware, tenantResolver, adminGuard, deleteInterview);
 router.post('/:id/students', authMiddleware, tenantResolver, addStudents);
+router.post('/:id/resend-email', authMiddleware, tenantResolver, resendInvites);
+router.get('/student/:studentId', authMiddleware, tenantResolver, getStudentInterviewsAdmin);
 
 // Feedback management
 router.post('/:id/feedback/:studentId', authMiddleware, tenantResolver, submitFeedback);

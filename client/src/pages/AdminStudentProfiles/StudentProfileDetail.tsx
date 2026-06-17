@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { getStudentReport } from '../../api/studentReportApi';
 import { interviewAnalyticsApi } from '../../api/interviewModuleApi';
+import { scheduledInterviewApi } from '../../api';
 import { Spinner } from '../../components/common';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
@@ -61,6 +62,7 @@ const StudentProfileDetail: React.FC = () => {
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [aiInterviews, setAiInterviews] = useState<any[] | null>(null);
+  const [mockData, setMockData] = useState<{ interviews: any[]; feedback: any[] } | null>(null);
 
   useEffect(() => {
     if (!userId) return;
@@ -116,6 +118,14 @@ const StudentProfileDetail: React.FC = () => {
       .then((r: any) => setAiInterviews(r?.attempts || r?.data || []))
       .catch(() => setAiInterviews([]));
   }, [userId, activeTab, aiInterviews]);
+
+  // Physical / scheduled mock interviews + feedback (load on Interviews tab)
+  useEffect(() => {
+    if (!userId || activeTab !== 'interviews' || mockData !== null) return;
+    scheduledInterviewApi.getStudentInterviews(userId)
+      .then((r: any) => setMockData(r?.data || { interviews: [], feedback: [] }))
+      .catch(() => setMockData({ interviews: [], feedback: [] }));
+  }, [userId, activeTab, mockData]);
 
   const publishAttempt = async (a: any) => {
     try {
@@ -613,6 +623,33 @@ const StudentProfileDetail: React.FC = () => {
                   </tbody>
                 </table>
               )}
+
+            {/* ── Physical / Scheduled Mock Interviews ── */}
+            <h4 style={{ marginTop: 28 }}>🧑‍💼 Mock Interviews (Scheduled)</h4>
+            {mockData === null ? <p className="spd-empty">Loading…</p> :
+              mockData.interviews.length === 0 ? <p className="spd-empty">No scheduled mock interviews for this student.</p> : (() => {
+                const fbMap = new Map(mockData.feedback.map((f: any) => [String(f.interviewId), f]));
+                return (
+                  <table className="data-table">
+                    <thead><tr><th>Date</th><th>Interview</th><th>Interviewer</th><th>Status</th><th>Score</th><th>Feedback</th></tr></thead>
+                    <tbody>
+                      {mockData.interviews.map((iv: any) => {
+                        const fb: any = fbMap.get(String(iv._id));
+                        return (
+                          <tr key={iv._id}>
+                            <td>{new Date(iv.date).toLocaleDateString()}</td>
+                            <td>{iv.title}</td>
+                            <td>{iv.interviewerName || '-'}</td>
+                            <td><span className={`status-badge ${iv.status}`}>{iv.status}</span></td>
+                            <td>{fb?.overallScore != null ? `${fb.overallScore.toFixed(1)}/10` : '—'}</td>
+                            <td>{fb ? (fb.releasedToStudent ? '✅ Released' : '📝 Recorded (not released)') : '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                );
+              })()}
           </div>
         )}
 

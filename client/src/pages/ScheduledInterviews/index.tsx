@@ -140,6 +140,15 @@ const ScheduledInterviewsPage: React.FC = () => {
     } catch { showMsg('error', 'Failed to delete'); }
   };
 
+  const handleResend = async (id: string) => {
+    try { const r = await scheduledInterviewApi.resendEmail(id); showMsg('success', r.message || 'Invites re-sent'); loadInterviews(); }
+    catch { showMsg('error', 'Failed to resend invites'); }
+  };
+  const handleStatus = async (id: string, status: string) => {
+    try { await scheduledInterviewApi.setStatus(id, status); loadInterviews(); }
+    catch { showMsg('error', 'Failed to update status'); }
+  };
+
   const filteredStudents = students.filter(s =>
     `${s.firstName} ${s.lastName} ${s.email}`.toLowerCase().includes(studentSearch.toLowerCase())
   );
@@ -216,11 +225,24 @@ const ScheduledInterviewsPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <button onClick={e => { e.stopPropagation(); handleDelete(iv._id); }}
-                style={{ padding: '6px 14px', background: '#fef2f2', color: '#dc2626',
-                  border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500 }}>
-                Delete
-              </button>
+              <div onClick={e => e.stopPropagation()} style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                <select value={iv.status} onChange={e => handleStatus(iv._id, e.target.value)}
+                  title="Update status"
+                  style={{ padding: '6px 8px', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12.5, background: '#fff', cursor: 'pointer' }}>
+                  <option value="scheduled">Scheduled</option>
+                  <option value="in_progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+                <button onClick={() => handleResend(iv._id)} title="Resend invite emails"
+                  style={{ padding: '6px 12px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+                  ✉ Resend
+                </button>
+                <button onClick={() => handleDelete(iv._id)}
+                  style={{ padding: '6px 12px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }}>
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

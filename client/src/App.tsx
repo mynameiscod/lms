@@ -69,7 +69,6 @@ import InterviewTemplateCreate from './pages/InterviewTemplateCreate';
 import InterviewQBManagement from './pages/InterviewQBManagement';
 import InterviewAssignment from './pages/InterviewAssignment';
 import InterviewAnalytics from './pages/InterviewAnalytics';
-import StudentInterviewHub from './pages/StudentInterviewHub';
 import TakeStructuredInterview from './pages/TakeStructuredInterview';
 import InterviewFeedbackReport from './pages/InterviewFeedbackReport';
 
@@ -997,12 +996,13 @@ const AppRoutes: React.FC = () => {
       />
 
       {/* ── Structured Interview Module (Student) ──────────── */}
+      {/* Unified hub: AI virtual + mock interviews now both live in MyInterviews. */}
       <Route
         path="/student/interviews"
         element={
           <ProtectedRoute>
             <Layout>
-              <StudentInterviewHub />
+              <MyInterviewsPage />
             </Layout>
           </ProtectedRoute>
         }

@@ -4,6 +4,7 @@ import axios from 'axios';
 import * as tus from 'tus-js-client';
 import { learningContentLibraryApi } from '../../api/learningContentLibraryApi';
 import { newSessionId, logRecording } from '../../api/recordingLogApi';
+import { rbStart, rbAppend, rbMark, rbList, rbChunks, rbDelete, RecSession } from '../../utils/recordingBuffer';
 
 /**
  * Record Class — stable single-source recorder.
@@ -49,6 +50,7 @@ export default function RecordClass() {
   const sessionRef  = useRef('');
   const statusRef   = useRef<Status>('idle');
   const lastPctRef  = useRef(-1);
+  const autoSaveArmedRef = useRef(false);  // true after a real Stop → arms the auto-upload countdown
 
   // telemetry helper — fire-and-forget
   const rlog = useCallback((type: string, opts?: { message?: string; data?: any }) =>
@@ -67,6 +69,7 @@ export default function RecordClass() {
   const [courses, setCourses] = useState('');
   const [uploadPct, setUploadPct] = useState(0);
   const [savedId, setSavedId] = useState('');
+  const [recoverable, setRecoverable] = useState<RecSession[]>([]);  // unsaved recordings found in IndexedDB
 
   useEffect(() => { secondsRef.current = seconds; }, [seconds]);
   useEffect(() => { statusRef.current = status; }, [status]);
@@ -74,10 +77,14 @@ export default function RecordClass() {
   // Capture tab close / navigate-away while a recording is unsaved — the #1 cause
   // of "recording stopped and not saved".
   useEffect(() => {
-    const onLeave = () => {
+    const onLeave = (e: BeforeUnloadEvent) => {
       const s = statusRef.current;
       if (s === 'recording' || s === 'recorded' || s === 'saving') {
         rlog('page_unload', { data: { status: s } });
+        // Real browser warning — the recording is buffered locally and recoverable,
+        // but warn so they don't lose the live capture.
+        e.preventDefault();
+        e.returnValue = '';
       }
     };
     const onVis = () => { if (document.hidden) {
@@ -95,9 +102,13 @@ export default function RecordClass() {
   }, [rlog]);
   useEffect(() => {
     if (status !== 'recording' || paused) return;
-    const iv = setInterval(() => setSeconds(p => p + 1), 1000);
+    const iv = setInterval(() => setSeconds(p => {
+      const n = p + 1;
+      if (n % 30 === 0) rlog('heartbeat', { data: { sec: n } });  // alive signal for stale-recording alerts
+      return n;
+    }), 1000);
     return () => clearInterval(iv);
-  }, [status, paused]);
+  }, [status, paused, rlog]);
 
   const stopAllTracks = useCallback(() => {
     rawStreams.current.forEach(s => s.getTracks().forEach(t => t.stop()));
@@ -164,12 +175,20 @@ export default function RecordClass() {
       const mime = pickMime();
       const rec = new MediaRecorder(combined, mime ? { mimeType: mime, videoBitsPerSecond: 1_200_000, audioBitsPerSecond: 128_000 } : undefined);
       chunksRef.current = [];
-      rec.ondataavailable = e => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      rbStart({ id: sessionRef.current, title: '', mime: mime || 'video/webm', mode }); // crash-safe buffer
+      rec.ondataavailable = e => {
+        if (e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          rbAppend(sessionRef.current, e.data); // mirror every chunk to IndexedDB
+        }
+      };
       rec.onerror = (ev: any) => rlog('recorder_error', { message: ev?.error?.name || ev?.error?.message || 'MediaRecorder error' });
       rec.onstop = () => {
         const b = new Blob(chunksRef.current, { type: chunksRef.current[0]?.type || 'video/webm' });
         setBlob(b); setPreviewUrl(URL.createObjectURL(b));
-        setTitle(`Class Recording — ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+        setTitle(t => t.trim() ? t : `Class Recording — ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`);
+        autoSaveArmedRef.current = true; // arm the auto-upload countdown
+        rbMark(sessionRef.current, { status: 'recorded', durationSec: secondsRef.current });
         setStatus('recorded'); stopAllTracks();
         rlog('recording_stopped', { data: { durationSec: secondsRef.current, sizeBytes: b.size, chunks: chunksRef.current.length } });
       };
@@ -187,25 +206,32 @@ export default function RecordClass() {
   const pause  = () => { if (recRef.current?.state === 'recording') { recRef.current.pause(); setPaused(true); rlog('paused'); } };
   const resume = () => { if (recRef.current?.state === 'paused') { recRef.current.resume(); setPaused(false); rlog('resumed'); } };
   const stop   = useCallback(() => { if (recRef.current && recRef.current.state !== 'inactive') recRef.current.stop(); }, []);
-  const discard = () => { rlog('discard'); if (previewUrl) URL.revokeObjectURL(previewUrl); setBlob(null); setPreviewUrl(''); setSeconds(0); setUploadPct(0); setStatus('idle'); };
+  const discard = () => { rlog('discard'); autoSaveArmedRef.current = false; rbDelete(sessionRef.current); if (previewUrl) URL.revokeObjectURL(previewUrl); setBlob(null); setPreviewUrl(''); setSeconds(0); setUploadPct(0); setStatus('idle'); };
 
-  const save = async () => {
-    if (!blob) return;
-    if (!title.trim()) { setError('Please enter a title.'); return; }
+  const save = useCallback(async (overrideBlob?: Blob, overrideSession?: string) => {
+    const b = overrideBlob || blob;
+    const sid = overrideSession || sessionRef.current;
+    if (!b) return;
+    const useTitle = title.trim() || `Class Recording — ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    autoSaveArmedRef.current = false; // we're saving now — cancel any auto-save countdown
     setError(''); setStatus('saving'); setUploadPct(0);
-    rlog('save_clicked', { data: { sizeBytes: blob.size, durationSec: secondsRef.current } });
+    rlog('save_clicked', { data: { sizeBytes: b.size, durationSec: secondsRef.current } });
     let stage = 'bunny_create';
     try {
-      const meta = await learningContentLibraryApi.createBunnyVideo(title.trim());
+      const meta = await learningContentLibraryApi.createBunnyVideo(useTitle);
       rlog('bunny_create_ok', { data: { bunnyVideoId: meta.videoId, libraryId: meta.libraryId } });
       stage = 'upload';
-      rlog('upload_started', { data: { endpoint: meta.tus.endpoint, sizeBytes: blob.size } });
+      rlog('upload_started', { data: { endpoint: meta.tus.endpoint, sizeBytes: b.size } });
       await new Promise<void>((resolve, reject) => {
-        const upload = new tus.Upload(blob, {
+        const upload = new tus.Upload(b, {
           endpoint: meta.tus.endpoint,
-          retryDelays: [0, 2000, 5000, 10000, 20000],
+          retryDelays: [0, 2000, 5000, 10000, 20000, 30000],
+          // Resumable: persist the upload so a dropped connection / reload resumes
+          // instead of restarting or failing.
+          storeFingerprintForResuming: true,
+          removeFingerprintOnSuccess: true,
           headers: { AuthorizationSignature: meta.tus.signature, AuthorizationExpire: String(meta.tus.expiration), VideoId: meta.videoId, LibraryId: String(meta.libraryId) },
-          metadata: { filetype: blob.type || 'video/webm', title: title.trim() },
+          metadata: { filetype: b.type || 'video/webm', title: useTitle },
           onError: (err) => reject(err),
           onProgress: (sent, total) => {
             if (!total) return;
@@ -224,18 +250,45 @@ export default function RecordClass() {
       const { data } = await axios.post('/api/v1/learning-library/bunny/content', {
         type: 'video', videoSource: 'bunny', bunnyVideoId: meta.videoId, bunnyLibraryId: meta.libraryId,
         videoThumbnail: meta.cdnHostname ? `https://${meta.cdnHostname}/${meta.videoId}/thumbnail.jpg` : undefined,
-        title: title.trim(), description: desc.trim() || undefined,
+        title: useTitle, description: desc.trim() || undefined,
         topicTags: splitTags(topics), courseTags: splitTags(courses),
         estimatedDuration: Math.max(1, Math.round(secondsRef.current / 60)), videoDuration: secondsRef.current, isPublished: true,
       }, { headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}), ...(tenantId ? { 'X-Tenant-Id': tenantId } : {}) } });
       setSavedId(data?._id || ''); setStatus('saved');
       rlog('content_save_ok', { data: { contentId: data?._id, bunnyVideoId: meta.videoId } });
+      rbDelete(sid); // safely on Bunny — clear the local crash-safe buffer
+      setRecoverable(prev => prev.filter(r => r.id !== sid));
     } catch (e: any) {
       const msg = e?.response?.data?.message || e?.message || 'Upload failed. Please try again.';
       setError(msg); setStatus('recorded');
       rlog(stage === 'bunny_create' ? 'bunny_create_error' : stage === 'upload' ? 'upload_error' : 'content_save_error', { message: `${stage}: ${msg}` });
     }
+  }, [blob, title, desc, topics, courses, rlog]);
+
+  // Auto-save countdown (Tier 2): after a real Stop, auto-upload if the instructor
+  // hasn't saved within 60s — eliminates "forgot to save".
+  useEffect(() => {
+    if (status !== 'recorded' || !autoSaveArmedRef.current) return;
+    const t = setTimeout(() => { if (statusRef.current === 'recorded') { rlog('auto_save_triggered'); save(); } }, 60000);
+    return () => clearTimeout(t);
+  }, [status, save, rlog]);
+
+  // Recovery (Tier 1): surface any unsaved recordings left in the crash-safe buffer.
+  useEffect(() => { rbList().then(list => setRecoverable(list.filter(s => s.chunkCount > 0))); }, []);
+
+  const recover = async (s: RecSession) => {
+    const chunks = await rbChunks(s.id);
+    if (!chunks.length) { rbDelete(s.id); setRecoverable(p => p.filter(r => r.id !== s.id)); return; }
+    const b = new Blob(chunks, { type: s.mime || 'video/webm' });
+    sessionRef.current = s.id;
+    autoSaveArmedRef.current = false; // user decides when to upload a recovered file
+    setBlob(b); setPreviewUrl(URL.createObjectURL(b));
+    setTitle(s.title || `Class Recording — ${new Date(s.createdAt).toLocaleString()}`);
+    setSeconds(s.durationSec || 0); secondsRef.current = s.durationSec || 0;
+    setError(''); setStatus('recorded');
+    rlog('recovery_loaded', { data: { sizeBytes: b.size, durationSec: s.durationSec } });
   };
+  const discardRecoverable = (s: RecSession) => { rbDelete(s.id); setRecoverable(p => p.filter(r => r.id !== s.id)); };
 
   const btn = (bg: string): React.CSSProperties => ({ background: bg, color: '#fff', border: 'none', borderRadius: 10, padding: '12px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer' });
   const ghost: React.CSSProperties = { background: '#fff', color: '#0f172a', border: '1.5px solid #cbd5e1', borderRadius: 10, padding: '12px 22px', fontWeight: 700, fontSize: 14, cursor: 'pointer' };
@@ -255,6 +308,23 @@ export default function RecordClass() {
       </div>
 
       {error && <div style={{ background: '#fdecec', border: '1px solid #f3c9c9', color: '#b3261e', padding: '10px 14px', borderRadius: 10, margin: '12px 0', fontSize: 14 }}>{error}</div>}
+
+      {/* Recovery banner (Tier 1): unsaved recordings found in the crash-safe buffer */}
+      {status === 'idle' && recoverable.length > 0 && (
+        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', margin: '12px 0' }}>
+          <div style={{ fontWeight: 700, color: '#92400e', fontSize: 14, marginBottom: 8 }}>⚠️ {recoverable.length} unsaved recording{recoverable.length > 1 ? 's' : ''} found</div>
+          {recoverable.map(s => (
+            <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 0', borderTop: '1px solid #fde7b0' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 13.5, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.title || 'Untitled class recording'}</div>
+                <div style={{ fontSize: 12, color: '#92400e' }}>{fmtTime(s.durationSec || 0)} · {fmtSize(s.bytes || 0)} · {new Date(s.createdAt).toLocaleString()}</div>
+              </div>
+              <button style={{ ...btn('#16a34a'), padding: '8px 14px', fontSize: 13 }} onClick={() => recover(s)}>↻ Recover &amp; Upload</button>
+              <button style={{ ...ghost, padding: '8px 12px', fontSize: 13 }} onClick={() => { if (window.confirm('Permanently delete this unsaved recording?')) discardRecoverable(s); }}>Delete</button>
+            </div>
+          ))}
+        </div>
+      )}
 
       {status === 'idle' && (
         <>
@@ -321,8 +391,13 @@ export default function RecordClass() {
               <div style={{ fontSize: 13, color: '#64748b', marginTop: 6 }}>Uploading… {uploadPct}% — keep this tab open.</div>
             </div>
           )}
+          {status === 'recorded' && autoSaveArmedRef.current && (
+            <div style={{ fontSize: 12.5, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 12px', margin: '14px 0 0', maxWidth: 640 }}>
+              ⏱ Auto-uploads in ~60s if you don't save — your recording is already buffered safely.
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
-            <button style={{ ...btn('#16a34a'), opacity: status === 'saving' ? 0.6 : 1 }} disabled={status === 'saving'} onClick={save}>💾 Save to Library</button>
+            <button style={{ ...btn('#16a34a'), opacity: status === 'saving' ? 0.6 : 1 }} disabled={status === 'saving'} onClick={() => save()}>💾 Save to Library</button>
             <button style={{ ...ghost, opacity: status === 'saving' ? 0.6 : 1 }} disabled={status === 'saving'} onClick={discard}>🗑 Discard &amp; Re-record</button>
           </div>
         </div>

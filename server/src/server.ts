@@ -13,6 +13,7 @@ import { startSlaCronScheduler } from './jobs/slaCron';
 import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 import { startDueReminderScheduler } from './jobs/dueReminderCron';
+import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -286,6 +287,9 @@ const startServer = async () => {
 
     // Start learning-plan due-date reminder scheduler (in-app, daily)
     startDueReminderScheduler();
+
+    // Start stale class-recording alert scheduler (in-app, every 10 min)
+    startRecordingAlertScheduler();
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

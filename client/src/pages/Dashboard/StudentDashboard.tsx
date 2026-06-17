@@ -86,12 +86,14 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
                 <div className="sd2-empty">No plan for today. {todayPlan ? '' : 'You are not enrolled in a learning plan yet.'}</div>
               ) : planItems.map((it, idx) => {
                 const kind = it.kind || 'content';
-                const m = KIND_META[kind] || KIND_META.content;
+                const physical = kind === 'mockInterview' && (it.sourceModel === 'physical' || it.moduleStatus === 'in_person');
+                const m = physical ? { icon: '🧑‍💼', color: '#f59e0b', verb: 'View Schedule' } : (KIND_META[kind] || KIND_META.content);
                 const title = it.content?.title || it.contentTitle || 'Activity';
-                const typeLabel = kind === 'content' ? (CT_LABEL[it.contentType] || 'Lesson')
+                const typeLabel = physical ? 'Mock Interview · In-person'
+                  : kind === 'content' ? (CT_LABEL[it.contentType] || 'Lesson')
                   : kind === 'codeSnippet' ? 'Code Snippet' : kind === 'mockInterview' ? 'Mock Interview' : kind.charAt(0).toUpperCase() + kind.slice(1);
                 const slot = it.slot && it.slot !== 'anytime' ? it.slot.charAt(0).toUpperCase() + it.slot.slice(1) : '';
-                const dueToday = it.dueAt && new Date(it.dueAt).toDateString() === new Date().toDateString();
+                const dueToday = !physical && it.dueAt && new Date(it.dueAt).toDateString() === new Date().toDateString();
                 const go = () => navigate(kind === 'content' ? `/my-learning/${todayPlan.enrollmentId}/day/${todayPlan.dayNumber}` : (it.launchPath || '/my-tasks'));
                 return (
                   <div className="sd2-prow" key={idx}>

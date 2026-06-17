@@ -302,6 +302,7 @@ const MODULE_META: Record<string, { icon: string; label: string; color: string; 
 };
 const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
   not_started: { label: 'Not started', bg: '#f1f5f9', fg: '#94a3b8' },
+  in_person:   { label: 'In-person',   bg: '#fef3c7', fg: '#b45309' },
   in_progress: { label: 'In progress', bg: '#fef3c7', fg: '#b45309' },
   submitted:   { label: 'Submitted',   bg: '#dbeafe', fg: '#1d4ed8' },
   graded:      { label: 'Graded',      bg: '#dcfce7', fg: '#16a34a' },
@@ -312,7 +313,10 @@ const STATUS_META: Record<string, { label: string; bg: string; fg: string }> = {
 
 function ModuleItemCard({ item }: { item: any }) {
   const navigate = useNavigate();
-  const meta = MODULE_META[item.kind] || { icon: '📦', label: item.kind, color: '#64748b', verb: 'Open' };
+  const isPhysical = item.kind === 'mockInterview' && (item.sourceModel === 'physical' || item.moduleStatus === 'in_person');
+  const meta = isPhysical
+    ? { icon: '🧑‍💼', label: 'Mock Interview', color: '#f59e0b', verb: 'View Schedule' }
+    : (MODULE_META[item.kind] || { icon: '📦', label: item.kind, color: '#64748b', verb: 'Open' });
   const st = STATUS_META[item.moduleStatus] || STATUS_META.not_started;
   const done = !!item.isCompleted;
   const slotColors: Record<string, string> = { morning: '#fef3c7', afternoon: '#dbeafe', evening: '#f3e8ff', anytime: '#f1f5f9' };

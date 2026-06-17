@@ -421,20 +421,23 @@ export default function BuilderPage() {
     }
   };
 
-  const pickedToItem = (p: PickedActivity, order: number): DayContentItem => ({
-    kind: p.kind,
-    contentId: p.kind === 'content' ? p.id : undefined,
-    sourceModel: p.kind === 'content' ? undefined : p.sourceModel,
-    sourceId: p.kind === 'content' ? undefined : p.id,
-    contentTitle: p.title,
-    contentType: p.kind === 'content' ? p.contentType : p.kind,
-    slot: 'anytime',
-    isGating: false,
-    required: true,
-    points: 0,
-    order,
-    estimatedDuration: p.estimatedDuration || 0,
-  });
+  const pickedToItem = (p: PickedActivity, order: number): DayContentItem => {
+    const physical = p.sourceModel === 'physical'; // in-person mock: scheduled separately
+    return {
+      kind: p.kind,
+      contentId: p.kind === 'content' ? p.id : undefined,
+      sourceModel: p.kind === 'content' ? undefined : p.sourceModel,
+      sourceId: (p.kind === 'content' || physical) ? undefined : p.id,
+      contentTitle: p.title,
+      contentType: p.kind === 'content' ? p.contentType : p.kind,
+      slot: 'anytime',
+      isGating: false,
+      required: !physical, // physical mock never blocks day completion
+      points: 0,
+      order,
+      estimatedDuration: p.estimatedDuration || 0,
+    };
+  };
 
   const isDuplicate = (items: DayContentItem[], p: PickedActivity) =>
     items.some(i => p.kind === 'content' ? (i.kind || 'content') === 'content' && i.contentId === p.id : i.sourceId === p.id);

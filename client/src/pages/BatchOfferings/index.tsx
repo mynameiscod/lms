@@ -8,16 +8,19 @@ import { ActivityPickerModal, PickedActivity } from '../CurriculumBuilder/Builde
 
 const KIND_ICON: Record<string, string> = { content: '📄', quiz: '📝', assignment: '📋', codeSnippet: '⌨️', mockInterview: '🎤' };
 
-const pickedToItem = (p: PickedActivity, order: number): DayContentItem => ({
-  kind: p.kind,
-  contentId: p.kind === 'content' ? p.id : undefined,
-  sourceModel: p.kind === 'content' ? undefined : p.sourceModel,
-  sourceId: p.kind === 'content' ? undefined : p.id,
-  contentTitle: p.title,
-  contentType: p.kind === 'content' ? p.contentType : p.kind,
-  slot: 'anytime', isGating: false, required: true, points: 0,
-  order, estimatedDuration: p.estimatedDuration || 0,
-});
+const pickedToItem = (p: PickedActivity, order: number): DayContentItem => {
+  const physical = p.sourceModel === 'physical';
+  return {
+    kind: p.kind,
+    contentId: p.kind === 'content' ? p.id : undefined,
+    sourceModel: p.kind === 'content' ? undefined : p.sourceModel,
+    sourceId: (p.kind === 'content' || physical) ? undefined : p.id,
+    contentTitle: p.title,
+    contentType: p.kind === 'content' ? p.contentType : p.kind,
+    slot: 'anytime', isGating: false, required: !physical, points: 0,
+    order, estimatedDuration: p.estimatedDuration || 0,
+  };
+};
 
 const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
 

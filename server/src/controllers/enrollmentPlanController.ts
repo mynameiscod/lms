@@ -126,6 +126,9 @@ export function itemDone(
   completedItems: Array<{ contentId: string; dayNumber: number }>,
   moduleStatus: Record<string, { attempted: boolean }>
 ): boolean {
+  // Optional / informational items (e.g. a physical in-person mock interview that
+  // the trainer schedules separately) never block day completion or gating.
+  if (item.required === false) return true;
   const kind = item.kind || 'content';
   if (kind === 'content') {
     return !!item.contentId && completedItems.some(ci => ci.contentId === item.contentId.toString() && ci.dayNumber === dayNumber);
@@ -744,15 +747,18 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
           };
         }
         const sid = item.sourceId ? item.sourceId.toString() : '';
+        // Physical / in-person mock interview placeholder: no AI source; the real
+        // session is scheduled separately and shown in "My Interviews".
+        const isPhysical = kind === 'mockInterview' && (item.sourceModel === 'physical' || !sid);
         const st = moduleStatus[sid] || { attempted: false, status: 'not_started', score: null };
         return {
           ...item, kind,
           content: null,
-          moduleStatus: st.status,
-          moduleScore: st.score,
-          launchPath: launchPath(kind, sid),
+          moduleStatus: isPhysical ? 'in_person' : st.status,
+          moduleScore: isPhysical ? null : st.score,
+          launchPath: isPhysical ? '/my-interviews' : launchPath(kind, sid),
           dueAt: dueAtForItem(item),
-          isCompleted: st.attempted,
+          isCompleted: isPhysical ? false : st.attempted,
         };
       });
 

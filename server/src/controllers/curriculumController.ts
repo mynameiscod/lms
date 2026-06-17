@@ -338,6 +338,9 @@ export const getActivityBank = async (req: Request, res: Response) => {
       if (rx) q.title = rx;
       const rows = await InterviewTemplate.find(q).select('title status').sort({ createdAt: -1 }).limit(100).lean();
       items = rows.map((r: any) => ({ id: r._id, title: r.title, sourceModel: 'InterviewTemplate', kind, meta: r.status }));
+      // Always offer a physical / in-person mock (the real session is scheduled
+      // separately by the admin; this just places it on the day).
+      if (!search) items.unshift({ id: 'physical', title: 'Physical / In-person Mock Interview', sourceModel: 'physical', kind, meta: 'in-person' });
     } else {
       return res.status(400).json({ message: 'Unknown activity kind' });
     }

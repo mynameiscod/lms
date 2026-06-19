@@ -5,6 +5,7 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
+  matchStudents, addCandidate, removeCandidate,
 } from '../controllers/placementPartnerController';
 import {
   startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint,
@@ -45,5 +46,10 @@ router.post('/:id/start-outreach', startOutreach);
 router.post('/:id/mark-replied', markReplied);
 router.post('/:id/mark-bounced', markBounced);
 router.post('/:id/draft-vouch', draftVouchEndpoint);
+
+// student matching + candidate selection (Step 3)
+router.get('/:id/match-students', matchStudents);
+router.post('/:id/candidates', addCandidate);
+router.delete('/:id/candidates/:studentId', removeCandidate);
 
 export default router;

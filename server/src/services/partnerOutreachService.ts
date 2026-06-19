@@ -3,10 +3,12 @@ import PlacementPartner, { IPlacementPartner } from '../models/PlacementPartner'
 import PartnerOutreachMessage, { IPartnerOutreachMessage } from '../models/PartnerOutreachMessage';
 import { EmailService } from './emailService';
 import * as settings from './settingsService';
-import { coldEmail, vouchEmail, toHtml } from './outreachTemplates';
+import { coldEmail, vouchEmail, followupEmail, toHtml } from './outreachTemplates';
 
 const DEFAULT_DAILY_CAP = 25;
 const DEFAULT_MIN_GAP_MIN = 20;
+const DEFAULT_FOLLOWUP_MAX = 3;
+const DEFAULT_FOLLOWUP_GAP_DAYS = 3;
 
 const senderName = (tenantId: string) =>
   settings.getStr('PLACEMENT_SENDER_NAME', '', tenantId) ||
@@ -89,6 +91,43 @@ export async function stopSequence(partner: IPlacementPartner, newStatus: 'repli
   await partner.save();
 }
 
+/**
+ * After a cold/follow-up send, schedule the next polite follow-up (spaced a few
+ * days out) up to a max. When exhausted, the sequence quietly ends. Reply/bounce
+ * cancels any queued follow-up before it sends.
+ */
+async function scheduleNextFollowup(partner: IPlacementPartner, currentStep: number, userId?: mongoose.Types.ObjectId) {
+  const tid = partner.tenantId.toString();
+  const max = settings.getNum('PARTNER_FOLLOWUP_MAX', DEFAULT_FOLLOWUP_MAX, tid);
+  const gapDays = settings.getNum('PARTNER_FOLLOWUP_GAP_DAYS', DEFAULT_FOLLOWUP_GAP_DAYS, tid);
+  const nextStep = currentStep + 1;
+
+  if (nextStep > max) {
+    if (partner.outreach.status === 'in_sequence') {
+      partner.outreach.status = 'stopped';
+      partner.outreach.stoppedReason = 'Sequence completed — no reply';
+      await partner.save();
+    }
+    return;
+  }
+  if (!partner.contactEmail) return;
+  // Guard against duplicates if somehow called twice.
+  const dup = await PartnerOutreachMessage.findOne({
+    tenantId: partner.tenantId, partnerId: partner._id, type: 'followup',
+    sequenceStep: nextStep, status: { $in: ['queued', 'pending_approval', 'sending'] },
+  });
+  if (dup) return;
+
+  const when = new Date(Date.now() + gapDays * 24 * 60 * 60 * 1000);
+  const draft = followupEmail(partner, nextStep, senderName(tid));
+  await PartnerOutreachMessage.create({
+    tenantId: partner.tenantId, partnerId: partner._id, companyName: partner.companyName,
+    type: 'followup', status: 'queued', requiresApproval: false,
+    toEmail: partner.contactEmail, toName: partner.contactName || '',
+    subject: draft.subject, body: draft.body, sequenceStep: nextStep, scheduledFor: when, createdBy: userId,
+  });
+}
+
 /** Actually deliver one message (used by cron and by approve-now). Idempotent via status guard. */
 export async function deliverMessage(messageId: mongoose.Types.ObjectId | string): Promise<boolean> {
   // Claim the message so concurrent ticks can't double-send.
@@ -121,6 +160,11 @@ export async function deliverMessage(messageId: mongoose.Types.ObjectId | string
         partner.stage = 'contacted';
       }
       await partner.save();
+
+      // Chain the next follow-up (only for auto sequence emails, and only while still unanswered).
+      if ((msg.type === 'cold' || msg.type === 'followup') && partner.outreach.status === 'in_sequence') {
+        await scheduleNextFollowup(partner, msg.sequenceStep, msg.createdBy as mongoose.Types.ObjectId | undefined);
+      }
     }
     return true;
   } catch (err: any) {

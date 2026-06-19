@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent } from '../../api/placementPartnerApi';
 import './PartnerPipeline.css';
 
 const TIER_LABEL: Record<string, string> = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' };
@@ -144,11 +144,27 @@ export default function PartnerPipeline() {
 }
 
 // ── Partner detail drawer (actions + message timeline) ────────────────────────
-function PartnerDrawer({ partner, onClose, onChanged }: { partner: PlacementPartner; onClose: () => void; onChanged: () => void }) {
+function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: PlacementPartner; onClose: () => void; onChanged: () => void }) {
+  const [partner, setPartner] = useState<PlacementPartner>(initial);
   const [messages, setMessages] = useState<OutreachMessage[]>([]);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
+  const [matches, setMatches] = useState<MatchedStudent[] | null>(null);
+  const [matching, setMatching] = useState(false);
   const out = partner.outreach?.status || 'not_started';
+  const candidateIds = new Set((partner.candidates || []).map(c => c.studentId));
+
+  const runMatch = async () => {
+    setMatching(true);
+    try { const r = await api.matchStudents(partner._id); setMatches(r.data.data); } catch { setMatches([]); }
+    finally { setMatching(false); }
+  };
+  const addCandidate = async (sid: string) => {
+    try { const r = await api.addCandidate(partner._id, sid); setPartner(r.data.data); onChanged(); } catch { /* ignore */ }
+  };
+  const removeCandidate = async (sid: string) => {
+    try { const r = await api.removeCandidate(partner._id, sid); setPartner(r.data.data); onChanged(); } catch { /* ignore */ }
+  };
 
   const loadMsgs = useCallback(async () => {
     try { const r = await api.getMessages(partner._id); setMessages(r.data.data); } catch { /* ignore */ }
@@ -188,6 +204,43 @@ function PartnerDrawer({ partner, onClose, onChanged }: { partner: PlacementPart
           {partner.outreachAngle && <div className="pp-kv"><b>Angle:</b> {partner.outreachAngle}</div>}
           {partner.website && <div className="pp-kv"><b>Website:</b> {partner.website}</div>}
           {partner.notes && <div className="pp-kv"><b>Notes:</b> {partner.notes}</div>}
+
+          <div className="pp-section-title" style={{ display: 'flex', alignItems: 'center' }}>
+            Candidates to put forward
+            <button className="pp-btn pp-btn-teal pp-btn-sm" style={{ marginLeft: 'auto' }} disabled={matching} onClick={runMatch}>
+              {matching ? 'Matching…' : '🎯 Match students'}
+            </button>
+          </div>
+          {(partner.candidates || []).length === 0 ? (
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>None selected yet.</div>
+          ) : (partner.candidates || []).map(c => (
+            <div className="pp-stud" key={c.studentId}>
+              <span className="nm">✓ {c.studentName || 'Student'}</span>
+              <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={() => removeCandidate(c.studentId)}>Remove</button>
+            </div>
+          ))}
+
+          {matches && (
+            <>
+              <div className="pp-section-title">Suggested students {matches.length ? `(${matches.length})` : ''}</div>
+              {matches.length === 0 ? (
+                <div style={{ fontSize: 12, color: '#94a3b8' }}>No available students matched.</div>
+              ) : matches.map(s => (
+                <div className="pp-stud col" key={s.studentId}>
+                  <div className="pp-stud row">
+                    <span className="nm">{s.name || s.email}</span>
+                    <span style={{ fontSize: 11, color: '#359AAD', fontWeight: 700 }}>{s.score} match{s.score === 1 ? '' : 'es'}</span>
+                    <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={candidateIds.has(s.studentId)} onClick={() => addCandidate(s.studentId)}>
+                      {candidateIds.has(s.studentId) ? 'Added' : 'Add'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b' }}>
+                    {s.experienceLevel ? `${s.experienceLevel} · ` : ''}{(s.matchedSkills.length ? s.matchedSkills : s.skills).slice(0, 8).join(', ')}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
 
           <div className="pp-section-title">Message history</div>
           {messages.length === 0 ? (

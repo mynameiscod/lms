@@ -88,6 +88,8 @@ export const SETTING_DEFS: SettingDef[] = [
   // ── Placement Outreach ───────────────────────────────────────────────────────
   { key: 'PARTNER_OUTREACH_DAILY_CAP', label: 'Daily Send Cap', group: 'placement', type: 'number', placeholder: '25', help: 'Max cold/follow-up outreach emails sent per day (per tenant). Protects sender reputation.', perTenant: true },
   { key: 'PARTNER_OUTREACH_MIN_GAP_MINUTES', label: 'Minutes Between Sends', group: 'placement', type: 'number', placeholder: '20', help: 'Minimum gap between two outreach sends so they look human and spread out.', perTenant: true },
+  { key: 'PARTNER_FOLLOWUP_MAX', label: 'Max Follow-ups', group: 'placement', type: 'number', placeholder: '3', help: 'How many follow-ups to send if there is no reply, before the sequence stops.', perTenant: true },
+  { key: 'PARTNER_FOLLOWUP_GAP_DAYS', label: 'Days Between Follow-ups', group: 'placement', type: 'number', placeholder: '3', help: 'Spacing between follow-up emails.', perTenant: true },
   { key: 'PLACEMENT_SENDER_NAME', label: 'Outreach Sender Name', group: 'placement', type: 'text', placeholder: 'Siva — CodeBegun Placements', help: 'Signature name used in outreach emails. Falls back to the Email From name.', perTenant: true },
   { key: 'TODOIST_API_TOKEN', label: 'Todoist API Token', group: 'placement', isSecret: true, type: 'password', help: 'Personal Todoist API token — used to create hot-lead and quarterly check-in tasks (later steps).', perTenant: true },
 ];

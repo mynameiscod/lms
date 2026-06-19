@@ -59,6 +59,46 @@ ${angle ? `${angle}.\n\n` : ''}Want me to send a couple of profiles that match y
   };
 }
 
+// ── Polite follow-up bumps (auto-sent if no reply), step 1..N ─────────────────
+export function followupEmail(p: IPlacementPartner, step: number, senderName: string): Draft {
+  const fn = firstName(p.contactName);
+  const company = p.companyName;
+  if (step <= 1) {
+    return {
+      subject: `Re: Freshers for ${company}`,
+      body:
+`Hi ${fn},
+
+Just floating this back to the top of your inbox — I know hiring inboxes get busy.
+
+If fresher/junior hiring is on the cards at ${company}, I'd be happy to send a couple of matched profiles you can interview directly. No commitment to evaluate.
+
+Worth a quick look?${SIGNATURE(senderName)}`,
+    };
+  }
+  if (step === 2) {
+    return {
+      subject: `Re: Freshers for ${company}`,
+      body:
+`Hi ${fn},
+
+One more nudge — and then I'll get out of your inbox :)
+
+If now isn't the right time, even a quick "not now" helps me know whether to check back next quarter. And if it is, I can share 2–3 strong profiles today.${SIGNATURE(senderName)}`,
+    };
+  }
+  // Final, graceful close
+  return {
+    subject: `Closing the loop — ${company}`,
+    body:
+`Hi ${fn},
+
+I'll assume the timing isn't right for now, so I won't keep emailing.
+
+If you ever need job-ready Java/React freshers, just reply to this and I'll send profiles the same day. Wishing you and the ${company} team a great quarter.${SIGNATURE(senderName)}`,
+  };
+}
+
 // ── Personal vouch (trust point — always drafted, approved before send) ────────
 export function vouchEmail(p: IPlacementPartner, senderName: string): Draft {
   const fn = firstName(p.contactName);

@@ -39,7 +39,18 @@ export interface PlacementPartner {
     lastEmailAt?: string;
     repliedAt?: string;
   };
+  candidates?: { studentId: string; studentName: string; addedAt?: string }[];
   updatedAt?: string;
+}
+
+export interface MatchedStudent {
+  studentId: string;
+  name: string;
+  email: string;
+  experienceLevel: string;
+  skills: string[];
+  matchedSkills: string[];
+  score: number;
 }
 
 export type OutreachType = 'cold' | 'followup' | 'vouch' | 'candidate_profile';
@@ -84,6 +95,11 @@ export const placementPartnerApi = {
   updateMessage: (mid: string, data: { subject?: string; body?: string }) => API.patch(`/placement-partners/outreach/messages/${mid}`, data),
   approveMessage: (mid: string, data?: { subject?: string; body?: string }) => API.post(`/placement-partners/outreach/messages/${mid}/approve`, data || {}),
   cancelMessage: (mid: string) => API.post(`/placement-partners/outreach/messages/${mid}/cancel`),
+
+  // ── Matching (Step 3) ──
+  matchStudents: (id: string) => API.get<{ data: MatchedStudent[] }>(`/placement-partners/${id}/match-students`),
+  addCandidate: (id: string, studentId: string) => API.post(`/placement-partners/${id}/candidates`, { studentId }),
+  removeCandidate: (id: string, studentId: string) => API.delete(`/placement-partners/${id}/candidates/${studentId}`),
 
   import: (file: File) => {
     const fd = new FormData();

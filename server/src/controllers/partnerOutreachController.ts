@@ -4,6 +4,7 @@ import { AuthenticatedRequest } from '../types';
 import PlacementPartner from '../models/PlacementPartner';
 import PartnerOutreachMessage from '../models/PartnerOutreachMessage';
 import { startSequence, draftVouch, stopSequence, deliverMessage } from '../services/partnerOutreachService';
+import { createPartnerTask } from '../services/partnerTaskService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -52,7 +53,11 @@ export const markReplied = async (req: AuthenticatedRequest, res: Response) => {
       partner.stage = 'replied';
       await partner.save();
     }
-    res.json({ success: true, message: 'Marked as replied — sequence stopped', data: partner });
+    // Hot lead — remind me to act today (mirrored to Todoist; deduped).
+    await createPartnerTask(partner, 'reply',
+      `🔥 ${partner.companyName} replied to outreach — respond today`,
+      { description: `Contact: ${partner.contactName || ''} <${partner.contactEmail || ''}>`, userId: uId(req) });
+    res.json({ success: true, message: 'Marked as replied — sequence stopped, task created', data: partner });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };
 

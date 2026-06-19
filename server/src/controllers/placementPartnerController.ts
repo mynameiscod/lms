@@ -6,6 +6,9 @@ import { AuthenticatedRequest } from '../types';
 import PlacementPartner, {
   PARTNER_STAGES, PARTNER_STAGE_IDS, normalizeCompanyKey, PartnerStage, PartnerTier, PartnerPriority, FresherFit,
 } from '../models/PlacementPartner';
+import StudentProfile from '../models/StudentProfile';
+import User from '../models/User';
+import { createPartnerTask } from '../services/partnerTaskService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -113,6 +116,12 @@ export const moveStage = async (req: AuthenticatedRequest, res: Response) => {
       partner.stageHistory.push({ from: partner.stage, to: stage, at: new Date(), by: oid(uId(req)) });
       partner.stage = stage;
       await partner.save();
+      // Interested → remind me to match & send candidate profiles.
+      if (stage === 'interested') {
+        await createPartnerTask(partner, 'interested',
+          `🎯 ${partner.companyName} is interested — match students & send candidate profiles`,
+          { userId: uId(req) });
+      }
     }
     res.json({ success: true, message: 'Stage updated', data: partner });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
@@ -179,5 +188,85 @@ export const importPartners = async (req: AuthenticatedRequest, res: Response) =
     }
 
     res.json({ success: true, message: `Imported ${created} new, updated ${updated}`, data: { created, updated, skipped, total: rows.length, errors: errors.slice(0, 20) } });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+const DEFAULT_STACK = ['java', 'spring', 'springboot', 'react', 'sql', 'javascript', 'html', 'css', 'mysql', 'rest', 'api', 'node'];
+const tokenize = (s: string) => (s || '').toLowerCase().match(/[a-z0-9+#.]{2,}/g) || [];
+
+// GET /placement-partners/:id/match-students — rank available students by skill fit
+export const matchStudents = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const partner = await PlacementPartner.findOne({ _id: req.params.id, tenantId: oid(tId(req)) }).lean();
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+    const limit = Math.min(parseInt(String(req.query.limit || '12')), 50);
+
+    // Desired skills = outreach angle keywords + default Java full-stack stack.
+    const desired = Array.from(new Set([...tokenize(partner.outreachAngle || ''), ...DEFAULT_STACK]));
+
+    // "Available" = active students in this tenant not already placed via any partner.
+    const placed = await PlacementPartner.distinct('placement.studentId', { tenantId: oid(tId(req)), 'placement.studentId': { $ne: null } });
+    const placedSet = new Set(placed.map((p: any) => String(p)));
+
+    const profiles = await StudentProfile.find({ tenantId: oid(tId(req)) })
+      .select('userId technicalBackground').limit(1000).lean();
+
+    const userIds = profiles.map(p => p.userId);
+    const users = await User.find({ _id: { $in: userIds }, role: 'STUDENT', isActive: true })
+      .select('firstName lastName email').lean();
+    const userMap = new Map(users.map((u: any) => [String(u._id), u]));
+
+    const ranked = profiles
+      .map((p: any) => {
+        const u = userMap.get(String(p.userId));
+        if (!u || placedSet.has(String(p.userId))) return null;
+        const skills: string[] = [
+          ...(p.technicalBackground?.programmingLanguages || []),
+          ...(p.technicalBackground?.technologies || []),
+        ];
+        const skillTokens = new Set(skills.flatMap(tokenize));
+        const matched = desired.filter(d => skillTokens.has(d));
+        return {
+          studentId: String(p.userId),
+          name: `${u.firstName || ''} ${u.lastName || ''}`.trim(),
+          email: u.email,
+          experienceLevel: p.technicalBackground?.experienceLevel || '',
+          skills,
+          matchedSkills: matched,
+          score: matched.length,
+        };
+      })
+      .filter(Boolean)
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, limit);
+
+    res.json({ success: true, message: 'OK', data: ranked });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// POST /placement-partners/:id/candidates  { studentId }
+export const addCandidate = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { studentId } = req.body;
+    if (!studentId) return res.status(400).json({ success: false, message: 'studentId required' });
+    const partner = await PlacementPartner.findOne({ _id: req.params.id, tenantId: oid(tId(req)) });
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+    if (partner.candidates.some(c => String(c.studentId) === String(studentId)))
+      return res.json({ success: true, message: 'Already added', data: partner });
+    const u: any = await User.findOne({ _id: studentId, tenantId: oid(tId(req)) }).select('firstName lastName').lean();
+    partner.candidates.push({ studentId: oid(studentId), studentName: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() : '', addedAt: new Date(), addedBy: oid(uId(req)) });
+    await partner.save();
+    res.json({ success: true, message: 'Candidate added', data: partner });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// DELETE /placement-partners/:id/candidates/:studentId
+export const removeCandidate = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const partner = await PlacementPartner.findOne({ _id: req.params.id, tenantId: oid(tId(req)) });
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+    partner.candidates = partner.candidates.filter(c => String(c.studentId) !== String(req.params.studentId)) as any;
+    await partner.save();
+    res.json({ success: true, message: 'Candidate removed', data: partner });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };

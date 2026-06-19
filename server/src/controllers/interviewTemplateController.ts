@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import interviewTemplateService from '../services/interviewTemplateService';
 import * as settings from '../services/settingsService';
 import { synthesizeSpeech } from '../services/elevenLabsService';
+import * as did from '../services/didService';
 
 // Public-ish voice/avatar config for the live interview UI (no secrets exposed).
 export const getVoiceConfig = async (req: Request, res: Response) => {
@@ -452,6 +453,43 @@ export const saveAnswer = async (req: Request, res: Response) => {
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }
+};
+
+// ── D-ID Streams talking-head proxy (key stays server-side) ──────────────────
+export const didCreate = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const data = await did.createStream(tenantId);
+    res.json({ success: true, message: 'OK', data });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
+};
+export const didSdp = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const data = await did.sendSdp(tenantId, req.params.streamId, req.body.answer, req.body.sessionId);
+    res.json({ success: true, message: 'OK', data });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
+};
+export const didIce = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const data = await did.sendIce(tenantId, req.params.streamId, req.body.candidate, req.body.sessionId);
+    res.json({ success: true, message: 'OK', data });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
+};
+export const didTalk = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const data = await did.talk(tenantId, req.params.streamId, req.body.sessionId, req.body.text || '');
+    res.json({ success: true, message: 'OK', data });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
+};
+export const didClose = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    await did.closeStream(tenantId, req.params.streamId, req.body.sessionId);
+    res.json({ success: true, message: 'OK' });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
 };
 
 // Live conversational turn (real-time AI interview)

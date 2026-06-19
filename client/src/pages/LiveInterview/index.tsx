@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { studentInterviewApi } from '../../api/interviewModuleApi';
 import { useInterviewVoice } from '../../hooks/useInterviewVoice';
+import { DidAvatar } from './didAvatar';
 import './LiveInterview.css';
 
 type Phase = 'lobby' | 'connecting' | 'live' | 'ending' | 'ended' | 'error';
@@ -34,15 +35,22 @@ export default function LiveInterview() {
   const cfgRef = useRef(cfg);
   cfgRef.current = cfg;
 
+  // D-ID talking head
+  const [didActive, setDidActive] = useState(false);
+  const didActiveRef = useRef(false);
+  didActiveRef.current = didActive;
+  const didRef = useRef<DidAvatar | null>(null);
+  const interviewerVideoRef = useRef<HTMLVideoElement | null>(null);
+  const pendingEndRef = useRef<null | (() => void)>(null);
+
   // Browser-voice path
   const browserSpeak = useCallback((text: string, onEnd?: () => void) => {
     setAiSpeaking(true);
     voice.speak(text, () => { setAiSpeaking(false); onEnd?.(); });
   }, [voice]);
 
-  // Unified "interviewer speaks": natural ElevenLabs voice when configured, else browser TTS.
-  const say = useCallback((text: string, onEnd?: () => void) => {
-    setLine(text);
+  // Voice-only path: natural ElevenLabs audio when configured, else browser TTS.
+  const speakVoice = useCallback((text: string, onEnd?: () => void) => {
     if (cfgRef.current.voiceProvider !== 'elevenlabs') { browserSpeak(text, onEnd); return; }
     studentInterviewApi.ttsAudio(text).then(blob => {
       if (!blob) { browserSpeak(text, onEnd); return; }
@@ -56,6 +64,22 @@ export default function LiveInterview() {
       audio.play().catch(() => { done(); browserSpeak(text, onEnd); });
     }).catch(() => browserSpeak(text, onEnd));
   }, [browserSpeak]);
+
+  // Unified "interviewer speaks": D-ID talking head (voice+face) when active, else voice-only.
+  const say = useCallback((text: string, onEnd?: () => void) => {
+    setLine(text);
+    if (didActiveRef.current && didRef.current) {
+      pendingEndRef.current = onEnd || null;
+      setAiSpeaking(true);
+      didRef.current.talk(text).catch(() => {
+        pendingEndRef.current = null; setAiSpeaking(false);
+        setDidActive(false); didActiveRef.current = false;   // fall back permanently
+        speakVoice(text, onEnd);
+      });
+      return;
+    }
+    speakVoice(text, onEnd);
+  }, [speakVoice]);
 
   const stopSpeaking = useCallback(() => {
     voice.stopSpeaking();
@@ -118,6 +142,7 @@ export default function LiveInterview() {
     runningRef.current = false;
     setPhase('ending');
     stopSpeaking(); voice.stopListening();
+    didRef.current?.close(); didRef.current = null;
     try { await studentInterviewApi.submitAttempt(attemptRef.current); } catch { /* ignore */ }
     streamRef.current?.getTracks().forEach(t => t.stop());
     setPhase('ended');
@@ -134,6 +159,23 @@ export default function LiveInterview() {
       attemptRef.current = attempt._id || attempt.id;
       runningRef.current = true;
       setPhase('live');
+
+      // Bring up the D-ID talking head if configured (needs the live DOM mounted).
+      if (cfgRef.current.avatarProvider === 'did') {
+        await new Promise(r => setTimeout(r, 60));
+        if (interviewerVideoRef.current) {
+          try {
+            const av = new DidAvatar();
+            av.onSpeakStart = () => setAiSpeaking(true);
+            av.onSpeakEnd = () => {
+              setAiSpeaking(false);
+              const cb = pendingEndRef.current; pendingEndRef.current = null; cb?.();
+            };
+            await av.connect(interviewerVideoRef.current);
+            didRef.current = av; setDidActive(true); didActiveRef.current = true;
+          } catch { didRef.current = null; setDidActive(false); didActiveRef.current = false; }
+        }
+      }
       askNext(); // interviewer intro
     } catch (e: any) {
       setError(e?.message || 'Could not start the interview.');
@@ -153,6 +195,7 @@ export default function LiveInterview() {
   useEffect(() => () => {
     runningRef.current = false;
     stopSpeaking(); voice.stopListening();
+    didRef.current?.close(); didRef.current = null;
     streamRef.current?.getTracks().forEach(t => t.stop());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -206,16 +249,19 @@ export default function LiveInterview() {
       <div className="li-stage">
         {/* Interviewer */}
         <div className="li-tile">
-          <div className="li-avatar">
-            <div className={`li-face ${aiSpeaking ? 'speaking' : voice.listening ? 'listening' : ''}`}>
-              {cfg.avatarImageUrl ? <img src={cfg.avatarImageUrl} alt={cfg.interviewerName} /> : '🧑‍💼'}
+          <video ref={interviewerVideoRef} autoPlay playsInline className="li-interviewer-video" style={{ display: didActive ? 'block' : 'none' }} />
+          {!didActive && (
+            <div className="li-avatar">
+              <div className={`li-face ${aiSpeaking ? 'speaking' : voice.listening ? 'listening' : ''}`}>
+                {cfg.avatarImageUrl ? <img src={cfg.avatarImageUrl} alt={cfg.interviewerName} /> : '🧑‍💼'}
+              </div>
+              {aiSpeaking ? (
+                <div className="li-waves"><span /><span /><span /><span /><span /></div>
+              ) : (
+                <div className="li-state">{voice.listening ? 'Listening to your answer…' : 'Preparing the next question…'}</div>
+              )}
             </div>
-            {aiSpeaking ? (
-              <div className="li-waves"><span /><span /><span /><span /><span /></div>
-            ) : (
-              <div className="li-state">{voice.listening ? 'Listening to your answer…' : 'Preparing the next question…'}</div>
-            )}
-          </div>
+          )}
           <span className="label">{cfg.interviewerName || 'AI Interviewer'}</span>
         </div>
         {/* Candidate */}

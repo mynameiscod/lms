@@ -226,6 +226,17 @@ export const studentInterviewApi = {
     return await r.blob();
   },
 
+  // D-ID Streams talking-head proxy
+  didCreate: () => apiFetch(`${MODULE_URL}/voice/did/stream`, { method: 'POST', body: '{}' }),
+  didSdp: (streamId: string, answer: any, sessionId: string) =>
+    apiFetch(`${MODULE_URL}/voice/did/stream/${streamId}/sdp`, { method: 'POST', body: JSON.stringify({ answer, sessionId }) }),
+  didIce: (streamId: string, candidate: any, sessionId: string) =>
+    apiFetch(`${MODULE_URL}/voice/did/stream/${streamId}/ice`, { method: 'POST', body: JSON.stringify({ candidate, sessionId }) }),
+  didTalk: (streamId: string, sessionId: string, text: string) =>
+    apiFetch(`${MODULE_URL}/voice/did/stream/${streamId}/talk`, { method: 'POST', body: JSON.stringify({ sessionId, text }) }),
+  didClose: (streamId: string, sessionId: string) =>
+    apiFetch(`${MODULE_URL}/voice/did/stream/${streamId}/close`, { method: 'POST', body: JSON.stringify({ sessionId }) }),
+
   getAttempts: (params?: { templateId?: string; status?: string; page?: number; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params?.templateId) qs.append('templateId', params.templateId);

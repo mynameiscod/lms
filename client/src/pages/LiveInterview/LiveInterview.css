@@ -9,6 +9,7 @@
 .li-tile { position: relative; background: #111a2e; border: 1px solid #1e293b; border-radius: 16px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
 .li-tile .label { position: absolute; left: 12px; bottom: 12px; background: rgba(0,0,0,.5); padding: 3px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; }
 .li-tile video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+.li-interviewer-video { transform: none !important; }   /* interviewer face must not mirror */
 
 /* Interviewer avatar */
 .li-avatar { display: flex; flex-direction: column; align-items: center; gap: 14px; }

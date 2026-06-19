@@ -286,6 +286,13 @@ router.post(
 router.get('/voice/config', roleGuard(['attempt_interviews']), ctrl.getVoiceConfig);
 router.post('/voice/tts', roleGuard(['attempt_interviews']), ctrl.ttsSpeak);
 
+// D-ID Streams talking-head proxy
+router.post('/voice/did/stream', roleGuard(['attempt_interviews']), ctrl.didCreate);
+router.post('/voice/did/stream/:streamId/sdp', roleGuard(['attempt_interviews']), ctrl.didSdp);
+router.post('/voice/did/stream/:streamId/ice', roleGuard(['attempt_interviews']), ctrl.didIce);
+router.post('/voice/did/stream/:streamId/talk', roleGuard(['attempt_interviews']), ctrl.didTalk);
+router.post('/voice/did/stream/:streamId/close', roleGuard(['attempt_interviews']), ctrl.didClose);
+
 router.post(
   '/student/attempts/:attemptId/skip',
   roleGuard(['attempt_interviews']),

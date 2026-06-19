@@ -447,4 +447,58 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
   };
 }
 
-export default { isInterviewAIEnabled, evaluateAnswer, summarizeAttempt, generateQuestions, nextInterviewerTurn, CATEGORY_KEYS };
+// ─── 5. Evaluate a full conversational transcript → per-area scores + verdict ──
+
+export interface TranscriptEvalArea { title: string; type: string; }
+export interface TranscriptEvalResult {
+  overallPercentage: number;
+  overallFeedback: string;
+  topStrengths: string[];
+  topWeaknesses: string[];
+  recommendedPracticeAreas: string[];
+  readinessLevel: AISummaryResult['readinessLevel'];
+  areaScores: { title: string; percentage: number; feedback: string }[];
+  usage?: Usage;
+}
+
+export async function evaluateTranscript(input: {
+  role: string;
+  areas: TranscriptEvalArea[];
+  transcript: ConvTurn[];
+}): Promise<TranscriptEvalResult | null> {
+  if (!isInterviewAIEnabled()) return null;
+  const convo = input.transcript.map(t => `${t.role === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${t.text}`).join('\n').slice(0, 9000);
+  const areaList = input.areas.map(a => `${a.title} (${a.type})`).join(', ') || 'overall performance';
+
+  const system =
+    'You are a strict but fair senior interviewer grading a completed mock interview from its transcript. ' +
+    'Judge ONLY the candidate\'s answers. Be specific and actionable. Output ONLY raw JSON, no markdown.';
+  const user = [
+    `Role: ${input.role}.`,
+    `Assessment areas: ${areaList}.`,
+    '',
+    `Transcript:\n${convo}`,
+    '',
+    'Return ONLY this JSON:',
+    '{"overallPercentage":<0-100>,"overallFeedback":"<3-4 sentences to the candidate>","topStrengths":["..."],"topWeaknesses":["..."],"recommendedPracticeAreas":["..."],"readinessLevel":"not_ready|needs_improvement|almost_ready|interview_ready","areaScores":[{"title":"<one of the areas>","percentage":<0-100>,"feedback":"<1-2 sentences>"}]}',
+  ].join('\n');
+
+  const resp = await callClaudeJSON(system, user, 1200);
+  if (!resp || typeof resp.data !== 'object') return null;
+  const d = resp.data;
+  const readiness = String(d.readinessLevel || '').trim();
+  return {
+    overallPercentage: clamp(d.overallPercentage, 0, 100, 0),
+    overallFeedback: String(d.overallFeedback || '').slice(0, 1500),
+    topStrengths: strArr(d.topStrengths),
+    topWeaknesses: strArr(d.topWeaknesses),
+    recommendedPracticeAreas: strArr(d.recommendedPracticeAreas),
+    readinessLevel: (READINESS.has(readiness) ? readiness : 'needs_improvement') as AISummaryResult['readinessLevel'],
+    areaScores: Array.isArray(d.areaScores)
+      ? d.areaScores.map((a: any) => ({ title: String(a.title || ''), percentage: clamp(a.percentage, 0, 100, 0), feedback: String(a.feedback || '').slice(0, 600) }))
+      : [],
+    usage: resp.usage,
+  };
+}
+
+export default { isInterviewAIEnabled, evaluateAnswer, summarizeAttempt, generateQuestions, nextInterviewerTurn, evaluateTranscript, CATEGORY_KEYS };

@@ -16,7 +16,7 @@ export interface InterviewVoice {
   listening: boolean;
   transcript: string;
   error: string;
-  speak: (text: string) => void;
+  speak: (text: string, onEnd?: () => void) => void;
   stopSpeaking: () => void;
   startListening: () => void;
   stopListening: () => void;
@@ -44,17 +44,22 @@ export function useInterviewVoice(): InterviewVoice {
     setSpeaking(false);
   }, [synth]);
 
-  const speak = useCallback((text: string) => {
-    if (!synth || !text) return;
+  const speak = useCallback((text: string, onEnd?: () => void) => {
+    if (!synth || !text) { onEnd?.(); return; }
     try {
       synth.cancel();
       const u = new SpeechSynthesisUtterance(text);
       u.rate = 1; u.pitch = 1; u.lang = 'en-US';
+      // Prefer a natural-sounding English voice when available.
+      const voices = synth.getVoices?.() || [];
+      const preferred = voices.find(v => /Google US English|Samantha|Microsoft (Aria|Jenny|Zira)/i.test(v.name) && /en/i.test(v.lang))
+        || voices.find(v => /en-US/i.test(v.lang));
+      if (preferred) u.voice = preferred;
       u.onstart = () => setSpeaking(true);
-      u.onend = () => setSpeaking(false);
-      u.onerror = () => setSpeaking(false);
+      u.onend = () => { setSpeaking(false); onEnd?.(); };
+      u.onerror = () => { setSpeaking(false); onEnd?.(); };
       synth.speak(u);
-    } catch { setSpeaking(false); }
+    } catch { setSpeaking(false); onEnd?.(); }
   }, [synth]);
 
   const startListening = useCallback(() => {

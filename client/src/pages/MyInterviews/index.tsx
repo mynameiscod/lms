@@ -97,7 +97,7 @@ const MyInterviews: React.FC = () => {
                   <button
                     style={{ ...primaryBtn, opacity: a.attemptsUsed >= a.maxAttempts ? 0.5 : 1 }}
                     disabled={a.attemptsUsed >= a.maxAttempts}
-                    onClick={() => navigate(`/student/interviews/take/${a.templateId?._id || a.templateId}?assignmentId=${a._id}`)}
+                    onClick={() => navigate(`/student/interviews/live/${a.templateId?._id || a.templateId}?assignmentId=${a._id}`)}
                   >{a.status === 'in_progress' ? 'Resume →' : a.attemptsUsed > 0 ? 'Reattempt →' : 'Start →'}</button>
                 </div>
               </div>

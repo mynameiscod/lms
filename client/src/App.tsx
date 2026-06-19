@@ -70,6 +70,7 @@ import InterviewQBManagement from './pages/InterviewQBManagement';
 import InterviewAssignment from './pages/InterviewAssignment';
 import InterviewAnalytics from './pages/InterviewAnalytics';
 import TakeStructuredInterview from './pages/TakeStructuredInterview';
+import LiveInterview from './pages/LiveInterview';
 import InterviewFeedbackReport from './pages/InterviewFeedbackReport';
 
 // Assignment Pages
@@ -1051,6 +1052,15 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <TakeStructuredInterview />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+      {/* Live conversational AI interview — full-screen, no sidebar */}
+      <Route
+        path="/student/interviews/live/:templateId"
+        element={
+          <ProtectedRoute>
+            <LiveInterview />
           </ProtectedRoute>
         }
       />

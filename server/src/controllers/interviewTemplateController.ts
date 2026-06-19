@@ -372,13 +372,13 @@ export const startAttempt = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
     const userId = (req as any).userId;
-    const { templateId, assignmentId } = req.body;
+    const { templateId, assignmentId, mode } = req.body;
 
     if (!templateId) {
       return res.status(400).json({ success: false, message: 'templateId is required' });
     }
 
-    const attempt = await interviewTemplateService.startAttempt(templateId, userId, tenantId, assignmentId);
+    const attempt = await interviewTemplateService.startAttempt(templateId, userId, tenantId, assignmentId, mode === 'conversational' ? 'conversational' : 'structured');
     await respondStudentAttempt(res, attempt, 201);
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
@@ -412,6 +412,19 @@ export const saveAnswer = async (req: Request, res: Response) => {
     );
 
     await respondStudentAttempt(res, attempt);
+  } catch (error: any) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+// Live conversational turn (real-time AI interview)
+export const converse = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const userId = (req as any).userId;
+    const { lastAnswer } = req.body;
+    const turn = await interviewTemplateService.converseTurn(req.params.attemptId, tenantId, userId, lastAnswer);
+    res.json({ success: true, message: 'OK', data: turn });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message });
   }

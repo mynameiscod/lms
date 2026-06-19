@@ -201,10 +201,17 @@ export const studentInterviewApi = {
     return apiFetch(`${MODULE_URL}/student/assignments${qs}`);
   },
 
-  startAttempt: (templateId: string, assignmentId?: string) =>
+  startAttempt: (templateId: string, assignmentId?: string, mode?: 'structured' | 'conversational') =>
     apiFetch(`${MODULE_URL}/student/attempts/start`, {
       method: 'POST',
-      body: JSON.stringify({ templateId, assignmentId }),
+      body: JSON.stringify({ templateId, assignmentId, mode }),
+    }),
+
+  // Live conversational turn — send the candidate's last answer, get the interviewer's next line
+  converse: (attemptId: string, lastAnswer?: string) =>
+    apiFetch(`${MODULE_URL}/student/attempts/${attemptId}/converse`, {
+      method: 'POST',
+      body: JSON.stringify({ lastAnswer }),
     }),
 
   getAttempts: (params?: { templateId?: string; status?: string; page?: number; limit?: number }) => {

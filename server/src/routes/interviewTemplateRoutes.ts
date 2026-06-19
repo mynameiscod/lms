@@ -277,6 +277,12 @@ router.post(
 );
 
 router.post(
+  '/student/attempts/:attemptId/converse',
+  roleGuard(['attempt_interviews']),
+  ctrl.converse
+);
+
+router.post(
   '/student/attempts/:attemptId/skip',
   roleGuard(['attempt_interviews']),
   ctrl.skipQuestion

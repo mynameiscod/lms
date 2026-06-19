@@ -128,6 +128,8 @@ export interface IInterviewAttempt extends Document {
 
   // Section attempts
   sectionAttempts: ISectionAttempt[];
+  mode?: 'structured' | 'conversational';
+  conversation?: { role: 'interviewer' | 'candidate'; text: string; at?: Date }[];
   currentSectionIndex: number;
 
   // Overall Results
@@ -287,6 +289,10 @@ const InterviewAttemptSchema = new Schema<IInterviewAttempt>(
 
     sectionAttempts:     [SectionAttemptSchema],
     currentSectionIndex: { type: Number, default: 0 },
+
+    // Live conversational mode (real-time AI interview): full spoken transcript.
+    mode:          { type: String, enum: ['structured', 'conversational'], default: 'structured' },
+    conversation:  { type: [{ role: { type: String, enum: ['interviewer', 'candidate'] }, text: String, at: Date }], default: [] },
 
     overallScore:      { type: Number, default: 0 },
     overallMaxScore:   { type: Number, default: 0 },

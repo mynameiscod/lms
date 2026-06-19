@@ -6,6 +6,7 @@ import InterviewAssignment, { IInterviewAssignment } from '../models/InterviewAs
 import User from '../models/User';
 import { v4 as uuidv4 } from 'uuid';
 import * as interviewAI from './interviewAIService';
+import * as settings from './settingsService';
 
 // ─── Template Service ────────────────────────────────────────────────────────
 
@@ -434,7 +435,8 @@ class InterviewTemplateService {
     templateId: string,
     studentId: string,
     tenantId: string,
-    assignmentId?: string
+    assignmentId?: string,
+    mode: 'structured' | 'conversational' = 'structured'
   ): Promise<IInterviewAttempt> {
     const template = await InterviewTemplate.findOne({ _id: templateId, tenantId });
     if (!template) throw new Error('Interview template not found');
@@ -602,6 +604,7 @@ class InterviewTemplateService {
       sessionId: uuidv4(),
       sectionAttempts,
       currentSectionIndex: 0,
+      mode,
       overallMaxScore: sectionAttempts.reduce((sum, s) => sum + (s.maxScore || 0), 0),
     });
 
@@ -635,6 +638,79 @@ class InterviewTemplateService {
       { $set: update },
       { new: true }
     );
+  }
+
+  /**
+   * Live conversational turn: append the candidate's last answer (if any) to the
+   * transcript, then produce the interviewer's next spoken line. Drives the
+   * hands-free real-time AI interview.
+   */
+  async converseTurn(
+    attemptId: string, tenantId: string, studentId: string, lastAnswer?: string
+  ): Promise<{ say: string; kind: string; endInterview: boolean }> {
+    const attempt = await InterviewAttempt.findOne({ _id: attemptId, tenantId, studentId, status: 'in_progress' });
+    if (!attempt) throw new Error('Active attempt not found');
+    const template = await InterviewTemplate.findById(attempt.templateId);
+
+    attempt.conversation = attempt.conversation || [];
+    if (lastAnswer && lastAnswer.trim()) {
+      attempt.conversation.push({ role: 'candidate', text: lastAnswer.trim().slice(0, 4000), at: new Date() });
+    }
+
+    const areas = (template?.sections || []).map(s => s.sectionTitle).filter(Boolean);
+    const askedCount = attempt.conversation.filter(t => t.role === 'interviewer').length;
+    const maxQuestions = Math.max(5, Math.min(12, (template?.sections?.length || 3) * 2));
+    const startedAt = attempt.startedAt ? attempt.startedAt.getTime() : Date.now();
+    const totalSec = (template?.totalDuration || 20) * 60;
+    const timeLeftSeconds = Math.max(0, totalSec - (Date.now() - startedAt) / 1000);
+    const interviewerName = settings.getStr('INTERVIEW_INTERVIEWER_NAME', 'Maya', tenantId);
+
+    const turn = await interviewAI.nextInterviewerTurn({
+      interviewerName,
+      role: template?.title || 'this role',
+      areas,
+      history: attempt.conversation.map(t => ({ role: t.role, text: t.text })),
+      askedCount, maxQuestions, timeLeftSeconds,
+    });
+
+    attempt.conversation.push({ role: 'interviewer', text: turn.say, at: new Date() });
+    attempt.lastActiveAt = new Date();
+    attempt.markModified('conversation');
+    await attempt.save();
+
+    return { say: turn.say, kind: turn.kind, endInterview: turn.endInterview };
+  }
+
+  /** Score a finished conversational attempt from its transcript (fills section + overall). */
+  private async evaluateConversationalAttempt(attempt: IInterviewAttempt): Promise<void> {
+    const template = await InterviewTemplate.findById(attempt.templateId);
+    const areas = attempt.sectionAttempts.map(s => ({ title: s.sectionTitle, type: s.sectionType }));
+    const evalRes = await interviewAI.evaluateTranscript({
+      role: template?.title || 'this role',
+      areas,
+      transcript: (attempt.conversation || []).map(t => ({ role: t.role, text: t.text })),
+    });
+
+    for (const s of attempt.sectionAttempts) {
+      const match = evalRes?.areaScores.find(a => a.title.toLowerCase().trim() === s.sectionTitle.toLowerCase().trim());
+      const pct = match ? match.percentage : (evalRes?.overallPercentage ?? 0);
+      s.maxScore = 100;
+      s.totalScore = pct;
+      s.percentage = pct;
+      s.passed = pct >= (s.passingThreshold || 50);
+      s.status = 'completed';
+      s.completedAt = new Date();
+    }
+    if (evalRes) {
+      attempt.overallFeedback = evalRes.overallFeedback;
+      attempt.topStrengths = evalRes.topStrengths;
+      attempt.topWeaknesses = evalRes.topWeaknesses;
+      attempt.recommendedPracticeAreas = evalRes.recommendedPracticeAreas;
+      attempt.readinessLevel = evalRes.readinessLevel as IInterviewAttempt['readinessLevel'];
+    } else {
+      attempt.overallFeedback = 'Your interview has been recorded. Automated scoring was unavailable this time — an instructor can review your transcript.';
+    }
+    attempt.markModified('sectionAttempts');
   }
 
   async getAttempt(attemptId: string, tenantId: string): Promise<IInterviewAttempt | null> {
@@ -782,6 +858,11 @@ class InterviewTemplateService {
 
     if (!attempt) throw new Error('Active attempt not found');
 
+    // Conversational interviews are scored from the transcript, not per-question.
+    if (attempt.mode === 'conversational') {
+      await this.evaluateConversationalAttempt(attempt);
+    }
+
     // Auto-complete any in-progress sections
     for (const section of attempt.sectionAttempts) {
       if (section.status === 'in_progress' || section.status === 'not_started') {
@@ -832,8 +913,11 @@ class InterviewTemplateService {
       attempt.passStatus = 'fail';
     }
 
-    // Generate overall feedback (AI summary, deterministic fallback inside)
-    await this.aiGenerateOverallFeedback(attempt);
+    // Generate overall feedback (AI summary, deterministic fallback inside).
+    // Conversational attempts already have transcript-based feedback.
+    if (attempt.mode !== 'conversational') {
+      await this.aiGenerateOverallFeedback(attempt);
+    }
 
     attempt.status = 'submitted';
     attempt.submittedAt = new Date();

@@ -70,6 +70,7 @@ import leaveRequestRoutes from './leaveRequestRoutes';
 import playgroundRoutes from './playgroundRoutes';
 import resumeRoutes from './resumeRoutes';
 import careerProfileRoutes from './careerProfileRoutes';
+import placementPartnerRoutes from './placementPartnerRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
@@ -157,6 +158,7 @@ router.use('/interactive-lessons', interactiveLessonRoutes);
 // ─── Resume Builder ────────────────────────────────────────────────────────────
 router.use('/resume', resumeRoutes);
 router.use('/career-profile', careerProfileRoutes);
+router.use('/placement-partners', placementPartnerRoutes);
 router.use('/fees', feeRoutes);
 
 // ─── Scheduled Interviews ─────────────────────────────────────────────────────

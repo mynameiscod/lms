@@ -87,6 +87,7 @@ import ResumeBuilderPage from './pages/ResumeBuilder';
 import PublicResumeView from './pages/ResumeBuilder/PublicResumeView';
 import CareerProfilePage from './pages/CareerProfile';
 import CareerProfileAdmin from './pages/CareerProfile/Admin';
+import PartnerPipeline from './pages/PartnerPipeline';
 import FeesPage from './pages/Fees';
 import LeadsPage from './pages/Leads';
 import TeamActivity from './pages/TeamActivity';
@@ -942,6 +943,18 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <CareerProfileAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* ── Placement Partner Pipeline (Admin) ─── */}
+      <Route
+        path="/admin/partners"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF']}>
+            <Layout>
+              <PartnerPipeline />
             </Layout>
           </ProtectedRoute>
         }

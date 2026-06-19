@@ -33,7 +33,32 @@ export interface PlacementPartner {
   contactPhone?: string;
   contactLinkedin?: string;
   stage: PartnerStage;
+  outreach?: {
+    status: 'not_started' | 'in_sequence' | 'stopped' | 'replied' | 'bounced';
+    emailsSent: number;
+    lastEmailAt?: string;
+    repliedAt?: string;
+  };
   updatedAt?: string;
+}
+
+export type OutreachType = 'cold' | 'followup' | 'vouch' | 'candidate_profile';
+export type MessageStatus = 'queued' | 'pending_approval' | 'sending' | 'sent' | 'failed' | 'cancelled';
+export interface OutreachMessage {
+  _id: string;
+  partnerId: string;
+  companyName: string;
+  type: OutreachType;
+  status: MessageStatus;
+  requiresApproval: boolean;
+  toEmail: string;
+  toName: string;
+  subject: string;
+  body: string;
+  scheduledFor?: string;
+  sentAt?: string;
+  failedReason?: string;
+  createdAt: string;
 }
 
 export interface ImportResult { created: number; updated: number; skipped: number; total: number; errors: { row: number; reason: string }[]; }
@@ -47,6 +72,19 @@ export const placementPartnerApi = {
   update: (id: string, data: Partial<PlacementPartner>) => API.patch(`/placement-partners/${id}`, data),
   moveStage: (id: string, stage: PartnerStage) => API.patch(`/placement-partners/${id}/stage`, { stage }),
   remove: (id: string) => API.delete(`/placement-partners/${id}`),
+
+  // ── Outreach (Step 2) ──
+  startOutreach: (id: string) => API.post(`/placement-partners/${id}/start-outreach`),
+  startOutreachBulk: (ids: string[]) => API.post('/placement-partners/start-outreach', { ids }),
+  markReplied: (id: string, note?: string) => API.post(`/placement-partners/${id}/mark-replied`, { note }),
+  markBounced: (id: string, note?: string) => API.post(`/placement-partners/${id}/mark-bounced`, { note }),
+  draftVouch: (id: string) => API.post(`/placement-partners/${id}/draft-vouch`),
+  getMessages: (id: string) => API.get<{ data: OutreachMessage[] }>(`/placement-partners/${id}/messages`),
+  getQueue: (status = 'pending_approval') => API.get<{ data: OutreachMessage[] }>('/placement-partners/outreach/queue', { params: { status } }),
+  updateMessage: (mid: string, data: { subject?: string; body?: string }) => API.patch(`/placement-partners/outreach/messages/${mid}`, data),
+  approveMessage: (mid: string, data?: { subject?: string; body?: string }) => API.post(`/placement-partners/outreach/messages/${mid}/approve`, data || {}),
+  cancelMessage: (mid: string) => API.post(`/placement-partners/outreach/messages/${mid}/cancel`),
+
   import: (file: File) => {
     const fd = new FormData();
     fd.append('file', file);

@@ -6,6 +6,10 @@ import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
 } from '../controllers/placementPartnerController';
+import {
+  startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint,
+  getPartnerMessages, getQueue, updateMessage, approveMessage, cancelMessage,
+} from '../controllers/partnerOutreachController';
 
 const router = express.Router();
 
@@ -20,6 +24,13 @@ router.use(authMiddleware, tenantResolver, guard);
 // static routes before /:id
 router.get('/stages', getStages);
 router.post('/import', upload.single('file'), importPartners);
+router.post('/start-outreach', startOutreachBulk);
+
+// outreach queue + message actions (static prefix, before /:id)
+router.get('/outreach/queue', getQueue);
+router.patch('/outreach/messages/:mid', updateMessage);
+router.post('/outreach/messages/:mid/approve', approveMessage);
+router.post('/outreach/messages/:mid/cancel', cancelMessage);
 
 router.get('/', listPartners);
 router.post('/', createPartner);
@@ -27,5 +38,12 @@ router.get('/:id', getPartner);
 router.patch('/:id', updatePartner);
 router.patch('/:id/stage', moveStage);
 router.delete('/:id', deletePartner);
+
+// per-partner outreach actions
+router.get('/:id/messages', getPartnerMessages);
+router.post('/:id/start-outreach', startOutreach);
+router.post('/:id/mark-replied', markReplied);
+router.post('/:id/mark-bounced', markBounced);
+router.post('/:id/draft-vouch', draftVouchEndpoint);
 
 export default router;

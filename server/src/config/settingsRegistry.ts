@@ -33,6 +33,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'oauth',       label: 'OAuth Providers',  icon: '🔑', description: 'GitHub & LinkedIn OAuth apps used for student account connections and the code playground.' },
   { id: 'messaging',   label: 'Meta / WhatsApp',  icon: '💬', description: 'WhatsApp Cloud API + Meta Lead Ads webhook credentials.' },
   { id: 'integrations',label: 'Other Integrations', icon: '🔌', description: 'Google Ads webhook and payment (UPI) configuration.' },
+  { id: 'placement',   label: 'Placement Outreach', icon: '🤝', description: 'Daily send cap, gap between sends and sender name for the placement-partner outreach pipeline. Todoist token for hot-lead/check-in tasks.' },
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -83,6 +84,12 @@ export const SETTING_DEFS: SettingDef[] = [
   // ── Other Integrations ───────────────────────────────────────────────────────
   { key: 'GOOGLE_ADS_WEBHOOK_KEY', label: 'Google Ads Webhook Key', group: 'integrations', isSecret: true, type: 'password', help: 'Shared secret for the Google Ads lead webhook.' },
   { key: 'UPI_ID', label: 'UPI ID (payments)', group: 'integrations', type: 'text', placeholder: 'name@bank', perTenant: true },
+
+  // ── Placement Outreach ───────────────────────────────────────────────────────
+  { key: 'PARTNER_OUTREACH_DAILY_CAP', label: 'Daily Send Cap', group: 'placement', type: 'number', placeholder: '25', help: 'Max cold/follow-up outreach emails sent per day (per tenant). Protects sender reputation.', perTenant: true },
+  { key: 'PARTNER_OUTREACH_MIN_GAP_MINUTES', label: 'Minutes Between Sends', group: 'placement', type: 'number', placeholder: '20', help: 'Minimum gap between two outreach sends so they look human and spread out.', perTenant: true },
+  { key: 'PLACEMENT_SENDER_NAME', label: 'Outreach Sender Name', group: 'placement', type: 'text', placeholder: 'Siva — CodeBegun Placements', help: 'Signature name used in outreach emails. Falls back to the Email From name.', perTenant: true },
+  { key: 'TODOIST_API_TOKEN', label: 'Todoist API Token', group: 'placement', isSecret: true, type: 'password', help: 'Personal Todoist API token — used to create hot-lead and quarterly check-in tasks (later steps).', perTenant: true },
 ];
 
 export const SECRET_KEYS = new Set(SETTING_DEFS.filter(d => d.isSecret).map(d => d.key));

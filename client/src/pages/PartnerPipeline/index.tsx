@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage } from '../../api/placementPartnerApi';
 import './PartnerPipeline.css';
 
 const TIER_LABEL: Record<string, string> = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' };
+const OUT_LABEL: Record<string, string> = { in_sequence: 'In sequence', replied: 'Replied', bounced: 'Bounced', stopped: 'Stopped' };
 
 export default function PartnerPipeline() {
   const [stages, setStages] = useState<PartnerStageMeta[]>([]);
@@ -12,6 +13,9 @@ export default function PartnerPipeline() {
   const [filters, setFilters] = useState({ tier: '', priority: '', search: '' });
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showApprovals, setShowApprovals] = useState(false);
+  const [selected, setSelected] = useState<PlacementPartner | null>(null);
+  const [approvalCount, setApprovalCount] = useState(0);
 
   const dragRef = useRef<{ id: string; from: PartnerStage } | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
@@ -32,6 +36,11 @@ export default function PartnerPipeline() {
   }, [filters]);
 
   useEffect(() => { load(); }, [load]);
+
+  const refreshApprovalCount = useCallback(async () => {
+    try { const r = await api.getQueue('pending_approval'); setApprovalCount(r.data.data.length); } catch { /* ignore */ }
+  }, []);
+  useEffect(() => { refreshApprovalCount(); }, [refreshApprovalCount]);
 
   const handleDrop = async (to: PartnerStage) => {
     setDragOver(null);
@@ -58,6 +67,7 @@ export default function PartnerPipeline() {
         </div>
         <div className="pp-actions">
           <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={load} disabled={loading}>↻ Refresh</button>
+          <button className="pp-btn pp-btn-ghost" onClick={() => setShowApprovals(true)}>📥 Approvals{approvalCount > 0 ? ` (${approvalCount})` : ''}</button>
           <button className="pp-btn pp-btn-teal" onClick={() => setShowImport(true)}>⬆ Import CSV</button>
           <button className="pp-btn pp-btn-primary" onClick={() => setShowAdd(true)}>+ Add partner</button>
         </div>
@@ -93,7 +103,8 @@ export default function PartnerPipeline() {
                 <div className={`pp-drop ${dragOver === stage.id ? 'over' : ''}`}>
                   {cards.map(p => (
                     <div key={p._id} className={`pp-card prio-${p.priority}`} draggable
-                      onDragStart={() => { dragRef.current = { id: p._id, from: stage.id }; }}>
+                      onDragStart={() => { dragRef.current = { id: p._id, from: stage.id }; }}
+                      onClick={() => setSelected(p)}>
                       <div className="name">{p.companyName}</div>
                       {(p.contactName || p.contactEmail) && (
                         <div className="meta">{p.contactName}{p.contactName && p.contactEmail ? ' · ' : ''}{p.contactEmail}</div>
@@ -103,6 +114,11 @@ export default function PartnerPipeline() {
                         <span className={`pp-badge pp-${p.tier}`}>{TIER_LABEL[p.tier]}</span>
                         <span className={`pp-badge pp-fit ${p.fresherFit}`}>Fit: {p.fresherFit}</span>
                       </div>
+                      {p.outreach && p.outreach.status !== 'not_started' && (
+                        <span className={`pp-out ${p.outreach.status}`}>
+                          {OUT_LABEL[p.outreach.status]}{p.outreach.emailsSent ? ` · ${p.outreach.emailsSent} sent` : ''}
+                        </span>
+                      )}
                     </div>
                   ))}
                   {cards.length === 0 && <div className="pp-empty">Drop here</div>}
@@ -115,6 +131,142 @@ export default function PartnerPipeline() {
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onDone={() => load()} />}
+      {selected && (
+        <PartnerDrawer partner={selected} onClose={() => setSelected(null)}
+          onChanged={() => { load(); refreshApprovalCount(); }} />
+      )}
+      {showApprovals && (
+        <ApprovalsModal onClose={() => setShowApprovals(false)}
+          onChanged={() => { refreshApprovalCount(); load(); }} />
+      )}
+    </div>
+  );
+}
+
+// ── Partner detail drawer (actions + message timeline) ────────────────────────
+function PartnerDrawer({ partner, onClose, onChanged }: { partner: PlacementPartner; onClose: () => void; onChanged: () => void }) {
+  const [messages, setMessages] = useState<OutreachMessage[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
+  const out = partner.outreach?.status || 'not_started';
+
+  const loadMsgs = useCallback(async () => {
+    try { const r = await api.getMessages(partner._id); setMessages(r.data.data); } catch { /* ignore */ }
+  }, [partner._id]);
+  useEffect(() => { loadMsgs(); }, [loadMsgs]);
+
+  const act = async (fn: () => Promise<any>, ok: string) => {
+    setBusy(true); setMsg(null);
+    try { const r = await fn(); setMsg({ t: 'ok', m: r?.data?.message || ok }); await loadMsgs(); onChanged(); }
+    catch (e: any) { setMsg({ t: 'err', m: e?.response?.data?.message || 'Action failed' }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="pp-drawer-wrap">
+      <div className="pp-drawer-bg" onClick={onClose} />
+      <div className="pp-drawer">
+        <div className="pp-drawer-head">
+          <button className="pp-drawer-x" onClick={onClose}>×</button>
+          <h2>{partner.companyName}</h2>
+          <div className="meta">{partner.contactName || 'No contact name'} · {partner.contactEmail || 'no email'}</div>
+        </div>
+        <div className="pp-drawer-body">
+          {msg && <div className={`pp-banner ${msg.t}`}>{msg.m}</div>}
+
+          <div className="pp-act-row">
+            {(out === 'not_started') && (
+              <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={busy} onClick={() => act(() => api.startOutreach(partner._id), 'Outreach started')}>▶ Start outreach</button>
+            )}
+            <button className="pp-btn pp-btn-teal pp-btn-sm" disabled={busy} onClick={() => act(() => api.draftVouch(partner._id), 'Vouch drafted — see Approvals')}>✍ Draft vouch</button>
+            <button className="pp-btn pp-btn-ghost pp-btn-sm" disabled={busy} onClick={() => act(() => api.markReplied(partner._id), 'Marked replied')}>✓ Mark replied</button>
+            <button className="pp-btn pp-btn-ghost pp-btn-sm" disabled={busy} onClick={() => act(() => api.markBounced(partner._id), 'Marked bounced')}>⚠ Mark bounced</button>
+          </div>
+
+          <div className="pp-kv"><b>Tier:</b> {TIER_LABEL[partner.tier]} &nbsp; <b>Priority:</b> {partner.priority} &nbsp; <b>Fit:</b> {partner.fresherFit}</div>
+          <div className="pp-kv"><b>Outreach:</b> {OUT_LABEL[out] || 'Not started'}{partner.outreach?.emailsSent ? ` · ${partner.outreach.emailsSent} email(s) sent` : ''}</div>
+          {partner.outreachAngle && <div className="pp-kv"><b>Angle:</b> {partner.outreachAngle}</div>}
+          {partner.website && <div className="pp-kv"><b>Website:</b> {partner.website}</div>}
+          {partner.notes && <div className="pp-kv"><b>Notes:</b> {partner.notes}</div>}
+
+          <div className="pp-section-title">Message history</div>
+          {messages.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>No outreach yet.</div>
+          ) : messages.map(m => (
+            <div className="pp-msg" key={m._id}>
+              <div className="top">
+                <span className="pp-mtype">{m.type}</span>
+                <span className="subj">{m.subject}</span>
+                <span className={`pp-mstatus ${m.status}`}>{m.status.replace('_', ' ')}</span>
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                {m.sentAt ? `Sent ${new Date(m.sentAt).toLocaleString()}` : m.status === 'queued' ? 'Queued to send' : new Date(m.createdAt).toLocaleString()}
+                {m.failedReason ? ` · ${m.failedReason}` : ''}
+              </div>
+              <div className="bd">{m.body}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Approval queue (gated vouch / candidate-profile emails) ───────────────────
+function ApprovalsModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
+  const [items, setItems] = useState<OutreachMessage[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [edit, setEdit] = useState<Record<string, { subject: string; body: string }>>({});
+  const [busy, setBusy] = useState('');
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const r = await api.getQueue('pending_approval');
+      setItems(r.data.data);
+      const e: Record<string, { subject: string; body: string }> = {};
+      r.data.data.forEach(m => { e[m._id] = { subject: m.subject, body: m.body }; });
+      setEdit(e);
+    } finally { setLoading(false); }
+  }, []);
+  useEffect(() => { load(); }, [load]);
+
+  const approve = async (id: string) => {
+    setBusy(id);
+    try { await api.approveMessage(id, edit[id]); await load(); onChanged(); }
+    finally { setBusy(''); }
+  };
+  const discard = async (id: string) => {
+    setBusy(id);
+    try { await api.cancelMessage(id); await load(); onChanged(); }
+    finally { setBusy(''); }
+  };
+
+  return (
+    <div className="pp-overlay" onClick={onClose}>
+      <div className="pp-modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+        <h2>Approval queue — trust-point emails</h2>
+        <div className="pp-hint" style={{ marginTop: 0, marginBottom: 14 }}>
+          Vouch and candidate-profile emails are drafted by the system but never auto-sent. Review, edit if needed, then approve to send.
+        </div>
+        {loading ? <div className="pp-empty">Loading…</div> : items.length === 0 ? (
+          <div className="pp-empty">Nothing waiting for approval. 🎉</div>
+        ) : items.map(m => (
+          <div className="pp-msg pp-edit" key={m._id}>
+            <div className="top">
+              <span className="pp-mtype">{m.type}</span>
+              <span className="subj">{m.companyName} · {m.toEmail}</span>
+            </div>
+            <input value={edit[m._id]?.subject ?? ''} onChange={e => setEdit(s => ({ ...s, [m._id]: { ...s[m._id], subject: e.target.value } }))} placeholder="Subject" />
+            <textarea value={edit[m._id]?.body ?? ''} onChange={e => setEdit(s => ({ ...s, [m._id]: { ...s[m._id], body: e.target.value } }))} />
+            <div className="pp-modal-actions" style={{ marginTop: 0 }}>
+              <button className="pp-btn pp-btn-ghost pp-btn-sm" disabled={busy === m._id} onClick={() => discard(m._id)}>Discard</button>
+              <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={busy === m._id} onClick={() => approve(m._id)}>{busy === m._id ? 'Sending…' : 'Approve & send'}</button>
+            </div>
+          </div>
+        ))}
+        <div className="pp-modal-actions"><button className="pp-btn pp-btn-ghost" onClick={onClose}>Close</button></div>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,15 @@ import mongoose from 'mongoose';
 import CareerProfile from '../models/CareerProfile';
 import User from '../models/User';
 import StudentProfile from '../models/StudentProfile';
-import { reviewResume, reviewGithub, reviewLinkedin, parseGithubUsername } from '../services/careerReviewService';
+import { reviewResume, reviewGithub, reviewLinkedin, parseGithubUsername, regenerateSection } from '../services/careerReviewService';
+
+const PILLARS = ['resume', 'github', 'linkedin'];
+async function githubToken(studentId: string): Promise<string | undefined> {
+  try {
+    const sp: any = await StudentProfile.findOne({ userId: new mongoose.Types.ObjectId(studentId) }).select('+oauthConnections.github.accessToken').lean();
+    return sp?.oauthConnections?.github?.accessToken;
+  } catch { return undefined; }
+}
 
 const tenantId = (req: Request): string => (req as any).tenantId || (req as any).user?.tenantId || '';
 const userId = (req: Request): string => (req as any).user?.id || '';
@@ -50,12 +58,7 @@ export const runReview = async (req: Request, res: Response) => {
     const cp = await CareerProfile.findOne({ tenantId: oid(tId), studentId: oid(sId) });
     if (!cp) return res.status(404).json({ success: false, message: 'Profile not found' });
 
-    let ghToken: string | undefined;
-    try {
-      const sp: any = await StudentProfile.findOne({ userId: oid(sId) }).select('+oauthConnections.github.accessToken').lean();
-      ghToken = sp?.oauthConnections?.github?.accessToken;
-    } catch { /* public API fallback */ }
-
+    const ghToken = await githubToken(sId);
     const tr = cp.targetRole || '';
     const [r1, r2, r3] = await Promise.allSettled([
       reviewResume(tr, sId, tId),
@@ -80,6 +83,7 @@ export const runReview = async (req: Request, res: Response) => {
       cp.linkedin = { score: 0, issues: [{ area: 'LinkedIn', problem: 'Review failed', fix: String((r3 as any).reason?.message || r3.reason), severity: 'high' }], improved: {}, reviewedAt: new Date() } as any;
     }
 
+    cp.markModified('resume'); cp.markModified('github'); cp.markModified('linkedin');
     cp.status = cp.status === 'completed' ? 'completed' : 'submitted';
     cp.lastReviewRunAt = new Date();
     await cp.save();
@@ -114,8 +118,43 @@ export const updatePillar = async (req: Request, res: Response) => {
     if (!['resume', 'github', 'linkedin'].includes(pillar)) return res.status(400).json({ success: false, message: 'Bad pillar' });
     const cp = await CareerProfile.findOne({ _id: req.params.id, tenantId: oid(tenantId(req)) });
     if (!cp) return res.status(404).json({ success: false, message: 'Not found' });
-    if (req.body.improved !== undefined) (cp as any)[pillar].improved = req.body.improved;
+    if (req.body.improved !== undefined) { (cp as any)[pillar].improved = req.body.improved; cp.markModified(`${pillar}.improved`); }
     await cp.save();
+    res.json({ success: true, data: cp });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// ── Phase 2: regenerate a single section (student = own profile, admin = by id) ─
+async function doRegenSection(cp: any, pillar: string, section: string, useToken: boolean) {
+  const ghToken = useToken ? await githubToken(cp.studentId.toString()) : undefined;
+  const value = await regenerateSection(pillar as any, section, {
+    targetRole: cp.targetRole || '', studentId: cp.studentId.toString(), tenantId: cp.tenantId.toString(),
+    githubUsername: cp.githubUsername, githubToken: ghToken, linkedinPasted: cp.linkedinPasted || '',
+    currentImproved: cp[pillar]?.improved || {},
+  });
+  cp[pillar].improved = { ...(cp[pillar].improved || {}), [section]: value };
+  cp.markModified(`${pillar}.improved`);
+  await cp.save();
+}
+
+export const regenerateMySection = async (req: Request, res: Response) => {
+  try {
+    const { pillar, section } = req.params;
+    if (!PILLARS.includes(pillar)) return res.status(400).json({ success: false, message: 'Bad pillar' });
+    const cp = await CareerProfile.findOne({ tenantId: oid(tenantId(req)), studentId: oid(userId(req)) });
+    if (!cp) return res.status(404).json({ success: false, message: 'Not found' });
+    await doRegenSection(cp, pillar, section, true);
+    res.json({ success: true, data: cp });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+export const regenerateSectionAdmin = async (req: Request, res: Response) => {
+  try {
+    const { pillar, section } = req.params;
+    if (!PILLARS.includes(pillar)) return res.status(400).json({ success: false, message: 'Bad pillar' });
+    const cp = await CareerProfile.findOne({ _id: req.params.id, tenantId: oid(tenantId(req)) });
+    if (!cp) return res.status(404).json({ success: false, message: 'Not found' });
+    await doRegenSection(cp, pillar, section, true);
     res.json({ success: true, data: cp });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };
@@ -130,7 +169,7 @@ export const regeneratePillar = async (req: Request, res: Response) => {
     if (pillar === 'resume') out = await reviewResume(tr, cp.studentId.toString(), cp.tenantId.toString());
     else if (pillar === 'github') out = cp.githubUsername ? await reviewGithub(tr, cp.githubUsername) : null;
     else out = await reviewLinkedin(tr, cp.linkedinPasted || '');
-    if (out) (cp as any)[pillar] = { score: out.score, issues: out.issues, improved: out.improved, reviewedAt: new Date() };
+    if (out) { (cp as any)[pillar] = { score: out.score, issues: out.issues, improved: out.improved, reviewedAt: new Date() }; cp.markModified(pillar); }
     await cp.save();
     res.json({ success: true, data: cp });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }

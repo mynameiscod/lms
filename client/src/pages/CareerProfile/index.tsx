@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { careerProfileApi, CareerProfile, Pillar } from '../../api/careerProfileApi';
-import { ScoreCards, IssuesList, ImprovedView, PILLAR_LABEL } from './parts';
+import { ScoreCards, IssuesList, ImprovedView, PILLAR_LABEL, buildMarkdown, downloadMarkdown } from './parts';
 import './CareerProfile.css';
 
 const TARGET_ROLES = [
@@ -16,6 +16,7 @@ export default function CareerProfilePage() {
   const [running, setRunning] = useState(false);
   const [msg, setMsg] = useState<{ t: 'err' | 'ok' | 'info'; m: string } | null>(null);
   const [tab, setTab] = useState<Pillar>('resume');
+  const [regen, setRegen] = useState<string>('');
 
   // form fields
   const [targetRole, setTargetRole] = useState('');
@@ -59,6 +60,22 @@ export default function CareerProfilePage() {
     } catch (e: any) {
       setMsg({ t: 'err', m: e?.response?.data?.message || 'Review failed' });
     } finally { setRunning(false); }
+  };
+
+  const regenerateSection = async (key: string) => {
+    setRegen(key); setMsg(null);
+    try {
+      const { data } = await careerProfileApi.regenerateMySection(tab, key);
+      setCp(data.data);
+    } catch (e: any) {
+      setMsg({ t: 'err', m: e?.response?.data?.message || 'Regenerate failed' });
+    } finally { setRegen(''); }
+  };
+
+  const exportMd = () => {
+    if (!cp) return;
+    downloadMarkdown(`career-profile-${(cp.studentName || 'me').replace(/\s+/g, '-')}.md`,
+      buildMarkdown({ studentName: cp.studentName, targetRole: cp.targetRole, resume: cp.resume, github: cp.github, linkedin: cp.linkedin }));
   };
 
   if (loading) return <div className="cp-wrap"><div className="cp-empty">Loading…</div></div>;
@@ -135,8 +152,11 @@ export default function CareerProfilePage() {
           </div>
 
           <div className="cp-card">
-            <h2>3 · Detailed feedback & improved content</h2>
-            <div className="cp-tabs">
+            <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+              <h2 style={{ margin: 0 }}>3 · Detailed feedback & improved content</h2>
+              <button className="cp-btn cp-btn-ghost cp-btn-sm" style={{ marginLeft: 'auto' }} onClick={exportMd}>⬇ Download .md</button>
+            </div>
+            <div className="cp-tabs" style={{ marginTop: 14 }}>
               {(['resume', 'github', 'linkedin'] as Pillar[]).map(p => (
                 <button key={p} className={`cp-tab ${tab === p ? 'active' : ''}`} onClick={() => setTab(p)}>
                   {PILLAR_LABEL[p]} · {cp[p]?.score || 0}
@@ -150,8 +170,8 @@ export default function CareerProfilePage() {
                   <IssuesList issues={active.issues} />
                 </div>
                 <div>
-                  <p className="cp-subhead">AI-improved (ready to use)</p>
-                  <ImprovedView improved={active.improved} />
+                  <p className="cp-subhead">AI-improved (ready to use) — hover a block to ↻ redo just that part</p>
+                  <ImprovedView improved={active.improved} onRegenerate={regenerateSection} regenerating={regen} />
                 </div>
               </div>
             )}

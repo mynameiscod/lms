@@ -56,6 +56,31 @@ export async function fetchGithub(username: string, token?: string): Promise<{ u
   return { user, repos };
 }
 
+// Fetch a repo's README as raw markdown (best-effort).
+async function fetchReadme(owner: string, repo: string, token?: string): Promise<string> {
+  try {
+    const headers: any = { Accept: 'application/vnd.github.raw+json', 'User-Agent': 'codebegun-career-builder' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/readme`, { headers });
+    if (!r.ok) return '';
+    return (await r.text()).slice(0, 1500);
+  } catch { return ''; }
+}
+
+// Summarise a GitHub account into job-readiness stats (used to ground the AI).
+function githubStats(repos: any[]) {
+  const owned = (repos || []).filter((r: any) => !r.fork);
+  const languages: Record<string, number> = {};
+  owned.forEach((r: any) => { if (r.language) languages[r.language] = (languages[r.language] || 0) + 1; });
+  const lastPush = owned.map((r: any) => r.pushed_at).filter(Boolean).sort().slice(-1)[0] || null;
+  return {
+    ownedRepos: owned.length,
+    withDescription: owned.filter((r: any) => r.description).length,
+    totalStars: owned.reduce((s: number, r: any) => s + (r.stargazers_count || 0), 0),
+    languages, lastPush, owned,
+  };
+}
+
 // ── Pillar reviews ────────────────────────────────────────────────────────────
 
 export async function reviewResume(targetRole: string, studentId: string, tenantId: string) {
@@ -79,13 +104,30 @@ export async function reviewResume(targetRole: string, studentId: string, tenant
 
 export async function reviewGithub(targetRole: string, username: string, token?: string) {
   const { user, repos } = await fetchGithub(username, token);
-  const repoSummary = (repos || []).slice(0, 30).map((r: any) => ({
+  const stats = githubStats(repos);
+  // Phase 2 deep-dive: pull READMEs for the top repos so suggestions are grounded.
+  const top = [...stats.owned].sort((a: any, b: any) => (b.stargazers_count || 0) - (a.stargazers_count || 0)).slice(0, 5);
+  const readmes = await Promise.all(top.map(async (r: any) => ({
+    name: r.name, hasReadme: false as boolean, readme: await fetchReadme(user.login, r.name, token),
+  })));
+  readmes.forEach(rd => { rd.hasReadme = !!rd.readme; });
+  const repoSummary = stats.owned.slice(0, 30).map((r: any) => ({
     name: r.name, description: r.description || '', language: r.language || '', stars: r.stargazers_count || 0,
-    topics: r.topics || [], hasDescription: !!r.description, fork: !!r.fork,
+    topics: r.topics || [], hasDescription: !!r.description, pushedAt: r.pushed_at,
   }));
-  const sys = 'You are a senior engineer reviewing a candidate\'s GitHub for job-readiness. Output ONLY raw JSON.';
-  const usr = `Target role: ${targetRole || 'software engineer'}\n\nProfile: name=${user.name || ''} bio="${user.bio || ''}" publicRepos=${user.public_repos} followers=${user.followers}\n\nRepos:\n${JSON.stringify(repoSummary)}\n\nReturn JSON exactly:\n{"score":<0-100 for the target role>,"issues":[{"area":"","problem":"","fix":"","severity":"high|medium|low"}],"improved":{"bio":"<improved GitHub bio>","profileReadme":"<a strong profile README in markdown>","repoSuggestions":[{"repo":"","newDescription":"","newName":""}],"activityTips":["..."]}}`;
-  const ai = await callAIJSON(sys, usr);
+  const sys = 'You are a senior engineer reviewing a candidate\'s GitHub for job-readiness. Be specific and ground every suggestion in the actual repos/READMEs provided. Output ONLY raw JSON.';
+  const usr = `Target role: ${targetRole || 'software engineer'}
+
+Profile: name=${user.name || ''} bio="${user.bio || ''}" publicRepos=${user.public_repos} followers=${user.followers}
+Stats: ownedRepos=${stats.ownedRepos} withDescription=${stats.withDescription} totalStars=${stats.totalStars} lastPush=${stats.lastPush} languages=${JSON.stringify(stats.languages)}
+
+Repos:\n${JSON.stringify(repoSummary)}
+
+Top repo READMEs (truncated; empty = repo has NO README):\n${JSON.stringify(readmes)}
+
+Return JSON exactly:
+{"score":<0-100 for the target role>,"issues":[{"area":"","problem":"","fix":"","severity":"high|medium|low"}],"improved":{"bio":"<improved GitHub bio>","profileReadme":"<a strong profile README in markdown for the special username/username repo>","repoSuggestions":[{"repo":"","newDescription":"","newName":"","readmeTips":"<concrete README improvements for this repo>"}],"activityTips":["<contribution/commit-activity advice based on lastPush & repo count>"],"postIdeas":["<2 'build in public' ideas to showcase these repos>"]}}`;
+  const ai = await callAIJSON(sys, usr, 2600);
   return {
     score: typeof ai.score === 'number' ? ai.score : 0,
     issues: Array.isArray(ai.issues) ? ai.issues : [],
@@ -106,4 +148,36 @@ export async function reviewLinkedin(targetRole: string, pasted: string) {
     issues: Array.isArray(ai.issues) ? ai.issues : [],
     improved: ai.improved || {},
   };
+}
+
+// ── Phase 2: regenerate a single section of one pillar's improved content ──────
+export interface RegenCtx {
+  targetRole: string;
+  studentId: string;
+  tenantId: string;
+  githubUsername?: string;
+  githubToken?: string;
+  linkedinPasted?: string;
+  currentImproved?: any;
+}
+
+export async function regenerateSection(pillar: 'resume' | 'github' | 'linkedin', section: string, ctx: RegenCtx): Promise<any> {
+  let source = '';
+  if (pillar === 'resume') {
+    const resume = await Resume.findOne({ userId: new mongoose.Types.ObjectId(ctx.studentId), tenantId: new mongoose.Types.ObjectId(ctx.tenantId) }).sort({ updatedAt: -1 }).lean();
+    source = JSON.stringify(resume?.sections || {}).slice(0, 5000);
+  } else if (pillar === 'github') {
+    if (ctx.githubUsername) {
+      const { user, repos } = await fetchGithub(ctx.githubUsername, ctx.githubToken);
+      const summary = (repos || []).filter((r: any) => !r.fork).slice(0, 20).map((r: any) => ({ name: r.name, description: r.description, language: r.language, stars: r.stargazers_count }));
+      source = JSON.stringify({ name: user.name, bio: user.bio, repos: summary }).slice(0, 5000);
+    }
+  } else {
+    source = (ctx.linkedinPasted || '').slice(0, 5000);
+  }
+  const current = ctx.currentImproved?.[section];
+  const sys = 'You regenerate ONE section of a candidate career profile. Match the data type of the current value (string or array of strings/objects). Output ONLY raw JSON.';
+  const usr = `Target role: ${ctx.targetRole || 'software engineer'}\nPillar: ${pillar}\nSection to regenerate: "${section}"\n\nSource context:\n${source}\n\nCurrent value:\n${JSON.stringify(current ?? '')}\n\nReturn JSON exactly: {"value": <a fresh, improved value for this section, same type as the current value>}`;
+  const ai = await callAIJSON(sys, usr, 1400);
+  return ai.value;
 }

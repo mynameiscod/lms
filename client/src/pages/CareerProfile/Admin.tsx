@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { careerProfileApi, CareerProfile, Pillar } from '../../api/careerProfileApi';
-import { ScoreCards, IssuesList, ImprovedView, PILLAR_LABEL } from './parts';
+import { ScoreCards, IssuesList, ImprovedView, PILLAR_LABEL, buildMarkdown, downloadMarkdown } from './parts';
 import './CareerProfile.css';
 
 const STATUSES = ['draft', 'submitted', 'in_review', 'reviewed', 'completed'];
@@ -94,9 +94,25 @@ function Editor({ profile, onBack, onChange }: { profile: CareerProfile; onBack:
   const [notes, setNotes] = useState(profile.reviewerNotes || '');
   const [status, setStatus] = useState(profile.status);
   const [busy, setBusy] = useState(false);
+  const [regen, setRegen] = useState('');
   const [msg, setMsg] = useState<{ t: 'err' | 'ok'; m: string } | null>(null);
 
   const switchTab = (p: Pillar) => { setTab(p); setDraft(JSON.stringify(profile[p]?.improved || {}, null, 2)); };
+
+  const regenerateSection = async (key: string) => {
+    setRegen(key); setMsg(null);
+    try {
+      const { data } = await careerProfileApi.regenerateSection(profile._id, tab, key);
+      onChange(data.data);
+      setDraft(JSON.stringify(data.data[tab]?.improved || {}, null, 2));
+    } catch (e: any) {
+      setMsg({ t: 'err', m: e?.response?.data?.message || 'Regenerate failed' });
+    } finally { setRegen(''); }
+  };
+
+  const exportMd = () => downloadMarkdown(
+    `career-profile-${(profile.studentName || 'student').replace(/\s+/g, '-')}.md`,
+    buildMarkdown({ studentName: profile.studentName, targetRole: profile.targetRole, resume: profile.resume, github: profile.github, linkedin: profile.linkedin }));
 
   const savePillar = async () => {
     setBusy(true); setMsg(null);
@@ -137,7 +153,10 @@ function Editor({ profile, onBack, onChange }: { profile: CareerProfile; onBack:
 
   return (
     <div className="cp-wrap" style={{ maxWidth: 1200 }}>
-      <button className="cp-btn cp-btn-ghost cp-btn-sm" onClick={onBack} style={{ marginBottom: 14 }}>← Back to list</button>
+      <div className="cp-row" style={{ marginBottom: 14, justifyContent: 'space-between' }}>
+        <button className="cp-btn cp-btn-ghost cp-btn-sm" onClick={onBack}>← Back to list</button>
+        <button className="cp-btn cp-btn-ghost cp-btn-sm" onClick={exportMd}>⬇ Download .md</button>
+      </div>
 
       <div className="cp-head">
         <h1>{profile.studentName || 'Student'}</h1>
@@ -161,8 +180,8 @@ function Editor({ profile, onBack, onChange }: { profile: CareerProfile; onBack:
           <div>
             <p className="cp-subhead">Issues</p>
             <IssuesList issues={active?.issues || []} />
-            <p className="cp-subhead" style={{ marginTop: 18 }}>Current AI-improved preview</p>
-            <ImprovedView improved={active?.improved} />
+            <p className="cp-subhead" style={{ marginTop: 18 }}>Current AI-improved preview — ↻ redo a single section</p>
+            <ImprovedView improved={active?.improved} onRegenerate={regenerateSection} regenerating={regen} />
           </div>
           <div>
             <p className="cp-subhead">Edit improved content (JSON)</p>

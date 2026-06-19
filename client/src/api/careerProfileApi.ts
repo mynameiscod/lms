@@ -42,6 +42,8 @@ export const careerProfileApi = {
   updateMy: (data: Partial<Pick<CareerProfile, 'targetRole' | 'githubUrl' | 'linkedinUrl' | 'linkedinPasted'>>) =>
     API.put('/career-profile/my', data),
   runReview: () => API.post('/career-profile/my/review'),
+  regenerateMySection: (pillar: Pillar, section: string) =>
+    API.post(`/career-profile/my/pillar/${pillar}/section/${encodeURIComponent(section)}/regenerate`),
 
   // Admin / trainer
   list: (params?: { status?: string; batchId?: string; search?: string }) =>
@@ -53,4 +55,6 @@ export const careerProfileApi = {
     API.patch(`/career-profile/${id}/pillar/${pillar}`, { improved }),
   regeneratePillar: (id: string, pillar: Pillar) =>
     API.post(`/career-profile/${id}/pillar/${pillar}/regenerate`),
+  regenerateSection: (id: string, pillar: Pillar, section: string) =>
+    API.post(`/career-profile/${id}/pillar/${pillar}/section/${encodeURIComponent(section)}/regenerate`),
 };

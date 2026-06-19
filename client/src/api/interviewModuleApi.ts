@@ -214,6 +214,18 @@ export const studentInterviewApi = {
       body: JSON.stringify({ lastAnswer }),
     }),
 
+  // Voice/avatar config for the live UI (provider, interviewer name, avatar image)
+  voiceConfig: () => apiFetch(`${MODULE_URL}/voice/config`),
+
+  // Natural-voice TTS → audio Blob, or null when not configured (caller uses browser voice)
+  ttsAudio: async (text: string): Promise<Blob | null> => {
+    const r = await fetch(`${MODULE_URL}/voice/tts`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ text }),
+    });
+    if (r.status === 204 || !r.ok) return null;
+    return await r.blob();
+  },
+
   getAttempts: (params?: { templateId?: string; status?: string; page?: number; limit?: number }) => {
     const qs = new URLSearchParams();
     if (params?.templateId) qs.append('templateId', params.templateId);

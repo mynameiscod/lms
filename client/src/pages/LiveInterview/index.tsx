@@ -20,6 +20,9 @@ export default function LiveInterview() {
   const [captionsOn, setCaptionsOn] = useState(true);
   const [muted, setMuted] = useState(false);
   const [typed, setTyped] = useState('');
+  const [aiSpeaking, setAiSpeaking] = useState(false);
+  const [cfg, setCfg] = useState<{ voiceProvider: string; avatarProvider: string; interviewerName: string; avatarImageUrl: string }>(
+    { voiceProvider: 'browser', avatarProvider: 'animated', interviewerName: 'AI Interviewer', avatarImageUrl: '' });
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -27,6 +30,38 @@ export default function LiveInterview() {
   const runningRef = useRef(false);
   const silenceTimer = useRef<any>(null);
   const lastTranscriptRef = useRef('');
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const cfgRef = useRef(cfg);
+  cfgRef.current = cfg;
+
+  // Browser-voice path
+  const browserSpeak = useCallback((text: string, onEnd?: () => void) => {
+    setAiSpeaking(true);
+    voice.speak(text, () => { setAiSpeaking(false); onEnd?.(); });
+  }, [voice]);
+
+  // Unified "interviewer speaks": natural ElevenLabs voice when configured, else browser TTS.
+  const say = useCallback((text: string, onEnd?: () => void) => {
+    setLine(text);
+    if (cfgRef.current.voiceProvider !== 'elevenlabs') { browserSpeak(text, onEnd); return; }
+    studentInterviewApi.ttsAudio(text).then(blob => {
+      if (!blob) { browserSpeak(text, onEnd); return; }
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      setAiSpeaking(true);
+      const done = () => { setAiSpeaking(false); URL.revokeObjectURL(url); };
+      audio.onended = () => { done(); onEnd?.(); };
+      audio.onerror = () => { done(); browserSpeak(text, onEnd); };
+      audio.play().catch(() => { done(); browserSpeak(text, onEnd); });
+    }).catch(() => browserSpeak(text, onEnd));
+  }, [browserSpeak]);
+
+  const stopSpeaking = useCallback(() => {
+    voice.stopSpeaking();
+    if (audioRef.current) { try { audioRef.current.pause(); } catch { /* ignore */ } audioRef.current = null; }
+    setAiSpeaking(false);
+  }, [voice]);
 
   // ── camera self-view ──
   const startCamera = useCallback(async () => {
@@ -43,15 +78,15 @@ export default function LiveInterview() {
     try {
       const res: any = await studentInterviewApi.converse(attemptRef.current, lastAnswer);
       const data = res?.data || res;
-      const say: string = data.say || '';
-      setLine(say);
+      const say0: string = data.say || '';
+      setLine(say0);
       if (data.endInterview) {
         // Let the closing line play, then finish.
-        voice.speak(say, () => finish());
+        say(say0, () => finish());
         return;
       }
       // Speak the question, then auto-listen for the answer.
-      voice.speak(say, () => {
+      say(say0, () => {
         if (!runningRef.current || muted) return;
         voice.resetTranscript();
         lastTranscriptRef.current = '';
@@ -82,17 +117,18 @@ export default function LiveInterview() {
   const finish = useCallback(async () => {
     runningRef.current = false;
     setPhase('ending');
-    voice.stopSpeaking(); voice.stopListening();
+    stopSpeaking(); voice.stopListening();
     try { await studentInterviewApi.submitAttempt(attemptRef.current); } catch { /* ignore */ }
     streamRef.current?.getTracks().forEach(t => t.stop());
     setPhase('ended');
     setTimeout(() => navigate(`/student/interviews/report/${attemptRef.current}`), 1800);
-  }, [navigate, voice]);
+  }, [navigate, voice, stopSpeaking]);
 
   const startCall = useCallback(async () => {
     setPhase('connecting'); setError('');
     try {
       await startCamera();
+      try { const c: any = await studentInterviewApi.voiceConfig(); if (c?.data) { setCfg(c.data); cfgRef.current = c.data; } } catch { /* defaults */ }
       const res: any = await studentInterviewApi.startAttempt(templateId!, assignmentId, 'conversational');
       const attempt = res?.data || res;
       attemptRef.current = attempt._id || attempt.id;
@@ -116,7 +152,7 @@ export default function LiveInterview() {
 
   useEffect(() => () => {
     runningRef.current = false;
-    voice.stopSpeaking(); voice.stopListening();
+    stopSpeaking(); voice.stopListening();
     streamRef.current?.getTracks().forEach(t => t.stop());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -164,21 +200,23 @@ export default function LiveInterview() {
       <div className="li-top">
         <span className="dot" />
         <span className="title">AI Mock Interview · Live</span>
-        <span className="timer">{voice.speaking ? 'Interviewer speaking…' : voice.listening ? '🎤 Listening…' : 'Thinking…'}</span>
+        <span className="timer">{aiSpeaking ? 'Interviewer speaking…' : voice.listening ? '🎤 Listening…' : 'Thinking…'}</span>
       </div>
 
       <div className="li-stage">
         {/* Interviewer */}
         <div className="li-tile">
           <div className="li-avatar">
-            <div className={`li-face ${voice.speaking ? 'speaking' : voice.listening ? 'listening' : ''}`}>🧑‍💼</div>
-            {voice.speaking ? (
+            <div className={`li-face ${aiSpeaking ? 'speaking' : voice.listening ? 'listening' : ''}`}>
+              {cfg.avatarImageUrl ? <img src={cfg.avatarImageUrl} alt={cfg.interviewerName} /> : '🧑‍💼'}
+            </div>
+            {aiSpeaking ? (
               <div className="li-waves"><span /><span /><span /><span /><span /></div>
             ) : (
               <div className="li-state">{voice.listening ? 'Listening to your answer…' : 'Preparing the next question…'}</div>
             )}
           </div>
-          <span className="label">AI Interviewer</span>
+          <span className="label">{cfg.interviewerName || 'AI Interviewer'}</span>
         </div>
         {/* Candidate */}
         <div className="li-tile">
@@ -209,7 +247,7 @@ export default function LiveInterview() {
           setMuted(m => {
             const next = !m;
             if (next) voice.stopListening();
-            else if (!voice.speaking) { voice.resetTranscript(); lastTranscriptRef.current = ''; voice.startListening(); }
+            else if (!aiSpeaking) { voice.resetTranscript(); lastTranscriptRef.current = ''; voice.startListening(); }
             return next;
           });
         }}>{muted ? '🔇 Mic off' : '🎤 Mic on'}</button>

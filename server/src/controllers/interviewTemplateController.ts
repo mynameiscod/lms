@@ -1,5 +1,42 @@
 import { Request, Response } from 'express';
 import interviewTemplateService from '../services/interviewTemplateService';
+import * as settings from '../services/settingsService';
+import { synthesizeSpeech } from '../services/elevenLabsService';
+
+// Public-ish voice/avatar config for the live interview UI (no secrets exposed).
+export const getVoiceConfig = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const voiceProvider = settings.getStr('INTERVIEW_VOICE_PROVIDER', 'browser', tenantId);
+    const avatarProvider = settings.getStr('INTERVIEW_AVATAR_PROVIDER', 'animated', tenantId);
+    res.json({
+      success: true, message: 'OK', data: {
+        voiceProvider: voiceProvider === 'elevenlabs' && settings.getStr('ELEVENLABS_API_KEY', '', tenantId) ? 'elevenlabs' : 'browser',
+        avatarProvider: avatarProvider === 'did' && settings.getStr('DID_API_KEY', '', tenantId) ? 'did' : 'animated',
+        interviewerName: settings.getStr('INTERVIEW_INTERVIEWER_NAME', 'Maya', tenantId),
+        avatarImageUrl: settings.getStr('INTERVIEW_AVATAR_IMAGE_URL', '', tenantId),
+      },
+    });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Natural-voice TTS proxy → MP3 audio (ElevenLabs). 204 when not configured (client uses browser voice).
+export const ttsSpeak = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const text = (req.body?.text || '').toString();
+    if (!text.trim()) return res.status(400).json({ success: false, message: 'text is required' });
+    const audio = await synthesizeSpeech(text, tenantId);
+    if (!audio) return res.status(204).end();
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(audio);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
 
 // Template fields the take page needs (no answer keys here)
 const STUDENT_TEMPLATE_FIELDS = 'title description interviewCategories totalDuration sectionNavigationMode blockMultipleTabs allowResume showResultImmediately recordVideo videoFallback';

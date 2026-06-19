@@ -282,6 +282,10 @@ router.post(
   ctrl.converse
 );
 
+// Live interview voice (natural TTS) + config
+router.get('/voice/config', roleGuard(['attempt_interviews']), ctrl.getVoiceConfig);
+router.post('/voice/tts', roleGuard(['attempt_interviews']), ctrl.ttsSpeak);
+
 router.post(
   '/student/attempts/:attemptId/skip',
   roleGuard(['attempt_interviews']),

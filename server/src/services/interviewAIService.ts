@@ -379,4 +379,72 @@ export async function generateQuestions(spec: QGenSpec): Promise<any[]> {
   return out;
 }
 
-export default { isInterviewAIEnabled, evaluateAnswer, summarizeAttempt, generateQuestions, CATEGORY_KEYS };
+// ─── 4. Live conversational interviewer (drives the real-time AI interview) ──
+
+export interface ConvTurn { role: 'interviewer' | 'candidate'; text: string; }
+export interface NextTurnInput {
+  interviewerName: string;
+  role: string;                         // e.g. "Java Full Stack Developer"
+  areas: string[];                      // topics to cover (from template sections)
+  history: ConvTurn[];                  // full conversation so far
+  askedCount: number;                   // interviewer questions asked so far
+  maxQuestions: number;                 // soft budget
+  timeLeftSeconds?: number;
+}
+export interface NextTurnResult {
+  say: string;
+  kind: 'intro' | 'question' | 'followup' | 'transition' | 'closing';
+  endInterview: boolean;
+  usage?: Usage;
+}
+
+/**
+ * Produce the interviewer's next spoken line for a live interview. Uses the
+ * candidate's last answer to ask a natural follow-up when valuable, otherwise
+ * moves to the next area. Returns a short, conversational, spoken-style line.
+ * Falls back to a sensible scripted line if AI is unavailable.
+ */
+export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTurnResult> {
+  const { interviewerName, role, areas, history, askedCount, maxQuestions, timeLeftSeconds } = input;
+  const nearEnd = askedCount >= maxQuestions || (timeLeftSeconds !== undefined && timeLeftSeconds <= 30);
+
+  if (!isInterviewAIEnabled()) {
+    // Scripted fallback so the interview still flows without AI.
+    if (history.length === 0) return { say: `Hi, I'm ${interviewerName}. Thanks for joining — tell me a bit about yourself and what you've been working on.`, kind: 'intro', endInterview: false };
+    if (nearEnd) return { say: `That's all I had — thanks for your time today. We'll share your feedback shortly.`, kind: 'closing', endInterview: true };
+    const topic = areas[Math.min(askedCount, areas.length - 1)] || 'your experience';
+    return { say: `Thanks. Let's talk about ${topic} — walk me through how you'd approach it.`, kind: 'question', endInterview: false };
+  }
+
+  const transcript = history.slice(-12).map(t => `${t.role === 'interviewer' ? interviewerName : 'Candidate'}: ${t.text}`).join('\n');
+  const system =
+    `You are ${interviewerName}, a warm but professional interviewer running a LIVE spoken mock interview for a ${role} role. ` +
+    `Speak like a real person on a video call: ONE short turn at a time (1–2 sentences), natural and conversational, no markdown, no lists. ` +
+    `Use the candidate's last answer — if it's worth probing, ask a specific follow-up; otherwise acknowledge briefly and move to the next area. ` +
+    `Cover these areas over the interview: ${areas.join(', ') || 'background, technical skills, problem solving'}. ` +
+    `Ask only one question per turn. Output ONLY raw JSON.`;
+  const user = [
+    `Interviewer questions asked so far: ${askedCount} (aim for about ${maxQuestions}).`,
+    timeLeftSeconds !== undefined ? `Time left: ~${Math.round(timeLeftSeconds / 60)} min.` : '',
+    nearEnd ? 'You are near the end — wrap up warmly after this.' : '',
+    history.length === 0 ? 'The interview is just starting — greet the candidate by introducing yourself and ask an opening question.' : '',
+    '',
+    `Conversation so far:\n${transcript || '(none yet)'}`,
+    '',
+    'Return ONLY this JSON: {"say":"<your next spoken line>","kind":"intro|question|followup|transition|closing","endInterview":<true|false>}',
+  ].filter(Boolean).join('\n');
+
+  const resp = await callClaudeJSON(system, user, 400);
+  if (!resp || typeof resp.data !== 'object' || !resp.data.say) {
+    return { say: nearEnd ? 'Thanks for your time today — that wraps up our interview.' : 'Thanks. Can you tell me more about that?', kind: nearEnd ? 'closing' : 'followup', endInterview: nearEnd };
+  }
+  const kind = ['intro', 'question', 'followup', 'transition', 'closing'].includes(resp.data.kind) ? resp.data.kind : 'question';
+  return {
+    say: String(resp.data.say).slice(0, 600),
+    kind,
+    endInterview: !!resp.data.endInterview || kind === 'closing',
+    usage: resp.usage,
+  };
+}
+
+export default { isInterviewAIEnabled, evaluateAnswer, summarizeAttempt, generateQuestions, nextInterviewerTurn, CATEGORY_KEYS };

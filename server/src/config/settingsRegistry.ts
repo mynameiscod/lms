@@ -34,6 +34,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'messaging',   label: 'Meta / WhatsApp',  icon: '💬', description: 'WhatsApp Cloud API + Meta Lead Ads webhook credentials.' },
   { id: 'integrations',label: 'Other Integrations', icon: '🔌', description: 'Google Ads webhook and payment (UPI) configuration.' },
   { id: 'placement',   label: 'Placement Outreach', icon: '🤝', description: 'Daily send cap, gap between sends and sender name for the placement-partner outreach pipeline. Todoist token for hot-lead/check-in tasks.' },
+  { id: 'interview',   label: 'AI Interview', icon: '🎙️', description: 'Realistic AI mock interviews — natural voice (ElevenLabs) and a talking-head interviewer (D-ID). Leave blank to use the free browser voice + animated avatar.' },
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -95,6 +96,15 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'PLACEMENT_GUARANTEE_DAYS', label: 'Placement Guarantee (days)', group: 'placement', type: 'number', placeholder: '90', help: 'Guarantee window after a placement; you are alerted before it expires.', perTenant: true },
   { key: 'PLACEMENT_CHECKIN_DAYS', label: 'Retention Check-in (days)', group: 'placement', type: 'number', placeholder: '90', help: 'How often to remind you to check in with an active partner.', perTenant: true },
   { key: 'PLACEMENT_FEE_PERCENT', label: 'Placement Fee (% of CTC)', group: 'placement', type: 'number', placeholder: '8.33', help: 'Used to estimate revenue in analytics (e.g. 8.33 ≈ one month salary).', perTenant: true },
+
+  // ── AI Interview ─────────────────────────────────────────────────────────────
+  { key: 'INTERVIEW_VOICE_PROVIDER', label: 'Interviewer Voice', group: 'interview', type: 'select', options: ['browser', 'elevenlabs'], placeholder: 'browser', help: 'browser = free robotic voice; elevenlabs = natural human voice (needs key below).', perTenant: true },
+  { key: 'ELEVENLABS_API_KEY', label: 'ElevenLabs API Key', group: 'interview', isSecret: true, type: 'password', placeholder: 'sk_...', help: 'ElevenLabs → Profile → API key. Powers the natural interviewer voice.', perTenant: true },
+  { key: 'ELEVENLABS_VOICE_ID', label: 'ElevenLabs Voice ID', group: 'interview', type: 'text', placeholder: 'EXAVITQu4vr4xnSDxMaL', help: 'ElevenLabs → Voices → copy a voice ID (e.g. a warm professional voice).', perTenant: true },
+  { key: 'INTERVIEW_AVATAR_PROVIDER', label: 'Interviewer Face', group: 'interview', type: 'select', options: ['animated', 'did'], placeholder: 'animated', help: 'animated = free avatar tile that animates while speaking; did = D-ID real-time talking head (needs key below).', perTenant: true },
+  { key: 'DID_API_KEY', label: 'D-ID API Key', group: 'interview', isSecret: true, type: 'password', placeholder: 'basic ...', help: 'D-ID → Studio → API. Powers the real-time talking-head interviewer.', perTenant: true },
+  { key: 'INTERVIEW_AVATAR_IMAGE_URL', label: 'Interviewer Avatar Image URL', group: 'interview', type: 'text', placeholder: 'https://.../interviewer.jpg', help: 'A professional headshot used as the talking-head presenter (and the avatar tile).', perTenant: true },
+  { key: 'INTERVIEW_INTERVIEWER_NAME', label: 'Interviewer Name', group: 'interview', type: 'text', placeholder: 'Maya', help: 'The persona name the AI introduces itself as.', perTenant: true },
 ];
 
 export const SECRET_KEYS = new Set(SETTING_DEFS.filter(d => d.isSecret).map(d => d.key));

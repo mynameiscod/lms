@@ -5,10 +5,10 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
-  matchStudents, addCandidate, removeCandidate,
+  matchStudents, addCandidate, removeCandidate, candidatePdf, scheduleInterview,
 } from '../controllers/placementPartnerController';
 import {
-  startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint,
+  startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint, draftCandidateProfilesEndpoint,
   getPartnerMessages, getQueue, updateMessage, approveMessage, cancelMessage,
 } from '../controllers/partnerOutreachController';
 
@@ -51,5 +51,10 @@ router.post('/:id/draft-vouch', draftVouchEndpoint);
 router.get('/:id/match-students', matchStudents);
 router.post('/:id/candidates', addCandidate);
 router.delete('/:id/candidates/:studentId', removeCandidate);
+
+// candidate profiles + interview scheduling (Step 4)
+router.post('/:id/draft-candidate-profiles', draftCandidateProfilesEndpoint);
+router.get('/:id/candidate-pdf/:studentId', candidatePdf);
+router.post('/:id/schedule-interview', scheduleInterview);
 
 export default router;

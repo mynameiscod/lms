@@ -79,7 +79,7 @@ export class EmailService {
     }
   }
 
-  private async sendViaBrevoApi(to: string, subject: string, htmlContent: string, textContent: string): Promise<void> {
+  private async sendViaBrevoApi(to: string, subject: string, htmlContent: string, textContent: string, attachments?: { filename: string; content: Buffer }[]): Promise<void> {
     const fromRaw = this.cfg('EMAIL_FROM');
     const fromEmail = fromRaw.match(/<(.+)>/)?.[1] || this.cfg('EMAIL_USER');
     const fromName = fromRaw.match(/^([^<]+)/)?.[1]?.trim() || 'CodeBegun';
@@ -101,7 +101,10 @@ export class EmailService {
         to: [{ email: to }],
         subject: subject,
         htmlContent: htmlContent,
-        textContent: textContent
+        textContent: textContent,
+        ...(attachments && attachments.length
+          ? { attachment: attachments.map(a => ({ name: a.filename, content: a.content.toString('base64') })) }
+          : {}),
       })
     });
 
@@ -171,12 +174,12 @@ export class EmailService {
     }
   }
 
-  // Generic email sender — used for fee receipts / reminders
-  async sendGenericEmail(email: string, subject: string, htmlContent: string, textContent?: string): Promise<boolean> {
+  // Generic email sender — used for fee receipts / reminders / outreach (optional attachments)
+  async sendGenericEmail(email: string, subject: string, htmlContent: string, textContent?: string, attachments?: { filename: string; content: Buffer }[]): Promise<boolean> {
     const text = textContent || htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     try {
       if (this.useBrevoApi) {
-        await this.sendViaBrevoApi(email, subject, htmlContent, text);
+        await this.sendViaBrevoApi(email, subject, htmlContent, text, attachments);
       } else {
         await this.transporter!.sendMail({
           from: this.fromHeader(),
@@ -184,6 +187,7 @@ export class EmailService {
           subject,
           html: htmlContent,
           text,
+          ...(attachments && attachments.length ? { attachments: attachments.map(a => ({ filename: a.filename, content: a.content })) } : {}),
         });
       }
       return true;

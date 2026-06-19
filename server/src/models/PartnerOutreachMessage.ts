@@ -23,6 +23,7 @@ export interface IPartnerOutreachMessage extends Document {
   subject: string;
   body: string;                   // plain text (wrapped in minimal HTML on send)
   sequenceStep: number;           // 0 = cold, 1.. = follow-ups
+  candidateIds: mongoose.Types.ObjectId[]; // for type 'candidate_profile' — PDFs generated at send
   scheduledFor?: Date;
   sentAt?: Date;
   failedReason?: string;
@@ -46,6 +47,7 @@ const schema = new Schema<IPartnerOutreachMessage>(
     subject:     { type: String, default: '' },
     body:        { type: String, default: '' },
     sequenceStep:{ type: Number, default: 0 },
+    candidateIds:{ type: [Schema.Types.ObjectId], ref: 'User', default: [] },
     scheduledFor:{ type: Date },
     sentAt:      { type: Date },
     failedReason:{ type: String },

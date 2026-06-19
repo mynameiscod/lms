@@ -9,6 +9,8 @@ import PlacementPartner, {
 import StudentProfile from '../models/StudentProfile';
 import User from '../models/User';
 import { createPartnerTask } from '../services/partnerTaskService';
+import { generateOnePager } from '../services/candidateProfilePdf';
+import { EmailService } from '../services/emailService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -268,5 +270,55 @@ export const removeCandidate = async (req: AuthenticatedRequest, res: Response) 
     partner.candidates = partner.candidates.filter(c => String(c.studentId) !== String(req.params.studentId)) as any;
     await partner.save();
     res.json({ success: true, message: 'Candidate removed', data: partner });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// GET /placement-partners/:id/candidate-pdf/:studentId — preview/download one-pager
+export const candidatePdf = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const partner = await PlacementPartner.findOne({ _id: req.params.id, tenantId: oid(tId(req)) }).lean();
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+    const pdf = await generateOnePager(req.params.studentId, tId(req));
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `inline; filename="${pdf.fileName}"`);
+    res.send(pdf.buffer);
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// POST /placement-partners/:id/schedule-interview
+export const scheduleInterview = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { scheduledAt, mode, candidateNames, notes, notifyCompany } = req.body;
+    if (!scheduledAt) return res.status(400).json({ success: false, message: 'scheduledAt is required' });
+    const partner = await PlacementPartner.findOne({ _id: req.params.id, tenantId: oid(tId(req)) });
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+
+    const names: string[] = Array.isArray(candidateNames) && candidateNames.length
+      ? candidateNames : partner.candidates.map(c => c.studentName).filter(Boolean);
+    partner.interviews.push({ scheduledAt: new Date(scheduledAt), mode: mode || 'Online', candidateNames: names, notes, createdAt: new Date(), createdBy: oid(uId(req)) });
+
+    if (partner.stage !== 'placed' && partner.stage !== 'interviewing') {
+      partner.stageHistory.push({ from: partner.stage, to: 'interviewing', at: new Date(), by: oid(uId(req)) });
+      partner.stage = 'interviewing';
+    }
+    await partner.save();
+
+    const when = new Date(scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    // Reminder for me the day of the interview.
+    await createPartnerTask(partner, 'manual', `🗓 Interview with ${partner.companyName} — ${when}`, { userId: uId(req) });
+
+    // Optional logistics email to the company (not a trust point → sent directly).
+    if (notifyCompany && partner.contactEmail) {
+      const fn = (partner.contactName || '').trim().split(/\s+/)[0] || 'there';
+      const html = `<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.6;color:#1f2937">
+        <p>Hi ${fn},</p>
+        <p>Confirming the interview${names.length ? ` for ${names.join(', ')}` : ''}:</p>
+        <p><b>When:</b> ${when}<br/><b>Mode:</b> ${mode || 'Online'}${notes ? `<br/><b>Notes:</b> ${notes}` : ''}</p>
+        <p>Please let me know if you'd like to reschedule. Thank you!</p>
+        <p>— CodeBegun Placements</p></div>`;
+      await new EmailService(tId(req)).sendGenericEmail(partner.contactEmail, `Interview confirmation — ${partner.companyName}`, html);
+    }
+
+    res.json({ success: true, message: 'Interview scheduled', data: partner });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };

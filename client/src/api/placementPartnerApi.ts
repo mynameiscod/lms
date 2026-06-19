@@ -40,6 +40,7 @@ export interface PlacementPartner {
     repliedAt?: string;
   };
   candidates?: { studentId: string; studentName: string; addedAt?: string }[];
+  interviews?: { scheduledAt: string; mode: string; candidateNames: string[]; notes?: string; createdAt?: string }[];
   updatedAt?: string;
 }
 
@@ -100,6 +101,12 @@ export const placementPartnerApi = {
   matchStudents: (id: string) => API.get<{ data: MatchedStudent[] }>(`/placement-partners/${id}/match-students`),
   addCandidate: (id: string, studentId: string) => API.post(`/placement-partners/${id}/candidates`, { studentId }),
   removeCandidate: (id: string, studentId: string) => API.delete(`/placement-partners/${id}/candidates/${studentId}`),
+
+  // ── Candidate profiles + interviews (Step 4) ──
+  draftCandidateProfiles: (id: string) => API.post(`/placement-partners/${id}/draft-candidate-profiles`),
+  candidatePdf: (id: string, studentId: string) => API.get(`/placement-partners/${id}/candidate-pdf/${studentId}`, { responseType: 'blob' }),
+  scheduleInterview: (id: string, data: { scheduledAt: string; mode?: string; candidateNames?: string[]; notes?: string; notifyCompany?: boolean }) =>
+    API.post(`/placement-partners/${id}/schedule-interview`, data),
 
   import: (file: File) => {
     const fd = new FormData();

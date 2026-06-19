@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import PlacementPartner from '../models/PlacementPartner';
 import PartnerOutreachMessage from '../models/PartnerOutreachMessage';
-import { startSequence, draftVouch, stopSequence, deliverMessage } from '../services/partnerOutreachService';
+import { startSequence, draftVouch, draftCandidateProfiles, stopSequence, deliverMessage } from '../services/partnerOutreachService';
 import { createPartnerTask } from '../services/partnerTaskService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
@@ -80,6 +80,16 @@ export const draftVouchEndpoint = async (req: AuthenticatedRequest, res: Respons
     const msg = await draftVouch(partner, uId(req));
     res.status(201).json({ success: true, message: 'Vouch email drafted — review it in the approval queue', data: msg });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// POST /placement-partners/:id/draft-candidate-profiles
+export const draftCandidateProfilesEndpoint = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const partner = await findPartner(req);
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+    const msg = await draftCandidateProfiles(partner, uId(req));
+    res.status(201).json({ success: true, message: 'Candidate-profile email drafted — review & approve to send', data: msg });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
 };
 
 // GET /placement-partners/:id/messages — timeline for one partner

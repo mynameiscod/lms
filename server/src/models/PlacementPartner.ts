@@ -81,6 +81,9 @@ export interface IPlacementPartner extends Document {
   // Students put forward to this company (Step 3 matching → Step 4 profile send).
   candidates: { studentId: mongoose.Types.ObjectId; studentName: string; addedAt: Date; addedBy?: mongoose.Types.ObjectId }[];
 
+  // Scheduled interviews (Step 4).
+  interviews: { scheduledAt: Date; mode: string; candidateNames: string[]; notes?: string; createdAt: Date; createdBy?: mongoose.Types.ObjectId }[];
+
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -130,6 +133,7 @@ const PlacementPartnerSchema = new Schema<IPlacementPartner>(
       guaranteeEndsAt: Date,
     },
     candidates: { type: [{ studentId: { type: Schema.Types.ObjectId, ref: 'User' }, studentName: String, addedAt: Date, addedBy: { type: Schema.Types.ObjectId, ref: 'User' } }], default: [] },
+    interviews: { type: [{ scheduledAt: Date, mode: String, candidateNames: [String], notes: String, createdAt: Date, createdBy: { type: Schema.Types.ObjectId, ref: 'User' } }], default: [] },
 
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

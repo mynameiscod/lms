@@ -4,6 +4,7 @@ import PartnerOutreachMessage, { IPartnerOutreachMessage } from '../models/Partn
 import { EmailService } from './emailService';
 import * as settings from './settingsService';
 import { coldEmail, vouchEmail, followupEmail, toHtml } from './outreachTemplates';
+import { generateOnePager } from './candidateProfilePdf';
 
 const DEFAULT_DAILY_CAP = 25;
 const DEFAULT_MIN_GAP_MIN = 20;
@@ -57,6 +58,36 @@ export async function startSequence(partner: IPlacementPartner, userId: string):
   await partner.save();
 
   return { ok: true, held: missingName, reason: missingName ? 'Contact name missing — held for review' : undefined, message };
+}
+
+/** Draft the candidate-profile email (PDFs attached at send) — always held for approval. */
+export async function draftCandidateProfiles(partner: IPlacementPartner, userId: string): Promise<IPartnerOutreachMessage> {
+  if (!partner.candidates?.length) throw new Error('No candidates selected for this partner');
+  if (!partner.contactEmail) throw new Error('No contact email to send to');
+  const fn = (partner.contactName || '').trim().split(/\s+/)[0] || 'there';
+  const names = partner.candidates.map(c => c.studentName).filter(Boolean);
+  const sender = senderName(partner.tenantId.toString());
+  const body =
+`Hi ${fn},
+
+As discussed, please find attached the profiles of ${names.length === 1 ? 'a candidate' : `${names.length} candidates`} I'd recommend for ${partner.companyName}:
+
+${names.map(n => `• ${n}`).join('\n')}
+
+Each has been trained and screened by us on Java, Spring Boot, React and SQL, with real project work. Happy to set up interviews at your convenience.
+
+Warm regards,
+${sender}
+CodeBegun — Java Full Stack Training & Placements, Hyderabad`;
+
+  return PartnerOutreachMessage.create({
+    tenantId: partner.tenantId, partnerId: partner._id, companyName: partner.companyName,
+    type: 'candidate_profile', status: 'pending_approval', requiresApproval: true,
+    toEmail: partner.contactEmail, toName: partner.contactName || '',
+    subject: `Candidate profiles for ${partner.companyName} — CodeBegun`,
+    body, candidateIds: partner.candidates.map(c => c.studentId),
+    createdBy: new mongoose.Types.ObjectId(userId),
+  });
 }
 
 /** Draft the personal vouch email — always held for approval. */
@@ -140,7 +171,20 @@ export async function deliverMessage(messageId: mongoose.Types.ObjectId | string
 
   const tenantId = msg.tenantId.toString();
   try {
-    const ok = await new EmailService(tenantId).sendGenericEmail(msg.toEmail, msg.subject, toHtml(msg.body), msg.body);
+    // For candidate-profile emails, generate one-pager PDFs fresh at send time.
+    let attachments: { filename: string; content: Buffer }[] | undefined;
+    if (msg.type === 'candidate_profile' && msg.candidateIds?.length) {
+      attachments = [];
+      for (const sid of msg.candidateIds) {
+        try {
+          const pdf = await generateOnePager(sid.toString(), tenantId);
+          attachments.push({ filename: pdf.fileName, content: pdf.buffer });
+        } catch (e: any) {
+          console.error('[OUTREACH] one-pager failed for', sid.toString(), e?.message);
+        }
+      }
+    }
+    const ok = await new EmailService(tenantId).sendGenericEmail(msg.toEmail, msg.subject, toHtml(msg.body), msg.body, attachments);
     if (!ok) throw new Error('Email transport returned false');
 
     msg.status = 'sent';

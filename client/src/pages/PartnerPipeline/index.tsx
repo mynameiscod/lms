@@ -165,6 +165,21 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
   const removeCandidate = async (sid: string) => {
     try { const r = await api.removeCandidate(partner._id, sid); setPartner(r.data.data); onChanged(); } catch { /* ignore */ }
   };
+  const previewPdf = async (sid: string) => {
+    try { const r = await api.candidatePdf(partner._id, sid); window.open(URL.createObjectURL(r.data as Blob), '_blank'); }
+    catch { setMsg({ t: 'err', m: 'Could not load PDF' }); }
+  };
+  const [iv, setIv] = useState({ scheduledAt: '', mode: 'Online', notes: '', notify: true });
+  const scheduleInterview = async () => {
+    if (!iv.scheduledAt) { setMsg({ t: 'err', m: 'Pick a date & time' }); return; }
+    setBusy(true); setMsg(null);
+    try {
+      const r = await api.scheduleInterview(partner._id, { scheduledAt: iv.scheduledAt, mode: iv.mode, notes: iv.notes, notifyCompany: iv.notify });
+      setPartner(r.data.data); setIv({ scheduledAt: '', mode: 'Online', notes: '', notify: true });
+      setMsg({ t: 'ok', m: 'Interview scheduled' }); onChanged();
+    } catch (e: any) { setMsg({ t: 'err', m: e?.response?.data?.message || 'Failed' }); }
+    finally { setBusy(false); }
+  };
 
   const loadMsgs = useCallback(async () => {
     try { const r = await api.getMessages(partner._id); setMessages(r.data.data); } catch { /* ignore */ }
@@ -213,12 +228,21 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
           </div>
           {(partner.candidates || []).length === 0 ? (
             <div style={{ fontSize: 12, color: '#94a3b8' }}>None selected yet.</div>
-          ) : (partner.candidates || []).map(c => (
-            <div className="pp-stud" key={c.studentId}>
-              <span className="nm">✓ {c.studentName || 'Student'}</span>
-              <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={() => removeCandidate(c.studentId)}>Remove</button>
-            </div>
-          ))}
+          ) : (
+            <>
+              {(partner.candidates || []).map(c => (
+                <div className="pp-stud" key={c.studentId}>
+                  <span className="nm">✓ {c.studentName || 'Student'}</span>
+                  <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={() => previewPdf(c.studentId)}>Preview PDF</button>
+                  <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={() => removeCandidate(c.studentId)}>Remove</button>
+                </div>
+              ))}
+              <button className="pp-btn pp-btn-primary pp-btn-sm" style={{ marginTop: 6 }} disabled={busy}
+                onClick={() => act(() => api.draftCandidateProfiles(partner._id), 'Profiles drafted — approve in queue')}>
+                📄 Send candidate profiles (draft for approval)
+              </button>
+            </>
+          )}
 
           {matches && (
             <>
@@ -241,6 +265,24 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
               ))}
             </>
           )}
+
+          <div className="pp-section-title">Interviews</div>
+          {(partner.interviews || []).map((it, i) => (
+            <div className="pp-kv" key={i}>🗓 <b>{new Date(it.scheduledAt).toLocaleString()}</b> · {it.mode}{it.candidateNames?.length ? ` · ${it.candidateNames.join(', ')}` : ''}{it.notes ? ` · ${it.notes}` : ''}</div>
+          ))}
+          <div className="pp-edit" style={{ marginTop: 8 }}>
+            <input type="datetime-local" value={iv.scheduledAt} onChange={e => setIv(s => ({ ...s, scheduledAt: e.target.value }))} />
+            <div className="pp-stud row" style={{ border: 'none', padding: 0, gap: 8 }}>
+              <select value={iv.mode} onChange={e => setIv(s => ({ ...s, mode: e.target.value }))} style={{ flex: 1, border: '1px solid #cbd5e1', borderRadius: 7, padding: 8, fontSize: 12.5 }}>
+                <option>Online</option><option>In-person</option><option>Phone</option>
+              </select>
+              <label style={{ fontSize: 12, color: '#475569', display: 'flex', alignItems: 'center', gap: 4 }}>
+                <input type="checkbox" checked={iv.notify} onChange={e => setIv(s => ({ ...s, notify: e.target.checked }))} /> Email company
+              </label>
+            </div>
+            <input placeholder="Notes (optional)" value={iv.notes} onChange={e => setIv(s => ({ ...s, notes: e.target.value }))} />
+            <button className="pp-btn pp-btn-teal pp-btn-sm" disabled={busy} onClick={scheduleInterview}>＋ Schedule interview</button>
+          </div>
 
           <div className="pp-section-title">Message history</div>
           {messages.length === 0 ? (

@@ -41,7 +41,18 @@ export interface PlacementPartner {
   };
   candidates?: { studentId: string; studentName: string; addedAt?: string }[];
   interviews?: { scheduledAt: string; mode: string; candidateNames: string[]; notes?: string; createdAt?: string }[];
+  placement?: { studentId?: string; studentName?: string; ctc?: number; placedAt?: string; guaranteeEndsAt?: string };
   updatedAt?: string;
+}
+
+export interface PartnerAnalytics {
+  funnel: { total: number; contacted: number; replied: number; interviewing: number; placed: number };
+  responseRate: number;
+  byTier: { tier: string; total: number; contacted: number; replied: number; placed: number; responseRate: number }[];
+  placements: number;
+  sumCtc: number;
+  feePct: number;
+  estRevenue: number;
 }
 
 export interface MatchedStudent {
@@ -107,6 +118,11 @@ export const placementPartnerApi = {
   candidatePdf: (id: string, studentId: string) => API.get(`/placement-partners/${id}/candidate-pdf/${studentId}`, { responseType: 'blob' }),
   scheduleInterview: (id: string, data: { scheduledAt: string; mode?: string; candidateNames?: string[]; notes?: string; notifyCompany?: boolean }) =>
     API.post(`/placement-partners/${id}/schedule-interview`, data),
+
+  // ── Placement + analytics (Step 5) ──
+  markPlaced: (id: string, data: { studentId?: string; studentName?: string; ctc?: number }) =>
+    API.post(`/placement-partners/${id}/mark-placed`, data),
+  analytics: () => API.get<{ data: PartnerAnalytics }>('/placement-partners/analytics'),
 
   import: (file: File) => {
     const fd = new FormData();

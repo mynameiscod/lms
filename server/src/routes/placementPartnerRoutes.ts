@@ -5,7 +5,7 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
-  matchStudents, addCandidate, removeCandidate, candidatePdf, scheduleInterview,
+  matchStudents, addCandidate, removeCandidate, candidatePdf, scheduleInterview, markPlaced, analytics,
 } from '../controllers/placementPartnerController';
 import {
   startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint, draftCandidateProfilesEndpoint,
@@ -24,6 +24,7 @@ router.use(authMiddleware, tenantResolver, guard);
 
 // static routes before /:id
 router.get('/stages', getStages);
+router.get('/analytics', analytics);
 router.post('/import', upload.single('file'), importPartners);
 router.post('/start-outreach', startOutreachBulk);
 
@@ -56,5 +57,6 @@ router.delete('/:id/candidates/:studentId', removeCandidate);
 router.post('/:id/draft-candidate-profiles', draftCandidateProfilesEndpoint);
 router.get('/:id/candidate-pdf/:studentId', candidatePdf);
 router.post('/:id/schedule-interview', scheduleInterview);
+router.post('/:id/mark-placed', markPlaced);
 
 export default router;

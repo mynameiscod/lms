@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics } from '../../api/placementPartnerApi';
 import './PartnerPipeline.css';
 
 const TIER_LABEL: Record<string, string> = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' };
@@ -14,6 +14,7 @@ export default function PartnerPipeline() {
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const [selected, setSelected] = useState<PlacementPartner | null>(null);
   const [approvalCount, setApprovalCount] = useState(0);
 
@@ -67,6 +68,7 @@ export default function PartnerPipeline() {
         </div>
         <div className="pp-actions">
           <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={load} disabled={loading}>↻ Refresh</button>
+          <button className="pp-btn pp-btn-ghost" onClick={() => setShowAnalytics(true)}>📊 Analytics</button>
           <button className="pp-btn pp-btn-ghost" onClick={() => setShowApprovals(true)}>📥 Approvals{approvalCount > 0 ? ` (${approvalCount})` : ''}</button>
           <button className="pp-btn pp-btn-teal" onClick={() => setShowImport(true)}>⬆ Import CSV</button>
           <button className="pp-btn pp-btn-primary" onClick={() => setShowAdd(true)}>+ Add partner</button>
@@ -139,6 +141,63 @@ export default function PartnerPipeline() {
         <ApprovalsModal onClose={() => setShowApprovals(false)}
           onChanged={() => { refreshApprovalCount(); load(); }} />
       )}
+      {showAnalytics && <AnalyticsModal onClose={() => setShowAnalytics(false)} />}
+    </div>
+  );
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+function AnalyticsModal({ onClose }: { onClose: () => void }) {
+  const [a, setA] = useState<PartnerAnalytics | null>(null);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => { api.analytics().then(r => setA(r.data.data)).finally(() => setLoading(false)); }, []);
+
+  const Stat = ({ label, val, color }: { label: string; val: React.ReactNode; color?: string }) => (
+    <div style={{ flex: 1, minWidth: 110, background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px' }}>
+      <div style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>{label}</div>
+      <div style={{ fontSize: 22, fontWeight: 800, color: color || '#051D64' }}>{val}</div>
+    </div>
+  );
+
+  return (
+    <div className="pp-overlay" onClick={onClose}>
+      <div className="pp-modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+        <h2>Pipeline analytics</h2>
+        {loading || !a ? <div className="pp-empty">Loading…</div> : (
+          <>
+            <div className="pp-section-title" style={{ marginTop: 0 }}>Funnel</div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 6 }}>
+              <Stat label="Companies" val={a.funnel.total} />
+              <Stat label="Contacted" val={a.funnel.contacted} />
+              <Stat label="Replied" val={a.funnel.replied} color="#0ea5e9" />
+              <Stat label="Interviewing" val={a.funnel.interviewing} color="#f59e0b" />
+              <Stat label="Placed" val={a.funnel.placed} color="#16a34a" />
+            </div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Stat label="Response rate" val={`${a.responseRate}%`} color="#359AAD" />
+              <Stat label="Placements" val={a.placements} color="#16a34a" />
+              <Stat label={`Est. revenue (@${a.feePct}%)`} val={`₹${a.estRevenue} L`} color="#051D64" />
+            </div>
+
+            <div className="pp-section-title">Response rate by tier</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead><tr style={{ textAlign: 'left', color: '#64748b', borderBottom: '1px solid #e2e8f0' }}>
+                <th style={{ padding: '6px 4px' }}>Tier</th><th>Total</th><th>Contacted</th><th>Replied</th><th>Placed</th><th>Resp. %</th>
+              </tr></thead>
+              <tbody>
+                {a.byTier.map(t => (
+                  <tr key={t.tier} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '7px 4px', fontWeight: 700, textTransform: 'capitalize' }}>{t.tier.replace('tier', 'Tier ')}</td>
+                    <td>{t.total}</td><td>{t.contacted}</td><td>{t.replied}</td><td>{t.placed}</td>
+                    <td style={{ fontWeight: 700, color: '#359AAD' }}>{t.responseRate}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+        <div className="pp-modal-actions"><button className="pp-btn pp-btn-ghost" onClick={onClose}>Close</button></div>
+      </div>
     </div>
   );
 }
@@ -168,6 +227,16 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
   const previewPdf = async (sid: string) => {
     try { const r = await api.candidatePdf(partner._id, sid); window.open(URL.createObjectURL(r.data as Blob), '_blank'); }
     catch { setMsg({ t: 'err', m: 'Could not load PDF' }); }
+  };
+  const [place, setPlace] = useState({ studentId: '', ctc: '' });
+  const markPlaced = async () => {
+    setBusy(true); setMsg(null);
+    try {
+      const cand = (partner.candidates || []).find(c => c.studentId === place.studentId);
+      const r = await api.markPlaced(partner._id, { studentId: place.studentId || undefined, studentName: cand?.studentName, ctc: place.ctc ? Number(place.ctc) : undefined });
+      setPartner(r.data.data); setMsg({ t: 'ok', m: 'Marked as placed 🎉' }); onChanged();
+    } catch (e: any) { setMsg({ t: 'err', m: e?.response?.data?.message || 'Failed' }); }
+    finally { setBusy(false); }
   };
   const [iv, setIv] = useState({ scheduledAt: '', mode: 'Online', notes: '', notify: true });
   const scheduleInterview = async () => {
@@ -283,6 +352,24 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
             <input placeholder="Notes (optional)" value={iv.notes} onChange={e => setIv(s => ({ ...s, notes: e.target.value }))} />
             <button className="pp-btn pp-btn-teal pp-btn-sm" disabled={busy} onClick={scheduleInterview}>＋ Schedule interview</button>
           </div>
+
+          <div className="pp-section-title">Placement</div>
+          {partner.placement?.placedAt ? (
+            <div className="pp-banner ok" style={{ marginBottom: 0 }}>
+              🎉 Placed{partner.placement.studentName ? `: ${partner.placement.studentName}` : ''}{partner.placement.ctc ? ` · ₹${partner.placement.ctc} LPA` : ''}
+              {partner.placement.guaranteeEndsAt && <><br />Guarantee ends {new Date(partner.placement.guaranteeEndsAt).toLocaleDateString()}</>}
+            </div>
+          ) : (
+            <div className="pp-edit">
+              <select value={place.studentId} onChange={e => setPlace(s => ({ ...s, studentId: e.target.value }))}
+                style={{ width: '100%', border: '1px solid #cbd5e1', borderRadius: 7, padding: 8, fontSize: 12.5, marginBottom: 6 }}>
+                <option value="">Select placed student…</option>
+                {(partner.candidates || []).map(c => <option key={c.studentId} value={c.studentId}>{c.studentName || 'Student'}</option>)}
+              </select>
+              <input placeholder="CTC in LPA (optional)" value={place.ctc} onChange={e => setPlace(s => ({ ...s, ctc: e.target.value }))} />
+              <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={busy} onClick={markPlaced}>🎉 Mark placed</button>
+            </div>
+          )}
 
           <div className="pp-section-title">Message history</div>
           {messages.length === 0 ? (

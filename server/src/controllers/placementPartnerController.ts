@@ -11,6 +11,7 @@ import User from '../models/User';
 import { createPartnerTask } from '../services/partnerTaskService';
 import { generateOnePager } from '../services/candidateProfilePdf';
 import { EmailService } from '../services/emailService';
+import * as settings from '../services/settingsService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -282,6 +283,67 @@ export const candidatePdf = async (req: AuthenticatedRequest, res: Response) => 
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', `inline; filename="${pdf.fileName}"`);
     res.send(pdf.buffer);
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// POST /placement-partners/:id/mark-placed  { studentId?, studentName, ctc? }
+export const markPlaced = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { studentId, studentName, ctc } = req.body;
+    const partner = await PlacementPartner.findOne({ _id: req.params.id, tenantId: oid(tId(req)) });
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+
+    const guaranteeDays = settings.getNum('PLACEMENT_GUARANTEE_DAYS', 90, tId(req));
+    const now = new Date();
+    partner.placement = {
+      studentId: studentId ? oid(studentId) : undefined,
+      studentName: studentName || partner.candidates.find(c => String(c.studentId) === String(studentId))?.studentName || '',
+      ctc: ctc != null && ctc !== '' ? Number(ctc) : undefined,
+      placedAt: now,
+      guaranteeEndsAt: new Date(now.getTime() + guaranteeDays * 24 * 60 * 60 * 1000),
+    };
+    if (partner.stage !== 'placed') {
+      partner.stageHistory.push({ from: partner.stage, to: 'placed', at: now, by: oid(uId(req)) });
+      partner.stage = 'placed';
+    }
+    partner.outreach.status = 'stopped';
+    await partner.save();
+    res.json({ success: true, message: 'Marked as placed 🎉', data: partner });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// GET /placement-partners/analytics — funnel, response rate by tier, placements, est. revenue
+export const analytics = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const partners = await PlacementPartner.find({ tenantId: oid(tId(req)) })
+      .select('tier stage outreach interviews placement').lean();
+    const rank: Record<string, number> = { target: 0, contacted: 1, replied: 2, interested: 3, interviewing: 4, placed: 5, not_a_fit: 0 };
+    const tiers = ['tier1', 'tier2', 'tier3'];
+    const byTier: Record<string, { total: number; contacted: number; replied: number; placed: number }> = {};
+    tiers.forEach(t => (byTier[t] = { total: 0, contacted: 0, replied: 0, placed: 0 }));
+    const funnel = { total: partners.length, contacted: 0, replied: 0, interviewing: 0, placed: 0 };
+    let placements = 0, sumCtc = 0;
+
+    for (const p of partners as any[]) {
+      const r = rank[p.stage] ?? 0;
+      const contacted = (p.outreach?.emailsSent || 0) > 0 || r >= 1;
+      const replied = !!p.outreach?.repliedAt || r >= 2;
+      const interviewing = (p.interviews?.length || 0) > 0 || r >= 4;
+      const placed = p.stage === 'placed' || !!p.placement?.placedAt;
+      if (contacted) funnel.contacted++;
+      if (replied) funnel.replied++;
+      if (interviewing) funnel.interviewing++;
+      if (placed) { funnel.placed++; placements++; sumCtc += p.placement?.ctc || 0; }
+      const tb = byTier[p.tier];
+      if (tb) { tb.total++; if (contacted) tb.contacted++; if (replied) tb.replied++; if (placed) tb.placed++; }
+    }
+    const feePct = settings.getNum('PLACEMENT_FEE_PERCENT', 8.33, tId(req));
+    const responseRate = funnel.contacted ? Math.round((funnel.replied / funnel.contacted) * 100) : 0;
+    const tierRows = tiers.map(t => ({
+      tier: t, ...byTier[t],
+      responseRate: byTier[t].contacted ? Math.round((byTier[t].replied / byTier[t].contacted) * 100) : 0,
+    }));
+    res.json({ success: true, message: 'OK', data: { funnel, responseRate, byTier: tierRows, placements, sumCtc, feePct, estRevenue: +(sumCtc * feePct / 100).toFixed(2) } });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };
 

@@ -38,12 +38,18 @@ export async function createPartnerTask(
   partner: IPlacementPartner,
   kind: PartnerTaskKind,
   content: string,
-  opts: { description?: string; dueInDays?: number; userId?: string } = {}
+  opts: { description?: string; dueInDays?: number; userId?: string; dedupeWindowDays?: number } = {}
 ): Promise<void> {
   const tenantId = partner.tenantId.toString();
-  // Dedupe: skip if an open task of this kind already exists for the partner.
-  const existing = await PartnerTask.findOne({ tenantId: partner.tenantId, partnerId: partner._id, kind, open: true });
-  if (existing) return;
+  // Dedupe: by recent createdAt window (for recurring reminders), else by open task.
+  if (opts.dedupeWindowDays) {
+    const since = new Date(Date.now() - opts.dedupeWindowDays * 24 * 60 * 60 * 1000);
+    const recent = await PartnerTask.findOne({ tenantId: partner.tenantId, partnerId: partner._id, kind, createdAt: { $gte: since } });
+    if (recent) return;
+  } else {
+    const existing = await PartnerTask.findOne({ tenantId: partner.tenantId, partnerId: partner._id, kind, open: true });
+    if (existing) return;
+  }
 
   const due = new Date();
   due.setDate(due.getDate() + (opts.dueInDays ?? 0));

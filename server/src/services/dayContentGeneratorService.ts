@@ -4,6 +4,9 @@ import InteractiveLesson, { ProgrammingLanguage } from '../models/InteractiveLes
 import LearningContentLibrary from '../models/LearningContentLibrary';
 import { ILearningCurriculum } from '../models/LearningCurriculum';
 import { generateLesson } from './lessonAIService';
+import { getAnthropic } from './aiClients';
+import * as settings from './settingsService';
+import { generateItems } from './assessmentQuestionGeneratorService';
 
 /**
  * Phase 2 (Slice 1) — lazy AI content generation for a personalized-track day.
@@ -26,6 +29,30 @@ function languageForCurriculum(c: ILearningCurriculum): ProgrammingLanguage {
 
 function difficultyForCurriculum(c: ILearningCurriculum): 'beginner' | 'intermediate' | 'advanced' {
   return c.audienceLevel === 'professional' ? 'intermediate' : 'beginner';
+}
+const dsaDifficulty = (c: ILearningCurriculum): number => (c.audienceLevel === 'professional' ? 3 : 2); // 1–5
+const diffWord = (n: number): 'easy' | 'medium' | 'hard' => (n <= 2 ? 'easy' : n === 3 ? 'medium' : 'hard');
+
+/** Generate 3 interview Q&A for a topic (best-effort → null). */
+async function generateQA(concept: string, role: string, language: string): Promise<any[] | null> {
+  const client = getAnthropic();
+  if (!client) return null;
+  try {
+    const resp = await client.messages.create({
+      model: settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6'),
+      max_tokens: 900,
+      system: `You are a senior interview coach. Write concise, real technical interview Q&A for someone studying "${concept}" toward a ${role} role.`,
+      messages: [{ role: 'user', content: `Return ONLY raw JSON: {"qa":[{"question":"...","answer":"...","tips":"..."}]} with exactly 3 items. Answers 2–4 sentences, accurate.${/sql|java|javascript|python|typescript/i.test(language) ? ` Use ${language} in examples where code helps.` : ''}` }],
+    });
+    const text = resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
+    const json = JSON.parse(text.replace(/^```(?:json)?|```$/g, '').trim());
+    const qa = Array.isArray(json.qa) ? json.qa : [];
+    return qa.slice(0, 3)
+      .map((q: any, i: number) => ({ question: String(q.question || ''), answer: String(q.answer || ''), tips: q.tips ? String(q.tips) : '', order: i }))
+      .filter((q: any) => q.question && q.answer);
+  } catch {
+    return null;
+  }
 }
 
 export async function ensureDayContentGenerated(
@@ -89,18 +116,47 @@ export async function ensureDayContentGenerated(
     await InteractiveLesson.updateOne({ _id: lesson._id }, { contentLibraryId: lib._id });
     await LearningContentLibrary.updateOne({ _id: lib._id }, { conceptLessonId: lesson._id });
 
-    const item = {
-      kind: 'content',
-      contentId: lib._id,
-      contentTitle: title,
-      contentType: 'interactive_lesson',
-      slot: 'anytime',
-      isGating: false,
-      required: true,
-      order: 0,
-      estimatedDuration: estMin,
-    };
-    await DayPlan.updateOne({ _id: dayPlanId }, { $set: { items: [item], aiGenStatus: 'done' } });
+    const items: any[] = [{
+      kind: 'content', contentId: lib._id, contentTitle: title, contentType: 'interactive_lesson',
+      slot: 'anytime', isGating: false, required: true, order: 0, estimatedDuration: estMin,
+    }];
+
+    const role = String(curriculum.role || curriculum.targetCourse || 'developer').replace(/_/g, ' ');
+
+    // Interview Q&A for the topic (inline tech_qa) — best-effort.
+    try {
+      const qa = await generateQA(concept, role, language);
+      if (qa && qa.length) {
+        const qaLib = await LearningContentLibrary.create({
+          tenantId, title: `Interview Q&A — ${concept}`, type: 'tech_qa', difficulty,
+          estimatedDuration: 10, topicTags: [concept], qaItems: qa, isPublished: true, createdBy: 'ai-day-gen',
+        });
+        items.push({ kind: 'content', contentId: qaLib._id, contentTitle: `Interview Q&A — ${concept}`, contentType: 'tech_qa', slot: 'anytime', isGating: false, required: false, order: 1, estimatedDuration: 10 });
+      }
+    } catch (e: any) { console.error('[dayContentGen] Q&A gen failed:', e?.message); }
+
+    // DSA / coding practice (inline practice_coding) — Piston-verified test cases. Best-effort.
+    try {
+      const dnum = dsaDifficulty(curriculum);
+      const dsa = await generateItems(tenantId, { type: 'live_code', dimension: 'dsa', difficulty: dnum, language, count: 1, context: `Topic context: ${concept}` } as any, { persist: false });
+      const it: any = dsa && dsa[0];
+      if (it) {
+        const dsaLib = await LearningContentLibrary.create({
+          tenantId, title: `Coding practice — ${concept}`, type: 'practice_coding', difficulty,
+          estimatedDuration: 20, topicTags: [concept], isPublished: true, createdBy: 'ai-day-gen',
+          practiceQuestions: [{
+            type: 'coding', title: `Coding Problem — ${concept}`, description: String(it.prompt || ''),
+            difficulty: diffWord(dnum), starterCode: { [it.language || language]: it.starterCode || '' },
+            allowedLanguages: [it.language || language],
+            testCases: (it.testCases || []).map((tc: any) => ({ input: tc.input || '', expectedOutput: tc.expectedOutput || '', isHidden: tc.hidden !== false })),
+            marks: 2, gradingMode: 'auto',
+          }],
+        });
+        items.push({ kind: 'content', contentId: dsaLib._id, contentTitle: `Coding practice — ${concept}`, contentType: 'practice_coding', slot: 'anytime', isGating: false, required: false, order: 2, estimatedDuration: 20 });
+      }
+    } catch (e: any) { console.error('[dayContentGen] DSA gen failed:', e?.message); }
+
+    await DayPlan.updateOne({ _id: dayPlanId }, { $set: { items, aiGenStatus: 'done' } });
     return { generated: true, status: 'done' };
   } catch (e: any) {
     await DayPlan.updateOne({ _id: dayPlanId }, { $set: { aiGenStatus: 'error', aiGenError: String(e?.message || e).slice(0, 300) } });

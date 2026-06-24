@@ -11,15 +11,44 @@ import { IAssessmentSubmission } from '../models/AssessmentSubmission';
  */
 export async function enrollCandidateInRoadmapPlan(submission: IAssessmentSubmission): Promise<mongoose.Types.ObjectId | undefined> {
   const studentId = submission.candidateUserId as mongoose.Types.ObjectId | undefined;
-  const planId = submission.roadmap?.planId as mongoose.Types.ObjectId | undefined;
-  if (!studentId || !planId) return undefined;
+  if (!studentId) return undefined;
   const tenantId = submission.tenantId;
 
+  // Resolve the plan to enrol into. The roadmap's chosen plan is preferred, but it
+  // may have been deleted/unpublished since the roadmap was generated (a dangling
+  // planId) — in that case fall back to a published curriculum so the candidate is
+  // never silently left un-enrolled (which breaks the whole assessment → LMS funnel).
+  const roadmapPlanId = submission.roadmap?.planId as mongoose.Types.ObjectId | undefined;
+  let curriculum: any = roadmapPlanId
+    ? await LearningCurriculum.findOne({ _id: roadmapPlanId, tenantId }).lean()
+    : null;
+
+  if (!curriculum) {
+    if (roadmapPlanId) {
+      console.warn(`[assessmentEnroll] roadmap planId ${roadmapPlanId} not found for tenant ${tenantId} — falling back to a published curriculum.`);
+    }
+    const published = await LearningCurriculum.find({ tenantId, isPublished: true, isMasterTrack: { $ne: true }, personalizedFor: null })
+      .select('title targetCourse enrollmentCount pace')
+      .sort({ enrollmentCount: -1 })
+      .lean<any[]>();
+    if (!published.length) {
+      console.error(`[assessmentEnroll] NO published curriculum for tenant ${tenantId} — candidate ${studentId} left un-enrolled. Publish a Learning Curriculum to complete the funnel.`);
+      return undefined;
+    }
+    // Best-fit by stack / target role, else the most-enrolled published plan.
+    const stack = (submission.candidate?.currentStack || []).map((x: string) => String(x).toLowerCase());
+    const role = String(submission.candidate?.targetRole || '').toLowerCase();
+    curriculum =
+      published.find((c) => {
+        const hay = `${c.targetCourse || ''} ${c.title || ''}`.toLowerCase();
+        return stack.some((s) => s && hay.includes(s)) || (role && hay.includes(role));
+      }) || published[0];
+  }
+
+  const planId = curriculum._id as mongoose.Types.ObjectId;
   const existing = await CurriculumEnrollment.findOne({ curriculumId: planId, studentId });
   if (existing) return existing._id as mongoose.Types.ObjectId;
 
-  const curriculum = await LearningCurriculum.findOne({ _id: planId, tenantId }).lean();
-  if (!curriculum) return undefined;
   const user = await User.findById(studentId).select('firstName lastName email').lean<any>();
   if (!user) return undefined;
 
@@ -32,7 +61,7 @@ export async function enrollCandidateInRoadmapPlan(submission: IAssessmentSubmis
       studentName: `${user.firstName} ${user.lastName}`.trim(),
       studentEmail: user.email,
       startDate: new Date(),
-      settings: {},
+      settings: { weekendsActive: !!(curriculum.pace && curriculum.pace.weekends) },
       enrolledBy: 'assessment',
       assessmentOriginated: true,
       previewOnly: true,

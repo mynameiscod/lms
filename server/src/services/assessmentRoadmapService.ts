@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import LearningCurriculum, { ILearningCurriculum } from '../models/LearningCurriculum';
 import { IAssessmentSubmission, IRoadmap } from '../models/AssessmentSubmission';
 import { DIMENSION_LABELS } from '../constants/assessment';
+import { findMasterTrackForCandidate, personalizeTrackForCandidate } from './trackPersonalizationService';
 
 /**
  * Roadmap service — turns a graded submission into a personalized roadmap by
@@ -84,50 +85,103 @@ function fallbackRoadmap(s: IAssessmentSubmission, curricula: ILearningCurriculu
   };
 }
 
-/** Generate (and return) a roadmap for a graded submission. Best-effort; never throws. */
-export async function generateRoadmap(submission: IAssessmentSubmission): Promise<IRoadmap | null> {
+/** Best-effort Claude call: choose + narrate from a curricula list. Null on no key / failure. */
+async function aiNarrate(
+  submission: IAssessmentSubmission,
+  curricula: ILearningCurriculum[]
+): Promise<{ planId?: mongoose.Types.ObjectId; gaps: string[]; narrative: string; salaryBand: string; timelineWeeks?: number } | null> {
+  const client = getAnthropic();
+  if (!client || !curricula.length) return null;
   try {
-    const curricula = await LearningCurriculum.find({ tenantId: submission.tenantId, isPublished: true })
-      .select('title description targetCourse totalDays topics enrollmentCount')
-      .lean<ILearningCurriculum[]>();
-
-    if (!curricula.length) return fallbackRoadmap(submission, []);
-    const client = getAnthropic();
-    if (!client) return fallbackRoadmap(submission, curricula);
-
-    const catalog = buildCatalog(curricula);
-    const profile = buildProfile(submission);
-
     const resp = await client.messages.create({
       model: MODEL(),
       max_tokens: 700,
       system: [
         { type: 'text', text: SYSTEM_PROMPT },
         // Cacheable: the per-tenant catalog is reused across candidates within the TTL.
-        { type: 'text', text: `Available Learning Plans:\n${catalog}`, cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: `Available Learning Plans:\n${buildCatalog(curricula)}`, cache_control: { type: 'ephemeral' } },
       ],
-      messages: [{ role: 'user', content: `Candidate profile:\n${profile}\n\nReturn the roadmap JSON.` }],
+      messages: [{ role: 'user', content: `Candidate profile:\n${buildProfile(submission)}\n\nReturn the roadmap JSON.` }],
     });
-
     const text = resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
     const json = JSON.parse(text.replace(/^```(?:json)?|```$/g, '').trim());
-
     const chosen = curricula.find((c) => String(c._id) === String(json.planId)) || curricula[0];
+    return {
+      planId: chosen._id as mongoose.Types.ObjectId,
+      gaps: Array.isArray(json.gaps) ? json.gaps.slice(0, 3) : [],
+      narrative: String(json.narrative || '').slice(0, 600),
+      salaryBand: json.salaryBand || '',
+      timelineWeeks: Number(json.timelineWeeks) || undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Generate a roadmap for a graded submission. Best-effort; never throws.
+ *
+ * Master-track hybrid: if a mentor-approved master-track matches the candidate's
+ * role + level, we PERSONALIZE it (clone, trimmed/expanded by their sub-scores)
+ * and the roadmap points at that personalized plan. Otherwise we fall back to
+ * selecting an ordinary published curriculum so a roadmap is always produced.
+ */
+export async function generateRoadmap(submission: IAssessmentSubmission): Promise<IRoadmap | null> {
+  const targetRole = submission.candidate?.targetRole;
+  try {
+    // ── Master-track hybrid path ────────────────────────────────────────────
+    const master = await findMasterTrackForCandidate(submission);
+    if (master) {
+      let planId = master._id as mongoose.Types.ObjectId;
+      let planTitle = master.title;
+      if (submission.candidateUserId) {
+        try {
+          const p = await personalizeTrackForCandidate(submission, master);
+          if (p) { planId = p.curriculumId; planTitle = `${master.title} · ${(submission.candidate?.name || 'You')}`.trim(); }
+        } catch (e: any) {
+          console.error('[roadmap] personalize failed, using master-track as-is:', e?.message);
+        }
+      }
+      const ai = await aiNarrate(submission, [master]);
+      const fb = fallbackRoadmap(submission, [master]);
+      return {
+        generatedAt: new Date(),
+        planId,
+        planTitle,
+        gaps: ai?.gaps?.length ? ai.gaps : fb.gaps,
+        narrative: ai?.narrative || fb.narrative,
+        targetRole,
+        salaryBand: ai?.salaryBand || fb.salaryBand,
+        timelineWeeks: master.pace?.targetWeeks || ai?.timelineWeeks || fb.timelineWeeks,
+        generatedBy: ai ? MODEL() : 'master-track',
+      };
+    }
+
+    // ── Legacy path: no master-track → pick an ordinary published curriculum ──
+    const curricula = await LearningCurriculum.find({
+      tenantId: submission.tenantId, isPublished: true, isMasterTrack: { $ne: true }, personalizedFor: null,
+    })
+      .select('title description targetCourse totalDays topics enrollmentCount')
+      .lean<ILearningCurriculum[]>();
+    if (!curricula.length) return fallbackRoadmap(submission, []);
+    const ai = await aiNarrate(submission, curricula);
+    if (!ai) return fallbackRoadmap(submission, curricula);
+    const chosen = curricula.find((c) => String(c._id) === String(ai.planId)) || curricula[0];
     return {
       generatedAt: new Date(),
       planId: chosen._id as mongoose.Types.ObjectId,
       planTitle: chosen.title,
-      gaps: Array.isArray(json.gaps) ? json.gaps.slice(0, 3) : [],
-      narrative: String(json.narrative || '').slice(0, 600),
-      targetRole: json.targetRole || submission.candidate.targetRole,
-      salaryBand: json.salaryBand || '',
-      timelineWeeks: Number(json.timelineWeeks) || undefined,
+      gaps: ai.gaps,
+      narrative: ai.narrative,
+      targetRole,
+      salaryBand: ai.salaryBand,
+      timelineWeeks: ai.timelineWeeks,
       generatedBy: MODEL(),
     };
   } catch (err) {
     // Any failure → deterministic fallback so the candidate always gets a roadmap.
     try {
-      const curricula = await LearningCurriculum.find({ tenantId: submission.tenantId, isPublished: true })
+      const curricula = await LearningCurriculum.find({ tenantId: submission.tenantId, isPublished: true, isMasterTrack: { $ne: true }, personalizedFor: null })
         .select('title targetCourse totalDays topics enrollmentCount').lean<ILearningCurriculum[]>();
       return fallbackRoadmap(submission, curricula);
     } catch {

@@ -819,3 +819,87 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     res.status(500).json({ message: 'Failed to get day plan', error: err });
   }
 };
+
+// ─── Student: "My Journey" — the full structured plan (weeks, milestones,
+// progress, preview/lock). Powers the Result-page preview + the Journey view. ──
+export const getJourney = async (req: Request, res: Response) => {
+  try {
+    const tId = tenantId(req);
+    const sId = userId(req);
+    const { id: enrollmentId } = req.params;
+
+    const enrollment = await CurriculumEnrollment.findOne({ _id: enrollmentId, tenantId: tId, studentId: sId }).lean();
+    if (!enrollment) return res.status(404).json({ message: 'Enrollment not found' });
+    const curriculum = await LearningCurriculum.findById(enrollment.curriculumId).lean();
+    if (!curriculum) return res.status(404).json({ message: 'Curriculum not found' });
+
+    const totalDays = curriculum.totalDays;
+    const previewOnly = !!(enrollment as any).previewOnly;
+    const previewDays = (enrollment as any).previewDays || 2;
+    const completed = new Set((enrollment.completedDays || []).filter((d) => d >= 1 && d <= totalDays));
+    const currentDay = enrollment.currentDay || 1;
+
+    const plans = await DayPlan.find({ curriculumId: curriculum._id }).select('dayNumber title items aiGenStatus').lean();
+    const planByDay: Record<number, any> = {};
+    plans.forEach((p) => { planByDay[p.dayNumber] = p; });
+    const topicForDay = (d: number) => (curriculum.topics || []).find((t) => d >= t.startDay && d <= t.endDay);
+
+    // Milestones: a mock interview at the end of every 3rd week; projects mid + final.
+    const STUDY_PER_WEEK = 5;
+    const totalWeeks = Math.max(1, Math.ceil(totalDays / STUDY_PER_WEEK));
+    const milestoneByDay: Record<number, { kind: string; title: string }> = {};
+    for (let w = 3; w <= totalWeeks; w += 3) {
+      const d = Math.min(totalDays, w * STUDY_PER_WEEK);
+      milestoneByDay[d] = { kind: 'mock', title: `Mock Interview #${Math.floor(w / 3)}` };
+    }
+    const mid = Math.max(1, Math.round(totalDays / 2));
+    if (!milestoneByDay[mid]) milestoneByDay[mid] = { kind: 'project', title: 'Mid-track Project' };
+    if (!milestoneByDay[totalDays]) milestoneByDay[totalDays] = { kind: 'project', title: 'Capstone Project' };
+
+    const weeks: any[] = [];
+    for (let d = 1; d <= totalDays; d++) {
+      const w = Math.ceil(d / STUDY_PER_WEEK);
+      if (!weeks[w - 1]) weeks[w - 1] = { week: w, title: '', days: [], milestones: [] };
+      const t = topicForDay(d);
+      const dp = planByDay[d];
+      const locked = previewOnly && d > previewDays;
+      weeks[w - 1].days.push({
+        day: d,
+        title: dp?.title || (t ? t.title : `Day ${d}`),
+        topic: t ? t.title : null,
+        status: completed.has(d) ? 'completed' : d === currentDay ? 'current' : locked ? 'locked' : 'available',
+        locked,
+        hasContent: !!(dp && dp.items && dp.items.length > 0),
+        generating: dp?.aiGenStatus === 'generating',
+        milestone: milestoneByDay[d] || null,
+        date: weekdayForDay(enrollment.startDate, d).toISOString(),
+      });
+    }
+    weeks.forEach((wk) => {
+      const counts: Record<string, number> = {};
+      wk.days.forEach((dd: any) => { if (dd.topic) counts[dd.topic] = (counts[dd.topic] || 0) + 1; });
+      wk.title = (Object.entries(counts).sort((a, b) => b[1] - a[1])[0] || [])[0] || `Week ${wk.week}`;
+      wk.milestones = wk.days.filter((dd: any) => dd.milestone).map((dd: any) => ({ day: dd.day, ...dd.milestone }));
+    });
+
+    const completedCount = completed.size;
+    const percent = totalDays ? Math.round((completedCount / totalDays) * 100) : 0;
+
+    res.json({
+      plan: {
+        title: curriculum.title,
+        targetRole: (curriculum as any).targetCourse || null,
+        totalDays,
+        totalWeeks,
+        pace: (curriculum as any).pace || null,
+        weeks,
+        milestones: Object.entries(milestoneByDay).map(([d, m]) => ({ day: Number(d), ...m })).sort((a, b) => a.day - b.day),
+      },
+      progress: { completedDays: completedCount, currentDay, todayPlanDay: currentPlanDay(enrollment.startDate, totalDays), percent },
+      access: { previewOnly, previewDays, lockedFromDay: previewOnly ? previewDays + 1 : null },
+      estimatedEndDate: weekdayForDay(enrollment.startDate, totalDays).toISOString(),
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Failed to get journey', error: err });
+  }
+};

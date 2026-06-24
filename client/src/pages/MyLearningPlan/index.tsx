@@ -133,6 +133,9 @@ export default function MyLearningPlan() {
                   {/* Actions */}
                   <div className="lp-actions">
                     <div className="lp-actions-left">
+                      <button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/journey`)}>
+                        🗺️ My Journey
+                      </button>
                       {today && (
                         <button className="lp-btn primary" onClick={() => navigate(`/my-learning/${e._id}/day/${today}`)}>
                           📅 Go to Today (Day {today})

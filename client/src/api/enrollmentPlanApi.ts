@@ -159,6 +159,12 @@ export const enrollmentPlanApi = {
     return data;
   },
 
+  // Full structured plan (weeks, milestones, progress, preview/lock) for the Journey view.
+  getJourney: async (enrollmentId: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/${enrollmentId}/journey`, { headers: authHeader() });
+    return data;
+  },
+
   markContentComplete: async (enrollmentId: string, contentId: string, dayNumber: number): Promise<{
     completedItems: number;
     completedDays: number[];

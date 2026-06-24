@@ -146,6 +146,7 @@ import MyTasksPage from './pages/MyTasks';
 // My Learning Plan (student)
 import MyLearningPlanPage from './pages/MyLearningPlan';
 import DayViewPage from './pages/MyLearningPlan/DayView';
+import MyJourneyPage from './pages/MyLearningPlan/Journey';
 
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
@@ -1560,6 +1561,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout><MyLearningPlanPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/my-learning/:enrollmentId/journey"
+        element={
+          <ProtectedRoute>
+            <Layout><MyJourneyPage /></Layout>
           </ProtectedRoute>
         }
       />

@@ -33,6 +33,10 @@ export interface IDayPlan extends Document {
   title?: string;
   notes?: string;
   items: IDayContentItem[];
+  // Lazy AI content generation (assessment-personalized plans): idle → generating → done | error
+  aiGenStatus?: 'idle' | 'generating' | 'done' | 'error';
+  aiGenAt?: Date;
+  aiGenError?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -64,6 +68,9 @@ const DayPlanSchema = new Schema<IDayPlan>(
     title:        { type: String },
     notes:        { type: String },
     items:        [DayContentItemSchema],
+    aiGenStatus:  { type: String, enum: ['idle', 'generating', 'done', 'error'] },
+    aiGenAt:      { type: Date },
+    aiGenError:   { type: String },
   },
   { timestamps: true }
 );

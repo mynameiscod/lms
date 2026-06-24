@@ -14,6 +14,7 @@ import Quiz from '../models/Quiz';
 import Assignment from '../models/Assignment';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
 import InterviewTemplate from '../models/InterviewTemplate';
+import { ensureDayContentGenerated } from '../services/dayContentGeneratorService';
 import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
@@ -721,6 +722,18 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     const dayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber }).lean();
     const dayItems: any[] = dayPlan ? effectiveItemsForDay(dayPlan.items, offering, dayNumber) : [];
 
+    // Phase 2: lazy AI content generation for assessment-personalized plans. When an
+    // accessible day has no content yet, kick off generation in the background (atomic
+    // claim prevents duplicates); the lesson appears on the next fetch. Status is
+    // surfaced so the client can show "preparing" + auto-refresh.
+    let aiGenStatus: string | undefined = (dayPlan as any)?.aiGenStatus;
+    if ((curriculum as any).personalizedFor && !isLocked && dayPlan && dayItems.length === 0) {
+      aiGenStatus = 'generating';
+      // Background, best-effort; the service's atomic claim de-dupes concurrent opens.
+      ensureDayContentGenerated(curriculum as any, dayNumber, dayPlan._id as any)
+        .catch((e) => console.error('[dayGen] background generation failed:', e?.message || e));
+    }
+
     // Populate items — library content AND module activities (quiz/assignment/
     // code snippet/mock interview). Module items resolve their per-student status
     // on demand and carry a launchPath to their own student UI.
@@ -800,6 +813,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       isDayCompleted,
       isLocked,
       todayPlanDay,
+      aiGenStatus: aiGenStatus || null,
     });
   } catch (err) {
     res.status(500).json({ message: 'Failed to get day plan', error: err });

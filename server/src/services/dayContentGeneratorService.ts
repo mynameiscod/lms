@@ -7,6 +7,8 @@ import { generateLesson } from './lessonAIService';
 import { getAnthropic } from './aiClients';
 import * as settings from './settingsService';
 import { generateItems } from './assessmentQuestionGeneratorService';
+import InterviewTemplate from '../models/InterviewTemplate';
+import { milestoneForDay } from '../utils/planMilestones';
 
 /**
  * Phase 2 (Slice 1) — lazy AI content generation for a personalized-track day.
@@ -155,6 +157,18 @@ export async function ensureDayContentGenerated(
         items.push({ kind: 'content', contentId: dsaLib._id, contentTitle: `Coding practice — ${concept}`, contentType: 'practice_coding', slot: 'anytime', isGating: false, required: false, order: 2, estimatedDuration: 20 });
       }
     } catch (e: any) { console.error('[dayContentGen] DSA gen failed:', e?.message); }
+
+    // Mock-interview milestone (Slice 4b): on a milestone "mock" day, link to a
+    // PUBLISHED interview template if the tenant has one (never a broken link).
+    const mi = milestoneForDay(curriculum.totalDays, dayNumber);
+    if (mi && mi.kind === 'mock') {
+      try {
+        const tmpl: any = await InterviewTemplate.findOne({ tenantId, status: 'published' }).select('_id title').sort({ updatedAt: -1 }).lean();
+        if (tmpl) {
+          items.push({ kind: 'mockInterview', sourceModel: 'InterviewTemplate', sourceId: tmpl._id, contentTitle: mi.title, contentType: 'mockInterview', slot: 'anytime', isGating: false, required: false, order: items.length, estimatedDuration: 30 });
+        }
+      } catch (e: any) { console.error('[dayContentGen] mock wiring failed:', e?.message); }
+    }
 
     await DayPlan.updateOne({ _id: dayPlanId }, { $set: { items, aiGenStatus: 'done' } });
     return { generated: true, status: 'done' };

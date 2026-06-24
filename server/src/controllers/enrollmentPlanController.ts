@@ -15,6 +15,7 @@ import Assignment from '../models/Assignment';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
 import InterviewTemplate from '../models/InterviewTemplate';
 import { ensureDayContentGenerated } from '../services/dayContentGeneratorService';
+import { milestoneForDay } from '../utils/planMilestones';
 import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
@@ -848,13 +849,7 @@ export const getJourney = async (req: Request, res: Response) => {
     const STUDY_PER_WEEK = 5;
     const totalWeeks = Math.max(1, Math.ceil(totalDays / STUDY_PER_WEEK));
     const milestoneByDay: Record<number, { kind: string; title: string }> = {};
-    for (let w = 3; w <= totalWeeks; w += 3) {
-      const d = Math.min(totalDays, w * STUDY_PER_WEEK);
-      milestoneByDay[d] = { kind: 'mock', title: `Mock Interview #${Math.floor(w / 3)}` };
-    }
-    const mid = Math.max(1, Math.round(totalDays / 2));
-    if (!milestoneByDay[mid]) milestoneByDay[mid] = { kind: 'project', title: 'Mid-track Project' };
-    if (!milestoneByDay[totalDays]) milestoneByDay[totalDays] = { kind: 'project', title: 'Capstone Project' };
+    for (let d = 1; d <= totalDays; d++) { const mi = milestoneForDay(totalDays, d); if (mi) milestoneByDay[d] = mi; }
 
     const weeks: any[] = [];
     for (let d = 1; d <= totalDays; d++) {

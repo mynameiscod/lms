@@ -580,6 +580,14 @@ export default function DayView() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-refresh while a personalized day's content is generating (~30–60s).
+  useEffect(() => {
+    if (data?.aiGenStatus === 'generating') {
+      const t = setInterval(() => { load(); }, 8000);
+      return () => clearInterval(t);
+    }
+  }, [data?.aiGenStatus, load]);
+
   const handleItemComplete = () => {
     // Reload to get fresh completion state
     load();
@@ -589,7 +597,7 @@ export default function DayView() {
   if (error)   return <div style={{ padding: '40px', textAlign: 'center', color: '#dc2626' }}>{error}</div>;
   if (!data)   return null;
 
-  const { enrollment, curriculum, topic, items, isDayCompleted, isLocked, todayPlanDay } = data;
+  const { enrollment, curriculum, topic, items, isDayCompleted, isLocked, lockReason, aiGenStatus, todayPlanDay } = data;
   const totalDays = enrollment.totalDays;
   const hasPrev = dayNumber > 1;
   const hasNext = dayNumber < totalDays;
@@ -711,25 +719,39 @@ export default function DayView() {
 
       {/* Content items */}
       {isLocked ? (
-        <div style={{
-          textAlign: 'center', padding: '60px 24px',
-          background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0',
-        }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
-          <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>Day {dayNumber} is Locked</h3>
-          <p style={{ color: '#64748b', margin: 0 }}>
-            Complete the required items in Day {dayNumber - 1} to unlock this day.
-          </p>
-        </div>
+        lockReason === 'preview' ? (
+          <div style={{ textAlign: 'center', padding: '48px 24px', background: 'linear-gradient(135deg,#f6f4ff,#eafaf7)', borderRadius: '12px', border: '1px solid #e6e2fb' }}>
+            <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔒</div>
+            <h3 style={{ color: '#0f172a', margin: '0 0 6px' }}>This day is part of your full plan</h3>
+            <p style={{ color: '#475569', margin: '0 auto 18px', maxWidth: 460 }}>
+              You're on the free preview. Unlock your full personalized plan to continue — every lesson, DSA problem, mock interview, project, mentor support &amp; placement.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button onClick={() => alert('Online unlock (Razorpay) — coming with the paywall.')} style={{ background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Unlock full plan</button>
+              <button onClick={() => alert('A mentor will reach out to you shortly.')} style={{ background: '#fff', color: '#6650d8', border: '1.5px solid #6650d8', borderRadius: 10, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Talk to a mentor</button>
+            </div>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🔒</div>
+            <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>Day {dayNumber} is Locked</h3>
+            <p style={{ color: '#64748b', margin: 0 }}>Complete the required items in Day {dayNumber - 1} to unlock this day.</p>
+          </div>
+        )
       ) : items.length === 0 ? (
-        <div style={{
-          textAlign: 'center', padding: '60px 24px',
-          background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0',
-        }}>
-          <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
-          <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>No content for this day</h3>
-          <p style={{ color: '#64748b', margin: 0 }}>Your instructor hasn't assigned content for Day {dayNumber} yet.</p>
-        </div>
+        aiGenStatus === 'generating' ? (
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: 'linear-gradient(135deg,#f6f4ff,#eafaf7)', borderRadius: '12px', border: '1px solid #e6e2fb' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>✨</div>
+            <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>Preparing your personalized lesson…</h3>
+            <p style={{ color: '#64748b', margin: 0 }}>Building your lesson, interview Q&amp;A and coding practice for this day. This takes ~30–60s and refreshes automatically.</p>
+          </div>
+        ) : (
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>📭</div>
+            <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>No content for this day</h3>
+            <p style={{ color: '#64748b', margin: 0 }}>Content for Day {dayNumber} isn't available yet.</p>
+          </div>
+        )
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {items.map((item: any, idx: number) => (

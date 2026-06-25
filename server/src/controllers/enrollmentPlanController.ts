@@ -686,9 +686,13 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       : null;
     const hSet = offering ? holidaySet(offering) : new Set<string>();
 
-    // Sequential lock check: if enforceSequential, previous day must be completed
+    // Sequential lock check: if enforceSequential, previous day must be completed.
+    // Skipped for assessment-personalized plans — there the preview paywall is the
+    // only intended gate (no confusing "finish day N" on a paid-but-teased day).
     let isLocked = false;
-    if (enrollment.settings.enforceSequential && dayNumber > 1) {
+    let lockReason: 'sequential' | 'preview' | null = null;
+    const personalized = !!(curriculum as any).personalizedFor;
+    if (enrollment.settings.enforceSequential && dayNumber > 1 && !personalized) {
       const prevDayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: dayNumber - 1 }).lean();
       if (prevDayPlan) {
         const gatingItems = effectiveItemsForDay(prevDayPlan.items, offering, dayNumber - 1).filter((i: any) => i.isGating);
@@ -696,13 +700,15 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
           const prevModuleStatus = await resolveModuleStatuses(sId, gatingItems);
           const allGatingDone = gatingItems.every(gi => itemDone(gi, dayNumber - 1, enrollment.completedItems, prevModuleStatus));
           isLocked = !allGatingDone;
+          if (isLocked) lockReason = 'sequential';
         }
       }
     }
 
-    // Assessment-funnel preview gating: free taste, then locked until unlocked.
+    // Assessment-funnel preview gating: free taste, then locked behind the paywall.
     if ((enrollment as any).previewOnly && dayNumber > ((enrollment as any).previewDays || 2)) {
       isLocked = true;
+      lockReason = 'preview';
     }
 
     // Compute calendar date for this day (offering = holiday-aware cohort calendar)
@@ -813,6 +819,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       items: populatedItems,
       isDayCompleted,
       isLocked,
+      lockReason,
       todayPlanDay,
       aiGenStatus: aiGenStatus || null,
     });

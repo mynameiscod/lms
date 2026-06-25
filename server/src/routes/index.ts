@@ -76,6 +76,7 @@ import publicAssessmentRoutes from './publicAssessmentRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
+import concernRoutes from './concernRoutes';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -99,6 +100,7 @@ router.use('/attendance', attendanceRoutes);
 router.use('/quizzes', quizRoutes);
 router.use('/assessment-items', assessmentItemRoutes);
 router.use('/assessment-candidates', assessmentCandidatesRoutes);
+router.use('/concerns', concernRoutes);
 router.use('/questions', questionRoutes);
 router.use('/content', contentRoutes);
 router.use('/progress', progressRoutes);

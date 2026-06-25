@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
+import RaiseConcern from '../../components/RaiseConcern';
 
 /**
  * "My Journey" — the sell-focused student plan view (Slice 3).
@@ -46,7 +47,10 @@ const MyJourney: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1060, margin: '0 auto', padding: '18px 20px 60px' }}>
-      <button onClick={() => navigate('/my-learning')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 13, marginBottom: 12 }}>← All plans</button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <button onClick={() => navigate('/my-learning')} style={{ background: 'none', border: 'none', color: MUTED, cursor: 'pointer', fontSize: 13 }}>← All plans</button>
+        <RaiseConcern context={{ enrollmentId: enrollmentId!, curriculumTitle: plan.title }} />
+      </div>
 
       {/* Hero */}
       <div style={{ borderRadius: 18, padding: '26px 28px', color: '#fff', background: `linear-gradient(120deg, ${NAVY} 0%, ${PURPLE} 60%, ${TEAL} 120%)`, position: 'relative', overflow: 'hidden' }}>

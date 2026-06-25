@@ -66,6 +66,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Batches', path: '/batches', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_tenant_courses'] },
     { label: 'Skill Assessment', path: '/assessment-admin', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clipboard-question', permissions: ['create_quiz', 'edit_quiz'] },
     { label: 'Assessment Candidates', path: '/assessment-candidates', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-user-group', permissions: ['create_quiz', 'edit_quiz', 'manage_leads'] },
+    { label: 'Concerns', path: '/admin/concerns', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-circle-question', permissions: ['view_reports', 'manage_leads', 'view_courses'] },
     {
       label: 'Attendance',
       roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STUDENT', 'ATTENDANCE_ADMIN'],

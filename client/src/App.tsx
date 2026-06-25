@@ -147,6 +147,7 @@ import MyTasksPage from './pages/MyTasks';
 import MyLearningPlanPage from './pages/MyLearningPlan';
 import DayViewPage from './pages/MyLearningPlan/DayView';
 import MyJourneyPage from './pages/MyLearningPlan/Journey';
+import AdminConcernsPage from './pages/AdminConcerns';
 
 // Public quiz session (no auth required — token-based)
 import QuizSession from './pages/QuizSession';
@@ -1569,6 +1570,14 @@ const AppRoutes: React.FC = () => {
         element={
           <ProtectedRoute>
             <Layout><MyJourneyPage /></Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/concerns"
+        element={
+          <ProtectedRoute>
+            <Layout><AdminConcernsPage /></Layout>
           </ProtectedRoute>
         }
       />

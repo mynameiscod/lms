@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Codebegun LMS — Module Status Report</title>
+<style>
+  :root{
+    --cb-purple:#6650d8; --cb-teal:#14a89c; --cb-navy:#0a2a5e; --cb-navy-2:#003d82;
+    --ink:#1f2937; --muted:#6b7280; --line:#e8ecf3; --bg:#f4f6fb;
+    --done:#10b981; --gap:#e8830c; --imp:#6650d8;
+    --live:#10b981; --build:#f59e0b; --early:#ef4444;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+       background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 22px 60px}
+
+  header{background:linear-gradient(120deg,var(--cb-navy) 0%,var(--cb-purple) 55%,var(--cb-teal) 115%);
+         color:#fff;padding:44px 0 54px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;right:-80px;top:-80px;width:340px;height:340px;
+                background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);border-radius:50%}
+  .head-inner{max-width:1180px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:24px}
+  .logo-badge{width:46px;height:46px;border-radius:12px;background:#fff;display:grid;place-items:center;
+              font-weight:800;font-size:22px;color:var(--cb-purple);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .brand b{font-size:19px;font-weight:700;letter-spacing:.3px}
+  .brand span{display:block;font-size:12px;opacity:.8;font-weight:400}
+  header h1{font-size:31px;font-weight:800;letter-spacing:-.5px;margin-bottom:8px}
+  header p.sub{font-size:14.5px;opacity:.9;max-width:680px}
+  .meta-row{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;font-size:12.5px}
+  .meta-row span{background:rgba(255,255,255,.16);padding:5px 12px;border-radius:20px}
+
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:-32px;position:relative;z-index:2}
+  .kpi{background:#fff;border-radius:14px;padding:18px 20px;box-shadow:0 8px 26px rgba(16,24,40,.07);border:1px solid var(--line)}
+  .kpi .n{font-size:28px;font-weight:800;color:var(--cb-purple);line-height:1}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:6px;font-weight:500}
+  .kpi.teal .n{color:var(--cb-teal)} .kpi.navy .n{color:var(--cb-navy-2)} .kpi.red .n{color:var(--early)}
+
+  section{margin-top:40px}
+  .sec-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .sec-head .dot{width:11px;height:11px;border-radius:3px;background:var(--cb-purple)}
+  .sec-head h2{font-size:19px;font-weight:750;color:var(--cb-navy)}
+  .sec-head .count{font-size:12.5px;color:var(--muted);margin-left:auto;background:#fff;border:1px solid var(--line);padding:3px 11px;border-radius:20px}
+
+  /* Module panel */
+  .mod{background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden;margin-bottom:14px;
+       box-shadow:0 2px 10px rgba(16,24,40,.04);break-inside:avoid}
+  .mod-head{display:flex;align-items:center;gap:13px;padding:13px 18px;border-bottom:1px solid var(--line);
+            background:linear-gradient(135deg,#faf9ff,#f3fdfb)}
+  .mod-head .ic{width:38px;height:38px;border-radius:10px;display:grid;place-items:center;font-size:19px;flex:none;
+                background:#fff;border:1px solid var(--line)}
+  .mod-head h3{font-size:15.5px;font-weight:700;color:var(--ink);flex:none}
+  .pill{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:2px 8px;border-radius:20px;color:#fff}
+  .pill.live{background:var(--live)} .pill.build{background:var(--build)} .pill.early{background:var(--early)}
+  .mhd-bar{margin-left:auto;display:flex;align-items:center;gap:10px;min-width:200px}
+  .mhd-bar .bar{flex:1;height:8px;border-radius:6px;background:#eef1f6;overflow:hidden;min-width:90px}
+  .mhd-bar .bar i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,var(--cb-purple),var(--cb-teal))}
+  .mhd-bar b{font-size:14px;color:var(--cb-navy);width:38px;text-align:right}
+
+  .mod-body{display:grid;grid-template-columns:1fr 1fr 1fr}
+  .col{padding:13px 18px;border-right:1px solid var(--line)}
+  .col:last-child{border-right:none}
+  .col h5{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+  .col.done h5{color:var(--done)} .col.gap h5{color:var(--gap)} .col.imp h5{color:var(--imp)}
+  .col ul{list-style:none;display:flex;flex-direction:column;gap:7px}
+  .col li{font-size:11.6px;color:#374151;line-height:1.42;padding-left:14px;position:relative}
+  .col li::before{content:"";position:absolute;left:0;top:6px;width:5px;height:5px;border-radius:50%}
+  .col.done li::before{background:var(--done)} .col.gap li::before{background:var(--gap)} .col.imp li::before{background:var(--imp)}
+
+  /* Flow + Plan */
+  .flowbox{background:#fff;border:1px solid var(--line);border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(16,24,40,.04);margin-bottom:14px}
+  .flow-title{font-size:14px;font-weight:700;color:var(--cb-navy);margin-bottom:12px}
+  .flow{display:flex;flex-wrap:wrap;gap:8px}
+  .step{flex:1 1 150px;min-width:140px;background:linear-gradient(135deg,#f6f4ff,#eafaf7);border:1px solid #e6e2fb;border-radius:11px;padding:10px 12px;position:relative}
+  .step.gap{background:linear-gradient(135deg,#fff7ed,#fffdf9);border-color:#fed7aa}
+  .step .num{font-size:10px;font-weight:800;color:var(--cb-purple);letter-spacing:.5px}
+  .step h4{font-size:12.4px;font-weight:700;color:var(--ink);margin:3px 0 3px}
+  .step p{font-size:10.6px;color:var(--muted);margin:0;line-height:1.38}
+  .step .st{position:absolute;top:8px;right:10px;font-size:12px}
+
+  .plan{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  .phase{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px;box-shadow:0 2px 10px rgba(16,24,40,.04)}
+  .phase .tag{display:inline-block;font-size:10.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#fff;background:var(--cb-purple);padding:3px 10px;border-radius:20px;margin-bottom:10px}
+  .phase.p2 .tag{background:var(--cb-teal)} .phase.p3 .tag{background:var(--cb-navy-2)}
+  .phase h3{font-size:14px;font-weight:700;color:var(--ink);margin-bottom:3px}
+  .phase .when{font-size:11.3px;color:var(--muted);margin-bottom:11px}
+  .phase ul{list-style:none;display:flex;flex-direction:column;gap:9px}
+  .phase li{font-size:12px;color:var(--ink);padding-left:18px;position:relative;line-height:1.45}
+  .phase li::before{content:"▸";position:absolute;left:0;color:var(--cb-purple);font-weight:800}
+  .phase li b{color:var(--cb-navy)}
+
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:34px;font-size:12.5px;color:var(--muted);align-items:center}
+  .legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:6px;vertical-align:middle}
+  .note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:13px 16px;font-size:12.5px;margin-top:22px}
+  footer{margin-top:26px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  footer b{color:var(--ink)}
+  /* Tables */
+  .tblwrap{border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:0 2px 10px rgba(16,24,40,.04);overflow-x:auto}
+  table.tbl{width:100%;border-collapse:collapse;background:#fff;min-width:640px}
+  table.tbl th{background:linear-gradient(135deg,#faf9ff,#f3fdfb);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--cb-navy);text-align:left;padding:10px 14px;border-bottom:1px solid var(--line)}
+  table.tbl td{font-size:11.8px;padding:8px 14px;border-bottom:1px solid #f0f2f7;color:#374151;vertical-align:middle}
+  table.tbl tr:last-child td{border-bottom:none}
+  table.tbl td.m{font-weight:700;color:var(--ink)}
+  .s-pill{display:inline-block;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;padding:2px 8px;border-radius:20px;color:#fff}
+  .s-pill.live{background:var(--live)} .s-pill.build{background:var(--build)} .s-pill.early{background:var(--early)}
+  .mbar{display:inline-block;width:56px;height:7px;border-radius:5px;background:#eef1f6;vertical-align:middle;overflow:hidden;margin-right:8px}
+  .mbar i{display:block;height:100%;background:linear-gradient(90deg,var(--cb-purple),var(--cb-teal))}
+  .pcn{font-weight:800;color:var(--cb-navy)}
+  table.tbl tr.sp td{background:#f1eefe;font-weight:700;color:var(--cb-navy);font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  @media(max-width:820px){.kpis{grid-template-columns:repeat(2,1fr)}.mod-body{grid-template-columns:1fr}.col{border-right:none;border-bottom:1px solid var(--line)}.col:last-child{border-bottom:none}.plan{grid-template-columns:1fr}header h1{font-size:24px}}
+  @media print{body{background:#fff}header::after{display:none}.mod,.phase,.flowbox{box-shadow:none}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="head-inner">
+    <div class="brand">
+      <div class="logo-badge">C</div>
+      <div><b>Codebegun&nbsp;LMS</b><span>Multi-tenant Learning &amp; Placement Platform</span></div>
+    </div>
+    <h1>Module Status Report</h1>
+    <p class="sub">Every module audited from the codebase &amp; live production — what's <b>completed</b>, where the <b>gaps</b> are, and what <b>needs improvement</b>. Percentages are engineering estimates, not a formal audit.</p>
+    <div class="meta-row">
+      <span>📅 24 Jun 2026</span><span>🧩 25 modules · 5 categories</span><span>🌐 Prod: 187.124.97.56</span><span>⚙️ Node · React · MongoDB</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="kpis">
+    <div class="kpi"><div class="n">25</div><div class="l">Total modules</div></div>
+    <div class="kpi teal"><div class="n">~74%</div><div class="l">Avg. completion</div></div>
+    <div class="kpi navy"><div class="n">11</div><div class="l">At / above 80%</div></div>
+    <div class="kpi red"><div class="n">7</div><div class="l">Need attention (&lt;70%)</div></div>
+  </div>
+
+  <!-- ============ EXECUTIVE SUMMARY ============ -->
+  <section>
+    <div class="sec-head"><span class="dot"></span><h2>📋 Executive Summary — all 25 modules ranked</h2><span class="count">by completion</span></div>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th>Module</th><th style="width:110px">Category</th><th style="width:80px">Status</th><th style="width:120px">Completion</th><th>Biggest single gap</th></tr></thead>
+        <tbody>
+          <tr><td class="m">Quizzes</td><td>Core</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:90%"></i></span><span class="pcn">90%</span></td><td>No essay / descriptive auto-grading</td></tr>
+          <tr><td class="m">Attendance</td><td>Core</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:85%"></i></span><span class="pcn">85%</span></td><td>Reports lack analytics / trends</td></tr>
+          <tr><td class="m">Assignments</td><td>Core</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:85%"></i></span><span class="pcn">85%</span></td><td>SQL grading is simulation-only</td></tr>
+          <tr><td class="m">Leads / CRM</td><td>Sales</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:85%"></i></span><span class="pcn">85%</span></td><td>No call transcription / bulk templates</td></tr>
+          <tr><td class="m">Roles &amp; Permissions</td><td>Platform</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:85%"></i></span><span class="pcn">85%</span></td><td>No audit log / data-scoping</td></tr>
+          <tr><td class="m">Skill Assessment</td><td>Assess/AI</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:85%"></i></span><span class="pcn">85%</span></td><td>Paid full-unlock not wired</td></tr>
+          <tr><td class="m">Courses &amp; Learning</td><td>Core</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:80%"></i></span><span class="pcn">80%</span></td><td>No unified content-manager UI</td></tr>
+          <tr><td class="m">Curriculum &amp; Plan</td><td>Core</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:80%"></i></span><span class="pcn">80%</span></td><td>DayView renders video/notes only</td></tr>
+          <tr><td class="m">Code Assessments</td><td>Core</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:80%"></i></span><span class="pcn">80%</span></td><td>Simulation fallback unsafe for grading</td></tr>
+          <tr><td class="m">Career Profile Builder</td><td>Assess/AI</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:80%"></i></span><span class="pcn">80%</span></td><td>No LinkedIn OAuth / PDF export</td></tr>
+          <tr><td class="m">Platform Settings</td><td>Platform</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:80%"></i></span><span class="pcn">80%</span></td><td>No audit log / value validation</td></tr>
+          <tr><td class="m">Meta Lead Ads</td><td>Sales</td><td><span class="s-pill live">Live</span></td><td><span class="mbar"><i style="width:75%"></i></span><span class="pcn">75%</span></td><td>Field mapping hard-coded</td></tr>
+          <tr><td class="m">Interactive Lessons</td><td>Core</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:75%"></i></span><span class="pcn">75%</span></td><td>No scene branching</td></tr>
+          <tr><td class="m">AI Mock Interviews</td><td>Assess/AI</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:75%"></i></span><span class="pcn">75%</span></td><td>ElevenLabs / D-ID not deployed</td></tr>
+          <tr><td class="m">Resume Builder</td><td>Assess/AI</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:75%"></i></span><span class="pcn">75%</span></td><td>No server-side PDF / AI rewrite</td></tr>
+          <tr><td class="m">Multi-Tenant SaaS</td><td>Platform</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:75%"></i></span><span class="pcn">75%</span></td><td>Plan tiers not enforced</td></tr>
+          <tr><td class="m">WhatsApp Lead Bot</td><td>Sales</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:70%"></i></span><span class="pcn">70%</span></td><td>Outbound trigger/cron missing — 0 convos</td></tr>
+          <tr><td class="m">Student Profiles &amp; Reports</td><td>Platform</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:70%"></i></span><span class="pcn">70%</span></td><td>OAuth callbacks + analytics missing</td></tr>
+          <tr><td class="m">Code Playground</td><td>Core</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:65%"></i></span><span class="pcn">65%</span></td><td>No real debugger / connect UI</td></tr>
+          <tr><td class="m">CRT / Placement Drives</td><td>Placement</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:65%"></i></span><span class="pcn">65%</span></td><td>No student job board / notifications</td></tr>
+          <tr><td class="m">Fee Management</td><td>Platform</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:65%"></i></span><span class="pcn">65%</span></td><td>No real payment gateway</td></tr>
+          <tr><td class="m">Class Recordings</td><td>Core</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:60%"></i></span><span class="pcn">60%</span></td><td>Capture / playback not wired</td></tr>
+          <tr><td class="m">AI Voice Calls</td><td>Sales</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:60%"></i></span><span class="pcn">60%</span></td><td>No auto-trigger; recording not saved</td></tr>
+          <tr><td class="m">Placement Partner Outreach</td><td>Placement</td><td><span class="s-pill build">Building</span></td><td><span class="mbar"><i style="width:55%"></i></span><span class="pcn">55%</span></td><td>Email delivery not wired</td></tr>
+          <tr><td class="m">Marketing &amp; Campaigns</td><td>Sales</td><td><span class="s-pill early">Early</span></td><td><span class="mbar"><i style="width:50%"></i></span><span class="pcn">50%</span></td><td>No campaign / automation / analytics</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============ CORE LEARNING ============ -->
+  <section>
+    <div class="sec-head"><span class="dot"></span><h2>📘 Core Learning (LMS)</h2><span class="count">9 modules</span></div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">📚</div><h3>Courses &amp; Learning</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:80%"></i></div><b>80%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Full hierarchy CRUD (Course→Subject→Chapter→Topic→SubTopic) with reorder</li><li>Content upload (PDF/Office/images, 50MB)</li><li>Progress tracking + chapter-complete; ConceptLesson upsert</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No standalone course-browse page (only curriculum view)</li><li>Topic/SubTopic/ConceptLesson have no admin UI</li><li>No unified content-manager screen</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Move videos from disk to a CDN</li><li>Progress is binary — add time-spent / mastery</li><li>Consolidate scattered admin CRUD into one manager</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🗂️</div><h3>Curriculum &amp; Learning Plan</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:80%"></i></div><b>80%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>DayPlan polymorphic items (content/quiz/assignment/code/interview), slots, gating</li><li>CurriculumBuilder: create/clone/publish/share/import</li><li>MyLearningPlan + DayView; enrollment with preview mode</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Day viewer renders video/notes only — quiz/assignment/interview viewers still stubs</li><li>Weekend-plan editor UI missing</li><li>No drag-drop day reorder</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Enforce <b>enforceSequential</b> on client navigation</li><li>Factor holidays into the day calendar</li><li>Detect overlapping-enrollment conflicts</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🗓️</div><h3>Attendance</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:85%"></i></div><b>85%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Mark / view / report; bulk mark + CSV export</li><li>Student &amp; admin views</li><li>Status present/absent/leave + in-out + remarks</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No QR / biometric capture (manual only)</li><li>Reports lack analytics (% trends)</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Store in/out as timestamps, not HH:MM strings</li><li>Add device / location verification</li><li>Trend &amp; defaulter dashboards</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">❓</div><h3>Quizzes</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:90%"></i></div><b>90%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Quiz CRUD/clone/archive; question bank + AI-gen + dup-check</li><li>Proctored attempts (cam/mic/fullscreen, tab-switch), negative marking, shuffle, multi-attempt</li><li>Rich reports + CSV; public quiz + leaderboard</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No descriptive/essay auto-grading</li><li>Recordings captured but no playback/review</li><li>Question-analytics UI thin</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Surface batch/individual access gating in client</li><li>Cross-attempt plagiarism check</li><li>Public-link expiry</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">📝</div><h3>Assignments</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:85%"></i></div><b>85%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>CRUD/clone/publish; types coding/project/MCQ/theory/SQL/file/web</li><li>Submit/run/grade; test cases + rubric; AI-gen</li><li>Reports + CSV import</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>SQL grading likely simulation (no live DB exec)</li><li>Plagiarism flag not wired</li><li>File-upload has no virus scan</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Enforce late-submission penalty in UI</li><li>Render web (HTML/CSS) instead of markup-grading</li><li>Tighten submission validation</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🎥</div><h3>Class Recordings &amp; Live Sessions</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:60%"></i></div><b>60%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>LiveSession start/list/end; Meeting CRUD</li><li>RecordingLog telemetry</li><li>Bunny video upload (RecordClass)</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Recording capture (Zoom/Bunny webhook) not wired</li><li>No recording access-control / share links</li><li>Client join logic thin</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Link meetings to course/batch (currently CRM-lead bound)</li><li>Participant list + invites</li><li>Complete recording-activity schema</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">💻</div><h3>Code Assessments</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:80%"></i></div><b>80%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Snippet model + routes; submit + auto-grade via Piston (real exec in prod)</li><li>Hidden test cases, time/memory limits</li><li>HTML/CSS markup grading; admin + student pages</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Falls back to simulation if Piston URL unset</li><li>No plagiarism detection</li><li>No code linting</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Simulation pattern-matches — unsafe for grading; require Piston</li><li>Better compile-error handling</li><li>Per-language linting</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">✨</div><h3>Interactive Lessons</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:75%"></i></div><b>75%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>7 scene types (story/code-demo/drag-drop/quiz/fill-blank/code-run/summary)</li><li>CRUD + templates + AI-gen; progress + complete</li><li>In-lesson Piston execution; builder + viewer</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No scene branching / conditional flow</li><li>Quiz scenes single-MCQ only</li><li>No XP/rewards tied to enrollment</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Model scene media (images/animation) explicitly</li><li>Per-scene "where students struggle" analytics</li><li>Harden sandboxing beyond Piston</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🧪</div><h3>Code Playground</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:65%"></i></div><b>65%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>PlaygroundProgram model; run/list/get/save routes</li><li>Piston execution; GitHub push (Octokit)</li><li>Client editor w/ syntax highlight + run</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Trace/debug endpoint exists but no real step-through debugger</li><li>GitHub needs a token — no connect UI</li><li>No collaboration / versioning</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Public snippet share links</li><li>Paginate saved programs</li><li>Better stdin/stdout handling</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ ASSESSMENT, CAREER & AI ============ -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:var(--cb-teal)"></span><h2>🎯 Assessment, Career &amp; AI</h2><span class="count">4 modules</span></div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🗣️</div><h3>AI Mock Interviews</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:75%"></i></div><b>75%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>2 tracks (Manual + AI Virtual); real Claude brain (gen/eval/live conversation)</li><li>Video-call hands-free UI; ElevenLabs + D-ID coded</li><li>Per-attempt AI cost tracking; Bunny recording</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>ElevenLabs + D-ID built but <b>not deployed</b> (prod = free tier)</li><li>D-ID untested with a real key</li><li>Public free-interview funnel not built</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Switch model to Haiku 4.5 → under ₹5/interview</li><li>Deploy + tune premium realism layer</li><li>Meter ElevenLabs/D-ID cost in analytics</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🧭</div><h3>Skill Assessment Funnel</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:85%"></i></div><b>85%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Register→WhatsApp OTP→AI exam→code-verified Qs→adaptive exam→scoring</li><li>AI roadmap + best-fit curriculum; auto LMS account + preview enroll</li><li>CRM sync; admin candidate dashboard</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Paid full-unlock has no endpoint/UI (<b>unlockCandidatePlans</b> unused)</li><li>Anti-cheat logged but not enforced</li><li>Mobile exam UX partial</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Razorpay self-serve checkout</li><li>Admin question-bank search/filter</li><li>Enforce anti-cheat penalties</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">📄</div><h3>Career Profile Builder</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:80%"></i></div><b>80%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>3 pillars: Resume ATS, GitHub fetch+review, LinkedIn paste review</li><li>Anthropic + OpenAI fallback; per-section regenerate</li><li>Admin review workflow; markdown export</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>LinkedIn auto-import (OAuth) absent — paste only</li><li>No PDF export</li><li>No batch admin ops</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>GitHub connect UI</li><li>Guided "build resume → review" handoff</li><li>Block pillars cleanly when inputs missing</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🧰</div><h3>Resume Builder</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:75%"></i></div><b>75%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Full sections editor; 4 templates + design customizer</li><li>Upload/parse PDF/DOCX; AI scoring (ATS + breakdown)</li><li>Public share link; print-to-PDF</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No server-side PDF export (browser print only)</li><li>No AI "rewrite this bullet"</li><li>No multi-resume / version UI</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Tailor-to-job-description versioning</li><li>ATS auto-remediation</li><li>Tighter Career-Profile integration</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLACEMENT ============ -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:var(--cb-navy-2)"></span><h2>💼 Placement (CRT)</h2><span class="count">2 modules</span></div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🏢</div><h3>CRT / Placement Drives</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:65%"></i></div><b>65%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>PlacementDrive model (company/role/CTC/eligibility/rounds)</li><li>CRUD + status transitions; applicant status tracking</li><li>CSV bulk import; PlacementAnalytics dashboard</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No student notifications on shortlist/select</li><li>No student-facing job board</li><li>No offer-letter generation / interview scheduling</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Real-time status push</li><li>Validate CSV imports (batch membership)</li><li>Placement summary / letter PDFs</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🤝</div><h3>Placement Partner Outreach</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:55%"></i></div><b>55%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Partner model + CSV import + Kanban pipeline</li><li>Outreach sequence (cold/D3/D7); approval queue</li><li>Candidate matching + one-pager PDF; interview/placement recording</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li><b>Email delivery NOT wired</b> (no SMTP/SES) — messages queue but never send</li><li>Todoist integration scaffold-only; IMAP reply detection missing</li><li>No scheduled-send cron</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Template library + variable substitution</li><li>Reply / bounce automation</li><li>Reply-rate &amp; time-to-placement analytics</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ SALES & GROWTH ============ -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:#e0457b"></span><h2>📈 Sales &amp; Growth (CRM)</h2><span class="count">5 modules</span></div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🏷️</div><h3>Leads / CRM</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:85%"></i></div><b>85%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Full lifecycle (CRUD/stages/convert/audit) — 1,642 leads in prod</li><li>Scoring engine, distribution (round-robin/weighted), dispositions, lost reasons</li><li>Follow-ups, qualification questions, telecaller console, dup-merge, analytics</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Call recordings stored but no transcription</li><li>No bulk SMS/email template system</li><li>Form-config API has no drag-drop builder UI</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Surface real-time updates (socket wired, not shown)</li><li>Bulk stage/assign actions; saved views/segments</li><li>Indexed aggregation for analytics at scale</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">📣</div><h3>Meta Lead Ads</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:75%"></i></div><b>75%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Webhook verify + HMAC; intake parses leadgen fields</li><li>Phone normalize/dedupe; auto lead create; manual sync (306 synced)</li><li>Triggers scoring / AI-call / drip</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Field mapping hard-coded (no UI)</li><li>Dedup not enforced at create; no 429 backoff</li><li>No cost-per-lead dashboard; no retry/DLQ</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Structured error tracking</li><li>Webhook-health metrics</li><li>Signature test vectors</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">💬</div><h3>WhatsApp Lead Bot</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:70%"></i></div><b>70%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Webhook verify; inbound parser (text/button/list)</li><li>Qualification state machine + persistent state + scoring</li><li>Manual + bulk-cold send; drip service (D1/D3/D7) coded</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li><b>No outbound auto-trigger</b> on new lead</li><li>Drip cron never scheduled (processDueMessages uncalled) → <b>0 conversations in prod</b></li><li>No template variables</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Add trigger on lead-create + hourly drip cron</li><li>Template {{name}}/{{course}} substitution</li><li>Qualified-rate analytics; conversation branching</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">📞</div><h3>AI Voice Calls</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:60%"></i></div><b>60%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>AICallConfig (questions/retries/working-hours/scoring)</li><li>Exotel dial + BullMQ queue/worker (working-hours aware)</li><li>Webhook → transcript → LLM scoring; WhatsApp fallback; manual trigger</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No auto-trigger on hot lead (manual only)</li><li>Q&amp;A extraction holistic, not structured</li><li>Recording URL not saved; no DND/consent</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Auto-trigger on lead-create</li><li>Inject lead context into the LLM prompt</li><li>Persist recording + cost; circuit-breaker on concurrency</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🔔</div><h3>Marketing &amp; Campaigns</h3><span class="pill early">Early</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:50%"></i></div><b>50%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Google Ads webhook intake</li><li>Google Sheets one-way write-back</li><li>LeadSourceConfig (encrypted creds); LeadSources breakdown page</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No campaign / email-SMS template system; no automation triggers</li><li>No ROAS / attribution dashboard; UTM not correlated to conversion</li><li>Sheets sync one-way only</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Multi-touch attribution</li><li>Credential rotation/refresh</li><li>A/B variant tracking; webhook rate-limit</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PLATFORM & ADMIN ============ -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:#0ea5a3"></span><h2>🛠️ Platform &amp; Administration</h2><span class="count">5 modules</span></div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🏗️</div><h3>Multi-Tenant SaaS</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:75%"></i></div><b>75%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Tenant model (plan/type/subscription); CRUD + invite links</li><li>11+ module gates + 13 student feature flags; fail-closed gating</li><li>Per-tenant receipt branding; college fields</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>Plan tiers stored but <b>not enforced</b> (no entitlements/metering)</li><li>No tenant-admin self-service tier</li><li>Per-student override absent; white-label partial</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Usage metering + plan enforcement</li><li>Vanity-domain invite links</li><li>Bulk tenant ops / health checks</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">🔐</div><h3>Roles &amp; Permissions (RBAC)</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:85%"></i></div><b>85%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>6 base roles + 60+ granular perms across 13 groups</li><li>Custom tenant roles (union merge); guards on sensitive routes</li><li>getAvailablePermissions API for UI</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No permission audit log; no role templates</li><li>No data-scoping (e.g. instructor → own students only)</li><li>Custom roles can only add, never restrict</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Move PERMISSION_GROUPS to DB (dynamic registry)</li><li>Permission inheritance patterns</li><li>Polish the UI role builder</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">💰</div><h3>Fee Management</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:65%"></i></div><b>65%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Fee model + components; multi-method payments + txn id; installments</li><li>Branded receipts + student self-serve; analytics</li><li>Bulk reminders; seat reservations</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li><b>No real payment gateway</b> (Razorpay/Stripe) — manual txn entry</li><li>No payment webhooks; no refund endpoint</li><li>Demo-period fields set but not enforced</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Extract 41KB receipt HTML into a template service</li><li>Auto-generate installment plans + validate amounts</li><li>Enforce reservation status flow</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">⚙️</div><h3>Platform Settings</h3><span class="pill live">Live</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:80%"></i></div><b>80%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>108 config keys in 8 groups; AES-256 secret encryption</li><li>3-level resolution (tenant→UI→env) + mirror-to-env at boot</li><li>Source tracking + masking; Anthropic/OpenAI/email test endpoints</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>No audit log / rollback / history</li><li>No bulk import-export</li><li>ENCRYPTION_KEY can't be rotated via UI</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>SETTING_DEFS hard-coded — needs deploy to add keys</li><li>Value validation (ports, prices, ranges)</li><li>Non-blocking boot load</li></ul></div>
+      </div>
+    </div>
+
+    <div class="mod">
+      <div class="mod-head"><div class="ic">📊</div><h3>Student Profiles &amp; Reports</h3><span class="pill build">Building</span>
+        <div class="mhd-bar"><div class="bar"><i style="width:70%"></i></div><b>70%</b></div></div>
+      <div class="mod-body">
+        <div class="col done"><h5>✅ Completed</h5><ul><li>Report service aggregates 7 dimensions (attendance/quizzes/assignments/fees/interviews/exams)</li><li>Student dashboard (stats, today's plan, deadlines); multi-step profile</li><li>Self-serve receipt; profile-complete flag</li></ul></div>
+        <div class="col gap"><h5>⚠️ Gaps</h5><ul><li>OAuth (LinkedIn/GitHub) fields exist but no callback handlers</li><li>No per-course mastery %; no engagement heatmaps</li><li>No predictive / dropout-risk analytics</li></ul></div>
+        <div class="col imp"><h5>🔧 Improve</h5><ul><li>Export report (CSV / PDF)</li><li>Server-side profile-completion + progress</li><li>Consolidate dashboard data into one service</li></ul></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ FLAGSHIP FLOW ============ -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:var(--cb-teal)"></span><h2>🔄 Flagship End-to-End Flow — Skill Assessment</h2></div>
+    <div class="flowbox">
+      <div class="flow-title">Candidate journey — built end-to-end (one GAP at the unlock step)</div>
+      <div class="flow">
+        <div class="step"><span class="st">✅</span><div class="num">1</div><h4>Register</h4><p>Name, target role, stack &amp; experience.</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">2</div><h4>WhatsApp OTP</h4><p>Phone verified (6-digit, 10-min TTL).</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">3</div><h4>AI Blueprint</h4><p>Claude designs a personalised exam.</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">4</div><h4>Question Gen</h4><p>AI writes items; verified on Piston.</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">5</div><h4>Adaptive Exam</h4><p>MCQ, debug, predict, live code, SQL.</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">6</div><h4>Scoring</h4><p>Readiness Score + percentile.</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">7</div><h4>AI Roadmap</h4><p>Best-fit curriculum + gaps + salary band.</p></div>
+        <div class="step"><span class="st">✅</span><div class="num">8</div><h4>Account + Enroll</h4><p>Auto LMS account, creds via WhatsApp, CRM sync.</p></div>
+        <div class="step gap"><span class="st">⚠️</span><div class="num">9 · GAP</div><h4>Full Unlock</h4><p>Preview only (2 days). Paid unlock has no UI/endpoint.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPLETION PLAN ============ -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:var(--cb-navy-2)"></span><h2>🗺️ Dated Roadmap — path to 100%</h2></div>
+    <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Target windows assume two-week sprints starting today. <b>Owner column is a placeholder</b> — assign your team. Sprint 1 is highest priority: these features are built but inert.</p>
+    <div class="tblwrap">
+      <table class="tbl">
+        <thead><tr><th style="width:60px">Sprint</th><th style="width:150px">Workstream</th><th>Deliverable</th><th style="width:110px">Owner</th></tr></thead>
+        <tbody>
+          <tr class="sp"><td colspan="4">Sprint 1 · Unblock revenue — 24 Jun → 7 Jul</td></tr>
+          <tr><td>S1</td><td class="m">WhatsApp Bot</td><td>Outbound auto-trigger on lead-create + scheduled drip cron (fixes 0 conversations)</td><td>—</td></tr>
+          <tr><td>S1</td><td class="m">AI Voice Calls</td><td>Auto-trigger on hot leads (replace manual-only)</td><td>—</td></tr>
+          <tr><td>S1</td><td class="m">Skill Assessment</td><td>Paid full-unlock endpoint + admin UI (wire unlockCandidatePlans)</td><td>—</td></tr>
+          <tr class="sp"><td colspan="4">Sprint 2 · Payments &amp; outreach — 8 Jul → 21 Jul</td></tr>
+          <tr><td>S2</td><td class="m">Placement Partner</td><td>Real email delivery (SES/SendGrid) + scheduled-send cron</td><td>—</td></tr>
+          <tr><td>S2</td><td class="m">Fee Management</td><td>Razorpay gateway + payment webhooks for self-serve</td><td>—</td></tr>
+          <tr><td>S2</td><td class="m">AI Interviews</td><td>Switch model to Haiku 4.5 → under ₹5 / interview</td><td>—</td></tr>
+          <tr class="sp"><td colspan="4">Sprint 3 · Complete the UX — 22 Jul → 4 Aug</td></tr>
+          <tr><td>S3</td><td class="m">Curriculum</td><td>Finish DayView: render quiz / assignment / interview inline</td><td>—</td></tr>
+          <tr><td>S3</td><td class="m">AI Interviews</td><td>Deploy + live-test ElevenLabs + D-ID realism</td><td>—</td></tr>
+          <tr><td>S3</td><td class="m">Career / Resume</td><td>Server-side PDF export + AI "rewrite bullet"</td><td>—</td></tr>
+          <tr><td>S3</td><td class="m">Class Recordings</td><td>Wire capture + access-controlled playback</td><td>—</td></tr>
+          <tr class="sp"><td colspan="4">Sprint 4 · Harden &amp; scale — 5 Aug → 18 Aug</td></tr>
+          <tr><td>S4</td><td class="m">Platform</td><td>Plan-tier metering + settings / permission audit logs</td><td>—</td></tr>
+          <tr><td>S4</td><td class="m">Assessments</td><td>Enforce anti-cheat + plagiarism (quiz / assignment / code)</td><td>—</td></tr>
+          <tr><td>S4</td><td class="m">Reports</td><td>Unified analytics dashboard + CSV / PDF export</td><td>—</td></tr>
+          <tr><td>S4</td><td class="m">Growth</td><td>Public assessment &amp; interview funnels; marketing attribution</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <div class="legend">
+    <strong style="color:var(--ink)">Status:</strong>
+    <span><i style="background:var(--live)"></i>Live — deployed &amp; operational (≥80%)</span>
+    <span><i style="background:var(--build)"></i>Building — works partially, real gaps (55–79%)</span>
+    <span><i style="background:var(--early)"></i>Early — significant gaps (&lt;55%)</span>
+  </div>
+
+  <div class="note">
+    <b>⚠️ Production reality check (verified 24 Jun 2026):</b> Claude key is live → AI interviews + assessments run real AI on the free voice/avatar tier. ElevenLabs + D-ID are coded but <b>not deployed</b>. The WhatsApp bot has live Cloud-API credentials but has <b>never sent an outbound message</b> (0 conversations) — its inbound machine works, the outbound trigger/cron is the missing piece. Placement-partner outreach queues emails but has <b>no SMTP wired</b>. Fee payments are manual (no gateway).
+  </div>
+
+  <footer>
+    <b>Codebegun LMS</b> — Module Status Report · 24 Jun 2026.<br>
+    Percentages are engineering estimates from the codebase, project notes and verified production state — not a formal audit. "Live" = deployed &amp; operational; "Building"/"Early" = code exists but the feature is incomplete or inert.
+  </footer>
+</div>
+</body>
+</html>

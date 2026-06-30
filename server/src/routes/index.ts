@@ -77,6 +77,8 @@ import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
 import concernRoutes from './concernRoutes';
+import paymentRoutes from './paymentRoutes';
+import { webhook as paymentWebhook } from '../controllers/paymentController';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -86,6 +88,7 @@ const router = express.Router();
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public', publicLeadRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
+router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);
@@ -153,6 +156,7 @@ router.use('/learning-library', learningContentLibraryRoutes);
 router.use('/live-classes', liveSessionRoutes);
 router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
+router.use('/payments', paymentRoutes);
 router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);

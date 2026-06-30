@@ -64,7 +64,9 @@ app.use(helmet({
 app.use(morgan('combined'));
 app.use(cors(corsOptions));
 app.use(apiErrorLogger); // log all 4xx/5xx responses to file + stdout
-app.use(express.json({ limit: '10mb' }));
+// Stash the raw body so signature-verified webhooks (e.g. Razorpay) can HMAC the
+// exact bytes Razorpay signed, while routes still receive parsed JSON in req.body.
+app.use(express.json({ limit: '10mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Health check endpoint

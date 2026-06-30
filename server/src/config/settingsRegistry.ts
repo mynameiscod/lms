@@ -32,7 +32,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'storage',     label: 'Video Storage',    icon: '🎬', description: 'Bunny Stream credentials for class recordings and learning videos.' },
   { id: 'oauth',       label: 'OAuth Providers',  icon: '🔑', description: 'GitHub & LinkedIn OAuth apps used for student account connections and the code playground.' },
   { id: 'messaging',   label: 'Meta / WhatsApp',  icon: '💬', description: 'WhatsApp Cloud API + Meta Lead Ads webhook credentials.' },
-  { id: 'integrations',label: 'Other Integrations', icon: '🔌', description: 'Google Ads webhook and payment (UPI) configuration.' },
+  { id: 'integrations',label: 'Other Integrations', icon: '🔌', description: 'Google Ads webhook, UPI and Razorpay payment configuration (learning-plan unlock).' },
   { id: 'placement',   label: 'Placement Outreach', icon: '🤝', description: 'Daily send cap, gap between sends and sender name for the placement-partner outreach pipeline. Todoist token for hot-lead/check-in tasks.' },
   { id: 'interview',   label: 'AI Interview', icon: '🎙️', description: 'Realistic AI mock interviews — natural voice (ElevenLabs) and a talking-head interviewer (D-ID). Leave blank to use the free browser voice + animated avatar.' },
 ];
@@ -85,6 +85,11 @@ export const SETTING_DEFS: SettingDef[] = [
   // ── Other Integrations ───────────────────────────────────────────────────────
   { key: 'GOOGLE_ADS_WEBHOOK_KEY', label: 'Google Ads Webhook Key', group: 'integrations', isSecret: true, type: 'password', help: 'Shared secret for the Google Ads lead webhook.' },
   { key: 'UPI_ID', label: 'UPI ID (payments)', group: 'integrations', type: 'text', placeholder: 'name@bank', perTenant: true },
+  // Razorpay — self-serve learning-plan unlock. Key ID is public (sent to the browser); the secret signs/verifies. Price is per-tenant so each institute can charge its own amount.
+  { key: 'RAZORPAY_KEY_ID', label: 'Razorpay Key ID', group: 'integrations', type: 'text', placeholder: 'rzp_live_xxx / rzp_test_xxx', help: 'From Razorpay → Settings → API Keys. Used in the browser checkout — not a secret.', perTenant: true },
+  { key: 'RAZORPAY_KEY_SECRET', label: 'Razorpay Key Secret', group: 'integrations', isSecret: true, type: 'password', placeholder: 'razorpay key secret', help: 'The secret paired with the Key ID above. Signs orders and verifies payments.', perTenant: true },
+  { key: 'RAZORPAY_WEBHOOK_SECRET', label: 'Razorpay Webhook Secret', group: 'integrations', isSecret: true, type: 'password', help: 'Optional. Set the same value in Razorpay → Settings → Webhooks for the payment.captured webhook (server-side unlock fallback).', perTenant: true },
+  { key: 'LEARNING_PLAN_PRICE_INR', label: 'Learning Plan Price (₹)', group: 'integrations', type: 'number', placeholder: '4999', help: 'Amount charged to unlock the full personalized plan. Leave blank to default to ₹4,999.', perTenant: true },
 
   // ── Placement Outreach ───────────────────────────────────────────────────────
   { key: 'PARTNER_OUTREACH_DAILY_CAP', label: 'Daily Send Cap', group: 'placement', type: 'number', placeholder: '25', help: 'Max cold/follow-up outreach emails sent per day (per tenant). Protects sender reputation.', perTenant: true },

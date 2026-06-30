@@ -20,6 +20,7 @@ import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
 import { workingDateForDay, planDayForDate } from '../utils/planSchedule';
+import * as razorpay from '../services/razorpayService';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -898,7 +899,13 @@ export const getJourney = async (req: Request, res: Response) => {
         milestones: Object.entries(milestoneByDay).map(([d, m]) => ({ day: Number(d), ...m })).sort((a, b) => a.day - b.day),
       },
       progress: { completedDays: completedCount, currentDay, todayPlanDay: currentPlanDay(enrollment.startDate, totalDays), percent },
-      access: { previewOnly, previewDays, lockedFromDay: previewOnly ? previewDays + 1 : null },
+      access: {
+        previewOnly,
+        previewDays,
+        lockedFromDay: previewOnly ? previewDays + 1 : null,
+        priceInr: razorpay.getPriceInr(tId),
+        paymentAvailable: razorpay.isConfigured(tId),
+      },
       estimatedEndDate: weekdayForDay(enrollment.startDate, totalDays).toISOString(),
     });
   } catch (err) {

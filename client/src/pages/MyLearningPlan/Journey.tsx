@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
+import { unlockPlanCheckout } from '../../api/paymentApi';
+import { concernApi } from '../../api/concernApi';
 import RaiseConcern from '../../components/RaiseConcern';
 
 /**
@@ -28,14 +30,40 @@ const MyJourney: React.FC = () => {
   const [j, setJ] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [paying, setPaying] = useState(false);
+  const [mentorSent, setMentorSent] = useState(false);
+  const [payMsg, setPayMsg] = useState('');
 
-  useEffect(() => {
-    (async () => {
-      try { setJ(await enrollmentPlanApi.getJourney(enrollmentId!)); }
-      catch (e: any) { setErr(e?.response?.data?.message || e.message || 'Failed to load your journey'); }
-      finally { setLoading(false); }
-    })();
-  }, [enrollmentId]);
+  const loadJourney = async () => {
+    try { setJ(await enrollmentPlanApi.getJourney(enrollmentId!)); }
+    catch (e: any) { setErr(e?.response?.data?.message || e.message || 'Failed to load your journey'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadJourney(); /* eslint-disable-next-line */ }, [enrollmentId]);
+
+  const handleUnlock = async () => {
+    setPayMsg(''); setPaying(true);
+    try {
+      const unlocked = await unlockPlanCheckout(enrollmentId);
+      if (unlocked) { await loadJourney(); setPayMsg(''); }
+    } catch (e: any) {
+      setPayMsg(e?.response?.data?.message || e?.message || 'Payment could not be completed. Please try again.');
+    } finally { setPaying(false); }
+  };
+
+  const handleTalkToMentor = async () => {
+    try {
+      await concernApi.raise({
+        category: 'mentor',
+        message: 'I would like to talk to a mentor about unlocking my full plan.',
+        context: { enrollmentId: enrollmentId!, curriculumTitle: j?.plan?.title },
+      });
+      setMentorSent(true);
+    } catch {
+      setMentorSent(true); // optimistic — don't block the lead
+    }
+  };
 
   if (loading) return <div style={{ padding: 40, color: MUTED }}>Loading your journey…</div>;
   if (err) return <div style={{ padding: 40, color: '#b91c1c' }}>{err}</div>;
@@ -72,15 +100,24 @@ const MyJourney: React.FC = () => {
 
       {/* Preview / unlock banner */}
       {access.previewOnly && (
-        <div style={{ marginTop: 16, borderRadius: 14, padding: '16px 18px', background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <div style={{ flex: 1, minWidth: 240 }}>
-            <div style={{ fontWeight: 800, color: '#9a3412', fontSize: 14.5 }}>✨ You're on the free preview</div>
-            <div style={{ fontSize: 12.8, color: '#9a3412', marginTop: 3 }}>Days 1–{access.previewDays} are unlocked. Unlock your full {plan.totalWeeks}-week plan — every lesson, mock interview, project, mentor support &amp; placement.</div>
+        <div style={{ marginTop: 16, borderRadius: 14, padding: '16px 18px', background: '#fff7ed', border: '1px solid #fed7aa' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ fontWeight: 800, color: '#9a3412', fontSize: 14.5 }}>✨ You're on the free preview</div>
+              <div style={{ fontSize: 12.8, color: '#9a3412', marginTop: 3 }}>Days 1–{access.previewDays} are unlocked. Unlock your full {plan.totalWeeks}-week plan — every lesson, mock interview, project, mentor support &amp; placement.</div>
+            </div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              {access.paymentAvailable && (
+                <button onClick={handleUnlock} disabled={paying} style={{ background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 800, fontSize: 13.5, cursor: paying ? 'wait' : 'pointer', opacity: paying ? .7 : 1 }}>
+                  {paying ? 'Opening…' : access.priceInr ? `Unlock full plan · ₹${Number(access.priceInr).toLocaleString('en-IN')}` : 'Unlock full plan'}
+                </button>
+              )}
+              <button onClick={handleTalkToMentor} disabled={mentorSent} style={{ background: '#fff', color: PURPLE, border: `1.5px solid ${PURPLE}`, borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 13.5, cursor: mentorSent ? 'default' : 'pointer', opacity: mentorSent ? .7 : 1 }}>
+                {mentorSent ? '✓ A mentor will reach out' : 'Talk to a mentor'}
+              </button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => alert('Online payment (Razorpay) — coming in the paywall slice.')} style={{ background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>Unlock full plan</button>
-            <button onClick={() => alert('A mentor will reach out — routed to our team.')} style={{ background: '#fff', color: PURPLE, border: `1.5px solid ${PURPLE}`, borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>Talk to a mentor</button>
-          </div>
+          {payMsg && <div style={{ marginTop: 10, fontSize: 12.5, color: '#b91c1c', fontWeight: 600 }}>{payMsg}</div>}
         </div>
       )}
 

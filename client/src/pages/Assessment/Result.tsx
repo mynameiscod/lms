@@ -35,6 +35,7 @@ const Result: React.FC = () => {
   const { token = '' } = useParams();
   const [data, setData] = useState<ResultData | null>(null);
   const [err, setErr] = useState('');
+  const [mentorAsked, setMentorAsked] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -132,11 +133,11 @@ const Result: React.FC = () => {
             Log in &amp; start free →
           </button>
           <div style={{ display: 'flex', gap: 10 }}>
-            <button onClick={() => alert('Online unlock (Razorpay) — coming with the paywall.')} style={{ flex: 1, background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
-              Unlock full plan
+            <button onClick={() => { window.location.href = '/login'; }} style={{ flex: 1, background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontWeight: 800, fontSize: 13, cursor: 'pointer' }}>
+              Log in to unlock full plan
             </button>
-            <button onClick={() => alert('A mentor will reach out to you shortly.')} style={{ flex: 1, background: '#fff', color: PURPLE, border: `1.5px solid ${PURPLE}`, borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
-              Talk to a mentor
+            <button onClick={() => setMentorAsked(true)} disabled={mentorAsked} style={{ flex: 1, background: '#fff', color: PURPLE, border: `1.5px solid ${PURPLE}`, borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 13, cursor: mentorAsked ? 'default' : 'pointer', opacity: mentorAsked ? .7 : 1 }}>
+              {mentorAsked ? '✓ A mentor will reach out' : 'Talk to a mentor'}
             </button>
           </div>
           <p style={{ fontSize: 11.5, color: MUTED, marginTop: 12, textAlign: 'center' }}>Login details were sent to your email &amp; WhatsApp.</p>

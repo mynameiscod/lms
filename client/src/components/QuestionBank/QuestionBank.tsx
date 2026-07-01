@@ -238,6 +238,33 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     return 'medium'; // default for 'medium', '2', 'm', or anything else
   };
 
+  // Resolve a CSV "Correct Answer" cell to an option index. Tolerant of every
+  // common way people fill it in — otherwise no option gets marked correct and
+  // the answer shows up blank:
+  //   • exact option text (case-insensitive)     e.g. "O(log n)"
+  //   • a letter A/B/C/D (case-insensitive)       e.g. "b"
+  //   • a numeric index — 0-based per the template, with 1-based fallback
+  // Returns -1 if it cannot be matched to any option.
+  const resolveCorrectIndex = (raw: string, options: string[]): number => {
+    const val = (raw || '').toString().trim();
+    if (!val || options.length === 0) return -1;
+    // 1) exact option text (case-insensitive) — most robust, unambiguous
+    const textIdx = options.findIndex(o => o.trim().toLowerCase() === val.toLowerCase());
+    if (textIdx >= 0) return textIdx;
+    // 2) single letter A/B/C/D…
+    if (/^[a-z]$/i.test(val)) {
+      const li = val.toLowerCase().charCodeAt(0) - 97;
+      if (li >= 0 && li < options.length) return li;
+    }
+    // 3) numeric — try 0-based (template contract) first, then 1-based
+    if (/^\d+$/.test(val)) {
+      const num = parseInt(val, 10);
+      if (num >= 0 && num < options.length) return num;
+      if (num >= 1 && num <= options.length) return num - 1;
+    }
+    return -1;
+  };
+
   // Handle CSV upload
   const handleCSVUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -258,13 +285,23 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
         if (!lines[i].trim()) continue;
 
         const values = parseCSVLine(lines[i]);
-        const questionData: any = {};
 
+        // Case/space/underscore-insensitive header lookup so "Correct Answer",
+        // "correct_answer", "Answer", "OptionA" etc. all resolve.
+        const row: Record<string, string> = {};
         headers.forEach((header, index) => {
-          questionData[header.trim()] = values[index] || '';
+          const norm = header.trim().toLowerCase().replace(/[\s_]+/g, '');
+          row[norm] = (values[index] || '').trim();
         });
+        const pick = (...names: string[]): string => {
+          for (const n of names) {
+            const key = n.toLowerCase().replace(/[\s_]+/g, '');
+            if (row[key]) return row[key];
+          }
+          return '';
+        };
 
-        const questionText = questionData.Question || questionData.question || '';
+        const questionText = pick('question', 'q');
         if (!questionText) {
           errors.push(`Row ${i + 1}: Empty question, skipped`);
           continue;
@@ -272,27 +309,28 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
 
         // Convert to the format expected by the API — store options as {text, isCorrect}
         const rawOptions = [
-          questionData['Option A'],
-          questionData['Option B'],
-          questionData['Option C'],
-          questionData['Option D']
+          pick('optiona', 'a', 'option1'),
+          pick('optionb', 'b', 'option2'),
+          pick('optionc', 'c', 'option3'),
+          pick('optiond', 'd', 'option4')
         ].filter(Boolean);
 
-        const correctRaw = (questionData['Correct Answer'] || '0').toString().trim();
-        const correctIdx = parseInt(correctRaw);
-        // Resolve correct answer text: if numeric index, map to option text; else treat as text
-        const correctText = (!isNaN(correctIdx) && rawOptions[correctIdx] !== undefined)
-          ? rawOptions[correctIdx]
-          : correctRaw;
+        const correctRaw = pick('correctanswer', 'correct', 'answer', 'correctoption', 'ans');
+        const correctIdx = resolveCorrectIndex(correctRaw, rawOptions);
+        if (correctIdx < 0) {
+          errors.push(`Row ${i + 1}: couldn't match correct answer "${correctRaw}" to an option — imported without a marked answer`);
+        }
 
         const newQuestion = {
           question: questionText,
           type: 'mcq_single' as const,
-          options: rawOptions.map((text, idx) => ({ text, isCorrect: idx === correctIdx || text === correctText })),
-          correctAnswers: [correctText],
-          marks: parseInt(questionData.Marks || questionData.marks) || 1,
-          difficultyLevel: normalizeDifficulty(questionData.Difficulty || questionData.difficulty),
-          tags: (questionData.Tags || questionData.tags || '').split(';').map((t: string) => t.trim()).filter(Boolean),
+          options: rawOptions.map((text, idx) => ({ text, isCorrect: idx === correctIdx })),
+          // Store the correct option's TEXT — identical shape to a manually-added
+          // bank question, so quizzes built from it grade the same way.
+          correctAnswers: correctIdx >= 0 ? [rawOptions[correctIdx]] : [],
+          marks: parseInt(pick('marks', 'mark', 'points')) || 1,
+          difficultyLevel: normalizeDifficulty(pick('difficulty', 'level')),
+          tags: pick('tags', 'tag').split(';').map((t: string) => t.trim()).filter(Boolean),
           source: 'csv'
         };
 
@@ -326,9 +364,9 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
   // Download template CSV
   const handleDownloadTemplate = () => {
     const csvContent = 'Question,Option A,Option B,Option C,Option D,Correct Answer,Difficulty,Marks,Tags\n' +
-      '"What is 2+2?",3,4,5,6,1,easy,1,math;basic\n' +
-      '"Which keyword is used to create a class in Java?",class,Class,new,create,0,medium,2,java;oop\n' +
-      '"What is the time complexity of binary search?","O(n)","O(log n)","O(n^2)","O(1)",1,hard,3,algorithms;search\n';
+      '"What is 2+2?",3,4,5,6,B,easy,1,math;basic\n' +
+      '"Which keyword is used to create a class in Java?",class,Class,new,create,A,medium,2,java;oop\n' +
+      '"What is the time complexity of binary search?","O(n)","O(log n)","O(n^2)","O(1)",B,hard,3,algorithms;search\n';
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -809,7 +847,9 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
               </div>
 
               <p className="qb-csv-note">
-                Expected columns: Question, Option A, Option B, Option C, Option D, Correct Answer, Difficulty, Marks, Tags
+                Expected columns: Question, Option A, Option B, Option C, Option D, Correct Answer, Difficulty, Marks, Tags.
+                <br />
+                <b>Correct Answer</b> can be the letter (A/B/C/D) or the exact answer text — either works. (The template uses letters.)
               </p>
             </div>
           </div>

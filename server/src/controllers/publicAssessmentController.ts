@@ -119,6 +119,27 @@ export const registerAssessment = async (req: Request, res: Response) => {
   }
 };
 
+// Flatten parsed résumé skills into a plain string list. The AI parser may
+// return simple strings (["Java", ...]) OR categorized objects
+// ([{ category, items: [...] }, ...]); the DB field is [String], so normalize
+// both shapes to avoid a CastError on save.
+const flattenSkills = (skills: any): string[] => {
+  if (!skills) return [];
+  const arr = Array.isArray(skills) ? skills : [skills];
+  const out: string[] = [];
+  for (const s of arr) {
+    if (typeof s === 'string') out.push(s);
+    else if (s && Array.isArray(s.items)) out.push(...s.items.filter((x: any) => typeof x === 'string'));
+    else if (s && typeof s === 'object') {
+      for (const v of Object.values(s)) {
+        if (typeof v === 'string') out.push(v);
+        else if (Array.isArray(v)) out.push(...v.filter((x: any) => typeof x === 'string'));
+      }
+    }
+  }
+  return Array.from(new Set(out.map((x) => String(x).trim()).filter(Boolean))).slice(0, 50);
+};
+
 // ─── POST /resume (multipart) ────────────────────────────────────────────────
 // Optional: upload a resume for a registered candidate. Parsed text feeds the
 // AI exam designer (Phase 2). Best-effort parse; never blocks the funnel.
@@ -136,8 +157,7 @@ export const uploadAssessmentResume = async (req: Request, res: Response) => {
       const text = await extractTextFromFile(file.path);
       submission.resumeText = (text || '').slice(0, 20000);
       const sections: any = await parseResumeText(text || '');
-      const skills = sections?.skills;
-      submission.parsedSkills = Array.isArray(skills) ? skills.slice(0, 50) : [];
+      submission.parsedSkills = flattenSkills(sections?.skills);
     } catch (e) { /* parsing best-effort */ }
 
     await submission.save();

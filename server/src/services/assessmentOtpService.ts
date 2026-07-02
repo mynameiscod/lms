@@ -19,25 +19,38 @@ const MAX_ATTEMPTS = 5;
 const hash = (code: string) => crypto.createHash('sha256').update(code).digest('hex');
 const genCode = () => String(Math.floor(100000 + Math.random() * 900000));
 
-async function getWhatsAppCredentials(tenantId: string): Promise<{ phoneNumberId: string; accessToken: string } | null> {
-  let phoneNumberId = '';
-  let accessToken = '';
+type WaCreds = { phoneNumberId: string; accessToken: string };
+
+/**
+ * Ordered list of WhatsApp credential sets to try, most-specific first:
+ *   1) the tenant's CRM Lead-Source WhatsApp connection
+ *   2) the platform/env config (Platform Settings → Meta/WhatsApp)
+ * We return ALL valid candidates (not just the first) so a stale/expired token
+ * on one automatically falls back to the other — otherwise a dead CRM token
+ * silently blocks every OTP even when Platform Settings is configured correctly.
+ */
+async function getWhatsAppCredentialCandidates(tenantId: string): Promise<WaCreds[]> {
+  const out: WaCreds[] = [];
 
   // 1) Per-tenant WhatsApp connection (Lead Source config)
-  const sourceConfig = await LeadSourceConfig.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).lean();
-  const wa = (sourceConfig as any)?.whatsApp;
-  if (wa?.isConnected && wa?.config?.phoneNumberId) {
-    phoneNumberId = wa.config.phoneNumberId;
-    const tokens = await getDecryptedTokens(tenantId);
-    accessToken = tokens?.whatsApp?.accessToken || '';
+  try {
+    const sourceConfig = await LeadSourceConfig.findOne({ tenantId: new mongoose.Types.ObjectId(tenantId) }).lean();
+    const wa = (sourceConfig as any)?.whatsApp;
+    if (wa?.isConnected && wa?.config?.phoneNumberId) {
+      const tokens = await getDecryptedTokens(tenantId);
+      const accessToken = tokens?.whatsApp?.accessToken || '';
+      if (accessToken) out.push({ phoneNumberId: wa.config.phoneNumberId, accessToken });
+    }
+  } catch { /* ignore — fall through to env */ }
+
+  // 2) Platform/env config (Platform Settings values are mirrored to process.env)
+  const envPid = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
+  const envTok = process.env.WHATSAPP_ACCESS_TOKEN || '';
+  if (envPid && envTok && !out.some((c) => c.phoneNumberId === envPid)) {
+    out.push({ phoneNumberId: envPid, accessToken: envTok });
   }
 
-  // 2) Server-level fallback (env) — enables OTP with just env vars, no tenant UI
-  if (!phoneNumberId) phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID || '';
-  if (!accessToken) accessToken = process.env.WHATSAPP_ACCESS_TOKEN || '';
-
-  if (!phoneNumberId || !accessToken) return null;
-  return { phoneNumberId, accessToken };
+  return out;
 }
 
 // OTP via an approved WhatsApp Authentication template. Required to message a
@@ -115,10 +128,11 @@ export async function sendOtp(tenantId: string, token: string, phone: string): P
   );
 
   const message = `Your CodeBegun verification code is ${code}. It is valid for 10 minutes.`;
-  const creds = await getWhatsAppCredentials(tenantId);
-  if (creds) {
+  const candidates = await getWhatsAppCredentialCandidates(tenantId);
+  for (const creds of candidates) {
     const ok = await sendWhatsAppOtp(phone, code, message, creds);
     if (ok) return { sent: true, channel: 'whatsapp' };
+    // else try the next credential set (e.g. env fallback when the CRM token is dead)
   }
 
   // No channel configured / send failed → expose code for dev/testing.

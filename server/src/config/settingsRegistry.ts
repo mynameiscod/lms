@@ -101,6 +101,9 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'PLACEMENT_GUARANTEE_DAYS', label: 'Placement Guarantee (days)', group: 'placement', type: 'number', placeholder: '90', help: 'Guarantee window after a placement; you are alerted before it expires.', perTenant: true },
   { key: 'PLACEMENT_CHECKIN_DAYS', label: 'Retention Check-in (days)', group: 'placement', type: 'number', placeholder: '90', help: 'How often to remind you to check in with an active partner.', perTenant: true },
   { key: 'PLACEMENT_FEE_PERCENT', label: 'Placement Fee (% of CTC)', group: 'placement', type: 'number', placeholder: '8.33', help: 'Used to estimate revenue in analytics (e.g. 8.33 ≈ one month salary).', perTenant: true },
+  { key: 'PARTNER_IMAP_ENABLED', label: 'Auto-detect Replies (IMAP)', group: 'placement', type: 'select', options: ['false', 'true'], placeholder: 'false', help: 'When on, the outreach mailbox is polled and a partner’s sequence auto-stops the moment they reply (no need to click “Mark replied”). Uses the same mailbox as your Email settings.', perTenant: true },
+  { key: 'IMAP_HOST', label: 'IMAP Host', group: 'placement', type: 'text', placeholder: 'imap.gmail.com', help: 'IMAP server of the outreach mailbox. Leave blank for Gmail (defaults to imap.gmail.com).', perTenant: true },
+  { key: 'IMAP_PORT', label: 'IMAP Port', group: 'placement', type: 'number', placeholder: '993', help: 'Usually 993 (implicit TLS).', perTenant: true },
 
   // ── AI Interview ─────────────────────────────────────────────────────────────
   { key: 'INTERVIEW_VOICE_PROVIDER', label: 'Interviewer Voice', group: 'interview', type: 'select', options: ['browser', 'elevenlabs'], placeholder: 'browser', help: 'browser = free robotic voice; elevenlabs = natural human voice (needs key below).', perTenant: true },

@@ -5,6 +5,7 @@ import { EmailService } from './emailService';
 import * as settings from './settingsService';
 import { coldEmail, vouchEmail, followupEmail, toHtml } from './outreachTemplates';
 import { generateOnePager } from './candidateProfilePdf';
+import { createPartnerTask } from './partnerTaskService';
 
 const DEFAULT_DAILY_CAP = 25;
 const DEFAULT_MIN_GAP_MIN = 20;
@@ -120,6 +121,28 @@ export async function stopSequence(partner: IPlacementPartner, newStatus: 'repli
   if (newStatus === 'bounced') partner.outreach.bouncedAt = new Date();
   partner.outreach.stoppedReason = reason;
   await partner.save();
+}
+
+/**
+ * Record that a partner replied: stop the sequence, advance the pipeline stage to
+ * "replied", and raise the hot-lead reminder (mirrored to Todoist). Shared by the
+ * manual "Mark replied" endpoint and the IMAP auto-reply poller so both behave
+ * identically. Idempotent-friendly: callers should only invoke it for a partner
+ * still in an active sequence.
+ */
+export async function markPartnerReplied(partner: IPlacementPartner, note?: string, userId?: string): Promise<void> {
+  await stopSequence(partner, 'replied', note);
+  if (partner.stage === 'target' || partner.stage === 'contacted') {
+    partner.stageHistory.push({
+      from: partner.stage, to: 'replied', at: new Date(),
+      by: userId ? new mongoose.Types.ObjectId(userId) : undefined,
+    });
+    partner.stage = 'replied';
+    await partner.save();
+  }
+  await createPartnerTask(partner, 'reply',
+    `🔥 ${partner.companyName} replied to outreach — respond today`,
+    { description: `Contact: ${partner.contactName || ''} <${partner.contactEmail || ''}>`, userId });
 }
 
 /**

@@ -16,6 +16,7 @@ import { startDueReminderScheduler } from './jobs/dueReminderCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startPartnerOutreachScheduler } from './jobs/partnerOutreachCron';
 import { startPartnerRetentionScheduler } from './jobs/partnerRetentionCron';
+import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
@@ -298,6 +299,9 @@ const startServer = async () => {
 
     // Start placement-partner retention reminders (guarantee + quarterly check-in)
     startPartnerRetentionScheduler();
+
+    // Start placement-partner reply poller (IMAP → auto-stop sequence on reply)
+    startPartnerReplyScheduler();
 
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server

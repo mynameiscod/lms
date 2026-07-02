@@ -3,8 +3,7 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import PlacementPartner from '../models/PlacementPartner';
 import PartnerOutreachMessage from '../models/PartnerOutreachMessage';
-import { startSequence, draftVouch, draftCandidateProfiles, stopSequence, deliverMessage } from '../services/partnerOutreachService';
-import { createPartnerTask } from '../services/partnerTaskService';
+import { startSequence, draftVouch, draftCandidateProfiles, stopSequence, deliverMessage, markPartnerReplied } from '../services/partnerOutreachService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -47,16 +46,7 @@ export const markReplied = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const partner = await findPartner(req);
     if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
-    await stopSequence(partner, 'replied', req.body.note);
-    if (partner.stage === 'target' || partner.stage === 'contacted') {
-      partner.stageHistory.push({ from: partner.stage, to: 'replied', at: new Date(), by: oid(uId(req)) });
-      partner.stage = 'replied';
-      await partner.save();
-    }
-    // Hot lead — remind me to act today (mirrored to Todoist; deduped).
-    await createPartnerTask(partner, 'reply',
-      `🔥 ${partner.companyName} replied to outreach — respond today`,
-      { description: `Contact: ${partner.contactName || ''} <${partner.contactEmail || ''}>`, userId: uId(req) });
+    await markPartnerReplied(partner, req.body.note, uId(req));
     res.json({ success: true, message: 'Marked as replied — sequence stopped, task created', data: partner });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };

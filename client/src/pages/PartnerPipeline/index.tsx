@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics, ThreadItem, AttachmentRef } from '../../api/placementPartnerApi';
+import './PartnerPipeline.css';
 
 // Shared: upload picked files and return their attachment refs.
 async function uploadFiles(files: FileList | null): Promise<AttachmentRef[]> {
@@ -11,7 +12,6 @@ async function uploadFiles(files: FileList | null): Promise<AttachmentRef[]> {
   return refs;
 }
 const prettySize = (n: number) => n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
-import './PartnerPipeline.css';
 
 const TIER_LABEL: Record<string, string> = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' };
 const OUT_LABEL: Record<string, string> = { in_sequence: 'In sequence', replied: 'Replied', bounced: 'Bounced', stopped: 'Stopped' };

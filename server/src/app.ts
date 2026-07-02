@@ -124,6 +124,17 @@ const staticPath = process.env.NODE_ENV === 'production'
   ? '/app/client/build'
   : path.join(__dirname, '..', 'client', 'build');
 
+// Never cache the SPA shell or the service-worker script: index.html points at
+// hashed bundles, and sw.js must be re-fetched so the tombstone SW can replace
+// any stale one. (Hashed /static/* assets remain long-cacheable — they're
+// content-addressed.) Prevents devices getting pinned to an old build.
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/sw.js' || req.path === '/index.html' || req.path === '/') {
+    res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  }
+  next();
+});
+
 app.use(express.static(staticPath));
 console.log(`📁 Serving static files from: ${staticPath}`);
 
@@ -218,6 +229,8 @@ const indexPath = process.env.NODE_ENV === 'production'
   : path.join(__dirname, '..', 'client', 'build', 'index.html');
 
 app.get('*', (req: Request, res: Response) => {
+  // SPA shell for client-side routes — never cache (points at hashed bundles).
+  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
   res.sendFile(indexPath);
 });
 

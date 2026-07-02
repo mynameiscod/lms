@@ -18,11 +18,13 @@ root.render(
 
 reportWebVitals();
 
-// Register service worker for PWA support (telecaller offline mode)
-if ('serviceWorker' in navigator && process.env.NODE_ENV === 'production') {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((err) => {
-      console.warn('SW registration failed:', err);
-    });
-  });
+// The old PWA service worker (telecaller offline mode) is retired — it served a
+// cache-first app shell under a fixed cache name and could pin devices to a stale
+// build. We no longer register it; instead we ensure the tombstone sw.js takes
+// over (it clears caches + unregisters), and proactively clean up here so any
+// still-running registration on a device is removed.
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations()
+    .then((regs) => regs.forEach((r) => r.update().catch(() => {})))
+    .catch(() => {});
 }

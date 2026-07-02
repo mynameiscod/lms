@@ -736,13 +736,18 @@ class CodeRunnerService {
     return '';
   }
 
-  // Normalize output for comparison
+  // Normalize output for comparison. Ignores differences that are invisible to
+  // the student and never meaningful to a problem: line-ending style, trailing
+  // whitespace on each line (e.g. a stray space from print(x + " ")), and
+  // trailing blank lines. Content and internal spacing are preserved.
   private normalizeOutput(output: string): string {
     return output
-      .trim()
-      .replace(/\r\n/g, '\n')  // Windows line endings
-      .replace(/\r/g, '\n')    // Old Mac line endings
-      .replace(/\n+$/, '');    // Trailing newlines
+      .replace(/\r\n?/g, '\n')                 // normalize CRLF / CR → LF
+      .split('\n')
+      .map((line) => line.replace(/[ \t]+$/, '')) // strip trailing spaces/tabs per line
+      .join('\n')
+      .replace(/\n+$/, '')                      // drop trailing blank lines
+      .trim();                                  // overall leading/trailing whitespace
   }
 
   // Get available languages

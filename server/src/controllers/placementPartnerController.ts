@@ -17,6 +17,16 @@ const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
 const uId = (req: AuthenticatedRequest) => req.user!.id as string;
 
+// POST /placement-partners/attachments — upload a file to attach to an outreach email
+export const uploadAttachment = async (req: AuthenticatedRequest, res: Response) => {
+  const f = (req as any).file;
+  if (!f) return res.status(400).json({ success: false, message: 'No file uploaded' });
+  res.json({
+    success: true,
+    data: { filename: f.originalname, path: f.path, size: f.size, contentType: f.mimetype, url: `/uploads/partner-attachments/${f.filename}` },
+  });
+};
+
 // ── Normalizers (tolerant of messy CSV values) ───────────────────────────────
 const pick = (row: any, ...keys: string[]): string => {
   for (const k of keys) { if (row[k] != null && String(row[k]).trim() !== '') return String(row[k]).trim(); }

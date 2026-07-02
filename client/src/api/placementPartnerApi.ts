@@ -81,6 +81,7 @@ export interface OutreachMessage {
   scheduledFor?: string;
   sentAt?: string;
   failedReason?: string;
+  attachments?: AttachmentRef[];
   createdAt: string;
 }
 
@@ -106,6 +107,8 @@ export interface ThreadItem {
 }
 export interface PartnerThread { items: ThreadItem[]; unread: number; }
 
+export interface AttachmentRef { filename: string; path: string; size: number; contentType?: string; url?: string; }
+
 export const placementPartnerApi = {
   getStages: () => API.get<{ data: PartnerStageMeta[] }>('/placement-partners/stages'),
   list: (params?: { tier?: string; priority?: string; stage?: string; search?: string }) =>
@@ -124,12 +127,17 @@ export const placementPartnerApi = {
   draftVouch: (id: string) => API.post(`/placement-partners/${id}/draft-vouch`),
   getMessages: (id: string) => API.get<{ data: OutreachMessage[] }>(`/placement-partners/${id}/messages`),
   getThread: (id: string) => API.get<{ data: PartnerThread }>(`/placement-partners/${id}/thread`),
-  reply: (id: string, data: { subject: string; body: string; inboundId?: string }) => API.post(`/placement-partners/${id}/reply`, data),
+  reply: (id: string, data: { subject: string; body: string; inboundId?: string; attachments?: AttachmentRef[] }) => API.post(`/placement-partners/${id}/reply`, data),
+  uploadAttachment: (file: File) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return API.post<{ data: AttachmentRef }>('/placement-partners/attachments', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
   markInboundRead: (mid: string) => API.patch(`/placement-partners/inbound/${mid}/read`),
   testImap: () => API.post<{ success: boolean; message: string }>('/placement-partners/imap-test'),
   getQueue: (status = 'pending_approval') => API.get<{ data: OutreachMessage[] }>('/placement-partners/outreach/queue', { params: { status } }),
-  updateMessage: (mid: string, data: { subject?: string; body?: string }) => API.patch(`/placement-partners/outreach/messages/${mid}`, data),
-  approveMessage: (mid: string, data?: { subject?: string; body?: string }) => API.post(`/placement-partners/outreach/messages/${mid}/approve`, data || {}),
+  updateMessage: (mid: string, data: { subject?: string; body?: string; attachments?: AttachmentRef[] }) => API.patch(`/placement-partners/outreach/messages/${mid}`, data),
+  approveMessage: (mid: string, data?: { subject?: string; body?: string; attachments?: AttachmentRef[] }) => API.post(`/placement-partners/outreach/messages/${mid}/approve`, data || {}),
   cancelMessage: (mid: string) => API.post(`/placement-partners/outreach/messages/${mid}/cancel`),
 
   // ── Matching (Step 3) ──

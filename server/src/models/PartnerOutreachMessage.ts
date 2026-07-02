@@ -24,6 +24,7 @@ export interface IPartnerOutreachMessage extends Document {
   body: string;                   // plain text (wrapped in minimal HTML on send)
   sequenceStep: number;           // 0 = cold, 1.. = follow-ups
   candidateIds: mongoose.Types.ObjectId[]; // for type 'candidate_profile' — PDFs generated at send
+  attachments: { filename: string; path: string; size: number; contentType?: string; url?: string }[];
   messageId?: string;             // RFC Message-ID we set when sending (for reply threading)
   scheduledFor?: Date;
   sentAt?: Date;
@@ -49,6 +50,7 @@ const schema = new Schema<IPartnerOutreachMessage>(
     body:        { type: String, default: '' },
     sequenceStep:{ type: Number, default: 0 },
     candidateIds:{ type: [Schema.Types.ObjectId], ref: 'User', default: [] },
+    attachments: { type: [{ filename: String, path: String, size: Number, contentType: String, url: String }], default: [] },
     messageId:   { type: String, index: true },
     scheduledFor:{ type: Date },
     sentAt:      { type: Date },

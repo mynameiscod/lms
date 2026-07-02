@@ -7,6 +7,8 @@ import * as settings from './settingsService';
 import { coldEmail, vouchEmail, followupEmail, toHtml } from './outreachTemplates';
 import { generateOnePager } from './candidateProfilePdf';
 import { createPartnerTask } from './partnerTaskService';
+import PartnerSuppression from '../models/PartnerSuppression';
+import { splitAttachments, renderEmail, unsubUrl, AttachmentRef } from './partnerEmailAssets';
 
 const DEFAULT_DAILY_CAP = 25;
 const DEFAULT_MIN_GAP_MIN = 20;
@@ -29,6 +31,11 @@ export interface StartResult { ok: boolean; held?: boolean; reason?: string; mes
 export async function startSequence(partner: IPlacementPartner, userId: string): Promise<StartResult> {
   const tenantId = partner.tenantId.toString();
   if (!partner.contactEmail) return { ok: false, held: true, reason: 'No contact email' };
+
+  // Respect opt-outs — never start a sequence to a suppressed address.
+  if (await PartnerSuppression.exists({ tenantId: partner.tenantId, email: partner.contactEmail.toLowerCase() })) {
+    return { ok: false, held: true, reason: 'Contact has unsubscribed — not contacting' };
+  }
 
   // Don't double-start if already in a sequence with an open cold/followup message.
   const open = await PartnerOutreachMessage.findOne({
@@ -122,7 +129,7 @@ const mailDomain = (tenantId: string) =>
  */
 export async function sendPartnerReply(
   partner: IPlacementPartner,
-  opts: { subject: string; body: string; inboundId?: string; attachments?: { filename: string; content: Buffer }[] },
+  opts: { subject: string; body: string; inboundId?: string; attachments?: AttachmentRef[] },
   userId: string
 ): Promise<IPartnerOutreachMessage> {
   const tenantId = partner.tenantId.toString();
@@ -139,9 +146,11 @@ export async function sendPartnerReply(
     }
   }
 
+  const { attach, links } = splitAttachments(opts.attachments);
   const messageId = `<po-reply-${(partner._id as any).toString()}-${Date.now().toString(36)}@${mailDomain(tenantId)}>`;
+  const html = renderEmail(opts.body, tenantId, { mode: 'full', links });
   const ok = await new EmailService(tenantId).sendGenericEmail(
-    partner.contactEmail, opts.subject, toHtml(opts.body), opts.body, opts.attachments,
+    partner.contactEmail, opts.subject, html, opts.body, attach.length ? attach : undefined,
     { messageId, inReplyTo, references, replyTo: settings.getStr('EMAIL_USER', '', tenantId) || undefined },
   );
   if (!ok) throw new Error('Email transport returned false');
@@ -151,6 +160,7 @@ export async function sendPartnerReply(
     type: 'reply', status: 'sent', requiresApproval: false,
     toEmail: partner.contactEmail, toName: partner.contactName || '',
     subject: opts.subject, body: opts.body, messageId, sentAt: new Date(),
+    attachments: (opts.attachments || []) as any,
     createdBy: new mongoose.Types.ObjectId(userId),
   });
 
@@ -244,11 +254,21 @@ export async function deliverMessage(messageId: mongoose.Types.ObjectId | string
   if (!msg) return false;
 
   const tenantId = msg.tenantId.toString();
+
+  // Never email someone who unsubscribed / bounced.
+  if (await PartnerSuppression.exists({ tenantId: msg.tenantId, email: (msg.toEmail || '').toLowerCase() })) {
+    msg.status = 'cancelled';
+    msg.failedReason = 'Recipient is on the suppression list (unsubscribed/bounced)';
+    await msg.save();
+    return false;
+  }
+
   try {
-    // For candidate-profile emails, generate one-pager PDFs fresh at send time.
-    let attachments: { filename: string; content: Buffer }[] | undefined;
+    // Attachments = uploaded files on the message (split: attach ≤10MB / link larger)
+    // + freshly-generated one-pager PDFs for candidate-profile emails.
+    const { attach, links } = splitAttachments(msg.attachments as any);
+    const attachments: { filename: string; content: Buffer }[] = [...attach];
     if (msg.type === 'candidate_profile' && msg.candidateIds?.length) {
-      attachments = [];
       for (const sid of msg.candidateIds) {
         try {
           const pdf = await generateOnePager(sid.toString(), tenantId);
@@ -258,14 +278,26 @@ export async function deliverMessage(messageId: mongoose.Types.ObjectId | string
         }
       }
     }
+
     // Set a Message-ID we control so we can thread the partner's reply back to
     // this exact email (matches inbound In-Reply-To / References).
     const domain = (settings.getStr('EMAIL_USER', '', tenantId).split('@')[1] || 'codebegun.com').trim();
     const messageId = `<po-${msg._id}-${Date.now().toString(36)}@${domain}>`;
 
+    // Cold/follow-up: keep it light + carry a one-click unsubscribe (deliverability).
+    const isColdSequence = msg.type === 'cold' || msg.type === 'followup';
+    const unsubscribeUrl = isColdSequence ? unsubUrl(tenantId, msg.partnerId.toString()) : undefined;
+    const html = renderEmail(msg.body, tenantId, { mode: isColdSequence ? 'light' : 'full', links, unsubscribeUrl });
+    const headers = unsubscribeUrl
+      ? {
+          'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:${settings.getStr('EMAIL_USER', '', tenantId)}?subject=unsubscribe>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        }
+      : undefined;
+
     const ok = await new EmailService(tenantId).sendGenericEmail(
-      msg.toEmail, msg.subject, toHtml(msg.body), msg.body, attachments,
-      { messageId, replyTo: settings.getStr('EMAIL_USER', '', tenantId) || undefined },
+      msg.toEmail, msg.subject, html, msg.body, attachments.length ? attachments : undefined,
+      { messageId, replyTo: settings.getStr('EMAIL_USER', '', tenantId) || undefined, headers },
     );
     if (!ok) throw new Error('Email transport returned false');
 

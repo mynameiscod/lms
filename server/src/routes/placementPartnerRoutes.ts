@@ -1,11 +1,13 @@
 import express from 'express';
 import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
-  matchStudents, addCandidate, removeCandidate, candidatePdf, scheduleInterview, markPlaced, analytics,
+  matchStudents, addCandidate, removeCandidate, candidatePdf, scheduleInterview, markPlaced, analytics, uploadAttachment,
 } from '../controllers/placementPartnerController';
 import {
   startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint, draftCandidateProfilesEndpoint,
@@ -17,6 +19,22 @@ const router = express.Router();
 
 // CSV held in memory for parsing (no disk write needed)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
+
+// Email attachments written to disk (served publicly from /uploads). Up to 25 MB
+// — the send path attaches ≤10 MB inline and turns anything larger into a link.
+const attachDir = path.join(__dirname, '..', '..', 'uploads', 'partner-attachments');
+fs.mkdirSync(attachDir, { recursive: true });
+const attachUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, attachDir),
+    filename: (_req, file, cb) => cb(null, `${Date.now()}-${Math.round(Math.random() * 1e6)}${path.extname(file.originalname)}`),
+  }),
+  limits: { fileSize: 25 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (/\.(pdf|png|jpe?g|ppt|pptx)$/i.test(file.originalname)) cb(null, true);
+    else cb(new Error('Only PDF, PNG, JPG, and PPT/PPTX files are allowed'));
+  },
+});
 
 // Admin / placement team only (admins inherit all permissions).
 const guard = roleGuard(['manage_leads', 'manage_tenant']);
@@ -38,6 +56,7 @@ router.post('/outreach/messages/:mid/cancel', cancelMessage);
 // reply inbox (Slice A) — static prefixes before /:id
 router.post('/imap-test', testImap);
 router.patch('/inbound/:mid/read', markInboundRead);
+router.post('/attachments', attachUpload.single('file'), uploadAttachment);
 
 router.get('/', listPartners);
 router.post('/', createPartner);

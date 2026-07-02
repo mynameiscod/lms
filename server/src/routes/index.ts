@@ -79,6 +79,7 @@ import systemSettingsRoutes from './systemSettingsRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
 import { webhook as paymentWebhook } from '../controllers/paymentController';
+import { partnerUnsubscribe } from '../controllers/partnerPublicController';
 // Boot notification listeners
 import '../notifications/notificationService';
 
@@ -86,6 +87,7 @@ const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
+router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public', publicLeadRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount

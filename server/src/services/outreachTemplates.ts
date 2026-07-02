@@ -122,3 +122,47 @@ export function toHtml(body: string): string {
   const esc = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1f2937;white-space:pre-wrap">${esc}</div>`;
 }
+
+export interface BrandOpts {
+  mode: 'light' | 'full';
+  logoUrl?: string;
+  mailingAddress?: string;
+  unsubscribeUrl?: string;
+  links?: { label: string; url: string }[];   // download links for large attachments
+}
+
+/**
+ * Render an outreach email body as HTML.
+ *  - 'light' (cold / follow-up): plain, text-like, NO images — best deliverability.
+ *  - 'full' (vouch / candidate-profile / reply): logo header + card.
+ * Both append any large-attachment links and a compliant footer (address +
+ * one-click unsubscribe) when provided.
+ */
+export function brandedHtml(body: string, opts: BrandOpts): string {
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const bodyHtml = `<div style="white-space:pre-wrap">${esc(body)}</div>`;
+  const linksHtml = opts.links?.length
+    ? `<div style="margin-top:16px;font-size:13px">${opts.links.map(l => `<a href="${l.url}" style="color:#0a66c2">📎 ${esc(l.label)}</a>`).join('<br>')}</div>`
+    : '';
+  const footerBits: string[] = [];
+  if (opts.mailingAddress) footerBits.push(esc(opts.mailingAddress));
+  if (opts.unsubscribeUrl) footerBits.push(`<a href="${opts.unsubscribeUrl}" style="color:#94a3b8">Unsubscribe</a>`);
+  const footer = footerBits.length
+    ? `<div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;color:#94a3b8;font-size:11px;line-height:1.6">${footerBits.join(' &middot; ')}</div>`
+    : '';
+
+  if (opts.mode === 'light') {
+    return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1f2937">${bodyHtml}${linksHtml}${footer}</div>`;
+  }
+
+  const logo = opts.logoUrl
+    ? `<img src="${opts.logoUrl}" alt="CodeBegun" style="height:34px;margin-bottom:16px">`
+    : `<div style="font-weight:800;color:#051D64;font-size:19px;margin-bottom:16px">CodeBegun</div>`;
+  return `<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6fb;padding:20px">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:26px">
+    ${logo}
+    <div style="font-size:14px;line-height:1.6;color:#1f2937">${bodyHtml}${linksHtml}</div>
+    ${footer}
+  </div>
+</div>`;
+}

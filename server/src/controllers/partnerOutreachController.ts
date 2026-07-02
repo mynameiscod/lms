@@ -126,8 +126,8 @@ export const replyToPartner = async (req: AuthenticatedRequest, res: Response) =
   try {
     const partner = await findPartner(req);
     if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
-    const { subject, body, inboundId } = req.body || {};
-    const msg = await sendPartnerReply(partner, { subject, body, inboundId }, uId(req));
+    const { subject, body, inboundId, attachments } = req.body || {};
+    const msg = await sendPartnerReply(partner, { subject, body, inboundId, attachments }, uId(req));
     res.status(201).json({ success: true, message: 'Reply sent', data: msg });
   } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
 };
@@ -172,6 +172,7 @@ export const updateMessage = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(400).json({ success: false, message: `Cannot edit a ${msg.status} message` });
     if (req.body.subject !== undefined) msg.subject = req.body.subject;
     if (req.body.body !== undefined) msg.body = req.body.body;
+    if (req.body.attachments !== undefined) msg.attachments = req.body.attachments;
     await msg.save();
     res.json({ success: true, message: 'Saved', data: msg });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
@@ -185,6 +186,7 @@ export const approveMessage = async (req: AuthenticatedRequest, res: Response) =
     if (msg.status !== 'pending_approval') return res.status(400).json({ success: false, message: `Message is ${msg.status}` });
     if (req.body.subject !== undefined) msg.subject = req.body.subject;
     if (req.body.body !== undefined) msg.body = req.body.body;
+    if (req.body.attachments !== undefined) msg.attachments = req.body.attachments;
     msg.approvedBy = oid(uId(req));
     msg.approvedAt = new Date();
     await msg.save();

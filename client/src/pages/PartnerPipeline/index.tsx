@@ -1,5 +1,16 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics, ThreadItem } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics, ThreadItem, AttachmentRef } from '../../api/placementPartnerApi';
+
+// Shared: upload picked files and return their attachment refs.
+async function uploadFiles(files: FileList | null): Promise<AttachmentRef[]> {
+  if (!files || !files.length) return [];
+  const refs: AttachmentRef[] = [];
+  for (const f of Array.from(files)) {
+    try { const r = await api.uploadAttachment(f); refs.push(r.data.data); } catch { /* skip rejected file */ }
+  }
+  return refs;
+}
+const prettySize = (n: number) => n < 1024 * 1024 ? `${Math.round(n / 1024)} KB` : `${(n / 1048576).toFixed(1)} MB`;
 import './PartnerPipeline.css';
 
 const TIER_LABEL: Record<string, string> = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' };
@@ -208,6 +219,8 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
   const [thread, setThread] = useState<{ items: ThreadItem[]; unread: number }>({ items: [], unread: 0 });
   const [imapTest, setImapTest] = useState<{ ok: boolean; m: string } | null>(null);
   const [replyForm, setReplyForm] = useState<{ subject: string; body: string; inboundId?: string }>({ subject: '', body: '' });
+  const [replyFiles, setReplyFiles] = useState<AttachmentRef[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [replying, setReplying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
@@ -271,14 +284,19 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
   const lastInbound = [...thread.items].reverse().find(i => i.dir === 'in');
   const defaultSubject = lastInbound ? `Re: ${lastInbound.subject}` : `Re: ${partner.companyName}`;
   const startReply = (item: ThreadItem) => setReplyForm(f => ({ subject: `Re: ${item.subject}`, body: f.body, inboundId: item.id }));
+  const addReplyFiles = async (files: FileList | null) => {
+    setUploading(true);
+    try { const refs = await uploadFiles(files); setReplyFiles(f => [...f, ...refs]); }
+    finally { setUploading(false); }
+  };
   const sendReply = async () => {
     const subject = (replyForm.subject || defaultSubject).trim();
     const body = replyForm.body.trim();
     if (!body) { setMsg({ t: 'err', m: 'Write a message first' }); return; }
     setReplying(true); setMsg(null);
     try {
-      await api.reply(partner._id, { subject, body, inboundId: replyForm.inboundId ?? lastInbound?.id });
-      setReplyForm({ subject: '', body: '' });
+      await api.reply(partner._id, { subject, body, inboundId: replyForm.inboundId ?? lastInbound?.id, attachments: replyFiles });
+      setReplyForm({ subject: '', body: '' }); setReplyFiles([]);
       setMsg({ t: 'ok', m: 'Reply sent' });
       await loadThread(); onChanged();
     } catch (e: any) { setMsg({ t: 'err', m: e?.response?.data?.message || 'Failed to send' }); }
@@ -452,8 +470,21 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
                 onChange={e => setReplyForm(f => ({ ...f, subject: e.target.value }))} />
               <textarea className="pp-reply-body" placeholder={`Write to ${partner.contactName || partner.contactEmail}…`} value={replyForm.body}
                 onChange={e => setReplyForm(f => ({ ...f, body: e.target.value }))} />
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={replying} onClick={sendReply}>{replying ? 'Sending…' : '➤ Send'}</button>
+              {replyFiles.length > 0 && (
+                <div className="pp-attach-chips">
+                  {replyFiles.map((a, i) => (
+                    <span className="pp-attach-chip" key={i}>📎 {a.filename} <span className="sz">{prettySize(a.size)}</span>
+                      <button onClick={() => setReplyFiles(f => f.filter((_, j) => j !== i))}>×</button></span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label className="pp-attach-btn">
+                  {uploading ? 'Uploading…' : '📎 Attach'}
+                  <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx" style={{ display: 'none' }}
+                    onChange={e => { addReplyFiles(e.target.files); e.currentTarget.value = ''; }} />
+                </label>
+                <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={replying || uploading} onClick={sendReply}>{replying ? 'Sending…' : '➤ Send'}</button>
               </div>
             </div>
           )}
@@ -467,7 +498,7 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
 function ApprovalsModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
   const [items, setItems] = useState<OutreachMessage[]>([]);
   const [loading, setLoading] = useState(true);
-  const [edit, setEdit] = useState<Record<string, { subject: string; body: string }>>({});
+  const [edit, setEdit] = useState<Record<string, { subject: string; body: string; attachments: AttachmentRef[] }>>({});
   const [busy, setBusy] = useState('');
 
   const load = useCallback(async () => {
@@ -475,13 +506,18 @@ function ApprovalsModal({ onClose, onChanged }: { onClose: () => void; onChanged
     try {
       const r = await api.getQueue('pending_approval');
       setItems(r.data.data);
-      const e: Record<string, { subject: string; body: string }> = {};
-      r.data.data.forEach(m => { e[m._id] = { subject: m.subject, body: m.body }; });
+      const e: Record<string, { subject: string; body: string; attachments: AttachmentRef[] }> = {};
+      r.data.data.forEach(m => { e[m._id] = { subject: m.subject, body: m.body, attachments: m.attachments || [] }; });
       setEdit(e);
     } finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load]);
 
+  const addFiles = async (id: string, files: FileList | null) => {
+    setBusy(id + ':up');
+    try { const refs = await uploadFiles(files); setEdit(s => ({ ...s, [id]: { ...s[id], attachments: [...(s[id]?.attachments || []), ...refs] } })); }
+    finally { setBusy(''); }
+  };
   const approve = async (id: string) => {
     setBusy(id);
     try { await api.approveMessage(id, edit[id]); await load(); onChanged(); }
@@ -510,7 +546,20 @@ function ApprovalsModal({ onClose, onChanged }: { onClose: () => void; onChanged
             </div>
             <input value={edit[m._id]?.subject ?? ''} onChange={e => setEdit(s => ({ ...s, [m._id]: { ...s[m._id], subject: e.target.value } }))} placeholder="Subject" />
             <textarea value={edit[m._id]?.body ?? ''} onChange={e => setEdit(s => ({ ...s, [m._id]: { ...s[m._id], body: e.target.value } }))} />
+            {(edit[m._id]?.attachments?.length ?? 0) > 0 && (
+              <div className="pp-attach-chips">
+                {edit[m._id].attachments.map((a, i) => (
+                  <span className="pp-attach-chip" key={i}>📎 {a.filename} <span className="sz">{prettySize(a.size)}</span>
+                    <button onClick={() => setEdit(s => ({ ...s, [m._id]: { ...s[m._id], attachments: s[m._id].attachments.filter((_, j) => j !== i) } }))}>×</button></span>
+                ))}
+              </div>
+            )}
             <div className="pp-modal-actions" style={{ marginTop: 0 }}>
+              <label className="pp-attach-btn" style={{ marginRight: 'auto' }}>
+                {busy === m._id + ':up' ? 'Uploading…' : '📎 Attach'}
+                <input type="file" multiple accept=".pdf,.png,.jpg,.jpeg,.ppt,.pptx" style={{ display: 'none' }}
+                  onChange={e => { addFiles(m._id, e.target.files); e.currentTarget.value = ''; }} />
+              </label>
               <button className="pp-btn pp-btn-ghost pp-btn-sm" disabled={busy === m._id} onClick={() => discard(m._id)}>Discard</button>
               <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={busy === m._id} onClick={() => approve(m._id)}>{busy === m._id ? 'Sending…' : 'Approve & send'}</button>
             </div>

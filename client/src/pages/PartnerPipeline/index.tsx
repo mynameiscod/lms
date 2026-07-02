@@ -207,6 +207,8 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
   const [partner, setPartner] = useState<PlacementPartner>(initial);
   const [thread, setThread] = useState<{ items: ThreadItem[]; unread: number }>({ items: [], unread: 0 });
   const [imapTest, setImapTest] = useState<{ ok: boolean; m: string } | null>(null);
+  const [replyForm, setReplyForm] = useState<{ subject: string; body: string; inboundId?: string }>({ subject: '', body: '' });
+  const [replying, setReplying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
   const [matches, setMatches] = useState<MatchedStudent[] | null>(null);
@@ -264,6 +266,23 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
     setImapTest({ ok: false, m: 'Checking…' });
     try { const r = await api.testImap(); setImapTest({ ok: r.data.success, m: r.data.message }); }
     catch (e: any) { setImapTest({ ok: false, m: e?.response?.data?.message || 'Test failed' }); }
+  };
+
+  const lastInbound = [...thread.items].reverse().find(i => i.dir === 'in');
+  const defaultSubject = lastInbound ? `Re: ${lastInbound.subject}` : `Re: ${partner.companyName}`;
+  const startReply = (item: ThreadItem) => setReplyForm(f => ({ subject: `Re: ${item.subject}`, body: f.body, inboundId: item.id }));
+  const sendReply = async () => {
+    const subject = (replyForm.subject || defaultSubject).trim();
+    const body = replyForm.body.trim();
+    if (!body) { setMsg({ t: 'err', m: 'Write a message first' }); return; }
+    setReplying(true); setMsg(null);
+    try {
+      await api.reply(partner._id, { subject, body, inboundId: replyForm.inboundId ?? lastInbound?.id });
+      setReplyForm({ subject: '', body: '' });
+      setMsg({ t: 'ok', m: 'Reply sent' });
+      await loadThread(); onChanged();
+    } catch (e: any) { setMsg({ t: 'err', m: e?.response?.data?.message || 'Failed to send' }); }
+    finally { setReplying(false); }
   };
 
   const act = async (fn: () => Promise<any>, ok: string) => {
@@ -416,11 +435,28 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
                   </div>
                   <div className="pp-chat-subj">{m.subject}</div>
                   <div className="pp-chat-body">{m.body}</div>
-                  <div className="pp-chat-time">Received {m.at ? new Date(m.at).toLocaleString() : ''}</div>
+                  <div className="pp-chat-time">
+                    Received {m.at ? new Date(m.at).toLocaleString() : ''}
+                    <button className="pp-chat-reply" onClick={(e) => { e.stopPropagation(); startReply(m); }}>↩ Reply</button>
+                  </div>
                 </div>
               </div>
             )
           ))}
+
+          {/* Reply composer */}
+          {partner.contactEmail && (
+            <div className="pp-reply">
+              {replyForm.inboundId && <div className="pp-reply-ctx">Replying in thread{lastInbound && replyForm.inboundId === lastInbound.id ? ' (latest reply)' : ''} · <button className="pp-linkbtn" onClick={() => setReplyForm(f => ({ ...f, inboundId: undefined }))}>new email instead</button></div>}
+              <input className="pp-reply-subj" placeholder="Subject" value={replyForm.subject || defaultSubject}
+                onChange={e => setReplyForm(f => ({ ...f, subject: e.target.value }))} />
+              <textarea className="pp-reply-body" placeholder={`Write to ${partner.contactName || partner.contactEmail}…`} value={replyForm.body}
+                onChange={e => setReplyForm(f => ({ ...f, body: e.target.value }))} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={replying} onClick={sendReply}>{replying ? 'Sending…' : '➤ Send'}</button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@ import { AuthenticatedRequest } from '../types';
 import PlacementPartner from '../models/PlacementPartner';
 import PartnerOutreachMessage from '../models/PartnerOutreachMessage';
 import PartnerInboundMessage from '../models/PartnerInboundMessage';
-import { startSequence, draftVouch, draftCandidateProfiles, stopSequence, deliverMessage, markPartnerReplied } from '../services/partnerOutreachService';
+import { startSequence, draftVouch, draftCandidateProfiles, stopSequence, deliverMessage, markPartnerReplied, sendPartnerReply } from '../services/partnerOutreachService';
 import { testImapConnection } from '../services/partnerReplyService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
@@ -119,6 +119,17 @@ export const getPartnerThread = async (req: AuthenticatedRequest, res: Response)
     const unread = inbound.filter((m: any) => !m.read).length;
     res.json({ success: true, message: 'OK', data: { items, unread } });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// POST /placement-partners/:id/reply — send a 1:1 reply (threads to a message)
+export const replyToPartner = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const partner = await findPartner(req);
+    if (!partner) return res.status(404).json({ success: false, message: 'Not found' });
+    const { subject, body, inboundId } = req.body || {};
+    const msg = await sendPartnerReply(partner, { subject, body, inboundId }, uId(req));
+    res.status(201).json({ success: true, message: 'Reply sent', data: msg });
+  } catch (e: any) { res.status(400).json({ success: false, message: e.message }); }
 };
 
 // PATCH /placement-partners/inbound/:mid/read — mark an inbound reply as read

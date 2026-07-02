@@ -8,7 +8,7 @@ import mongoose, { Schema, Document } from 'mongoose';
  * after the admin approves. A reply/bounce cancels all open messages.
  */
 
-export type OutreachType = 'cold' | 'followup' | 'vouch' | 'candidate_profile';
+export type OutreachType = 'cold' | 'followup' | 'vouch' | 'candidate_profile' | 'reply';
 export type MessageStatus = 'queued' | 'pending_approval' | 'sending' | 'sent' | 'failed' | 'cancelled';
 
 export interface IPartnerOutreachMessage extends Document {
@@ -40,7 +40,7 @@ const schema = new Schema<IPartnerOutreachMessage>(
     tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     partnerId:   { type: Schema.Types.ObjectId, ref: 'PlacementPartner', required: true, index: true },
     companyName: { type: String, default: '' },
-    type:        { type: String, enum: ['cold', 'followup', 'vouch', 'candidate_profile'], required: true },
+    type:        { type: String, enum: ['cold', 'followup', 'vouch', 'candidate_profile', 'reply'], required: true },
     status:      { type: String, enum: ['queued', 'pending_approval', 'sending', 'sent', 'failed', 'cancelled'], default: 'queued', index: true },
     requiresApproval: { type: Boolean, default: false },
     toEmail:     { type: String, default: '' },

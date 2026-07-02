@@ -10,7 +10,7 @@ import {
 import {
   startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint, draftCandidateProfilesEndpoint,
   getPartnerMessages, getQueue, updateMessage, approveMessage, cancelMessage,
-  getPartnerThread, markInboundRead, testImap,
+  getPartnerThread, markInboundRead, testImap, replyToPartner,
 } from '../controllers/partnerOutreachController';
 
 const router = express.Router();
@@ -49,6 +49,7 @@ router.delete('/:id', deletePartner);
 // per-partner outreach actions
 router.get('/:id/messages', getPartnerMessages);
 router.get('/:id/thread', getPartnerThread);
+router.post('/:id/reply', replyToPartner);
 router.post('/:id/start-outreach', startOutreach);
 router.post('/:id/mark-replied', markReplied);
 router.post('/:id/mark-bounced', markBounced);

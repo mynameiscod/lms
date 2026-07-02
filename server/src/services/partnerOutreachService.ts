@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import PlacementPartner, { IPlacementPartner } from '../models/PlacementPartner';
 import PartnerOutreachMessage, { IPartnerOutreachMessage } from '../models/PartnerOutreachMessage';
+import PartnerInboundMessage from '../models/PartnerInboundMessage';
 import { EmailService } from './emailService';
 import * as settings from './settingsService';
 import { coldEmail, vouchEmail, followupEmail, toHtml } from './outreachTemplates';
@@ -108,6 +109,56 @@ export async function draftVouch(partner: IPlacementPartner, userId: string): Pr
     sequenceStep: 0,
     createdBy: new mongoose.Types.ObjectId(userId),
   });
+}
+
+const mailDomain = (tenantId: string) =>
+  (settings.getStr('EMAIL_USER', '', tenantId).split('@')[1] || 'codebegun.com').trim();
+
+/**
+ * Send a 1:1 human reply to a partner from inside the pipeline. Threads to the
+ * message being replied to (In-Reply-To / References) so it lands in the same
+ * conversation in their inbox. Sent directly (no approval) and recorded in the
+ * thread; the inbound message it answers is marked read.
+ */
+export async function sendPartnerReply(
+  partner: IPlacementPartner,
+  opts: { subject: string; body: string; inboundId?: string; attachments?: { filename: string; content: Buffer }[] },
+  userId: string
+): Promise<IPartnerOutreachMessage> {
+  const tenantId = partner.tenantId.toString();
+  if (!partner.contactEmail) throw new Error('This partner has no contact email');
+  if (!opts.subject?.trim() || !opts.body?.trim()) throw new Error('Subject and message are required');
+
+  let inReplyTo: string | undefined;
+  let references: string[] = [];
+  if (opts.inboundId) {
+    const inb = await PartnerInboundMessage.findOne({ _id: opts.inboundId, tenantId: partner.tenantId, partnerId: partner._id }).lean();
+    if (inb?.messageId) {
+      inReplyTo = inb.messageId;
+      references = [...(inb.references || []), inb.messageId].filter(Boolean);
+    }
+  }
+
+  const messageId = `<po-reply-${(partner._id as any).toString()}-${Date.now().toString(36)}@${mailDomain(tenantId)}>`;
+  const ok = await new EmailService(tenantId).sendGenericEmail(
+    partner.contactEmail, opts.subject, toHtml(opts.body), opts.body, opts.attachments,
+    { messageId, inReplyTo, references, replyTo: settings.getStr('EMAIL_USER', '', tenantId) || undefined },
+  );
+  if (!ok) throw new Error('Email transport returned false');
+
+  const msg = await PartnerOutreachMessage.create({
+    tenantId: partner.tenantId, partnerId: partner._id, companyName: partner.companyName,
+    type: 'reply', status: 'sent', requiresApproval: false,
+    toEmail: partner.contactEmail, toName: partner.contactName || '',
+    subject: opts.subject, body: opts.body, messageId, sentAt: new Date(),
+    createdBy: new mongoose.Types.ObjectId(userId),
+  });
+
+  if (opts.inboundId) await PartnerInboundMessage.updateOne({ _id: opts.inboundId }, { $set: { read: true } });
+  partner.outreach.emailsSent = (partner.outreach.emailsSent || 0) + 1;
+  partner.outreach.lastEmailAt = new Date();
+  await partner.save();
+  return msg;
 }
 
 /** Cancel all open messages for a partner and set outreach state (reply/bounce auto-stop). */

@@ -124,6 +124,7 @@ export const placementPartnerApi = {
   draftVouch: (id: string) => API.post(`/placement-partners/${id}/draft-vouch`),
   getMessages: (id: string) => API.get<{ data: OutreachMessage[] }>(`/placement-partners/${id}/messages`),
   getThread: (id: string) => API.get<{ data: PartnerThread }>(`/placement-partners/${id}/thread`),
+  reply: (id: string, data: { subject: string; body: string; inboundId?: string }) => API.post(`/placement-partners/${id}/reply`, data),
   markInboundRead: (mid: string) => API.patch(`/placement-partners/inbound/${mid}/read`),
   testImap: () => API.post<{ success: boolean; message: string }>('/placement-partners/imap-test'),
   getQueue: (status = 'pending_approval') => API.get<{ data: OutreachMessage[] }>('/placement-partners/outreach/queue', { params: { status } }),

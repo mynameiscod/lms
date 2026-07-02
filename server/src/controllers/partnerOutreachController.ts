@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 import { AuthenticatedRequest } from '../types';
 import PlacementPartner from '../models/PlacementPartner';
 import PartnerOutreachMessage from '../models/PartnerOutreachMessage';
+import PartnerInboundMessage from '../models/PartnerInboundMessage';
 import { startSequence, draftVouch, draftCandidateProfiles, stopSequence, deliverMessage, markPartnerReplied } from '../services/partnerOutreachService';
+import { testImapConnection } from '../services/partnerReplyService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -88,6 +90,55 @@ export const getPartnerMessages = async (req: AuthenticatedRequest, res: Respons
     const rows = await PartnerOutreachMessage.find({ tenantId: oid(tId(req)), partnerId: oid(req.params.id) })
       .sort({ createdAt: -1 }).lean();
     res.json({ success: true, message: 'OK', data: rows });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// GET /placement-partners/:id/thread — full conversation (outbound + inbound), oldest first
+export const getPartnerThread = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = oid(tId(req));
+    const partnerId = oid(req.params.id);
+    const [outbound, inbound] = await Promise.all([
+      PartnerOutreachMessage.find({ tenantId, partnerId }).lean(),
+      PartnerInboundMessage.find({ tenantId, partnerId }).lean(),
+    ]);
+
+    const items = [
+      ...outbound.map((m: any) => ({
+        dir: 'out' as const, id: String(m._id), type: m.type, status: m.status,
+        subject: m.subject, body: m.body, toEmail: m.toEmail, failedReason: m.failedReason,
+        at: m.sentAt || m.scheduledFor || m.createdAt,
+      })),
+      ...inbound.map((m: any) => ({
+        dir: 'in' as const, id: String(m._id), fromEmail: m.fromEmail, fromName: m.fromName,
+        subject: m.subject, body: m.text || (m.html || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(),
+        read: m.read, matchedBy: m.matchedBy, at: m.receivedAt,
+      })),
+    ].sort((a, b) => new Date(a.at).getTime() - new Date(b.at).getTime());
+
+    const unread = inbound.filter((m: any) => !m.read).length;
+    res.json({ success: true, message: 'OK', data: { items, unread } });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// PATCH /placement-partners/inbound/:mid/read — mark an inbound reply as read
+export const markInboundRead = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const msg = await PartnerInboundMessage.findOneAndUpdate(
+      { _id: req.params.mid, tenantId: oid(tId(req)) },
+      { $set: { read: true } },
+      { new: true }
+    );
+    if (!msg) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, message: 'Marked read', data: msg });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
+
+// POST /placement-partners/imap-test — verify the reply mailbox connects
+export const testImap = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const result = await testImapConnection(tId(req));
+    res.json({ success: result.ok, message: result.message });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };
 

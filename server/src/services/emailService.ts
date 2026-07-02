@@ -11,6 +11,15 @@ import {
   TenantAdminEmailData
 } from './emailTemplates';
 
+/** Optional per-send headers (threading + deliverability). */
+export interface EmailSendOpts {
+  messageId?: string;
+  inReplyTo?: string;
+  references?: string | string[];
+  replyTo?: string;
+  headers?: Record<string, string>;
+}
+
 export class EmailService {
   // Optional tenantId → resolves that tenant's own email config (sender/SMTP),
   // falling back to the platform settings and then .env. Built lazily so values
@@ -174,8 +183,18 @@ export class EmailService {
     }
   }
 
-  // Generic email sender — used for fee receipts / reminders / outreach (optional attachments)
-  async sendGenericEmail(email: string, subject: string, htmlContent: string, textContent?: string, attachments?: { filename: string; content: Buffer }[]): Promise<boolean> {
+  // Generic email sender — used for fee receipts / reminders / outreach.
+  // `opts` lets callers control threading (messageId/inReplyTo/references),
+  // Reply-To, and custom headers (e.g. List-Unsubscribe) — needed for the
+  // partner-outreach conversation + deliverability.
+  async sendGenericEmail(
+    email: string,
+    subject: string,
+    htmlContent: string,
+    textContent?: string,
+    attachments?: { filename: string; content: Buffer }[],
+    opts?: EmailSendOpts
+  ): Promise<boolean> {
     const text = textContent || htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     try {
       if (this.useBrevoApi) {
@@ -188,6 +207,11 @@ export class EmailService {
           html: htmlContent,
           text,
           ...(attachments && attachments.length ? { attachments: attachments.map(a => ({ filename: a.filename, content: a.content })) } : {}),
+          ...(opts?.messageId ? { messageId: opts.messageId } : {}),
+          ...(opts?.inReplyTo ? { inReplyTo: opts.inReplyTo } : {}),
+          ...(opts?.references ? { references: opts.references } : {}),
+          ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
+          ...(opts?.headers ? { headers: opts.headers } : {}),
         });
       }
       return true;

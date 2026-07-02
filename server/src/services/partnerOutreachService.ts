@@ -207,11 +207,20 @@ export async function deliverMessage(messageId: mongoose.Types.ObjectId | string
         }
       }
     }
-    const ok = await new EmailService(tenantId).sendGenericEmail(msg.toEmail, msg.subject, toHtml(msg.body), msg.body, attachments);
+    // Set a Message-ID we control so we can thread the partner's reply back to
+    // this exact email (matches inbound In-Reply-To / References).
+    const domain = (settings.getStr('EMAIL_USER', '', tenantId).split('@')[1] || 'codebegun.com').trim();
+    const messageId = `<po-${msg._id}-${Date.now().toString(36)}@${domain}>`;
+
+    const ok = await new EmailService(tenantId).sendGenericEmail(
+      msg.toEmail, msg.subject, toHtml(msg.body), msg.body, attachments,
+      { messageId, replyTo: settings.getStr('EMAIL_USER', '', tenantId) || undefined },
+    );
     if (!ok) throw new Error('Email transport returned false');
 
     msg.status = 'sent';
     msg.sentAt = new Date();
+    msg.messageId = messageId;
     await msg.save();
 
     // Update partner counters + advance stage on first cold touch.

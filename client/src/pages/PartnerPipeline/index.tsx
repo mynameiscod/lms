@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics, ThreadItem } from '../../api/placementPartnerApi';
 import './PartnerPipeline.css';
 
 const TIER_LABEL: Record<string, string> = { tier1: 'Tier 1', tier2: 'Tier 2', tier3: 'Tier 3' };
@@ -205,7 +205,8 @@ function AnalyticsModal({ onClose }: { onClose: () => void }) {
 // ── Partner detail drawer (actions + message timeline) ────────────────────────
 function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: PlacementPartner; onClose: () => void; onChanged: () => void }) {
   const [partner, setPartner] = useState<PlacementPartner>(initial);
-  const [messages, setMessages] = useState<OutreachMessage[]>([]);
+  const [thread, setThread] = useState<{ items: ThreadItem[]; unread: number }>({ items: [], unread: 0 });
+  const [imapTest, setImapTest] = useState<{ ok: boolean; m: string } | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ t: 'ok' | 'err'; m: string } | null>(null);
   const [matches, setMatches] = useState<MatchedStudent[] | null>(null);
@@ -250,14 +251,24 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
     finally { setBusy(false); }
   };
 
-  const loadMsgs = useCallback(async () => {
-    try { const r = await api.getMessages(partner._id); setMessages(r.data.data); } catch { /* ignore */ }
+  const loadThread = useCallback(async () => {
+    try { const r = await api.getThread(partner._id); setThread(r.data.data); } catch { /* ignore */ }
   }, [partner._id]);
-  useEffect(() => { loadMsgs(); }, [loadMsgs]);
+  useEffect(() => { loadThread(); }, [loadThread]);
+
+  const markRead = async (id: string) => {
+    try { await api.markInboundRead(id); setThread(t => ({ items: t.items.map(i => i.id === id ? { ...i, read: true } : i), unread: Math.max(0, t.unread - 1) })); onChanged(); }
+    catch { /* ignore */ }
+  };
+  const runImapTest = async () => {
+    setImapTest({ ok: false, m: 'Checking…' });
+    try { const r = await api.testImap(); setImapTest({ ok: r.data.success, m: r.data.message }); }
+    catch (e: any) { setImapTest({ ok: false, m: e?.response?.data?.message || 'Test failed' }); }
+  };
 
   const act = async (fn: () => Promise<any>, ok: string) => {
     setBusy(true); setMsg(null);
-    try { const r = await fn(); setMsg({ t: 'ok', m: r?.data?.message || ok }); await loadMsgs(); onChanged(); }
+    try { const r = await fn(); setMsg({ t: 'ok', m: r?.data?.message || ok }); await loadThread(); onChanged(); }
     catch (e: any) { setMsg({ t: 'err', m: e?.response?.data?.message || 'Action failed' }); }
     finally { setBusy(false); }
   };
@@ -371,22 +382,44 @@ function PartnerDrawer({ partner: initial, onClose, onChanged }: { partner: Plac
             </div>
           )}
 
-          <div className="pp-section-title">Message history</div>
-          {messages.length === 0 ? (
-            <div style={{ fontSize: 12, color: '#94a3b8' }}>No outreach yet.</div>
-          ) : messages.map(m => (
-            <div className="pp-msg" key={m._id}>
-              <div className="top">
-                <span className="pp-mtype">{m.type}</span>
-                <span className="subj">{m.subject}</span>
-                <span className={`pp-mstatus ${m.status}`}>{m.status.replace('_', ' ')}</span>
-              </div>
-              <div style={{ fontSize: 11, color: '#94a3b8' }}>
-                {m.sentAt ? `Sent ${new Date(m.sentAt).toLocaleString()}` : m.status === 'queued' ? 'Queued to send' : new Date(m.createdAt).toLocaleString()}
-                {m.failedReason ? ` · ${m.failedReason}` : ''}
-              </div>
-              <div className="bd">{m.body}</div>
+          <div className="pp-section-title" style={{ display: 'flex', alignItems: 'center' }}>
+            Conversation{thread.unread > 0 ? <span className="pp-unread-pill">{thread.unread} new</span> : null}
+            <button className="pp-btn pp-btn-ghost pp-btn-sm" style={{ marginLeft: 'auto' }} onClick={runImapTest}>Check inbox connection</button>
+          </div>
+          {imapTest && (
+            <div className={`pp-banner ${imapTest.ok ? 'ok' : 'err'}`} style={{ marginBottom: 8 }}>
+              {imapTest.ok ? '✅ ' : '⚠ '}{imapTest.m}
             </div>
+          )}
+          {thread.items.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#94a3b8' }}>No messages yet. Replies appear here automatically once IMAP is enabled.</div>
+          ) : thread.items.map(m => (
+            m.dir === 'out' ? (
+              <div className="pp-chat out" key={m.id}>
+                <div className="pp-chat-bubble out">
+                  <div className="pp-chat-meta">
+                    <span className="pp-mtype">{m.type}</span>
+                    <span className={`pp-mstatus ${m.status}`}>{(m.status || '').replace('_', ' ')}</span>
+                  </div>
+                  <div className="pp-chat-subj">{m.subject}</div>
+                  <div className="pp-chat-body">{m.body}</div>
+                  <div className="pp-chat-time">{m.at ? new Date(m.at).toLocaleString() : ''}{m.failedReason ? ` · ${m.failedReason}` : ''}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="pp-chat in" key={m.id} onClick={() => !m.read && markRead(m.id)}>
+                <div className={`pp-chat-bubble in ${!m.read ? 'unread' : ''}`}>
+                  <div className="pp-chat-meta">
+                    <span className="pp-in-from">↩ {m.fromName || m.fromEmail}</span>
+                    {!m.read && <span className="pp-in-new">● new</span>}
+                    {m.matchedBy === 'thread' && <span className="pp-in-thread" title="Matched by email thread">🧵</span>}
+                  </div>
+                  <div className="pp-chat-subj">{m.subject}</div>
+                  <div className="pp-chat-body">{m.body}</div>
+                  <div className="pp-chat-time">Received {m.at ? new Date(m.at).toLocaleString() : ''}</div>
+                </div>
+              </div>
+            )
           ))}
         </div>
       </div>

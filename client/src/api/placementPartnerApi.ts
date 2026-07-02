@@ -86,6 +86,26 @@ export interface OutreachMessage {
 
 export interface ImportResult { created: number; updated: number; skipped: number; total: number; errors: { row: number; reason: string }[]; }
 
+// A single item in a partner conversation — an email we sent, or a reply we received.
+export interface ThreadItem {
+  dir: 'out' | 'in';
+  id: string;
+  subject: string;
+  body: string;
+  at: string;
+  // outbound
+  type?: OutreachType;
+  status?: MessageStatus;
+  toEmail?: string;
+  failedReason?: string;
+  // inbound
+  fromEmail?: string;
+  fromName?: string;
+  read?: boolean;
+  matchedBy?: 'address' | 'thread';
+}
+export interface PartnerThread { items: ThreadItem[]; unread: number; }
+
 export const placementPartnerApi = {
   getStages: () => API.get<{ data: PartnerStageMeta[] }>('/placement-partners/stages'),
   list: (params?: { tier?: string; priority?: string; stage?: string; search?: string }) =>
@@ -103,6 +123,9 @@ export const placementPartnerApi = {
   markBounced: (id: string, note?: string) => API.post(`/placement-partners/${id}/mark-bounced`, { note }),
   draftVouch: (id: string) => API.post(`/placement-partners/${id}/draft-vouch`),
   getMessages: (id: string) => API.get<{ data: OutreachMessage[] }>(`/placement-partners/${id}/messages`),
+  getThread: (id: string) => API.get<{ data: PartnerThread }>(`/placement-partners/${id}/thread`),
+  markInboundRead: (mid: string) => API.patch(`/placement-partners/inbound/${mid}/read`),
+  testImap: () => API.post<{ success: boolean; message: string }>('/placement-partners/imap-test'),
   getQueue: (status = 'pending_approval') => API.get<{ data: OutreachMessage[] }>('/placement-partners/outreach/queue', { params: { status } }),
   updateMessage: (mid: string, data: { subject?: string; body?: string }) => API.patch(`/placement-partners/outreach/messages/${mid}`, data),
   approveMessage: (mid: string, data?: { subject?: string; body?: string }) => API.post(`/placement-partners/outreach/messages/${mid}/approve`, data || {}),

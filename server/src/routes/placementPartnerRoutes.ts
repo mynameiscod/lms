@@ -10,6 +10,7 @@ import {
 import {
   startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint, draftCandidateProfilesEndpoint,
   getPartnerMessages, getQueue, updateMessage, approveMessage, cancelMessage,
+  getPartnerThread, markInboundRead, testImap,
 } from '../controllers/partnerOutreachController';
 
 const router = express.Router();
@@ -34,6 +35,10 @@ router.patch('/outreach/messages/:mid', updateMessage);
 router.post('/outreach/messages/:mid/approve', approveMessage);
 router.post('/outreach/messages/:mid/cancel', cancelMessage);
 
+// reply inbox (Slice A) — static prefixes before /:id
+router.post('/imap-test', testImap);
+router.patch('/inbound/:mid/read', markInboundRead);
+
 router.get('/', listPartners);
 router.post('/', createPartner);
 router.get('/:id', getPartner);
@@ -43,6 +48,7 @@ router.delete('/:id', deletePartner);
 
 // per-partner outreach actions
 router.get('/:id/messages', getPartnerMessages);
+router.get('/:id/thread', getPartnerThread);
 router.post('/:id/start-outreach', startOutreach);
 router.post('/:id/mark-replied', markReplied);
 router.post('/:id/mark-bounced', markBounced);

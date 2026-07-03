@@ -13,6 +13,7 @@ import {
   addStudentNote,
   deleteStudentNote,
   sendProfileReminderEmail,
+  sendBulkProfileReminders,
 } from '../controllers/studentProfileController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
@@ -142,6 +143,15 @@ router.post(
   tenantResolver,
   roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
   sendProfileReminderEmail
+);
+
+// Bulk: email every student with an incomplete profile (admin)
+router.post(
+  '/admin/send-bulk-reminders',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
+  sendBulkProfileReminders
 );
 
 // Add / delete admin notes on a student (admin)

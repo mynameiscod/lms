@@ -392,6 +392,14 @@ export const studentProfileAPI = {
     return response.data;
   },
 
+  // Admin: Email every student with an incomplete profile
+  sendBulkProfileReminders: async () => {
+    const response = await axios.post(`${API_BASE_URL}/admin/send-bulk-reminders`, {}, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
   // ============ OAuth Methods ============
   
   // Get OAuth connection status

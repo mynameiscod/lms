@@ -481,6 +481,30 @@ const StudentProfilePage: React.FC = () => {
         );
       })()}
 
+      {/* What's still missing — precise checklist from the server */}
+      {Array.isArray((profile as any).missing) && (profile as any).missing.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: 16, margin: '0 0 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+            <b style={{ fontSize: 15, color: '#0f172a' }}>Finish these to reach 100%</b>
+            <span style={{ fontSize: 12, color: '#94a3b8' }}>
+              {(profile as any).missing.reduce((n: number, s: any) => n + s.fields.length, 0)} item(s) left
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
+            {(profile as any).missing.map((sec: any, i: number) => (
+              <div key={i} style={{ border: '1px solid #f1f5f9', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#334155', marginBottom: 6 }}>{sec.section}</div>
+                {sec.fields.map((f: string, j: number) => (
+                  <div key={j} style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <span style={{ color: '#f59e0b' }}>⬜</span> {f}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Step Indicators */}
       <div className="step-indicators">
         {[

@@ -62,11 +62,14 @@ export const getMyProfile = async (req: AuthRequest, res: Response) => {
       });
     }
 
+    const myObj = profile.toObject();
     res.json({
       success: true,
       data: {
-        ...profile.toObject(),
+        ...myObj,
         exists: true,
+        completeness: computeProfileCompleteness(myObj),
+        missing: computeProfileMissing(myObj),
       },
     });
   } catch (error) {
@@ -555,6 +558,26 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// Build the "complete your profile" email HTML from a missing-items list.
+function missingEmailHtml(name: string, missing: { section: string; fields: string[] }[], completeness: number): string {
+  const rows = missing.map(m => `
+    <tr><td style="padding:8px 12px;font-weight:600;color:#0f172a;border-bottom:1px solid #eef1f6;">${m.section}</td>
+    <td style="padding:8px 12px;color:#475569;border-bottom:1px solid #eef1f6;">${m.fields.join(', ')}</td></tr>`).join('');
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#334155;">
+      <h2 style="color:#0f172a;">Hi ${name}, let's complete your profile 🎯</h2>
+      <p>Your CodeBegun profile is <b>${completeness}%</b> complete. A complete profile helps us match you to the right opportunities and share it with hiring partners. Please add the following:</p>
+      <table style="width:100%;border-collapse:collapse;border:1px solid #eef1f6;border-radius:8px;overflow:hidden;margin:14px 0;">
+        <thead><tr style="background:#f8fafc;"><th style="text-align:left;padding:8px 12px;font-size:12px;color:#64748b;">SECTION</th><th style="text-align:left;padding:8px 12px;font-size:12px;color:#64748b;">MISSING</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <a href="https://platform.codebegun.com/profile" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700;">Complete my profile →</a>
+      <p style="color:#94a3b8;font-size:12px;margin-top:18px;">— Team CodeBegun</p>
+    </div>`;
+}
+
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
 // POST - Email the student the list of profile items they still need to complete.
 export const sendProfileReminderEmail = async (req: AuthRequest, res: Response) => {
   try {
@@ -574,27 +597,48 @@ export const sendProfileReminderEmail = async (req: AuthRequest, res: Response) 
     if (!email) return res.status(400).json({ success: false, message: 'Student has no email on file.' });
     if (!missing.length) return res.json({ success: true, message: 'Profile is already 100% complete — nothing to send.' });
 
-    const sections = missing.map(m => `
-      <tr><td style="padding:8px 12px;font-weight:600;color:#0f172a;border-bottom:1px solid #eef1f6;">${m.section}</td>
-      <td style="padding:8px 12px;color:#475569;border-bottom:1px solid #eef1f6;">${m.fields.join(', ')}</td></tr>`).join('');
-    const html = `
-      <div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;color:#334155;">
-        <h2 style="color:#0f172a;">Hi ${name}, let's complete your profile 🎯</h2>
-        <p>Your CodeBegun profile is <b>${completeness}%</b> complete. A complete profile helps us match you to the right opportunities and share it with hiring partners. Please add the following:</p>
-        <table style="width:100%;border-collapse:collapse;border:1px solid #eef1f6;border-radius:8px;overflow:hidden;margin:14px 0;">
-          <thead><tr style="background:#f8fafc;"><th style="text-align:left;padding:8px 12px;font-size:12px;color:#64748b;">SECTION</th><th style="text-align:left;padding:8px 12px;font-size:12px;color:#64748b;">MISSING</th></tr></thead>
-          <tbody>${sections}</tbody>
-        </table>
-        <a href="https://platform.codebegun.com/profile" style="display:inline-block;background:#6366f1;color:#fff;text-decoration:none;padding:11px 22px;border-radius:8px;font-weight:700;">Complete my profile →</a>
-        <p style="color:#94a3b8;font-size:12px;margin-top:18px;">— Team CodeBegun</p>
-      </div>`;
-
     const emailService = new EmailService(tenantId);
-    await emailService.sendGenericEmail(email, 'Complete your CodeBegun profile', html);
+    await emailService.sendGenericEmail(email, 'Complete your CodeBegun profile', missingEmailHtml(name, missing, completeness));
     res.json({ success: true, message: `Reminder sent to ${email}.`, missing });
   } catch (error) {
     console.error('Send profile reminder error:', error);
     res.status(500).json({ success: false, message: 'Failed to send reminder', error: (error as Error).message });
+  }
+};
+
+// POST - Email EVERY student with an incomplete profile their missing items.
+// Emails are paced + sent in the background so the request returns immediately and the
+// SMTP provider's burst limit isn't tripped.
+export const sendBulkProfileReminders = async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = req.user?.tenantId as string;
+    const profiles = await StudentProfile.find({ tenantId }).lean();
+    const targets: { email: string; name: string; missing: any[]; completeness: number }[] = [];
+    for (const p of profiles) {
+      const missing = computeProfileMissing(p);
+      const email = (p as any).personalInfo?.email;
+      if (missing.length && email) {
+        targets.push({ email, name: (p as any).personalInfo?.firstName || 'there', missing, completeness: computeProfileCompleteness(p) });
+      }
+    }
+    if (!targets.length) return res.json({ success: true, message: 'All student profiles are complete — nothing to send.', count: 0 });
+
+    // Fire in the background, paced ~700ms apart.
+    (async () => {
+      const emailService = new EmailService(tenantId);
+      let sent = 0;
+      for (let i = 0; i < targets.length; i++) {
+        try { await emailService.sendGenericEmail(targets[i].email, 'Complete your CodeBegun profile', missingEmailHtml(targets[i].name, targets[i].missing, targets[i].completeness)); sent++; }
+        catch (e) { console.error(`bulk profile reminder failed for ${targets[i].email}:`, e); }
+        if (i < targets.length - 1) await sleep(700);
+      }
+      console.log(`📧 Bulk profile reminders: ${sent}/${targets.length} sent.`);
+    })().catch(e => console.error('bulk profile reminder loop failed:', e));
+
+    res.json({ success: true, message: `Sending reminders to ${targets.length} student(s) with incomplete profiles — emails are being delivered.`, count: targets.length });
+  } catch (error) {
+    console.error('Bulk profile reminder error:', error);
+    res.status(500).json({ success: false, message: 'Failed to send bulk reminders', error: (error as Error).message });
   }
 };
 

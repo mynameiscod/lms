@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { userApi, roleApi, batchApi } from '../../api';
+import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { Button, Modal, Input, Alert, Spinner } from '../../components/common';
 import { User, Role } from '../../types';
 import './UsersPage.css';
@@ -159,6 +160,18 @@ const UsersPage: React.FC = () => {
     setEditingUser(null);
     setSelectedRole('');
     setSelectedCustomRoleId('');
+  };
+
+  const [bulkSending, setBulkSending] = useState(false);
+  const handleBulkReminders = async () => {
+    if (!window.confirm('Email every student with an incomplete profile a checklist of their missing items?')) return;
+    setBulkSending(true);
+    try {
+      const res = await studentProfileAPI.sendBulkProfileReminders();
+      alert(res.message || 'Reminders are being sent.');
+    } catch (e: any) {
+      alert(e?.response?.data?.message || 'Failed to send reminders.');
+    } finally { setBulkSending(false); }
   };
 
   const openInviteModal = () => {
@@ -390,11 +403,18 @@ const UsersPage: React.FC = () => {
           >
             📤 Bulk Upload
           </Button>
-          <Button 
+          <Button
             onClick={openCreateModal}
             className="btn-header-sm btn-secondary-header"
           >
             👥 Create User
+          </Button>
+          <Button
+            onClick={handleBulkReminders}
+            disabled={bulkSending}
+            className="btn-header-sm btn-secondary-header"
+          >
+            {bulkSending ? '⏳ Sending…' : '📧 Email incomplete profiles'}
           </Button>
         </div>
       </div>

@@ -145,7 +145,7 @@ import MyTasksPage from './pages/MyTasks';
 
 // My Learning Plan (student)
 import MyLearningPlanPage from './pages/MyLearningPlan';
-import DayViewPage from './pages/MyLearningPlan/DayView';
+import DayViewPage from './pages/MyLearningPlan/LearningPlanPro';
 import MyJourneyPage from './pages/MyLearningPlan/Journey';
 import AdminConcernsPage from './pages/AdminConcerns';
 

@@ -33,6 +33,11 @@ export interface ICurriculumEnrollment extends Document {
   lastReminderOn?: Date;   // due-reminder cron dedupe (one per day)
   completedAt?: Date;
   enrolledBy: string;
+  // ── Learning-experience: gamification, time, goals ──
+  xp: number;                       // total experience points
+  timeSpentSeconds: number;         // accumulated learning time
+  activityDates: string[];          // 'YYYY-MM-DD' the student was active (for streak)
+  goalTargets: { videos: number; assignments: number; quizzes: number };  // Today's Goal targets
   // Assessment-funnel gating: a free "taste" then locked until a mentor/payment unlocks.
   assessmentOriginated?: boolean;
   previewOnly?: boolean;   // when true, days beyond previewDays are locked
@@ -82,6 +87,15 @@ const CurriculumEnrollmentSchema = new Schema<ICurriculumEnrollment>(
     assessmentOriginated: { type: Boolean, default: false },
     previewOnly:    { type: Boolean, default: false },
     previewDays:    { type: Number, default: 2 },
+    xp:             { type: Number, default: 0 },
+    timeSpentSeconds: { type: Number, default: 0 },
+    activityDates:  { type: [String], default: [] },
+    goalTargets:    {
+      videos:      { type: Number, default: 1 },
+      assignments: { type: Number, default: 1 },
+      quizzes:     { type: Number, default: 1 },
+      _id: false,
+    },
   },
   { timestamps: true }
 );

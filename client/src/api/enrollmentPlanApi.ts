@@ -177,6 +177,55 @@ export const enrollmentPlanApi = {
     );
     return data;
   },
+
+  // ── Learning experience (gamification, goals, notes, bookmarks, discussion, AI) ──
+  getSummary: async (id: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/${id}/summary`, { headers: authHeader() });
+    return data;
+  },
+  heartbeat: async (id: string, seconds: number): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/${id}/heartbeat`, { seconds }, { headers: authHeader() });
+    return data;
+  },
+  updateGoals: async (id: string, goals: { videos: number; assignments: number; quizzes: number }): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/${id}/goals`, goals, { headers: authHeader() });
+    return data;
+  },
+  listNotes: async (id: string): Promise<any[]> => {
+    const { data } = await axios.get(`${BASE}/${id}/notes`, { headers: authHeader() });
+    return data.notes || [];
+  },
+  createNote: async (id: string, body: { text: string; dayNumber?: number; contentId?: string; contentTitle?: string }): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/${id}/notes`, body, { headers: authHeader() });
+    return data.note;
+  },
+  deleteNote: async (id: string, noteId: string): Promise<void> => {
+    await axios.delete(`${BASE}/${id}/notes/${noteId}`, { headers: authHeader() });
+  },
+  listBookmarks: async (id: string): Promise<any[]> => {
+    const { data } = await axios.get(`${BASE}/${id}/bookmarks`, { headers: authHeader() });
+    return data.bookmarks || [];
+  },
+  toggleBookmark: async (id: string, body: { contentId: string; dayNumber?: number; title?: string }): Promise<{ bookmarked: boolean }> => {
+    const { data } = await axios.post(`${BASE}/${id}/bookmarks`, body, { headers: authHeader() });
+    return data;
+  },
+  listDiscussion: async (id: string, contentId: string): Promise<any[]> => {
+    const { data } = await axios.get(`${BASE}/${id}/discussion?contentId=${encodeURIComponent(contentId)}`, { headers: authHeader() });
+    return data.comments || [];
+  },
+  postDiscussion: async (id: string, body: { contentId: string; dayNumber?: number; text: string }): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/${id}/discussion`, body, { headers: authHeader() });
+    return data.comment;
+  },
+  assistant: async (id: string, body: { action: string; contentId?: string; question?: string; targetLang?: string; topicTitle?: string }): Promise<string> => {
+    const { data } = await axios.post(`${BASE}/${id}/assistant`, body, { headers: authHeader() });
+    return data.answer || '';
+  },
+  search: async (id: string, q: string): Promise<any[]> => {
+    const { data } = await axios.get(`${BASE}/${id}/search?q=${encodeURIComponent(q)}`, { headers: authHeader() });
+    return data.results || [];
+  },
 };
 
 export const STATUS_LABELS: Record<EnrollmentStatus, string> = {

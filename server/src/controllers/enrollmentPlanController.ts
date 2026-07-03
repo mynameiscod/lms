@@ -504,6 +504,12 @@ export const markContentComplete = async (req: Request, res: Response) => {
     );
     if (!alreadyDone) {
       enrollment.completedItems.push({ contentId, dayNumber, completedAt: new Date() });
+      (enrollment as any).xp = ((enrollment as any).xp || 0) + 10; // +10 XP per item
+    }
+    // Record today's activity (streak) + timestamp.
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (!(enrollment as any).activityDates?.includes(todayStr)) {
+      (enrollment as any).activityDates = [...((enrollment as any).activityDates || []), todayStr];
     }
 
     // Check if all items in this day are done
@@ -521,6 +527,7 @@ export const markContentComplete = async (req: Request, res: Response) => {
         enrollment.completedDays.push(dayNumber);
         // Advance currentDay
         enrollment.currentDay = Math.max(enrollment.currentDay, dayNumber + 1);
+        (enrollment as any).xp = ((enrollment as any).xp || 0) + 50; // +50 XP for finishing a day
       }
     }
 

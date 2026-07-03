@@ -410,15 +410,12 @@ const QuizTakingPage: React.FC = () => {
           {error && <div style={{ marginBottom: 14 }}><Alert type="error" message={error} onClose={() => setError('')} /></div>}
 
           <div style={{ background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 20px 60px rgba(15,23,42,.10)' }}>
-            {/* Hero (with logo) */}
-            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', color: '#fff', padding: '20px 40px 34px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', right: 54, top: 60, fontSize: 110, opacity: 0.16, fontWeight: 800 }}>{'</>'}</div>
-              <img src="/assets/logo.png" alt="CodeBegun" style={{ height: 40, marginBottom: 18 }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
-              <div>
-                <span style={{ display: 'inline-block', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.25)', color: '#dbeafe', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 700 }}>{subject}</span>
-                <h1 style={{ fontSize: 44, fontWeight: 800, margin: '14px 0 8px', lineHeight: 1.1 }}>{quiz.title}</h1>
-                {quiz.description && <p style={{ fontSize: 15.5, color: '#c7d2fe', margin: 0, maxWidth: 720, lineHeight: 1.5 }}>{quiz.description}</p>}
-              </div>
+            {/* Hero */}
+            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', color: '#fff', padding: '34px 40px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: 54, top: 50, fontSize: 110, opacity: 0.16, fontWeight: 800 }}>{'</>'}</div>
+              <span style={{ display: 'inline-block', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.25)', color: '#dbeafe', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 700 }}>{subject}</span>
+              <h1 style={{ fontSize: 44, fontWeight: 800, margin: '14px 0 8px', lineHeight: 1.1 }}>{quiz.title}</h1>
+              {quiz.description && <p style={{ fontSize: 15.5, color: '#c7d2fe', margin: 0, maxWidth: 720, lineHeight: 1.5 }}>{quiz.description}</p>}
             </div>
 
             {/* Body */}

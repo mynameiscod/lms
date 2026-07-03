@@ -308,9 +308,18 @@ class AssignmentService {
     }
   }
 
-  // Send the assignment notification email to a list of student docs
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  // Send the assignment notification email to a list of student docs, PACED so a large
+  // batch doesn't trip the SMTP provider's outbound rate limit (Hostinger throttles bursts).
+  // Delay is configurable via ASSIGNMENT_EMAIL_DELAY_MS (default 700ms between sends).
   private async emailStudents(students: any[], assignment: IAssignment): Promise<void> {
-    for (const student of students) {
+    const delayMs = Number(process.env.ASSIGNMENT_EMAIL_DELAY_MS) || 700;
+    let sent = 0, failed = 0;
+    for (let i = 0; i < students.length; i++) {
+      const student = students[i];
       try {
         await emailService.sendAssignmentNotificationEmail(
           student.email,
@@ -322,10 +331,15 @@ class AssignmentService {
           assignment.totalPoints,
           assignment.difficulty
         );
+        sent++;
       } catch (err) {
+        failed++;
         console.error(`Failed to send email to ${student.email}:`, err);
       }
+      // Pace between sends (skip the wait after the last one).
+      if (i < students.length - 1 && delayMs > 0) await this.sleep(delayMs);
     }
+    if (students.length) console.log(`📧 Assignment emails for "${assignment.title}": ${sent} sent, ${failed} failed (of ${students.length}).`);
   }
 
   // Notify only students who were newly granted access by an edit (so editing a
@@ -395,7 +409,7 @@ class AssignmentService {
     }).select('firstName lastName email');
     if (!students.length) return 0;
 
-    await this.emailStudents(students, assignment);
+    // In-app notifications are cheap — do them now so the admin gets instant confirmation.
     try {
       const due = assignment.dueDate ? ` (due ${new Date(assignment.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})` : '';
       await createNotifications(
@@ -409,6 +423,11 @@ class AssignmentService {
     } catch (err) {
       console.error('remindStudents: in-app notification failed:', err);
     }
+
+    // Emails are paced and can take a while for a big batch — send them in the background
+    // so the HTTP request returns immediately. Failures are logged, not fatal.
+    this.emailStudents(students, assignment).catch(err => console.error('remindStudents: email send failed:', err));
+
     return students.length;
   }
 

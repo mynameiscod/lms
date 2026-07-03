@@ -924,7 +924,7 @@ class AssignmentController {
       if (!ids.length) return res.json({ success: true, data: { notified: 0 }, message: 'No pending students to remind.' });
 
       const count = await assignmentService.remindStudents(id, tenantObjectId, ids);
-      res.json({ success: true, data: { notified: count }, message: `Reminder sent to ${count} student(s).` });
+      res.json({ success: true, data: { notified: count }, message: `Reminding ${count} student(s) — in-app sent; emails are being delivered.` });
     } catch (error) {
       console.error('Remind pending error:', error);
       res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to send reminders' });

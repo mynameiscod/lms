@@ -303,14 +303,20 @@
   .rb-tips-title { flex: 1 1 100%; }
 }
 
-/* ── Print: show only the resume document ────────────────────────────────── */
+/* ── Print: show only the resume document, filling the full A4 page ───────── */
 @media print {
+  html, body { margin: 0 !important; padding: 0 !important; background: #fff !important; }
   body * { visibility: hidden !important; }
+  /* The preview column is position:sticky, which makes it the containing block for
+     the absolutely-positioned resume below — so width:100% resolved to the half-width
+     column and the resume printed on half the page. Neutralise those ancestors so the
+     resume's containing block becomes the page and it fills the full A4 width. */
+  .rb-page, .rb-grid, .rb-col-right, .rb-preview-step { position: static !important; overflow: visible !important; }
   .resume-print-area, .resume-print-area * { visibility: visible !important; }
   .resume-print-area {
-    position: absolute; left: 0; top: 0; width: 100%; max-width: none;
+    position: absolute; left: 0; top: 0; right: 0; width: 100%; max-width: none;
     margin: 0; border: none; border-radius: 0; box-shadow: none;
   }
   .resume-print-area * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-  @page { margin: 0; }
+  @page { size: A4; margin: 0; }
 }

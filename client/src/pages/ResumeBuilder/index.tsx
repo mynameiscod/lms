@@ -264,6 +264,16 @@ const BuilderForm: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSect
   const setProject = (i: number, patch: Partial<ResumeProject>) => { const p = [...sections.projects]; p[i] = { ...p[i], ...patch }; upd({ projects: p }); };
   const removeProject = (i: number) => upd({ projects: sections.projects.filter((_, j) => j !== i) });
 
+  // Raw draft for the comma-separated tech field so typing "React, Node" keeps the
+  // space after the comma (we only split→trim→dedupe when the field loses focus).
+  const [techDraft, setTechDraft] = useState<Record<number, string>>({});
+  const commitTech = (i: number) => {
+    const raw = techDraft[i];
+    if (raw === undefined) return;
+    setProject(i, { tech: raw.split(',').map(t => t.trim()).filter(Boolean) });
+    setTechDraft(d => { const n = { ...d }; delete n[i]; return n; });
+  };
+
   const addCert = () => upd({ certifications: [...sections.certifications, { name: '', issuer: '', year: '' }] });
   const setCert = (i: number, patch: Partial<ResumeCertification>) => { const c = [...sections.certifications]; c[i] = { ...c[i], ...patch }; upd({ certifications: c }); };
   const removeCert = (i: number) => upd({ certifications: sections.certifications.filter((_, j) => j !== i) });
@@ -385,7 +395,7 @@ const BuilderForm: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSect
               <div className="rb-field"><label className="rb-label">Project Name</label><input className="rb-input" value={proj.name} onChange={e => setProject(i, { name: e.target.value })} placeholder="LMS SaaS Platform" /></div>
               <div className="rb-field"><label className="rb-label">Live / GitHub Link</label><input className="rb-input" value={proj.link} onChange={e => setProject(i, { link: e.target.value })} placeholder="https://github.com/…" /></div>
             </div>
-            <div className="rb-field"><label className="rb-label">Technologies Used (comma-separated)</label><input className="rb-input" value={proj.tech.join(', ')} onChange={e => setProject(i, { tech: e.target.value.split(',').map(t => t.trim()).filter(Boolean) })} placeholder="React, Node.js, MongoDB" /></div>
+            <div className="rb-field"><label className="rb-label">Technologies Used (comma-separated)</label><input className="rb-input" value={techDraft[i] ?? proj.tech.join(', ')} onChange={e => setTechDraft(d => ({ ...d, [i]: e.target.value }))} onBlur={() => commitTech(i)} placeholder="React, Node.js, MongoDB" /></div>
             <div className="rb-field"><label className="rb-label">Description (mention impact!)</label><textarea className="rb-textarea" rows={2} value={proj.description} onChange={e => setProject(i, { description: e.target.value })} placeholder="What it does and why it matters — e.g. 'Built an LMS used by 500+ students…'" /></div>
           </div>
         ))}
@@ -421,6 +431,7 @@ const ResumeBuilder: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<'saved' | 'saving' | 'dirty'>('saved');
   const [scoring, setScoring] = useState(false);
+  const [improving, setImproving] = useState(false);
   const [toast, setToast] = useState('');
   const [template, setTemplate] = useState<ResumeTemplate>('classic');
   const [design, setDesign] = useState<ResumeDesign>({});
@@ -512,6 +523,23 @@ const ResumeBuilder: React.FC = () => {
       setTimeout(() => jumpTo('rb-suggestions'), 200);
     } catch { showToast('❌ Scoring failed. Try again.'); }
     finally { setScoring(false); }
+  };
+
+  // AI auto-fix — rewrites weak sections (summary, bullets, projects, skills), then re-scores.
+  const handleImprove = async () => {
+    if (improving) return;
+    try {
+      await resumeApi.saveSections(sections, template, design);
+      setImproving(true);
+      showToast('✨ AI is improving your resume…');
+      const res = await resumeApi.improve();
+      const improved = res.data.data.sections as ResumeSections;
+      setSections(improved);
+      setResume(prev => prev ? { ...prev, sections: improved, score: res.data.data.score, scoredAt: new Date().toISOString() } : prev);
+      showToast('✨ Resume improved by AI — review the changes!');
+      setTimeout(() => jumpTo('rb-suggestions'), 200);
+    } catch { showToast('❌ Auto-fix failed. Try again.'); }
+    finally { setImproving(false); }
   };
 
   // ── Actionable tips (click → apply & jump) ──────────────────────────────────
@@ -619,6 +647,15 @@ const ResumeBuilder: React.FC = () => {
                   {scoring ? '⏳ Analysing…' : '🔄 Re-analyse Resume'}
                 </button>
               )}
+              <button
+                className="rb-analyse-btn"
+                onClick={handleImprove}
+                disabled={improving || scoring}
+                style={{ background: 'linear-gradient(90deg,#7c3aed,#4f46e5)' }}
+                title="Let AI rewrite your summary, bullet points, project descriptions and skills to be ATS-optimised"
+              >
+                {improving ? '✨ Improving your resume…' : '✨ Auto-fix with AI'}
+              </button>
 
               <div className="rb-card rb-preview-card">
                 <div className="rb-preview-head">
@@ -697,6 +734,13 @@ const ResumeBuilder: React.FC = () => {
                     {([['Left', 'left'], ['Center', 'center']] as [string, 'left' | 'center'][]).map(([t, v]) => (
                       <button key={t} type="button" style={dChip(design.align === v)} onClick={() => setD({ align: v })}>{t}</button>
                     ))}
+                  </div>
+                </div>
+                <div>
+                  <span style={dLbl}>LinkedIn / GitHub display</span>
+                  <div style={dRow}>
+                    <button type="button" style={dChip(design.showLinkUrls !== false)} onClick={() => setD({ showLinkUrls: true })}>Full links</button>
+                    <button type="button" style={dChip(design.showLinkUrls === false)} onClick={() => setD({ showLinkUrls: false })}>Short labels</button>
                   </div>
                 </div>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>

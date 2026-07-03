@@ -9,6 +9,7 @@ import {
   uploadResume,
   saveSections,
   scoreMyResume,
+  improveMyResume,
   getAllResumes,
   shareMyResume,
   getPublicResume,
@@ -47,6 +48,7 @@ router.get('/my', getMyResume);
 router.post('/upload', upload.single('resume'), uploadResume);
 router.put('/sections', saveSections);
 router.post('/score', scoreMyResume);
+router.post('/improve', improveMyResume);
 router.post('/share', shareMyResume);
 router.get('/all', getAllResumes); // admin
 

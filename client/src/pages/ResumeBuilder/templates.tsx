@@ -8,6 +8,8 @@ export const TEMPLATES: { id: ResumeTemplate; name: string; blurb: string; accen
   { id: 'modern', name: 'Modern', blurb: 'Coloured header with accent sections', accent: '#0ea5e9' },
   { id: 'minimal', name: 'Minimal', blurb: 'Clean, lots of whitespace', accent: '#475569' },
   { id: 'professional', name: 'Professional', blurb: 'Two-column with sidebar', accent: '#0f766e' },
+  { id: 'compact', name: 'Compact', blurb: 'Dense single-column — fits more, ATS-safe', accent: '#334155' },
+  { id: 'elegant', name: 'Elegant', blurb: 'Refined serif, centred headings', accent: '#7c3f2e' },
 ];
 
 // Font choices offered in the Design panel
@@ -25,12 +27,23 @@ export const FONT_OPTIONS: { label: string; value: string }[] = [
 const has = (a?: any[]) => Array.isArray(a) && a.length > 0;
 const contactLine = (c: ResumeSections['contact']) => [c.email, c.phone, c.location].filter(Boolean).join('  ·  ');
 
-type D = { fontFamily: string; scale: number; accent: string; lineHeight: number; align: 'left' | 'center'; base: number };
-const DEFAULTS: Record<ResumeTemplate, D> = {
+// Strip protocol/www/trailing-slash for a clean printed URL.
+const cleanUrl = (u?: string) => (u || '').replace(/^https?:\/\//i, '').replace(/^www\./i, '').replace(/\/+$/, '');
+// LinkedIn/GitHub/Portfolio row — shows the full link (student's choice) or a short label.
+const linkParts = (c: ResumeSections['contact'], showUrls?: boolean) => [
+  c.linkedin && (showUrls ? cleanUrl(c.linkedin) : 'LinkedIn'),
+  c.github && (showUrls ? cleanUrl(c.github) : 'GitHub'),
+  c.portfolio && (showUrls ? cleanUrl(c.portfolio) : 'Portfolio'),
+].filter(Boolean) as string[];
+
+type D = { fontFamily: string; scale: number; accent: string; lineHeight: number; align: 'left' | 'center'; base: number; showLinkUrls: boolean };
+const DEFAULTS: Record<ResumeTemplate, Omit<D, 'showLinkUrls'>> = {
   classic:      { fontFamily: 'Georgia, "Times New Roman", serif', scale: 1, accent: '#1a1a1a', lineHeight: 1.5, align: 'center', base: 12.5 },
   modern:       { fontFamily: '"Segoe UI", Arial, sans-serif',      scale: 1, accent: '#0ea5e9', lineHeight: 1.5, align: 'left',   base: 12.5 },
   minimal:      { fontFamily: '"Helvetica Neue", Arial, sans-serif',scale: 1, accent: '#475569', lineHeight: 1.6, align: 'left',   base: 12 },
   professional: { fontFamily: '"Segoe UI", Arial, sans-serif',      scale: 1, accent: '#0f766e', lineHeight: 1.5, align: 'left',   base: 12 },
+  compact:      { fontFamily: '"Helvetica Neue", Arial, sans-serif',scale: 1, accent: '#334155', lineHeight: 1.4, align: 'center', base: 11.5 },
+  elegant:      { fontFamily: 'Georgia, "Times New Roman", serif',  scale: 1, accent: '#7c3f2e', lineHeight: 1.55, align: 'center', base: 12.5 },
 };
 const resolve = (template: ResumeTemplate, design?: ResumeDesign): D => {
   const t = DEFAULTS[template] || DEFAULTS.classic;
@@ -41,6 +54,7 @@ const resolve = (template: ResumeTemplate, design?: ResumeDesign): D => {
     lineHeight: design?.lineHeight || t.lineHeight,
     align: design?.align || t.align,
     base: t.base,
+    showLinkUrls: design?.showLinkUrls !== false, // default: show the real links
   };
 };
 
@@ -59,7 +73,7 @@ const Classic: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
         {s.contact.name && <div style={{ fontSize: f(24), fontWeight: 700, letterSpacing: 1, color: d.accent }}>{s.contact.name}</div>}
         {s.contact.title && <div style={{ fontSize: f(12.5), color: '#555', marginTop: 2, fontStyle: 'italic' }}>{s.contact.title}</div>}
         <div style={{ fontSize: f(11), color: '#444', marginTop: 4 }}>{contactLine(s.contact)}</div>
-        <div style={{ fontSize: f(11), color: '#444' }}>{[s.contact.linkedin && 'LinkedIn', s.contact.github && 'GitHub', s.contact.portfolio && 'Portfolio'].filter(Boolean).join('  ·  ')}</div>
+        <div style={{ fontSize: f(11), color: '#444' }}>{linkParts(s.contact, d.showLinkUrls).join('  ·  ')}</div>
       </div>
       {s.summary && <Section title="Summary"><p style={{ margin: 0 }}>{s.summary}</p></Section>}
       {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
@@ -103,7 +117,7 @@ const Modern: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       <div style={{ background: accent, color: '#fff', padding: '26px 36px', textAlign: d.align }}>
         <div style={{ fontSize: f(26), fontWeight: 800 }}>{s.contact.name || 'Your Name'}</div>
         {s.contact.title && <div style={{ fontSize: f(12.5), opacity: 0.95, marginTop: 2 }}>{s.contact.title}</div>}
-        <div style={{ fontSize: f(11.5), opacity: 0.92, marginTop: 4 }}>{[contactLine(s.contact), s.contact.linkedin && 'LinkedIn', s.contact.github && 'GitHub'].filter(Boolean).join('   ·   ')}</div>
+        <div style={{ fontSize: f(11.5), opacity: 0.92, marginTop: 4 }}>{[contactLine(s.contact), ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).join('   ·   ')}</div>
       </div>
       <div style={{ padding: '20px 36px' }}>
         {s.summary && <div style={{ marginBottom: 14 }}><Title t="Summary" /><p style={{ margin: 0 }}>{s.summary}</p></div>}
@@ -146,7 +160,7 @@ const Minimal: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
     <div style={{ fontFamily: d.fontFamily, color: '#374151', fontSize: f(d.base), lineHeight: d.lineHeight, padding: '44px 48px', fontWeight: 300 }}>
       <div style={{ textAlign: d.align }}>
         <div style={{ fontSize: f(30), fontWeight: 300, letterSpacing: 1, color: d.accent }}>{s.contact.name || 'Your Name'}</div>
-        <div style={{ fontSize: f(11), color: '#6b7280', margin: '6px 0 26px' }}>{[contactLine(s.contact), s.contact.linkedin && 'LinkedIn', s.contact.github && 'GitHub', s.contact.portfolio && 'Portfolio'].filter(Boolean).join('   /   ')}</div>
+        <div style={{ fontSize: f(11), color: '#6b7280', margin: '6px 0 26px' }}>{[contactLine(s.contact), ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).join('   /   ')}</div>
       </div>
       {s.summary && <Block><Title t="Profile" /><p style={{ margin: 0 }}>{s.summary}</p></Block>}
       {has(s.experience) && <Block><Title t="Experience" />{s.experience.map((e, i) => (
@@ -183,7 +197,7 @@ const Professional: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
         <div style={{ fontSize: f(20), fontWeight: 800, lineHeight: 1.2 }}>{s.contact.name || 'Your Name'}</div>
         <div style={{ marginTop: 18 }}>
           <SideTitle t="Contact" />
-          {[s.contact.email, s.contact.phone, s.contact.location, s.contact.linkedin, s.contact.github, s.contact.portfolio].filter(Boolean).map((v, i) => (<div key={i} style={{ fontSize: f(10.5), marginBottom: 4, wordBreak: 'break-word', opacity: 0.95 }}>{v}</div>))}
+          {[s.contact.email, s.contact.phone, s.contact.location, ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).map((v, i) => (<div key={i} style={{ fontSize: f(10.5), marginBottom: 4, wordBreak: 'break-word', opacity: 0.95 }}>{v}</div>))}
         </div>
         {has(s.skills) && <div style={{ marginTop: 18 }}><SideTitle t="Skills" />{s.skills.map((g, i) => (
           <div key={i} style={{ marginBottom: 7 }}><div style={{ fontWeight: 700, fontSize: f(10.5) }}>{g.category}</div><div style={{ fontSize: f(10.5), opacity: 0.95 }}>{g.items.join(', ')}</div></div>
@@ -210,6 +224,99 @@ const Professional: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
   );
 };
 
+// ── Compact (dense single-column) ───────────────────────────────────────────────
+const Compact: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
+  const f = (n: number) => +(n * d.scale).toFixed(1);
+  const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+    <div style={{ marginBottom: 8 }}>
+      <div style={{ fontSize: f(10.5), fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.8, color: d.accent, borderBottom: `1.5px solid ${d.accent}`, paddingBottom: 1, marginBottom: 4 }}>{title}</div>
+      {children}
+    </div>
+  );
+  return (
+    <div style={{ fontFamily: d.fontFamily, color: '#1f2937', fontSize: f(d.base), lineHeight: d.lineHeight, padding: '26px 34px' }}>
+      <div style={{ textAlign: d.align, marginBottom: 10 }}>
+        <div style={{ fontSize: f(20), fontWeight: 800, color: d.accent }}>{s.contact.name || 'Your Name'}</div>
+        {s.contact.title && <div style={{ fontSize: f(11), color: '#555' }}>{s.contact.title}</div>}
+        <div style={{ fontSize: f(10), color: '#444', marginTop: 3 }}>{[contactLine(s.contact), ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).join('  ·  ')}</div>
+      </div>
+      {s.summary && <Section title="Summary"><p style={{ margin: 0 }}>{s.summary}</p></Section>}
+      {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
+        <div key={i} style={{ marginBottom: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+            <span>{e.role}{e.company && ` — ${e.company}`}</span>
+            <span style={{ fontWeight: 400, color: '#666', fontSize: f(10) }}>{e.from}{e.to ? ` – ${e.current ? 'Present' : e.to}` : ''}</span>
+          </div>
+          {has(e.bullets) && <ul style={{ margin: '2px 0 0', paddingLeft: 16 }}>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
+        </div>
+      ))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><strong>{g.category}: </strong>{g.items.join(', ')}</div>))}</Section>}
+      {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
+        <div key={i} style={{ marginBottom: 4 }}>
+          <div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#666' }}> — {p.tech.join(', ')}</span>}</div>
+          {p.description && <div>{p.description}</div>}
+        </div>
+      ))}</Section>}
+      {has(s.education) && <Section title="Education">{s.education.map((e, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span>
+          <span style={{ color: '#666' }}>{e.year}{e.cgpa ? ` · ${e.cgpa}` : ''}</span>
+        </div>
+      ))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+    </div>
+  );
+};
+
+// ── Elegant (serif, centred headings) ───────────────────────────────────────────
+const Elegant: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
+  const f = (n: number) => +(n * d.scale).toFixed(1);
+  const links = linkParts(s.contact, d.showLinkUrls);
+  const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+    <div style={{ marginBottom: 14 }}>
+      <div style={{ fontSize: f(12), fontWeight: 700, color: d.accent, letterSpacing: 3, textTransform: 'uppercase', textAlign: 'center', marginBottom: 8, position: 'relative' }}>
+        <span style={{ position: 'absolute', left: 0, right: 0, top: '50%', height: 1, background: `${d.accent}44` }} />
+        <span style={{ position: 'relative', background: '#fff', padding: '0 12px' }}>{title}</span>
+      </div>
+      {children}
+    </div>
+  );
+  return (
+    <div style={{ fontFamily: d.fontFamily, color: '#2d2d2d', fontSize: f(d.base), lineHeight: d.lineHeight, padding: '40px 46px' }}>
+      <div style={{ textAlign: 'center', marginBottom: 18 }}>
+        <div style={{ fontSize: f(30), fontWeight: 700, letterSpacing: 2, color: d.accent }}>{s.contact.name || 'Your Name'}</div>
+        {s.contact.title && <div style={{ fontSize: f(13), color: '#6b5e4f', marginTop: 3, letterSpacing: 1, fontStyle: 'italic' }}>{s.contact.title}</div>}
+        <div style={{ fontSize: f(10.5), color: '#555', marginTop: 8 }}>{contactLine(s.contact)}</div>
+        {!!links.length && <div style={{ fontSize: f(10.5), color: '#555', marginTop: 2 }}>{links.join('   ·   ')}</div>}
+      </div>
+      {s.summary && <Section title="Profile"><p style={{ margin: 0, textAlign: 'center', fontStyle: 'italic', color: '#4b4b4b' }}>{s.summary}</p></Section>}
+      {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
+        <div key={i} style={{ marginBottom: 10 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}>
+            <span>{e.role}{e.company && ` — ${e.company}`}</span>
+            <span style={{ fontWeight: 400, color: '#8a7a68', fontStyle: 'italic' }}>{e.from}{e.to ? ` – ${e.current ? 'Present' : e.to}` : ''}</span>
+          </div>
+          {has(e.bullets) && <ul style={{ margin: '3px 0 0', paddingLeft: 18 }}>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
+        </div>
+      ))}</Section>}
+      {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
+        <div key={i} style={{ marginBottom: 8 }}>
+          <div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#8a7a68', fontStyle: 'italic' }}> — {p.tech.join(', ')}</span>}</div>
+          {p.description && <div>{p.description}</div>}
+        </div>
+      ))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i} style={{ textAlign: 'center' }}><strong>{g.category}:</strong> {g.items.join('  ·  ')}</div>))}</Section>}
+      {has(s.education) && <Section title="Education">{s.education.map((e, i) => (
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span>
+          <span style={{ color: '#8a7a68' }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</span>
+        </div>
+      ))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i} style={{ textAlign: 'center' }}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+    </div>
+  );
+};
+
 // ── Switcher ────────────────────────────────────────────────────────────────────
 export const ResumeDocument: React.FC<{ sections: ResumeSections; template?: ResumeTemplate; design?: ResumeDesign }> = ({ sections, template, design }) => {
   const tpl = template || 'classic';
@@ -218,6 +325,8 @@ export const ResumeDocument: React.FC<{ sections: ResumeSections; template?: Res
     case 'modern': return <Modern s={sections} d={d} />;
     case 'minimal': return <Minimal s={sections} d={d} />;
     case 'professional': return <Professional s={sections} d={d} />;
+    case 'compact': return <Compact s={sections} d={d} />;
+    case 'elegant': return <Elegant s={sections} d={d} />;
     case 'classic':
     default: return <Classic s={sections} d={d} />;
   }

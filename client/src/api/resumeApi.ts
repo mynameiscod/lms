@@ -10,7 +10,7 @@ API.interceptors.request.use(cfg => {
   return cfg;
 });
 
-export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional';
+export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional' | 'compact' | 'elegant';
 
 export interface ResumeDesign {
   fontFamily?: string;          // '' = template default
@@ -18,6 +18,7 @@ export interface ResumeDesign {
   accent?: string;              // hex colour
   lineHeight?: number;          // 1.3 .. 1.8
   align?: 'left' | 'center';    // header alignment
+  showLinkUrls?: boolean;       // true = print full LinkedIn/GitHub URLs (student choice)
 }
 
 export const resumeApi = {
@@ -30,6 +31,7 @@ export const resumeApi = {
   saveSections: (sections: any, template?: ResumeTemplate, design?: ResumeDesign) =>
     API.put('/resume/sections', { sections, template, design }),
   score: () => API.post('/resume/score'),
+  improve: () => API.post('/resume/improve'),
   share: () => API.post('/resume/share'),
   getPublic: (token: string) => API.get(`/resume/public/${token}`),
   getAll: () => API.get('/resume/all'),

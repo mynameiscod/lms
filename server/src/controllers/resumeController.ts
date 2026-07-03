@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import Resume from '../models/Resume';
 import { extractTextFromFile, parseResumeText, getEmptySections } from '../services/resumeParserService';
-import { scoreResume } from '../services/resumeScoringService';
+import { scoreResume, improveResume } from '../services/resumeScoringService';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -142,6 +142,31 @@ export async function scoreMyResume(req: AuthRequest, res: Response) {
   } catch (err: any) {
     console.error('scoreMyResume error:', err);
     res.status(500).json({ success: false, message: err.message || 'Scoring failed' });
+  }
+}
+
+// POST /resume/improve  — AI auto-fix: rewrite weak sections, save, and re-score.
+export async function improveMyResume(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const tenantId = req.tenantId;
+    if (!userId || !tenantId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const resume = await Resume.findOne({ userId, tenantId });
+    if (!resume) return res.status(404).json({ success: false, message: 'No resume found. Save your resume first.' });
+
+    const improved = await improveResume(resume.sections as any);
+    resume.sections = improved as any;
+    const score = await scoreResume(improved);
+    resume.score = score as any;
+    resume.scoredAt = new Date();
+    resume.version = (resume.version || 0) + 1;
+    await resume.save();
+
+    res.json({ success: true, data: { sections: improved, score }, message: 'Resume improved by AI' });
+  } catch (err: any) {
+    console.error('improveMyResume error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Auto-fix failed' });
   }
 }
 

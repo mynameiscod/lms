@@ -405,29 +405,26 @@ const QuizTakingPage: React.FC = () => {
     ];
 
     return (
-      <div style={{ minHeight: '100vh', background: '#eef2f9', padding: '22px 16px 50px' }}>
-        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+      <div style={{ minHeight: '100vh', background: '#eef2f9', padding: '20px 24px 50px' }}>
+        <div style={{ width: '100%' }}>
           {error && <div style={{ marginBottom: 14 }}><Alert type="error" message={error} onClose={() => setError('')} /></div>}
 
           <div style={{ background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 20px 60px rgba(15,23,42,.10)' }}>
-            {/* Top nav */}
-            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', padding: '14px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <img src="/assets/logo.png" alt="CodeBegun" style={{ height: 40 }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
-              <a href="/help" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#fff', textDecoration: 'none', background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.25)', borderRadius: 22, padding: '7px 15px', fontSize: 13.5, fontWeight: 600 }}>❓ Help Center</a>
-            </div>
-
-            {/* Hero */}
-            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', color: '#fff', padding: '10px 40px 40px', position: 'relative', overflow: 'hidden' }}>
-              <div style={{ position: 'absolute', right: 44, top: 34, fontSize: 96, opacity: 0.18 }}>{'</>'}</div>
-              <span style={{ display: 'inline-block', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.25)', color: '#dbeafe', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 700 }}>{subject}</span>
-              <h1 style={{ fontSize: 44, fontWeight: 800, margin: '14px 0 8px', lineHeight: 1.1 }}>{quiz.title}</h1>
-              {quiz.description && <p style={{ fontSize: 15.5, color: '#c7d2fe', margin: 0, maxWidth: 640, lineHeight: 1.5 }}>{quiz.description}</p>}
+            {/* Hero (with logo) */}
+            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', color: '#fff', padding: '20px 40px 34px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: 54, top: 60, fontSize: 110, opacity: 0.16, fontWeight: 800 }}>{'</>'}</div>
+              <img src="/assets/logo.png" alt="CodeBegun" style={{ height: 40, marginBottom: 18 }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
+              <div>
+                <span style={{ display: 'inline-block', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.25)', color: '#dbeafe', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 700 }}>{subject}</span>
+                <h1 style={{ fontSize: 44, fontWeight: 800, margin: '14px 0 8px', lineHeight: 1.1 }}>{quiz.title}</h1>
+                {quiz.description && <p style={{ fontSize: 15.5, color: '#c7d2fe', margin: 0, maxWidth: 720, lineHeight: 1.5 }}>{quiz.description}</p>}
+              </div>
             </div>
 
             {/* Body */}
-            <div style={{ padding: '26px 32px 30px' }}>
+            <div style={{ padding: '24px 32px 30px' }}>
               {/* Stat cards */}
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 16, marginTop: -52, marginBottom: 26 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 16, marginBottom: 26 }}>
                 {stats.map((s, i) => (
                   <div key={i} style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: 18, display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 6px 20px rgba(15,23,42,.06)' }}>
                     <div style={{ width: 46, height: 46, borderRadius: 12, background: s.tint, color: s.color, display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0 }}>{s.icon}</div>

@@ -39,3 +39,24 @@ export function planDayForDate(startDate: Date, totalDays: number, holidays: Set
   }
   return null;
 }
+
+/**
+ * How many working days (weekdays minus holidays) have elapsed from startDate up to
+ * and including today — i.e. the current curriculum day. Unlike planDayForDate this
+ * still returns the last working-day number on a weekend/holiday (not null), so it's
+ * the right value for a "Today's Day N" indicator. Null only if today is before start.
+ */
+export function workingDayCount(startDate: Date, totalDays: number, holidays: Set<string> = new Set(), today = new Date()): number | null {
+  const t = new Date(today); t.setHours(0, 0, 0, 0);
+  const start = new Date(startDate); start.setHours(0, 0, 0, 0);
+  if (t < start) return null;
+  const isOff = (x: Date) => isWeekend(x) || holidays.has(ymd(x));
+  let count = 0;
+  const cur = new Date(start);
+  while (cur <= t) {
+    if (!isOff(cur)) count++;
+    if (ymd(cur) === ymd(t)) break;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return Math.min(count, totalDays);
+}

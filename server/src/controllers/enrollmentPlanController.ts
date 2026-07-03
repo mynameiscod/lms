@@ -19,7 +19,7 @@ import { milestoneForDay } from '../utils/planMilestones';
 import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
-import { workingDateForDay, planDayForDate } from '../utils/planSchedule';
+import { workingDateForDay, planDayForDate, workingDayCount } from '../utils/planSchedule';
 import * as razorpay from '../services/razorpayService';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
@@ -174,32 +174,51 @@ export function currentPlanDay(startDate: Date, totalDays: number): number | nul
 }
 
 // ─── Cohort schedule anchor ──────────────────────────────────────────────────
-// Real batch students share their batch's start date, so everyone is on the SAME
-// curriculum day regardless of when they individually enrolled (a late joiner lands
-// on the cohort's current day and can catch up on earlier days). Assessment
-// free-preview enrollments keep their own per-student start (funnel pacing), and if
-// the batch has no start date we fall back to the enrollment's own start.
-export async function resolveSchedule(enrollment: any, tId: any): Promise<{ start: Date; cohort: boolean }> {
+// Real batch students share ONE curriculum day regardless of when they enrolled.
+// The cohort's anchor is the CLASS start date — the earliest enrollment start date for
+// that batch+curriculum (what the admin set when the batch began), NOT the batch record's
+// creation date. A late joiner (later enrollment start) still anchors to that earliest
+// date, so the whole cohort is on the same day and they can catch up on earlier days.
+// The batch's holiday list is skipped in the day count. Assessment free-preview
+// enrollments keep their own per-student start (funnel pacing).
+export async function resolveSchedule(enrollment: any, tId: any): Promise<{ start: Date; cohort: boolean; holidays: Set<string> }> {
   if (!enrollment?.previewOnly && enrollment?.batchId) {
     const BatchModel = mongoose.model('Batch');
-    const batch = await BatchModel.findOne({ _id: enrollment.batchId, tenantId: tId }).select('startDate').lean() as any;
-    if (batch?.startDate) return { start: new Date(batch.startDate), cohort: true };
+    const [batch, firstEnrollment] = await Promise.all([
+      BatchModel.findOne({ _id: enrollment.batchId, tenantId: tId }).select('holidays').lean() as any,
+      CurriculumEnrollment.findOne({ tenantId: tId, batchId: enrollment.batchId, curriculumId: enrollment.curriculumId })
+        .sort({ startDate: 1 }).select('startDate').lean() as any,
+    ]);
+    const start = firstEnrollment?.startDate || enrollment.startDate;
+    return { start: new Date(start), cohort: true, holidays: new Set<string>(batch?.holidays || []) };
   }
-  return { start: new Date(enrollment.startDate), cohort: false };
+  return { start: new Date(enrollment.startDate), cohort: false, holidays: new Set<string>() };
 }
 
-// Bulk version for admin lists — one batch query, then a sync resolver per enrollment.
-async function bulkScheduleResolver(enrollments: any[], tId: any): Promise<(e: any) => { start: Date; cohort: boolean }> {
-  const ids = [...new Set(enrollments.filter(e => !e.previewOnly && e.batchId).map(e => String(e.batchId)))];
-  const startById: Record<string, Date> = {};
-  if (ids.length) {
+// Bulk version for admin lists — resolve the cohort start (earliest enrollment start) +
+// holidays per batch in a couple of queries, then a sync resolver per enrollment.
+async function bulkScheduleResolver(enrollments: any[], tId: any): Promise<(e: any) => { start: Date; cohort: boolean; holidays: Set<string> }> {
+  const batchIds = [...new Set(enrollments.filter(e => !e.previewOnly && e.batchId).map(e => String(e.batchId)))];
+  const startByBatchCurr: Record<string, Date> = {};
+  const holidaysByBatch: Record<string, Set<string>> = {};
+  if (batchIds.length) {
     const BatchModel = mongoose.model('Batch');
-    const batches = await BatchModel.find({ _id: { $in: ids }, tenantId: tId }).select('startDate').lean() as any[];
-    batches.forEach(b => { if (b.startDate) startById[String(b._id)] = new Date(b.startDate); });
+    const [batches, firsts] = await Promise.all([
+      BatchModel.find({ _id: { $in: batchIds }, tenantId: tId }).select('holidays').lean() as any,
+      CurriculumEnrollment.aggregate([
+        { $match: { tenantId: tId, batchId: { $in: batchIds.map(id => new mongoose.Types.ObjectId(id)) } } },
+        { $group: { _id: { batchId: '$batchId', curriculumId: '$curriculumId' }, start: { $min: '$startDate' } } },
+      ]),
+    ]);
+    (batches as any[]).forEach(b => { holidaysByBatch[String(b._id)] = new Set<string>(b.holidays || []); });
+    (firsts as any[]).forEach(f => { startByBatchCurr[`${f._id.batchId}_${f._id.curriculumId}`] = new Date(f.start); });
   }
   return (e: any) => {
-    const s = !e.previewOnly && e.batchId ? startById[String(e.batchId)] : null;
-    return s ? { start: s, cohort: true } : { start: new Date(e.startDate), cohort: false };
+    if (!e.previewOnly && e.batchId) {
+      const start = startByBatchCurr[`${e.batchId}_${e.curriculumId}`] || new Date(e.startDate);
+      return { start: new Date(start), cohort: true, holidays: holidaysByBatch[String(e.batchId)] || new Set<string>() };
+    }
+    return { start: new Date(e.startDate), cohort: false, holidays: new Set<string>() };
   };
 }
 
@@ -225,11 +244,14 @@ export const listEnrollmentsByCurriculum = async (req: Request, res: Response) =
     const totalDays = curriculum?.totalDays || 145;
 
     const sched = await bulkScheduleResolver(enrollments, tId);
-    const enriched = enrollments.map(e => ({
-      ...e,
-      todayPlanDay: e.status === 'active' ? currentPlanDay(sched(e).start, totalDays) : null,
-      progressPct: Math.round(((e.completedDays?.length || 0) / totalDays) * 100),
-    }));
+    const enriched = enrollments.map(e => {
+      const s = sched(e);
+      return {
+        ...e,
+        todayPlanDay: e.status === 'active' ? workingDayCount(s.start, totalDays, s.holidays) : null,
+        progressPct: Math.round(((e.completedDays?.length || 0) / totalDays) * 100),
+      };
+    });
 
     res.json({ enrollments: enriched, total: enriched.length });
   } catch (err) {
@@ -384,11 +406,11 @@ export const getEnrollment = async (req: Request, res: Response) => {
 
     const curriculum = await LearningCurriculum.findById(enrollment.curriculumId).select('totalDays').lean();
     const totalDays = curriculum?.totalDays || 145;
-    const { start: anchorStart } = await resolveSchedule(enrollment, tId);
+    const { start: anchorStart, holidays: anchorHolidays } = await resolveSchedule(enrollment, tId);
 
     res.json({
       ...enrollment,
-      todayPlanDay: enrollment.status === 'active' ? currentPlanDay(anchorStart, totalDays) : null,
+      todayPlanDay: enrollment.status === 'active' ? workingDayCount(anchorStart, totalDays, anchorHolidays) : null,
       progressPct: Math.round(((enrollment.completedDays?.length || 0) / totalDays) * 100),
     });
   } catch (err) {
@@ -462,8 +484,8 @@ export const getMyEnrollments = async (req: Request, res: Response) => {
 
     const enriched = await Promise.all(enrollments.map(async e => {
       const totalDays = currMap[e.curriculumId.toString()] || 145;
-      const { start: anchorStart } = await resolveSchedule(e, tId);
-      const todayDay  = currentPlanDay(anchorStart, totalDays);
+      const { start: anchorStart, holidays: anchorHolidays } = await resolveSchedule(e, tId);
+      const todayDay  = workingDayCount(anchorStart, totalDays, anchorHolidays);
 
       let todayPlan = null;
       if (todayDay) {
@@ -632,6 +654,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
       if (!curriculum) continue;
       const offering = en.offeringId ? await BatchOffering.findOne({ _id: en.offeringId, tenantId: tId }).lean() : null;
       const hSet = offering ? holidaySet(offering) : new Set<string>();
+      const { start: anchorStart, holidays: anchorHolidays } = await resolveSchedule(en, tId);
 
       const from = Math.max(1, en.currentDay - 7);
       const to = Math.min(curriculum.totalDays, en.currentDay + 2);
@@ -645,7 +668,7 @@ export const getMyTasks = async (req: Request, res: Response) => {
         const items = effectiveItemsForDay(dp.items, offering, day);
         if (items.length === 0) continue;
         const moduleStatus = await resolveModuleStatuses(sId, items);
-        const dayDate = offering ? workingDateForDay(offering.startDate, day, hSet) : weekdayForDay(en.startDate, day);
+        const dayDate = offering ? workingDateForDay(offering.startDate, day, hSet) : workingDateForDay(anchorStart, day, anchorHolidays);
         for (const it of items) {
           if (itemDone(it, day, en.completedItems, moduleStatus)) continue;
           const kind = it.kind || 'content';
@@ -727,9 +750,9 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       : null;
     const hSet = offering ? holidaySet(offering) : new Set<string>();
 
-    // Cohort schedule anchor: real batch students share their batch's start date so the
-    // whole cohort is on the same curriculum day (offering, if present, is the calendar).
-    const { start: anchorStart, cohort: cohortMode } = await resolveSchedule(enrollment, tId);
+    // Cohort schedule anchor: real batch students share the class start date so the whole
+    // cohort is on the same curriculum day (offering, if present, is the calendar).
+    const { start: anchorStart, cohort: cohortMode, holidays: anchorHolidays } = await resolveSchedule(enrollment, tId);
 
     // Sequential lock check: if enforceSequential, previous day must be completed.
     // Skipped for assessment-personalized plans — there the preview paywall is the
@@ -759,7 +782,7 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // Which curriculum day the schedule is on today (cohort batch calendar, or offering).
     const todayPlanDay = offering
       ? planDayForDate(offering.startDate, curriculum.totalDays, hSet)
-      : currentPlanDay(anchorStart, curriculum.totalDays);
+      : workingDayCount(anchorStart, curriculum.totalDays, anchorHolidays);
 
     // Cohort schedule gate: you can open any day up to the cohort's current day (to catch
     // up), but future days stay locked until the cohort reaches them.
@@ -771,11 +794,11 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // Compute calendar date for this day (offering = holiday-aware cohort calendar)
     const dayDate = offering
       ? workingDateForDay(offering.startDate, dayNumber, hSet)
-      : weekdayForDay(anchorStart, dayNumber);
+      : workingDateForDay(anchorStart, dayNumber, anchorHolidays);
     const dueAtForItem = (item: any): string => {
       const off = Number(item.dueOffsetDays || 0);
       return off > 0
-        ? (offering ? workingDateForDay(offering.startDate, dayNumber + off, hSet) : weekdayForDay(anchorStart, dayNumber + off)).toISOString()
+        ? (offering ? workingDateForDay(offering.startDate, dayNumber + off, hSet) : workingDateForDay(anchorStart, dayNumber + off, anchorHolidays)).toISOString()
         : dayDate.toISOString();
     };
 
@@ -904,8 +927,8 @@ export const getJourney = async (req: Request, res: Response) => {
     // Cohort schedule: batch students share the batch's start date so everyone is on the
     // same curriculum "today". A late joiner lands on the cohort's current day and can go
     // back to catch up on earlier days; future days stay locked until the cohort reaches them.
-    const { start: anchorStart, cohort: cohortMode } = await resolveSchedule(enrollment, tId);
-    const todayPlanDay = currentPlanDay(anchorStart, totalDays);
+    const { start: anchorStart, cohort: cohortMode, holidays: anchorHolidays } = await resolveSchedule(enrollment, tId);
+    const todayPlanDay = workingDayCount(anchorStart, totalDays, anchorHolidays);
     const cohortDay = cohortMode && todayPlanDay != null ? todayPlanDay : null;
 
     const plans = await DayPlan.find({ curriculumId: curriculum._id }).select('dayNumber title items aiGenStatus').lean();
@@ -941,7 +964,7 @@ export const getJourney = async (req: Request, res: Response) => {
         hasContent: !!(dp && dp.items && dp.items.length > 0),
         generating: dp?.aiGenStatus === 'generating',
         milestone: milestoneByDay[d] || null,
-        date: weekdayForDay(anchorStart, d).toISOString(),
+        date: workingDateForDay(anchorStart, d, anchorHolidays).toISOString(),
       });
     }
     weeks.forEach((wk) => {
@@ -972,7 +995,7 @@ export const getJourney = async (req: Request, res: Response) => {
         priceInr: razorpay.getPriceInr(tId),
         paymentAvailable: razorpay.isConfigured(tId),
       },
-      estimatedEndDate: weekdayForDay(anchorStart, totalDays).toISOString(),
+      estimatedEndDate: workingDateForDay(anchorStart, totalDays, anchorHolidays).toISOString(),
     });
   } catch (err) {
     res.status(500).json({ message: 'Failed to get journey', error: err });

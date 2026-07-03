@@ -17,6 +17,7 @@ export interface IBatch extends Document {
   capacity?: number;
   enrolledCount?: number;
   departmentId?: mongoose.Types.ObjectId;
+  holidays?: string[]; // 'YYYY-MM-DD' dates that don't advance the curriculum day
   createdAt: Date;
   updatedAt: Date;
 }
@@ -98,6 +99,10 @@ const BatchSchema: Schema = new Schema(
       type: mongoose.Types.ObjectId,
       ref: 'Department',
       default: null
+    },
+    holidays: {
+      type: [String], // 'YYYY-MM-DD' — skipped when counting curriculum days
+      default: []
     }
   },
   { timestamps: true }

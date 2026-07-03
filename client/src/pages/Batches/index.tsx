@@ -39,7 +39,7 @@ const BatchesPage: React.FC = () => {
   const [form, setForm] = useState({
     name: '', courseId: '', departmentId: '', startDate: '', endDate: '',
     timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }] as Timing[],
-    instructors: [] as string[], capacity: 30,
+    instructors: [] as string[], capacity: 30, holidays: [] as string[],
   });
 
   useEffect(() => { fetchData(); }, []);
@@ -64,7 +64,7 @@ const BatchesPage: React.FC = () => {
     const today = new Date().toISOString().split('T')[0];
     setEditingBatch(null);
     setForm({ name: '', courseId: '', departmentId: '', startDate: today, endDate: calcEnd(today),
-      timings: DAYS.slice(0, 5).map(day => ({ day, startTime: '10:00', endTime: '11:30' })), instructors: [], capacity: 30 });
+      timings: DAYS.slice(0, 5).map(day => ({ day, startTime: '10:00', endTime: '11:30' })), instructors: [], capacity: 30, holidays: [] });
     setStep(0); setError(''); setView('wizard');
   };
   const openEdit = (batch: Batch) => {
@@ -76,6 +76,7 @@ const BatchesPage: React.FC = () => {
       startDate: batch.startDate.split('T')[0], endDate: batch.endDate.split('T')[0],
       timings: batch.timings.length ? batch.timings : [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
       instructors: batch.instructors.map(i => i._id), capacity: batch.capacity || 30,
+      holidays: (batch as any).holidays || [],
     });
     setStep(0); setError(''); setView('wizard');
   };
@@ -170,6 +171,20 @@ const BatchesPage: React.FC = () => {
                   <input className="bm-input" type="date" value={form.startDate} onChange={e => setForm({ ...form, startDate: e.target.value, endDate: calcEnd(e.target.value) })} /></label>
                 <label className="bm-field"><span className="bm-label">End Date <span className="opt">(Auto-calculated)</span> <b className="req">*</b></span>
                   <input className="bm-input" type="date" value={form.endDate} onChange={e => setForm({ ...form, endDate: e.target.value })} /></label>
+                <label className="bm-field" style={{ gridColumn: '1 / -1' }}>
+                  <span className="bm-label">Holidays <span className="opt">(these dates won't advance the curriculum "Today's Day")</span></span>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <input className="bm-input" type="date" style={{ maxWidth: 190 }}
+                      onChange={e => { const v = e.target.value; if (v && !form.holidays.includes(v)) setForm({ ...form, holidays: [...form.holidays, v].sort() }); e.currentTarget.value = ''; }} />
+                    {form.holidays.map(h => (
+                      <span key={h} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#eef2ff', color: '#4338ca', borderRadius: 16, padding: '4px 10px', fontSize: 13, fontWeight: 600 }}>
+                        {h}
+                        <button type="button" onClick={() => setForm({ ...form, holidays: form.holidays.filter(x => x !== h) })} style={{ border: 'none', background: 'none', color: '#6366f1', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>×</button>
+                      </span>
+                    ))}
+                    {form.holidays.length === 0 && <span style={{ color: '#94a3b8', fontSize: 13 }}>No holidays added</span>}
+                  </div>
+                </label>
               </div>
             </>
           )}

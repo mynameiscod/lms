@@ -82,7 +82,11 @@ ${JSON.stringify(sections, null, 2).slice(0, 5000)}`;
  * contact, education, certifications, company/role/project names, dates and tech
  * lists are untouched. Returns the improved sections (same shape).
  */
-export async function improveResume(sections: IResumeSections): Promise<IResumeSections> {
+export async function improveResume(sectionsInput: IResumeSections): Promise<IResumeSections> {
+  // sectionsInput may be a Mongoose subdocument — spreading that copies internal props,
+  // not the real fields (which dropped e.g. certifications and crashed the client).
+  // Round-trip to a plain object first so { ...sections } keeps every field.
+  const sections: any = JSON.parse(JSON.stringify(sectionsInput || {}));
   const prompt = `You are an expert resume writer optimising a software-role resume for ATS and recruiters. Rewrite ONLY the wording to be sharp, keyword-rich and impact/metric-driven — WITHOUT inventing false facts (no fake companies, degrees or projects). Keep everything truthful to the person's real experience.
 
 Rewrite:

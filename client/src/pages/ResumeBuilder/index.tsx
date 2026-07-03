@@ -5,7 +5,8 @@ import {
   resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience,
   ResumeEducation, ResumeProject, ResumeCertification, ResumeTemplate, ResumeDesign,
 } from '../../api/resumeApi';
-import { ResumeDocument, TEMPLATES, FONT_OPTIONS } from './templates';
+import { ResumeDocument, TEMPLATES, FONT_OPTIONS, ACCENT_PRESETS } from './templates';
+import { RichTextEditor } from './RichText';
 import './ResumeBuilder.css';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -396,7 +397,7 @@ const BuilderForm: React.FC<{ sections: ResumeSections; onChange: (s: ResumeSect
               <div className="rb-field"><label className="rb-label">Live / GitHub Link</label><input className="rb-input" value={proj.link} onChange={e => setProject(i, { link: e.target.value })} placeholder="https://github.com/…" /></div>
             </div>
             <div className="rb-field"><label className="rb-label">Technologies Used (comma-separated)</label><input className="rb-input" value={techDraft[i] ?? proj.tech.join(', ')} onChange={e => setTechDraft(d => ({ ...d, [i]: e.target.value }))} onBlur={() => commitTech(i)} placeholder="React, Node.js, MongoDB" /></div>
-            <div className="rb-field"><label className="rb-label">Description (mention impact!)</label><textarea className="rb-textarea" rows={2} value={proj.description} onChange={e => setProject(i, { description: e.target.value })} placeholder="What it does and why it matters — e.g. 'Built an LMS used by 500+ students…'" /></div>
+            <div className="rb-field"><label className="rb-label">Description (mention impact!)</label><RichTextEditor value={proj.description} onChange={html => setProject(i, { description: html })} rows={3} placeholder="What it does and why it matters — e.g. 'Built an LMS used by 500+ students…'. Use bold and bullet points to highlight impact." /></div>
           </div>
         ))}
         {sections.projects.length === 0 && <p className="rb-empty-hint">No projects yet. Click <b>+ Add Project</b>.</p>}
@@ -477,7 +478,17 @@ const ResumeBuilder: React.FC = () => {
   }, [sections, template, design]);
 
   const handleSelectTemplate = (t: ResumeTemplate) => setTemplate(t);
-  const handleDownload = () => window.print();
+  const handleDownload = () => {
+    // The browser's "Save as PDF" uses document.title as the default filename.
+    // Format: CandidateName_ProfessionalTitle_Codebegun_profile
+    const clean = (s?: string) => (s || '').trim().replace(/[^\w\s-]/g, '').replace(/\s+/g, '_');
+    const parts = [clean(sections.contact.name) || 'Resume', clean(sections.contact.title), 'Codebegun', 'profile'].filter(Boolean);
+    const prevTitle = document.title;
+    document.title = parts.join('_');
+    window.print();
+    // Restore after the print dialog is dismissed.
+    setTimeout(() => { document.title = prevTitle; }, 800);
+  };
 
   // Design panel styles
   const dLbl: React.CSSProperties = { fontSize: 12.5, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 6 };
@@ -533,7 +544,8 @@ const ResumeBuilder: React.FC = () => {
       setImproving(true);
       showToast('✨ AI is improving your resume…');
       const res = await resumeApi.improve();
-      const improved = res.data.data.sections as ResumeSections;
+      // Merge over a full empty shape so no section can come back undefined and crash render.
+      const improved: ResumeSections = { ...emptySections(), ...(res.data.data.sections || {}) };
       setSections(improved);
       setResume(prev => prev ? { ...prev, sections: improved, score: res.data.data.score, scoredAt: new Date().toISOString() } : prev);
       showToast('✨ Resume improved by AI — review the changes!');
@@ -743,10 +755,18 @@ const ResumeBuilder: React.FC = () => {
                     <button type="button" style={dChip(design.showLinkUrls === false)} onClick={() => setD({ showLinkUrls: false })}>Short labels</button>
                   </div>
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ ...dLbl, marginBottom: 0 }}>Accent colour</span>
-                  <input type="color" value={design.accent || '#1e3a5f'} onChange={e => setD({ accent: e.target.value })} style={{ width: 46, height: 32, border: '1px solid #cbd5e1', borderRadius: 8, cursor: 'pointer', padding: 2 }} />
-                </label>
+                <div>
+                  <span style={dLbl}>Accent colour</span>
+                  <div style={{ ...dRow, alignItems: 'center' }}>
+                    {ACCENT_PRESETS.map(c => (
+                      <button key={c} type="button" title={c} onClick={() => setD({ accent: c })}
+                        style={{ width: 26, height: 26, borderRadius: '50%', background: c, cursor: 'pointer', border: (design.accent || '').toLowerCase() === c.toLowerCase() ? '3px solid #1e293b' : '2px solid #fff', boxShadow: '0 0 0 1px #cbd5e1' }} />
+                    ))}
+                    <label title="Custom colour" style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                      <input type="color" value={design.accent || '#1e3a5f'} onChange={e => setD({ accent: e.target.value })} style={{ width: 30, height: 28, border: '1px solid #cbd5e1', borderRadius: 8, cursor: 'pointer', padding: 2 }} />
+                    </label>
+                  </div>
+                </div>
                 <button type="button" style={{ ...dChip(false), alignSelf: 'flex-start' }} onClick={() => setDesign({})}>↺ Reset to template default</button>
               </div>
             </div>

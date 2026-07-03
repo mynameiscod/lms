@@ -1,6 +1,7 @@
 import React from 'react';
 import { ResumeSections } from '../../api/resumeApi';
 import type { ResumeTemplate, ResumeDesign } from '../../api/resumeApi';
+import { RichTextView } from './RichText';
 
 // Template gallery metadata (used by the picker)
 export const TEMPLATES: { id: ResumeTemplate; name: string; blurb: string; accent: string }[] = [
@@ -10,6 +11,8 @@ export const TEMPLATES: { id: ResumeTemplate; name: string; blurb: string; accen
   { id: 'professional', name: 'Professional', blurb: 'Two-column with sidebar', accent: '#0f766e' },
   { id: 'compact', name: 'Compact', blurb: 'Dense single-column — fits more, ATS-safe', accent: '#334155' },
   { id: 'elegant', name: 'Elegant', blurb: 'Refined serif, centred headings', accent: '#7c3f2e' },
+  { id: 'mono', name: 'Developer', blurb: 'Monospace, code-style headings', accent: '#0f766e' },
+  { id: 'timeline', name: 'Timeline', blurb: 'Experience on a visual timeline', accent: '#6d28d9' },
 ];
 
 // Font choices offered in the Design panel
@@ -22,7 +25,15 @@ export const FONT_OPTIONS: { label: string; value: string }[] = [
   { label: 'Calibri', value: 'Calibri, "Segoe UI", sans-serif' },
   { label: 'Roboto', value: 'Roboto, Arial, sans-serif' },
   { label: 'Poppins', value: 'Poppins, "Segoe UI", sans-serif' },
+  { label: 'Garamond / Serif', value: '"EB Garamond", Garamond, Georgia, serif' },
+  { label: 'Cambria', value: 'Cambria, Georgia, serif' },
+  { label: 'Verdana', value: 'Verdana, Geneva, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, Geneva, sans-serif' },
+  { label: 'Monospace', value: 'Consolas, "SFMono-Regular", Menlo, monospace' },
 ];
+
+// Quick-pick accent colours for the Design panel
+export const ACCENT_PRESETS: string[] = ['#1e3a5f', '#0ea5e9', '#0f766e', '#6d28d9', '#be123c', '#b45309', '#334155', '#7c3f2e'];
 
 const has = (a?: any[]) => Array.isArray(a) && a.length > 0;
 const contactLine = (c: ResumeSections['contact']) => [c.email, c.phone, c.location].filter(Boolean).join('  ·  ');
@@ -36,6 +47,22 @@ const linkParts = (c: ResumeSections['contact'], showUrls?: boolean) => [
   c.portfolio && (showUrls ? cleanUrl(c.portfolio) : 'Portfolio'),
 ].filter(Boolean) as string[];
 
+// Contact/social meta. When the student shows full URLs the links go on their own
+// lines (they're long); short labels stay inline with the email/phone/location.
+const ContactMeta: React.FC<{ c: ResumeSections['contact']; d: D; lineStyle: React.CSSProperties; wrapStyle?: React.CSSProperties; sep?: string }> = ({ c, d, lineStyle, wrapStyle, sep = '  ·  ' }) => {
+  const links = linkParts(c, d.showLinkUrls);
+  const primary = contactLine(c);
+  if (d.showLinkUrls && links.length) {
+    return (
+      <div style={wrapStyle}>
+        {primary && <div style={lineStyle}>{primary}</div>}
+        {links.map((l, i) => <div key={i} style={lineStyle}>{l}</div>)}
+      </div>
+    );
+  }
+  return <div style={{ ...wrapStyle, ...lineStyle }}>{[primary, ...links].filter(Boolean).join(sep)}</div>;
+};
+
 type D = { fontFamily: string; scale: number; accent: string; lineHeight: number; align: 'left' | 'center'; base: number; showLinkUrls: boolean };
 const DEFAULTS: Record<ResumeTemplate, Omit<D, 'showLinkUrls'>> = {
   classic:      { fontFamily: 'Georgia, "Times New Roman", serif', scale: 1, accent: '#1a1a1a', lineHeight: 1.5, align: 'center', base: 12.5 },
@@ -44,6 +71,8 @@ const DEFAULTS: Record<ResumeTemplate, Omit<D, 'showLinkUrls'>> = {
   professional: { fontFamily: '"Segoe UI", Arial, sans-serif',      scale: 1, accent: '#0f766e', lineHeight: 1.5, align: 'left',   base: 12 },
   compact:      { fontFamily: '"Helvetica Neue", Arial, sans-serif',scale: 1, accent: '#334155', lineHeight: 1.4, align: 'center', base: 11.5 },
   elegant:      { fontFamily: 'Georgia, "Times New Roman", serif',  scale: 1, accent: '#7c3f2e', lineHeight: 1.55, align: 'center', base: 12.5 },
+  mono:         { fontFamily: 'Consolas, "SFMono-Regular", Menlo, monospace', scale: 1, accent: '#0f766e', lineHeight: 1.5, align: 'left', base: 12 },
+  timeline:     { fontFamily: '"Segoe UI", Arial, sans-serif',      scale: 1, accent: '#6d28d9', lineHeight: 1.5, align: 'left',   base: 12.5 },
 };
 const resolve = (template: ResumeTemplate, design?: ResumeDesign): D => {
   const t = DEFAULTS[template] || DEFAULTS.classic;
@@ -72,8 +101,7 @@ const Classic: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       <div style={{ textAlign: d.align, borderBottom: `2px solid ${d.accent}`, paddingBottom: 10, marginBottom: 14 }}>
         {s.contact.name && <div style={{ fontSize: f(24), fontWeight: 700, letterSpacing: 1, color: d.accent }}>{s.contact.name}</div>}
         {s.contact.title && <div style={{ fontSize: f(12.5), color: '#555', marginTop: 2, fontStyle: 'italic' }}>{s.contact.title}</div>}
-        <div style={{ fontSize: f(11), color: '#444', marginTop: 4 }}>{contactLine(s.contact)}</div>
-        <div style={{ fontSize: f(11), color: '#444' }}>{linkParts(s.contact, d.showLinkUrls).join('  ·  ')}</div>
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 4 }} lineStyle={{ fontSize: f(11), color: '#444' }} />
       </div>
       {s.summary && <Section title="Summary"><p style={{ margin: 0 }}>{s.summary}</p></Section>}
       {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
@@ -88,7 +116,7 @@ const Classic: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
         <div key={i} style={{ marginBottom: 7 }}>
           <div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#555' }}> — {p.tech.join(', ')}</span>}</div>
-          {p.description && <div>{p.description}</div>}
+          <RichTextView html={p.description} />
         </div>
       ))}</Section>}
       {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><strong>{g.category}: </strong>{g.items.join(', ')}</div>))}</Section>}
@@ -117,7 +145,7 @@ const Modern: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       <div style={{ background: accent, color: '#fff', padding: '26px 36px', textAlign: d.align }}>
         <div style={{ fontSize: f(26), fontWeight: 800 }}>{s.contact.name || 'Your Name'}</div>
         {s.contact.title && <div style={{ fontSize: f(12.5), opacity: 0.95, marginTop: 2 }}>{s.contact.title}</div>}
-        <div style={{ fontSize: f(11.5), opacity: 0.92, marginTop: 4 }}>{[contactLine(s.contact), ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).join('   ·   ')}</div>
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 4 }} lineStyle={{ fontSize: f(11.5), opacity: 0.92 }} sep="   ·   " />
       </div>
       <div style={{ padding: '20px 36px' }}>
         {s.summary && <div style={{ marginBottom: 14 }}><Title t="Summary" /><p style={{ margin: 0 }}>{s.summary}</p></div>}
@@ -132,7 +160,7 @@ const Modern: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           <div key={i} style={{ marginBottom: 7 }}>
             <div style={{ fontWeight: 700 }}>{p.name}</div>
             {has(p.tech) && <div style={{ fontSize: f(11), color: accent }}>{p.tech.join(' · ')}</div>}
-            {p.description && <div>{p.description}</div>}
+            <RichTextView html={p.description} />
           </div>
         ))}</div>}
         {has(s.skills) && <div style={{ marginBottom: 14 }}><Title t="Skills" />{s.skills.map((g, i) => (
@@ -160,7 +188,7 @@ const Minimal: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
     <div style={{ fontFamily: d.fontFamily, color: '#374151', fontSize: f(d.base), lineHeight: d.lineHeight, padding: '44px 48px', fontWeight: 300 }}>
       <div style={{ textAlign: d.align }}>
         <div style={{ fontSize: f(30), fontWeight: 300, letterSpacing: 1, color: d.accent }}>{s.contact.name || 'Your Name'}</div>
-        <div style={{ fontSize: f(11), color: '#6b7280', margin: '6px 0 26px' }}>{[contactLine(s.contact), ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).join('   /   ')}</div>
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ margin: '6px 0 26px' }} lineStyle={{ fontSize: f(11), color: '#6b7280' }} sep="   /   " />
       </div>
       {s.summary && <Block><Title t="Profile" /><p style={{ margin: 0 }}>{s.summary}</p></Block>}
       {has(s.experience) && <Block><Title t="Experience" />{s.experience.map((e, i) => (
@@ -173,7 +201,7 @@ const Minimal: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       {has(s.projects) && <Block><Title t="Projects" />{s.projects.map((p, i) => (
         <div key={i} style={{ marginBottom: 9 }}>
           <span style={{ fontWeight: 500, color: '#111827' }}>{p.name}</span>{has(p.tech) && <span style={{ color: '#9ca3af' }}>  ·  {p.tech.join(', ')}</span>}
-          {p.description && <div>{p.description}</div>}
+          <RichTextView html={p.description} />
         </div>
       ))}</Block>}
       {has(s.skills) && <Block><Title t="Skills" />{s.skills.map((g, i) => (<div key={i} style={{ marginBottom: 3 }}><span style={{ color: '#9ca3af' }}>{g.category}</span>  —  {g.items.join(', ')}</div>))}</Block>}
@@ -217,7 +245,7 @@ const Professional: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
           </div>
         ))}</div>}
         {has(s.projects) && <div><MainTitle t="Projects" />{s.projects.map((p, i) => (
-          <div key={i} style={{ marginBottom: 9 }}><div style={{ fontWeight: 700 }}>{p.name}</div>{has(p.tech) && <div style={{ fontSize: f(10.5), color: accent }}>{p.tech.join(' · ')}</div>}{p.description && <div>{p.description}</div>}</div>
+          <div key={i} style={{ marginBottom: 9 }}><div style={{ fontWeight: 700 }}>{p.name}</div>{has(p.tech) && <div style={{ fontSize: f(10.5), color: accent }}>{p.tech.join(' · ')}</div>}<RichTextView html={p.description} /></div>
         ))}</div>}
       </div>
     </div>
@@ -238,7 +266,7 @@ const Compact: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       <div style={{ textAlign: d.align, marginBottom: 10 }}>
         <div style={{ fontSize: f(20), fontWeight: 800, color: d.accent }}>{s.contact.name || 'Your Name'}</div>
         {s.contact.title && <div style={{ fontSize: f(11), color: '#555' }}>{s.contact.title}</div>}
-        <div style={{ fontSize: f(10), color: '#444', marginTop: 3 }}>{[contactLine(s.contact), ...linkParts(s.contact, d.showLinkUrls)].filter(Boolean).join('  ·  ')}</div>
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 3 }} lineStyle={{ fontSize: f(10), color: '#444' }} />
       </div>
       {s.summary && <Section title="Summary"><p style={{ margin: 0 }}>{s.summary}</p></Section>}
       {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
@@ -254,7 +282,7 @@ const Compact: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
         <div key={i} style={{ marginBottom: 4 }}>
           <div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#666' }}> — {p.tech.join(', ')}</span>}</div>
-          {p.description && <div>{p.description}</div>}
+          <RichTextView html={p.description} />
         </div>
       ))}</Section>}
       {has(s.education) && <Section title="Education">{s.education.map((e, i) => (
@@ -271,7 +299,6 @@ const Compact: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
 // ── Elegant (serif, centred headings) ───────────────────────────────────────────
 const Elegant: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
   const f = (n: number) => +(n * d.scale).toFixed(1);
-  const links = linkParts(s.contact, d.showLinkUrls);
   const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
     <div style={{ marginBottom: 14 }}>
       <div style={{ fontSize: f(12), fontWeight: 700, color: d.accent, letterSpacing: 3, textTransform: 'uppercase', textAlign: 'center', marginBottom: 8, position: 'relative' }}>
@@ -286,8 +313,7 @@ const Elegant: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       <div style={{ textAlign: 'center', marginBottom: 18 }}>
         <div style={{ fontSize: f(30), fontWeight: 700, letterSpacing: 2, color: d.accent }}>{s.contact.name || 'Your Name'}</div>
         {s.contact.title && <div style={{ fontSize: f(13), color: '#6b5e4f', marginTop: 3, letterSpacing: 1, fontStyle: 'italic' }}>{s.contact.title}</div>}
-        <div style={{ fontSize: f(10.5), color: '#555', marginTop: 8 }}>{contactLine(s.contact)}</div>
-        {!!links.length && <div style={{ fontSize: f(10.5), color: '#555', marginTop: 2 }}>{links.join('   ·   ')}</div>}
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 8 }} lineStyle={{ fontSize: f(10.5), color: '#555' }} sep="   ·   " />
       </div>
       {s.summary && <Section title="Profile"><p style={{ margin: 0, textAlign: 'center', fontStyle: 'italic', color: '#4b4b4b' }}>{s.summary}</p></Section>}
       {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
@@ -302,7 +328,7 @@ const Elegant: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
       {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
         <div key={i} style={{ marginBottom: 8 }}>
           <div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#8a7a68', fontStyle: 'italic' }}> — {p.tech.join(', ')}</span>}</div>
-          {p.description && <div>{p.description}</div>}
+          <RichTextView html={p.description} />
         </div>
       ))}</Section>}
       {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i} style={{ textAlign: 'center' }}><strong>{g.category}:</strong> {g.items.join('  ·  ')}</div>))}</Section>}
@@ -317,6 +343,69 @@ const Elegant: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
   );
 };
 
+// ── Developer / Mono (monospace, code-style) ────────────────────────────────────
+const Mono: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
+  const f = (n: number) => +(n * d.scale).toFixed(1);
+  const accent = d.accent;
+  const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{ fontSize: f(12), fontWeight: 700, color: accent, marginBottom: 6 }}>{'// '}{title.toLowerCase()}</div>
+      {children}
+    </div>
+  );
+  return (
+    <div style={{ fontFamily: d.fontFamily, color: '#1f2937', fontSize: f(d.base), lineHeight: d.lineHeight, padding: '34px 38px' }}>
+      <div style={{ textAlign: d.align, marginBottom: 14, borderBottom: `2px dashed ${accent}66`, paddingBottom: 10 }}>
+        <div style={{ fontSize: f(22), fontWeight: 800, color: accent }}>{s.contact.name || 'Your Name'}</div>
+        {s.contact.title && <div style={{ fontSize: f(12), color: '#555' }}>{s.contact.title}</div>}
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 4 }} lineStyle={{ fontSize: f(10.5), color: '#475569' }} />
+      </div>
+      {s.summary && <Section title="Summary"><p style={{ margin: 0 }}>{s.summary}</p></Section>}
+      {has(s.experience) && <Section title="Experience">{s.experience.map((e, i) => (
+        <div key={i} style={{ marginBottom: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}><span>{e.role}{e.company && ` @ ${e.company}`}</span><span style={{ fontWeight: 400, color: '#64748b' }}>{e.from}{e.to ? ` – ${e.current ? 'Present' : e.to}` : ''}</span></div>
+          {has(e.bullets) && <ul style={{ margin: '3px 0 0', paddingLeft: 18 }}>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
+        </div>
+      ))}</Section>}
+      {has(s.skills) && <Section title="Skills">{s.skills.map((g, i) => (<div key={i}><span style={{ color: accent }}>{g.category}</span> = [{g.items.join(', ')}]</div>))}</Section>}
+      {has(s.projects) && <Section title="Projects">{s.projects.map((p, i) => (
+        <div key={i} style={{ marginBottom: 7 }}><div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#64748b' }}> — {p.tech.join(', ')}</span>}</div><RichTextView html={p.description} /></div>
+      ))}</Section>}
+      {has(s.education) && <Section title="Education">{s.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span><span style={{ color: '#64748b' }}>{e.year}{e.cgpa ? ` · ${e.cgpa}` : ''}</span></div>))}</Section>}
+      {has(s.certifications) && <Section title="Certifications">{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</Section>}
+    </div>
+  );
+};
+
+// ── Timeline (experience on a visual rail) ──────────────────────────────────────
+const Timeline: React.FC<{ s: ResumeSections; d: D }> = ({ s, d }) => {
+  const f = (n: number) => +(n * d.scale).toFixed(1);
+  const accent = d.accent;
+  const Title: React.FC<{ t: string }> = ({ t }) => (<div style={{ fontSize: f(13), fontWeight: 800, color: accent, textTransform: 'uppercase', letterSpacing: 0.8, margin: '0 0 8px' }}>{t}</div>);
+  return (
+    <div style={{ fontFamily: d.fontFamily, color: '#1f2937', fontSize: f(d.base), lineHeight: d.lineHeight, padding: '34px 40px' }}>
+      <div style={{ textAlign: d.align, marginBottom: 16 }}>
+        <div style={{ fontSize: f(26), fontWeight: 800, color: accent }}>{s.contact.name || 'Your Name'}</div>
+        {s.contact.title && <div style={{ fontSize: f(12.5), color: '#555' }}>{s.contact.title}</div>}
+        <ContactMeta c={s.contact} d={d} wrapStyle={{ marginTop: 4 }} lineStyle={{ fontSize: f(11), color: '#475569' }} />
+      </div>
+      {s.summary && <div style={{ marginBottom: 14 }}><Title t="Summary" /><p style={{ margin: 0 }}>{s.summary}</p></div>}
+      {has(s.experience) && <div style={{ marginBottom: 14 }}><Title t="Experience" /><div style={{ borderLeft: `2px solid ${accent}33`, marginLeft: 4 }}>{s.experience.map((e, i) => (
+        <div key={i} style={{ position: 'relative', paddingLeft: 16, marginBottom: 10 }}>
+          <span style={{ position: 'absolute', left: -5, top: 5, width: 8, height: 8, borderRadius: '50%', background: accent }} />
+          <div style={{ fontWeight: 700 }}>{e.role}{e.company && ` · ${e.company}`}</div>
+          <div style={{ fontSize: f(11), color: '#6b7280' }}>{e.from}{e.to ? ` – ${e.current ? 'Present' : e.to}` : ''}</div>
+          {has(e.bullets) && <ul style={{ margin: '4px 0 0', paddingLeft: 16 }}>{e.bullets.filter(Boolean).map((b, j) => <li key={j}>{b}</li>)}</ul>}
+        </div>
+      ))}</div></div>}
+      {has(s.projects) && <div style={{ marginBottom: 14 }}><Title t="Projects" />{s.projects.map((p, i) => (<div key={i} style={{ marginBottom: 7 }}><div style={{ fontWeight: 700 }}>{p.name}{has(p.tech) && <span style={{ fontWeight: 400, color: '#6b7280' }}> — {p.tech.join(', ')}</span>}</div><RichTextView html={p.description} /></div>))}</div>}
+      {has(s.skills) && <div style={{ marginBottom: 14 }}><Title t="Skills" />{s.skills.map((g, i) => (<div key={i}><strong>{g.category}: </strong>{g.items.join(', ')}</div>))}</div>}
+      {has(s.education) && <div style={{ marginBottom: 14 }}><Title t="Education" />{s.education.map((e, i) => (<div key={i} style={{ display: 'flex', justifyContent: 'space-between' }}><span><strong>{e.degree}</strong>{e.college && `, ${e.college}`}</span><span style={{ color: '#6b7280' }}>{e.year}{e.cgpa ? ` · CGPA ${e.cgpa}` : ''}</span></div>))}</div>}
+      {has(s.certifications) && <div><Title t="Certifications" />{s.certifications.map((c, i) => (<div key={i}>{c.name} — {c.issuer}{c.year ? `, ${c.year}` : ''}</div>))}</div>}
+    </div>
+  );
+};
+
 // ── Switcher ────────────────────────────────────────────────────────────────────
 export const ResumeDocument: React.FC<{ sections: ResumeSections; template?: ResumeTemplate; design?: ResumeDesign }> = ({ sections, template, design }) => {
   const tpl = template || 'classic';
@@ -327,6 +416,8 @@ export const ResumeDocument: React.FC<{ sections: ResumeSections; template?: Res
     case 'professional': return <Professional s={sections} d={d} />;
     case 'compact': return <Compact s={sections} d={d} />;
     case 'elegant': return <Elegant s={sections} d={d} />;
+    case 'mono': return <Mono s={sections} d={d} />;
+    case 'timeline': return <Timeline s={sections} d={d} />;
     case 'classic':
     default: return <Classic s={sections} d={d} />;
   }

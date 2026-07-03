@@ -10,7 +10,7 @@ API.interceptors.request.use(cfg => {
   return cfg;
 });
 
-export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional' | 'compact' | 'elegant';
+export type ResumeTemplate = 'classic' | 'modern' | 'minimal' | 'professional' | 'compact' | 'elegant' | 'mono' | 'timeline';
 
 export interface ResumeDesign {
   fontFamily?: string;          // '' = template default

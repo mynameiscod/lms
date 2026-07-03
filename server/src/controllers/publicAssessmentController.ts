@@ -104,6 +104,12 @@ export const registerAssessment = async (req: Request, res: Response) => {
       isMobile: !!b.isMobile,
       status: 'registered',
       utmParams: b.utmParams || undefined,
+      sourceDetails: {
+        referrer: (req.headers['referer'] as string) || b.referrer || undefined,
+        userAgent: req.headers['user-agent'],
+        landedAt: new Date(),
+        ...(b.sourceDetails && typeof b.sourceDetails === 'object' ? b.sourceDetails : {}),
+      },
     });
 
     // Capture the lead immediately (even if they drop off at OTP/exam).
@@ -113,6 +119,8 @@ export const registerAssessment = async (req: Request, res: Response) => {
     } catch (e) { /* lead capture is best-effort; never block registration */ }
 
     const otp = await sendOtp(tenantId, token, phone);
+    submission.otp = { sentAt: new Date(), channel: otp.channel, sent: otp.sent, attempts: 0, resends: 0 };
+    await submission.save();
     return res.json({ success: true, message: 'Registered', data: { token, otp } });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Registration failed', error: error.message });
@@ -174,9 +182,10 @@ export const verifyAssessmentOtp = async (req: Request, res: Response) => {
     if (!token || !code) return res.status(400).json({ success: false, message: 'token and code are required' });
 
     const result = await verifyOtp(token, code);
+    await AssessmentSubmission.updateOne({ token }, { $inc: { 'otp.attempts': 1 }, $set: { 'otp.lastReason': result } });
     if (result !== 'ok') return res.status(400).json({ success: false, message: 'OTP verification failed', data: { reason: result } });
 
-    await AssessmentSubmission.updateOne({ token }, { $set: { phoneVerified: true } });
+    await AssessmentSubmission.updateOne({ token }, { $set: { phoneVerified: true, 'otp.verifiedAt': new Date() } });
 
     // Auto-create the candidate's Student account now that the phone is verified.
     try {
@@ -209,6 +218,12 @@ export const resendAssessmentOtp = async (req: Request, res: Response) => {
     const submission = await AssessmentSubmission.findOne({ token });
     if (!submission) return res.status(404).json({ success: false, message: 'Session not found' });
     const otp = await sendOtp(submission.tenantId, token, submission.candidate.phone);
+    submission.otp = {
+      ...(submission.otp || {}),
+      sentAt: new Date(), channel: otp.channel, sent: otp.sent,
+      resends: ((submission.otp?.resends) || 0) + 1,
+    };
+    await submission.save();
     return res.json({ success: true, message: 'OTP re-sent', data: { otp } });
   } catch (error: any) {
     return res.status(500).json({ success: false, message: 'Resend failed', error: error.message });

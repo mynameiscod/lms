@@ -128,6 +128,18 @@ export interface IAssessmentSubmission extends Document {
   utmParams?: Record<string, string>;
   sourceDetails?: Record<string, any>;
 
+  // OTP debug trail — so the funnel is observable even after the ephemeral OTP
+  // record is purged (why "OTP not coming" / verify failures happened).
+  otp?: {
+    sentAt?: Date;
+    channel?: string;        // 'whatsapp' | 'none' (none = send failed → dev-mode)
+    sent?: boolean;
+    lastReason?: string;     // last verify outcome (invalid / expired / not_found / ok)
+    verifiedAt?: Date;
+    attempts?: number;
+    resends?: number;
+  };
+
   startedAt?: Date;
   submittedAt?: Date;
   createdAt: Date;
@@ -248,6 +260,16 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
 
     utmParams: { type: Schema.Types.Mixed },
     sourceDetails: { type: Schema.Types.Mixed },
+
+    otp: {
+      sentAt: { type: Date },
+      channel: { type: String },
+      sent: { type: Boolean },
+      lastReason: { type: String },
+      verifiedAt: { type: Date },
+      attempts: { type: Number, default: 0 },
+      resends: { type: Number, default: 0 },
+    },
 
     startedAt: { type: Date },
     submittedAt: { type: Date },

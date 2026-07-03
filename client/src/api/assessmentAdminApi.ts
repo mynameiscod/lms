@@ -88,7 +88,19 @@ export const candidatesApi = {
     const res: any = await authenticatedFetch(`${CAND_BASE}/unlock`, { method: 'POST', body: JSON.stringify({ userId }) });
     return (res?.data || res) as { unlocked: number };
   },
+  journey: async (id: string) => {
+    const res: any = await authenticatedFetch(`${CAND_BASE}/${id}/journey`);
+    return (res?.data || res) as CandidateJourney;
+  },
 };
+
+export interface JourneyStep { key: string; label: string; status: 'done' | 'pending' | 'failed' | 'skipped'; at: string | null; detail?: string; }
+export interface CandidateJourney {
+  candidate: { id: string; name?: string; email?: string; phone?: string; status: string; userId?: string | null; leadId?: string | null };
+  attribution: { segment?: string | null; source?: string | null; medium?: string | null; campaign?: string | null; ad?: string | null; referrer?: string | null; device?: string; landedAt?: string };
+  lead?: { source?: string; stage?: string; status?: string } | null;
+  steps: JourneyStep[];
+}
 
 export const DIMENSIONS = [
   { value: 'aptitude', label: 'Aptitude' },

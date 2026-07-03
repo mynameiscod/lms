@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Codebegun LMS — Platform Module Guide</title>
+<style>
+  :root{
+    --navy:#0a2a5e; --navy2:#051D64; --purple:#6650d8; --purple2:#8b78ff; --teal:#14a89c;
+    --ink:#1f2937; --muted:#6b7280; --line:#e8ecf3; --bg:#f4f6fb; --soft:#f8fafc;
+    --a:#6650d8; --b:#14a89c; --c:#e0457b; --d:#e8830c; --e:#16a34a; --f:#0ea5e9;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 22px 64px}
+  a{color:var(--purple)}
+
+  header{background:linear-gradient(120deg,var(--navy2) 0%,var(--purple) 58%,var(--teal) 120%);color:#fff;padding:48px 0 56px;position:relative;overflow:hidden}
+  header::after{content:"";position:absolute;right:-90px;top:-100px;width:380px;height:380px;background:radial-gradient(circle,rgba(255,255,255,.14),transparent 70%);border-radius:50%}
+  .head-inner{max-width:1200px;margin:0 auto;padding:0 22px;position:relative;z-index:1}
+  .brand{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+  .logo{width:48px;height:48px;border-radius:12px;background:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--purple);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+  .brand b{font-size:19px;font-weight:700;letter-spacing:.3px}
+  .brand span{display:block;font-size:12px;opacity:.85;font-weight:400}
+  header h1{font-size:33px;font-weight:800;letter-spacing:-.5px;margin-bottom:10px}
+  header p.sub{font-size:15px;opacity:.93;max-width:780px}
+  .chips{margin-top:18px;display:flex;gap:9px;flex-wrap:wrap;font-size:12px}
+  .chips span{background:rgba(255,255,255,.16);padding:6px 13px;border-radius:20px}
+
+  section{margin-top:40px}
+  .sec-head{display:flex;align-items:center;gap:11px;margin-bottom:8px}
+  .sec-head .dot{width:12px;height:12px;border-radius:3px;background:var(--purple)}
+  .sec-head h2{font-size:20px;font-weight:800;color:var(--navy)}
+  .sec-sub{font-size:13px;color:var(--muted);margin:0 0 18px 23px}
+
+  /* At-a-glance */
+  .glance{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:26px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:0 2px 10px rgba(16,24,40,.04)}
+  .stat .n{font-size:26px;font-weight:800;background:linear-gradient(90deg,var(--purple),var(--teal));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .stat .l{font-size:12px;color:var(--muted);margin-top:3px;font-weight:600}
+
+  /* Journey flow */
+  .flow{display:flex;flex-wrap:wrap;gap:9px;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px}
+  .fstep{flex:1 1 120px;min-width:110px;background:linear-gradient(135deg,#f6f4ff,#eafaf7);border:1px solid #e6e2fb;border-radius:11px;padding:12px 13px;position:relative}
+  .fstep .n{font-size:10px;font-weight:800;color:var(--purple);letter-spacing:.5px}
+  .fstep h4{font-size:12.8px;font-weight:700;color:var(--ink);margin:4px 0 3px}
+  .fstep p{font-size:10.8px;color:var(--muted);margin:0;line-height:1.4}
+
+  /* Module cards */
+  .group-tag{display:inline-block;font-size:11px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#fff;padding:4px 12px;border-radius:20px;margin-bottom:14px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}
+  .mod{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;box-shadow:0 2px 10px rgba(16,24,40,.05);position:relative;overflow:hidden}
+  .mod::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--accent,var(--purple))}
+  .mod-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:10px}
+  .mod-ic{font-size:26px;line-height:1;flex:none}
+  .mod-head h3{font-size:16.5px;font-weight:750;color:var(--navy)}
+  .mod-head .one{font-size:12.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+  .mod h5{font-size:10.5px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin:14px 0 7px}
+  .mod ul{list-style:none;display:flex;flex-direction:column;gap:5px}
+  .mod li{font-size:12.5px;color:#374151;padding-left:17px;position:relative;line-height:1.45}
+  .mod li::before{content:"▹";position:absolute;left:0;color:var(--accent,var(--purple));font-weight:800}
+  .aud{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+  .aud span{font-size:10.5px;font-weight:700;background:var(--soft);border:1px solid var(--line);color:#475569;padding:3px 9px;border-radius:20px}
+  .result{margin-top:14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:9px 12px;font-size:12px;color:#166534;line-height:1.45}
+  .result b{color:#0a8050}
+
+  /* Audience matrix */
+  table{width:100%;border-collapse:collapse;background:#fff;border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  th{background:linear-gradient(135deg,#faf9ff,#f3fdfb);font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--navy);text-align:left;padding:12px 16px;border-bottom:1px solid var(--line)}
+  td{font-size:12.5px;padding:11px 16px;border-bottom:1px solid #f0f2f7;color:#374151;vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td b{color:var(--navy)}
+
+  footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  footer b{color:var(--ink)}
+  @media(max-width:820px){.glance{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}header h1{font-size:25px}}
+  @media print{body{background:#fff}header::after{display:none}.mod,.stat,.flow,table{box-shadow:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="head-inner">
+    <div class="brand"><div class="logo">C</div><div><b>Codebegun&nbsp;LMS</b><span>Software Training &amp; Career Solutions</span></div></div>
+    <h1>Platform Module Guide</h1>
+    <p class="sub">A complete map of the platform — every module, what it does, who it's for, and the outcome it drives. One multi-tenant system that takes a person from an <b>ad click</b> all the way to a <b>placed, job-ready developer</b>, and runs the institute's admissions, teaching and hiring operations end to end.</p>
+    <div class="chips"><span>🏫 Multi-tenant SaaS</span><span>🤖 AI-native (Claude + GPT)</span><span>💬 WhatsApp + Meta integrated</span><span>💳 Razorpay payments</span><span>🎯 Assessment → Placement funnel</span></div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- AT A GLANCE -->
+  <div class="glance">
+    <div class="stat"><div class="n">6</div><div class="l">Module areas — acquisition to placement</div></div>
+    <div class="stat"><div class="n">20+</div><div class="l">Feature modules across the platform</div></div>
+    <div class="stat"><div class="n">7</div><div class="l">Distinct audiences served</div></div>
+    <div class="stat"><div class="n">1</div><div class="l">Continuous funnel: lead → learner → hire</div></div>
+  </div>
+
+  <!-- THE JOURNEY -->
+  <section>
+    <div class="sec-head"><span class="dot"></span><h2>The end-to-end journey</h2></div>
+    <p class="sec-sub">How the modules connect into one flow — each stage feeds the next.</p>
+    <div class="flow">
+      <div class="fstep"><div class="n">STAGE 1</div><h4>Attract</h4><p>Meta / Google ads → landing → Lead CRM.</p></div>
+      <div class="fstep"><div class="n">STAGE 2</div><h4>Assess</h4><p>Register → WhatsApp OTP → AI adaptive exam.</p></div>
+      <div class="fstep"><div class="n">STAGE 3</div><h4>Convert</h4><p>Readiness + roadmap → account → paywall / mentor.</p></div>
+      <div class="fstep"><div class="n">STAGE 4</div><h4>Learn</h4><p>Personalized day-wise plan: lessons, DSA, quizzes.</p></div>
+      <div class="fstep"><div class="n">STAGE 5</div><h4>Prepare</h4><p>Mock interviews, projects, career profile.</p></div>
+      <div class="fstep"><div class="n">STAGE 6</div><h4>Place</h4><p>Partner outreach → interviews → placed + guarantee.</p></div>
+    </div>
+  </section>
+
+  <!-- A. ACQUISITION & ADMISSIONS -->
+  <section>
+    <span class="group-tag" style="background:var(--f)">A · Acquisition &amp; Admissions CRM</span>
+    <div class="grid">
+      <div class="mod" style="--accent:var(--f)">
+        <div class="mod-head"><div class="mod-ic">📣</div><div><h3>Lead Management CRM</h3><div class="one">A full sales CRM to capture, qualify and convert prospective students.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Kanban pipeline with configurable stages &amp; dispositions</li>
+          <li>Meta Lead Ads webhook + Google Ads/Sheets lead capture</li>
+          <li>Lead scoring, priority, auto-distribution to counsellors</li>
+          <li>Qualification forms, follow-ups, lost-reason tracking</li>
+          <li>WhatsApp drip sequences + AI lead-assist &amp; AI voice calls</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Admissions / Sales team</span><span>Telecallers</span><span>Institute admins</span></div>
+        <div class="result"><b>Outcome:</b> every ad lead is captured, scored and worked to enrolment — nothing slips through the cracks.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--f)">
+        <div class="mod-head"><div class="mod-ic">💬</div><div><h3>WhatsApp &amp; Meta Messaging</h3><div class="one">Two-way WhatsApp Cloud API woven through the whole funnel.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>WhatsApp OTP verification at registration</li>
+          <li>Automated welcome / credential &amp; drip messages</li>
+          <li>Meta Lead-Ads sync with signature verification</li>
+          <li>Template + session messaging, per-tenant credentials</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Prospective students</span><span>Sales team</span><span>Admins</span></div>
+        <div class="result"><b>Outcome:</b> instant, verified reach on the channel candidates actually use.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- B. ASSESSMENT & ONBOARDING -->
+  <section>
+    <span class="group-tag" style="background:var(--purple)">B · Skill Assessment &amp; Onboarding <em style="font-weight:600;text-transform:none">— the flagship funnel</em></span>
+    <div class="grid">
+      <div class="mod" style="--accent:var(--purple)">
+        <div class="mod-head"><div class="mod-ic">🧭</div><div><h3>AI Skill Assessment</h3><div class="one">An auto-composed, adaptive exam that scores readiness and generates a plan.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Segment-aware registration (fresher → job-switcher)</li>
+          <li>WhatsApp OTP → auto-creates a Student account</li>
+          <li>AI exam designer + generator (MCQ, predict-output, debug, live-code, SQL)</li>
+          <li>Code-verified questions run on Piston; adaptive difficulty</li>
+          <li>Readiness score, percentile, per-skill gap map</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Working professionals</span><span>Final-year students</span><span>Job-switchers</span></div>
+        <div class="result"><b>Outcome:</b> a warm, pre-qualified lead who has seen exactly where they stand — the moment they're most ready to buy.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--purple)">
+        <div class="mod-head"><div class="mod-ic">🗺️</div><div><h3>AI Roadmap &amp; Result Page</h3><div class="one">The #1 conversion surface — turns a score into a personalized, sellable plan.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Claude-generated roadmap matched to a mentor master-track</li>
+          <li>Personalized: mastered areas compress, weak areas expand</li>
+          <li>Readiness gauge, salary-potential, gap breakdown</li>
+          <li>Auto-enrol as a free preview + dual CTA (buy / talk to mentor)</li>
+          <li>Login details emailed &amp; WhatsApp'd automatically</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Assessed candidates</span><span>Mentors / counsellors</span></div>
+        <div class="result"><b>Outcome:</b> candidate → paid learner via Razorpay self-serve or a mentor-assisted close.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- C. LEARNING & PRACTICE -->
+  <section>
+    <span class="group-tag" style="background:var(--teal)">C · Learning &amp; Practice</span>
+    <div class="grid">
+      <div class="mod" style="--accent:var(--teal)">
+        <div class="mod-head"><div class="mod-ic">📚</div><div><h3>Learning Plans &amp; Curriculum</h3><div class="one">Day-wise personalized plans that fold everything into one feed.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Master tracks cloned &amp; tailored per learner</li>
+          <li>Every day is a mix: concept lesson + DSA + Q&amp;A + quiz</li>
+          <li>Milestone timeline (mocks wk 3/6/9, projects, capstone)</li>
+          <li>"My Journey" view: progress, streak, locked-but-teased items</li>
+          <li>Free preview (days 1–2) → full unlock on payment</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Enrolled students</span><span>Instructors</span></div>
+        <div class="result"><b>Outcome:</b> a clear, motivating day-by-day path to job-ready — no guesswork.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--teal)">
+        <div class="mod-head"><div class="mod-ic">📘</div><div><h3>Interactive Lessons</h3><div class="one">AI-generated, multi-scene interactive lessons — not static PDFs.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>7-scene interactive lessons generated on demand (Claude)</li>
+          <li>Inline runnable code, checks and explanations</li>
+          <li>Author/builder UI + student viewer</li>
+          <li>Woven into curriculum days automatically</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Students</span><span>Instructors / content authors</span></div>
+        <div class="result"><b>Outcome:</b> higher engagement and comprehension than passive video/notes.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--teal)">
+        <div class="mod-head"><div class="mod-ic">💻</div><div><h3>Code Playground</h3><div class="one">A browser IDE for practice, with real execution and GitHub push.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Multi-language editor, real execution via self-hosted Piston</li>
+          <li>Save programs, run &amp; trace output</li>
+          <li>Push work to the student's GitHub (Octokit)</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Students</span></div>
+        <div class="result"><b>Outcome:</b> hands-on practice + a real portfolio trail on GitHub.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--teal)">
+        <div class="mod-head"><div class="mod-ic">📝</div><div><h3>Quizzes, Assignments &amp; Question Bank</h3><div class="one">Assess and reinforce with auto-graded quizzes and coding assignments.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Quiz builder + reusable question bank (CSV import, AI generate)</li>
+          <li>Coding assignments with test cases, auto-graded on Piston</li>
+          <li>Whitespace-tolerant output grading; reports &amp; analytics</li>
+          <li>Shareable completion certificates (social-ready)</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Instructors</span><span>Students</span></div>
+        <div class="result"><b>Outcome:</b> objective skill checks + shareable proof of achievement.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- D. INTERVIEW & CAREER -->
+  <section>
+    <span class="group-tag" style="background:var(--c)">D · Interview &amp; Career Readiness</span>
+    <div class="grid">
+      <div class="mod" style="--accent:var(--c)">
+        <div class="mod-head"><div class="mod-ic">🎤</div><div><h3>AI Interview Module</h3><div class="one">Realistic mock interviews — AI-virtual and human-assisted.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>AI virtual interviewer with a real reasoning "brain" (Claude)</li>
+          <li>Natural voice (ElevenLabs) + talking-head avatar (D-ID)</li>
+          <li>Voice + text; templates, scheduling, AI feedback reports</li>
+          <li>Milestone mocks wired into the learning plan</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Students preparing to interview</span><span>Instructors</span></div>
+        <div class="result"><b>Outcome:</b> unlimited interview practice with structured, scored feedback.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--c)">
+        <div class="mod-head"><div class="mod-ic">🧑‍💼</div><div><h3>Career Profile Builder</h3><div class="one">AI review of Resume + GitHub + LinkedIn, with staff sign-off.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Resume parsing + AI scoring &amp; improvement suggestions</li>
+          <li>GitHub &amp; LinkedIn analysis</li>
+          <li>Admin review &amp; approval workflow</li>
+          <li>Branded one-pager candidate profiles (PDF)</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Students</span><span>Placement team</span></div>
+        <div class="result"><b>Outcome:</b> a polished, employer-ready profile before they hit the market.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- E. PLACEMENT & OUTREACH -->
+  <section>
+    <span class="group-tag" style="background:var(--e)">E · Placement &amp; Partner Outreach</span>
+    <div class="grid">
+      <div class="mod" style="--accent:var(--e)">
+        <div class="mod-head"><div class="mod-ic">🤝</div><div><h3>Placement Partner Outreach</h3><div class="one">A CRM that sources hiring companies and runs outreach on autopilot.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Tiered company CSV import → Kanban pipeline</li>
+          <li>Automated cold email + follow-ups (daily cap, human-like gaps)</li>
+          <li>IMAP reply-detection → read &amp; reply in a threaded inbox</li>
+          <li>Branded emails, attachments (PDF/PPT), one-click unsubscribe</li>
+          <li>Student matching, interview scheduling, placement + 90-day guarantee, analytics</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Placement team</span><span>Institute admins</span></div>
+        <div class="result"><b>Outcome:</b> a repeatable hiring pipeline — companies sourced, warmed and converted to placements.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--e)">
+        <div class="mod-head"><div class="mod-ic">🎓</div><div><h3>College / Placement Module</h3><div class="one">Institution-grade placement &amp; campus operations.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Departments, memberships, curriculum</li>
+          <li>Campus Recruitment Training (CRT) &amp; placement drives</li>
+          <li>Alumni network &amp; student-facing drive listings</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Colleges &amp; universities</span><span>Placement officers</span></div>
+        <div class="result"><b>Outcome:</b> structured campus placement management at institution scale.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- F. PLATFORM & OPS -->
+  <section>
+    <span class="group-tag" style="background:var(--d)">F · Platform &amp; Operations</span>
+    <div class="grid">
+      <div class="mod" style="--accent:var(--d)">
+        <div class="mod-head"><div class="mod-ic">🏫</div><div><h3>Batches, Classes &amp; Attendance</h3><div class="one">Day-to-day teaching operations.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Batches, offerings, seat reservations, enrolments</li>
+          <li>Live classes + recordings (Bunny Stream)</li>
+          <li>Attendance capture &amp; reports</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Instructors</span><span>Students</span><span>Admins</span></div>
+        <div class="result"><b>Outcome:</b> classes, cohorts and attendance run in one place.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--d)">
+        <div class="mod-head"><div class="mod-ic">💳</div><div><h3>Payments &amp; Fees</h3><div class="one">Self-serve unlock and fee management.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Razorpay paywall — self-serve full-plan unlock</li>
+          <li>Signed order + verify + webhook (idempotent)</li>
+          <li>Course/batch fee tracking</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Students</span><span>Finance / admins</span></div>
+        <div class="result"><b>Outcome:</b> instant online conversion + clean fee records.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--d)">
+        <div class="mod-head"><div class="mod-ic">⚙️</div><div><h3>Platform Settings</h3><div class="one">Configure the whole platform from the UI — no .env edits.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Module-based settings: AI keys, Email/SMTP, WhatsApp/Meta, storage, OAuth, placement, interview</li>
+          <li>Encrypted secrets, per-tenant overrides, live test buttons</li>
+          <li>Search + save without redeploy</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>Super admins</span><span>Tenant admins</span></div>
+        <div class="result"><b>Outcome:</b> every integration self-managed, safely, per institute.</div>
+      </div>
+
+      <div class="mod" style="--accent:var(--d)">
+        <div class="mod-head"><div class="mod-ic">🔔</div><div><h3>Dashboards, Reports, Support &amp; Notifications</h3><div class="one">Visibility and the human-support loop.</div></div></div>
+        <h5>Key features</h5>
+        <ul>
+          <li>Role dashboards, student reports &amp; profiles</li>
+          <li>"Raise a concern" → mentor ticketing</li>
+          <li>In-app notifications, meetings, leave requests, admin logs</li>
+        </ul>
+        <h5>Target audience</h5>
+        <div class="aud"><span>All roles</span><span>Mentors</span><span>Admins</span></div>
+        <div class="result"><b>Outcome:</b> everyone sees what matters and can get help fast.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- AUDIENCE MATRIX -->
+  <section>
+    <div class="sec-head"><span class="dot" style="background:var(--teal)"></span><h2>Who uses what</h2></div>
+    <p class="sec-sub">The same platform serves seven distinct audiences from one codebase.</p>
+    <table>
+      <thead><tr><th style="width:180px">Audience</th><th>Primary modules they live in</th><th style="width:230px">What they get out of it</th></tr></thead>
+      <tbody>
+        <tr><td><b>Prospective students</b></td><td>Landing, Skill Assessment, WhatsApp OTP, Result page</td><td>Know their readiness + a clear path forward</td></tr>
+        <tr><td><b>Enrolled students</b></td><td>Learning Plans, Interactive Lessons, Playground, Quizzes, Interviews, Career Profile</td><td>A guided, hands-on route to job-ready</td></tr>
+        <tr><td><b>Instructors / mentors</b></td><td>Curriculum, Lessons, Quizzes/Assignments, Batches, Concerns</td><td>Author content, teach cohorts, support learners</td></tr>
+        <tr><td><b>Admissions / Sales</b></td><td>Lead CRM, WhatsApp drip, AI lead-assist, telecaller tools</td><td>Convert ad traffic into enrolments</td></tr>
+        <tr><td><b>Placement team</b></td><td>Partner Outreach, Career Profiles, Interview scheduling, Analytics</td><td>Source companies and place students</td></tr>
+        <tr><td><b>Institute / tenant admins</b></td><td>Platform Settings, Payments, Batches, Reports, Users &amp; Roles</td><td>Run the business, configure integrations</td></tr>
+        <tr><td><b>Colleges / institutions</b></td><td>College module: departments, CRT, placement drives, alumni</td><td>Campus-scale training &amp; placement</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <b>Codebegun LMS</b> — Platform Module Guide · Multi-tenant training, assessment &amp; placement platform.<br>
+    One continuous funnel: attract → assess → convert → learn → prepare → place. AI-native (Claude + GPT), WhatsApp/Meta and Razorpay integrated.
+  </footer>
+</div>
+</body>
+</html>

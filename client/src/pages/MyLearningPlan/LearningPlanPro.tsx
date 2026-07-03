@@ -29,11 +29,15 @@ const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef1
 // ── Item helpers ────────────────────────────────────────────────────────────
 const itemMeta = (item: any) => {
   const c = item.content;
-  const type = c?.type || item.kind || 'content';
-  const title = c?.title || item.title || 'Untitled';
+  // Day items store their name in `contentTitle` (both content + module items). Fall back
+  // to the loaded content's own title, then the raw kind.
+  const type = c?.type || item.contentType || item.kind || 'content';
+  // Content items: prefer the live content title; module items (quiz/assignment/…): the
+  // stored contentTitle (there's no loaded content object for those).
+  const title = c?.title || item.contentTitle || item.title || (item.kind && item.kind !== 'content' ? item.kind : 'Untitled');
   const duration = c?.estimatedDuration || item.estimatedDuration || 0;
-  const icon = CONTENT_TYPE_ICONS[type as keyof typeof CONTENT_TYPE_ICONS] || (item.kind === 'assignment' ? '📝' : item.kind === 'quiz' ? '❓' : '📄');
-  const label = CONTENT_TYPE_LABELS[type as keyof typeof CONTENT_TYPE_LABELS] || (item.kind ? item.kind : 'Content');
+  const icon = CONTENT_TYPE_ICONS[type as keyof typeof CONTENT_TYPE_ICONS] || (item.kind === 'assignment' ? '📝' : item.kind === 'quiz' ? '❓' : item.kind === 'mockInterview' ? '🎤' : item.kind === 'codeSnippet' ? '💻' : '📄');
+  const label = CONTENT_TYPE_LABELS[type as keyof typeof CONTENT_TYPE_LABELS] || (item.kind === 'quiz' ? 'Quiz' : item.kind === 'assignment' ? 'Assignment' : item.kind === 'mockInterview' ? 'Mock Interview' : item.kind === 'codeSnippet' ? 'Code Snippet' : 'Content');
   const color = CONTENT_TYPE_COLORS[type as keyof typeof CONTENT_TYPE_COLORS] || '#64748b';
   return { type, title, duration, icon, label, color };
 };

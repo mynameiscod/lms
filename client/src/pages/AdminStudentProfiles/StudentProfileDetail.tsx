@@ -46,6 +46,15 @@ const fmt = (date: string | undefined) => {
   return new Date(date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 };
 
+// Seconds → "12m 5s" / "1h 3m" / "—"
+const fmtDur = (secs: number | undefined) => {
+  if (!secs || secs <= 0) return '—';
+  const h = Math.floor(secs / 3600), m = Math.floor((secs % 3600) / 60), s = secs % 60;
+  if (h > 0) return `${h}h ${m}m`;
+  if (m > 0) return `${m}m ${s}s`;
+  return `${s}s`;
+};
+
 const StudentProfileDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
@@ -63,6 +72,19 @@ const StudentProfileDetail: React.FC = () => {
   const [savingNote, setSavingNote] = useState(false);
   const [aiInterviews, setAiInterviews] = useState<any[] | null>(null);
   const [mockData, setMockData] = useState<{ interviews: any[]; feedback: any[] } | null>(null);
+  const [sendingReminder, setSendingReminder] = useState(false);
+  const [reminderMsg, setReminderMsg] = useState('');
+
+  const handleSendReminder = async () => {
+    if (!userId) return;
+    setSendingReminder(true); setReminderMsg('');
+    try {
+      const res = await studentProfileAPI.sendProfileReminder(userId);
+      setReminderMsg(res.message || 'Reminder email sent.');
+    } catch (e: any) {
+      setReminderMsg(e?.response?.data?.message || 'Failed to send reminder.');
+    } finally { setSendingReminder(false); }
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -229,6 +251,37 @@ const StudentProfileDetail: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Profile completeness breakdown + reminder email */}
+      {hasProfile && Array.isArray(profile?.missing) && profile.missing.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: 16, margin: '0 0 16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <div>
+              <b style={{ fontSize: 15, color: '#0f172a' }}>Profile is {pct}% complete</b>
+              <span style={{ color: '#64748b', fontSize: 13, marginLeft: 8 }}>
+                {profile.missing.reduce((n: number, s: any) => n + s.fields.length, 0)} item(s) missing — that's why it's not 100%.
+              </span>
+            </div>
+            <button onClick={handleSendReminder} disabled={sendingReminder}
+              style={{ background: 'linear-gradient(90deg,#6366f1,#4f46e5)', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 16px', fontWeight: 700, fontSize: 13.5, cursor: sendingReminder ? 'default' : 'pointer', opacity: sendingReminder ? 0.7 : 1 }}>
+              {sendingReminder ? 'Sending…' : '📧 Email student to complete'}
+            </button>
+          </div>
+          {reminderMsg && <div style={{ fontSize: 13, color: '#0f766e', background: '#ecfdf5', border: '1px solid #a7f3d0', borderRadius: 8, padding: '8px 12px', marginBottom: 12 }}>{reminderMsg}</div>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 12 }}>
+            {profile.missing.map((sec: any, i: number) => (
+              <div key={i} style={{ border: '1px solid #f1f5f9', borderRadius: 10, padding: '10px 12px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#334155', marginBottom: 6 }}>{sec.section}</div>
+                {sec.fields.map((f: string, j: number) => (
+                  <div key={j} style={{ fontSize: 13, color: '#64748b', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                    <span style={{ color: '#f59e0b' }}>⚠</span> {f}
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="spd-tabs">
@@ -497,16 +550,22 @@ const StudentProfileDetail: React.FC = () => {
           quizAttempts.length === 0 ? <p className="spd-empty">No quiz attempts found.</p> :
           <div className="spd-table-wrap">
             <table className="spd-table">
-              <thead><tr><th>Quiz</th><th>Score</th><th>Status</th><th>Date</th></tr></thead>
+              <thead><tr><th>Quiz</th><th>Score</th><th>Time Taken</th><th>Status</th><th>Date</th></tr></thead>
               <tbody>
-                {quizAttempts.map((a: any, i: number) => (
+                {quizAttempts.map((a: any, i: number) => {
+                  const marks = a.obtainedMarks ?? a.score;
+                  return (
                   <tr key={i}>
-                    <td>{a.quizId || '—'}</td>
-                    <td>{a.score !== undefined ? `${a.score}/${a.totalMarks || '?'}` : '—'}</td>
+                    <td>{a.quizTitle || a.quizId || '—'}</td>
+                    <td>{marks !== undefined && marks !== null
+                      ? `${marks}/${a.totalMarks ?? '?'}${a.percentage != null ? ` (${a.percentage}%)` : ''}`
+                      : '—'}</td>
+                    <td>{fmtDur(a.timeSpent)}</td>
                     <td><span className={`spd-status-badge ${a.status}`}>{a.status}</span></td>
-                    <td>{fmt(a.createdAt)}</td>
+                    <td>{fmt(a.submittedAt || a.createdAt)}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -518,13 +577,15 @@ const StudentProfileDetail: React.FC = () => {
           assignments.length === 0 ? <p className="spd-empty">No assignment submissions found.</p> :
           <div className="spd-table-wrap">
             <table className="spd-table">
-              <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Status</th><th>Submitted</th></tr></thead>
+              <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Due Date</th><th>Time Taken</th><th>Status</th><th>Submitted</th></tr></thead>
               <tbody>
                 {assignments.map((s: any, i: number) => (
                   <tr key={i}>
                     <td>{(s.assignment as any)?.title || s.assignmentId || '—'}</td>
                     <td>{(s.assignment as any)?.type || '—'}</td>
-                    <td>{s.finalScore !== undefined ? `${s.finalScore}/${(s.assignment as any)?.totalPoints || '?'}` : '—'}</td>
+                    <td>{s.finalScore !== undefined && s.finalScore !== null ? `${s.finalScore}/${(s.assignment as any)?.totalPoints ?? '?'}` : '—'}</td>
+                    <td>{fmt((s.assignment as any)?.dueDate)}</td>
+                    <td>{fmtDur(s.timeSpent)}</td>
                     <td><span className={`spd-status-badge ${s.status?.toLowerCase().replace('_', '-')}`}>{s.status}</span></td>
                     <td>{fmt(s.submittedAt || s.createdAt)}</td>
                   </tr>

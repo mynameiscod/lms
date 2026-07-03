@@ -384,6 +384,14 @@ export const studentProfileAPI = {
     return response.data;
   },
 
+  // Admin: Email the student their missing profile items
+  sendProfileReminder: async (userId: string) => {
+    const response = await axios.post(`${API_BASE_URL}/admin/${userId}/send-reminder`, {}, {
+      headers: getAuthHeaders(),
+    });
+    return response.data;
+  },
+
   // ============ OAuth Methods ============
   
   // Get OAuth connection status

@@ -12,6 +12,7 @@ import {
   getStudentActivity,
   addStudentNote,
   deleteStudentNote,
+  sendProfileReminderEmail,
 } from '../controllers/studentProfileController';
 import { authMiddleware } from '../middleware/auth';
 import { roleGuard } from '../middleware/roleGuard';
@@ -132,6 +133,15 @@ router.get(
   tenantResolver,
   roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
   getProfileByUserId
+);
+
+// Email the student their missing profile items (admin)
+router.post(
+  '/admin/:userId/send-reminder',
+  authMiddleware,
+  tenantResolver,
+  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
+  sendProfileReminderEmail
 );
 
 // Add / delete admin notes on a student (admin)

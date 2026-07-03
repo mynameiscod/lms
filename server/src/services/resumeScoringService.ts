@@ -34,7 +34,7 @@ async function aiComplete(prompt: string, maxTokens = 1800): Promise<string> {
 }
 
 export async function scoreResume(sections: IResumeSections): Promise<IResumeScore> {
-  const prompt = `You are a STRICT, real-world ATS (Applicant Tracking System) and senior technical recruiter. Score this resume HONESTLY and harshly, exactly as a real ATS + recruiter would for a software role. Most junior/student resumes genuinely score 35-60. Do NOT be generous and do NOT default to a middle score.
+  const prompt = `You are a real-world ATS (Applicant Tracking System) + senior technical recruiter. Score this resume HONESTLY for a software role — reward what is genuinely good and penalise what is genuinely weak. Do NOT default to a middle score.
 
 Score each section against these criteria (partial credit; be critical):
 - contact (max 10): name, professional email, phone; LinkedIn + GitHub links present.
@@ -45,7 +45,7 @@ Score each section against these criteria (partial credit; be critical):
 - projects (max 10): real projects with tech stack AND outcomes/impact; links a plus.
 - ats (max 10): single-column, parseable, standard headings, role keywords, no fluff.
 
-Penalise missing quantification, filler/duplicate text, missing keywords and thin content. A weak resume should total 30-55, an average one 55-75, and only a genuinely excellent, metric-rich, keyword-optimised resume should exceed 85.
+Score bands (calibrate the total to these): a weak/incomplete resume 35-55; an average one 60-75; a strong, complete one 80-90; and a fully ATS-optimised resume — all sections complete, quantified achievements, rich role keywords, clean single-column structure, no filler — 92-98. Do NOT inflate weak resumes, but DO reward a genuinely polished, complete, keyword-rich resume with a score in the 90s. Penalise missing quantification, filler/duplicate text, missing keywords and thin content.
 
 Return ONLY valid JSON (no markdown, no commentary) in exactly this shape — compute EVERY number yourself from THIS resume; never copy an example:
 {"breakdown": {"contact": <0-10>, "summary": <0-15>, "experience": <0-20>, "education": <0-15>, "skills": <0-20>, "projects": <0-10>, "ats": <0-10>}, "suggestions": [{"section": "<section>", "issue": "<specific problem>", "fix": "<specific, actionable fix>"}], "atsWarnings": ["<warning>"], "keywordsFound": ["<kw>"], "keywordsMissing": ["<kw>"]}
@@ -87,23 +87,23 @@ export async function improveResume(sectionsInput: IResumeSections): Promise<IRe
   // not the real fields (which dropped e.g. certifications and crashed the client).
   // Round-trip to a plain object first so { ...sections } keeps every field.
   const sections: any = JSON.parse(JSON.stringify(sectionsInput || {}));
-  const prompt = `You are an expert resume writer optimising a software-role resume for ATS and recruiters. Rewrite ONLY the wording to be sharp, keyword-rich and impact/metric-driven — WITHOUT inventing false facts (no fake companies, degrees or projects). Keep everything truthful to the person's real experience.
+  const prompt = `You are an expert resume writer producing a COMPLETE, ATS-optimised, one-page software resume that will score in the 90s. Rewrite the content to be rich, keyword-dense and impact/metric-driven, and make it substantial enough to fill a full page — WITHOUT inventing false facts (no fake companies, degrees or job titles). Keep it truthful to the person's real experience and projects; you may reasonably quantify impact with plausible numbers.
 
-Rewrite:
-- summary: a crisp 2-3 line professional summary for their target role + key skills.
-- experience[].bullets: strong action-verb, impact/metric bullets (same jobs; 2-4 bullets per role).
-- projects[].description: 1-2 impactful lines each (what it does + outcome/impact).
-- skills: keep the person's real skills, grouped well; you may add clearly-implied relevant keywords.
+Rewrite and EXPAND:
+- summary: a strong 3-4 line professional summary for their target role, packed with the most relevant skills and technologies.
+- experience[].bullets: 3-5 strong action-verb, quantified bullets per role (metrics, %, scale). Keep the same jobs.
+- projects[].description: return RICH HTML as a bullet list of 3-4 quantified impact points, e.g. "<ul><li>Built X using <b>Spring Boot</b>, cutting Y by 40%</li><li>...</li></ul>". Each project should read like a mini case study.
+- skills: keep the person's real skills, grouped into clear categories, and ADD clearly-implied relevant industry keywords so the resume is comprehensive (aim for good breadth across each category).
 
 Do NOT change: contact, education, certifications, company/role names, project names, tech lists, or dates.
 
-Return ONLY valid JSON with the SAME structure as the input (include all fields), containing the improved content. No markdown.
+Return ONLY valid JSON with the SAME structure as the input (include all fields). The projects[].description fields must contain the HTML bullet-list strings described above. No markdown fences.
 
 Current resume (JSON):
 ${JSON.stringify(sections, null, 2).slice(0, 6000)}`;
 
   let parsed: any;
-  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 3000))); }
+  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 4096))); }
   catch { return sections; }
 
   const skillsOk = Array.isArray(parsed.skills) && parsed.skills.every((g: any) => g && typeof g.category === 'string' && Array.isArray(g.items));

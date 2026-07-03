@@ -546,11 +546,13 @@ const ResumeBuilder: React.FC = () => {
       const res = await resumeApi.improve();
       // Merge over a full empty shape so no section can come back undefined and crash render.
       const improved: ResumeSections = { ...emptySections(), ...(res.data.data.sections || {}) };
+      const newScore = res.data.data.score;
       setSections(improved);
-      setResume(prev => prev ? { ...prev, sections: improved, score: res.data.data.score, scoredAt: new Date().toISOString() } : prev);
-      showToast('✨ Resume improved by AI — review the changes!');
-      setTimeout(() => jumpTo('rb-suggestions'), 200);
-    } catch { showToast('❌ Auto-fix failed. Try again.'); }
+      setResume(prev => prev ? { ...prev, sections: improved, score: newScore, scoredAt: new Date().toISOString() } : prev);
+      setStep('build'); // show the score panel with the freshly improved content
+      showToast(newScore?.total != null ? `✨ Done! Your ATS score is now ${newScore.total}%` : '✨ Resume improved by AI!');
+      setTimeout(() => jumpTo('rb-suggestions'), 250);
+    } catch { showToast('❌ Auto-fix failed. Please try again.'); }
     finally { setImproving(false); }
   };
 
@@ -611,6 +613,15 @@ const ResumeBuilder: React.FC = () => {
   return (
     <div className="rb-page">
       {toast && <div className="rb-toast">{toast}</div>}
+      {improving && (
+        <div className="rb-ai-overlay">
+          <div className="rb-ai-card">
+            <div className="rb-ai-spinner" />
+            <div className="rb-ai-title">✨ AI is rewriting your resume…</div>
+            <div className="rb-ai-sub">Rewriting your summary, achievements, projects and skills to be ATS-optimised. This usually takes about 30–40 seconds — please don’t close this tab.</div>
+          </div>
+        </div>
+      )}
       {showUpload && <UploadModal onUploaded={handleUploaded} onClose={() => setShowUpload(false)} />}
 
       {/* Top bar */}
@@ -772,6 +783,9 @@ const ResumeBuilder: React.FC = () => {
             </div>
 
             <div className="rb-preview-step-actions">
+              <button className="rb-tb-btn" onClick={handleImprove} disabled={improving || scoring} style={{ background: 'linear-gradient(90deg,#7c3aed,#4f46e5)', color: '#fff', borderColor: 'transparent' }}>
+                {improving ? '✨ Improving…' : '✨ Auto-fix with AI'}
+              </button>
               <button className="rb-tb-btn" onClick={handleShare} disabled={sharing}>{sharing ? '…' : '🔗 Share Link'}</button>
               <button className="rb-tb-btn primary" onClick={handleDownload}>⬇ Download PDF</button>
             </div>

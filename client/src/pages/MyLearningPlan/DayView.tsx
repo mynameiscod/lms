@@ -7,7 +7,7 @@ import InteractiveActivityViewer from './InteractiveActivityViewer';
 
 // ─── Video Player ─────────────────────────────────────────────────────────────
 
-function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: () => void }) {
+export function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: () => void }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [pct, setPct] = useState(0);
   const [notified, setNotified] = useState(false);
@@ -91,7 +91,7 @@ function VideoPlayer({ content, onWatchEnough }: { content: any; onWatchEnough: 
 
 // ─── Notes Viewer ─────────────────────────────────────────────────────────────
 
-function NotesViewer({ content }: { content: any }) {
+export function NotesViewer({ content }: { content: any }) {
   if (content.notesSource === 'richtext' && content.notesContent) {
     return (
       <div
@@ -137,7 +137,7 @@ function NotesViewer({ content }: { content: any }) {
 
 // ─── Q&A Viewer ───────────────────────────────────────────────────────────────
 
-function QAViewer({ content }: { content: any }) {
+export function QAViewer({ content }: { content: any }) {
   const [openIdx, setOpenIdx] = useState<number | null>(null);
   const items = content.qaItems || [];
   if (items.length === 0) return <div style={{ color: '#94a3b8', fontStyle: 'italic' }}>No questions yet.</div>;
@@ -177,7 +177,7 @@ function QAViewer({ content }: { content: any }) {
 
 // ─── Practice Viewer ─────────────────────────────────────────────────────────
 
-function PracticeViewer({ content }: { content: any }) {
+export function PracticeViewer({ content }: { content: any }) {
   const [answers, setAnswers] = useState<Record<number, number | null>>({});
   const [revealed, setRevealed] = useState<Record<number, boolean>>({});
   const questions = content.practiceQuestions || [];
@@ -730,6 +730,14 @@ export default function DayView() {
               <button onClick={() => alert('Online unlock (Razorpay) — coming with the paywall.')} style={{ background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Unlock full plan</button>
               <button onClick={() => alert('A mentor will reach out to you shortly.')} style={{ background: '#fff', color: '#6650d8', border: '1.5px solid #6650d8', borderRadius: 10, padding: '11px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>Talk to a mentor</button>
             </div>
+          </div>
+        ) : lockReason === 'schedule' ? (
+          <div style={{ textAlign: 'center', padding: '60px 24px', background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0' }}>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🗓️</div>
+            <h3 style={{ color: '#0f172a', margin: '0 0 8px' }}>Day {dayNumber} unlocks soon</h3>
+            <p style={{ color: '#64748b', margin: 0 }}>
+              Your batch is currently on Day {todayPlanDay ?? '—'}. This day opens when the class reaches it — you can revisit any earlier day anytime to catch up.
+            </p>
           </div>
         ) : (
           <div style={{ textAlign: 'center', padding: '60px 24px', background: '#f8fafc', borderRadius: '12px', border: '1.5px dashed #e2e8f0' }}>

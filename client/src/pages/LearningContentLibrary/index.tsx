@@ -9,6 +9,7 @@ import {
   CONTENT_TYPE_COLORS,
 } from '../../api/learningContentLibraryApi';
 import { interactiveLessonApi } from '../../api/interactiveLessonApi';
+import ContentPreviewModal from './ContentPreviewModal';
 
 const ALL_TYPES: { key: ContentLibraryType | 'all'; label: string; icon: string }[] = [
   { key: 'all',               label: 'All',              icon: '📚' },
@@ -34,6 +35,7 @@ export default function LearningContentLibrary() {
   const [topicTags,   setTopicTags]   = useState<string[]>([]);
   const [deleting,    setDeleting]    = useState<string | null>(null);
   const [toggling,    setToggling]    = useState<string | null>(null);
+  const [previewId,   setPreviewId]   = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -256,6 +258,7 @@ export default function LearningContentLibrary() {
                 ? navigate(`/interactive-lessons/edit/${item.conceptLessonId || item._id}`)
                 : navigate(`/learning-library/edit/${item._id}`)
               }
+              onPreview={() => setPreviewId(item._id)}
               onDelete={() => handleDelete(item)}
               onTogglePublish={() => handleTogglePublish(item)}
               isDeleting={deleting === item._id}
@@ -265,6 +268,8 @@ export default function LearningContentLibrary() {
           ))}
         </div>
       )}
+
+      {previewId && <ContentPreviewModal contentId={previewId} onClose={() => setPreviewId(null)} />}
     </div>
   );
 }
@@ -272,6 +277,7 @@ export default function LearningContentLibrary() {
 interface CardProps {
   item: ContentLibraryItem;
   onEdit: () => void;
+  onPreview: () => void;
   onDelete: () => void;
   onTogglePublish: () => void;
   isDeleting: boolean;
@@ -279,7 +285,7 @@ interface CardProps {
   fmtDuration: (m: number) => string;
 }
 
-function ContentCard({ item, onEdit, onDelete, onTogglePublish, isDeleting, isToggling, fmtDuration }: CardProps) {
+function ContentCard({ item, onEdit, onPreview, onDelete, onTogglePublish, isDeleting, isToggling, fmtDuration }: CardProps) {
   const color  = CONTENT_TYPE_COLORS[item.type] || '#64748b';
   const icon   = CONTENT_TYPE_ICONS[item.type]  || '📄';
   const label  = CONTENT_TYPE_LABELS[item.type] || item.type;
@@ -392,6 +398,17 @@ function ContentCard({ item, onEdit, onDelete, onTogglePublish, isDeleting, isTo
 
         {/* Actions */}
         <div style={{ display: 'flex', gap: '8px', marginTop: '12px' }}>
+          <button
+            onClick={onPreview}
+            title="Preview exactly how students see this"
+            style={{
+              flex: 1, padding: '8px', border: '1.5px solid #c7d2fe',
+              borderRadius: '7px', background: '#eef2ff', color: '#4f46e5',
+              fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+            }}
+          >
+            👁️ Preview
+          </button>
           <button
             onClick={onEdit}
             style={{

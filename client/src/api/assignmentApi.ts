@@ -424,7 +424,14 @@ export const assignmentApi = {
   getOverallReports: (params: string) => api.get(`/assignments/reports/overall?${params}`),
   getByAssignmentReports: (params: string) => api.get(`/assignments/reports/by-assignment?${params}`),
   getByStudentReports: (params: string) => api.get(`/assignments/reports/by-student?${params}`),
-  exportReports: (params: string) => api.get(`/assignments/reports/export?${params}`, { responseType: 'blob' })
+  exportReports: (params: string) => api.get(`/assignments/reports/export?${params}`, { responseType: 'blob' }),
+
+  // Completion reports (per-assignment / per-batch status)
+  getCompletionReport: (params: string) => api.get(`/assignments/reports/completion?${params}`),
+  getAssignmentCompletion: (id: string, batch?: string) =>
+    api.get(`/assignments/${id}/completion${batch ? `?batch=${batch}` : ''}`),
+  remindPending: (id: string, body: { studentIds?: string[]; batch?: string }) =>
+    api.post(`/assignments/${id}/remind`, body),
 };
 
 // Submission API  

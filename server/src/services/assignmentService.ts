@@ -9,6 +9,7 @@ import Submission, { SubmissionStatus } from '../models/Submission';
 import User from '../models/User';
 import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
+import { createNotifications } from '../notifications/notificationService';
 import { Types } from 'mongoose';
 
 const emailService = new EmailService();
@@ -189,19 +190,31 @@ class AssignmentService {
     if (filter.type) query.type = filter.type;
     if (filter.difficulty) query.difficulty = filter.difficulty;
     if (filter.course) query.course = filter.course;
-    if (filter.batch) query.batch = filter.batch;
     if (filter.isInBank !== undefined) query.isInBank = filter.isInBank;
     if (filter.bankCategory) query.bankCategory = filter.bankCategory;
     if (filter.topics?.length) query.topics = { $in: filter.topics };
-    
-    // Search
+
+    // Collect independent $or groups (batch scope + free-text search); combine with
+    // $and when both are present so they don't overwrite each other.
+    const orGroups: any[] = [];
+    if (filter.batch) {
+      // An assignment targets a batch if: legacy batch field matches, the batch is in
+      // selectedBatches (batch-wise), or it's open to everyone.
+      orGroups.push([
+        { batch: filter.batch },
+        { selectedBatches: String(filter.batch) },
+        { accessibleTo: 'everyone' },
+      ]);
+    }
     if (filter.search) {
-      query.$or = [
+      orGroups.push([
         { title: { $regex: filter.search, $options: 'i' } },
         { description: { $regex: filter.search, $options: 'i' } },
-        { tags: { $regex: filter.search, $options: 'i' } }
-      ];
+        { tags: { $regex: filter.search, $options: 'i' } },
+      ]);
     }
+    if (orGroups.length === 1) query.$or = orGroups[0];
+    else if (orGroups.length > 1) query.$and = orGroups.map(g => ({ $or: g }));
 
     // Pagination
     const { page, limit, sortBy = 'createdAt', sortOrder = 'desc' } = options;
@@ -367,6 +380,36 @@ class AssignmentService {
     } catch (err) {
       console.error('notifyNewlyAddedStudents error:', err);
     }
+  }
+
+  // Remind specific students about a (pending) assignment — email + in-app notification.
+  // Reuses the same assignment email as the original notification. Returns count notified.
+  async remindStudents(assignmentId: string | Types.ObjectId, tenant: Types.ObjectId, studentIds: string[]): Promise<number> {
+    const assignment = await Assignment.findOne({ _id: assignmentId, tenant });
+    if (!assignment) return 0;
+    const students = await User.find({
+      _id: { $in: studentIds },
+      tenantId: tenant,
+      role: 'STUDENT',
+      isActive: true,
+    }).select('firstName lastName email');
+    if (!students.length) return 0;
+
+    await this.emailStudents(students, assignment);
+    try {
+      const due = assignment.dueDate ? ` (due ${new Date(assignment.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })})` : '';
+      await createNotifications(
+        String(tenant),
+        students.map((s: any) => String(s._id)),
+        'general',
+        `Reminder: ${assignment.title}`,
+        `You have a pending assignment "${assignment.title}"${due}. Please complete it.`,
+        '/assignments'
+      );
+    } catch (err) {
+      console.error('remindStudents: in-app notification failed:', err);
+    }
+    return students.length;
   }
 
   // Archive assignment

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { assignmentApi } from '../../api/assignmentApi';
+import CompletionTab from './CompletionTab';
 import './AssignmentReports.css';
 
 interface AssignmentStats {
@@ -49,7 +50,7 @@ const AssignmentReports: React.FC = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'students'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'assignments' | 'students' | 'completion'>('overview');
   
   const [overallStats, setOverallStats] = useState<OverallStats | null>(null);
   const [assignmentStats, setAssignmentStats] = useState<AssignmentStats[]>([]);
@@ -191,11 +192,17 @@ const AssignmentReports: React.FC = () => {
         >
           📝 By Assignment
         </button>
-        <button 
+        <button
           className={`tab ${activeTab === 'students' ? 'active' : ''}`}
           onClick={() => setActiveTab('students')}
         >
           👥 By Student
+        </button>
+        <button
+          className={`tab ${activeTab === 'completion' ? 'active' : ''}`}
+          onClick={() => setActiveTab('completion')}
+        >
+          ✅ Completion &amp; Batch
         </button>
       </div>
 
@@ -405,6 +412,13 @@ const AssignmentReports: React.FC = () => {
               )}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {/* Completion & Batch Tab */}
+      {activeTab === 'completion' && (
+        <div className="completion-content">
+          <CompletionTab typeFilter={typeFilter} />
         </div>
       )}
     </div>

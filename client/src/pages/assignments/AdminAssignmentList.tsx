@@ -7,17 +7,20 @@ import {
   AssignmentType, 
   DifficultyLevel 
 } from '../../api/assignmentApi';
+import { batchApi } from '../../api';
+import AssignmentPreviewModal from '../AssignmentReports/AssignmentPreviewModal';
 import './assignments.css';
 
 const ActionsDropdown: React.FC<{
   assignment: Assignment;
   onEdit: () => void;
+  onPreview: () => void;
   onPublish: () => void;
   onViewSubmissions: () => void;
   onArchive: () => void;
   onClone: () => void;
   onDelete: () => void;
-}> = ({ assignment, onEdit, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
+}> = ({ assignment, onEdit, onPreview, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -40,6 +43,7 @@ const ActionsDropdown: React.FC<{
       </button>
       {open && (
         <div className="actions-dropdown-menu">
+          <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>
           <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>
           {assignment.status === AssignmentStatus.DRAFT && (
             <button onClick={() => { onPublish(); setOpen(false); }}>🚀 Publish</button>
@@ -77,6 +81,11 @@ const AdminAssignmentList: React.FC = () => {
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('');
+  const [batchFilter, setBatchFilter] = useState<string>('');
+  const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
+
+  // Preview modal
+  const [previewId, setPreviewId] = useState<string | null>(null);
   
   // Pagination
   const [page, setPage] = useState(1);
@@ -93,6 +102,7 @@ const AdminAssignmentList: React.FC = () => {
         status: statusFilter as AssignmentStatus || undefined,
         type: typeFilter as AssignmentType || undefined,
         difficulty: difficultyFilter as DifficultyLevel || undefined,
+        batch: batchFilter || undefined,
         sortBy: 'createdAt',
         sortOrder: 'desc'
       });
@@ -105,7 +115,17 @@ const AdminAssignmentList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, typeFilter, difficultyFilter]);
+  }, [page, search, statusFilter, typeFilter, difficultyFilter, batchFilter]);
+
+  // Load batches for the batch filter
+  useEffect(() => {
+    (async () => {
+      try {
+        const res: any = await batchApi.getBatches();
+        setBatches(res.batches || res.data || res || []);
+      } catch { /* non-fatal */ }
+    })();
+  }, []);
 
   useEffect(() => {
     loadAssignments();
@@ -639,8 +659,8 @@ const AdminAssignmentList: React.FC = () => {
         </div>
         <div className="filter-group">
           <label>Difficulty:</label>
-          <select 
-            value={difficultyFilter} 
+          <select
+            value={difficultyFilter}
             onChange={(e) => { setDifficultyFilter(e.target.value); setPage(1); }}
           >
             <option value="">All</option>
@@ -649,6 +669,16 @@ const AdminAssignmentList: React.FC = () => {
             <option value="medium">Medium</option>
             <option value="hard">Hard</option>
             <option value="expert">Expert</option>
+          </select>
+        </div>
+        <div className="filter-group">
+          <label>Batch:</label>
+          <select
+            value={batchFilter}
+            onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }}
+          >
+            <option value="">All Batches</option>
+            {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
           </select>
         </div>
       </div>
@@ -729,6 +759,7 @@ const AdminAssignmentList: React.FC = () => {
                     <ActionsDropdown
                       assignment={assignment}
                       onEdit={() => navigate(`/admin/assignments/${assignment._id}/edit`)}
+                      onPreview={() => setPreviewId(assignment._id)}
                       onPublish={() => handlePublish(assignment._id)}
                       onViewSubmissions={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
                       onArchive={() => handleArchive(assignment._id)}
@@ -771,6 +802,8 @@ const AdminAssignmentList: React.FC = () => {
           )}
         </div>
       )}
+
+      {previewId && <AssignmentPreviewModal assignmentId={previewId} onClose={() => setPreviewId(null)} />}
     </div>
   );
 };

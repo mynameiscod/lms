@@ -27,6 +27,7 @@ router.post('/import', roleGuard(['manage_assignments']), assignmentController.i
 router.get('/reports/overall', roleGuard(['manage_assignments']), assignmentController.getOverallReports);
 router.get('/reports/by-assignment', roleGuard(['manage_assignments']), assignmentController.getReportsByAssignment);
 router.get('/reports/by-student', roleGuard(['manage_assignments']), assignmentController.getReportsByStudent);
+router.get('/reports/completion', roleGuard(['manage_assignments']), assignmentController.getCompletionReport);
 
 // Assignment CRUD
 router.post('/generate-ai', roleGuard(['manage_assignments']), assignmentController.generateWithAI);
@@ -43,6 +44,10 @@ router.delete('/:id', roleGuard(['manage_assignments']), assignmentController.de
 router.post('/:id/publish', roleGuard(['manage_assignments']), assignmentController.publish);
 router.post('/:id/archive', roleGuard(['manage_assignments']), assignmentController.archive);
 router.post('/:id/clone', roleGuard(['manage_assignments']), assignmentController.clone);
+
+// Completion detail + remind pending students
+router.get('/:id/completion', roleGuard(['manage_assignments']), assignmentController.getAssignmentCompletionDetail);
+router.post('/:id/remind', roleGuard(['manage_assignments']), assignmentController.remindPending);
 
 // Submission management (for instructors)
 router.get('/:assignmentId/submissions', roleGuard(['grade_submissions']), submissionController.getAssignmentSubmissions);

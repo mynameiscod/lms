@@ -769,6 +769,168 @@ class AssignmentController {
     }
   }
 
+  // ==================== COMPLETION / STATUS REPORTS ====================
+
+  // Resolve the target STUDENT docs for an assignment, honouring its access mode
+  // (everyone / batch_wise / individual / legacy batch) and optionally intersecting
+  // with a specific batch being viewed. Returns [] if the assignment isn't for that batch.
+  private async resolveTargetStudents(tenantObjectId: any, assignment: any, batchFilter?: string): Promise<any[]> {
+    const User = require('../models/User').default;
+    const q: any = { tenantId: tenantObjectId, role: 'STUDENT', isActive: true };
+    const accessibleTo = assignment.accessibleTo || (assignment.batch ? 'batch_wise' : 'everyone');
+    const bf = batchFilter ? String(batchFilter) : '';
+
+    if (accessibleTo === 'batch_wise' && assignment.selectedBatches?.length) {
+      const batches = assignment.selectedBatches.map(String);
+      if (bf) {
+        if (!batches.includes(bf)) return [];
+        q.batchId = new Types.ObjectId(bf);
+      } else {
+        q.batchId = { $in: assignment.selectedBatches };
+      }
+    } else if (accessibleTo === 'individual' && assignment.selectedStudents?.length) {
+      q._id = { $in: assignment.selectedStudents };
+      if (bf) q.batchId = new Types.ObjectId(bf);
+    } else if (assignment.batch) {
+      if (bf && String(assignment.batch) !== bf) return [];
+      q.batchId = assignment.batch;
+    } else {
+      // everyone
+      if (bf) q.batchId = new Types.ObjectId(bf);
+    }
+    return User.find(q).select('firstName lastName email batchId').lean();
+  }
+
+  // Bucket a set of students by their completion status for one assignment.
+  // completed = submitted/graded/grading/late; in_progress = in_progress; else not_started.
+  private async statusByStudent(tenantObjectId: any, assignmentId: any, studentIds: any[]): Promise<Map<string, 'completed' | 'in_progress'>> {
+    const Submission = require('../models/Submission').default;
+    const COMPLETED = new Set(['submitted', 'graded', 'grading', 'late']);
+    const subs = await Submission.find({ tenant: tenantObjectId, assignment: assignmentId, student: { $in: studentIds } })
+      .select('student status').lean();
+    const map = new Map<string, 'completed' | 'in_progress'>();
+    for (const sub of subs) {
+      const sid = String(sub.student);
+      if (COMPLETED.has(sub.status)) map.set(sid, 'completed');
+      else if (sub.status === 'in_progress' && map.get(sid) !== 'completed') map.set(sid, 'in_progress');
+    }
+    return map;
+  }
+
+  // GET /assignments/reports/completion?batch=&type=
+  // Per-assignment completion counts (completed / in-progress / not-started).
+  getCompletionReport = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) return res.status(401).json({ message: 'Unauthorized' });
+      const tenantObjectId = new Types.ObjectId(tenantId);
+      const batch = (req.query.batch as string) || '';
+      const type = (req.query.type as string) || '';
+
+      const Assignment = require('../models/Assignment').default;
+      const match: any = { tenant: tenantObjectId, status: 'published' };
+      if (type && type !== 'all') match.type = type;
+
+      const assignments = await Assignment.find(match)
+        .select('title type difficulty dueDate totalPoints accessibleTo selectedBatches selectedStudents batch')
+        .sort({ createdAt: -1 })
+        .lean();
+
+      const rows: any[] = [];
+      for (const a of assignments) {
+        const accessibleTo = a.accessibleTo || (a.batch ? 'batch_wise' : 'everyone');
+        const students = await this.resolveTargetStudents(tenantObjectId, a, batch);
+        // When a batch is selected, hide assignments that aren't targeted to that batch.
+        if (batch && students.length === 0 && accessibleTo !== 'everyone') continue;
+        const map = await this.statusByStudent(tenantObjectId, a._id, students.map((s: any) => s._id));
+        let completed = 0, inProgress = 0;
+        map.forEach((st) => { if (st === 'completed') completed++; else if (st === 'in_progress') inProgress++; });
+        const total = students.length;
+        const notStarted = Math.max(0, total - completed - inProgress);
+        rows.push({
+          _id: a._id, title: a.title, type: a.type, difficulty: a.difficulty, dueDate: a.dueDate,
+          totalPoints: a.totalPoints, accessibleTo,
+          total, completed, inProgress, notStarted,
+          completionRate: total ? Math.round((completed / total) * 100) : 0,
+        });
+      }
+
+      res.json({ success: true, data: rows });
+    } catch (error) {
+      console.error('Get completion report error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to get completion report' });
+    }
+  }
+
+  // GET /assignments/:id/completion?batch=  — per-student status list for one assignment.
+  getAssignmentCompletionDetail = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) return res.status(401).json({ message: 'Unauthorized' });
+      const tenantObjectId = new Types.ObjectId(tenantId);
+      const { id } = req.params;
+      const batch = (req.query.batch as string) || '';
+
+      const Assignment = require('../models/Assignment').default;
+      const a = await Assignment.findOne({ _id: id, tenant: tenantObjectId })
+        .select('title type dueDate accessibleTo selectedBatches selectedStudents batch').lean();
+      if (!a) return res.status(404).json({ success: false, message: 'Assignment not found' });
+
+      const students = await this.resolveTargetStudents(tenantObjectId, a, batch);
+      const map = await this.statusByStudent(tenantObjectId, a._id, students.map((s: any) => s._id));
+      const list = students.map((s: any) => ({
+        _id: s._id,
+        name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email,
+        email: s.email,
+        status: map.get(String(s._id)) || 'not_started',
+      }));
+      // completed first? keep pending (not_started, in_progress) grouped for easy action
+      const order: any = { not_started: 0, in_progress: 1, completed: 2 };
+      list.sort((x: any, y: any) => order[x.status] - order[y.status] || x.name.localeCompare(y.name));
+
+      const summary = {
+        total: list.length,
+        completed: list.filter((x: any) => x.status === 'completed').length,
+        inProgress: list.filter((x: any) => x.status === 'in_progress').length,
+        notStarted: list.filter((x: any) => x.status === 'not_started').length,
+      };
+      res.json({ success: true, data: { assignment: { _id: a._id, title: a.title, type: a.type, dueDate: a.dueDate }, summary, students: list } });
+    } catch (error) {
+      console.error('Get assignment completion detail error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to get completion detail' });
+    }
+  }
+
+  // POST /assignments/:id/remind  { studentIds?: string[], batch?: string }
+  // Re-notify pending students (email + in-app). Defaults to all not-completed students.
+  remindPending = async (req: AuthRequest, res: Response) => {
+    try {
+      const tenantId = req.tenantId;
+      if (!tenantId) return res.status(401).json({ message: 'Unauthorized' });
+      const tenantObjectId = new Types.ObjectId(tenantId);
+      const { id } = req.params;
+      const { studentIds, batch } = req.body || {};
+
+      let ids: string[] | null = Array.isArray(studentIds) && studentIds.length ? studentIds.map(String) : null;
+      if (!ids) {
+        const Assignment = require('../models/Assignment').default;
+        const a = await Assignment.findOne({ _id: id, tenant: tenantObjectId })
+          .select('accessibleTo selectedBatches selectedStudents batch').lean();
+        if (!a) return res.status(404).json({ success: false, message: 'Assignment not found' });
+        const students = await this.resolveTargetStudents(tenantObjectId, a, batch);
+        const map = await this.statusByStudent(tenantObjectId, id, students.map((s: any) => s._id));
+        ids = students.filter((s: any) => map.get(String(s._id)) !== 'completed').map((s: any) => String(s._id));
+      }
+      if (!ids.length) return res.json({ success: true, data: { notified: 0 }, message: 'No pending students to remind.' });
+
+      const count = await assignmentService.remindStudents(id, tenantObjectId, ids);
+      res.json({ success: true, data: { notified: count }, message: `Reminder sent to ${count} student(s).` });
+    } catch (error) {
+      console.error('Remind pending error:', error);
+      res.status(500).json({ success: false, message: error instanceof Error ? error.message : 'Failed to send reminders' });
+    }
+  }
+
   // Helper to get date filter
   private getDateFilter(dateRange: string): any {
     const now = new Date();

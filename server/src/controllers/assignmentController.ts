@@ -146,6 +146,7 @@ class AssignmentController {
         difficulty,
         course,
         batch,
+        language,
         search,
         isInBank,
         topics
@@ -159,6 +160,7 @@ class AssignmentController {
           difficulty: difficulty ? (difficulty as DifficultyLevel) : undefined,
           course: course as any,
           batch: batch as any,
+          language: language as string,
           search: search as string,
           isInBank: isInBank === 'true' ? true : isInBank === 'false' ? false : undefined,
           topics: topics ? (Array.isArray(topics) ? topics as string[] : [topics as string]) : undefined
@@ -832,7 +834,7 @@ class AssignmentController {
       if (type && type !== 'all') match.type = type;
 
       const assignments = await Assignment.find(match)
-        .select('title type difficulty dueDate totalPoints accessibleTo selectedBatches selectedStudents batch')
+        .select('title type difficulty dueDate totalPoints accessibleTo selectedBatches selectedStudents batch createdAt')
         .sort({ createdAt: -1 })
         .lean();
 
@@ -849,7 +851,7 @@ class AssignmentController {
         const notStarted = Math.max(0, total - completed - inProgress);
         rows.push({
           _id: a._id, title: a.title, type: a.type, difficulty: a.difficulty, dueDate: a.dueDate,
-          totalPoints: a.totalPoints, accessibleTo,
+          createdAt: a.createdAt, totalPoints: a.totalPoints, accessibleTo,
           total, completed, inProgress, notStarted,
           completionRate: total ? Math.round((completed / total) * 100) : 0,
         });

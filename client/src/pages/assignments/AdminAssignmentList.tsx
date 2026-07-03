@@ -15,12 +15,13 @@ const ActionsDropdown: React.FC<{
   assignment: Assignment;
   onEdit: () => void;
   onPreview: () => void;
+  onTry: () => void;
   onPublish: () => void;
   onViewSubmissions: () => void;
   onArchive: () => void;
   onClone: () => void;
   onDelete: () => void;
-}> = ({ assignment, onEdit, onPreview, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
+}> = ({ assignment, onEdit, onPreview, onTry, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -44,6 +45,7 @@ const ActionsDropdown: React.FC<{
       {open && (
         <div className="actions-dropdown-menu">
           <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>
+          <button onClick={() => { onTry(); setOpen(false); }}>🧪 Try it (as student)</button>
           <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>
           {assignment.status === AssignmentStatus.DRAFT && (
             <button onClick={() => { onPublish(); setOpen(false); }}>🚀 Publish</button>
@@ -82,29 +84,49 @@ const AdminAssignmentList: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const [batchFilter, setBatchFilter] = useState<string>('');
+  const [languageFilter, setLanguageFilter] = useState<string>('');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
+  const [sortOption, setSortOption] = useState<string>('newest');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+  const [stats, setStats] = useState<{ totalAssignments: number; publishedAssignments: number; draftAssignments: number; byType?: { _id: string; count: number }[] } | null>(null);
 
   // Preview modal
   const [previewId, setPreviewId] = useState<string | null>(null);
-  
+
   // Pagination
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
+
+  const SORTS: Record<string, { sortBy: string; sortOrder: 'asc' | 'desc'; label: string }> = {
+    newest: { sortBy: 'createdAt', sortOrder: 'desc', label: 'Newest First' },
+    oldest: { sortBy: 'createdAt', sortOrder: 'asc', label: 'Oldest First' },
+    due: { sortBy: 'dueDate', sortOrder: 'asc', label: 'Due Date' },
+    points: { sortBy: 'totalPoints', sortOrder: 'desc', label: 'Highest Points' },
+    title: { sortBy: 'title', sortOrder: 'asc', label: 'Title (A–Z)' },
+  };
+  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter);
+  const clearFilters = () => {
+    setSearch(''); setStatusFilter(''); setTypeFilter(''); setDifficultyFilter('');
+    setBatchFilter(''); setLanguageFilter(''); setPage(1);
+  };
 
   const loadAssignments = useCallback(async () => {
     try {
       setLoading(true);
+      const sort = SORTS[sortOption] || SORTS.newest;
       const response = await assignmentApi.list({
         page,
-        limit: 20,
+        limit,
         search: search || undefined,
         status: statusFilter as AssignmentStatus || undefined,
         type: typeFilter as AssignmentType || undefined,
         difficulty: difficultyFilter as DifficultyLevel || undefined,
         batch: batchFilter || undefined,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
+        language: languageFilter || undefined,
+        sortBy: sort.sortBy,
+        sortOrder: sort.sortOrder
       });
       setAssignments(response.data.data);
       setTotalPages(response.data.pagination.pages);
@@ -115,7 +137,8 @@ const AdminAssignmentList: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, search, statusFilter, typeFilter, difficultyFilter, batchFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, sortOption]);
 
   // Load batches for the batch filter
   useEffect(() => {
@@ -126,6 +149,15 @@ const AdminAssignmentList: React.FC = () => {
       } catch { /* non-fatal */ }
     })();
   }, []);
+
+  // Load global stats for the summary cards (correct across all pages, not just this one)
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await assignmentApi.getOverallReports('dateRange=all&type=all');
+      setStats(res.data.data);
+    } catch { /* non-fatal */ }
+  }, []);
+  useEffect(() => { loadStats(); }, [loadStats]);
 
   useEffect(() => {
     loadAssignments();
@@ -265,6 +297,30 @@ const AdminAssignmentList: React.FC = () => {
     });
   };
 
+  // "May 5, 2026" + "10:30 AM" on two lines (Created On column)
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return { date: '-', time: '' };
+    const d = new Date(dateString);
+    return {
+      date: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      time: d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    };
+  };
+
+  // "5 days left" / "Due today" / "3 days overdue"
+  const dueLabel = (dateString?: string): { text: string; overdue: boolean } | null => {
+    if (!dateString) return null;
+    const now = new Date(); now.setHours(0, 0, 0, 0);
+    const due = new Date(dateString); due.setHours(0, 0, 0, 0);
+    const diff = Math.round((due.getTime() - now.getTime()) / 86400000);
+    if (diff === 0) return { text: 'Due today', overdue: false };
+    if (diff > 0) return { text: `${diff} day${diff === 1 ? '' : 's'} left`, overdue: false };
+    return { text: `${-diff} day${diff === -1 ? '' : 's'} overdue`, overdue: true };
+  };
+
+  const LANGUAGES = ['javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'sql', 'html', 'css'];
+  const LANG_LABEL: Record<string, string> = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', java: 'Java', cpp: 'C++', c: 'C', csharp: 'C#', go: 'Go', rust: 'Rust', sql: 'SQL', html: 'HTML', css: 'CSS' };
+
   const getStatusBadge = (status: AssignmentStatus) => {
     return <span className={`badge badge-${status}`}>{status}</span>;
   };
@@ -276,6 +332,20 @@ const AdminAssignmentList: React.FC = () => {
   const getDifficultyBadge = (difficulty: DifficultyLevel) => {
     return <span className={`badge badge-${difficulty}`}>{difficulty}</span>;
   };
+
+  const actionsFor = (assignment: Assignment) => (
+    <ActionsDropdown
+      assignment={assignment}
+      onEdit={() => navigate(`/admin/assignments/${assignment._id}/edit`)}
+      onPreview={() => setPreviewId(assignment._id)}
+      onTry={() => navigate(`/assignments/${assignment._id}/workspace`)}
+      onPublish={() => handlePublish(assignment._id)}
+      onViewSubmissions={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
+      onArchive={() => handleArchive(assignment._id)}
+      onClone={() => handleClone(assignment._id)}
+      onDelete={() => handleDelete(assignment._id)}
+    />
+  );
 
   return (
     <div className="assignment-page">
@@ -597,30 +667,33 @@ const AdminAssignmentList: React.FC = () => {
       )}
 
       {/* Stats */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-label">Total Assignments</div>
-          <div className="stat-value">{total}</div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Published</div>
-          <div className="stat-value">
-            {assignments.filter(a => a.status === AssignmentStatus.PUBLISHED).length}
+      {(() => {
+        const t = stats?.totalAssignments ?? total;
+        const published = stats?.publishedAssignments ?? 0;
+        const draft = stats?.draftAssignments ?? 0;
+        const coding = stats?.byType?.find(x => x._id === 'coding')?.count ?? 0;
+        const pct = (n: number) => (t ? Math.round((n / t) * 100 * 10) / 10 : 0);
+        const cards = [
+          { icon: '📋', tint: '#eef2ff', color: '#6366f1', value: t, label: 'Total Assignments', sub: '↗ All time' },
+          { icon: '🚀', tint: '#dcfce7', color: '#16a34a', value: published, label: 'Published', sub: `↗ ${pct(published)}% of total` },
+          { icon: '✏️', tint: '#fef3c7', color: '#d97706', value: draft, label: 'Draft', sub: `${pct(draft)}% of total` },
+          { icon: '💻', tint: '#ede9fe', color: '#7c3aed', value: coding, label: 'Coding Challenges', sub: `↗ ${pct(coding)}% of total` },
+        ];
+        return (
+          <div className="stats-grid-v2">
+            {cards.map((c, i) => (
+              <div className="stat-card-v2" key={i}>
+                <div className="stat-icon-tile" style={{ background: c.tint, color: c.color }}>{c.icon}</div>
+                <div className="stat-card-body">
+                  <div className="stat-card-label">{c.label}</div>
+                  <div className="stat-card-value">{c.value}</div>
+                  <div className="stat-card-sub" style={{ color: c.color }}>{c.sub}</div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Draft</div>
-          <div className="stat-value">
-            {assignments.filter(a => a.status === AssignmentStatus.DRAFT).length}
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-label">Coding Challenges</div>
-          <div className="stat-value">
-            {assignments.filter(a => a.type === AssignmentType.CODING).length}
-          </div>
-        </div>
-      </div>
+        );
+      })()}
 
       {/* Filters */}
       <div className="filters-bar">
@@ -681,6 +754,21 @@ const AdminAssignmentList: React.FC = () => {
             {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
           </select>
         </div>
+        <div className="filter-group">
+          <label>Language:</label>
+          <select
+            value={languageFilter}
+            onChange={(e) => { setLanguageFilter(e.target.value); setPage(1); }}
+          >
+            <option value="">All Languages</option>
+            {LANGUAGES.map(l => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
+          </select>
+        </div>
+        {hasFilters && (
+          <button className="clear-filters-btn" onClick={clearFilters} title="Clear all filters">
+            ↺ Clear Filters
+          </button>
+        )}
       </div>
 
       {/* Error Alert */}
@@ -716,91 +804,123 @@ const AdminAssignmentList: React.FC = () => {
           </button>
         </div>
       ) : (
-        <div className="form-section">
-          <table className="assignments-table">
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Type</th>
-                <th>Difficulty</th>
-                <th>Status</th>
-                <th>Points</th>
-                <th>Due Date</th>
-                <th>Submissions</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assignments.map((assignment) => (
-                <tr key={assignment._id}>
-                  <td className="title-cell">
-                    <div style={{ fontWeight: 500 }}>{assignment.title}</div>
-                    {assignment.topics.length > 0 && (
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                        {assignment.topics.slice(0, 3).join(', ')}
-                        {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
-                      </div>
-                    )}
-                  </td>
-                  <td>{getTypeBadge(assignment.type)}</td>
-                  <td>{getDifficultyBadge(assignment.difficulty)}</td>
-                  <td>{getStatusBadge(assignment.status)}</td>
-                  <td>{assignment.totalPoints}</td>
-                  <td>{formatDate(assignment.dueDate)}</td>
-                  <td>
-                    <span 
-                      className="tooltip" 
-                      data-tooltip={`${assignment.stats.completedSubmissions} graded`}
-                    >
-                      {assignment.stats.totalSubmissions}
-                    </span>
-                  </td>
-                  <td className="actions-cell">
-                    <ActionsDropdown
-                      assignment={assignment}
-                      onEdit={() => navigate(`/admin/assignments/${assignment._id}/edit`)}
-                      onPreview={() => setPreviewId(assignment._id)}
-                      onPublish={() => handlePublish(assignment._id)}
-                      onViewSubmissions={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
-                      onArchive={() => handleArchive(assignment._id)}
-                      onClone={() => handleClone(assignment._id)}
-                      onDelete={() => handleDelete(assignment._id)}
-                    />
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <>
+          {/* Toolbar */}
+          <div className="list-toolbar">
+            <div className="list-toolbar-left">
+              <h3>Recent Assignments</h3>
+              <span className="total-badge">{total} Total</span>
+            </div>
+            <div className="list-toolbar-right">
+              <label className="sort-control">
+                <span>Sort by</span>
+                <select value={sortOption} onChange={(e) => { setSortOption(e.target.value); setPage(1); }}>
+                  {Object.entries(SORTS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </label>
+              <div className="view-toggle">
+                <button className={viewMode === 'list' ? 'active' : ''} onClick={() => setViewMode('list')} title="List view">☰</button>
+                <button className={viewMode === 'grid' ? 'active' : ''} onClick={() => setViewMode('grid')} title="Grid view">▦</button>
+              </div>
+            </div>
+          </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div style={{ 
-              padding: '16px 20px', 
-              display: 'flex', 
-              justifyContent: 'center',
-              gap: '8px',
-              borderTop: '1px solid #e5e7eb'
-            }}>
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
-              >
-                Previous
-              </button>
-              <span style={{ padding: '6px 12px', color: '#6b7280' }}>
-                Page {page} of {totalPages}
-              </span>
-              <button
-                className="btn btn-secondary btn-sm"
-                disabled={page === totalPages}
-                onClick={() => setPage(p => p + 1)}
-              >
-                Next
-              </button>
+          {viewMode === 'list' ? (
+            <div className="form-section">
+              <table className="assignments-table">
+                <thead>
+                  <tr>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Difficulty</th>
+                    <th>Status</th>
+                    <th>Points</th>
+                    <th>Due Date</th>
+                    <th>Created On</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {assignments.map((assignment) => {
+                    const due = dueLabel(assignment.dueDate);
+                    const created = formatDateTime(assignment.createdAt);
+                    return (
+                      <tr key={assignment._id}>
+                        <td className="title-cell">
+                          <div style={{ fontWeight: 600 }}>{assignment.title}</div>
+                          {assignment.topics.length > 0 && (
+                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
+                              {assignment.topics.slice(0, 3).join(', ')}
+                              {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
+                            </div>
+                          )}
+                        </td>
+                        <td>{getTypeBadge(assignment.type)}</td>
+                        <td>{getDifficultyBadge(assignment.difficulty)}</td>
+                        <td>{getStatusBadge(assignment.status)}</td>
+                        <td>{assignment.totalPoints}</td>
+                        <td>
+                          <div>{formatDate(assignment.dueDate)}</div>
+                          {due && <div className={`due-chip ${due.overdue ? 'overdue' : ''}`}>{due.text}</div>}
+                        </td>
+                        <td>
+                          <div style={{ color: '#334155' }}>{created.date}</div>
+                          <div style={{ fontSize: '12px', color: '#94a3b8' }}>{created.time}</div>
+                        </td>
+                        <td className="actions-cell">{actionsFor(assignment)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="assignments-grid">
+              {assignments.map((assignment) => {
+                const due = dueLabel(assignment.dueDate);
+                return (
+                  <div className="assignment-card" key={assignment._id}>
+                    <div className="assignment-card-top">
+                      {getTypeBadge(assignment.type)}
+                      <div className="actions-cell">{actionsFor(assignment)}</div>
+                    </div>
+                    <div className="assignment-card-title">{assignment.title}</div>
+                    {assignment.topics.length > 0 && (
+                      <div className="assignment-card-topics">{assignment.topics.slice(0, 3).join(', ')}</div>
+                    )}
+                    <div className="assignment-card-meta">
+                      {getDifficultyBadge(assignment.difficulty)}
+                      {getStatusBadge(assignment.status)}
+                      <span className="pts">{assignment.totalPoints} pts</span>
+                    </div>
+                    <div className="assignment-card-foot">
+                      <span>📅 {formatDate(assignment.dueDate)}</span>
+                      {due && <span className={`due-chip ${due.overdue ? 'overdue' : ''}`}>{due.text}</span>}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           )}
-        </div>
+
+          {/* Pagination + rows per page */}
+          <div className="list-pagination">
+            <span className="page-info">
+              Showing {total === 0 ? 0 : (page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} assignments
+            </span>
+            <div className="pager">
+              <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹ Prev</button>
+              <span style={{ padding: '6px 12px', color: '#6b7280' }}>Page {page} of {totalPages}</span>
+              <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next ›</button>
+            </div>
+            <label className="rows-per-page">
+              <span>Rows per page</span>
+              <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); setPage(1); }}>
+                {[10, 20, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+          </div>
+        </>
       )}
 
       {previewId && <AssignmentPreviewModal assignmentId={previewId} onClose={() => setPreviewId(null)} />}

@@ -4,9 +4,11 @@ import { batchApi } from '../../api';
 import AssignmentPreviewModal from './AssignmentPreviewModal';
 
 interface Row {
-  _id: string; title: string; type: string; difficulty: string; dueDate?: string;
+  _id: string; title: string; type: string; difficulty: string; dueDate?: string; createdAt?: string;
   total: number; completed: number; inProgress: number; notStarted: number; completionRate: number;
 }
+
+const fmtDate = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
 interface DetailStudent { _id: string; name: string; email: string; status: 'completed' | 'in_progress' | 'not_started'; }
 interface Detail {
   assignment: { _id: string; title: string; type: string; dueDate?: string };
@@ -111,6 +113,7 @@ const CompletionTab: React.FC<{ typeFilter: string }> = ({ typeFilter }) => {
               <tr>
                 <th style={th}>Assignment</th>
                 <th style={th}>Type</th>
+                <th style={th}>Created On</th>
                 <th style={{ ...th, textAlign: 'center' }}>Assigned</th>
                 <th style={{ ...th, textAlign: 'center' }}>✅ Completed</th>
                 <th style={{ ...th, textAlign: 'center' }}>⏳ In progress</th>
@@ -124,6 +127,7 @@ const CompletionTab: React.FC<{ typeFilter: string }> = ({ typeFilter }) => {
                 <tr key={r._id}>
                   <td style={td}><span style={{ fontWeight: 700, color: '#0f172a' }}>{r.title}</span></td>
                   <td style={td}><span style={{ fontSize: 11.5, fontWeight: 700, background: '#eef2ff', color: '#4f46e5', padding: '2px 8px', borderRadius: 12 }}>{r.type}</span></td>
+                  <td style={{ ...td, whiteSpace: 'nowrap', color: '#64748b' }}>{fmtDate(r.createdAt)}</td>
                   <td style={{ ...td, textAlign: 'center', fontWeight: 700 }}>{r.total}</td>
                   <td style={{ ...td, textAlign: 'center' }}>{chip(r.completed, '#dcfce7', '#15803d')}</td>
                   <td style={{ ...td, textAlign: 'center' }}>{chip(r.inProgress, '#fef3c7', '#b45309')}</td>
@@ -142,7 +146,7 @@ const CompletionTab: React.FC<{ typeFilter: string }> = ({ typeFilter }) => {
                   </td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={8} style={{ ...td, textAlign: 'center', color: '#94a3b8', padding: 26 }}>No published assignments{batch ? ' for this batch' : ''}.</td></tr>}
+              {rows.length === 0 && <tr><td colSpan={9} style={{ ...td, textAlign: 'center', color: '#94a3b8', padding: 26 }}>No published assignments{batch ? ' for this batch' : ''}.</td></tr>}
             </tbody>
           </table>
         </div>

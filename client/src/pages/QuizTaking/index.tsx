@@ -380,115 +380,106 @@ const QuizTakingPage: React.FC = () => {
 
   // Show instructions page before starting quiz
   if (showInstructions) {
+    const q: any = quiz;
+    const subject = q.category || q.subject || q.topic || 'Assessment';
+    const rules: string[] = [
+      'Read each question carefully before answering.',
+      `You have ${quiz.totalTime} minutes to complete this quiz.`,
+      'All questions are mandatory.',
+    ];
+    if (quiz.shuffleQuestions) rules.push('Questions will be shuffled randomly.');
+    if (!quiz.canCopyPaste) rules.push('Copy-paste is disabled during the quiz.');
+    if (quiz.requireFullScreen) rules.push('Full screen mode is required during the quiz.');
+    if (quiz.tabSwitchWarnings) rules.push('Switching tabs/windows will be tracked and may result in penalties.');
+    if (quiz.enableCamera) rules.push('Your camera will be enabled during the quiz for proctoring.');
+    if (quiz.enableMicrophone) rules.push('Your microphone will be enabled during the quiz for proctoring.');
+    if (quiz.negativeMarking) rules.push(`Wrong answers deduct ${quiz.negativeMarkingValue} mark(s).`);
+    if (!quiz.multipleAttempts) rules.push('Only one attempt is allowed for this quiz.');
+    else if (quiz.maxAttempts) rules.push(`Maximum ${quiz.maxAttempts} attempts are allowed.`);
+
+    const stats = [
+      { icon: '📋', tint: '#ede9fe', color: '#7c3aed', label: 'TOTAL QUESTIONS', value: quiz.totalQuestions },
+      { icon: '🎯', tint: '#fee2e2', color: '#e11d48', label: 'TOTAL MARKS', value: quiz.totalMarks },
+      { icon: '⏱️', tint: '#ffedd5', color: '#ea580c', label: 'DURATION', value: <>{quiz.totalTime} <span style={{ fontSize: 15, fontWeight: 600 }}>mins</span></> },
+      ...(quiz.passingMarks ? [{ icon: '🛡️', tint: '#dcfce7', color: '#16a34a', label: 'PASSING MARKS', value: quiz.passingMarks }] : []),
+    ];
+
     return (
-      <div className="quiz-instructions-page">
-        <div className="instructions-container">
-          {error && (
-            <Alert type="error" message={error} onClose={() => setError('')} />
-          )}
-          <div className="instructions-header">
-            <div className="instructions-brand">
-              <img
-                src="/assets/logo.png"
-                alt="CodeBegun"
-                className="instructions-logo-img"
-                onError={(e: any) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <span className="instructions-brand-name">CodeBegun</span>
-            </div>
-            <h1>{quiz.title}</h1>
-            {quiz.description && <p className="quiz-description">{quiz.description}</p>}
-          </div>
+      <div style={{ minHeight: '100vh', background: '#eef2f9', padding: '22px 16px 50px' }}>
+        <div style={{ maxWidth: 1180, margin: '0 auto' }}>
+          {error && <div style={{ marginBottom: 14 }}><Alert type="error" message={error} onClose={() => setError('')} /></div>}
 
-          <div className="quiz-info-cards">
-            <div className="info-card">
-              <div className="info-icon">📝</div>
-              <div className="info-content">
-                <span className="info-label">Total Questions</span>
-                <span className="info-value">{quiz.totalQuestions}</span>
-              </div>
+          <div style={{ background: '#fff', borderRadius: 22, overflow: 'hidden', boxShadow: '0 20px 60px rgba(15,23,42,.10)' }}>
+            {/* Top nav */}
+            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', padding: '14px 26px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <img src="/assets/logo.png" alt="CodeBegun" style={{ height: 40 }} onError={(e: any) => { e.currentTarget.style.display = 'none'; }} />
+              <a href="/help" style={{ display: 'inline-flex', alignItems: 'center', gap: 7, color: '#fff', textDecoration: 'none', background: 'rgba(255,255,255,.12)', border: '1px solid rgba(255,255,255,.25)', borderRadius: 22, padding: '7px 15px', fontSize: 13.5, fontWeight: 600 }}>❓ Help Center</a>
             </div>
-            <div className="info-card">
-              <div className="info-icon">🎯</div>
-              <div className="info-content">
-                <span className="info-label">Total Marks</span>
-                <span className="info-value">{quiz.totalMarks}</span>
-              </div>
+
+            {/* Hero */}
+            <div style={{ background: 'linear-gradient(120deg,#0b1c66 0%,#15307f 55%,#1e40af 100%)', color: '#fff', padding: '10px 40px 40px', position: 'relative', overflow: 'hidden' }}>
+              <div style={{ position: 'absolute', right: 44, top: 34, fontSize: 96, opacity: 0.18 }}>{'</>'}</div>
+              <span style={{ display: 'inline-block', background: 'rgba(255,255,255,.16)', border: '1px solid rgba(255,255,255,.25)', color: '#dbeafe', borderRadius: 20, padding: '5px 14px', fontSize: 13, fontWeight: 700 }}>{subject}</span>
+              <h1 style={{ fontSize: 44, fontWeight: 800, margin: '14px 0 8px', lineHeight: 1.1 }}>{quiz.title}</h1>
+              {quiz.description && <p style={{ fontSize: 15.5, color: '#c7d2fe', margin: 0, maxWidth: 640, lineHeight: 1.5 }}>{quiz.description}</p>}
             </div>
-            <div className="info-card">
-              <div className="info-icon">⏱️</div>
-              <div className="info-content">
-                <span className="info-label">Duration</span>
-                <span className="info-value">{quiz.totalTime} mins</span>
+
+            {/* Body */}
+            <div style={{ padding: '26px 32px 30px' }}>
+              {/* Stat cards */}
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${stats.length}, 1fr)`, gap: 16, marginTop: -52, marginBottom: 26 }}>
+                {stats.map((s, i) => (
+                  <div key={i} style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: 18, display: 'flex', alignItems: 'center', gap: 14, boxShadow: '0 6px 20px rgba(15,23,42,.06)' }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 12, background: s.tint, color: s.color, display: 'grid', placeItems: 'center', fontSize: 22, flexShrink: 0 }}>{s.icon}</div>
+                    <div>
+                      <div style={{ fontSize: 11.5, fontWeight: 700, color: '#94a3b8', letterSpacing: .4 }}>{s.label}</div>
+                      <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.1 }}>{s.value}</div>
+                    </div>
+                  </div>
+                ))}
               </div>
-            </div>
-            {quiz.passingMarks && (
-              <div className="info-card">
-                <div className="info-icon">✅</div>
-                <div className="info-content">
-                  <span className="info-label">Passing Marks</span>
-                  <span className="info-value">{quiz.passingMarks}</span>
+
+              {/* Instructions */}
+              <div style={{ border: '1px solid #eef1f6', borderRadius: 16, padding: '22px 24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+                  <span style={{ width: 34, height: 34, borderRadius: 9, background: '#6366f1', color: '#fff', display: 'grid', placeItems: 'center', fontSize: 16 }}>📋</span>
+                  <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#0f172a', borderBottom: '3px solid #6366f1', paddingBottom: 4 }}>Instructions</h2>
+                </div>
+
+                {quiz.instructions ? (
+                  <div style={{ fontSize: 14.5, color: '#334155', lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: quiz.instructions }} />
+                ) : (
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '10px 20px' }}>
+                    {rules.map((r, i) => (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 10, padding: '11px 14px', fontSize: 13.8, color: '#334155' }}>
+                        <span style={{ color: '#16a34a', fontSize: 16, flexShrink: 0 }}>✓</span> {r}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Motivational banner */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: 'linear-gradient(120deg,#eff6ff,#f5f3ff)', border: '1px solid #e0e7ff', borderRadius: 12, padding: '16px 18px', marginTop: 18 }}>
+                  <span style={{ fontSize: 30 }}>🚀</span>
+                  <div>
+                    <div style={{ fontSize: 15.5, fontWeight: 800, color: '#1e3a8a' }}>Be Honest. Be Focused. Be Future-Ready.</div>
+                    <div style={{ fontSize: 13.5, color: '#475569', marginTop: 2 }}>This assessment helps us understand your skills better and guide you on the right path.</div>
+                  </div>
                 </div>
               </div>
-            )}
-            {quiz.negativeMarking && (
-              <div className="info-card negative">
-                <div className="info-icon">⚠️</div>
-                <div className="info-content">
-                  <span className="info-label">Negative Marking</span>
-                  <span className="info-value">-{quiz.negativeMarkingValue} per wrong answer</span>
-                </div>
+
+              {/* Actions */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 22, gap: 12, flexWrap: 'wrap' }}>
+                <button onClick={() => navigate(-1)} disabled={startingQuiz}
+                  style={{ background: '#fff', border: '1px solid #cbd5e1', borderRadius: 10, padding: '12px 22px', fontWeight: 700, fontSize: 14.5, color: '#334155', cursor: startingQuiz ? 'default' : 'pointer' }}>
+                  ← Go Back
+                </button>
+                <button onClick={handleStartQuiz} disabled={startingQuiz}
+                  style={{ background: 'linear-gradient(90deg,#4f46e5,#7c3aed)', border: 'none', borderRadius: 10, padding: '13px 30px', fontWeight: 800, fontSize: 15.5, color: '#fff', cursor: startingQuiz ? 'default' : 'pointer', boxShadow: '0 10px 24px rgba(79,70,229,.32)', opacity: startingQuiz ? 0.8 : 1, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  {startingQuiz ? <><Spinner size="small" /> Starting…</> : <>🚀 Start Quiz →</>}
+                </button>
               </div>
-            )}
-          </div>
-
-          <div className="instructions-section">
-            <h2>📋 Instructions</h2>
-            {quiz.instructions ? (
-              <div className="custom-instructions" dangerouslySetInnerHTML={{ __html: quiz.instructions }} />
-            ) : (
-              <ul className="default-instructions">
-                <li>Read each question carefully before answering.</li>
-                <li>You have <strong>{quiz.totalTime} minutes</strong> to complete this quiz.</li>
-                <li>All questions are mandatory.</li>
-                {quiz.negativeMarking && (
-                  <li className="warning">Wrong answers will result in <strong>-{quiz.negativeMarkingValue}</strong> marks deduction.</li>
-                )}
-                {quiz.shuffleQuestions && <li>Questions will be shuffled randomly.</li>}
-                {!quiz.canCopyPaste && <li>Copy-paste is disabled during the quiz.</li>}
-                {quiz.requireFullScreen && <li>Full screen mode is required during the quiz.</li>}
-                {quiz.tabSwitchWarnings && <li>Switching tabs/windows will be tracked and may result in penalties.</li>}
-                {quiz.enableCamera && <li>Your camera will be enabled during the quiz for proctoring.</li>}
-                {quiz.enableMicrophone && <li>Your microphone will be enabled during the quiz for proctoring.</li>}
-                {!quiz.multipleAttempts && <li>Only one attempt is allowed for this quiz.</li>}
-                {quiz.multipleAttempts && quiz.maxAttempts && (
-                  <li>Maximum {quiz.maxAttempts} attempts are allowed.</li>
-                )}
-              </ul>
-            )}
-          </div>
-
-          <div className="instructions-actions">
-            <Button 
-              onClick={() => navigate(-1)} 
-              className="btn-secondary"
-              disabled={startingQuiz}
-            >
-              ← Go Back
-            </Button>
-            <Button 
-              onClick={handleStartQuiz} 
-              className="btn-primary btn-lg"
-              disabled={startingQuiz}
-            >
-              {startingQuiz ? (
-                <>
-                  <Spinner size="small" /> Starting...
-                </>
-              ) : (
-                '🚀 Start Quiz'
-              )}
-            </Button>
+            </div>
           </div>
         </div>
       </div>

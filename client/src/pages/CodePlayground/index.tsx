@@ -452,19 +452,22 @@ const CodePlayground: React.FC = () => {
             ) : (
               <>
                 <div className="cp-sec">
-                  <div className="cp-sec-label">STDIN (Input)</div>
-                  <textarea className="cp-stdin" value={stdin} onChange={e => setStdin(e.target.value)} placeholder="Enter input for your program (if any)" />
+                  <div className="cp-io-labelrow">
+                    <div className="cp-sec-label">STDIN (Input)</div>
+                    <span className="cp-io-count">{stdin.length}/1000</span>
+                  </div>
+                  <textarea className="cp-stdin" maxLength={1000} value={stdin} onChange={e => setStdin(e.target.value)} placeholder="Enter input for your program (if any)" />
                 </div>
-                <div className="cp-sec" style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                <div className="cp-sec">
                   <div className="cp-sec-label">Output</div>
-                  <div className="cp-output" style={{ flex: 1 }}>
-                    {error ? <span className="err">{error}</span> : (output || <span className="muted">Your program output will appear here.</span>)}
+                  <div className="cp-output cp-output-box">
+                    {error ? <span className="err">{error}</span> : (output || <span className="muted">Your program output will appear here…</span>)}
                   </div>
                 </div>
               </>
             )}
 
-            <div className="cp-sec-label" style={{ padding: '4px 16px 0' }}>Quick Actions</div>
+            <div className="cp-sec-label cp-quick-head">Quick Actions</div>
             <div className="cp-quick">
               <div className="cp-qcard" onClick={resetCode}><span className="ic">{'</>'}</span><span className="lbl">Generate Boilerplate</span></div>
               <div className="cp-qcard" onClick={handleSave}><span className="ic">🔖</span><span className="lbl">Add to My Programs</span></div>

@@ -17,9 +17,6 @@ import { EmailService } from './emailService';
  * hijack or reset (we just link to it and log a warning).
  */
 
-// Roles we must never silently reset/repurpose when they belong to an active user.
-const PRIVILEGED_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'ADMIN', 'INSTRUCTOR', 'STAFF'];
-
 const genPassword = () => crypto.randomBytes(4).toString('hex'); // 8-char temp password
 
 async function getWhatsAppCredentials(tenantId: string): Promise<{ phoneNumberId: string; accessToken: string } | null> {
@@ -55,6 +52,28 @@ async function sendWhatsAppText(phone: string, message: string, creds: { phoneNu
   }
 }
 
+/** Returning-user email — they already have an account, so log in (no new password). */
+async function sendReturningUserEmail(tenantId: string, email: string, name: string, loginUrl: string, forgotUrl: string): Promise<boolean> {
+  const html = `
+  <div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6fb;padding:24px">
+    <div style="max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:28px">
+      <div style="font-weight:800;color:#051D64;font-size:20px;margin-bottom:14px">CodeBegun</div>
+      <h2 style="font-size:19px;color:#0f172a;margin:0 0 8px">Your new plan is ready${name ? `, ${name}` : ''}! 🎉</h2>
+      <p style="color:#374151;font-size:14px;line-height:1.6;margin:0 0 16px">Good news — you already have a CodeBegun account. Your fresh assessment result and personalized plan have been added to it. Just <b>log in with your existing login</b> to start.</p>
+      <div style="text-align:center;margin:22px 0 8px">
+        <a href="${loginUrl}" style="display:inline-block;background:#4f46e5;color:#fff;text-decoration:none;font-weight:700;font-size:15px;padding:12px 28px;border-radius:10px">Log in &amp; view your plan →</a>
+      </div>
+      <p style="color:#94a3b8;font-size:12.5px;line-height:1.5;margin-top:16px;text-align:center">Forgot your password? <a href="${forgotUrl}" style="color:#6650d8">Reset it here</a>.</p>
+    </div>
+  </div>`;
+  const text = `Your new CodeBegun plan is ready!\n\nYou already have an account — log in to view it: ${loginUrl}\nForgot your password? Reset it: ${forgotUrl}`;
+  try {
+    return await new EmailService(tenantId).sendGenericEmail(email, 'Your new CodeBegun plan is ready — log in', html, text);
+  } catch {
+    return false;
+  }
+}
+
 /** Reliable welcome email with login details (username + temp password + link). */
 async function sendWelcomeEmail(tenantId: string, email: string, name: string, password: string, loginUrl: string): Promise<boolean> {
   const html = `
@@ -81,12 +100,20 @@ async function sendWelcomeEmail(tenantId: string, email: string, name: string, p
   }
 }
 
+export interface CandidateAccountResult { userId: mongoose.Types.ObjectId; isNew: boolean; }
+
 /**
- * Ensure a Student account exists for this candidate and that they have working
- * login credentials. Returns the user id. Best-effort delivery — never throws.
+ * Ensure the candidate has a usable account and gets the right message.
+ *  - NEW email  → create a fresh STUDENT account + email login credentials.
+ *  - EXISTING   → attach the assessment result/plan to their account and send a
+ *                 "your new plan is ready — log in with your existing account"
+ *                 email (+ password-reset link). We NEVER reset an existing
+ *                 password, so their normal login is untouched. This lets
+ *                 existing students re-assess without any login disruption.
+ * Returns { userId, isNew }. Best-effort delivery — never throws.
  */
-export async function ensureCandidateAccount(submission: IAssessmentSubmission): Promise<mongoose.Types.ObjectId | undefined> {
-  if (submission.candidateUserId) return submission.candidateUserId as mongoose.Types.ObjectId;
+export async function ensureCandidateAccount(submission: IAssessmentSubmission): Promise<CandidateAccountResult | undefined> {
+  if (submission.candidateUserId) return { userId: submission.candidateUserId as mongoose.Types.ObjectId, isNew: false };
 
   const c = submission.candidate;
   const email = (c.email || '').toLowerCase().trim();
@@ -94,13 +121,17 @@ export async function ensureCandidateAccount(submission: IAssessmentSubmission):
 
   const tenantOid = new mongoose.Types.ObjectId(submission.tenantId);
   const nameParts = (c.name || '').trim().split(/\s+/);
+  const base = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://platform.codebegun.com').replace(/\/$/, '');
+  const loginUrl = `${base}/login`;
+  const forgotUrl = `${base}/forgot-password`;
 
   let user = await User.findOne({ email });
-  let plainPassword: string | undefined;
+  let isNew = false;
 
   if (!user) {
-    // Brand-new candidate → fresh STUDENT account.
-    plainPassword = genPassword();
+    // Brand-new candidate → fresh STUDENT account + credentials.
+    isNew = true;
+    const plainPassword = genPassword();
     user = await User.create({
       email,
       firstName: c.firstName || nameParts[0] || 'Candidate',
@@ -112,46 +143,36 @@ export async function ensureCandidateAccount(submission: IAssessmentSubmission):
       isActive: true,
       profileComplete: false,
     });
-  } else {
-    // Email already exists. Only reuse it as a candidate account if it isn't a
-    // real, active privileged user — never hijack a live staff/admin login.
-    const isActivePrivileged = user.isActive && PRIVILEGED_ROLES.includes(String(user.role));
-    if (isActivePrivileged) {
-      console.warn(`[assessment-account] ${email} is an active ${user.role}; linking without resetting credentials.`);
-    } else {
-      // Make sure the candidate can actually log in as a student.
-      plainPassword = genPassword();
-      user.password = plainPassword;        // re-hashed by pre-save
-      user.isActive = true;
-      if (String(user.role) !== 'STUDENT') (user as any).role = 'STUDENT';
-      if (c.phone && !user.phone) user.phone = c.phone;
-      await user.save();
-    }
-  }
-
-  // Deliver credentials (email-first, WhatsApp best-effort) when we set a password.
-  if (plainPassword) {
-    const base = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://platform.codebegun.com').replace(/\/$/, '');
-    const loginUrl = `${base}/login`;
     const fullName = `${user.firstName || ''}`.trim();
-
-    // Email — reliable primary channel.
     const emailed = await sendWelcomeEmail(submission.tenantId, email, fullName, plainPassword, loginUrl);
-
-    // WhatsApp — best-effort (delivers only if a session is open / not blocked).
+    // WhatsApp credentials — best-effort (delivers only if a session is open).
     try {
       const creds = await getWhatsAppCredentials(submission.tenantId);
       if (creds) {
-        const msg =
-          `🎉 Welcome to CodeBegun! Your account is ready.\n\n` +
-          `Login: ${loginUrl}\nEmail: ${email}\nPassword: ${plainPassword}\n\n` +
-          `Please change your password after logging in.`;
+        const msg = `🎉 Welcome to CodeBegun! Your account is ready.\n\nLogin: ${loginUrl}\nEmail: ${email}\nPassword: ${plainPassword}\n\nPlease change your password after logging in.`;
         await sendWhatsAppText(c.phone, msg, creds);
       }
     } catch { /* best-effort */ }
-
     if (!emailed) console.warn(`[assessment-account] welcome email not sent for ${email}; password: ${plainPassword}`);
+  } else {
+    // EXISTING account (student / staff / admin) → attach only, never reset.
+    // Reactivate a dormant one so they can log in (via reset if needed), but
+    // leave the password and role alone so their normal login keeps working.
+    let touched = false;
+    if (!user.isActive) { user.isActive = true; touched = true; }
+    if (c.phone && !user.phone) { user.phone = c.phone; touched = true; }
+    if (touched) await user.save();
+    console.log(`[assessment-account] ${email} already has an account (${user.role}) — attaching plan, no credential reset.`);
+    await sendReturningUserEmail(submission.tenantId, email, (user.firstName || '').trim(), loginUrl, forgotUrl);
+    // Best-effort WhatsApp nudge (no password — just "log in").
+    try {
+      const creds = await getWhatsAppCredentials(submission.tenantId);
+      if (creds) {
+        const msg = `🎉 Your new CodeBegun plan is ready! You already have an account — just log in to view it: ${loginUrl}\n\nForgot your password? Reset it: ${forgotUrl}`;
+        await sendWhatsAppText(c.phone, msg, creds);
+      }
+    } catch { /* best-effort */ }
   }
 
-  return user._id as mongoose.Types.ObjectId;
+  return { userId: user._id as mongoose.Types.ObjectId, isNew };
 }

@@ -107,6 +107,7 @@ export interface IAssessmentSubmission extends Document {
   parsedSkills?: string[];
   candidateUserId?: mongoose.Types.ObjectId; // the Student account auto-created for this candidate
   accountCreatedAt?: Date;
+  accountIsNew?: boolean;                     // true = we created a fresh account; false = attached to an existing one
 
   designedBlueprint?: any;       // AI-designed, per-candidate blueprint (v2)
   examDesignStatus?: 'pending' | 'ready' | 'failed';
@@ -214,6 +215,7 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
     parsedSkills: { type: [String], default: [] },
     candidateUserId: { type: Schema.Types.ObjectId, ref: 'User' },
     accountCreatedAt: { type: Date },
+    accountIsNew: { type: Boolean },
 
     designedBlueprint: { type: Schema.Types.Mixed },
     examDesignStatus: { type: String, enum: ['pending', 'ready', 'failed'], default: undefined },

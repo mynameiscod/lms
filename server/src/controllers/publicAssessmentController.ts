@@ -191,10 +191,11 @@ export const verifyAssessmentOtp = async (req: Request, res: Response) => {
     try {
       const submission = await AssessmentSubmission.findOne({ token });
       if (submission && !submission.candidateUserId) {
-        const userId = await ensureCandidateAccount(submission);
-        if (userId) {
-          submission.candidateUserId = userId;
+        const acct = await ensureCandidateAccount(submission);
+        if (acct) {
+          submission.candidateUserId = acct.userId;
           submission.accountCreatedAt = new Date();
+          submission.accountIsNew = acct.isNew;
           await submission.save();
         }
       }
@@ -463,5 +464,9 @@ function resultPayload(submission: any) {
     readinessScore: submission.readinessScore,
     percentile: submission.percentile,
     roadmap: submission.roadmap, // populated in Slice 3
+    // true = we created a fresh account (credentials emailed); false = they
+    // already had an account (log in with existing). Drives the Result CTA.
+    newAccount: submission.accountIsNew !== false,
+    hasEmail: !!submission.candidate?.email,
   };
 }

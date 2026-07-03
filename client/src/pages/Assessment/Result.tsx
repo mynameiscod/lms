@@ -12,6 +12,7 @@ interface ResultData {
   readinessScore?: number;
   percentile?: number;
   roadmap?: { planTitle?: string; gaps?: string[]; narrative?: string; targetRole?: string; salaryBand?: string; timelineWeeks?: number };
+  newAccount?: boolean;   // false = they already had an account (log in with existing)
 }
 
 const PURPLE = '#6650d8', TEAL = '#14a89c', NAVY = '#0a2a5e', INK = '#1f2937', MUTED = '#64748b';
@@ -130,11 +131,14 @@ const Result: React.FC = () => {
           })}
         </div>
 
-        {/* Curated sampler + CTA — the sell */}
+        {/* Curated sampler + CTA — the sell (adapts to new vs existing account) */}
+        {(() => { const existing = data.newAccount === false; return (
         <div style={{ ...card, background: 'linear-gradient(135deg,#f6f4ff,#eafaf7)', border: '1px solid #e6e2fb' }}>
-          <div style={{ fontSize: 18, fontWeight: 800, color: INK }}>🎉 Your free preview is ready</div>
+          <div style={{ fontSize: 18, fontWeight: 800, color: INK }}>{existing ? '🎉 Your new plan is ready' : '🎉 Your free preview is ready'}</div>
           <p style={{ fontSize: 14, color: '#374151', margin: '8px 0 16px', lineHeight: 1.6 }}>
-            We've created your CodeBegun account and built your plan. Log in to play your first interactive lesson, try a DSA problem, and sample a mock interview — free.
+            {existing
+              ? 'You already have a CodeBegun account — your fresh plan has been added to it. Log in with your existing login to play your first interactive lesson, try a DSA problem, and sample a mock interview.'
+              : "We've created your CodeBegun account and built your plan. Log in to play your first interactive lesson, try a DSA problem, and sample a mock interview — free."}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 14px', fontSize: 12.8, marginBottom: 20 }}>
             <div style={{ color: '#0a8d7a', fontWeight: 600 }}>✓ First lessons — free</div>
@@ -147,7 +151,7 @@ const Result: React.FC = () => {
             onClick={() => { window.location.href = '/login'; }}
             style={{ width: '100%', background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 12, padding: '15px', fontWeight: 800, fontSize: 15.5, cursor: 'pointer', boxShadow: '0 8px 20px rgba(102,80,216,.3)', marginBottom: 12 }}
           >
-            Log in &amp; start free →
+            {existing ? 'Log in to your account →' : 'Log in & start free →'}
           </button>
           <button
             onClick={() => setMentorAsked(true)}
@@ -158,9 +162,12 @@ const Result: React.FC = () => {
           </button>
 
           <p style={{ fontSize: 12, color: MUTED, marginTop: 14, textAlign: 'center', lineHeight: 1.5 }}>
-            📩 Your login details were sent to your <b>email</b> &amp; <b>WhatsApp</b>.
+            {existing
+              ? <>🔑 Log in with your <b>existing CodeBegun account</b>. Forgot your password? <a href="/forgot-password" style={{ color: PURPLE, fontWeight: 700 }}>Reset it</a>.</>
+              : <>📩 Your login details were sent to your <b>email</b> &amp; <b>WhatsApp</b>.</>}
           </p>
         </div>
+        ); })()}
       </div>
     </div>
   );

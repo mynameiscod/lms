@@ -516,8 +516,10 @@ function CodeRunSceneView({ scene, onComplete }: { scene: Scene; onComplete: (pa
       const result = await runCode(data.language, code);
       setOutput(result.stdout || result.stderr || '(no output)');
       if (data.expectedOutput) {
-        const ok = result.stdout.trim() === data.expectedOutput.trim();
-        setPassed(ok);
+        // Whitespace-tolerant match: ignore trailing spaces per line + trailing
+        // blank lines (a stray space shouldn't fail a correct answer).
+        const norm = (s: string) => (s || '').replace(/\r\n?/g, '\n').split('\n').map((l) => l.replace(/[ \t]+$/, '')).join('\n').replace(/\n+$/, '').trim();
+        setPassed(norm(result.stdout) === norm(data.expectedOutput));
       }
     } catch (err: any) {
       setRunError(err.message || 'Execution failed');

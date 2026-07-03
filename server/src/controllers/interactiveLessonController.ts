@@ -338,7 +338,9 @@ export const executeCode = async (req: Request, res: Response) => {
     });
     res.json({
       stdout: result.output || '',
-      stderr: result.error || '',
+      // Surface compile errors too — otherwise a failed compile comes back blank
+      // and the student just sees "(no output)" with no idea why.
+      stderr: result.compilationError || result.error || '',
       exitCode: result.passed ? 0 : 1,
       executionTime: result.executionTime,
     });

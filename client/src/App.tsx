@@ -154,6 +154,7 @@ import QuizSession from './pages/QuizSession';
 
 // Public skill assessment funnel (no auth — Meta-ad → exam → roadmap)
 import AssessmentRegister from './pages/Assessment/Register';
+import AssessmentLanding from './pages/Assessment/Landing';
 import AssessmentExam from './pages/Assessment/Exam';
 import AssessmentResult from './pages/Assessment/Result';
 import AssessmentAdmin from './pages/AssessmentAdmin';
@@ -284,7 +285,8 @@ const AppRoutes: React.FC = () => {
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />
       <Route path="/resume/view/:token" element={<PublicResumeView />} />
       <Route path="/quiz/:token" element={<QuizSession />} />
-      <Route path="/assessment/:tenantId" element={<AssessmentRegister />} />
+      <Route path="/assessment/:tenantId" element={<AssessmentLanding />} />
+      <Route path="/assessment/:tenantId/register" element={<AssessmentRegister />} />
       <Route path="/assessment/exam/:token" element={<AssessmentExam />} />
       <Route path="/assessment/result/:token" element={<AssessmentResult />} />
 

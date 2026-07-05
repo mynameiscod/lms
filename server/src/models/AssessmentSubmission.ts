@@ -32,6 +32,17 @@ export interface ICandidateInputs {
   targetRole?: string;
   targetCompany?: string;
   targetSalary?: number;      // target CTC in LPA
+  linkedinUrl?: string;
+  githubUrl?: string;
+}
+
+// ─── Profile-level scores (merged with exam dimensions into the 8 named sub-scores) ──
+export interface IProfileScores {
+  resume?: number;             // 0–100 (ATS of the uploaded resume)
+  github?: number;             // 0–100 (public GitHub heuristic)
+  linkedin?: number;           // 0–100 (from manual LinkedIn data — Module 7)
+  communication?: number;      // 0–100 (AI-scored written pitch)
+  interviewReadiness?: number; // 0–100 (from a mock interview — Interview module)
 }
 
 // ─── Per-item response + grading ─────────────────────────────────────────────
@@ -105,6 +116,9 @@ export interface IAssessmentSubmission extends Document {
   resumeFilePath?: string;
   resumeText?: string;
   parsedSkills?: string[];
+  communicationText?: string;      // candidate's written pitch (scored for communication)
+  profileScores?: IProfileScores;
+  careerReadinessScore?: number;   // composite of exam readiness + profile scores
   candidateUserId?: mongoose.Types.ObjectId; // the Student account auto-created for this candidate
   accountCreatedAt?: Date;
   accountIsNew?: boolean;                     // true = we created a fresh account; false = attached to an existing one
@@ -206,6 +220,8 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
       targetRole: { type: String, trim: true },
       targetCompany: { type: String, trim: true },
       targetSalary: { type: Number },
+      linkedinUrl: { type: String, trim: true },
+      githubUrl: { type: String, trim: true },
     },
     isMobile: { type: Boolean, default: false },
     phoneVerified: { type: Boolean, default: false },
@@ -213,6 +229,16 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
     resumeFilePath: { type: String },
     resumeText: { type: String },
     parsedSkills: { type: [String], default: [] },
+    communicationText: { type: String },
+    profileScores: {
+      resume: { type: Number },
+      github: { type: Number },
+      linkedin: { type: Number },
+      communication: { type: Number },
+      interviewReadiness: { type: Number },
+      _id: false,
+    },
+    careerReadinessScore: { type: Number, min: 0, max: 100 },
     candidateUserId: { type: Schema.Types.ObjectId, ref: 'User' },
     accountCreatedAt: { type: Date },
     accountIsNew: { type: Boolean },

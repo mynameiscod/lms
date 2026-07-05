@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { assessmentApi, PROFILE_OPTIONS, PRIMARY_LANGUAGES } from '../../api/assessmentApi';
+import { assessmentApi, PROFILE_OPTIONS, PRIMARY_LANGUAGES, TARGET_ROLES } from '../../api/assessmentApi';
 import './assessment.css';
 
 const WEB = 'https://www.codebegun.com';
@@ -55,6 +55,7 @@ const Register: React.FC = () => {
   const [form, setForm] = useState({
     firstName: '', lastName: '', email: '', phone: '',
     profile: presetProfile, yearsExperience: '', primaryLanguage: '',
+    targetRole: '', linkedinUrl: '', githubUrl: '', communicationText: '',
   });
   const [resumeFile, setResumeFile] = useState<File | null>(null);
 
@@ -89,6 +90,10 @@ const Register: React.FC = () => {
         year: profileMeta.year,
         yearsExperience: form.yearsExperience ? Number(form.yearsExperience) : undefined,
         primaryLanguage: form.primaryLanguage || undefined,
+        targetRole: form.targetRole || undefined,
+        linkedinUrl: form.linkedinUrl.trim() || undefined,
+        githubUrl: form.githubUrl.trim() || undefined,
+        communicationText: form.communicationText.trim() || undefined,
         isMobile: isMobileDevice(),
         utmParams,
       });
@@ -163,6 +168,21 @@ const Register: React.FC = () => {
             {PRIMARY_LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
+      </div>
+      <div className="as-field"><label>Target role</label>
+        <select className="as-select" value={form.targetRole} onChange={(e) => set('targetRole', e.target.value)}>
+          <option value="">Select the role you're aiming for</option>
+          {TARGET_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
+        </select>
+      </div>
+      <div className="as-row">
+        <div className="as-field"><label>LinkedIn URL (optional)</label><input className="as-input" value={form.linkedinUrl} onChange={(e) => set('linkedinUrl', e.target.value)} placeholder="linkedin.com/in/you" /></div>
+        <div className="as-field"><label>GitHub URL (optional)</label><input className="as-input" value={form.githubUrl} onChange={(e) => set('githubUrl', e.target.value)} placeholder="github.com/you" /></div>
+      </div>
+      <div className="as-field">
+        <label>In a sentence or two, describe a project you've built or want to build</label>
+        <textarea className="as-input" rows={2} value={form.communicationText} onChange={(e) => set('communicationText', e.target.value)} placeholder="e.g. I built a food-delivery app with React and Node where users can track orders live…" />
+        <div className="as-note">Used to score your communication — the clearer, the better.</div>
       </div>
       <div className="as-field">
         <label>Resume (optional — sharpens your assessment & roadmap)</label>

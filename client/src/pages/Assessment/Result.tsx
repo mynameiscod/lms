@@ -10,6 +10,9 @@ interface ResultData {
   segment?: string;
   subScores: SubScore[];
   readinessScore?: number;
+  careerReadinessScore?: number;
+  profileScores?: { resume?: number; github?: number; linkedin?: number; communication?: number; interviewReadiness?: number };
+  targetRole?: string;
   percentile?: number;
   roadmap?: { planTitle?: string; gaps?: string[]; narrative?: string; targetRole?: string; salaryBand?: string; timelineWeeks?: number };
   newAccount?: boolean;   // false = they already had an account (log in with existing)
@@ -130,6 +133,50 @@ const Result: React.FC = () => {
             );
           })}
         </div>
+
+        {/* Career readiness — the 8 named sub-scores (exam + profile) */}
+        {(() => {
+          const dim = (k: string) => data.subScores.find(s => s.dimension === k)?.percentage;
+          const ps = data.profileScores || {};
+          const named: { label: string; v?: number; hint?: string }[] = [
+            { label: 'Coding', v: dim('core_stack') },
+            { label: 'DSA', v: dim('dsa') },
+            { label: 'Reasoning', v: dim('problem_solving') ?? dim('aptitude') },
+            { label: 'Resume', v: ps.resume, hint: 'Upload a resume to score this' },
+            { label: 'GitHub', v: ps.github, hint: 'Add your GitHub to score this' },
+            { label: 'Communication', v: ps.communication, hint: 'Describe a project to score this' },
+            { label: 'LinkedIn', v: ps.linkedin, hint: 'Add LinkedIn details in your dashboard' },
+            { label: 'Interview Readiness', v: ps.interviewReadiness, hint: 'Take a mock interview to unlock' },
+          ];
+          return (
+            <div style={card}>
+              <div style={{ ...eyebrow, marginBottom: 4 }}>Career readiness breakdown{data.targetRole ? ` · ${data.targetRole}` : ''}</div>
+              {data.careerReadinessScore != null && (
+                <div style={{ fontSize: 12.5, color: MUTED, marginBottom: 14 }}>Combined across coding, projects, resume &amp; communication: <b style={{ color: INK }}>{data.careerReadinessScore}%</b></div>
+              )}
+              {named.map((n) => {
+                const has = n.v != null;
+                const weak = has && (n.v as number) < 50;
+                return (
+                  <div key={n.label} style={{ marginBottom: 12 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, marginBottom: 5 }}>
+                      <span style={{ color: INK, fontWeight: 600 }}>{n.label}{weak && <span style={{ color: '#e8830c', fontWeight: 700 }}> · focus area</span>}</span>
+                      {has ? <b style={{ color: weak ? '#e8830c' : INK }}>{n.v}%</b>
+                        : <span style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 600, background: '#f1f5f9', borderRadius: 12, padding: '1px 9px' }}>Pending</span>}
+                    </div>
+                    {has ? (
+                      <div style={{ height: 9, background: '#eef1f6', borderRadius: 6, overflow: 'hidden' }}>
+                        <div style={{ width: `${n.v}%`, height: '100%', borderRadius: 6, background: weak ? 'linear-gradient(90deg,#f59e0b,#fbbf24)' : `linear-gradient(90deg,${PURPLE},${TEAL})` }} />
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{n.hint}</div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })()}
 
         {/* Curated sampler + CTA — the sell (adapts to new vs existing account) */}
         {(() => { const existing = data.newAccount === false; return (

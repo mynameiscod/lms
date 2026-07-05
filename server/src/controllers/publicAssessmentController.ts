@@ -9,11 +9,22 @@ import { gradeSubmission, gradeStage, finalizeScores } from '../services/assessm
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
 import { generateRoadmap } from '../services/assessmentRoadmapService';
+import { computeProfileScores, computeCareerReadiness } from '../services/assessmentProfileScoreService';
 import { ensureCandidateAccount } from '../services/assessmentAccountService';
 import { enrollCandidateInRoadmapPlan } from '../services/assessmentEnrollmentService';
 import { designExamForSubmission } from '../services/assessmentExamDesignerService';
 import { extractTextFromFile, parseResumeText } from '../services/resumeParserService';
 import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
+
+// Best-effort: score resume / GitHub / communication and fold them + the exam readiness
+// into the composite Career-Readiness score. Never blocks the result.
+async function attachProfileScores(submission: any): Promise<void> {
+  try {
+    const profileScores = await computeProfileScores(submission);
+    submission.profileScores = profileScores;
+    submission.careerReadinessScore = computeCareerReadiness(submission.readinessScore || 0, profileScores);
+  } catch { /* pending scores stay undefined */ }
+}
 
 /**
  * Public (unauthenticated) assessment funnel:
@@ -100,7 +111,10 @@ export const registerAssessment = async (req: Request, res: Response) => {
         targetRole: b.targetRole,
         targetCompany: b.targetCompany,
         targetSalary: b.targetSalary != null ? Number(b.targetSalary) : undefined,
+        linkedinUrl: b.linkedinUrl?.trim() || undefined,
+        githubUrl: b.githubUrl?.trim() || undefined,
       },
+      communicationText: b.communicationText?.trim() || undefined,
       isMobile: !!b.isMobile,
       status: 'registered',
       utmParams: b.utmParams || undefined,
@@ -380,6 +394,7 @@ export const advanceAssessment = async (req: Request, res: Response) => {
     submission.percentile = final.percentile;
     submission.status = 'submitted';
     submission.submittedAt = new Date();
+    await attachProfileScores(submission);
     await submission.save();
 
     try { const roadmap = await generateRoadmap(submission); if (roadmap) { submission.roadmap = roadmap as any; await submission.save(); } } catch (e) { /* best-effort */ }
@@ -424,6 +439,7 @@ export const submitAssessment = async (req: Request, res: Response) => {
     submission.percentile = graded.percentile;
     submission.status = 'submitted';
     submission.submittedAt = new Date();
+    await attachProfileScores(submission);
     await submission.save();
 
     // Generate the personalized roadmap (best-effort; never blocks the result).
@@ -462,6 +478,9 @@ function resultPayload(submission: any) {
     segment: submission.candidate?.segment,
     subScores: submission.subScores,
     readinessScore: submission.readinessScore,
+    careerReadinessScore: submission.careerReadinessScore,
+    profileScores: submission.profileScores,
+    targetRole: submission.candidate?.targetRole,
     percentile: submission.percentile,
     roadmap: submission.roadmap, // populated in Slice 3
     // true = we created a fresh account (credentials emailed); false = they

@@ -25,10 +25,20 @@ export interface CandidateRegistration {
   year?: string;
   yearsExperience?: number;
   primaryLanguage?: string;
+  targetRole?: string;
+  linkedinUrl?: string;
+  githubUrl?: string;
+  communicationText?: string;
   isMobile?: boolean;
   publicConfigId?: string;
   utmParams?: Record<string, string>;
 }
+
+// Discrete target roles for the assessment (drives role-specific scoring/roadmap).
+export const TARGET_ROLES = [
+  'Java Full Stack', 'React Developer', 'Backend Developer',
+  'Frontend Developer', 'MERN Developer', 'Python Developer',
+];
 
 export interface AssessmentItemView {
   itemId: string;

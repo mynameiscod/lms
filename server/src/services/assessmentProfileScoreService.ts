@@ -54,7 +54,9 @@ export async function scoreGithub(url?: string): Promise<number | undefined> {
   const user = ghUser(url);
   if (!user) return undefined;
   try {
-    const headers = { 'User-Agent': 'codebegun-careerdna', Accept: 'application/vnd.github+json' };
+    const token = settings.getStr('GITHUB_API_TOKEN');
+    const headers: Record<string, string> = { 'User-Agent': 'codebegun-careerdna', Accept: 'application/vnd.github+json' };
+    if (token) headers.Authorization = `Bearer ${token}`; // 60/hr → 5,000/hr
     const [uRes, rRes] = await Promise.all([
       fetch(`https://api.github.com/users/${user}`, { headers }),
       fetch(`https://api.github.com/users/${user}/repos?per_page=100&sort=updated`, { headers }),

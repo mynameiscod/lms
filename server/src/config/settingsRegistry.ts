@@ -45,6 +45,7 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'ASSESSMENT_GEN_MODEL', label: 'Assessment — Question Gen Model', group: 'ai', type: 'text', placeholder: 'claude-sonnet-4-6' },
   { key: 'ASSESSMENT_DESIGN_MODEL', label: 'Assessment — Exam Designer Model', group: 'ai', type: 'text', placeholder: 'claude-sonnet-4-6' },
   { key: 'ASSESSMENT_ROADMAP_MODEL', label: 'Assessment — Roadmap Model', group: 'ai', type: 'text', placeholder: 'claude-sonnet-4-6' },
+  { key: 'GITHUB_API_TOKEN', label: 'GitHub API Token (candidate scoring)', group: 'ai', isSecret: true, type: 'password', placeholder: 'ghp_...', help: 'Optional but recommended. A GitHub personal-access token (public read is enough) raises the API limit from 60→5,000/hr used to score candidates’ public GitHub in the Career DNA assessment.' },
   { key: 'OPENAI_MODEL', label: 'OpenAI Model', group: 'ai', type: 'text', placeholder: 'gpt-4o-mini' },
   { key: 'INTERVIEW_AI_PRICE_IN', label: 'AI Price — Input ($/1M tokens)', group: 'ai', type: 'number', placeholder: '3', help: 'Used to estimate AI cost in analytics. Defaults ≈ Claude Sonnet.' },
   { key: 'INTERVIEW_AI_PRICE_OUT', label: 'AI Price — Output ($/1M tokens)', group: 'ai', type: 'number', placeholder: '15' },

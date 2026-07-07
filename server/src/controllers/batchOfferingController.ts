@@ -4,7 +4,7 @@ import BatchOffering from '../models/BatchOffering';
 import LearningCurriculum from '../models/LearningCurriculum';
 import DayPlan from '../models/DayPlan';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
-import { workingDateForDay } from '../utils/planSchedule';
+import { workingDateForDay, asLocalDate } from '../utils/planSchedule';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
 const userId   = (req: Request): string => (req as any).user?.id || '';
@@ -57,7 +57,7 @@ export const createOffering = async (req: Request, res: Response) => {
       curriculumTitle: curriculum.title,
       batchId,
       batchName: batch.name,
-      startDate: new Date(startDate),
+      startDate: asLocalDate(startDate),
       holidays: Array.isArray(holidays) ? holidays : [],
       dayOverrides: [],
       status: 'draft',
@@ -86,7 +86,7 @@ export const updateOffering = async (req: Request, res: Response) => {
     const tId = tenantId(req);
     const { startDate, holidays, status } = req.body;
     const set: any = {};
-    if (startDate) set.startDate = new Date(startDate);
+    if (startDate) set.startDate = asLocalDate(startDate);
     if (Array.isArray(holidays)) set.holidays = holidays;
     if (status) set.status = status;
     const offering = await BatchOffering.findOneAndUpdate(

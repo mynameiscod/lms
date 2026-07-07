@@ -19,7 +19,7 @@ import { milestoneForDay } from '../utils/planMilestones';
 import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
-import { workingDateForDay, planDayForDate, workingDayCount } from '../utils/planSchedule';
+import { workingDateForDay, planDayForDate, workingDayCount, asLocalDate } from '../utils/planSchedule';
 import * as razorpay from '../services/razorpayService';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
@@ -143,8 +143,7 @@ export function itemDone(
 // Returns the calendar date for a given plan day number starting from startDate.
 // weekdays only (Mon-Fri), startDate is day 1.
 function weekdayForDay(startDate: Date, dayNumber: number): Date {
-  const d = new Date(startDate);
-  d.setHours(0, 0, 0, 0);
+  const d = asLocalDate(startDate);
   let remaining = dayNumber - 1;
   while (remaining > 0) {
     d.setDate(d.getDate() + 1);
@@ -155,11 +154,9 @@ function weekdayForDay(startDate: Date, dayNumber: number): Date {
 }
 
 // Returns which plan day number corresponds to today, or null if before start
-export function currentPlanDay(startDate: Date, totalDays: number): number | null {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const start = new Date(startDate);
-  start.setHours(0, 0, 0, 0);
+export function currentPlanDay(startDate: Date | string, totalDays: number): number | null {
+  const today = asLocalDate(new Date());
+  const start = asLocalDate(startDate instanceof Date ? startDate : new Date(startDate));
   if (today < start) return null;
 
   let weekdayCount = 0;
@@ -190,9 +187,9 @@ export async function resolveSchedule(enrollment: any, tId: any): Promise<{ star
         .sort({ startDate: 1 }).select('startDate').lean() as any,
     ]);
     const start = firstEnrollment?.startDate || enrollment.startDate;
-    return { start: new Date(start), cohort: true, holidays: new Set<string>(batch?.holidays || []) };
+    return { start: asLocalDate(start), cohort: true, holidays: new Set<string>(batch?.holidays || []) };
   }
-  return { start: new Date(enrollment.startDate), cohort: false, holidays: new Set<string>() };
+  return { start: asLocalDate(enrollment.startDate), cohort: false, holidays: new Set<string>() };
 }
 
 // Bulk version for admin lists — resolve the cohort start (earliest enrollment start) +
@@ -311,7 +308,7 @@ export const enrollStudent = async (req: Request, res: Response) => {
       batchId: batchId || undefined,
       batchName: batchName || undefined,
       offeringId: offeringId || undefined,
-      startDate: new Date(startDate),
+      startDate: asLocalDate(startDate),
       settings: settings || {},
       enrolledBy: userId(req),
     });
@@ -355,7 +352,7 @@ export const enrollBatch = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'No students found in this batch' });
     }
 
-    const start = new Date(startDate);
+    const start = asLocalDate(startDate);
     const docs = batchStudents.map((student: any) => ({
       tenantId: tId,
       curriculumId,
@@ -450,7 +447,7 @@ export const updateSettings = async (req: Request, res: Response) => {
     const { startDate, settings } = req.body;
     const patch: any = {};
     if (settings)  patch.settings  = settings;
-    if (startDate) patch.startDate = new Date(startDate);
+    if (startDate) patch.startDate = asLocalDate(startDate);
 
     const enrollment = await CurriculumEnrollment.findOneAndUpdate(
       { _id: req.params.id, tenantId: tId },

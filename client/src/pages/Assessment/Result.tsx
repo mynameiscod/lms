@@ -15,8 +15,17 @@ interface ResultData {
   targetRole?: string;
   percentile?: number;
   roadmap?: { planTitle?: string; gaps?: string[]; narrative?: string; targetRole?: string; salaryBand?: string; timelineWeeks?: number };
+  skillGap?: {
+    known?: string[];
+    weak?: { skill: string; why?: string; marketRelevance?: number; priority?: 'High' | 'Medium' | 'Low' }[];
+    missing?: { skill: string; why?: string; marketRelevance?: number; priority?: 'High' | 'Medium' | 'Low' }[];
+  };
   newAccount?: boolean;   // false = they already had an account (log in with existing)
 }
+
+const PRIO_COLORS: Record<string, { bg: string; fg: string }> = {
+  High: { bg: '#fee2e2', fg: '#b91c1c' }, Medium: { bg: '#fef3c7', fg: '#b45309' }, Low: { bg: '#e0e7ff', fg: '#4338ca' },
+};
 
 const PURPLE = '#6650d8', TEAL = '#14a89c', NAVY = '#0a2a5e', INK = '#1f2937', MUTED = '#64748b';
 
@@ -177,6 +186,41 @@ const Result: React.FC = () => {
             </div>
           );
         })()}
+
+        {/* Skill Gap AI (Module 2) */}
+        {data.skillGap && ((data.skillGap.weak?.length || 0) + (data.skillGap.missing?.length || 0) + (data.skillGap.known?.length || 0) > 0) && (
+          <div style={card}>
+            <div style={{ ...eyebrow, marginBottom: 12 }}>Skill gap for your target role</div>
+            {!!data.skillGap.known?.length && (
+              <>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#15803d', marginBottom: 7 }}>✅ Strengths you already have</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                  {data.skillGap.known.slice(0, 12).map((s, i) => <span key={i} style={{ fontSize: 12, background: '#dcfce7', color: '#15803d', borderRadius: 12, padding: '3px 10px', fontWeight: 600 }}>{s}</span>)}
+                </div>
+              </>
+            )}
+            {([['⚠️ Needs strengthening', data.skillGap.weak], ['➕ Missing for this role', data.skillGap.missing]] as const).map(([title, list], gi) => (
+              (list && list.length) ? (
+                <div key={gi} style={{ marginBottom: gi === 0 ? 16 : 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: INK, marginBottom: 8 }}>{title}</div>
+                  {list.map((it, i) => {
+                    const pc = PRIO_COLORS[it.priority || 'Medium'];
+                    return (
+                      <div key={i} style={{ padding: '9px 0', borderBottom: i === list.length - 1 ? 'none' : '1px solid #f1f5f9' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <b style={{ fontSize: 13.5, color: INK }}>{it.skill}</b>
+                          {it.priority && <span style={{ fontSize: 10.5, fontWeight: 700, background: pc.bg, color: pc.fg, borderRadius: 10, padding: '1px 8px' }}>{it.priority} priority</span>}
+                          {it.marketRelevance != null && <span style={{ fontSize: 11, color: MUTED }}>· {it.marketRelevance}% market demand</span>}
+                        </div>
+                        {it.why && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 3, lineHeight: 1.5 }}>{it.why}</div>}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null
+            ))}
+          </div>
+        )}
 
         {/* Curated sampler + CTA — the sell (adapts to new vs existing account) */}
         {(() => { const existing = data.newAccount === false; return (

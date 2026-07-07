@@ -84,6 +84,20 @@ export interface ISubScore {
   percentage: number;
 }
 
+export interface ISkillGapItem {
+  skill: string;
+  why?: string;                // why it matters for the target role
+  marketRelevance?: number;    // 0–100
+  priority?: 'High' | 'Medium' | 'Low';
+}
+export interface ISkillGap {
+  generatedAt: Date;
+  known: string[];             // skills the candidate already has
+  weak: ISkillGapItem[];       // has but needs strengthening
+  missing: ISkillGapItem[];    // required by the role, not present
+  generatedBy?: string;
+}
+
 export interface IRoadmap {
   generatedAt: Date;
   planId?: mongoose.Types.ObjectId; // selected Learning Plan / enrollment
@@ -135,6 +149,7 @@ export interface IAssessmentSubmission extends Document {
   percentile?: number;           // vs same-segment finishers
 
   roadmap?: IRoadmap;
+  skillGap?: ISkillGap;
   leadId?: mongoose.Types.ObjectId;
 
   status: SubmissionStatus;
@@ -275,6 +290,13 @@ const AssessmentSubmissionSchema = new Schema<IAssessmentSubmission>(
       targetRole: { type: String },
       salaryBand: { type: String },
       timelineWeeks: { type: Number },
+      generatedBy: { type: String },
+    },
+    skillGap: {
+      generatedAt: { type: Date },
+      known: { type: [String], default: [] },
+      weak: { type: [{ skill: String, why: String, marketRelevance: Number, priority: String, _id: false }], default: [] },
+      missing: { type: [{ skill: String, why: String, marketRelevance: Number, priority: String, _id: false }], default: [] },
       generatedBy: { type: String },
     },
     leadId: { type: Schema.Types.ObjectId, ref: 'Lead' },

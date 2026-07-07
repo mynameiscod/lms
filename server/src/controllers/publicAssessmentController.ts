@@ -10,6 +10,7 @@ import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 import { syncSubmissionToLead } from '../services/assessmentLeadService';
 import { generateRoadmap } from '../services/assessmentRoadmapService';
 import { computeProfileScores, computeCareerReadiness } from '../services/assessmentProfileScoreService';
+import { generateSkillGap } from '../services/assessmentSkillGapService';
 import { ensureCandidateAccount } from '../services/assessmentAccountService';
 import { enrollCandidateInRoadmapPlan } from '../services/assessmentEnrollmentService';
 import { designExamForSubmission } from '../services/assessmentExamDesignerService';
@@ -398,6 +399,7 @@ export const advanceAssessment = async (req: Request, res: Response) => {
     await submission.save();
 
     try { const roadmap = await generateRoadmap(submission); if (roadmap) { submission.roadmap = roadmap as any; await submission.save(); } } catch (e) { /* best-effort */ }
+    try { submission.skillGap = await generateSkillGap(submission) as any; await submission.save(); } catch (e) { /* best-effort */ }
     // Enroll the candidate's account in the recommended plan (preview/locked).
     try { await enrollCandidateInRoadmapPlan(submission); } catch (e) { /* best-effort */ }
     try { const leadId = await syncSubmissionToLead(submission, { withResults: true }); if (leadId && !submission.leadId) { submission.leadId = leadId; await submission.save(); } } catch (e) { /* best-effort */ }
@@ -446,6 +448,7 @@ export const submitAssessment = async (req: Request, res: Response) => {
     try {
       const roadmap = await generateRoadmap(submission);
       if (roadmap) { submission.roadmap = roadmap as any; await submission.save(); }
+      try { submission.skillGap = await generateSkillGap(submission) as any; await submission.save(); } catch { /* best-effort */ }
     } catch (e) { /* best-effort — result page falls back to "mentor will reach out" */ }
 
     // Enrich the CRM lead with results + bump priority.
@@ -483,6 +486,7 @@ function resultPayload(submission: any) {
     targetRole: submission.candidate?.targetRole,
     percentile: submission.percentile,
     roadmap: submission.roadmap, // populated in Slice 3
+    skillGap: submission.skillGap, // Module 2
     // true = we created a fresh account (credentials emailed); false = they
     // already had an account (log in with existing). Drives the Result CTA.
     newAccount: submission.accountIsNew !== false,

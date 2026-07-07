@@ -442,6 +442,25 @@ const LearningPlanPro: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Badges */}
+          {Array.isArray(summary?.badges) && summary.badges.length > 0 && (
+            <div style={{ ...card, padding: 16 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <b style={{ fontSize: 15, color: '#0f172a' }}>Badges</b>
+                <span style={{ fontSize: 12, color: '#94a3b8' }}>{summary.badges.filter((b: any) => b.earned).length}/{summary.badges.length}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
+                {summary.badges.map((b: any) => (
+                  <div key={b.id} title={b.hint} style={{ textAlign: 'center', opacity: b.earned ? 1 : 0.38, filter: b.earned ? 'none' : 'grayscale(1)' }}>
+                    <div style={{ fontSize: 26, lineHeight: 1 }}>{b.earned ? b.icon : '🔒'}</div>
+                    <div style={{ fontSize: 10.5, fontWeight: 700, color: '#334155', marginTop: 4 }}>{b.label}</div>
+                    <div style={{ fontSize: 9.5, color: '#94a3b8', marginTop: 1 }}>{b.hint}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

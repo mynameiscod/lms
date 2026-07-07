@@ -178,12 +178,30 @@ export const getSummary = async (req: Request, res: Response) => {
       done: { videos: videosDone, assignments: assignmentsDone, quizzes: quizzesDone },
     };
 
+    // Badges — earned from the learner's own stats.
+    const xp = en.xp || 0;
+    const streak = computeStreak(en.activityDates);
+    const daysDone = (en.completedDays || []).length;
+    const pct = totalItems ? Math.round((completedCount / totalItems) * 100) : 0;
+    const badges = [
+      { id: 'first_step', icon: '🌱', label: 'First Step',    hint: 'Complete your first topic', earned: completedCount >= 1 },
+      { id: 'day_one',    icon: '✅', label: 'Day One',        hint: 'Finish a full day',        earned: daysDone >= 1 },
+      { id: 'streak_3',   icon: '🔥', label: 'On Fire',        hint: '3-day streak',             earned: streak >= 3 },
+      { id: 'streak_7',   icon: '🚀', label: 'Week Warrior',   hint: '7-day streak',             earned: streak >= 7 },
+      { id: 'xp_100',     icon: '⭐', label: 'Rising Star',     hint: 'Earn 100 XP',              earned: xp >= 100 },
+      { id: 'xp_500',     icon: '🌟', label: 'XP Champion',    hint: 'Earn 500 XP',              earned: xp >= 500 },
+      { id: 'days_10',    icon: '📅', label: 'Consistent',     hint: 'Complete 10 days',         earned: daysDone >= 10 },
+      { id: 'halfway',    icon: '🏅', label: 'Halfway There',  hint: 'Reach 50% progress',       earned: pct >= 50 },
+      { id: 'finisher',   icon: '🏆', label: 'Finisher',       hint: 'Complete your plan',       earned: pct >= 100 },
+    ];
+
     res.json({
-      xp: en.xp || 0,
-      streak: computeStreak(en.activityDates),
+      xp,
+      streak,
       timeSpentSeconds: en.timeSpentSeconds || 0,
       progress: { total: totalItems, completed: completedCount, inProgress, notStarted },
       goal,
+      badges,
     });
   } catch (err) { res.status(500).json({ message: 'Failed to load summary', error: String(err) }); }
 };

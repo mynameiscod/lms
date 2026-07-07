@@ -76,6 +76,44 @@ export class EmailService {
     return this._transporter;
   }
 
+  /**
+   * True when the SMTP failure is transient — provider throttling / greylisting /
+   * temporary connection drop — so retrying after a short delay is worthwhile.
+   * Hostinger bursts trip `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`.
+   */
+  private isTransientMailError(err: any): boolean {
+    const code = err?.responseCode ?? err?.code;
+    const msg = String(err?.message || err?.response || '').toLowerCase();
+    if (code === 421 || code === 451 || code === 450) return true;
+    if (typeof code === 'string' && ['ETIMEDOUT', 'ECONNRESET', 'ECONNECTION', 'ESOCKET', 'EDNS'].includes(code)) return true;
+    return /ratelimit|rate limit|too many|try again later|greylist|temporarily|4\.7\.1|4\.4\.2/.test(msg);
+  }
+
+  /**
+   * Send via nodemailer, retrying transient failures (e.g. Hostinger's
+   * `hostinger_out_ratelimit` burst throttle) with escalating backoff.
+   * Non-transient errors (bad auth, invalid recipient) throw immediately.
+   */
+  private async sendMailWithRetry(mailOptions: any, label = 'email'): Promise<any> {
+    const delaysMs = [2_000, 5_000, 12_000]; // up to 3 retries after the first attempt
+    let lastErr: any;
+    for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+      try {
+        return await this.transporter!.sendMail(mailOptions);
+      } catch (err: any) {
+        lastErr = err;
+        if (attempt < delaysMs.length && this.isTransientMailError(err)) {
+          const wait = delaysMs[attempt];
+          console.warn(`   ⏳ Transient send error for ${label} (${err.responseCode || err.code || 'n/a'}): ${err.message}. Retrying in ${wait / 1000}s (attempt ${attempt + 1}/${delaysMs.length})...`);
+          await new Promise(r => setTimeout(r, wait));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw lastErr;
+  }
+
   /** Send a plain test email to verify the current (platform or tenant) config. */
   async sendTestEmail(to: string): Promise<void> {
     const subject = '✅ CodeBegun email configuration test';
@@ -167,7 +205,7 @@ export class EmailService {
           html: htmlContent,
           text: plainTextContent
         };
-        const info = await this.transporter!.sendMail(mailOptions);
+        const info = await this.sendMailWithRetry(mailOptions, 'welcome email');
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
         console.log('   Message ID:', info.messageId);
         console.log('   Response:', info.response);

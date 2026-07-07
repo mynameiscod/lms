@@ -430,6 +430,8 @@ export const inviteStudent = async (req: AuthenticatedRequest, res: Response) =>
         emailError = 'Email authentication failed. Please check SMTP credentials.';
       } else if (err.message.includes('ECONNREFUSED') || err.message.includes('ETIMEDOUT')) {
         emailError = 'Unable to connect to email server. Please check network settings.';
+      } else if (/ratelimit|rate limit|too many|4\.7\.1/i.test(err.message)) {
+        emailError = 'Email provider rate limit reached — too many emails sent in a short window. The account is ready; share the setup link below, or resend the welcome email in a few minutes.';
       }
     }
 

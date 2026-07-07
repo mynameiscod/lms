@@ -61,6 +61,7 @@ import MyLeave from './pages/MyLeave';
 import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
 import ProjectBuilder from './pages/ProjectBuilder';
+import JobTracker from './pages/JobTracker';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -387,6 +388,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <ProjectBuilder />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/job-tracker"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <JobTracker />
             </Layout>
           </ProtectedRoute>
         }

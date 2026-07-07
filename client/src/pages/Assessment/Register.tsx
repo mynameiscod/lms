@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { assessmentApi, PROFILE_OPTIONS, PRIMARY_LANGUAGES, TARGET_ROLES } from '../../api/assessmentApi';
 import './assessment.css';
@@ -62,6 +62,14 @@ const Register: React.FC = () => {
   const [token, setToken] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [devCode, setDevCode] = useState('');
+  const [resendIn, setResendIn] = useState(0);
+
+  // Resend countdown tick
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const t = setTimeout(() => setResendIn((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendIn]);
 
   const set = (k: string, v: any) => setForm((f) => ({ ...f, [k]: v }));
   const profileMeta = PROFILE_OPTIONS.find((p) => p.value === form.profile);
@@ -101,6 +109,7 @@ const Register: React.FC = () => {
       if (res.otp?.devCode) setDevCode(res.otp.devCode);
       if (resumeFile) { try { await assessmentApi.uploadResume(res.token, resumeFile); } catch { /* non-blocking */ } }
       setStep('otp');
+      setResendIn(45);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (e: any) {
       setErr(e.message || 'Something went wrong. Please try again.');
@@ -110,6 +119,16 @@ const Register: React.FC = () => {
   };
 
   const onOtpChange = (i: number, v: string) => {
+    // Support pasting the whole 6-digit code into any box.
+    const digits = v.replace(/\D/g, '');
+    if (digits.length > 1) {
+      const next = [...otp];
+      for (let k = 0; k < digits.length && i + k < 6; k++) next[i + k] = digits[k];
+      setOtp(next);
+      const last = Math.min(i + digits.length, 5);
+      (document.getElementById(`otp-${last}`) as HTMLInputElement)?.focus();
+      return;
+    }
     if (!/^\d?$/.test(v)) return;
     const next = [...otp]; next[i] = v; setOtp(next);
     if (v && i < 5) (document.getElementById(`otp-${i + 1}`) as HTMLInputElement)?.focus();
@@ -131,10 +150,19 @@ const Register: React.FC = () => {
   };
 
   const resend = async () => {
+    if (resendIn > 0 || busy) return;
     setErr('');
+    setResendIn(45);
     try { const r = await assessmentApi.resendOtp(token); if (r.otp?.devCode) setDevCode(r.otp.devCode); }
-    catch (e: any) { setErr(e.message); }
+    catch (e: any) { setErr(e.message); setResendIn(0); }
   };
+
+  const changeNumber = () => { setStep('form'); setErr(''); setOtp(['', '', '', '', '', '']); };
+  const fmtPhone = (p: string) => {
+    const d = (p || '').replace(/\D/g, '').slice(-10);
+    return d.length === 10 ? `+91 ${d.slice(0, 5)} ${d.slice(5)}` : `+91 ${p}`;
+  };
+  const mmss = `${String(Math.floor(resendIn / 60)).padStart(2, '0')}:${String(resendIn % 60).padStart(2, '0')}`;
 
   const scrollTo = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
@@ -301,21 +329,149 @@ const Register: React.FC = () => {
           </section>
         </>
       ) : (
-        <div className="as-wrap">
-          <div className="as-card as-form-card as-center">
-            <h2 style={{ fontSize: 22, marginBottom: 6 }}>Verify your number</h2>
-            <p className="as-note" style={{ marginBottom: 18 }}>Enter the 6-digit code sent to {form.phone} on WhatsApp. We'll create your account and email your login.</p>
-            <div className="as-otp">
-              {otp.map((d, i) => (
-                <input key={i} id={`otp-${i}`} value={d} inputMode="numeric" maxLength={1}
-                  onChange={(e) => onOtpChange(i, e.target.value)}
-                  onKeyDown={(e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) (document.getElementById(`otp-${i - 1}`) as HTMLInputElement)?.focus(); }} />
-              ))}
+        <div className="otpv-page">
+          <style>{`
+            .otpv-page{background:linear-gradient(180deg,#e9f1ff 0%,#f6faff 60%,#ffffff 100%);padding:40px 20px 64px;min-height:70vh;}
+            .otpv-grid{max-width:1220px;margin:0 auto;display:grid;grid-template-columns:1fr minmax(430px,520px) 1fr;gap:28px;align-items:center;}
+            .otpv-left h2{font-size:30px;line-height:1.15;font-weight:800;color:#0f2350;margin:0 0 14px;letter-spacing:-.01em;}
+            .otpv-left h2 .g{color:#2563eb;}
+            .otpv-left p.sub{color:#5b6b8c;font-size:14.5px;line-height:1.6;margin:0 0 22px;max-width:330px;}
+            .otpv-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:360px;}
+            .otpv-stat{background:#fff;border:1px solid #e4ecfb;border-radius:14px;padding:14px 15px;box-shadow:0 6px 18px rgba(37,99,235,.06);}
+            .otpv-stat .v{font-size:19px;font-weight:800;color:#0f2350;line-height:1;}
+            .otpv-stat .l{font-size:11.5px;color:#7385a8;margin-top:4px;font-weight:600;}
+            .otpv-stat .ic{font-size:16px;margin-bottom:8px;display:inline-block;}
+            .otpv-illus{margin-top:22px;background:linear-gradient(135deg,#dbe8ff,#eef4ff);border-radius:16px;padding:18px 16px;display:flex;align-items:center;gap:12px;max-width:360px;}
+            .otpv-illus .who{font-size:40px;}
+            .otpv-tags{display:flex;flex-wrap:wrap;gap:6px;}
+            .otpv-tag{font-size:11px;font-weight:800;color:#fff;border-radius:7px;padding:4px 9px;}
+            .otpv-card{background:#fff;border:1px solid #e6eefc;border-radius:22px;padding:30px 30px 26px;box-shadow:0 24px 60px rgba(20,50,110,.12);}
+            .otpv-steps{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:26px;}
+            .otpv-step{display:flex;flex-direction:column;align-items:center;gap:6px;flex:none;width:66px;}
+            .otpv-step .sic{width:38px;height:38px;border-radius:50%;background:#eef2f9;color:#9aa7bd;display:grid;place-items:center;font-size:15px;}
+            .otpv-step.on .sic{background:#2563eb;color:#fff;box-shadow:0 6px 14px rgba(37,99,235,.35);}
+            .otpv-step span{font-size:11px;color:#9aa7bd;font-weight:700;text-align:center;line-height:1.2;}
+            .otpv-step.on span{color:#2563eb;}
+            .otpv-stepline{flex:1;height:2px;background:#e4e9f2;margin-top:18px;}
+            .otpv-shield{width:52px;height:52px;border-radius:50%;background:#e0edff;display:grid;place-items:center;margin:2px auto 14px;}
+            .otpv-title{text-align:center;font-size:20px;font-weight:800;color:#0f2350;margin:0 0 6px;display:flex;align-items:center;justify-content:center;gap:8px;}
+            .otpv-desc{text-align:center;color:#5b6b8c;font-size:13.5px;margin:0 0 4px;}
+            .otpv-phone{text-align:center;font-size:16px;font-weight:800;color:#0f2350;margin:2px 0 2px;}
+            .otpv-change{background:none;border:none;color:#2563eb;font-weight:700;font-size:13px;cursor:pointer;padding:0 0 0 6px;}
+            .otpv-boxes{display:flex;gap:10px;justify-content:center;margin:20px 0 8px;}
+            .otpv-box{width:52px;height:60px;text-align:center;font-size:24px;font-weight:800;color:#0f2350;border:1.6px solid #d7e0f2;border-radius:13px;outline:none;transition:.15s;background:#fbfcff;}
+            .otpv-box:focus{border-color:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.16);background:#fff;}
+            .otpv-resend{display:flex;align-items:center;justify-content:center;gap:10px;font-size:13px;color:#7385a8;margin:14px 0 4px;}
+            .otpv-timer{background:#eef3ff;color:#2563eb;font-weight:800;border-radius:8px;padding:3px 9px;font-variant-numeric:tabular-nums;}
+            .otpv-resend button{background:none;border:none;color:#2563eb;font-weight:800;font-size:13px;cursor:pointer;}
+            .otpv-resend button:disabled{color:#b6c1d6;cursor:default;}
+            .otpv-verify{width:100%;margin-top:18px;background:linear-gradient(90deg,#2563eb,#1d4ed8);color:#fff;border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;box-shadow:0 12px 26px rgba(37,99,235,.32);transition:.15s;}
+            .otpv-verify:hover{filter:brightness(1.05);}
+            .otpv-verify:disabled{opacity:.7;cursor:default;box-shadow:none;}
+            .otpv-secure{text-align:center;color:#5b6b8c;font-size:13px;font-weight:700;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:6px;}
+            .otpv-secure-sub{text-align:center;color:#93a1bd;font-size:12px;margin-top:3px;}
+            .otpv-err{background:#fef2f2;color:#b91c1c;border-radius:10px;padding:9px 12px;font-size:13px;text-align:center;margin-top:12px;}
+            .otpv-dev{background:#f1f5f9;color:#475569;border-radius:8px;padding:7px 10px;font-size:12px;text-align:center;margin-top:10px;}
+            .otpv-right{display:flex;flex-direction:column;gap:16px;padding-left:6px;}
+            .otpv-chip{background:#fff;border:1px solid #e6eefc;border-radius:14px;padding:12px 14px;display:flex;align-items:center;gap:11px;box-shadow:0 8px 22px rgba(37,99,235,.07);}
+            .otpv-chip:nth-child(2){margin-left:26px;}
+            .otpv-chip:nth-child(3){margin-left:12px;}
+            .otpv-chip .cic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex:none;}
+            .otpv-chip .ct{font-size:13.5px;font-weight:800;color:#0f2350;line-height:1.2;}
+            .otpv-chip .cs{font-size:11.5px;color:#7385a8;}
+            @media (max-width:1040px){.otpv-grid{grid-template-columns:1fr;max-width:520px;}.otpv-left,.otpv-right{display:none;}}
+            @media (max-width:520px){.otpv-card{padding:24px 18px;}.otpv-box{width:44px;height:54px;font-size:21px;}.otpv-step span{font-size:10px;}}
+          `}</style>
+          <div className="otpv-grid">
+            {/* Left — journey + stats */}
+            <aside className="otpv-left">
+              <h2>Your Journey to a<br /><span className="g">Better Career Starts Here!</span> 🚀</h2>
+              <p className="sub">Verify your number and take the first step towards a personalized AI-powered assessment and career success.</p>
+              <div className="otpv-stats">
+                <div className="otpv-stat"><span className="ic">🎓</span><div className="v">10,000+</div><div className="l">Students Trained</div></div>
+                <div className="otpv-stat"><span className="ic">📈</span><div className="v">92%</div><div className="l">Placement Rate</div></div>
+                <div className="otpv-stat"><span className="ic">🏢</span><div className="v">500+</div><div className="l">Hiring Partners</div></div>
+                <div className="otpv-stat"><span className="ic">⭐</span><div className="v">145 Days</div><div className="l">To Job Ready</div></div>
+              </div>
+              <div className="otpv-illus">
+                <span className="who">👨‍💻</span>
+                <div className="otpv-tags">
+                  <span className="otpv-tag" style={{ background: '#f59e0b' }}>JAVA</span>
+                  <span className="otpv-tag" style={{ background: '#2563eb' }}>PYTHON</span>
+                  <span className="otpv-tag" style={{ background: '#8b5cf6' }}>DSA</span>
+                  <span className="otpv-tag" style={{ background: '#0ea5a4' }}>REACT</span>
+                </div>
+              </div>
+            </aside>
+
+            {/* Center — OTP card */}
+            <div className="otpv-card">
+              <div className="otpv-steps">
+                {[
+                  { ic: '📱', label: 'Verify Number', on: true },
+                  { ic: '📝', label: 'Assessment', on: false },
+                  { ic: '📊', label: 'Report', on: false },
+                  { ic: '💼', label: 'Interview Prep', on: false },
+                ].map((s, i, a) => (
+                  <React.Fragment key={s.label}>
+                    <div className={`otpv-step ${s.on ? 'on' : ''}`}>
+                      <div className="sic">{s.ic}</div>
+                      <span>{s.label}</span>
+                    </div>
+                    {i < a.length - 1 && <div className="otpv-stepline" />}
+                  </React.Fragment>
+                ))}
+              </div>
+
+              <div className="otpv-shield">
+                <svg viewBox="0 0 24 24" width="26" height="26" fill="#2563eb"><path d="M12 1 3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.2 14.2L7 11.4l1.4-1.4 2.4 2.4 4.8-4.8L17 9l-6.2 6.2z" /></svg>
+              </div>
+              <div className="otpv-title">Verify your WhatsApp number
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#25D366"><path d="M12.04 2c-5.46 0-9.9 4.44-9.9 9.9 0 1.75.46 3.45 1.32 4.95L2 22l5.3-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.9-4.44 9.9-9.9S17.5 2 12.04 2zm5.8 14.16c-.24.68-1.4 1.3-1.94 1.35-.5.05-1.13.07-1.82-.11-.42-.13-.96-.31-1.65-.61-2.9-1.25-4.79-4.17-4.94-4.36-.14-.19-1.18-1.57-1.18-2.99 0-1.42.75-2.12 1.01-2.41.26-.29.57-.36.76-.36.19 0 .38 0 .55.01.18.01.42-.07.65.5.24.58.82 2 .89 2.15.07.14.12.31.02.5-.09.19-.14.31-.28.48-.14.17-.29.37-.42.5-.14.14-.28.29-.12.57.16.28.71 1.17 1.53 1.9 1.05.94 1.94 1.23 2.22 1.37.28.14.44.12.6-.07.17-.19.69-.81.88-1.09.19-.28.37-.23.62-.14.25.09 1.6.75 1.87.89.28.14.46.21.53.32.07.12.07.68-.17 1.36z" /></svg>
+              </div>
+              <p className="otpv-desc">We've sent a 6-digit verification code to</p>
+              <div className="otpv-phone">{fmtPhone(form.phone)} <button className="otpv-change" onClick={changeNumber}>Change</button></div>
+
+              <div className="otpv-boxes">
+                {otp.map((d, i) => (
+                  <input key={i} id={`otp-${i}`} className="otpv-box" value={d} inputMode="numeric" maxLength={1} autoFocus={i === 0}
+                    onChange={(e) => onOtpChange(i, e.target.value)}
+                    onPaste={(e) => { const t = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6); if (t) { e.preventDefault(); onOtpChange(0, t); } }}
+                    onKeyDown={(e) => { if (e.key === 'Backspace' && !otp[i] && i > 0) (document.getElementById(`otp-${i - 1}`) as HTMLInputElement)?.focus(); }} />
+                ))}
+              </div>
+
+              <div className="otpv-resend">
+                <span>Didn't receive the code?</span>
+                {resendIn > 0 && <span className="otpv-timer">{mmss}</span>}
+                <button onClick={resend} disabled={resendIn > 0 || busy}>Resend OTP</button>
+              </div>
+
+              {devCode && <div className="otpv-dev">Dev mode: your code is <b>{devCode}</b></div>}
+              {err && <div className="otpv-err">{err}</div>}
+
+              <button className="otpv-verify" disabled={busy} onClick={verify}>
+                {busy ? 'Verifying…' : '✈  Verify & Start Assessment'} <span>→</span>
+              </button>
+
+              <div className="otpv-secure">🔒 100% Secure Verification</div>
+              <div className="otpv-secure-sub">Your data is safe with us and will never be shared.</div>
             </div>
-            {devCode && <div className="as-dev">Dev mode: your code is {devCode}</div>}
-            {err && <div className="as-err">{err}</div>}
-            <button className="as-btn" disabled={busy} onClick={verify} style={{ marginTop: 16 }}>{busy ? 'Verifying…' : 'Verify & Start Assessment'}</button>
-            <button className="as-btn ghost small" onClick={resend} style={{ marginTop: 10 }}>Resend code</button>
+
+            {/* Right — feature chips */}
+            <aside className="otpv-right">
+              {[
+                { ic: '🛡️', bg: '#e0edff', t: 'Secure', s: 'Verification' },
+                { ic: '⚡', bg: '#fef3c7', t: 'Instant', s: 'Access' },
+                { ic: '🎯', bg: '#ffe4e6', t: 'Personalized', s: 'Assessment' },
+                { ic: '🏆', bg: '#fef9c3', t: 'Career', s: 'Success' },
+              ].map((c) => (
+                <div className="otpv-chip" key={c.t}>
+                  <span className="cic" style={{ background: c.bg }}>{c.ic}</span>
+                  <div><div className="ct">{c.t}</div><div className="cs">{c.s}</div></div>
+                </div>
+              ))}
+            </aside>
           </div>
         </div>
       )}

@@ -60,6 +60,7 @@ import PlatformSettings from './pages/PlatformSettings';
 import MyLeave from './pages/MyLeave';
 import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
+import ProjectBuilder from './pages/ProjectBuilder';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -375,6 +376,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <CodePlayground />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/project-builder"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ProjectBuilder />
             </Layout>
           </ProtectedRoute>
         }

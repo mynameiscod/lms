@@ -11,6 +11,27 @@ import {
   TenantAdminEmailData
 } from './emailTemplates';
 
+// ─── Process-wide SMTP send throttle ────────────────────────────────────────
+// Hostinger (and most shared SMTP) throttles bursts — inviting several students
+// in a row, or a bulk quiz/assignment notification, fires sends back-to-back and
+// trips `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`. We serialize SMTP sends
+// through a single chain and keep a minimum gap between them so we never burst.
+// A lone send after an idle period waits 0ms; only rapid consecutive sends pace out.
+const MIN_SEND_GAP_MS = Number(process.env.SMTP_MIN_SEND_GAP_MS) || 3_000;
+let _sendChain: Promise<void> = Promise.resolve();
+let _lastSendAt = 0;
+
+/** Await a throttle slot: serializes callers and enforces MIN_SEND_GAP_MS spacing. */
+function acquireSendSlot(): Promise<void> {
+  const slot = _sendChain.then(async () => {
+    const wait = Math.max(0, MIN_SEND_GAP_MS - (Date.now() - _lastSendAt));
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    _lastSendAt = Date.now();
+  });
+  _sendChain = slot.catch(() => {}); // a failed slot must not break the chain
+  return slot;
+}
+
 /** Optional per-send headers (threading + deliverability). */
 export interface EmailSendOpts {
   messageId?: string;
@@ -99,6 +120,7 @@ export class EmailService {
     let lastErr: any;
     for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
       try {
+        await acquireSendSlot(); // pace consecutive sends so we don't burst-trip the provider limit
         return await this.transporter!.sendMail(mailOptions);
       } catch (err: any) {
         lastErr = err;
@@ -391,7 +413,7 @@ This is an automated message from CodeBegun Learning Management System.
           html: htmlContent,
           text: plainTextContent
         };
-        const info = await this.transporter!.sendMail(mailOptions);
+        const info = await this.sendMailWithRetry(mailOptions);
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
         console.log('   Message ID:', info.messageId);
       }
@@ -614,7 +636,7 @@ ${quizDescription ? `📖 Description: ${quizDescription}\n` : ''}
           html: htmlContent,
           text: plainTextContent
         };
-        const info = await this.transporter!.sendMail(mailOptions);
+        const info = await this.sendMailWithRetry(mailOptions);
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
         console.log('   Message ID:', info.messageId);
       }
@@ -747,7 +769,7 @@ This is an automated message from CodeBegun Learning Management System.
           html: htmlContent,
           text: plainTextContent
         };
-        const info = await this.transporter!.sendMail(mailOptions);
+        const info = await this.sendMailWithRetry(mailOptions);
         console.log('   ✅ STATUS: EMAIL SENT SUCCESSFULLY');
         console.log('   Message ID:', info.messageId);
       }

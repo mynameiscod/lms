@@ -529,8 +529,10 @@ class InterviewTemplateService {
           isActive: true,
         }).lean();
       } else if (section.questionSource === 'random') {
+        // NOTE: aggregate() does NOT cast query types from the schema the way find()
+        // does, so tenantId must be an explicit ObjectId or $match silently matches nothing.
         const randomQuery: any = {
-          tenantId,
+          tenantId: new mongoose.Types.ObjectId(tenantId),
           isActive: true,
           interviewCategory: section.sectionType,
         };

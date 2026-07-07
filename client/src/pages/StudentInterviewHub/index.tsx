@@ -15,21 +15,24 @@ const StudentInterviewHub: React.FC = () => {
   const [assignments, setAssignments] = useState<any[]>([]);
   const [attempts, setAttempts] = useState<any[]>([]);
   const [analytics, setAnalytics] = useState<any>(null);
+  const [practice, setPractice] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<'assigned' | 'history' | 'analytics'>('assigned');
+  const [tab, setTab] = useState<'assigned' | 'practice' | 'history' | 'analytics'>('assigned');
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [assignRes, histRes, analRes] = await Promise.all([
+        const [assignRes, histRes, analRes, pracRes] = await Promise.all([
           studentInterviewApi.getAssignments(),
           studentInterviewApi.getAttempts(),
           studentInterviewApi.getAnalytics().catch(() => ({ data: null })),
+          studentInterviewApi.getPracticeTemplates().catch(() => ({ data: [] })),
         ]);
         setAssignments(assignRes.data || assignRes.assignments || []);
         setAttempts(histRes.attempts || histRes.data || []);
         setAnalytics(analRes.data);
+        setPractice(pracRes.data || []);
       } catch (err) { console.error(err); }
       finally { setLoading(false); }
     };
@@ -38,6 +41,11 @@ const StudentInterviewHub: React.FC = () => {
 
   const handleStartInterview = (assignmentId: string, templateId: string) => {
     navigate(`/student/interviews/take/${templateId}?assignmentId=${assignmentId}`);
+  };
+
+  // Self-serve practice — start a mock immediately, no assignment needed.
+  const handleStartPractice = (templateId: string) => {
+    navigate(`/student/interviews/take/${templateId}`);
   };
 
   const handleViewReport = (attemptId: string) => {
@@ -70,6 +78,9 @@ const StudentInterviewHub: React.FC = () => {
       <div className="sih-tabs">
         <button className={tab === 'assigned' ? 'active' : ''} onClick={() => setTab('assigned')}>
           Assigned ({activeAssignments.length})
+        </button>
+        <button className={tab === 'practice' ? 'active' : ''} onClick={() => setTab('practice')}>
+          Practice ({practice.length})
         </button>
         <button className={tab === 'history' ? 'active' : ''} onClick={() => setTab('history')}>
           History ({attempts.length})
@@ -140,6 +151,45 @@ const StudentInterviewHub: React.FC = () => {
                 ))}
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {/* Practice Tab — self-serve mock interviews (no admin assignment needed) */}
+      {tab === 'practice' && (
+        <div className="sih-assigned">
+          <p className="sih-subtitle" style={{ marginTop: 0 }}>
+            Practice a full mock interview any time — AI asks the questions, scores your answers, and gives you a readiness report.
+          </p>
+          {practice.length === 0 ? (
+            <div className="sih-empty">No practice interviews are published yet. Check back soon!</div>
+          ) : (
+            <div className="sih-assign-grid">
+              {practice.map(t => (
+                <div key={t._id} className="sih-assign-card">
+                  <div className="sih-assign-card-top">
+                    <span className="sih-assign-status" style={{ background: '#6366f1' }}>Practice</span>
+                    {t.difficultyLevel && <span className="sih-due" style={{ textTransform: 'capitalize' }}>{t.difficultyLevel}</span>}
+                  </div>
+                  <h3>{t.title || 'Mock Interview'}</h3>
+                  {t.interviewCategories && (
+                    <div className="sih-cats">
+                      {t.interviewCategories.map((c: string) => (
+                        <span key={c} className="sih-cat-tag">{c}</span>
+                      ))}
+                    </div>
+                  )}
+                  {t.description && <p className="sih-assign-desc">{t.description.substring(0, 120)}</p>}
+                  <div className="sih-assign-meta">
+                    {t.sectionCount != null && <span>{t.sectionCount} section{t.sectionCount === 1 ? '' : 's'}</span>}
+                    {t.totalDuration && <span>Duration: {t.totalDuration} min</span>}
+                  </div>
+                  <button className="sih-btn-start" onClick={() => handleStartPractice(t._id)}>
+                    Start Practice
+                  </button>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

@@ -252,6 +252,13 @@ router.get(
   ctrl.getStudentAssignments
 );
 
+// Self-serve: published templates a student can practice on demand
+router.get(
+  '/student/practice-templates',
+  roleGuard(['attempt_interviews']),
+  ctrl.getPracticeTemplates
+);
+
 router.post(
   '/student/attempts/start',
   roleGuard(['attempt_interviews']),

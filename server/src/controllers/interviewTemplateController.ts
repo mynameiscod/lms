@@ -406,6 +406,26 @@ export const getStudentAssignments = async (req: Request, res: Response) => {
   }
 };
 
+// STUDENT — list published templates a student can self-start as an on-demand mock (no admin assignment needed).
+export const getPracticeTemplates = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const { templates } = await interviewTemplateService.getTemplates(tenantId, { status: 'published', limit: 100 });
+    const slim = (templates || []).map((t: any) => ({
+      _id: t._id,
+      title: t.title,
+      description: t.description || '',
+      interviewCategories: t.interviewCategories || [],
+      difficultyLevel: t.difficultyLevel,
+      totalDuration: t.totalDuration,
+      sectionCount: (t.sections || []).length,
+    }));
+    res.json({ success: true, data: slim });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const startAttempt = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;

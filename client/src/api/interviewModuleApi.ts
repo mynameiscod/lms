@@ -201,6 +201,9 @@ export const studentInterviewApi = {
     return apiFetch(`${MODULE_URL}/student/assignments${qs}`);
   },
 
+  // Self-serve: published templates a student can practice on demand
+  getPracticeTemplates: () => apiFetch(`${MODULE_URL}/student/practice-templates`),
+
   startAttempt: (templateId: string, assignmentId?: string, mode?: 'structured' | 'conversational') =>
     apiFetch(`${MODULE_URL}/student/attempts/start`, {
       method: 'POST',

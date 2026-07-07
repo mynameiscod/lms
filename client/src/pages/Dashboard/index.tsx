@@ -6,6 +6,7 @@ import { attendanceApi, dashboardApi, leadApi, collegeSnapshotApi, placementDriv
 import { enrollmentPlanApi } from '../../api/enrollmentPlanApi';
 import AdminOverview from './AdminOverview';
 import StudentDashboard from './StudentDashboard';
+import CareerPilotDashboard from './CareerPilotDashboard';
 import './DashboardPage.css';
 
 interface DashboardData {
@@ -339,6 +340,11 @@ const DashboardPage: React.FC = () => {
         </div>
       </div>
     );
+  }
+
+  // CareerPilot participants get the focused career dashboard (no batch LMS cards).
+  if ((user as any)?.isCareerPilot) {
+    return <CareerPilotDashboard firstName={user?.firstName || 'there'} todayPlan={todayPlan} navigate={navigate} />;
   }
 
   // Student Dashboard — data computed here, rendered by <StudentDashboard/>

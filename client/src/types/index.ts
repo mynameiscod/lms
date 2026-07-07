@@ -13,6 +13,7 @@ export interface User {
   profilePicture?: string;
   createdAt?: string;
   permissions?: string[];
+  isCareerPilot?: boolean;   // true → focused CareerPilot experience (no batch LMS nav)
   // Profile fields
   phone?: string;
   bio?: string;

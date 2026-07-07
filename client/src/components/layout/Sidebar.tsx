@@ -264,7 +264,19 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     return true;
   };
 
-  const filteredItems = menuItems.filter(hasAccessToMenu);
+  const roleFilteredItems = menuItems.filter(hasAccessToMenu);
+
+  // CareerPilot participants get a focused career-only nav — no batch LMS clutter
+  // (Attendance, Apply Leave, Assignments, Quizzes, My Tasks/My Work, Fees, etc.).
+  const isCareerPilot = !!(user as any)?.isCareerPilot && user?.role === 'STUDENT';
+  const CAREERPILOT_NAV = ['dashboard', 'learning plan', 'interview', 'playground', 'project builder', 'job tracker', 'ai mentor', 'resume', 'career profile'];
+  const inCareerPilotNav = (label: string) => {
+    const l = label.toLowerCase();
+    return CAREERPILOT_NAV.some(k => l.includes(k));
+  };
+  const filteredItems = isCareerPilot
+    ? roleFilteredItems.filter(i => inCareerPilotNav(i.label))
+    : roleFilteredItems;
 
   const renderMenuItem = (item: MenuItem, isSubmenu = false) => {
     if (!hasAccessToMenu(item)) return null;

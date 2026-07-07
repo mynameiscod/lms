@@ -8,6 +8,7 @@ import Enrollment from '../models/Enrollment';
 import Course from '../models/Course';
 import User from '../models/User';
 import Role from '../models/Role';
+import AssessmentSubmission from '../models/AssessmentSubmission';
 import StudentProfile from '../models/StudentProfile';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
@@ -178,10 +179,16 @@ export const getUserById = async (req: AuthenticatedRequest, res: Response) => {
       });
     }
 
+    // A CareerPilot participant is anyone linked to an assessment submission
+    // (funnel candidate, or an existing student who joined via the assessment).
+    // Drives the focused, career-only experience on the client (no batch LMS clutter).
+    const isCareerPilot = !!(await AssessmentSubmission.exists({ candidateUserId: userId }));
+    const data = (user as any).toObject ? { ...(user as any).toObject(), isCareerPilot } : { ...(user as any), isCareerPilot };
+
     res.json({
       success: true,
       message: 'User fetched successfully',
-      data: user
+      data
     });
   } catch (error: any) {
     res.status(500).json({

@@ -198,17 +198,37 @@ Return JSON exactly:
   };
 }
 
+// Normalise an AI-returned checklist into our GithubCheck shape (reused for LinkedIn).
+function normalizeChecklist(raw: any): GithubCheck[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((c: any) => c && c.label)
+    .map((c: any) => ({
+      label: String(c.label),
+      status: (['pass', 'warn', 'fail'].includes(c.status) ? c.status : 'warn') as GithubCheck['status'],
+      hint: String(c.hint || ''),
+    }))
+    .slice(0, 10);
+}
+
 export async function reviewLinkedin(targetRole: string, pasted: string) {
   if (!pasted || pasted.trim().length < 20) {
-    return { score: 0, issues: [{ area: 'LinkedIn', problem: 'No LinkedIn content provided', fix: 'Paste your headline, About, and experience text.', severity: 'high' }], improved: {} };
+    return { score: 0, issues: [{ area: 'LinkedIn', problem: 'No LinkedIn content provided', fix: 'Paste your headline, About, and experience text.', severity: 'high' }], improved: {}, checklist: [] };
   }
   const sys = 'You are a LinkedIn personal-branding expert and recruiter. Output ONLY raw JSON.';
-  const usr = `Target role: ${targetRole || 'software engineer'}\n\nStudent's pasted LinkedIn content:\n${pasted.slice(0, 6000)}\n\nReturn JSON exactly:\n{"score":<0-100 for the target role>,"issues":[{"area":"","problem":"","fix":"","severity":"high|medium|low"}],"improved":{"headline":"<punchy headline>","about":"<rewritten About section>","skills":["..."],"projectsBullets":["..."],"experienceBullets":["..."],"postIdeas":["<5 daily post ideas>"]}}`;
-  const ai = await callAIJSON(sys, usr);
+  const usr = `Target role: ${targetRole || 'software engineer'}
+
+Student's pasted LinkedIn content:
+${pasted.slice(0, 6000)}
+
+Return JSON exactly:
+{"score":<0-100 for the target role>,"issues":[{"area":"","problem":"","fix":"","severity":"high|medium|low"}],"checklist":[{"label":"Headline with role + value","status":"pass|warn|fail","hint":"<what to fix>"},{"label":"Compelling About section","status":"","hint":""},{"label":"Quantified experience","status":"","hint":""},{"label":"Skills relevant to target role","status":"","hint":""},{"label":"Featured projects / portfolio","status":"","hint":""},{"label":"Recruiter keywords","status":"","hint":""},{"label":"Professional photo & banner mention","status":"","hint":""},{"label":"Active posting / engagement","status":"","hint":""}],"improved":{"headline":"<punchy headline>","about":"<rewritten About section>","skills":["..."],"projectsBullets":["..."],"experienceBullets":["..."],"postIdeas":["<5 daily post ideas>"],"contentPlan":["<a 4-week growth plan: 4-6 concrete weekly actions like 'Week 1: post a project walkthrough + connect with 10 recruiters in your domain'>"]}}`;
+  const ai = await callAIJSON(sys, usr, 2600);
   return {
     score: typeof ai.score === 'number' ? ai.score : 0,
     issues: Array.isArray(ai.issues) ? ai.issues : [],
     improved: ai.improved || {},
+    checklist: normalizeChecklist(ai.checklist),
   };
 }
 

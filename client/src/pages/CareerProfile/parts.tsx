@@ -9,13 +9,13 @@ const CHECK_UI: Record<GithubCheck['status'], { icon: string; color: string; bg:
   fail: { icon: '✕', color: '#dc2626', bg: '#fef2f2' },
 };
 
-// GitHub health checklist — the 8 recruiter-facing signals with pass/warn/fail.
-export function GithubChecklist({ checklist }: { checklist?: GithubCheck[] }) {
+// Health checklist — recruiter-facing signals with pass/warn/fail (GitHub + LinkedIn).
+export function GithubChecklist({ checklist, title = 'GitHub health checklist' }: { checklist?: GithubCheck[]; title?: string }) {
   if (!checklist || !checklist.length) return null;
   const passed = checklist.filter(c => c.status === 'pass').length;
   return (
     <div style={{ margin: '4px 0 18px' }}>
-      <p className="cp-subhead">GitHub health checklist — {passed}/{checklist.length} passing</p>
+      <p className="cp-subhead">{title} — {passed}/{checklist.length} passing</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 8 }}>
         {checklist.map((c, i) => {
           const ui = CHECK_UI[c.status] || CHECK_UI.warn;

@@ -78,7 +78,7 @@ export const runReview = async (req: Request, res: Response) => {
       cp.github = { score: 0, issues: [{ area: 'GitHub', problem: 'Review failed', fix: String((r2 as any).reason?.message || r2.reason), severity: 'high' }], improved: {}, reviewedAt: new Date() } as any;
     }
     if (r3.status === 'fulfilled' && r3.value) {
-      cp.linkedin = { score: r3.value.score, issues: r3.value.issues, improved: r3.value.improved, reviewedAt: new Date() } as any;
+      cp.linkedin = { score: r3.value.score, issues: r3.value.issues, improved: r3.value.improved, checklist: (r3.value as any).checklist, reviewedAt: new Date() } as any;
     } else if (r3.status === 'rejected') {
       cp.linkedin = { score: 0, issues: [{ area: 'LinkedIn', problem: 'Review failed', fix: String((r3 as any).reason?.message || r3.reason), severity: 'high' }], improved: {}, reviewedAt: new Date() } as any;
     }

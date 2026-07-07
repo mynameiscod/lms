@@ -163,7 +163,8 @@ export default function CareerProfilePage() {
                 </button>
               ))}
             </div>
-            {active && tab === 'github' && <GithubChecklist checklist={active.checklist} />}
+            {active && tab === 'github' && <GithubChecklist checklist={active.checklist} title="GitHub health checklist" />}
+            {active && tab === 'linkedin' && <GithubChecklist checklist={active.checklist} title="LinkedIn profile checklist" />}
             {active && (
               <div className="cp-twocol cp-pillar">
                 <div>

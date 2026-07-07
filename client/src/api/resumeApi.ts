@@ -32,6 +32,7 @@ export const resumeApi = {
     API.put('/resume/sections', { sections, template, design }),
   score: () => API.post('/resume/score'),
   improve: () => API.post('/resume/improve'),
+  tailor: (jobDescription: string) => API.post('/resume/tailor', { jobDescription }),
   share: () => API.post('/resume/share'),
   getPublic: (token: string) => API.get(`/resume/public/${token}`),
   getAll: () => API.get('/resume/all'),
@@ -73,6 +74,16 @@ export interface ResumeScore {
   atsWarnings: string[];
   keywordsFound: string[];
   keywordsMissing: string[];
+}
+
+export interface ResumeTailorResult {
+  matchScore: number;
+  jobTitle: string;
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  tailoredSummary: string;
+  tailoredBullets: string[];
+  suggestions: { area: string; fix: string }[];
 }
 
 export interface ResumeData {

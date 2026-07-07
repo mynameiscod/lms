@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import fs from 'fs';
 import Resume from '../models/Resume';
 import { extractTextFromFile, parseResumeText, getEmptySections } from '../services/resumeParserService';
-import { scoreResume, improveResume } from '../services/resumeScoringService';
+import { scoreResume, improveResume, tailorResume } from '../services/resumeScoringService';
 
 interface AuthRequest extends Request {
   user?: { id: string; role?: string };
@@ -142,6 +142,25 @@ export async function scoreMyResume(req: AuthRequest, res: Response) {
   } catch (err: any) {
     console.error('scoreMyResume error:', err);
     res.status(500).json({ success: false, message: err.message || 'Scoring failed' });
+  }
+}
+
+// POST /resume/tailor  — tailor the saved resume to a pasted job description (no save; returns a match report).
+export async function tailorMyResume(req: AuthRequest, res: Response) {
+  try {
+    const userId = req.user?.id;
+    const tenantId = req.tenantId;
+    if (!userId || !tenantId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const { jobDescription } = req.body || {};
+    const resume = await Resume.findOne({ userId, tenantId });
+    if (!resume) return res.status(404).json({ success: false, message: 'No resume found. Save your resume first.' });
+
+    const result = await tailorResume(resume.sections as any, String(jobDescription || ''));
+    res.json({ success: true, data: result });
+  } catch (err: any) {
+    console.error('tailorMyResume error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Tailoring failed' });
   }
 }
 

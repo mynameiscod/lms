@@ -4,6 +4,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import {
   resumeApi, emptySections, ResumeData, ResumeSections, ResumeExperience,
   ResumeEducation, ResumeProject, ResumeCertification, ResumeTemplate, ResumeDesign,
+  ResumeTailorResult,
 } from '../../api/resumeApi';
 import { ResumeDocument, TEMPLATES, FONT_OPTIONS, ACCENT_PRESETS } from './templates';
 import { RichTextEditor } from './RichText';
@@ -440,6 +441,10 @@ const ResumeBuilder: React.FC = () => {
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [menuOpen, setMenuOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [showTailor, setShowTailor] = useState(false);
+  const [jd, setJd] = useState('');
+  const [tailoring, setTailoring] = useState(false);
+  const [tailorResult, setTailorResult] = useState<ResumeTailorResult | null>(null);
 
   const loadedRef = useRef(false);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -556,6 +561,28 @@ const ResumeBuilder: React.FC = () => {
     finally { setImproving(false); }
   };
 
+  // Tailor the resume to a pasted job description → JD-match report.
+  const handleTailor = async () => {
+    if (tailoring) return;
+    if (jd.trim().length < 30) { showToast('Paste a fuller job description first.'); return; }
+    try {
+      await resumeApi.saveSections(sections, template, design);
+      setTailoring(true);
+      setTailorResult(null);
+      const res = await resumeApi.tailor(jd.trim());
+      setTailorResult(res.data.data);
+    } catch (e: any) { showToast(e?.response?.data?.message || '❌ Tailoring failed. Try again.'); }
+    finally { setTailoring(false); }
+  };
+
+  const applyTailoredSummary = () => {
+    if (!tailorResult?.tailoredSummary) return;
+    setSections(s => ({ ...s, summary: tailorResult.tailoredSummary }));
+    setShowTailor(false);
+    showToast('✅ Summary updated for this job');
+    setTimeout(() => jumpTo('rb-sec-summary'), 120);
+  };
+
   // ── Actionable tips (click → apply & jump) ──────────────────────────────────
   const totalSkills = sections.skills.reduce((n, g) => n + g.items.length, 0);
   const tips: { id: string; label: string; done: boolean; action: () => void }[] = [
@@ -623,6 +650,102 @@ const ResumeBuilder: React.FC = () => {
         </div>
       )}
       {showUpload && <UploadModal onUploaded={handleUploaded} onClose={() => setShowUpload(false)} />}
+      {showTailor && (
+        <div className="rb-modal-backdrop" onClick={() => !tailoring && setShowTailor(false)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24, overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()}
+            style={{ background: '#fff', borderRadius: 16, width: 'min(720px, 100%)', margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.25)', overflow: 'hidden' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '16px 20px', background: 'linear-gradient(90deg,#0ea5a4,#0369a1)', color: '#fff' }}>
+              <span style={{ fontSize: 20 }}>🎯</span>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontWeight: 700, fontSize: 16 }}>Tailor your resume to a job</div>
+                <div style={{ fontSize: 12.5, opacity: 0.9 }}>Paste the job description — AI shows your match, missing keywords, and tailored bullets.</div>
+              </div>
+              <button onClick={() => !tailoring && setShowTailor(false)} style={{ background: 'transparent', border: 'none', color: '#fff', fontSize: 24, cursor: 'pointer', lineHeight: 1 }}>×</button>
+            </div>
+
+            <div style={{ padding: 20 }}>
+              <textarea
+                value={jd}
+                onChange={e => setJd(e.target.value)}
+                placeholder="Paste the full job description here — responsibilities, required skills, tech stack…"
+                style={{ width: '100%', minHeight: 130, border: '1px solid #cbd5e1', borderRadius: 10, padding: 12, fontSize: 13.5, resize: 'vertical', fontFamily: 'inherit' }}
+              />
+              <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+                <button onClick={handleTailor} disabled={tailoring}
+                  style={{ background: 'linear-gradient(90deg,#0ea5a4,#0369a1)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 14, cursor: tailoring ? 'default' : 'pointer', opacity: tailoring ? 0.7 : 1 }}>
+                  {tailoring ? '⏳ Analysing…' : '🎯 Analyse match'}
+                </button>
+                {jd && <button onClick={() => { setJd(''); setTailorResult(null); }} disabled={tailoring}
+                  style={{ background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: 10, padding: '11px 16px', fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>Clear</button>}
+              </div>
+
+              {tailoring && <div style={{ marginTop: 16, fontSize: 13, color: '#64748b' }}>Comparing your resume against this job… this takes ~20–30s.</div>}
+
+              {tailorResult && (
+                <div style={{ marginTop: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 16, padding: 16, borderRadius: 12, background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                    <div style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: 32, fontWeight: 800, color: scoreColor(tailorResult.matchScore), lineHeight: 1 }}>{tailorResult.matchScore}<span style={{ fontSize: 15, color: '#94a3b8' }}>%</span></div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>match</div>
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>{tailorResult.jobTitle || 'This role'}</div>
+                      <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>{tailorResult.matchScore >= 75 ? 'Strong fit — a few tweaks will push it higher.' : tailorResult.matchScore >= 55 ? 'Decent fit — close the gaps below to stand out.' : 'Some gaps — add the missing keywords & tailor your bullets.'}</div>
+                    </div>
+                  </div>
+
+                  {tailorResult.missingKeywords.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Missing keywords from this job</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {tailorResult.missingKeywords.map((k, i) => <span key={i} style={{ background: '#fef2f2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>{k}</span>)}
+                      </div>
+                    </div>
+                  )}
+                  {tailorResult.matchedKeywords.length > 0 && (
+                    <div style={{ marginTop: 14 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Already matched</div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {tailorResult.matchedKeywords.map((k, i) => <span key={i} style={{ background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0', borderRadius: 999, padding: '4px 10px', fontSize: 12, fontWeight: 600 }}>{k}</span>)}
+                      </div>
+                    </div>
+                  )}
+
+                  {tailorResult.tailoredSummary && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Tailored summary for this job</div>
+                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12, fontSize: 13, color: '#0f172a', lineHeight: 1.5 }}>{tailorResult.tailoredSummary}</div>
+                      <button onClick={applyTailoredSummary} style={{ marginTop: 8, background: '#0ea5a4', color: '#fff', border: 'none', borderRadius: 8, padding: '8px 14px', fontWeight: 700, fontSize: 12.5, cursor: 'pointer' }}>Use this summary →</button>
+                    </div>
+                  )}
+
+                  {tailorResult.tailoredBullets.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Tailored bullet points (copy the ones that fit)</div>
+                      <ul style={{ margin: 0, paddingLeft: 18 }}>
+                        {tailorResult.tailoredBullets.map((b, i) => <li key={i} style={{ fontSize: 13, color: '#0f172a', lineHeight: 1.5, marginBottom: 4 }}>{b}</li>)}
+                      </ul>
+                    </div>
+                  )}
+
+                  {tailorResult.suggestions.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 12.5, fontWeight: 700, color: '#334155', marginBottom: 6 }}>How to close the gap</div>
+                      {tailorResult.suggestions.map((s, i) => (
+                        <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 6 }}>
+                          <span style={{ color: '#0ea5a4', fontWeight: 700 }}>›</span>
+                          <div style={{ fontSize: 13, color: '#334155', lineHeight: 1.45 }}>{s.area ? <b>{s.area}: </b> : null}{s.fix}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Top bar */}
       <div className="rb-topbar">
@@ -678,6 +801,15 @@ const ResumeBuilder: React.FC = () => {
                 title="Let AI rewrite your summary, bullet points, project descriptions and skills to be ATS-optimised"
               >
                 {improving ? '✨ Improving your resume…' : '✨ Auto-fix with AI'}
+              </button>
+              <button
+                className="rb-analyse-btn"
+                onClick={() => { setShowTailor(true); setTailorResult(null); }}
+                disabled={improving || scoring}
+                style={{ background: 'linear-gradient(90deg,#0ea5a4,#0369a1)' }}
+                title="Paste a job description and see how well your resume matches — with missing keywords and tailored bullets"
+              >
+                🎯 Tailor to a Job
               </button>
 
               <div className="rb-card rb-preview-card">

@@ -141,3 +141,48 @@ function getZeroScore(): IResumeScore {
     keywordsMissing: [],
   };
 }
+
+/**
+ * Tailor a resume to a SPECIFIC job description.
+ * Returns a JD-match report: match %, matched vs missing JD keywords, a rewritten
+ * summary aimed at this JD, tailored experience/project bullets, and concrete
+ * gap actions — grounded in the candidate's real resume (no invented facts).
+ */
+export interface IResumeTailorResult {
+  matchScore: number;
+  jobTitle: string;
+  matchedKeywords: string[];
+  missingKeywords: string[];
+  tailoredSummary: string;
+  tailoredBullets: string[];
+  suggestions: { area: string; fix: string }[];
+}
+
+export async function tailorResume(sections: IResumeSections, jobDescription: string): Promise<IResumeTailorResult> {
+  const jd = (jobDescription || '').trim();
+  if (jd.length < 30) throw new Error('Paste a fuller job description (at least a few lines).');
+  const prompt = `You are a senior technical recruiter + expert resume writer. Compare the candidate's resume to the TARGET JOB DESCRIPTION and tailor the resume to it. Only use facts present in the resume — do NOT invent employers, degrees, titles or technologies the candidate does not have; you may re-emphasise and re-word real experience.
+
+TARGET JOB DESCRIPTION:
+${jd.slice(0, 4000)}
+
+CANDIDATE RESUME (JSON):
+${JSON.stringify(sections).slice(0, 6000)}
+
+Return ONLY raw JSON:
+{"matchScore": <0-100 how well this resume matches THIS job today>, "jobTitle": "<role this JD is for>", "matchedKeywords": ["<JD skills/keywords the resume already has>"], "missingKeywords": ["<important JD skills/keywords absent or weak in the resume>"], "tailoredSummary": "<2-3 line professional summary rewritten to target THIS job, truthful to the resume>", "tailoredBullets": ["<5-8 impact/metric-driven experience or project bullets re-worded to hit this JD's requirements, grounded in real resume content>"], "suggestions": [{"area": "<what to strengthen>", "fix": "<specific action to close the gap for this job>"}]}`;
+  let parsed: any = {};
+  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 2400))); } catch { parsed = {}; }
+  const arr = (v: any): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : []);
+  return {
+    matchScore: clamp(parsed.matchScore, 100),
+    jobTitle: typeof parsed.jobTitle === 'string' ? parsed.jobTitle : '',
+    matchedKeywords: arr(parsed.matchedKeywords).slice(0, 30),
+    missingKeywords: arr(parsed.missingKeywords).slice(0, 30),
+    tailoredSummary: typeof parsed.tailoredSummary === 'string' ? parsed.tailoredSummary : '',
+    tailoredBullets: arr(parsed.tailoredBullets).slice(0, 10),
+    suggestions: Array.isArray(parsed.suggestions)
+      ? parsed.suggestions.filter((s: any) => s && (s.fix || s.area)).map((s: any) => ({ area: String(s.area || ''), fix: String(s.fix || '') })).slice(0, 12)
+      : [],
+  };
+}

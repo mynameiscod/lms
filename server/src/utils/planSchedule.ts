@@ -11,6 +11,19 @@ export const isWeekend = (d: Date): boolean => {
   return x === 0 || x === 6; // Sun / Sat
 };
 
+// "Today" as an India (Asia/Kolkata) calendar date, returned as a local-midnight Date
+// so it compares consistently with the stored batch/enrollment dates. Batches run on
+// IST dates, but the server clock is UTC — using new Date() directly makes the current
+// plan day lag by one between IST-midnight and 05:30 IST (UTC still on the previous day),
+// which left "today's" day locked until mid-morning. This anchors the day math to IST.
+export function istToday(): Date {
+  const s = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date()); // e.g. "2026-07-08"
+  const [y, m, d] = s.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 export function asLocalDate(input: string | Date): Date {
   if (input instanceof Date) {
     const d = new Date(input);
@@ -51,7 +64,7 @@ export function workingDateForDay(startDate: Date | string, dayNumber: number, h
 }
 
 /** Which plan day number is "today" for a cohort, or null if before start / past end. */
-export function planDayForDate(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = new Date()): number | null {
+export function planDayForDate(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = istToday()): number | null {
   const t = asLocalDate(today);
   for (let day = 1; day <= totalDays; day++) {
     const dd = workingDateForDay(startDate, day, holidays);
@@ -67,7 +80,7 @@ export function planDayForDate(startDate: Date | string, totalDays: number, holi
  * still returns the last working-day number on a weekend/holiday (not null), so it's
  * the right value for a "Today's Day N" indicator. Null only if today is before start.
  */
-export function workingDayCount(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = new Date()): number | null {
+export function workingDayCount(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = istToday()): number | null {
   const t = asLocalDate(today);
   const start = asLocalDate(startDate);
   if (t < start) return null;

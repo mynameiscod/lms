@@ -6,6 +6,7 @@ import Submission from '../models/Submission';
 import { StudentNote, StudentBookmark, TopicDiscussion } from '../models/LearningExtras';
 import { getAnthropic, getOpenAI, isAnthropicEnabled } from '../services/aiClients';
 import * as settings from '../services/settingsService';
+import { istToday } from '../utils/planSchedule';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -101,7 +102,7 @@ export const heartbeat = async (req: Request, res: Response) => {
     const en = await ownedEnrollment(req);
     if (!en) return res.status(404).json({ message: 'Enrollment not found' });
     const seconds = Math.min(Math.max(Number(req.body?.seconds) || 0, 0), 600); // cap a single beat at 10 min
-    const today = ymd(new Date());
+    const today = ymd(istToday());
     en.timeSpentSeconds = (en.timeSpentSeconds || 0) + seconds;
     if (!en.activityDates?.includes(today)) en.activityDates = [...(en.activityDates || []), today];
     en.lastActivityAt = new Date();
@@ -113,7 +114,7 @@ export const heartbeat = async (req: Request, res: Response) => {
 // Consecutive-day streak ending today or yesterday.
 function computeStreak(dates: string[] = []): number {
   const set = new Set(dates);
-  const d = new Date();
+  const d = istToday();
   // allow the streak to still count if they were active yesterday but not yet today
   if (!set.has(ymd(d))) d.setDate(d.getDate() - 1);
   let streak = 0;
@@ -156,7 +157,7 @@ export const getSummary = async (req: Request, res: Response) => {
     const notStarted = Math.max(0, totalItems - completedCount - inProgress);
 
     // Today's goal — content completed today (by type) + assignment submissions today.
-    const today = ymd(new Date());
+    const today = ymd(istToday());
     const todayIds = en.completedItems.filter(ci => ymd(new Date(ci.completedAt)) === today).map(ci => ci.contentId);
     let videosDone = 0, quizzesDone = 0;
     if (todayIds.length) {

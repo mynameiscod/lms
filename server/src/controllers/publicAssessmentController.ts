@@ -16,6 +16,34 @@ import { enrollCandidateInRoadmapPlan } from '../services/assessmentEnrollmentSe
 import { designExamForSubmission } from '../services/assessmentExamDesignerService';
 import { extractTextFromFile, parseResumeText } from '../services/resumeParserService';
 import { CANDIDATE_SEGMENTS, CandidateSegment } from '../constants/assessment';
+import codeRunner from '../services/codeRunnerService';
+import { ProgrammingLanguage } from '../models/Assignment';
+
+const RUNNABLE_LANGS = new Set(['javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'sql']);
+
+// POST /public/assessment/run-code — run a candidate's code during the exam.
+// Token-gated (a valid in-progress submission must exist) so it isn't an open runner.
+export const runAssessmentCode = async (req: Request, res: Response) => {
+  try {
+    const { token, language, code, stdin } = req.body || {};
+    if (!token || !code?.trim() || !language) {
+      return res.status(400).json({ success: false, message: 'token, language and code are required' });
+    }
+    const submission = await AssessmentSubmission.findOne({ token }).select('_id').lean();
+    if (!submission) return res.status(404).json({ success: false, message: 'Invalid or expired session' });
+    const lang = String(language).toLowerCase();
+    if (!RUNNABLE_LANGS.has(lang)) {
+      return res.status(400).json({ success: false, message: `"${language}" can't be run here.` });
+    }
+    const r = await codeRunner.execute({
+      code, language: lang as ProgrammingLanguage, input: stdin || '',
+      expectedOutput: '', timeLimit: 10000, memoryLimit: 256,
+    });
+    res.json({ success: true, data: { output: r.output || '', error: r.compilationError || r.error || '', executionTime: r.executionTime } });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message || 'Execution failed' });
+  }
+};
 
 // Best-effort: score resume / GitHub / communication and fold them + the exam readiness
 // into the composite Career-Readiness score. Never blocks the result.

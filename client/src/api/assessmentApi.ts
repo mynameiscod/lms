@@ -97,6 +97,10 @@ export const assessmentApi = {
   submit: (token: string, responses: ItemResponse[], antiCheatFlags?: string[]) =>
     post('/submit', { token, responses, antiCheatFlags }).then((r) => r.data),
 
+  // Run the candidate's code during a live-code question → stdout/stderr.
+  runCode: (token: string, language: string, code: string, stdin?: string) =>
+    post('/run-code', { token, language, code, stdin }).then((r) => r.data as { output: string; error: string; executionTime?: number }),
+
   getResult: async (token: string) => {
     const res = await fetch(`${BASE}/result/${token}`);
     const json = await res.json().catch(() => ({}));

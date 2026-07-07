@@ -11,6 +11,7 @@ import {
   advanceAssessment,
   submitAssessment,
   getAssessmentResult,
+  runAssessmentCode,
 } from '../controllers/publicAssessmentController';
 
 // Public, unauthenticated skill-assessment funnel (Meta-ad → exam → roadmap).
@@ -38,6 +39,7 @@ router.post('/resend-otp', resendAssessmentOtp);
 router.post('/resume', upload.single('resume'), uploadAssessmentResume);
 router.post('/start', startAssessment);
 router.post('/advance', advanceAssessment);
+router.post('/run-code', runAssessmentCode);
 router.post('/submit', submitAssessment);
 router.get('/result/:token', getAssessmentResult);
 

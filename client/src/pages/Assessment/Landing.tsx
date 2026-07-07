@@ -58,7 +58,7 @@ const Landing: React.FC = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: '#fff' }}>
             <span style={{ width: 34, height: 34, borderRadius: 9, background: CTA_GRAD, display: 'grid', placeItems: 'center', fontWeight: 800 }}>C</span>
             <div style={{ lineHeight: 1 }}>
-              <div style={{ fontWeight: 800, fontSize: 17 }}>CareerDNA <span style={{ color: TEAL }}>AI</span></div>
+              <div style={{ fontWeight: 800, fontSize: 17 }}>Career<span style={{ color: TEAL }}>Pilot</span></div>
               <div style={{ fontSize: 10.5, color: '#a9b4e0' }}>by CodeBegun</div>
             </div>
           </div>
@@ -162,7 +162,7 @@ const Landing: React.FC = () => {
           </div>
 
           <div id="sample-report" style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: 18, boxShadow: '0 6px 24px rgba(15,23,42,.06)' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: PURPLE, letterSpacing: 0.5 }}>CAREERDNA AI REPORT</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: PURPLE, letterSpacing: 0.5 }}>CAREERPILOT REPORT</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '12px 0' }}>
               <span style={{ width: 40, height: 40, borderRadius: '50%', background: CTA_GRAD, display: 'grid', placeItems: 'center', color: '#fff', fontWeight: 800 }}>R</span>
               <div><div style={{ fontWeight: 700, fontSize: 14 }}>Sample Candidate</div><div style={{ fontSize: 11, color: MUTED }}>B.Tech CSE · Final year</div></div>
@@ -297,7 +297,7 @@ const Landing: React.FC = () => {
       </section>
 
       <footer style={{ background: '#070f2e', color: '#8b95c9', textAlign: 'center', padding: '20px', fontSize: 12.5 }}>
-        © {new Date().getFullYear()} CodeBegun · CareerDNA AI — From Learning to Earning
+        © {new Date().getFullYear()} CodeBegun · CareerPilot — From Learning to Earning
       </footer>
 
       <style>{`

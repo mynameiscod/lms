@@ -156,7 +156,7 @@ const Result: React.FC = () => {
 
       {/* Top bar */}
       <div className="rz-top">
-        <div className="rz-logo"><span className="mk" /> CodeBegun <span className="cmp">Compass</span></div>
+        <div className="rz-logo"><span className="mk" /> CareerPilot <span className="cmp">by CodeBegun</span></div>
         <div className="rz-user">
           <span style={{ fontSize: 18 }}>🔔</span>
           <div style={{ textAlign: 'right', lineHeight: 1.15 }}>
@@ -320,8 +320,8 @@ const Result: React.FC = () => {
       <footer style={{ background: '#0b1730', color: '#aab6cf', padding: '26px 26px', marginTop: 8 }}>
         <div style={{ maxWidth: 1300, margin: '0 auto', display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'space-between' }}>
           <div style={{ maxWidth: 260 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#fff', fontSize: 16 }}><span style={{ width: 22, height: 22, borderRadius: 7, background: `linear-gradient(135deg,${PURPLE},${TEAL})` }} /> CodeBegun <span style={{ color: '#7385a8', fontSize: 12 }}>Compass</span></div>
-            <p style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 8 }}>Your compass to a successful tech career.</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, color: '#fff', fontSize: 16 }}><span style={{ width: 22, height: 22, borderRadius: 7, background: `linear-gradient(135deg,${PURPLE},${TEAL})` }} /> CareerPilot <span style={{ color: '#7385a8', fontSize: 12 }}>by CodeBegun</span></div>
+            <p style={{ fontSize: 12.5, lineHeight: 1.6, marginTop: 8 }}>Your AI co-pilot to a successful tech career.</p>
           </div>
           <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Quick Links</div>Roadmap · Practice · Blog · Community</div>
           <div style={{ fontSize: 12.5 }}><div style={{ color: '#fff', fontWeight: 700, marginBottom: 8 }}>Support</div>Help Center · Contact Us · Privacy Policy · Terms</div>

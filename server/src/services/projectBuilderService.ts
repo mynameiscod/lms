@@ -82,7 +82,9 @@ Return ONLY valid JSON (no markdown) in this exact shape:
 }`;
 
   try {
-    const raw = await ai(prompt);
+    // Needs a high token ceiling: 3-4 full projects (schema + APIs + README + tasks)
+    // easily exceed a small budget and truncate the JSON, forcing the fallback.
+    const raw = await ai(prompt, 8000);
     if (raw) {
       const j = JSON.parse(stripJson(raw));
       const list = (Array.isArray(j.projects) ? j.projects : []).map(normalize).filter(Boolean) as ProjectRecommendation[];

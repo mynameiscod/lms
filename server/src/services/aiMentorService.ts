@@ -28,9 +28,11 @@ export async function buildStudentContext(userId: string, tenantId: string): Pro
       if (skills.length) lines.push(`Known skills: ${skills.slice(0, 25).join(', ')}`);
     }
 
-    // Latest assessment (linked by email) — scores, gaps, readiness, roadmap.
-    if (user?.email) {
-      const sub: any = await AssessmentSubmission.findOne({ tenantId, email: String(user.email).toLowerCase() })
+    // Latest assessment — linked by candidateUserId (reliable), with candidate.email fallback.
+    {
+      const or: any[] = [{ candidateUserId: userId }];
+      if (user?.email) or.push({ 'candidate.email': String(user.email).toLowerCase() });
+      const sub: any = await AssessmentSubmission.findOne({ tenantId, $or: or })
         .sort({ createdAt: -1 }).lean();
       if (sub) {
         if (sub.targetRole) lines.push(`Assessed target role: ${sub.targetRole}`);

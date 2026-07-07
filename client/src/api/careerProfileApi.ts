@@ -11,7 +11,8 @@ API.interceptors.request.use(cfg => {
 });
 
 export interface CareerIssue { area: string; problem: string; fix: string; severity?: 'high' | 'medium' | 'low'; }
-export interface PillarReview { score: number; issues: CareerIssue[]; improved: any; reviewedAt?: string; }
+export interface GithubCheck { label: string; status: 'pass' | 'warn' | 'fail'; hint: string; }
+export interface PillarReview { score: number; issues: CareerIssue[]; improved: any; checklist?: GithubCheck[]; reviewedAt?: string; }
 
 export interface CareerProfile {
   _id: string;

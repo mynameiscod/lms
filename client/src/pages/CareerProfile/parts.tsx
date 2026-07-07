@@ -1,7 +1,38 @@
 import React from 'react';
-import { CareerIssue, PillarReview, Pillar } from '../../api/careerProfileApi';
+import { CareerIssue, PillarReview, Pillar, GithubCheck } from '../../api/careerProfileApi';
 
 export const scoreColor = (n: number) => (n >= 75 ? '#16a34a' : n >= 50 ? '#d97706' : '#dc2626');
+
+const CHECK_UI: Record<GithubCheck['status'], { icon: string; color: string; bg: string }> = {
+  pass: { icon: '✓', color: '#16a34a', bg: '#f0fdf4' },
+  warn: { icon: '!', color: '#d97706', bg: '#fffbeb' },
+  fail: { icon: '✕', color: '#dc2626', bg: '#fef2f2' },
+};
+
+// GitHub health checklist — the 8 recruiter-facing signals with pass/warn/fail.
+export function GithubChecklist({ checklist }: { checklist?: GithubCheck[] }) {
+  if (!checklist || !checklist.length) return null;
+  const passed = checklist.filter(c => c.status === 'pass').length;
+  return (
+    <div style={{ margin: '4px 0 18px' }}>
+      <p className="cp-subhead">GitHub health checklist — {passed}/{checklist.length} passing</p>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))', gap: 8 }}>
+        {checklist.map((c, i) => {
+          const ui = CHECK_UI[c.status] || CHECK_UI.warn;
+          return (
+            <div key={i} title={c.hint} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', padding: '9px 11px', borderRadius: 8, background: ui.bg, border: `1px solid ${ui.color}22` }}>
+              <span style={{ flex: '0 0 18px', width: 18, height: 18, borderRadius: '50%', background: ui.color, color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{ui.icon}</span>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{c.label}</div>
+                {c.status !== 'pass' && <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.35, marginTop: 2 }}>{c.hint}</div>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function ScoreCards({ resume, github, linkedin }: { resume: PillarReview; github: PillarReview; linkedin: PillarReview }) {
   const items: { lbl: string; v: number }[] = [

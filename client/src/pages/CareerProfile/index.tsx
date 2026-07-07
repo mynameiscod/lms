@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { careerProfileApi, CareerProfile, Pillar } from '../../api/careerProfileApi';
-import { ScoreCards, IssuesList, ImprovedView, PILLAR_LABEL, buildMarkdown, downloadMarkdown } from './parts';
+import { ScoreCards, IssuesList, ImprovedView, GithubChecklist, PILLAR_LABEL, buildMarkdown, downloadMarkdown } from './parts';
 import './CareerProfile.css';
 
 const TARGET_ROLES = [
@@ -163,6 +163,7 @@ export default function CareerProfilePage() {
                 </button>
               ))}
             </div>
+            {active && tab === 'github' && <GithubChecklist checklist={active.checklist} />}
             {active && (
               <div className="cp-twocol cp-pillar">
                 <div>

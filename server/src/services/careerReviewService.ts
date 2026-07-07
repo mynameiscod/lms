@@ -67,6 +67,63 @@ async function fetchReadme(owner: string, repo: string, token?: string): Promise
   } catch { return ''; }
 }
 
+// Fetch a repo's full file tree (best-effort) to inspect structure/tests/docker/CI.
+async function fetchRepoTree(owner: string, repo: string, branch: string, token?: string): Promise<string[]> {
+  try {
+    const headers: any = { Accept: 'application/vnd.github+json', 'User-Agent': 'codebegun-career-builder' };
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const r = await fetch(`https://api.github.com/repos/${owner}/${repo}/git/trees/${encodeURIComponent(branch)}?recursive=1`, { headers });
+    if (!r.ok) return [];
+    const j: any = await r.json();
+    return (j.tree || []).map((t: any) => String(t.path || '')).filter(Boolean);
+  } catch { return []; }
+}
+
+export type GithubCheck = { label: string; status: 'pass' | 'warn' | 'fail'; hint: string };
+
+// Deterministic GitHub health checklist (the 8 recruiter-facing signals).
+function buildGithubChecklist(
+  stats: { ownedRepos: number; lastPush: string | null },
+  readmes: { hasReadme: boolean; readme: string }[],
+  treePaths: string[],
+): GithubCheck[] {
+  const paths = treePaths.map((p) => p.toLowerCase());
+  const readmeText = readmes.map((r) => r.readme || '').join('\n').toLowerCase();
+  const hasAnyReadme = readmes.some((r) => r.hasReadme);
+  const readmeCoverage = readmes.length ? readmes.filter((r) => r.hasReadme).length / readmes.length : 0;
+  const recentDays = stats.lastPush ? (Date.now() - new Date(stats.lastPush).getTime()) / 86400000 : Infinity;
+  const has = (re: RegExp) => paths.some((p) => re.test(p));
+
+  const mk = (label: string, status: 'pass' | 'warn' | 'fail', hint: string): GithubCheck => ({ label, status, hint });
+
+  return [
+    mk('README on projects',
+      readmeCoverage >= 0.8 ? 'pass' : hasAnyReadme ? 'warn' : 'fail',
+      readmeCoverage >= 0.8 ? 'Your top repos have READMEs — great.' : 'Add a clear README to every project (what it does, setup, screenshots, tech).'),
+    mk('Commit consistency',
+      recentDays <= 30 && stats.ownedRepos >= 3 ? 'pass' : recentDays <= 90 ? 'warn' : 'fail',
+      recentDays <= 30 ? 'Recent, active commits.' : 'Commit regularly — steady weekly activity beats one big dump.'),
+    mk('Project structure',
+      has(/(^|\/)src\//) || has(/(^|\/)(app|components|controllers|services|pages)\//) ? 'pass' : treePaths.length > 6 ? 'warn' : 'fail',
+      'Organise code into clear folders (src/, components/, services/…) rather than a flat root.'),
+    mk('Screenshots in README',
+      /!\[|<img/.test(readmeText) || has(/(screenshot|screenshots|assets\/|docs\/).*\.(png|jpe?g|gif)/) ? 'pass' : 'warn',
+      'Add screenshots or a demo GIF to your top project README — recruiters skim visually.'),
+    mk('API documentation',
+      /\bapi\b|endpoint|swagger|openapi|postman/.test(readmeText) || has(/swagger|openapi|postman/) ? 'pass' : 'warn',
+      'Document your API endpoints in the README (or add Swagger/OpenAPI).'),
+    mk('Tests',
+      has(/(^|\/)tests?\//) || has(/__tests__/) || has(/\.(test|spec)\.[a-z]+$/) ? 'pass' : 'warn',
+      'Add unit tests — even a handful signals engineering discipline to recruiters.'),
+    mk('Docker',
+      has(/(^|\/)dockerfile$/) || has(/docker-compose/) ? 'pass' : 'warn',
+      'Add a Dockerfile so anyone can run your project with one command.'),
+    mk('CI/CD',
+      has(/\.github\/workflows\//) || has(/\.gitlab-ci|\.circleci|jenkinsfile|azure-pipelines/) ? 'pass' : 'warn',
+      'Add a GitHub Actions workflow (lint + test + build) to show automation.'),
+  ];
+}
+
 // Summarise a GitHub account into job-readiness stats (used to ground the AI).
 function githubStats(repos: any[]) {
   const owned = (repos || []).filter((r: any) => !r.fork);
@@ -111,6 +168,10 @@ export async function reviewGithub(targetRole: string, username: string, token?:
     name: r.name, hasReadme: false as boolean, readme: await fetchReadme(user.login, r.name, token),
   })));
   readmes.forEach(rd => { rd.hasReadme = !!rd.readme; });
+  // Deterministic health checklist — inspect the top repo's file tree for structure/tests/docker/CI.
+  const topRepo = top[0];
+  const treePaths = topRepo ? await fetchRepoTree(user.login, topRepo.name, topRepo.default_branch || 'main', token) : [];
+  const checklist = buildGithubChecklist(stats, readmes, treePaths);
   const repoSummary = stats.owned.slice(0, 30).map((r: any) => ({
     name: r.name, description: r.description || '', language: r.language || '', stars: r.stargazers_count || 0,
     topics: r.topics || [], hasDescription: !!r.description, pushedAt: r.pushed_at,
@@ -132,6 +193,7 @@ Return JSON exactly:
     score: typeof ai.score === 'number' ? ai.score : 0,
     issues: Array.isArray(ai.issues) ? ai.issues : [],
     improved: ai.improved || {},
+    checklist,
     profile: { login: user.login, name: user.name, bio: user.bio, publicRepos: user.public_repos },
   };
 }

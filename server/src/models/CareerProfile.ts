@@ -9,10 +9,13 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IIssue { area: string; problem: string; fix: string; severity?: 'high' | 'medium' | 'low'; }
 
+export interface IGithubCheck { label: string; status: 'pass' | 'warn' | 'fail'; hint: string; }
+
 export interface IPillarReview {
   score: number;                 // 0-100
   issues: IIssue[];
   improved: any;                 // structured suggestions (shape differs per pillar)
+  checklist?: IGithubCheck[];    // deterministic health checklist (GitHub pillar)
   reviewedAt?: Date;
 }
 
@@ -44,7 +47,7 @@ export interface ICareerProfile extends Document {
   updatedAt: Date;
 }
 
-const pillar = () => ({ score: { type: Number, default: 0 }, issues: { type: [Schema.Types.Mixed], default: [] }, improved: { type: Schema.Types.Mixed, default: {} }, reviewedAt: Date });
+const pillar = () => ({ score: { type: Number, default: 0 }, issues: { type: [Schema.Types.Mixed], default: [] }, improved: { type: Schema.Types.Mixed, default: {} }, checklist: { type: [Schema.Types.Mixed], default: undefined }, reviewedAt: Date });
 
 const CareerProfileSchema = new Schema<ICareerProfile>(
   {

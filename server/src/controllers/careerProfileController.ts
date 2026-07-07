@@ -73,7 +73,7 @@ export const runReview = async (req: Request, res: Response) => {
       cp.resume = { score: 0, issues: [{ area: 'Resume', problem: 'Review failed', fix: String((r1 as any).reason?.message || r1.reason), severity: 'high' }], improved: {}, reviewedAt: new Date() } as any;
     }
     if (r2.status === 'fulfilled' && r2.value) {
-      cp.github = { score: r2.value.score, issues: r2.value.issues, improved: r2.value.improved, reviewedAt: new Date() } as any;
+      cp.github = { score: r2.value.score, issues: r2.value.issues, improved: r2.value.improved, checklist: (r2.value as any).checklist, reviewedAt: new Date() } as any;
     } else if (r2.status === 'rejected') {
       cp.github = { score: 0, issues: [{ area: 'GitHub', problem: 'Review failed', fix: String((r2 as any).reason?.message || r2.reason), severity: 'high' }], improved: {}, reviewedAt: new Date() } as any;
     }
@@ -169,7 +169,7 @@ export const regeneratePillar = async (req: Request, res: Response) => {
     if (pillar === 'resume') out = await reviewResume(tr, cp.studentId.toString(), cp.tenantId.toString());
     else if (pillar === 'github') out = cp.githubUsername ? await reviewGithub(tr, cp.githubUsername) : null;
     else out = await reviewLinkedin(tr, cp.linkedinPasted || '');
-    if (out) { (cp as any)[pillar] = { score: out.score, issues: out.issues, improved: out.improved, reviewedAt: new Date() }; cp.markModified(pillar); }
+    if (out) { (cp as any)[pillar] = { score: out.score, issues: out.issues, improved: out.improved, checklist: out.checklist, reviewedAt: new Date() }; cp.markModified(pillar); }
     await cp.save();
     res.json({ success: true, data: cp });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }

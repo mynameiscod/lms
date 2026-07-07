@@ -86,6 +86,7 @@ const Register: React.FC = () => {
     if (!/\S+@\S+\.\S+/.test(form.email)) return setErr('Please enter a valid email — your account login is sent here.');
     if (form.phone.replace(/\D/g, '').length < 10) return setErr('Please enter a valid 10-digit phone number.');
     if (!profileMeta) return setErr('Please select where you are right now.');
+    if (!form.targetRole) return setErr('Please pick your target role — your whole plan and score are personalized to it.');
     setBusy(true);
     try {
       const res = await assessmentApi.register({
@@ -98,7 +99,7 @@ const Register: React.FC = () => {
         year: profileMeta.year,
         yearsExperience: form.yearsExperience ? Number(form.yearsExperience) : undefined,
         primaryLanguage: form.primaryLanguage || undefined,
-        targetRole: form.targetRole || undefined,
+        targetRole: form.targetRole,
         linkedinUrl: form.linkedinUrl.trim() || undefined,
         githubUrl: form.githubUrl.trim() || undefined,
         communicationText: form.communicationText.trim() || undefined,
@@ -197,7 +198,7 @@ const Register: React.FC = () => {
           </select>
         </div>
       </div>
-      <div className="as-field"><label>Target role</label>
+      <div className="as-field"><label>Target role <span style={{ color: '#dc2626' }}>*</span></label>
         <select className="as-select" value={form.targetRole} onChange={(e) => set('targetRole', e.target.value)}>
           <option value="">Select the role you're aiming for</option>
           {TARGET_ROLES.map((r) => <option key={r} value={r}>{r}</option>)}

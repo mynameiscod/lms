@@ -35,7 +35,8 @@ export async function buildStudentContext(userId: string, tenantId: string): Pro
       const sub: any = await AssessmentSubmission.findOne({ tenantId, $or: or })
         .sort({ createdAt: -1 }).lean();
       if (sub) {
-        if (sub.targetRole) lines.push(`Assessed target role: ${sub.targetRole}`);
+        const tRole = sub.candidate?.targetRole || sub.targetRole || sub.roadmap?.targetRole;
+        if (tRole) lines.push(`Assessed target role: ${tRole}`);
         if (typeof sub.careerReadinessScore === 'number') lines.push(`Career readiness score: ${sub.careerReadinessScore}/100`);
         if (Array.isArray(sub.subScores) && sub.subScores.length) {
           lines.push('Sub-scores: ' + sub.subScores.map((s: any) => `${s.label || s.key}=${s.score}`).join(', '));

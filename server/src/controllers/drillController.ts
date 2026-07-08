@@ -14,18 +14,17 @@ const publicAttempt = (a: any) => ({ attemptId: String(a._id), concept: a.concep
 // GET /drills/concepts
 export const concepts = (_req: Request, res: Response) => res.json({ concepts: DRILL_CONCEPTS });
 
-// POST /drills/new  { concept, difficulty, language, assignmentId? }
+// POST /drills/new  { assignmentId }
+// Problems are instructor-assigned only — a student cannot self-start a random problem.
 export const newProblem = async (req: Request, res: Response) => {
   try {
     let { concept, difficulty, language, assignmentId } = req.body || {};
-    // If starting from an admin assignment, seed concept/difficulty/language from it.
-    let assignment: any = null;
-    if (assignmentId) {
-      assignment = await DrillAssignment.findOne({ _id: assignmentId, tenantId: tId(req), studentId: uId(req) });
-      if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
-      if (assignment.status === 'completed') return res.status(409).json({ message: 'You already completed this assigned problem.' });
-      concept = assignment.concept; difficulty = assignment.difficulty; language = assignment.language;
-    }
+    if (!assignmentId) return res.status(403).json({ message: 'Logic Building problems are assigned by your instructor. Open one from "Assigned to you".' });
+    // Seed concept/difficulty/language from the assignment.
+    const assignment: any = await DrillAssignment.findOne({ _id: assignmentId, tenantId: tId(req), studentId: uId(req) });
+    if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+    if (assignment.status === 'completed') return res.status(409).json({ message: 'You already completed this assigned problem.' });
+    concept = assignment.concept; difficulty = assignment.difficulty; language = assignment.language;
     if (!concept) return res.status(400).json({ message: 'concept is required' });
     const p = await generateProblem(tId(req), concept, difficulty || 'easy', language || 'javascript', assignment?.customPrompt);
     if (!p) return res.status(503).json({ message: "Couldn't generate a problem right now — try again (check the AI key / Piston service)." });

@@ -1,14 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { drillApi, DrillProblem, RunResult, DrillProgress, MyAssignment, LANGS } from '../../api/drillApi';
+import { drillApi, DrillProblem, RunResult, DrillProgress, MyAssignment } from '../../api/drillApi';
 
 const PURPLE = '#6366f1', TEAL = '#14a89c';
 
 const LogicGym: React.FC = () => {
-  const [conceptList, setConceptList] = useState<string[]>([]);
-  const [concept, setConcept] = useState('');
-  const [difficulty, setDifficulty] = useState('easy');
-  const [language, setLanguage] = useState('javascript');
   const [progress, setProgress] = useState<DrillProgress | null>(null);
   const [assignments, setAssignments] = useState<MyAssignment[]>([]);
   const [problem, setProblem] = useState<DrillProblem | null>(null);
@@ -26,21 +22,21 @@ const LogicGym: React.FC = () => {
 
   const loadProgress = async () => { try { setProgress(await drillApi.myProgress()); } catch { /* ignore */ } };
   const loadAssignments = async () => { try { setAssignments(await drillApi.myAssignments()); } catch { /* ignore */ } };
-  useEffect(() => { drillApi.concepts().then(c => { setConceptList(c); setConcept(c[0] || ''); }); loadProgress(); loadAssignments(); }, []);
+  useEffect(() => { loadProgress(); loadAssignments(); }, []);
 
-  // Start a problem. If `assignment` is passed, it's an admin-assigned problem — the
-  // server seeds concept/difficulty/language from it and marks it in-progress.
-  const newProblem = async (assignment?: MyAssignment) => {
-    const c = assignment?.concept || concept;
-    if (!c) return;
+  // Open an instructor-assigned problem. The server seeds concept/difficulty/language
+  // from the assignment and marks it in-progress. Self-starting is not allowed.
+  const openAssignment = async (assignment: MyAssignment) => {
     setLoadingP(true); setErr(''); setProblem(null); setResult(null); setPlan(''); setPlanMsg(null); setStage('plan');
     try {
-      const p = await drillApi.newProblem(c, assignment?.difficulty || difficulty, assignment?.language || language, assignment?._id);
+      const p = await drillApi.newProblem(assignment.concept, assignment.difficulty, assignment.language, assignment._id);
       setProblem(p); setCode(p.starterCode || '');
-      if (assignment) loadAssignments();
-    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not generate a problem. Try again.'); }
+      loadAssignments();
+    } catch (e: any) { setErr(e?.response?.data?.message || 'Could not open the problem. Try again.'); }
     finally { setLoadingP(false); }
   };
+
+  const backToList = () => { setProblem(null); setResult(null); setErr(''); loadAssignments(); };
 
   const checkPlan = async () => {
     if (!problem) return;
@@ -75,7 +71,7 @@ const LogicGym: React.FC = () => {
                 </div>
                 {a.note && <div style={{ fontSize: 12.5, color: '#475569', marginBottom: 6 }}>{a.note}</div>}
                 {a.dueDate && <div style={{ fontSize: 11.5, color: '#b45309', fontWeight: 600, marginBottom: 6 }}>Due {new Date(a.dueDate).toLocaleDateString('en-IN', { dateStyle: 'medium' } as any)}</div>}
-                <button onClick={() => newProblem(a)} disabled={loadingP} style={{ width: '100%', background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 9, padding: '9px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                <button onClick={() => openAssignment(a)} disabled={loadingP} style={{ width: '100%', background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 9, padding: '9px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
                   {a.status === 'in_progress' ? 'Continue →' : 'Start →'}
                 </button>
               </div>
@@ -92,13 +88,15 @@ const LogicGym: React.FC = () => {
         </div>
       )}
 
-      {/* Picker */}
-      <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16, display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <label style={{ flex: 1, minWidth: 180 }}><span style={lbl}>Concept</span><select style={sel} value={concept} onChange={e => setConcept(e.target.value)}>{conceptList.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
-        <label><span style={lbl}>Level</span><select style={sel} value={difficulty} onChange={e => setDifficulty(e.target.value)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label>
-        <label><span style={lbl}>Language</span><select style={sel} value={language} onChange={e => setLanguage(e.target.value)}>{LANGS.map(l => <option key={l.v} value={l.v}>{l.l}</option>)}</select></label>
-        <button onClick={() => newProblem()} disabled={loadingP} style={{ background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{loadingP ? 'Generating…' : problem ? '↻ New problem' : '✨ Start a problem'}</button>
-      </div>
+      {/* No self-start: problems are assigned by the instructor. */}
+      {openAssignments.length === 0 && !problem && (
+        <div style={{ marginTop: 16, background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 14, padding: 28, textAlign: 'center' }}>
+          <div style={{ fontSize: 30 }}>🧩</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: '#0f172a', marginTop: 6 }}>No problems assigned yet</div>
+          <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Your instructor will assign logic-building problems here. Check back after your next class.</div>
+        </div>
+      )}
+      {loadingP && !problem && <div style={{ color: '#64748b', fontSize: 13, marginTop: 12 }}>Preparing your problem…</div>}
       {err && <div style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 8, padding: '9px 12px', fontSize: 13, marginTop: 10 }}>{err}</div>}
 
       {problem && (
@@ -147,8 +145,8 @@ const LogicGym: React.FC = () => {
                 <div style={{ marginTop: 14, background: `linear-gradient(120deg,${PURPLE},${TEAL})`, color: '#fff', borderRadius: 12, padding: 18, textAlign: 'center' }}>
                   <div style={{ fontSize: 28 }}>🎉</div>
                   <div style={{ fontSize: 18, fontWeight: 800 }}>Solved! Score {result.score}/100</div>
-                  <div style={{ fontSize: 13, opacity: .92, marginTop: 4 }}>Great problem-solving. Try another to keep your streak going.</div>
-                  <button onClick={() => newProblem()} style={{ marginTop: 12, background: '#fff', color: PURPLE, border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, cursor: 'pointer' }}>Next problem →</button>
+                  <div style={{ fontSize: 13, opacity: .92, marginTop: 4 }}>Great problem-solving. Head back for your other assigned problems.</div>
+                  <button onClick={backToList} style={{ marginTop: 12, background: '#fff', color: PURPLE, border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, cursor: 'pointer' }}>← Back to my problems</button>
                 </div>
               ) : result && (
                 <div style={{ marginTop: 12 }}>
@@ -174,8 +172,6 @@ const StageChip: React.FC<{ n: number; label: string; active: boolean; done: boo
   </div>
 );
 
-const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 };
-const sel: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 11px', fontSize: 13.5, width: '100%' };
 const exH: React.CSSProperties = { fontSize: 11, color: '#94a3b8', fontWeight: 700, marginBottom: 4 };
 const pre: React.CSSProperties = { margin: 0, fontFamily: 'ui-monospace,monospace', fontSize: 12.5, color: '#334155', whiteSpace: 'pre-wrap' };
 const btn = (bg: string): React.CSSProperties => ({ flex: 1, background: bg, color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 14, cursor: 'pointer' });

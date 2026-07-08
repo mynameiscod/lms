@@ -3,6 +3,8 @@ import * as settings from './settingsService';
 import User from '../models/User';
 import StudentProfile from '../models/StudentProfile';
 import AssessmentSubmission from '../models/AssessmentSubmission';
+import CurriculumEnrollment from '../models/CurriculumEnrollment';
+import LearningCurriculum from '../models/LearningCurriculum';
 import { IMentorMessage } from '../models/MentorChat';
 
 /**
@@ -52,6 +54,14 @@ export async function buildStudentContext(userId: string, tenantId: string): Pro
         }
       }
     }
+
+    // Offline / batch context: what program the student is in and how far along.
+    const enr: any = await CurriculumEnrollment.findOne({ tenantId, studentId: userId, status: 'active' }).sort({ createdAt: -1 }).lean();
+    if (enr) {
+      const cur: any = enr.curriculumId ? await LearningCurriculum.findById(enr.curriculumId).select('title totalDays').lean() : null;
+      const done = (enr.completedDays || []).length;
+      lines.push(`Enrolled program: "${cur?.title || 'a curriculum'}" — currently on Day ${enr.currentDay || 1}${cur?.totalDays ? ` of ${cur.totalDays}` : ''}, ${done} day(s) completed.`);
+    }
   } catch { /* best-effort; context is optional */ }
 
   return lines.length ? lines.join('\n') : 'No profile/assessment data on file yet — ask the student about their goals.';
@@ -64,7 +74,15 @@ Guidelines:
 - Ground advice in the student's context (target role, scores, skill gaps, known skills) when relevant.
 - Point them to the platform's tools when useful: Skill Assessment, Learning Plan, Project Builder, Resume Builder, Career Profile (GitHub/LinkedIn review), AI Mock Interviews (Practice tab) and the Job Tracker.
 - Keep replies concise and scannable (short paragraphs or bullet points). Ask a clarifying question when the request is vague.
-- Be honest and encouraging; never invent facts about the student.`;
+- Be honest and encouraging; never invent facts about the student.
+
+Teaching & problem-solving — VERY IMPORTANT (most students here struggle to think logically and to start coding):
+- When a student is stuck on code or a logic problem, DO NOT write the full solution or complete code for them. Your job is to build their thinking, not hand them answers.
+- Coach with this loop: Understand → Plan → Code → Test → Reflect. First make them restate the problem in their own words and outline the steps in PLAIN ENGLISH / pseudocode BEFORE any code. Most of the skill is built here.
+- Give exactly ONE small next hint at a time, then ask a guiding question and let them attempt it. Never dump the whole approach at once.
+- Break problems into tiny sub-steps; start from the simplest version. Celebrate small wins and keep them confident — many are beginners who freeze at a blank editor.
+- If they say "just give me the code/answer", gently refuse and instead give the next hint + one guiding question. Only reveal a full solution after they have genuinely attempted it, and even then walk through the reasoning step by step (why, not just what).
+- Use tiny concrete examples and dry-runs ("trace what happens for input 5") to build their mental model of how code executes.`;
 
 // Generate the mentor's next reply given the running history + the new user message.
 export async function mentorReply(context: string, history: IMentorMessage[], userMessage: string): Promise<string> {
@@ -98,8 +116,8 @@ export async function mentorReply(context: string, history: IMentorMessage[], us
 
 // A few starter prompts shown when the chat is empty.
 export const MENTOR_SUGGESTIONS = [
-  'What should I focus on this week to get job-ready?',
-  'Review my weak areas and give me a 30-day plan.',
-  'Help me prepare for a technical interview for my target role.',
-  'What projects should I build to stand out to recruiters?',
+  "I'm stuck on a coding problem — coach me through it (don't give the answer).",
+  'Help me plan the steps in plain English before I write code.',
+  'Give me a simple logic exercise to practice at my level.',
+  'What should I focus on this week to improve my problem-solving?',
 ];

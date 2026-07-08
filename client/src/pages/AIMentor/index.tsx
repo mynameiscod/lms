@@ -72,7 +72,7 @@ const AIMentor: React.FC = () => {
         <span style={{ fontSize: 26 }}>🧭</span>
         <div style={{ flex: 1 }}>
           <h1 style={{ margin: 0, fontSize: 22, color: '#0f172a' }}>AI Career Mentor</h1>
-          <div style={{ fontSize: 12.5, color: '#64748b' }}>Knows your goals, scores and skill gaps — ask anything about your career.</div>
+          <div style={{ fontSize: 12.5, color: '#64748b' }}>Coaches your coding &amp; problem-solving (with hints, not answers) and your career — knows your program, goals and weak areas.</div>
         </div>
         {messages.length > 0 && <button onClick={clear} style={{ background: 'transparent', border: '1px solid #e2e8f0', borderRadius: 8, padding: '6px 12px', fontSize: 12.5, color: '#64748b', cursor: 'pointer' }}>Clear</button>}
       </div>
@@ -83,8 +83,8 @@ const AIMentor: React.FC = () => {
         ) : messages.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', color: '#64748b' }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>🧭</div>
-            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>Your personal career mentor</div>
-            <div style={{ fontSize: 13.5, maxWidth: 420, marginTop: 6 }}>Ask about what to study next, interview prep, projects, your resume, or job strategy. Try one of these:</div>
+            <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>Your personal coding & career coach</div>
+            <div style={{ fontSize: 13.5, maxWidth: 440, marginTop: 6 }}>Stuck on a problem? I'll coach you to think it through — hints and questions, not the answer — plus interview prep, projects and career guidance. Try one:</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', marginTop: 16, maxWidth: 560 }}>
               {suggestions.map((s, i) => (
                 <button key={i} onClick={() => send(s)} style={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: 999, padding: '8px 14px', fontSize: 12.5, color: '#334155', cursor: 'pointer' }}>{s}</button>

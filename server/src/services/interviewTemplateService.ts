@@ -287,8 +287,11 @@ class InterviewTemplateService {
       dueDate?: Date;
       expiresAt?: Date;
       maxAttempts?: number;
+      scheduledAt?: Date;
+      durationMinutes?: number;
+      mode?: 'structured' | 'conversational';
     } = {}
-  ): Promise<{ created: number; duplicates: number }> {
+  ): Promise<{ created: number; duplicates: number; createdIds: string[] }> {
     const template = await InterviewTemplate.findOne({ _id: templateId, tenantId });
     if (!template) throw new Error('Template not found');
     if (!['active', 'published', 'scheduled'].includes(template.status)) {
@@ -297,6 +300,7 @@ class InterviewTemplateService {
 
     let created = 0;
     let duplicates = 0;
+    const createdIds: string[] = [];
 
     for (const studentId of studentIds) {
       try {
@@ -311,9 +315,13 @@ class InterviewTemplateService {
           dueDate: options.dueDate,
           expiresAt: options.expiresAt || template.expiryDate,
           maxAttempts: options.maxAttempts || template.maxAttempts,
+          scheduledAt: options.scheduledAt,
+          durationMinutes: options.durationMinutes,
+          mode: options.mode,
           status: 'assigned',
         });
         created++;
+        createdIds.push(String(studentId));
       } catch (err: any) {
         if (err.code === 11000) {
           duplicates++;
@@ -323,7 +331,7 @@ class InterviewTemplateService {
       }
     }
 
-    return { created, duplicates };
+    return { created, duplicates, createdIds };
   }
 
   async pushAssignmentToBatch(
@@ -331,8 +339,8 @@ class InterviewTemplateService {
     batchIds: string[],
     tenantId: string,
     assignedBy: string,
-    options: { pushReason?: string; pushNote?: string; dueDate?: Date; expiresAt?: Date; maxAttempts?: number } = {}
-  ): Promise<{ created: number; duplicates: number }> {
+    options: { pushReason?: string; pushNote?: string; dueDate?: Date; expiresAt?: Date; maxAttempts?: number; scheduledAt?: Date; durationMinutes?: number; mode?: 'structured' | 'conversational' } = {}
+  ): Promise<{ created: number; duplicates: number; createdIds: string[] }> {
     // Find all students in these batches
     const students = await User.find({
       tenantId,
@@ -350,8 +358,8 @@ class InterviewTemplateService {
     courseIds: string[],
     tenantId: string,
     assignedBy: string,
-    options: { pushReason?: string; pushNote?: string; dueDate?: Date; expiresAt?: Date; maxAttempts?: number } = {}
-  ): Promise<{ created: number; duplicates: number }> {
+    options: { pushReason?: string; pushNote?: string; dueDate?: Date; expiresAt?: Date; maxAttempts?: number; scheduledAt?: Date; durationMinutes?: number; mode?: 'structured' | 'conversational' } = {}
+  ): Promise<{ created: number; duplicates: number; createdIds: string[] }> {
     // Find all students enrolled in these courses
     const students = await User.find({
       tenantId,

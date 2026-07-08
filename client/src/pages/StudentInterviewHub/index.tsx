@@ -39,8 +39,36 @@ const StudentInterviewHub: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleStartInterview = (assignmentId: string, templateId: string) => {
-    navigate(`/student/interviews/take/${templateId}?assignmentId=${assignmentId}`);
+  const handleStartInterview = (assignmentId: string, templateId: string, mode?: string) => {
+    // Conversational assignments open the live talking AI bot; structured ones use the Q&A flow.
+    if (mode === 'conversational') {
+      navigate(`/student/interviews/live/${templateId}?assignmentId=${assignmentId}`);
+    } else {
+      navigate(`/student/interviews/take/${templateId}?assignmentId=${assignmentId}`);
+    }
+  };
+
+  // Build + download an .ics calendar file entirely client-side (no auth round-trip).
+  const addToCalendar = (a: any) => {
+    if (!a.scheduledAt) return;
+    const start = new Date(a.scheduledAt);
+    const end = new Date(start.getTime() + (a.durationMinutes || 30) * 60000);
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const link = `${window.location.origin}/my-interviews`;
+    const title = `AI Interview: ${a.templateId?.title || 'Interview'}`;
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CodeBegun//CareerPilot//EN', 'METHOD:PUBLISH',
+      'BEGIN:VEVENT', `UID:${a._id}@codebegun`, `DTSTAMP:${fmt(new Date())}`, `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
+      `SUMMARY:${title}`, `DESCRIPTION:Join your AI interview from ${link}`, `URL:${link}`,
+      'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:AI Interview in 30 minutes', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR',
+    ].join('\r\n');
+    const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link2 = document.createElement('a');
+    link2.href = url; link2.download = 'interview.ics';
+    document.body.appendChild(link2); link2.click(); document.body.removeChild(link2);
+    URL.revokeObjectURL(url);
   };
 
   // Self-serve practice — start a mock immediately, no assignment needed.
@@ -103,11 +131,23 @@ const StudentInterviewHub: React.FC = () => {
                     <span className="sih-assign-status" style={{ background: STATUS_COLORS[a.status] }}>
                       {STATUS_LABELS[a.status]}
                     </span>
-                    {a.dueDate && (
+                    {a.mode === 'conversational' && (
+                      <span className="sih-cat-tag" style={{ background: '#ede9fe', color: '#6d28d9' }}>🎤 Live AI</span>
+                    )}
+                    {a.dueDate && !a.scheduledAt && (
                       <span className="sih-due">Due: {new Date(a.dueDate).toLocaleDateString()}</span>
                     )}
                   </div>
                   <h3>{a.templateId?.title || 'Interview'}</h3>
+                  {a.scheduledAt && (
+                    <div className="sih-schedule" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '4px 0 8px', fontSize: 13, fontWeight: 600, color: '#6d28d9' }}>
+                      🗓️ {new Date(a.scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}
+                      <button type="button" className="sih-cal-btn" onClick={() => addToCalendar(a)}
+                        style={{ background: 'none', border: '1px solid #ddd6fe', color: '#6d28d9', borderRadius: 6, padding: '2px 8px', fontSize: 12, cursor: 'pointer' }}>
+                        + Add to calendar
+                      </button>
+                    </div>
+                  )}
                   {a.templateId?.interviewCategories && (
                     <div className="sih-cats">
                       {a.templateId.interviewCategories.map((c: string) => (
@@ -125,9 +165,10 @@ const StudentInterviewHub: React.FC = () => {
                   <button
                     className="sih-btn-start"
                     disabled={a.attemptsUsed >= a.maxAttempts}
-                    onClick={() => handleStartInterview(a._id, a.templateId?._id || a.templateId)}
+                    onClick={() => handleStartInterview(a._id, a.templateId?._id || a.templateId, a.mode)}
                   >
                     {a.status === 'in_progress' ? 'Resume Interview' :
+                     a.mode === 'conversational' ? '🎤 Join Interview' :
                      a.attemptsUsed > 0 ? 'Reattempt' : 'Start Interview'}
                   </button>
                 </div>

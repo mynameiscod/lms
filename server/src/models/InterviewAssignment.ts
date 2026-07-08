@@ -16,6 +16,10 @@ export interface IInterviewAssignment extends Document {
   availableFrom: Date;
   dueDate?: Date;
   expiresAt?: Date;
+  scheduledAt?: Date;              // fixed appointment slot for a live AI interview
+  durationMinutes?: number;
+  mode?: 'structured' | 'conversational';   // conversational = the talking AI bot
+  notifiedBeforeStart?: boolean;
 
   // Attempt tracking
   maxAttempts: number;
@@ -50,6 +54,10 @@ const InterviewAssignmentSchema = new Schema<IInterviewAssignment>(
     availableFrom: { type: Date, default: Date.now },
     dueDate:       { type: Date },
     expiresAt:     { type: Date },
+    scheduledAt:      { type: Date },
+    durationMinutes:  { type: Number, default: 30 },
+    mode:             { type: String, enum: ['structured', 'conversational'] },
+    notifiedBeforeStart: { type: Boolean, default: false },
 
     maxAttempts:    { type: Number, default: 1 },
     attemptsUsed:   { type: Number, default: 0 },

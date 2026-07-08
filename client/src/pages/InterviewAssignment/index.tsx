@@ -164,6 +164,8 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
     templateId: initialTemplateId || '', batchId: '', courseId: '',
     pushReason: '', maxAttempts: 1,
     availableFrom: '', dueDate: '', expiresAt: '',
+    mode: 'conversational' as 'structured' | 'conversational',
+    scheduledAt: '', durationMinutes: 30,
   });
 
   const updateForm = (key: string, value: any) => setForm(prev => ({ ...prev, [key]: value }));
@@ -214,6 +216,9 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
         availableFrom: form.availableFrom || undefined,
         dueDate: form.dueDate || undefined,
         expiresAt: form.expiresAt || undefined,
+        mode: form.mode,
+        scheduledAt: form.scheduledAt || undefined,
+        durationMinutes: form.durationMinutes || undefined,
       };
 
       if (pushMode === 'individual') {
@@ -314,6 +319,26 @@ const PushAssignmentModal: React.FC<PushModalProps> = ({ templates, initialTempl
                 <option value="">Select a course…</option>
                 {courses.map(c => <option key={c._id} value={c._id}>{c.title || c.name}</option>)}
               </select>
+            </div>
+          )}
+
+          {/* Interview mode + scheduled slot */}
+          <div className="ia2-section">
+            <Step n={4} label="Interview Mode" />
+            <div className="ia2-modes">
+              <button type="button" className={`ia2-mode ${form.mode === 'conversational' ? 'active' : ''}`} onClick={() => updateForm('mode', 'conversational')}>
+                🎤 Conversational AI <span className="ia2-muted" style={{ fontWeight: 400 }}>— live talking bot</span>
+              </button>
+              <button type="button" className={`ia2-mode ${form.mode === 'structured' ? 'active' : ''}`} onClick={() => updateForm('mode', 'structured')}>
+                📝 Structured <span className="ia2-muted" style={{ fontWeight: 400 }}>— Q&amp;A form</span>
+              </button>
+            </div>
+          </div>
+          {form.mode === 'conversational' && (
+            <div className="ia2-grid4">
+              <div style={{ gridColumn: 'span 2' }}><Step n={5} label="Scheduled Slot (date &amp; time)" /><input className="ia2-input" type="datetime-local" value={form.scheduledAt} onChange={e => updateForm('scheduledAt', e.target.value)} /></div>
+              <div><Step n={6} label="Duration (min)" /><input className="ia2-input" type="number" min={10} step={5} value={form.durationMinutes} onChange={e => updateForm('durationMinutes', parseInt(e.target.value) || 30)} /></div>
+              <div className="ia2-notify" style={{ alignSelf: 'end', paddingBottom: 8 }}>Students get an in-app alert + calendar file.</div>
             </div>
           )}
 

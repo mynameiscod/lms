@@ -3,6 +3,8 @@ import interviewTemplateService from '../services/interviewTemplateService';
 import * as settings from '../services/settingsService';
 import { synthesizeSpeech } from '../services/elevenLabsService';
 import * as did from '../services/didService';
+import InterviewAssignment from '../models/InterviewAssignment';
+import { createNotifications } from '../notifications/notificationService';
 
 // Public-ish voice/avatar config for the live interview UI (no secrets exposed).
 export const getVoiceConfig = async (req: Request, res: Response) => {
@@ -298,11 +300,48 @@ export const getQuestionTags = async (req: Request, res: Response) => {
 
 // ─── Assignment (Push-based) ─────────────────────────────────────────────────
 
+// GET /interview-module/student/assignments/:id/calendar.ics — downloadable calendar event.
+export const getAssignmentCalendar = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const asg: any = await InterviewAssignment.findOne({ _id: req.params.id, tenantId }).populate('templateId', 'title').lean();
+    if (!asg || !asg.scheduledAt) return res.status(404).json({ success: false, message: 'No scheduled time for this interview' });
+    const start = new Date(asg.scheduledAt);
+    const end = new Date(start.getTime() + (asg.durationMinutes || 30) * 60000);
+    const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+    const base = (process.env.CLIENT_URL || process.env.FRONTEND_URL || 'https://platform.codebegun.com').replace(/\/$/, '');
+    const link = `${base}/my-interviews`;
+    const title = `AI Interview: ${asg.templateId?.title || 'Interview'}`;
+    const ics = [
+      'BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//CodeBegun//CareerPilot//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH',
+      'BEGIN:VEVENT', `UID:${asg._id}@codebegun`, `DTSTAMP:${fmt(new Date())}`, `DTSTART:${fmt(start)}`, `DTEND:${fmt(end)}`,
+      `SUMMARY:${title}`, `DESCRIPTION:Join your AI interview from ${link}`, `URL:${link}`,
+      'BEGIN:VALARM', 'TRIGGER:-PT30M', 'ACTION:DISPLAY', 'DESCRIPTION:AI Interview in 30 minutes', 'END:VALARM',
+      'END:VEVENT', 'END:VCALENDAR',
+    ].join('\r\n');
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="interview.ics"');
+    res.send(ics);
+  } catch (error: any) { res.status(500).json({ success: false, message: error.message }); }
+};
+
+// Shared: in-app bell notification when interviews are assigned/scheduled.
+async function notifyAssigned(tenantId: string, templateId: string, studentIds: string[], scheduledAt?: string, mode?: string) {
+  if (!studentIds.length) return;
+  try {
+    const tmpl: any = await interviewTemplateService.getTemplateById(templateId, tenantId);
+    const when = scheduledAt ? new Date(scheduledAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    const title = mode === 'conversational' ? '🎤 AI Interview scheduled' : '📝 Interview assigned';
+    const body = `${tmpl?.title || 'Interview'}${when ? ` — ${when}` : ''}. Open "My Interviews" to join.`;
+    await createNotifications(String(tenantId), studentIds.map(String), 'general', title, body, '/my-interviews');
+  } catch (e: any) { console.error('[interview] notify on assign failed:', e?.message); }
+}
+
 export const pushAssignment = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
     const userId = (req as any).userId;
-    const { templateId, studentIds, pushReason, pushNote, dueDate, expiresAt, maxAttempts } = req.body;
+    const { templateId, studentIds, pushReason, pushNote, dueDate, expiresAt, maxAttempts, scheduledAt, durationMinutes, mode } = req.body;
 
     if (!templateId || !studentIds || !Array.isArray(studentIds) || studentIds.length === 0) {
       return res.status(400).json({ success: false, message: 'templateId and studentIds array required' });
@@ -310,8 +349,14 @@ export const pushAssignment = async (req: Request, res: Response) => {
 
     const result = await interviewTemplateService.pushAssignment(
       templateId, studentIds, tenantId, userId,
-      { pushReason, pushNote, dueDate: dueDate ? new Date(dueDate) : undefined, expiresAt: expiresAt ? new Date(expiresAt) : undefined, maxAttempts }
+      {
+        pushReason, pushNote, dueDate: dueDate ? new Date(dueDate) : undefined, expiresAt: expiresAt ? new Date(expiresAt) : undefined, maxAttempts,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, durationMinutes, mode,
+      }
     );
+
+    // In-app notification (the bell) so it also lands on the student's dashboard.
+    await notifyAssigned(tenantId, templateId, result.createdIds, scheduledAt, mode);
 
     res.status(201).json({ success: true, ...result });
   } catch (error: any) {
@@ -323,7 +368,7 @@ export const pushAssignmentToBatch = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
     const userId = (req as any).userId;
-    const { templateId, batchIds, pushReason, pushNote, dueDate, expiresAt, maxAttempts } = req.body;
+    const { templateId, batchIds, pushReason, pushNote, dueDate, expiresAt, maxAttempts, scheduledAt, durationMinutes, mode } = req.body;
 
     if (!templateId || !batchIds || !Array.isArray(batchIds) || batchIds.length === 0) {
       return res.status(400).json({ success: false, message: 'templateId and batchIds array required' });
@@ -331,8 +376,11 @@ export const pushAssignmentToBatch = async (req: Request, res: Response) => {
 
     const result = await interviewTemplateService.pushAssignmentToBatch(
       templateId, batchIds, tenantId, userId,
-      { pushReason, pushNote, dueDate: dueDate ? new Date(dueDate) : undefined, expiresAt: expiresAt ? new Date(expiresAt) : undefined, maxAttempts }
+      { pushReason, pushNote, dueDate: dueDate ? new Date(dueDate) : undefined, expiresAt: expiresAt ? new Date(expiresAt) : undefined, maxAttempts,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, durationMinutes, mode }
     );
+
+    await notifyAssigned(tenantId, templateId, result.createdIds, scheduledAt, mode);
 
     res.status(201).json({ success: true, ...result });
   } catch (error: any) {
@@ -344,7 +392,7 @@ export const pushAssignmentToCourse = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).tenantId;
     const userId = (req as any).userId;
-    const { templateId, courseIds, pushReason, pushNote, dueDate, expiresAt, maxAttempts } = req.body;
+    const { templateId, courseIds, pushReason, pushNote, dueDate, expiresAt, maxAttempts, scheduledAt, durationMinutes, mode } = req.body;
 
     if (!templateId || !courseIds || !Array.isArray(courseIds) || courseIds.length === 0) {
       return res.status(400).json({ success: false, message: 'templateId and courseIds array required' });
@@ -352,8 +400,11 @@ export const pushAssignmentToCourse = async (req: Request, res: Response) => {
 
     const result = await interviewTemplateService.pushAssignmentToCourse(
       templateId, courseIds, tenantId, userId,
-      { pushReason, pushNote, dueDate: dueDate ? new Date(dueDate) : undefined, expiresAt: expiresAt ? new Date(expiresAt) : undefined, maxAttempts }
+      { pushReason, pushNote, dueDate: dueDate ? new Date(dueDate) : undefined, expiresAt: expiresAt ? new Date(expiresAt) : undefined, maxAttempts,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined, durationMinutes, mode }
     );
+
+    await notifyAssigned(tenantId, templateId, result.createdIds, scheduledAt, mode);
 
     res.status(201).json({ success: true, ...result });
   } catch (error: any) {

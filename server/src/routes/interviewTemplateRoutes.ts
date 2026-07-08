@@ -259,6 +259,13 @@ router.get(
   ctrl.getPracticeTemplates
 );
 
+// Downloadable calendar (.ics) for a scheduled interview
+router.get(
+  '/student/assignments/:id/calendar.ics',
+  roleGuard(['attempt_interviews']),
+  ctrl.getAssignmentCalendar
+);
+
 router.post(
   '/student/attempts/start',
   roleGuard(['attempt_interviews']),

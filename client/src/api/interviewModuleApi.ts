@@ -156,21 +156,24 @@ export const interviewAssignmentApi = {
   push: (data: {
     templateId: string; studentIds: string[];
     pushReason?: string; pushNote?: string;
-    dueDate?: string; expiresAt?: string; maxAttempts?: number;
+    availableFrom?: string; dueDate?: string; expiresAt?: string; maxAttempts?: number;
+    mode?: 'structured' | 'conversational'; scheduledAt?: string; durationMinutes?: number;
   }) =>
     apiFetch(`${MODULE_URL}/assignments/push`, { method: 'POST', body: JSON.stringify(data) }),
 
   pushToBatch: (data: {
     templateId: string; batchIds: string[];
     pushReason?: string; pushNote?: string;
-    dueDate?: string; expiresAt?: string; maxAttempts?: number;
+    availableFrom?: string; dueDate?: string; expiresAt?: string; maxAttempts?: number;
+    mode?: 'structured' | 'conversational'; scheduledAt?: string; durationMinutes?: number;
   }) =>
     apiFetch(`${MODULE_URL}/assignments/push-batch`, { method: 'POST', body: JSON.stringify(data) }),
 
   pushToCourse: (data: {
     templateId: string; courseIds: string[];
     pushReason?: string; pushNote?: string;
-    dueDate?: string; expiresAt?: string; maxAttempts?: number;
+    availableFrom?: string; dueDate?: string; expiresAt?: string; maxAttempts?: number;
+    mode?: 'structured' | 'conversational'; scheduledAt?: string; durationMinutes?: number;
   }) =>
     apiFetch(`${MODULE_URL}/assignments/push-course`, { method: 'POST', body: JSON.stringify(data) }),
 

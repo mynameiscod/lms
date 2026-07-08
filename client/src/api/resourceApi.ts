@@ -20,6 +20,7 @@ export interface Resource {
   tags: string[]; techStack: string[]; difficulty?: string; targetRole?: string;
   files: ResourceFile[];
   visibility: ResourceVisibility; status: ResourceStatus;
+  batchIds?: string[];
   downloadCount: number; createdAt: string;
   access?: AccessStatus;         // student view
   pendingRequests?: number;      // admin view
@@ -45,7 +46,10 @@ async function saveDownload(resourceId: string, fileId: string, fileName: string
 
 export const resourceApi = {
   // Student
-  list: async (): Promise<Resource[]> => (await axios.get(BASE, { headers: authHeader() })).data.resources || [],
+  list: async (): Promise<{ resources: Resource[]; activeProjectId: string | null }> => {
+    const { data } = await axios.get(BASE, { headers: authHeader() });
+    return { resources: data.resources || [], activeProjectId: data.activeProjectId || null };
+  },
   requestAccess: async (id: string, note?: string) => (await axios.post(`${BASE}/${id}/request`, { note }, { headers: authHeader() })).data.request,
   download: saveDownload,
 

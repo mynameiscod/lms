@@ -26,6 +26,7 @@ export interface IResource extends Document {
   targetRole?: string;
   files: IResourceFile[];
   visibility: ResourceVisibility;
+  batchIds: mongoose.Types.ObjectId[];   // empty = all batches; else only these batches' students
   status: ResourceStatus;
   downloadCount: number;
   createdBy: mongoose.Types.ObjectId;
@@ -56,6 +57,7 @@ const ResourceSchema = new Schema<IResource>(
     targetRole:   { type: String },
     files:        { type: [FileSchema], default: [] },
     visibility:   { type: String, enum: ['public', 'portal', 'approval'], default: 'portal', index: true },
+    batchIds:     { type: [{ type: Schema.Types.ObjectId, ref: 'Batch' }], default: [] },
     status:       { type: String, enum: ['draft', 'published', 'archived'], default: 'draft', index: true },
     downloadCount: { type: Number, default: 0 },
     createdBy:    { type: Schema.Types.ObjectId, ref: 'User' },

@@ -6,19 +6,23 @@ const TYPE_ICON: Record<string, string> = { project: '🚀', document: '📄', t
 
 const ResourceLibrary: React.FC = () => {
   const [items, setItems] = useState<Resource[]>([]);
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string>('');
   const [q, setQ] = useState('');
   const [type, setType] = useState('');
 
-  const load = async () => { try { setItems(await resourceApi.list()); } finally { setLoading(false); } };
+  const load = async () => {
+    try { const d = await resourceApi.list(); setItems(d.resources); setActiveProjectId(d.activeProjectId); }
+    finally { setLoading(false); }
+  };
   useEffect(() => { load(); }, []);
 
   const request = async (r: Resource) => {
     const note = window.prompt('Add a short note for the admin (optional):', '') ?? '';
     setBusy(r._id);
     try { await resourceApi.requestAccess(r._id, note); await load(); }
-    catch { alert('Could not send request.'); } finally { setBusy(''); }
+    catch (e: any) { alert(e?.response?.data?.message || 'Could not send request.'); } finally { setBusy(''); }
   };
   const download = async (r: Resource, fileId: string, name: string) => {
     setBusy(r._id + fileId);
@@ -81,6 +85,11 @@ const ResourceLibrary: React.FC = () => {
                       </div>
                     ) : r.access === 'requested' ? (
                       <button disabled style={{ width: '100%', background: '#f1f5f9', color: '#64748b', border: 'none', borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 13.5 }}>⏳ Awaiting admin approval</button>
+                    ) : (activeProjectId && activeProjectId !== r._id) ? (
+                      <button disabled title="You can only have one project at a time"
+                        style={{ width: '100%', background: '#f8fafc', color: '#94a3b8', border: '1px dashed #cbd5e1', borderRadius: 10, padding: '11px', fontWeight: 600, fontSize: 12.5 }}>
+                        🔒 One project at a time
+                      </button>
                     ) : (
                       <button onClick={() => request(r)} disabled={busy === r._id}
                         style={{ width: '100%', background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>

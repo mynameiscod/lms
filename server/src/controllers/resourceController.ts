@@ -5,7 +5,21 @@ import Resource, { ResourceVisibility } from '../models/Resource';
 import ResourceRequest from '../models/ResourceRequest';
 import ResourceAudit, { ResourceAuditAction } from '../models/ResourceAudit';
 import User from '../models/User';
+import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import * as bunny from '../services/bunnyStorageService';
+import mongoose from 'mongoose';
+
+// All batch ids a student belongs to (primary batch + every enrolment's batch).
+async function studentBatchIds(userId: string, tenantId: string): Promise<mongoose.Types.ObjectId[]> {
+  const [user, enrolments] = await Promise.all([
+    User.findById(userId).select('batchId').lean() as any,
+    CurriculumEnrollment.find({ tenantId, studentId: userId }).select('batchId').lean() as any,
+  ]);
+  const ids = new Set<string>();
+  if (user?.batchId) ids.add(String(user.batchId));
+  (enrolments || []).forEach((e: any) => { if (e.batchId) ids.add(String(e.batchId)); });
+  return [...ids].map((s) => new mongoose.Types.ObjectId(s));
+}
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -63,12 +77,14 @@ export const createResource = async (req: Request, res: Response) => {
     if (!bunny.isBunnyStorageConfigured()) return res.status(400).json({ message: 'Bunny Storage is not configured. Add the Storage Zone + AccessKey in Platform Settings → Storage.' });
 
     const arr = (v: any) => (Array.isArray(v) ? v : typeof v === 'string' && v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []);
+    const toBatchIds = (v: any) => arr(v).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s));
     const resource = await Resource.create({
       tenantId: tId(req), title: b.title, description: b.description,
       resourceType: b.resourceType || 'project',
       tags: arr(b.tags), techStack: arr(b.techStack),
       difficulty: b.difficulty || undefined, targetRole: b.targetRole || undefined,
       visibility: (['public', 'portal', 'approval'].includes(b.visibility) ? b.visibility : 'portal') as ResourceVisibility,
+      batchIds: toBatchIds(b.batchIds),
       status: 'draft', createdBy: uId(req), files: [],
     });
 
@@ -94,6 +110,7 @@ export const updateResource = async (req: Request, res: Response) => {
     for (const k of ['title', 'description', 'resourceType', 'difficulty', 'targetRole'] as const) if (b[k] !== undefined) (r as any)[k] = b[k];
     if (b.tags !== undefined) r.tags = arr(b.tags) || [];
     if (b.techStack !== undefined) r.techStack = arr(b.techStack) || [];
+    if (b.batchIds !== undefined) r.batchIds = (arr(b.batchIds) || []).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s)) as any;
     if (b.visibility && ['public', 'portal', 'approval'].includes(b.visibility)) r.visibility = b.visibility;
     if (b.status && ['draft', 'published', 'archived'].includes(b.status)) {
       const was = r.status; r.status = b.status;
@@ -172,8 +189,14 @@ export const getAudit = async (req: Request, res: Response) => {
 // GET /resources — resources visible to this student + their access status.
 export const listForStudent = async (req: Request, res: Response) => {
   try {
-    const resources = await Resource.find({ tenantId: tId(req), status: 'published', visibility: { $in: ['public', 'portal', 'approval'] } })
-      .sort({ createdAt: -1 }).lean();
+    const myBatches = await studentBatchIds(uId(req), tId(req));
+    // Batch gate: a resource with no batchIds is visible to everyone; otherwise only
+    // to students in one of its batches.
+    const resources = await Resource.find({
+      tenantId: tId(req), status: 'published',
+      visibility: { $in: ['public', 'portal', 'approval'] },
+      $or: [{ batchIds: { $size: 0 } }, { batchIds: { $in: myBatches } }],
+    }).sort({ createdAt: -1 }).lean();
     const reqs = await ResourceRequest.find({ tenantId: tId(req), studentId: uId(req) }).lean();
     const reqMap: Record<string, string> = {};
     reqs.forEach((r) => { reqMap[String(r.resourceId)] = r.status; });
@@ -188,7 +211,9 @@ export const listForStudent = async (req: Request, res: Response) => {
       const files = (r.files || []).map((f: any) => ({ fileId: f.fileId, fileName: f.fileName, sizeBytes: f.sizeBytes, version: f.version }));
       return { ...r, files, access };
     });
-    res.json({ resources: out });
+    // A student may hold only one project at a time (one pending or approved request).
+    const active = reqs.find((r) => r.status === 'requested' || r.status === 'approved');
+    res.json({ resources: out, activeProjectId: active ? String(active.resourceId) : null });
   } catch (err) { res.status(500).json({ message: 'Failed to load resources', error: String(err) }); }
 };
 
@@ -198,6 +223,15 @@ export const requestAccess = async (req: Request, res: Response) => {
     const r = await Resource.findOne({ _id: req.params.id, tenantId: tId(req), status: 'published' });
     if (!r) return res.status(404).json({ message: 'Resource not found' });
     if (r.visibility !== 'approval') return res.status(400).json({ message: 'This resource does not require approval.' });
+    // One project at a time: block if the student already has a live request for a
+    // different resource (pending or approved). Re-requesting the same one is fine.
+    const active = await ResourceRequest.findOne({
+      tenantId: tId(req), studentId: uId(req),
+      resourceId: { $ne: r._id }, status: { $in: ['requested', 'approved'] },
+    }).populate('resourceId', 'title').lean() as any;
+    if (active) {
+      return res.status(409).json({ message: `You can only have one project at a time. You already have "${active.resourceId?.title || 'a project'}" (${active.status}). Finish or drop it before requesting another.` });
+    }
     const u = await User.findById(uId(req)).select('firstName lastName').lean() as any;
     const doc = await ResourceRequest.findOneAndUpdate(
       { tenantId: tId(req), resourceId: r._id, studentId: uId(req) },

@@ -12,6 +12,17 @@ export interface TLProblem {
   statement: string; examples: { input: string; expectedOutput: string; explanation?: string }[];
   constraints?: string; notes?: string; starterCode?: string; xp: number; estimatedMinutes?: number;
   totalHints: number; hints: string[]; expectedTimeComplexity?: string; expectedSpaceComplexity?: string;
+  imageUrl?: string; videoUrl?: string; referenceVideo?: string;
+}
+export interface TLAnalytics {
+  heatmap: { date: string; count: number }[]; solvedTotal: number; attempted: number; accuracy: number;
+  avgThinking: number; avgCoding: number; avgCommunication: number; avgTimeSec: number;
+  byCategory: { category: string; total: number; solved: number; rate: number; avgScore: number }[];
+  strongTopics: string[]; weakTopics: string[];
+}
+export interface TLExplanation {
+  sampleInput: string; dryRun: { step: number; action: string; state: string }[];
+  finalOutput: string; timeComplexity: string; spaceComplexity: string; bestPractice: string; altLogic: string;
 }
 export interface TLRubric {
   logicalThinking?: number; problemUnderstanding?: number; approach?: number; optimization?: number;
@@ -54,13 +65,22 @@ export const thinkingLabApi = {
   },
   saveJournal: async (id: string, answers: { firstThought: string; gotStuck: string; learned: string }): Promise<{ saved: boolean; xpEarned: number; coinsEarned: number }> => (await axios.post(`${BASE}/${id}/journal`, answers, h())).data,
   profile: async (refresh = false): Promise<{ profile: TLProfile | null; journalCount: number; needMore?: number }> => (await axios.get(`${BASE}/profile`, { ...h(), params: refresh ? { refresh: 1 } : {} })).data,
+  analytics: async (): Promise<TLAnalytics> => (await axios.get(`${BASE}/analytics`, h())).data,
+  explain: async (id: string): Promise<TLExplanation> => (await axios.post(`${BASE}/${id}/explain`, {}, { ...h(), timeout: 120000 })).data.explanation,
 
   // Admin
   meta: async (): Promise<{ categories: string[]; difficulties: string[] }> => (await axios.get(`${BASE}/admin/meta`, h())).data,
   listProblems: async (params?: { category?: string; difficulty?: string }): Promise<{ problems: TLAdminProblem[]; total: number }> => (await axios.get(`${BASE}/admin/problems`, { ...h(), params })).data,
   generate: async (data: { category: string; difficulty: string; language: string; brief?: string; count?: number }): Promise<{ created: number; problems: any[] }> => (await axios.post(`${BASE}/admin/generate`, data, { ...h(), timeout: 300000 })).data,
+  generateBulk: async (data: { items: { category: string; difficulty: string; count: number }[]; language: string; brief?: string }): Promise<{ created: number; requested: number }> => (await axios.post(`${BASE}/admin/generate-bulk`, data, { ...h(), timeout: 600000 })).data,
   toggleProblem: async (id: string, active: boolean): Promise<{ id: string; active: boolean }> => (await axios.patch(`${BASE}/admin/problems/${id}`, { active }, h())).data,
   deleteProblem: async (id: string): Promise<{ deleted: number }> => (await axios.delete(`${BASE}/admin/problems/${id}`, h())).data,
+  getProblem: async (id: string): Promise<{ problem: any }> => (await axios.get(`${BASE}/admin/problems/${id}`, h())).data,
+  createProblem: async (data: any): Promise<{ id: string }> => (await axios.post(`${BASE}/admin/problems`, data, h())).data,
+  updateProblem: async (id: string, data: any): Promise<{ id: string }> => (await axios.put(`${BASE}/admin/problems/${id}`, data, h())).data,
+  listSchedule: async (batchId?: string): Promise<{ schedule: any[] }> => (await axios.get(`${BASE}/admin/schedule`, { ...h(), params: batchId ? { batchId } : {} })).data,
+  scheduleChallenge: async (data: { batchId: string; date: string; problemId: string }): Promise<{ id: string }> => (await axios.post(`${BASE}/admin/schedule`, data, h())).data,
+  deleteSchedule: async (id: string): Promise<{ deleted: number }> => (await axios.delete(`${BASE}/admin/schedule/${id}`, h())).data,
 };
 
 export const TL_LANGS = [{ v: 'javascript', l: 'JavaScript' }, { v: 'python', l: 'Python' }, { v: 'java', l: 'Java' }, { v: 'cpp', l: 'C++' }];

@@ -187,4 +187,16 @@ export const publicProblem = (p: any, revealedHints = 0) => ({
   totalHints: (p.hints || []).length,
   hints: (p.hints || []).slice(0, revealedHints),
   expectedTimeComplexity: p.expectedTimeComplexity, expectedSpaceComplexity: p.expectedSpaceComplexity,
+  imageUrl: p.imageUrl, videoUrl: p.videoUrl, referenceVideo: p.referenceVideo,
 });
+
+// Step-by-step dry run of the student's solution (post-submission learning).
+export async function explainStepByStep(input: { statement: string; code: string; language: string; expectedTime?: string }): Promise<any> {
+  const sys = 'You are a patient tutor producing a STEP-BY-STEP dry run of a student\'s solution so they can see exactly how it executes. Output ONLY raw JSON.';
+  const usr = `PROBLEM:\n"""${(input.statement || '').slice(0, 1500)}"""\n\nSTUDENT CODE (${input.language}):\n"""${(input.code || '').slice(0, 3000)}"""\n\n` +
+    `Pick ONE small representative input and trace execution. Return JSON:\n` +
+    `{"sampleInput":"...","dryRun":[{"step":1,"action":"what happens","state":"key variable values after this step"}],` +
+    `"finalOutput":"...","timeComplexity":"O(...)","spaceComplexity":"O(...)","bestPractice":"1-2 lines on how a pro would write/optimize this","altLogic":"a different approach in 1 line"}`;
+  try { return JSON.parse(stripJson(await evalAi(sys, usr, 1400))); }
+  catch { return { sampleInput: '', dryRun: [], finalOutput: '', timeComplexity: input.expectedTime || 'n/a', spaceComplexity: 'n/a', bestPractice: 'Trace your code by hand on a small input to internalise how each step changes the variables.', altLogic: '' }; }
+}

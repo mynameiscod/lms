@@ -29,19 +29,28 @@ router.get('/stats', ctrl.stats);
 router.get('/badges', ctrl.badges);
 router.get('/leaderboard', ctrl.leaderboard);
 router.get('/profile', ctrl.getProfile);
+router.get('/analytics', ctrl.analytics);
 router.post('/:id/approach', ctrl.saveApproach);   // think-first gate (>=30 words)
 router.post('/:id/hint', ctrl.revealHint);
 router.post('/:id/run', ctrl.run);
 router.post('/:id/submit', ctrl.submit);
 router.post('/:id/voice', voiceUpload.single('recording'), ctrl.voiceExplain);
 router.post('/:id/journal', ctrl.saveJournal);
+router.post('/:id/explain', ctrl.explain);
 
 // Admin / instructor — question bank
 const adminGuard = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 router.get('/admin/meta', adminGuard, ctrl.meta);
 router.get('/admin/problems', adminGuard, ctrl.listProblems);
 router.post('/admin/generate', adminGuard, ctrl.generateProblems);
+router.post('/admin/generate-bulk', adminGuard, ctrl.generateBulk);
+router.post('/admin/problems', adminGuard, ctrl.createProblem);
+router.get('/admin/problems/:id', adminGuard, ctrl.getProblemDetail);
+router.put('/admin/problems/:id', adminGuard, ctrl.updateProblem);
 router.patch('/admin/problems/:id', adminGuard, ctrl.toggleProblem);
 router.delete('/admin/problems/:id', adminGuard, ctrl.deleteProblem);
+router.get('/admin/schedule', adminGuard, ctrl.listSchedule);
+router.post('/admin/schedule', adminGuard, ctrl.scheduleChallenge);
+router.delete('/admin/schedule/:id', adminGuard, ctrl.deleteSchedule);
 
 export default router;

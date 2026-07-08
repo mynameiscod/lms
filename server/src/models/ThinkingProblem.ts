@@ -19,6 +19,9 @@ export interface IThinkingProblem extends Document {
   referenceSolution?: string;  // locked until submission
   expectedTimeComplexity?: string;
   expectedSpaceComplexity?: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  referenceVideo?: string;     // shown after solving
   xp: number;
   estimatedMinutes?: number;
   tags?: string[];
@@ -48,6 +51,9 @@ const ThinkingProblemSchema = new Schema<IThinkingProblem>(
     referenceSolution: { type: String },
     expectedTimeComplexity:  { type: String },
     expectedSpaceComplexity: { type: String },
+    imageUrl:   { type: String },
+    videoUrl:   { type: String },
+    referenceVideo: { type: String },
     xp:         { type: Number, default: 50 },
     estimatedMinutes: { type: Number, default: 15 },
     tags:       { type: [String], default: [] },

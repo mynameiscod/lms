@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TLVoiceEval, TLProfile, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
+import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TLVoiceEval, TLProfile, TLAnalytics, TLExplanation, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
 
 const BLUE = '#2563eb', INK = '#0f172a', SUB = '#64748b';
 const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -24,7 +24,7 @@ const ThinkingLab: React.FC = () => {
   const [hints, setHints] = useState<string[]>([]);
   const [seconds, setSeconds] = useState(0);
 
-  const [tab, setTab] = useState<'challenge' | 'progress' | 'leaderboard'>('challenge');
+  const [tab, setTab] = useState<'challenge' | 'progress' | 'leaderboard' | 'analytics'>('challenge');
   const [celebration, setCelebration] = useState<TLSubmitResult | null>(null);
   const [badges, setBadges] = useState<TLBadge[] | null>(null);
   const [lbScope, setLbScope] = useState('overall');
@@ -43,6 +43,10 @@ const ThinkingLab: React.FC = () => {
   // Thinking Profile
   const [profile, setProfile] = useState<{ profile: TLProfile | null; journalCount: number; needMore?: number } | null>(null);
   const [profileBusy, setProfileBusy] = useState(false);
+  // Analytics + step-by-step explainer
+  const [analytics, setAnalytics] = useState<TLAnalytics | null>(null);
+  const [explanation, setExplanation] = useState<TLExplanation | null>(null);
+  const [explainBusy, setExplainBusy] = useState(false);
 
   const timerRef = useRef<any>(null);
   const wc = approach.trim().split(/\s+/).filter(Boolean).length;
@@ -59,6 +63,7 @@ const ThinkingLab: React.FC = () => {
     setHints(ch.problem?.hints || []);
     setSeconds(ch.timeSpentSec || 0);
     setVoiceEval(null); setJournal({ firstThought: '', gotStuck: '', learned: '' }); setJournalSaved(false); setRecording(false);
+    setExplanation(null); setAnalytics(null);
     setRunResult(null);
     setSubmitResult(ch.aiFeedback ? { feedback: ch.aiFeedback, allPassed: ch.passed, xpEarned: ch.xpEarned, coinsEarned: 0, newBadges: [], status: ch.status, results: [], passedCount: 0, total: 0 } : null);
   }, []);
@@ -87,6 +92,15 @@ const ThinkingLab: React.FC = () => {
   // Lazy-load Progress + Leaderboard when their tab opens.
   useEffect(() => { if (tab === 'progress' && !badges) thinkingLabApi.badges().then(setBadges).catch(() => setBadges([])); }, [tab, badges]);
   useEffect(() => { if (tab === 'progress' && !profile) loadProfile(); /* eslint-disable-next-line */ }, [tab]);
+  useEffect(() => { if (tab === 'analytics' && !analytics) thinkingLabApi.analytics().then(setAnalytics).catch(() => {}); }, [tab, analytics]);
+
+  const runExplain = async () => {
+    if (!challenge) return;
+    setExplainBusy(true);
+    try { setExplanation(await thinkingLabApi.explain(challenge.challengeId)); }
+    catch (e: any) { setErr(e?.response?.data?.message || 'Could not generate explanation.'); }
+    finally { setExplainBusy(false); }
+  };
   useEffect(() => { if (tab === 'leaderboard') { setLb(null); thinkingLabApi.leaderboard(lbScope).then(setLb).catch(() => setLb({ leaderboard: [], myRank: null })); } }, [tab, lbScope]);
 
   const checkApproach = async () => {
@@ -197,7 +211,7 @@ const ThinkingLab: React.FC = () => {
 
       {/* Tabs */}
       <div style={{ display: 'flex', gap: 6, marginTop: 16, borderBottom: '1px solid #e6e8f0' }}>
-        {([['challenge', "Today's Challenge"], ['progress', 'My Progress'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
+        {([['challenge', "Today's Challenge"], ['progress', 'My Progress'], ['analytics', 'Analytics'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
           <button key={k} onClick={() => setTab(k)} style={{ background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? BLUE : 'transparent'}`, color: tab === k ? BLUE : SUB, fontWeight: 700, fontSize: 14, padding: '10px 14px', cursor: 'pointer' }}>{l}</button>
         ))}
       </div>
@@ -234,6 +248,7 @@ const ThinkingLab: React.FC = () => {
             <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20 }}>
               <SectionH>Problem</SectionH>
               <div style={{ fontSize: 14.5, color: INK, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{p.statement}</div>
+              {p.imageUrl && <img src={p.imageUrl} alt="problem" style={{ maxWidth: '100%', borderRadius: 10, marginTop: 12, border: '1px solid #eef1f6' }} />}
               {p.examples?.length > 0 && (
                 <div style={{ marginTop: 14 }}>
                   <SectionH>Examples</SectionH>
@@ -364,6 +379,42 @@ const ThinkingLab: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Step-by-step explainer (post-solve learning) */}
+          {done && (
+            <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+                <SectionH>🔍 Understand it step by step</SectionH>
+                {!explanation && <button onClick={runExplain} disabled={explainBusy} style={btn('#0ea5e9')}>{explainBusy ? 'Generating…' : 'Show dry run & complexity'}</button>}
+              </div>
+              {explanation && (
+                <div>
+                  {explanation.sampleInput && <div style={{ fontSize: 12.5, color: SUB, marginBottom: 8 }}>Traced on input: <code style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>{explanation.sampleInput}</code> → output <code style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4 }}>{explanation.finalOutput}</code></div>}
+                  {!!explanation.dryRun?.length && (
+                    <div style={{ overflowX: 'auto' }}>
+                      <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 12.5, minWidth: 460 }}>
+                        <thead><tr style={{ background: '#f8fafc', textAlign: 'left' }}>{['#', 'Action', 'State after'].map(h => <th key={h} style={{ padding: '7px 10px', fontSize: 10.5, textTransform: 'uppercase', color: SUB }}>{h}</th>)}</tr></thead>
+                        <tbody>{explanation.dryRun.map((s, i) => (
+                          <tr key={i} style={{ borderTop: '1px solid #eef1f6' }}>
+                            <td style={{ padding: '7px 10px', fontWeight: 700, color: SUB }}>{s.step}</td>
+                            <td style={{ padding: '7px 10px', color: INK }}>{s.action}</td>
+                            <td style={{ padding: '7px 10px', fontFamily: 'ui-monospace,monospace', color: '#475569' }}>{s.state}</td>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: 10, marginTop: 10, flexWrap: 'wrap' }}>
+                    {explanation.timeComplexity && <span style={cxChip}>⏱ {explanation.timeComplexity}</span>}
+                    {explanation.spaceComplexity && <span style={cxChip}>💾 {explanation.spaceComplexity}</span>}
+                  </div>
+                  {explanation.bestPractice && <div style={{ marginTop: 10, fontSize: 13, color: '#475569' }}><b>Best practice:</b> {explanation.bestPractice}</div>}
+                  {explanation.altLogic && <div style={{ marginTop: 4, fontSize: 13, color: SUB }}><b>Another way:</b> {explanation.altLogic}</div>}
+                </div>
+              )}
+              {p.referenceVideo && <div style={{ marginTop: 12 }}><a href={p.referenceVideo} target="_blank" rel="noreferrer" style={{ color: BLUE, fontWeight: 700, fontSize: 13 }}>▶ Watch reference video</a></div>}
+            </div>
+          )}
         </>
       )}
 
@@ -453,7 +504,71 @@ const ThinkingLab: React.FC = () => {
         </div>
       )}
 
+      {/* Analytics tab */}
+      {tab === 'analytics' && (
+        <div style={{ marginTop: 18 }}>
+          {!analytics ? <div style={{ color: SUB, fontSize: 13 }}>Loading analytics…</div> : (
+            <>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12 }}>
+                <Stat label="Accuracy" value={`${analytics.accuracy}%`} accent="#16a34a" />
+                <Stat label="Solved" value={analytics.solvedTotal} accent={BLUE} />
+                <Stat label="Thinking" value={analytics.avgThinking} accent="#7c3aed" />
+                <Stat label="Coding" value={analytics.avgCoding} accent="#0ea5e9" />
+                <Stat label="Communication" value={analytics.avgCommunication} accent="#d97706" />
+                <Stat label="Avg time" value={`${Math.round(analytics.avgTimeSec / 60)}m`} accent="#ea580c" />
+              </div>
+
+              <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20, marginTop: 16 }}>
+                <SectionH>Activity heatmap (last 16 weeks)</SectionH>
+                <Heatmap data={analytics.heatmap} />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1.4fr) minmax(0,1fr)', gap: 16, marginTop: 16 }}>
+                <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20 }}>
+                  <SectionH>Performance by topic</SectionH>
+                  {analytics.byCategory.length === 0 ? <div style={{ color: SUB, fontSize: 13 }}>No data yet.</div> : analytics.byCategory.map(c => (
+                    <div key={c.category} style={{ marginBottom: 10 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12.5, marginBottom: 3 }}><span style={{ color: '#475569', fontWeight: 600 }}>{c.category}</span><b style={{ color: c.rate >= 60 ? '#16a34a' : '#d97706' }}>{c.rate}% · {c.solved}/{c.total}</b></div>
+                      <div style={{ height: 6, background: '#eef1f6', borderRadius: 6, overflow: 'hidden' }}><div style={{ width: `${c.rate}%`, height: '100%', background: c.rate >= 60 ? '#16a34a' : '#d97706' }} /></div>
+                    </div>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  {analytics.strongTopics.length > 0 && <ListCard title="💪 Strong topics" items={analytics.strongTopics} color="#16a34a" />}
+                  {analytics.weakTopics.length > 0 && <ListCard title="🎯 Focus areas" items={analytics.weakTopics} color="#d97706" />}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {celebration && <CelebrationModal result={celebration} onClose={() => setCelebration(null)} />}
+    </div>
+  );
+};
+
+// ── Simple GitHub-style contribution heatmap (last ~16 weeks) ────────────────
+const Heatmap: React.FC<{ data: { date: string; count: number }[] }> = ({ data }) => {
+  const map = new Map(data.map(d => [d.date, d.count]));
+  const weeks = 16, days: { date: string; count: number }[] = [];
+  const today = new Date();
+  const start = new Date(today); start.setDate(start.getDate() - (weeks * 7 - 1));
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(start); d.setDate(start.getDate() + i);
+    const ds = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    days.push({ date: ds, count: map.get(ds) || 0 });
+  }
+  const color = (c: number) => c === 0 ? '#eef1f6' : c === 1 ? '#bfdbfe' : c === 2 ? '#60a5fa' : c <= 4 ? '#2563eb' : '#1e40af';
+  const cols: { date: string; count: number }[][] = [];
+  for (let w = 0; w < weeks; w++) cols.push(days.slice(w * 7, w * 7 + 7));
+  return (
+    <div style={{ display: 'flex', gap: 3, overflowX: 'auto', paddingBottom: 4 }}>
+      {cols.map((col, ci) => (
+        <div key={ci} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+          {col.map(d => <span key={d.date} title={`${d.date}: ${d.count} solved`} style={{ width: 13, height: 13, borderRadius: 3, background: color(d.count) }} />)}
+        </div>
+      ))}
     </div>
   );
 };

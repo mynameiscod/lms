@@ -5,6 +5,7 @@ import ThinkingProblem from '../models/ThinkingProblem';
 import DailyChallenge from '../models/DailyChallenge';
 import StudentGameStats from '../models/StudentGameStats';
 import ThinkingProfile from '../models/ThinkingProfile';
+import ScheduledChallenge from '../models/ScheduledChallenge';
 import User from '../models/User';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
@@ -40,11 +41,14 @@ const challengeView = (ch: any, p: any) => ({
   problem: p ? lab.publicProblem(p, ch.hintsUsed) : null,
 });
 
-// Pick an adaptive problem: difficulty from recent performance, avoid recently-solved.
+// Adaptive pick: difficulty from recent performance, biased toward weak categories,
+// avoiding recently-solved problems.
 async function pickProblem(tenantId: string, studentId: string): Promise<any | null> {
-  const recent = await DailyChallenge.find({ tenantId, studentId }).sort({ createdAt: -1 }).limit(5).select('passed problemId difficulty').lean();
-  const solvedIds = recent.filter((r: any) => r.passed).map((r: any) => String(r.problemId));
-  // Adaptive nudge: last 2 solved with no fails → step up; recent fails → keep/step down.
+  const recent = await DailyChallenge.find({ tenantId, studentId }).sort({ createdAt: -1 }).limit(20)
+    .select('passed problemId difficulty').populate('problemId', 'category').lean();
+  const solvedIds = recent.filter((r: any) => r.passed).map((r: any) => String(r.problemId?._id || r.problemId));
+
+  // Difficulty nudge from the last 2 attempts.
   const order = ['easy', 'medium', 'hard', 'expert'];
   let target = 'easy';
   const lastTwo = recent.slice(0, 2);
@@ -58,19 +62,34 @@ async function pickProblem(tenantId: string, studentId: string): Promise<any | n
     target = order.includes(recent[0].difficulty) ? recent[0].difficulty : 'easy';
   }
 
+  // Weak categories: low solve-rate among those attempted ≥2 times.
+  const catAgg: Record<string, { total: number; solved: number }> = {};
+  recent.forEach((r: any) => { const c = r.problemId?.category; if (!c) return; const a = catAgg[c] || { total: 0, solved: 0 }; a.total++; if (r.passed) a.solved++; catAgg[c] = a; });
+  const weakCats = Object.entries(catAgg).filter(([, v]) => v.total >= 2 && v.solved / v.total < 0.6)
+    .sort((a, b) => a[1].solved / a[1].total - b[1].solved / b[1].total).map(([c]) => c);
+
   const base: any = { tenantId, active: true };
-  // Prefer target difficulty + unseen, then relax constraints so we always return something.
-  const tries = [
-    { ...base, difficulty: target, _id: { $nin: solvedIds } },
-    { ...base, difficulty: target },
-    { ...base, _id: { $nin: solvedIds } },
-    { ...base },
-  ];
+  const tries: any[] = [];
+  if (weakCats.length) tries.push({ ...base, difficulty: target, category: { $in: weakCats }, _id: { $nin: solvedIds } });
+  tries.push({ ...base, difficulty: target, _id: { $nin: solvedIds } });
+  if (weakCats.length) tries.push({ ...base, category: { $in: weakCats }, _id: { $nin: solvedIds } });
+  tries.push({ ...base, _id: { $nin: solvedIds } });
+  tries.push({ ...base, difficulty: target });
+  tries.push({ ...base });
   for (const q of tries) {
     const n = await ThinkingProblem.countDocuments(q);
     if (n > 0) { const skip = Math.floor(Math.random() * Math.min(n, 20)); const [p] = await ThinkingProblem.find(q).skip(skip).limit(1); if (p) return p; }
   }
   return null;
+}
+
+// A batch-scheduled problem for today overrides the adaptive pick (same challenge for all).
+async function scheduledProblem(tenantId: string, batchId: any, dateStr: string): Promise<any | null> {
+  if (!batchId) return null;
+  const sc: any = await ScheduledChallenge.findOne({ tenantId, batchId, date: dateStr }).lean();
+  if (!sc) return null;
+  const p = await ThinkingProblem.findOne({ _id: sc.problemId, tenantId, active: true });
+  return p || null;
 }
 
 // GET /thinking-lab/today — the student's current challenge (creates one if none today).
@@ -79,9 +98,10 @@ export const getToday = async (req: Request, res: Response) => {
     const d = today();
     let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
     if (!ch) {
-      const p = await pickProblem(tId(req), uId(req));
-      if (!p) return res.json({ challenge: null, empty: true, message: 'No problems in the bank yet. Ask your admin to add challenges.' });
       const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+      // Admin-scheduled batch challenge takes priority over the adaptive pick.
+      const p = (await scheduledProblem(tId(req), u?.batchId, d)) || (await pickProblem(tId(req), uId(req)));
+      if (!p) return res.json({ challenge: null, empty: true, message: 'No problems in the bank yet. Ask your admin to add challenges.' });
       ch = await DailyChallenge.create({
         tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
         date: d, seq: 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
@@ -348,6 +368,69 @@ export const getProfile = async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
+// GET /thinking-lab/analytics — heatmap + accuracy + times + score averages + topics.
+export const analytics = async (req: Request, res: Response) => {
+  try {
+    const rows = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) })
+      .sort({ createdAt: -1 }).limit(400)
+      .select('passed status date timeSpentSec aiFeedback voiceEval difficulty problemId').populate('problemId', 'category').lean();
+
+    const attempted = rows.filter((r: any) => r.status === 'submitted' || r.status === 'solved');
+    const solved = rows.filter((r: any) => r.passed);
+    const accuracy = attempted.length ? Math.round((solved.length / attempted.length) * 100) : 0;
+
+    // Heatmap: solves per day.
+    const heat: Record<string, number> = {};
+    solved.forEach((r: any) => { heat[r.date] = (heat[r.date] || 0) + 1; });
+    const heatmap = Object.entries(heat).map(([date, count]) => ({ date, count }));
+
+    const avg = (arr: number[]) => arr.length ? Math.round(arr.reduce((a, b) => a + b, 0) / arr.length) : 0;
+    const withFb = attempted.filter((r: any) => r.aiFeedback);
+    const avgThinking = avg(withFb.map((r: any) => r.aiFeedback.logicalThinking || r.aiFeedback.overall || 0).filter(Boolean));
+    const avgCoding = avg(withFb.map((r: any) => r.aiFeedback.overall || 0).filter(Boolean));
+    const commScores = [
+      ...withFb.map((r: any) => r.aiFeedback.communication).filter((x: any) => typeof x === 'number'),
+      ...rows.filter((r: any) => r.voiceEval).map((r: any) => r.voiceEval.communication).filter((x: any) => typeof x === 'number'),
+    ];
+    const avgCommunication = avg(commScores);
+    const avgTimeSec = avg(attempted.map((r: any) => r.timeSpentSec || 0).filter(Boolean));
+
+    // Per-category performance.
+    const cat: Record<string, { total: number; solved: number; scoreSum: number; scoreN: number }> = {};
+    attempted.forEach((r: any) => {
+      const c = r.problemId?.category || 'General';
+      const a = cat[c] || { total: 0, solved: 0, scoreSum: 0, scoreN: 0 };
+      a.total++; if (r.passed) a.solved++;
+      if (r.aiFeedback?.overall) { a.scoreSum += r.aiFeedback.overall; a.scoreN++; }
+      cat[c] = a;
+    });
+    const byCategory = Object.entries(cat).map(([category, v]) => ({
+      category, total: v.total, solved: v.solved, rate: Math.round((v.solved / v.total) * 100), avgScore: v.scoreN ? Math.round(v.scoreSum / v.scoreN) : 0,
+    }));
+    const ranked = [...byCategory].filter(c => c.total >= 2).sort((a, b) => b.rate - a.rate);
+    const strongTopics = ranked.slice(0, 3).filter(c => c.rate >= 60).map(c => c.category);
+    const weakTopics = ranked.slice(-3).reverse().filter(c => c.rate < 60).map(c => c.category);
+
+    res.json({
+      heatmap, solvedTotal: solved.length, attempted: attempted.length, accuracy,
+      avgThinking, avgCoding, avgCommunication, avgTimeSec,
+      byCategory: byCategory.sort((a, b) => b.total - a.total), strongTopics, weakTopics,
+    });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// POST /thinking-lab/:id/explain — step-by-step dry run of the student's solution.
+export const explain = async (req: Request, res: Response) => {
+  try {
+    const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) }).lean();
+    if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    if (!ch.code) return res.status(400).json({ message: 'Submit a solution first.' });
+    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+    const out = await lab.explainStepByStep({ statement: p?.statement || '', code: ch.code, language: ch.language, expectedTime: p?.expectedTimeComplexity });
+    res.json({ explanation: out });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
 // ── Admin ────────────────────────────────────────────────────────────────────
 
 // GET /thinking-lab/admin/problems?category=&difficulty=
@@ -400,6 +483,121 @@ export const toggleProblem = async (req: Request, res: Response) => {
 export const deleteProblem = async (req: Request, res: Response) => {
   try {
     const r = await ThinkingProblem.deleteOne({ _id: req.params.id, tenantId: tId(req) });
+    res.json({ deleted: r.deletedCount || 0 });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// GET /thinking-lab/admin/problems/:id — full detail for editing (incl. test cases).
+export const getProblemDetail = async (req: Request, res: Response) => {
+  try {
+    const p: any = await ThinkingProblem.findOne({ _id: req.params.id, tenantId: tId(req) }).lean();
+    if (!p) return res.status(404).json({ message: 'Not found' });
+    res.json({ problem: { ...p, id: String(p._id) } });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// Shape + validate an admin-authored problem payload.
+function sanitizeProblemInput(b: any) {
+  const difficulty = lab.THINKING_DIFFICULTIES.includes(b.difficulty) ? b.difficulty : 'easy';
+  const testCases = (Array.isArray(b.testCases) ? b.testCases : [])
+    .filter((t: any) => t && typeof t.expectedOutput === 'string')
+    .map((t: any) => ({ input: String(t.input || ''), expectedOutput: String(t.expectedOutput || ''), hidden: !!t.hidden }));
+  const examples = (Array.isArray(b.examples) ? b.examples : [])
+    .map((e: any) => ({ input: String(e.input || ''), expectedOutput: String(e.expectedOutput || ''), explanation: e.explanation ? String(e.explanation) : undefined }));
+  return {
+    title: String(b.title || '').slice(0, 120),
+    category: lab.THINKING_CATEGORIES.includes(b.category) ? b.category : 'Brain Teasers',
+    difficulty, language: String(b.language || 'javascript'),
+    statement: String(b.statement || '').slice(0, 8000),
+    examples, testCases,
+    constraints: b.constraints ? String(b.constraints).slice(0, 800) : undefined,
+    notes: b.notes ? String(b.notes).slice(0, 800) : undefined,
+    starterCode: b.starterCode ? String(b.starterCode).slice(0, 8000) : '',
+    hints: (Array.isArray(b.hints) ? b.hints : []).slice(0, 3).map((h: any) => String(h).slice(0, 400)),
+    referenceSolution: b.referenceSolution ? String(b.referenceSolution).slice(0, 8000) : undefined,
+    expectedTimeComplexity: b.expectedTimeComplexity ? String(b.expectedTimeComplexity).slice(0, 60) : undefined,
+    expectedSpaceComplexity: b.expectedSpaceComplexity ? String(b.expectedSpaceComplexity).slice(0, 60) : undefined,
+    imageUrl: b.imageUrl ? String(b.imageUrl).slice(0, 1000) : undefined,
+    videoUrl: b.videoUrl ? String(b.videoUrl).slice(0, 1000) : undefined,
+    referenceVideo: b.referenceVideo ? String(b.referenceVideo).slice(0, 1000) : undefined,
+    xp: Number(b.xp) > 0 ? Math.min(500, Number(b.xp)) : (lab.XP_BY_DIFFICULTY[difficulty] || 50),
+    estimatedMinutes: Number(b.estimatedMinutes) > 0 ? Math.min(120, Number(b.estimatedMinutes)) : 15,
+    tags: (Array.isArray(b.tags) ? b.tags : []).map((t: any) => String(t).slice(0, 40)).slice(0, 10),
+  };
+}
+
+// POST /thinking-lab/admin/problems — manual authoring.
+export const createProblem = async (req: Request, res: Response) => {
+  try {
+    const data = sanitizeProblemInput(req.body || {});
+    if (!data.title || !data.statement) return res.status(400).json({ message: 'Title and problem statement are required.' });
+    if (!data.testCases.length) return res.status(400).json({ message: 'Add at least one test case (with expected output).' });
+    const doc = await ThinkingProblem.create({ ...data, tenantId: tId(req), source: 'manual', active: true, createdBy: uId(req) });
+    res.status(201).json({ id: String(doc._id) });
+  } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to create' }); }
+};
+
+// PUT /thinking-lab/admin/problems/:id — edit.
+export const updateProblem = async (req: Request, res: Response) => {
+  try {
+    const data = sanitizeProblemInput(req.body || {});
+    if (!data.title || !data.statement) return res.status(400).json({ message: 'Title and statement are required.' });
+    const p = await ThinkingProblem.findOneAndUpdate({ _id: req.params.id, tenantId: tId(req) }, { $set: data }, { new: true });
+    if (!p) return res.status(404).json({ message: 'Not found' });
+    res.json({ id: String(p._id) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// POST /thinking-lab/admin/generate-bulk { items:[{category,difficulty,count}], language, brief? }
+export const generateBulk = async (req: Request, res: Response) => {
+  try {
+    const items = Array.isArray(req.body?.items) ? req.body.items : [];
+    const language = req.body?.language || 'javascript';
+    const brief = req.body?.brief;
+    if (!items.length) return res.status(400).json({ message: 'Provide items to generate.' });
+    let totalWanted = 0; const jobs: { category: string; difficulty: string }[] = [];
+    for (const it of items) {
+      if (!lab.THINKING_CATEGORIES.includes(it.category) || !lab.THINKING_DIFFICULTIES.includes(it.difficulty)) continue;
+      const c = Math.max(1, Math.min(10, Number(it.count) || 1));
+      for (let i = 0; i < c && totalWanted < 40; i++) { jobs.push({ category: it.category, difficulty: it.difficulty }); totalWanted++; }
+    }
+    let created = 0;
+    for (const j of jobs) {
+      const gen = await lab.generateThinkingProblem(tId(req), j.category, j.difficulty, language, brief);
+      if (gen) { await ThinkingProblem.create({ ...gen, tenantId: tId(req), createdBy: uId(req) }); created++; }
+    }
+    res.status(201).json({ created, requested: totalWanted });
+  } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to generate' }); }
+};
+
+// ── Admin: scheduling (batch + date → fixed challenge) ───────────────────────
+export const listSchedule = async (req: Request, res: Response) => {
+  try {
+    const filter: any = { tenantId: tId(req) };
+    if (req.query.batchId) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
+    const rows = await ScheduledChallenge.find(filter).sort({ date: -1 }).limit(200).populate('problemId', 'title category difficulty').lean();
+    res.json({ schedule: rows.map((s: any) => ({ id: String(s._id), batchId: String(s.batchId), date: s.date, problem: s.problemId ? { id: String(s.problemId._id), title: s.problemId.title, category: s.problemId.category, difficulty: s.problemId.difficulty } : null })) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+export const scheduleChallenge = async (req: Request, res: Response) => {
+  try {
+    const { batchId, date, problemId } = req.body || {};
+    if (!batchId || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !problemId) return res.status(400).json({ message: 'batchId, date (YYYY-MM-DD) and problemId are required.' });
+    const prob = await ThinkingProblem.findOne({ _id: problemId, tenantId: tId(req) }).select('_id').lean();
+    if (!prob) return res.status(404).json({ message: 'Problem not found' });
+    const doc = await ScheduledChallenge.findOneAndUpdate(
+      { tenantId: tId(req), batchId, date },
+      { $set: { problemId, createdBy: uId(req) } },
+      { new: true, upsert: true }
+    );
+    res.status(201).json({ id: String(doc._id) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+export const deleteSchedule = async (req: Request, res: Response) => {
+  try {
+    const r = await ScheduledChallenge.deleteOne({ _id: req.params.id, tenantId: tId(req) });
     res.json({ deleted: r.deletedCount || 0 });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

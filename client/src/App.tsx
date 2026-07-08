@@ -69,6 +69,8 @@ import SpeakingPractice from './pages/SpeakingPractice';
 import SpeakingAdmin from './pages/SpeakingAdmin';
 import LogicGym from './pages/LogicGym';
 import DrillsAdmin from './pages/DrillsAdmin';
+import ThinkingLab from './pages/ThinkingLab';
+import ThinkingLabAdmin from './pages/ThinkingLabAdmin';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -483,6 +485,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <DrillsAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/thinking-lab"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ThinkingLab />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/thinking-lab"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ThinkingLabAdmin />
             </Layout>
           </ProtectedRoute>
         }

@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import './StudentDashboard.css';
+import { thinkingLabApi, DIFF_COLORS } from '../../api/thinkingLabApi';
 
 interface Props {
   firstName: string;
@@ -71,6 +72,9 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
           </div>
         ))}
       </div>
+
+      {/* Today's Logical Challenge — the daily brain-gym anchor */}
+      <TodayChallengeBanner navigate={navigate} />
 
       {/* Main two-column */}
       <div className="sd2-main">
@@ -168,6 +172,52 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
 
       {/* Pro Tip */}
       <div className="sd2-tip">💡 <b>Pro Tip</b>&nbsp; Break your tasks into small steps and complete them one by one. You're doing great!</div>
+    </div>
+  );
+};
+
+// Daily Logical Thinking challenge banner — self-contained (fetches its own data).
+const TodayChallengeBanner: React.FC<{ navigate: (to: string) => void }> = ({ navigate }) => {
+  const [ch, setCh] = useState<any>(null);
+  const [streak, setStreak] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const [empty, setEmpty] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const [t, s] = await Promise.all([thinkingLabApi.getToday(), thinkingLabApi.stats().catch(() => null)]);
+        if (!alive) return;
+        if (t.empty || !t.challenge) setEmpty(true); else setCh(t.challenge);
+        if (s) setStreak(s.streak);
+      } catch { if (alive) setEmpty(true); }
+      finally { if (alive) setLoaded(true); }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  if (!loaded || empty) return null; // don't show a broken/empty card
+  const p = ch?.problem;
+  const solved = ch?.status === 'solved';
+  const diffColor = p ? (DIFF_COLORS[p.difficulty] || '#2563eb') : '#2563eb';
+
+  return (
+    <div style={{ background: 'linear-gradient(120deg,#2563eb,#4f46e5)', color: '#fff', borderRadius: 16, padding: 18, margin: '4px 0 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+      <div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 800, letterSpacing: .3 }}>🧠 TODAY'S LOGICAL CHALLENGE</span>
+          {streak > 0 && <span style={{ fontSize: 11.5, background: 'rgba(255,255,255,.2)', borderRadius: 999, padding: '2px 9px', fontWeight: 700 }}>🔥 {streak}-day streak</span>}
+        </div>
+        <div style={{ fontSize: 17, fontWeight: 800, marginTop: 6 }}>{p?.title || 'Sharpen your thinking'}</div>
+        <div style={{ fontSize: 12.5, opacity: .92, marginTop: 2 }}>
+          {p && <span style={{ background: diffColor, borderRadius: 999, padding: '1px 8px', fontWeight: 700, fontSize: 11, textTransform: 'capitalize' }}>{p.difficulty}</span>}
+          {p && <span style={{ marginLeft: 8 }}>{p.category} · ⚡ {p.xp} XP</span>}
+        </div>
+      </div>
+      <button onClick={() => navigate('/thinking-lab')} style={{ background: '#fff', color: '#2563eb', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
+        {solved ? '✓ Solved — do another →' : ch?.status === 'in_progress' || ch?.status === 'thinking_done' ? 'Continue challenge →' : 'Start challenge →'}
+      </button>
     </div>
   );
 };

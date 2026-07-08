@@ -65,6 +65,8 @@ import JobTracker from './pages/JobTracker';
 import AIMentor from './pages/AIMentor';
 import ResourceLibrary from './pages/ResourceLibrary';
 import ResourceAdmin from './pages/ResourceAdmin';
+import SpeakingPractice from './pages/SpeakingPractice';
+import SpeakingAdmin from './pages/SpeakingAdmin';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -435,6 +437,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <ResourceAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/speaking-practice"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <SpeakingPractice />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/speaking-tasks"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <SpeakingAdmin />
             </Layout>
           </ProtectedRoute>
         }

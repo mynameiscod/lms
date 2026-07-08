@@ -30,6 +30,28 @@ export function computeOccurrences(task: { days: string[]; startDate?: Date | st
   return out;
 }
 
+// The prompt for a given occurrence — rotates through `topics` one per week if set.
+export function promptForOccurrence(task: { prompt: string; topics?: string[]; startDate?: Date | string; createdAt?: Date | string }, dateStr: string): string {
+  const topics = (task.topics || []).filter(Boolean);
+  if (!topics.length) return task.prompt;
+  const startBase = task.startDate || task.createdAt || new Date();
+  const start = new Date(new Date(startBase).setHours(0, 0, 0, 0)).getTime();
+  const d = new Date(`${dateStr}T00:00:00`).getTime();
+  const weeks = Math.max(0, Math.floor((d - start) / (7 * 86400000)));
+  return topics[weeks % topics.length] || task.prompt;
+}
+
+// Monday-anchored ISO-ish week key (YYYY-Www) for streak/leaderboard grouping.
+export function weekKey(dateStr: string): string {
+  const d = new Date(`${dateStr}T00:00:00`);
+  const day = (d.getDay() + 6) % 7; // Mon=0
+  const monday = new Date(d); monday.setDate(d.getDate() - day);
+  const y = monday.getFullYear();
+  const firstJan = new Date(y, 0, 1);
+  const wk = Math.ceil(((monday.getTime() - firstJan.getTime()) / 86400000 + firstJan.getDay() + 1) / 7);
+  return `${y}-W${String(wk).padStart(2, '0')}`;
+}
+
 // Transcribe a recorded file (audio or video/webm) via OpenAI Whisper.
 export async function transcribeFile(filePath: string): Promise<{ text: string; durationSec: number }> {
   const apiKey = settings.getStr('OPENAI_API_KEY', process.env.OPENAI_API_KEY || '');

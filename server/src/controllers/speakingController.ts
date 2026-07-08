@@ -7,7 +7,7 @@ import SpeakingSubmission from '../models/SpeakingSubmission';
 import User from '../models/User';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import * as bunny from '../services/bunnyStorageService';
-import { computeOccurrences, transcribeFile, evaluateSpeaking } from '../services/speakingService';
+import { computeOccurrences, transcribeFile, evaluateSpeaking, promptForOccurrence, weekKey } from '../services/speakingService';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -30,7 +30,7 @@ export const createTask = async (req: Request, res: Response) => {
     if (!b.title || !b.prompt) return res.status(400).json({ message: 'title and prompt are required' });
     const arr = (v: any) => (Array.isArray(v) ? v : typeof v === 'string' && v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []);
     const task = await SpeakingTask.create({
-      tenantId: tId(req), title: b.title, prompt: b.prompt, instructions: b.instructions,
+      tenantId: tId(req), title: b.title, prompt: b.prompt, topics: arr(b.topics), instructions: b.instructions,
       batchIds: arr(b.batchIds).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s)),
       days: arr(b.days).length ? arr(b.days) : ['Mon', 'Thu'],
       startDate: b.startDate ? new Date(b.startDate) : new Date(),
@@ -62,6 +62,7 @@ export const updateTask = async (req: Request, res: Response) => {
     const b = req.body || {};
     const arr = (v: any) => (Array.isArray(v) ? v : typeof v === 'string' && v ? v.split(',').map((s: string) => s.trim()).filter(Boolean) : undefined);
     for (const k of ['title', 'prompt', 'instructions'] as const) if (b[k] !== undefined) (t as any)[k] = b[k];
+    if (b.topics !== undefined) t.topics = arr(b.topics) || [];
     if (b.days !== undefined) t.days = arr(b.days) || t.days;
     if (b.batchIds !== undefined) t.batchIds = (arr(b.batchIds) || []).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s)) as any;
     if (b.startDate !== undefined) t.startDate = new Date(b.startDate);
@@ -125,7 +126,7 @@ export const myTasks = async (req: Request, res: Response) => {
     for (const t of tasks) {
       for (const occ of computeOccurrences(t)) {
         if (done.has(`${t._id}_${occ.date}`)) continue;
-        pending.push({ taskId: t._id, title: t.title, prompt: t.prompt, instructions: t.instructions, dueDate: occ.date, overdue: occ.overdue, minSeconds: t.minSeconds, maxSeconds: t.maxSeconds });
+        pending.push({ taskId: t._id, title: t.title, prompt: promptForOccurrence(t as any, occ.date), instructions: t.instructions, dueDate: occ.date, overdue: occ.overdue, minSeconds: t.minSeconds, maxSeconds: t.maxSeconds });
       }
     }
     pending.sort((a, b) => (a.dueDate < b.dueDate ? -1 : 1));
@@ -138,6 +139,68 @@ export const mySubmissions = async (req: Request, res: Response) => {
     const subs = await SpeakingSubmission.find({ tenantId: tId(req), studentId: uId(req) })
       .sort({ createdAt: -1 }).limit(50).select('-recordingKey').lean();
     res.json({ submissions: subs });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+const ymdLocal = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+// GET /speaking/leaderboard — top speakers + the caller's rank/streak.
+export const leaderboard = async (req: Request, res: Response) => {
+  try {
+    const agg = await SpeakingSubmission.aggregate([
+      { $match: { tenantId: tId(req), status: 'evaluated' } },
+      { $group: { _id: '$studentId', count: { $sum: 1 }, avg: { $avg: '$score.overall' }, name: { $first: '$studentName' } } },
+      { $sort: { count: -1, avg: -1 } },
+    ]);
+    const top = agg.slice(0, 10).map((r: any, i: number) => ({ rank: i + 1, name: r.name || 'Student', count: r.count, avg: Math.round(r.avg || 0) }));
+    const meIdx = agg.findIndex((r: any) => String(r._id) === uId(req));
+    const meAgg: any = meIdx >= 0 ? agg[meIdx] : null;
+
+    // Streak = consecutive weeks (Mon-anchored) with >=1 submission, ending this or last week.
+    const mine = await SpeakingSubmission.find({ tenantId: tId(req), studentId: uId(req) }).select('dueDate createdAt').lean();
+    const weeks = new Set(mine.map((s: any) => weekKey(s.dueDate || ymdLocal(new Date(s.createdAt)))));
+    const d = new Date();
+    if (!weeks.has(weekKey(ymdLocal(d)))) d.setDate(d.getDate() - 7);
+    let streak = 0;
+    while (weeks.has(weekKey(ymdLocal(d)))) { streak++; d.setDate(d.getDate() - 7); }
+
+    res.json({ top, me: { rank: meIdx >= 0 ? meIdx + 1 : null, count: meAgg?.count || 0, avg: Math.round(meAgg?.avg || 0), streak } });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ─── Admin: compliance dashboard ─────────────────────────────────────────────
+export const compliance = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tId(req);
+    const tasks = await SpeakingTask.find({ tenantId, status: 'active' }).lean();
+    const curWeek = weekKey(ymdLocal(new Date()));
+    const out: any[] = [];
+    for (const t of tasks) {
+      const thisWeekDates = computeOccurrences(t).map((o) => o.date).filter((dt) => weekKey(dt) === curWeek);
+      const expected = thisWeekDates.length;
+      const studentFilter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
+      if (t.batchIds && t.batchIds.length) studentFilter.batchId = { $in: t.batchIds };
+      const students = await User.find(studentFilter).select('firstName lastName').lean() as any[];
+      const subs = expected ? await SpeakingSubmission.find({ tenantId, taskId: t._id, dueDate: { $in: thisWeekDates } }).select('studentId dueDate').lean() : [];
+      const doneByStudent: Record<string, Set<string>> = {};
+      subs.forEach((s: any) => { const k = String(s.studentId); (doneByStudent[k] = doneByStudent[k] || new Set()).add(s.dueDate); });
+
+      let completed = 0, partial = 0;
+      const behind: { name: string; done: number }[] = [];
+      for (const st of students) {
+        const done = doneByStudent[String(st._id)]?.size || 0;
+        if (expected > 0 && done >= expected) completed++;
+        else if (done > 0) { partial++; behind.push({ name: [st.firstName, st.lastName].filter(Boolean).join(' '), done }); }
+        else behind.push({ name: [st.firstName, st.lastName].filter(Boolean).join(' '), done: 0 });
+      }
+      out.push({
+        taskId: t._id, title: t.title, days: t.days, expectedThisWeek: expected,
+        totalStudents: students.length, completed, partial, notStarted: students.length - completed - partial,
+        pct: students.length ? Math.round((completed / students.length) * 100) : 0,
+        behind: behind.slice(0, 50),
+      });
+    }
+    res.json({ week: curWeek, tasks: out });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
@@ -160,8 +223,8 @@ export const submit = async (req: Request, res: Response) => {
     const key = `speaking/${tId(req)}/${uId(req)}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.webm`;
     await bunny.uploadStream(key, fs.createReadStream(file.path), file.mimetype || 'video/webm', file.size);
 
-    // 3) AI evaluation.
-    const evalRes = await evaluateSpeaking((task as any).prompt, transcript, durationSec);
+    // 3) AI evaluation (against the topic for this occurrence — supports rotation).
+    const evalRes = await evaluateSpeaking(promptForOccurrence(task as any, dueDate), transcript, durationSec);
 
     const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
     const doc = await SpeakingSubmission.findOneAndUpdate(

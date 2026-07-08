@@ -25,12 +25,14 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/admin/tasks', ADMIN, ctrl.listTasks);
 router.post('/admin/tasks', ADMIN, ctrl.createTask);
 router.get('/admin/submissions', ADMIN, ctrl.listSubmissions);
+router.get('/admin/compliance', ADMIN, ctrl.compliance);
 router.patch('/admin/tasks/:id', ADMIN, ctrl.updateTask);
 router.delete('/admin/tasks/:id', ADMIN, ctrl.deleteTask);
 
 // Student
 router.get('/my-tasks', ctrl.myTasks);
 router.get('/my-submissions', ctrl.mySubmissions);
+router.get('/leaderboard', ctrl.leaderboard);
 router.post('/submit', upload.single('recording'), ctrl.submit);
 router.get('/play/:id', ctrl.playRecording);
 

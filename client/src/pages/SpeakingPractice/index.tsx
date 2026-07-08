@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { speakingApi, PendingTask, SpeakingSubmission } from '../../api/speakingApi';
+import { speakingApi, PendingTask, SpeakingSubmission, LeaderRow, MyStats } from '../../api/speakingApi';
 
 const PURPLE = '#6366f1', TEAL = '#14a89c';
 const scoreColor = (n: number) => (n >= 75 ? '#16a34a' : n >= 50 ? '#d97706' : '#dc2626');
@@ -11,10 +11,15 @@ const SpeakingPractice: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<PendingTask | null>(null);
   const [result, setResult] = useState<SpeakingSubmission | null>(null);
+  const [top, setTop] = useState<LeaderRow[]>([]);
+  const [me, setMe] = useState<MyStats | null>(null);
 
   const load = async () => {
-    try { const [p, h] = await Promise.all([speakingApi.myTasks(), speakingApi.mySubmissions()]); setPending(p.pending); setHistory(h); }
-    finally { setLoading(false); }
+    try {
+      const [p, h, lb] = await Promise.all([speakingApi.myTasks(), speakingApi.mySubmissions(), speakingApi.leaderboard().catch(() => null)]);
+      setPending(p.pending); setHistory(h);
+      if (lb) { setTop(lb.top); setMe(lb.me); }
+    } finally { setLoading(false); }
   };
   useEffect(() => { load(); }, []);
 
@@ -25,6 +30,34 @@ const SpeakingPractice: React.FC = () => {
 
       {loading ? <div style={{ color: '#94a3b8', padding: 30 }}>Loading…</div> : (
         <>
+          {me && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(140px,1fr))', gap: 12, margin: '16px 0' }}>
+              {[
+                { label: 'Current streak', value: `${me.streak} wk${me.streak === 1 ? '' : 's'}`, ic: '🔥' },
+                { label: 'Total recorded', value: String(me.count), ic: '🎬' },
+                { label: 'Avg score', value: me.count ? `${me.avg}` : '—', ic: '⭐' },
+                { label: 'Leaderboard rank', value: me.rank ? `#${me.rank}` : '—', ic: '🏆' },
+              ].map(s => (
+                <div key={s.label} style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 14 }}>
+                  <div style={{ fontSize: 18 }}>{s.ic}</div>
+                  <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', marginTop: 2 }}>{s.value}</div>
+                  <div style={{ fontSize: 11.5, color: '#94a3b8', fontWeight: 600 }}>{s.label}</div>
+                </div>
+              ))}
+            </div>
+          )}
+          {top.length > 0 && (
+            <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16, marginBottom: 4 }}>
+              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>🏆 Top speakers</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {top.slice(0, 5).map(r => (
+                  <span key={r.rank} style={{ fontSize: 12.5, background: r.rank <= 3 ? '#fef9c3' : '#f1f5f9', color: '#334155', borderRadius: 999, padding: '4px 11px', fontWeight: 600 }}>
+                    {r.rank === 1 ? '🥇' : r.rank === 2 ? '🥈' : r.rank === 3 ? '🥉' : `#${r.rank}`} {r.name} · {r.count} recs · {r.avg} avg
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <h2 style={{ fontSize: 16, margin: '22px 0 10px', color: '#0f172a' }}>To do {pending.length > 0 && <span style={{ color: '#dc2626' }}>({pending.length})</span>}</h2>
           {pending.length === 0 ? (
             <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 12, padding: 16, fontSize: 14 }}>🎉 You're all caught up — no speaking tasks due right now.</div>

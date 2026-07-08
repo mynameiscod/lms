@@ -8,10 +8,13 @@ const authHeader = () => {
 };
 
 export interface SpeakingTask {
-  _id: string; title: string; prompt: string; instructions?: string;
+  _id: string; title: string; prompt: string; topics?: string[]; instructions?: string;
   batchIds?: string[]; days: string[]; startDate?: string; endDate?: string;
   minSeconds: number; maxSeconds: number; status: 'active' | 'archived'; submissionCount?: number;
 }
+export interface LeaderRow { rank: number; name: string; count: number; avg: number; }
+export interface MyStats { rank: number | null; count: number; avg: number; streak: number; }
+export interface ComplianceTask { taskId: string; title: string; days: string[]; expectedThisWeek: number; totalStudents: number; completed: number; partial: number; notStarted: number; pct: number; behind: { name: string; done: number }[]; }
 export interface PendingTask {
   taskId: string; title: string; prompt: string; instructions?: string;
   dueDate: string; overdue: boolean; minSeconds: number; maxSeconds: number;
@@ -42,6 +45,8 @@ export const speakingApi = {
   updateTask: async (id: string, patch: any): Promise<SpeakingTask> => (await axios.patch(`${BASE}/admin/tasks/${id}`, patch, { headers: authHeader() })).data.task,
   deleteTask: async (id: string) => { await axios.delete(`${BASE}/admin/tasks/${id}`, { headers: authHeader() }); },
   listSubmissions: async (taskId?: string): Promise<SpeakingSubmission[]> => (await axios.get(`${BASE}/admin/submissions${taskId ? `?taskId=${taskId}` : ''}`, { headers: authHeader() })).data.submissions || [],
+  compliance: async (): Promise<{ week: string; tasks: ComplianceTask[] }> => (await axios.get(`${BASE}/admin/compliance`, { headers: authHeader() })).data,
+  leaderboard: async (): Promise<{ top: LeaderRow[]; me: MyStats }> => (await axios.get(`${BASE}/leaderboard`, { headers: authHeader() })).data,
   // Playback (auth-gated stream → blob URL)
   playUrl: async (submissionId: string): Promise<string> => {
     const res = await fetch(`${BASE}/play/${submissionId}`, { headers: authHeader() as any });

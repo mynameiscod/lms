@@ -14,6 +14,7 @@ import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 import { startDueReminderScheduler } from './jobs/dueReminderCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
+import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
 import { startPartnerOutreachScheduler } from './jobs/partnerOutreachCron';
 import { startPartnerRetentionScheduler } from './jobs/partnerRetentionCron';
 import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
@@ -293,6 +294,9 @@ const startServer = async () => {
 
     // Start stale class-recording alert scheduler (in-app, every 10 min)
     startRecordingAlertScheduler();
+
+    // Start speaking-practice reminder scheduler (in-app, daily)
+    startSpeakingReminderScheduler();
 
     // Start placement-partner outreach sender (cap + gap enforced in service)
     startPartnerOutreachScheduler();

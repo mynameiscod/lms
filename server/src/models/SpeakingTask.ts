@@ -6,7 +6,8 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface ISpeakingTask extends Document {
   tenantId: string;
   title: string;
-  prompt: string;                 // the topic to speak on
+  prompt: string;                 // the topic to speak on (fallback / single-topic)
+  topics: string[];               // if set, rotates one per week
   instructions?: string;
   batchIds: mongoose.Types.ObjectId[];   // empty = all students
   days: string[];                 // e.g. ['Mon','Thu']
@@ -25,6 +26,7 @@ const SpeakingTaskSchema = new Schema<ISpeakingTask>(
     tenantId:     { type: String, required: true, index: true },
     title:        { type: String, required: true, trim: true },
     prompt:       { type: String, required: true },
+    topics:       { type: [String], default: [] },
     instructions: { type: String },
     batchIds:     { type: [{ type: Schema.Types.ObjectId, ref: 'Batch' }], default: [] },
     days:         { type: [String], default: ['Mon', 'Thu'] },   // Mon Tue Wed Thu Fri Sat Sun

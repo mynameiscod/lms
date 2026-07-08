@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { speakingApi, SpeakingTask, SpeakingSubmission, DAYS } from '../../api/speakingApi';
+import { speakingApi, SpeakingTask, SpeakingSubmission, ComplianceTask, DAYS } from '../../api/speakingApi';
 import { batchApi } from '../../api';
 
 const PURPLE = '#6366f1';
@@ -16,14 +16,16 @@ const SpeakingAdmin: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [subs, setSubs] = useState<{ title: string; rows: SpeakingSubmission[] } | null>(null);
   const [vurl, setVurl] = useState<Record<string, string>>({});
-  const blank = { title: '', prompt: '', instructions: '', days: ['Mon', 'Thu'] as string[], batchIds: [] as string[], startDate: '', endDate: '', minSeconds: 30, maxSeconds: 120 };
+  const blank = { title: '', prompt: '', topics: '', instructions: '', days: ['Mon', 'Thu'] as string[], batchIds: [] as string[], startDate: '', endDate: '', minSeconds: 30, maxSeconds: 120 };
   const [form, setForm] = useState<any>(blank);
+  const [compliance, setCompliance] = useState<ComplianceTask[]>([]);
 
   const load = async () => {
     setLoading(true);
     try {
-      const [t, b] = await Promise.all([speakingApi.listTasks(), batchApi.getBatches().catch(() => [])]);
+      const [t, b, c] = await Promise.all([speakingApi.listTasks(), batchApi.getBatches().catch(() => []), speakingApi.compliance().catch(() => ({ tasks: [] }))]);
       setTasks(t);
+      setCompliance((c as any).tasks || []);
       setBatches((Array.isArray(b) ? b : (b?.data || b?.batches || [])).map((x: any) => ({ _id: x._id, name: x.name })));
     } finally { setLoading(false); }
   };
@@ -35,7 +37,8 @@ const SpeakingAdmin: React.FC = () => {
     if (!form.days.length) return alert('Pick at least one day.');
     setSaving(true);
     try {
-      await speakingApi.createTask({ ...form, days: form.days.join(','), batchIds: form.batchIds.join(',') });
+      const topics = String(form.topics || '').split('\n').map((s: string) => s.trim()).filter(Boolean);
+      await speakingApi.createTask({ ...form, topics, days: form.days.join(','), batchIds: form.batchIds.join(',') });
       setShowForm(false); setForm(blank); await load();
     } catch (e: any) { alert(e?.response?.data?.message || 'Failed to create task.'); } finally { setSaving(false); }
   };
@@ -53,6 +56,17 @@ const SpeakingAdmin: React.FC = () => {
         <button onClick={() => setShowForm(true)} style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>+ New speaking task</button>
       </div>
       <p style={{ color: '#64748b', fontSize: 13.5 }}>Assign recurring speaking practice (e.g. Self Introduction, twice a week) to a batch. Students record; an AI coach scores and gives feedback.</p>
+
+      {!loading && compliance.length > 0 && (
+        <div style={{ margin: '10px 0 18px' }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 8 }}>📊 This week's completion</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
+            {compliance.map(c => (
+              <ComplianceCard key={c.taskId} c={c} />
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? <div style={{ color: '#94a3b8', padding: 30 }}>Loading…</div> : (
         <div style={{ overflowX: 'auto', border: '1px solid #e6e8f0', borderRadius: 12, marginTop: 8 }}>
@@ -86,6 +100,8 @@ const SpeakingAdmin: React.FC = () => {
             <div style={{ padding: 20, display: 'grid', gap: 12 }}>
               {field('Title *', <input style={inp} value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Self Introduction" />)}
               {field('Topic / what to speak on *', <textarea style={{ ...inp, minHeight: 56, resize: 'vertical' }} value={form.prompt} onChange={e => setForm({ ...form, prompt: e.target.value })} placeholder="Introduce yourself in 1–2 minutes: your background, skills and goals." />)}
+              {field('Rotating topics — one per line (optional)', <textarea style={{ ...inp, minHeight: 60, resize: 'vertical' }} value={form.topics} onChange={e => setForm({ ...form, topics: e.target.value })} placeholder={'Self Introduction\nTell us about a project you built\nWhy this career?'} />)}
+              {form.topics.trim() && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: -6 }}>Topics rotate one per week; the single topic above is the fallback.</div>}
               {field('Prep instructions (optional)', <input style={inp} value={form.instructions} onChange={e => setForm({ ...form, instructions: e.target.value })} placeholder="Structure: greeting → background → strengths → goal" />)}
               {field('Days of the week *', (
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -134,6 +150,31 @@ const SpeakingAdmin: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+    </div>
+  );
+};
+
+const ComplianceCard: React.FC<{ c: ComplianceTask }> = ({ c }) => {
+  const [open, setOpen] = useState(false);
+  const color = c.pct >= 75 ? '#16a34a' : c.pct >= 40 ? '#d97706' : '#dc2626';
+  const behind = c.behind.filter(b => b.done < c.expectedThisWeek);
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontWeight: 700, color: '#0f172a', flex: 1 }}>{c.title}</span>
+        <span style={{ fontWeight: 800, color }}>{c.completed}/{c.totalStudents}</span>
+      </div>
+      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{c.expectedThisWeek === 0 ? 'No session due this week' : `${c.expectedThisWeek}× due this week · ${c.days.join(', ')}`}</div>
+      <div style={{ height: 8, background: '#eef1f6', borderRadius: 6, overflow: 'hidden', margin: '10px 0 6px' }}><div style={{ width: `${c.pct}%`, height: '100%', background: color }} /></div>
+      <div style={{ display: 'flex', gap: 12, fontSize: 11.5, color: '#64748b' }}>
+        <span>✅ {c.completed} done</span>{c.partial > 0 && <span>◐ {c.partial} partial</span>}<span>○ {c.notStarted} not started</span>
+      </div>
+      {behind.length > 0 && (
+        <>
+          <button onClick={() => setOpen(o => !o)} style={{ marginTop: 8, background: 'none', border: 'none', color: PURPLE, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0 }}>{open ? 'Hide' : `Who's behind (${behind.length})`}</button>
+          {open && <div style={{ marginTop: 6, maxHeight: 140, overflow: 'auto' }}>{behind.map((b, i) => <div key={i} style={{ fontSize: 12.5, color: '#475569', padding: '3px 0', display: 'flex', justifyContent: 'space-between' }}><span>{b.name}</span><span style={{ color: '#94a3b8' }}>{b.done}/{c.expectedThisWeek}</span></div>)}</div>}
+        </>
       )}
     </div>
   );

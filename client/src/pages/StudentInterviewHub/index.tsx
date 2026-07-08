@@ -18,6 +18,28 @@ const StudentInterviewHub: React.FC = () => {
   const [practice, setPractice] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<'assigned' | 'practice' | 'history' | 'analytics'>('assigned');
+  const [nowTs, setNowTs] = useState(Date.now());
+
+  // Tick every 30s so scheduled-slot countdowns and the join window update live.
+  useEffect(() => {
+    const t = setInterval(() => setNowTs(Date.now()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  // Join-window state for a scheduled interview (opens 15m before → slot + 2h grace).
+  const joinWindow = (a: any): { open: boolean; label: string } => {
+    if (!a.scheduledAt || a.mode !== 'conversational') return { open: true, label: '' };
+    const start = new Date(a.scheduledAt).getTime();
+    const opensAt = start - 15 * 60 * 1000;
+    const closesAt = start + (a.durationMinutes || 30) * 60000 + 2 * 60 * 60 * 1000;
+    if (nowTs < opensAt) {
+      const mins = Math.round((opensAt - nowTs) / 60000);
+      const inLabel = mins >= 60 ? `${Math.floor(mins / 60)}h ${mins % 60}m` : `${mins}m`;
+      return { open: false, label: `Opens in ${inLabel}` };
+    }
+    if (nowTs > closesAt) return { open: false, label: 'Window closed' };
+    return { open: true, label: '' };
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -162,15 +184,22 @@ const StudentInterviewHub: React.FC = () => {
                     {a.bestScore != null && <span>Best: {a.bestScore}%</span>}
                   </div>
                   {a.pushReason && <p className="sih-push-reason">📌 {a.pushReason}</p>}
-                  <button
-                    className="sih-btn-start"
-                    disabled={a.attemptsUsed >= a.maxAttempts}
-                    onClick={() => handleStartInterview(a._id, a.templateId?._id || a.templateId, a.mode)}
-                  >
-                    {a.status === 'in_progress' ? 'Resume Interview' :
-                     a.mode === 'conversational' ? '🎤 Join Interview' :
-                     a.attemptsUsed > 0 ? 'Reattempt' : 'Start Interview'}
-                  </button>
+                  {(() => {
+                    const jw = joinWindow(a);
+                    const disabled = a.attemptsUsed >= a.maxAttempts || !jw.open;
+                    return (
+                      <button
+                        className="sih-btn-start"
+                        disabled={disabled}
+                        onClick={() => handleStartInterview(a._id, a.templateId?._id || a.templateId, a.mode)}
+                      >
+                        {!jw.open ? `🔒 ${jw.label}` :
+                         a.status === 'in_progress' ? 'Resume Interview' :
+                         a.mode === 'conversational' ? '🎤 Join Interview' :
+                         a.attemptsUsed > 0 ? 'Reattempt' : 'Start Interview'}
+                      </button>
+                    );
+                  })()}
                 </div>
               ))}
             </div>

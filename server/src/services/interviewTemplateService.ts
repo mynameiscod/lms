@@ -464,6 +464,21 @@ class InterviewTemplateService {
       if (assignment.attemptsUsed >= assignment.maxAttempts) {
         throw new Error('Maximum attempts reached for this assignment');
       }
+
+      // Join-window enforcement for scheduled (fixed-slot) interviews.
+      if (assignment.scheduledAt) {
+        const nowT = Date.now();
+        const startT = new Date(assignment.scheduledAt).getTime();
+        const EARLY_JOIN_MS = 15 * 60 * 1000;                          // open 15 min before
+        const LATE_GRACE_MS = (assignment.durationMinutes || 30) * 60000 + 2 * 60 * 60 * 1000; // slot + 2h grace
+        const fmt = (t: number) => new Date(t).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
+        if (nowT < startT - EARLY_JOIN_MS) {
+          throw new Error(`This interview opens at ${fmt(startT - EARLY_JOIN_MS)} (IST). Please come back closer to your slot.`);
+        }
+        if (nowT > startT + LATE_GRACE_MS) {
+          throw new Error('This scheduled interview window has closed. Please contact your admin to reschedule.');
+        }
+      }
     }
 
     // Check max attempts

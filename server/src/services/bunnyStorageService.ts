@@ -35,6 +35,15 @@ export async function uploadFile(remotePath: string, body: Buffer, contentType =
   if (!r.ok) throw new Error(`Bunny upload failed (${r.status}): ${await r.text().catch(() => '')}`);
 }
 
+// Stream a (potentially large, e.g. 1 GB) file to Bunny without buffering it in memory.
+export async function uploadStream(remotePath: string, body: Readable, contentType: string, contentLength?: number): Promise<void> {
+  if (!isBunnyStorageConfigured()) throw new Error('Bunny Storage is not configured (set the Storage Zone + AccessKey in Platform Settings).');
+  const headers: any = { AccessKey: cfg().key, 'Content-Type': contentType || 'application/octet-stream' };
+  if (contentLength != null) headers['Content-Length'] = String(contentLength);
+  const r = await fetch(baseUrl(remotePath), { method: 'PUT', headers, body: body as any, duplex: 'half' } as any);
+  if (!r.ok) throw new Error(`Bunny upload failed (${r.status}): ${await r.text().catch(() => '')}`);
+}
+
 export async function deleteFile(remotePath: string): Promise<void> {
   if (!isBunnyStorageConfigured()) return;
   try {

@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import crypto from 'crypto';
+import fs from 'fs';
 import Resource, { ResourceVisibility } from '../models/Resource';
 import ResourceRequest from '../models/ResourceRequest';
 import ResourceAudit, { ResourceAuditAction } from '../models/ResourceAudit';
@@ -15,6 +16,18 @@ const uName = (req: Request) => {
 };
 const ipOf = (req: Request) => (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || '';
 const safeName = (s: string) => s.replace(/[^\w.\-]+/g, '_').slice(0, 120);
+
+// Stream one multer temp file up to Bunny, then delete the temp file.
+async function pushFileToBunny(tenantId: string, resourceId: string, f: Express.Multer.File, version: number, uploaderId: string) {
+  const fileId = crypto.randomBytes(6).toString('hex');
+  const storageKey = `resources/${tenantId}/${resourceId}/${fileId}-${safeName(f.originalname)}`;
+  try {
+    await bunny.uploadStream(storageKey, fs.createReadStream(f.path), f.mimetype, f.size);
+  } finally {
+    fs.unlink(f.path, () => { /* best-effort temp cleanup */ });
+  }
+  return { fileId, fileName: f.originalname, storageKey, sizeBytes: f.size, mimeType: f.mimetype, version, uploadedBy: uploaderId as any, uploadedAt: new Date() };
+}
 
 async function audit(req: Request, resource: any, action: ResourceAuditAction, meta?: any) {
   try {
@@ -61,13 +74,7 @@ export const createResource = async (req: Request, res: Response) => {
 
     const files = (req.files as Express.Multer.File[]) || [];
     for (const f of files) {
-      const fileId = crypto.randomBytes(6).toString('hex');
-      const storageKey = `resources/${tId(req)}/${resource._id}/${fileId}-${safeName(f.originalname)}`;
-      await bunny.uploadFile(storageKey, f.buffer, f.mimetype);
-      resource.files.push({
-        fileId, fileName: f.originalname, storageKey, sizeBytes: f.size,
-        mimeType: f.mimetype, version: 1, uploadedBy: uId(req) as any, uploadedAt: new Date(),
-      } as any);
+      resource.files.push(await pushFileToBunny(tId(req), String(resource._id), f, 1, uId(req)) as any);
     }
     await resource.save();
     await audit(req, resource, 'upload', { files: files.map((f) => f.originalname) });
@@ -105,10 +112,7 @@ export const addFiles = async (req: Request, res: Response) => {
     const nextVersion = (r.files.reduce((m, f) => Math.max(m, f.version), 0) || 0) + 1;
     const files = (req.files as Express.Multer.File[]) || [];
     for (const f of files) {
-      const fileId = crypto.randomBytes(6).toString('hex');
-      const storageKey = `resources/${tId(req)}/${r._id}/${fileId}-${safeName(f.originalname)}`;
-      await bunny.uploadFile(storageKey, f.buffer, f.mimetype);
-      r.files.push({ fileId, fileName: f.originalname, storageKey, sizeBytes: f.size, mimeType: f.mimetype, version: nextVersion, uploadedBy: uId(req) as any, uploadedAt: new Date() } as any);
+      r.files.push(await pushFileToBunny(tId(req), String(r._id), f, nextVersion, uId(req)) as any);
     }
     await r.save();
     await audit(req, r, 'update', { addedFiles: files.map((f) => f.originalname), version: nextVersion });

@@ -18,6 +18,7 @@ router.get('/my-progress', ctrl.myProgress);
 // Admin / instructor
 const adminGuard = roleGuard(['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant']);
 router.get('/admin/overview', adminGuard, ctrl.adminOverview);
+router.post('/admin/preview', adminGuard, ctrl.previewProblem);
 router.post('/admin/assign', adminGuard, ctrl.assignProblem);
 router.get('/admin/assignments', adminGuard, ctrl.listAssignments);
 

@@ -15,11 +15,18 @@ const diffNum = (d: string) => (d === 'hard' ? 4 : d === 'medium' ? 3 : 1);
 export async function generateProblem(tenantId: string, concept: string, difficulty: string, language: string, promptHint?: string) {
   const base = `Beginner-friendly problem-solving drill on: ${concept}. Keep it SMALL and single-concept — one clear task, reads from stdin, prints to stdout.`;
   const context = promptHint ? `${base}\nBase the problem on this instructor brief: ${promptHint}` : base;
-  const items = await generateItems(tenantId, {
-    type: 'live_code' as any, dimension: 'dsa' as any, difficulty: diffNum(difficulty),
-    language, count: 1, context,
-  } as any, { persist: false });
-  const it: any = items && items[0];
+  // Verified generation can flake (Piston busy / AI returns no usable test cases) — retry a couple of times.
+  let it: any = null;
+  for (let attempt = 0; attempt < 3 && !it; attempt++) {
+    try {
+      const items = await generateItems(tenantId, {
+        type: 'live_code' as any, dimension: 'dsa' as any, difficulty: diffNum(difficulty),
+        language, count: 1, context,
+      } as any, { persist: false });
+      const cand: any = items && items[0];
+      if (cand && Array.isArray(cand.testCases) && cand.testCases.length) it = cand;
+    } catch (e: any) { console.error(`[drill] generateProblem attempt ${attempt + 1} failed:`, e?.message); }
+  }
   if (!it || !Array.isArray(it.testCases) || !it.testCases.length) return null;
   const examples = it.testCases.filter((t: any) => !t.hidden).slice(0, 2).map((t: any) => ({ input: t.input || '', expectedOutput: t.expectedOutput || '' }));
   return {

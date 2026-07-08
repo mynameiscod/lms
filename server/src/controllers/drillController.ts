@@ -15,31 +15,33 @@ const publicAttempt = (a: any) => ({ attemptId: String(a._id), concept: a.concep
 export const concepts = (_req: Request, res: Response) => res.json({ concepts: DRILL_CONCEPTS });
 
 // POST /drills/new  { assignmentId }
-// Problems are instructor-assigned only — a student cannot self-start a random problem.
+// Problems are instructor-assigned only. The problem was AI-generated once by the admin
+// at assign time — opening it here just materialises an attempt (NO AI call).
 export const newProblem = async (req: Request, res: Response) => {
   try {
-    let { concept, difficulty, language, assignmentId } = req.body || {};
+    const { assignmentId } = req.body || {};
     if (!assignmentId) return res.status(403).json({ message: 'Logic Building problems are assigned by your instructor. Open one from "Assigned to you".' });
-    // Seed concept/difficulty/language from the assignment.
     const assignment: any = await DrillAssignment.findOne({ _id: assignmentId, tenantId: tId(req), studentId: uId(req) });
     if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
     if (assignment.status === 'completed') return res.status(409).json({ message: 'You already completed this assigned problem.' });
-    concept = assignment.concept; difficulty = assignment.difficulty; language = assignment.language;
-    if (!concept) return res.status(400).json({ message: 'concept is required' });
-    const p = await generateProblem(tId(req), concept, difficulty || 'easy', language || 'javascript', assignment?.customPrompt);
-    if (!p) return res.status(503).json({ message: "Couldn't generate a problem right now — try again (check the AI key / Piston service)." });
-    const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
-    const a = await DrillAttempt.create({
-      tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
-      concept, difficulty: ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'easy', language: p.language,
-      prompt: p.prompt, starterCode: p.starterCode, examples: p.examples, testCases: p.testCases, status: 'in_progress', attempts: 0, hintsUsed: 0,
-      assignmentId: assignment?._id,
-    });
-    if (assignment && assignment.status === 'assigned') {
+    if (!assignment.prompt || !Array.isArray(assignment.testCases) || !assignment.testCases.length) {
+      return res.status(409).json({ message: 'This assigned problem is not ready yet. Ask your instructor to re-assign it.' });
+    }
+
+    // Reuse an in-progress attempt if the student already opened this assignment.
+    let a: any = assignment.attemptId ? await DrillAttempt.findOne({ _id: assignment.attemptId, tenantId: tId(req), studentId: uId(req), status: 'in_progress' }) : null;
+    if (!a) {
+      const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+      a = await DrillAttempt.create({
+        tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
+        concept: assignment.concept, difficulty: assignment.difficulty, language: assignment.language,
+        prompt: assignment.prompt, starterCode: assignment.starterCode || '', examples: assignment.examples || [], testCases: assignment.testCases,
+        status: 'in_progress', attempts: 0, hintsUsed: 0, assignmentId: assignment._id,
+      });
       assignment.status = 'in_progress'; assignment.attemptId = a._id; await assignment.save();
     }
     res.status(201).json({ problem: publicAttempt(a) });
-  } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to create problem' }); }
+  } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to open problem' }); }
 };
 
 // POST /drills/:id/plan  { plan }
@@ -136,10 +138,27 @@ export const adminOverview = async (req: Request, res: Response) => {
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
-// POST /drills/admin/assign  { concept, difficulty, language, studentIds?[], batchId?, note?, customPrompt?, dueDate? }
+// POST /drills/admin/preview  { concept, difficulty, language, customPrompt? }
+// Admin-only: AI-generate a problem for review before assigning. Returns the full
+// problem incl. test cases. This is the ONLY place students never reach — keeps AI
+// generation (and its cost) admin-triggered.
+export const previewProblem = async (req: Request, res: Response) => {
+  try {
+    const { concept, difficulty, language, customPrompt } = req.body || {};
+    if (!concept || !DRILL_CONCEPTS.includes(concept)) return res.status(400).json({ message: 'Valid concept is required' });
+    const diff = ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'easy';
+    const p = await generateProblem(tId(req), concept, diff, language || 'javascript', customPrompt);
+    if (!p) return res.status(503).json({ message: "AI couldn't generate a problem right now — try again in a moment (check the AI key / Piston service)." });
+    res.json({ problem: { concept, difficulty: diff, language: p.language, prompt: p.prompt, starterCode: p.starterCode, examples: p.examples, testCases: p.testCases } });
+  } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to generate' }); }
+};
+
+// POST /drills/admin/assign  { concept, difficulty, language, studentIds?[], batchId?, note?, customPrompt?, dueDate?, problem? }
+// AI-generates the problem ONCE (or reuses a previewed `problem`) and stores it on
+// every assignment, so students never trigger generation.
 export const assignProblem = async (req: Request, res: Response) => {
   try {
-    const { concept, difficulty, language, studentIds, batchId, note, customPrompt, dueDate } = req.body || {};
+    const { concept, difficulty, language, studentIds, batchId, note, customPrompt, dueDate, problem } = req.body || {};
     if (!concept) return res.status(400).json({ message: 'concept is required' });
     if (!DRILL_CONCEPTS.includes(concept)) return res.status(400).json({ message: 'Unknown concept' });
 
@@ -153,12 +172,21 @@ export const assignProblem = async (req: Request, res: Response) => {
     if (!targets.length) return res.status(400).json({ message: 'Select at least one student or a batch with students.' });
 
     const diff = ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'easy';
+
+    // Use a previewed problem if the admin already generated one; otherwise generate now.
+    let p: any = (problem && problem.prompt && Array.isArray(problem.testCases) && problem.testCases.length) ? problem : null;
+    if (!p) p = await generateProblem(tId(req), concept, diff, language || 'javascript', customPrompt);
+    if (!p || !p.prompt || !Array.isArray(p.testCases) || !p.testCases.length) {
+      return res.status(503).json({ message: "AI couldn't generate the problem right now — try again in a moment (check the AI key / Piston service)." });
+    }
+
     const docs = targets.map((u: any) => ({
       tenantId: tId(req), assignedBy: uId(req), studentId: u._id,
       studentName: [u.firstName, u.lastName].filter(Boolean).join(' '), batchId: u.batchId,
-      concept, difficulty: diff, language: language || 'javascript',
+      concept, difficulty: diff, language: p.language || language || 'javascript',
       customPrompt: customPrompt || undefined, note: note || undefined,
       dueDate: dueDate ? new Date(dueDate) : undefined, status: 'assigned',
+      prompt: p.prompt, starterCode: p.starterCode || '', examples: p.examples || [], testCases: p.testCases,
     }));
     const created = await DrillAssignment.insertMany(docs);
 

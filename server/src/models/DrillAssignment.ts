@@ -15,6 +15,12 @@ export interface IDrillAssignment extends Document {
   customPrompt?: string;
   note?: string;
   dueDate?: Date;
+  // The AI-generated problem, created ONCE by the admin at assign time and shared by
+  // every targeted student — so opening an assignment never triggers a (costly) AI call.
+  prompt: string;
+  starterCode?: string;
+  examples?: { input: string; expectedOutput: string }[];
+  testCases?: { input: string; expectedOutput: string; hidden: boolean }[];
   status: 'assigned' | 'in_progress' | 'completed';
   attemptId?: mongoose.Types.ObjectId;
   score?: number;
@@ -36,6 +42,10 @@ const DrillAssignmentSchema = new Schema<IDrillAssignment>(
     customPrompt:{ type: String },
     note:        { type: String },
     dueDate:     { type: Date },
+    prompt:      { type: String, required: true },
+    starterCode: { type: String, default: '' },
+    examples:    { type: [{ input: String, expectedOutput: String, _id: false }], default: [] },
+    testCases:   { type: [{ input: String, expectedOutput: String, hidden: Boolean, _id: false }], default: [] },
     status:      { type: String, enum: ['assigned', 'in_progress', 'completed'], default: 'assigned' },
     attemptId:   { type: Schema.Types.ObjectId, ref: 'DrillAttempt' },
     score:       { type: Number },

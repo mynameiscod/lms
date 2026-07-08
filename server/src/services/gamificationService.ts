@@ -52,6 +52,11 @@ export function applySolve(gs: any, opts: {
     gs.longestStreak = Math.max(gs.longestStreak || 0, gs.currentStreak);
   }
 
+  return { newBadges: awardBadges(gs), coinsEarned };
+}
+
+// Award any badges the student now qualifies for. Mutates gs.badges; returns new ones.
+export function awardBadges(gs: any): { key: string; name: string; icon: string }[] {
   const have = new Set((gs.badges || []).map((b: any) => b.key));
   const newBadges: { key: string; name: string; icon: string }[] = [];
   for (const b of BADGES) {
@@ -60,7 +65,16 @@ export function applySolve(gs: any, opts: {
       newBadges.push({ key: b.key, name: b.name, icon: b.icon });
     }
   }
-  return { newBadges, coinsEarned };
+  return newBadges;
+}
+
+// Credit bonus XP (voice explanation, journal, etc.) + coins, re-checking badges.
+export function addBonusXp(gs: any, amount: number): { coinsEarned: number; newBadges: { key: string; name: string; icon: string }[] } {
+  const coinsEarned = Math.max(1, Math.round(amount / 10));
+  gs.xpTotal = (gs.xpTotal || 0) + amount;
+  gs.coins = (gs.coins || 0) + coinsEarned;
+  gs.level = levelForXp(gs.xpTotal);
+  return { coinsEarned, newBadges: awardBadges(gs) };
 }
 
 // Badge catalog + which the student has (for the Progress view).

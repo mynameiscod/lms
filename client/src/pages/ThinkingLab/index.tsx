@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
+import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TLVoiceEval, TLProfile, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
 
 const BLUE = '#2563eb', INK = '#0f172a', SUB = '#64748b';
 const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -30,6 +30,20 @@ const ThinkingLab: React.FC = () => {
   const [lbScope, setLbScope] = useState('overall');
   const [lb, setLb] = useState<{ leaderboard: TLLeaderRow[]; myRank: number | null } | null>(null);
 
+  // Voice "Explain to AI"
+  const [recording, setRecording] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
+  const [voiceEval, setVoiceEval] = useState<TLVoiceEval | null>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  // Thinking Journal
+  const [journal, setJournal] = useState({ firstThought: '', gotStuck: '', learned: '' });
+  const [journalSaved, setJournalSaved] = useState(false);
+  const [journalBusy, setJournalBusy] = useState(false);
+  // Thinking Profile
+  const [profile, setProfile] = useState<{ profile: TLProfile | null; journalCount: number; needMore?: number } | null>(null);
+  const [profileBusy, setProfileBusy] = useState(false);
+
   const timerRef = useRef<any>(null);
   const wc = approach.trim().split(/\s+/).filter(Boolean).length;
   const minWords = challenge?.minApproachWords ?? 30;
@@ -44,6 +58,7 @@ const ThinkingLab: React.FC = () => {
     setLanguage(ch.language || 'javascript');
     setHints(ch.problem?.hints || []);
     setSeconds(ch.timeSpentSec || 0);
+    setVoiceEval(null); setJournal({ firstThought: '', gotStuck: '', learned: '' }); setJournalSaved(false); setRecording(false);
     setRunResult(null);
     setSubmitResult(ch.aiFeedback ? { feedback: ch.aiFeedback, allPassed: ch.passed, xpEarned: ch.xpEarned, coinsEarned: 0, newBadges: [], status: ch.status, results: [], passedCount: 0, total: 0 } : null);
   }, []);
@@ -71,6 +86,7 @@ const ThinkingLab: React.FC = () => {
 
   // Lazy-load Progress + Leaderboard when their tab opens.
   useEffect(() => { if (tab === 'progress' && !badges) thinkingLabApi.badges().then(setBadges).catch(() => setBadges([])); }, [tab, badges]);
+  useEffect(() => { if (tab === 'progress' && !profile) loadProfile(); /* eslint-disable-next-line */ }, [tab]);
   useEffect(() => { if (tab === 'leaderboard') { setLb(null); thinkingLabApi.leaderboard(lbScope).then(setLb).catch(() => setLb({ leaderboard: [], myRank: null })); } }, [tab, lbScope]);
 
   const checkApproach = async () => {
@@ -88,6 +104,42 @@ const ThinkingLab: React.FC = () => {
     if (!challenge) return;
     try { const r = await thinkingLabApi.revealHint(challenge.challengeId); setHints(h => [...h, r.hint]); }
     catch (e: any) { setErr(e?.response?.data?.message || 'No more hints.'); }
+  };
+
+  // Voice "Explain to AI" — record via mic, upload for transcription + coaching.
+  const startRec = async () => {
+    setErr('');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = e => { if (e.data.size) chunksRef.current.push(e.data); };
+      mr.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        if (!challenge || blob.size < 1000) { setErr('Recording too short — hold and speak for a few seconds.'); return; }
+        setVoiceBusy(true);
+        try { const r = await thinkingLabApi.voiceExplain(challenge.challengeId, blob); setVoiceEval(r.voiceEval); if (r.xpEarned) thinkingLabApi.stats().then(setStats).catch(() => {}); }
+        catch (e: any) { setErr(e?.response?.data?.message || 'Voice evaluation failed.'); }
+        finally { setVoiceBusy(false); }
+      };
+      mediaRef.current = mr; mr.start(); setRecording(true);
+    } catch { setErr('Microphone access denied or unavailable.'); }
+  };
+  const stopRec = () => { if (mediaRef.current && recording) { mediaRef.current.stop(); setRecording(false); } };
+
+  const saveJournal = async () => {
+    if (!challenge) return;
+    setJournalBusy(true); setErr('');
+    try { await thinkingLabApi.saveJournal(challenge.challengeId, journal); setJournalSaved(true); thinkingLabApi.stats().then(setStats).catch(() => {}); }
+    catch (e: any) { setErr(e?.response?.data?.message || 'Could not save your journal.'); }
+    finally { setJournalBusy(false); }
+  };
+
+  const loadProfile = async (refresh = false) => {
+    setProfileBusy(true);
+    try { setProfile(await thinkingLabApi.profile(refresh)); }
+    catch { /* ignore */ } finally { setProfileBusy(false); }
   };
 
   const runCode = async () => {
@@ -228,6 +280,33 @@ const ThinkingLab: React.FC = () => {
                   )}
                 </div>
               )}
+
+              {/* Voice — Explain to AI (optional, +30 XP) */}
+              <div style={{ marginTop: 16, borderTop: '1px dashed #e6e8f0', paddingTop: 14 }}>
+                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#7c3aed' }}>🎤 Explain your logic out loud <span style={{ color: SUB, fontWeight: 500 }}>(optional · +30 XP)</span></div>
+                <p style={{ fontSize: 12, color: SUB, margin: '2px 0 8px' }}>Speak your approach — the AI coaches your confidence, clarity and communication. Great interview practice.</p>
+                {!voiceEval && (
+                  <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                    {!recording
+                      ? <button onClick={startRec} disabled={voiceBusy} style={{ ...btn('#7c3aed'), padding: '8px 14px' }}>{voiceBusy ? 'Evaluating…' : '● Record explanation'}</button>
+                      : <button onClick={stopRec} style={{ ...btn('#dc2626'), padding: '8px 14px' }}>■ Stop &amp; evaluate</button>}
+                    {recording && <span style={{ fontSize: 12.5, color: '#dc2626', fontWeight: 700 }}>● Recording… speak now</span>}
+                  </div>
+                )}
+                {voiceEval && (
+                  <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: 12 }}>
+                    <div style={{ fontSize: 13, fontWeight: 800, color: '#6d28d9' }}>Voice score: {voiceEval.overall}/100</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, margin: '8px 0' }}>
+                      {([['Confidence', voiceEval.confidence], ['Communication', voiceEval.communication], ['Logic', voiceEval.logic], ['Flow', voiceEval.flow], ['Grammar', voiceEval.grammar], ['Professionalism', voiceEval.professionalism], ['Tech vocab', voiceEval.technicalVocabulary]] as [string, number][]).map(([l, v]) => (
+                        <span key={l} style={{ fontSize: 11, fontWeight: 700, background: '#fff', border: '1px solid #ede9fe', borderRadius: 6, padding: '2px 8px', color: '#4c1d95' }}>{l} {v}</span>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: '#475569' }}>{voiceEval.summary}</div>
+                    {voiceEval.tips?.length > 0 && <ul style={{ margin: '6px 0 0', paddingLeft: 18 }}>{voiceEval.tips.map((t, i) => <li key={i} style={{ fontSize: 12, color: SUB }}>{t}</li>)}</ul>}
+                    {!done && <button onClick={() => setVoiceEval(null)} style={{ marginTop: 8, background: 'none', border: 'none', color: '#7c3aed', fontSize: 12, cursor: 'pointer' }}>↻ Try again</button>}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -266,12 +345,60 @@ const ThinkingLab: React.FC = () => {
 
           {/* AI feedback */}
           {submitResult && <Feedback result={submitResult} onNext={nextChallenge} />}
+
+          {/* Thinking Journal — mandatory reflection after solving */}
+          {done && (
+            <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20 }}>
+              <SectionH>📓 Thinking Journal <span style={{ color: SUB, fontWeight: 500, fontSize: 12 }}>(+15 XP · builds your Thinking Profile)</span></SectionH>
+              {journalSaved ? (
+                <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 10, padding: 12, fontSize: 13 }}>✓ Journal saved. Your Thinking Profile updates as you reflect on more problems — see the <b>My Progress</b> tab.</div>
+              ) : (
+                <div style={{ display: 'grid', gap: 10 }}>
+                  {([['firstThought', 'What was your first thought when you read the problem?'], ['gotStuck', 'Where did you get stuck (if anywhere)?'], ['learned', 'What did you learn from this one?']] as [keyof typeof journal, string][]).map(([k, q]) => (
+                    <label key={k}><span style={{ fontSize: 12.5, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 }}>{q}</span>
+                      <textarea value={journal[k]} onChange={e => setJournal(j => ({ ...j, [k]: e.target.value }))} style={{ width: '100%', minHeight: 52, border: '1px solid #cbd5e1', borderRadius: 8, padding: 10, fontSize: 13, fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                    </label>
+                  ))}
+                  <div><button onClick={saveJournal} disabled={journalBusy || !(journal.firstThought || journal.learned)} style={{ ...btn(BLUE), opacity: (journal.firstThought || journal.learned) ? 1 : 0.5 }}>{journalBusy ? 'Saving…' : 'Save reflection'}</button></div>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
-      {/* Progress tab — badges */}
+      {/* Progress tab — thinking profile + badges */}
       {tab === 'progress' && (
         <div style={{ marginTop: 18 }}>
+          {/* Thinking Profile */}
+          <div style={{ background: 'linear-gradient(120deg,#f8fafc,#eff6ff)', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20, marginBottom: 16 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <SectionH>🧭 Your Thinking Profile</SectionH>
+              {profile?.profile && <button onClick={() => loadProfile(true)} disabled={profileBusy} style={{ background: 'none', border: '1px solid #cbd5e1', borderRadius: 8, padding: '4px 10px', fontSize: 12, color: SUB, cursor: 'pointer' }}>{profileBusy ? 'Refreshing…' : '↻ Refresh'}</button>}
+            </div>
+            {profileBusy && !profile ? <div style={{ color: SUB, fontSize: 13 }}>Analysing your thinking…</div> :
+              !profile?.profile ? (
+                <div style={{ fontSize: 13, color: SUB }}>Solve a few challenges and answer the Thinking Journal after each — your AI profile appears once you've reflected on {profile?.needMore ? `${profile.needMore} more` : 'a couple of'} problems.</div>
+              ) : (
+                <div>
+                  {profile.profile.summary && <p style={{ fontSize: 14, color: INK, lineHeight: 1.6, margin: '2px 0 12px' }}>{profile.profile.summary}</p>}
+                  {!!profile.profile.traits?.length && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+                      {profile.profile.traits.map((t, i) => (
+                        <span key={i} title={t.note} style={{ fontSize: 12, fontWeight: 700, background: '#fff', border: '1px solid #ddd6fe', color: '#5b21b6', borderRadius: 999, padding: '4px 12px' }}>{t.label}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 12 }}>
+                    {!!profile.profile.strengths?.length && <ListCard title="✅ Strengths" items={profile.profile.strengths} color="#16a34a" />}
+                    {!!profile.profile.weaknesses?.length && <ListCard title="⚠️ Growth areas" items={profile.profile.weaknesses} color="#d97706" />}
+                    {!!profile.profile.recommendations?.length && <ListCard title="🎯 Do next" items={profile.profile.recommendations} color="#2563eb" />}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8 }}>Based on {profile.profile.basedOnCount} reflections.</div>
+                </div>
+              )}
+          </div>
+
           <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20 }}>
             <SectionH>🏅 Badges {stats && `(${stats.badgeCount}/${badges?.length ?? 11})`}</SectionH>
             {!badges ? <div style={{ color: SUB, fontSize: 13 }}>Loading…</div> : (

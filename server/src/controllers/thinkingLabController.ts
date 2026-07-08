@@ -1,12 +1,28 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import fs from 'fs';
 import ThinkingProblem from '../models/ThinkingProblem';
 import DailyChallenge from '../models/DailyChallenge';
 import StudentGameStats from '../models/StudentGameStats';
+import ThinkingProfile from '../models/ThinkingProfile';
 import User from '../models/User';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
 import * as game from '../services/gamificationService';
+import { transcribeFile } from '../services/speakingService';
+
+// Credit bonus XP (voice/journal) to the student's game stats. Returns coins + new badges.
+async function creditBonusXp(req: Request, amount: number) {
+  const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+  const gs: any = await StudentGameStats.findOneAndUpdate(
+    { tenantId: tId(req), studentId: uId(req) },
+    { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId } },
+    { new: true, upsert: true }
+  );
+  const r = game.addBonusXp(gs, amount);
+  await gs.save();
+  return r;
+}
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -253,6 +269,82 @@ export const leaderboard = async (req: Request, res: Response) => {
     const myId = String(uId(req));
     const myRankIdx = rows.findIndex(r => r.studentId === myId);
     res.json({ scope, leaderboard: rows.map((r, i) => ({ rank: i + 1, ...r, isMe: r.studentId === myId })), myRank: myRankIdx >= 0 ? myRankIdx + 1 : null });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// POST /thinking-lab/:id/voice (multipart 'recording') — "Explain to AI" voice eval.
+export const voiceExplain = async (req: Request, res: Response) => {
+  const file = (req as any).file;
+  try {
+    const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
+    if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    if (!file) return res.status(400).json({ message: 'No recording uploaded.' });
+    const p: any = await ThinkingProblem.findById(ch.problemId).lean();
+
+    const { text, durationSec } = await transcribeFile(file.path);
+    if (!text.trim()) return res.status(422).json({ message: "Couldn't hear a clear explanation — try recording again in a quieter spot." });
+    const evalRes = await lab.evaluateVoiceExplanation({ statement: p?.statement || '', transcript: text, durationSec });
+    const voiceEval = { transcript: text, durationSec, ...evalRes };
+    ch.voiceEval = voiceEval;
+
+    // Award the voice-explanation bonus once.
+    let bonus: any = null;
+    if (!ch.voiceXpAwarded) { bonus = await creditBonusXp(req, 30); ch.voiceXpAwarded = true; }
+    await ch.save();
+    res.json({ voiceEval, xpEarned: ch.voiceXpAwarded && bonus ? 30 : 0, coinsEarned: bonus?.coinsEarned || 0, newBadges: bonus?.newBadges || [] });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message || 'Voice evaluation failed' });
+  } finally {
+    if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* ignore */ } }
+  }
+};
+
+// POST /thinking-lab/:id/journal { firstThought, gotStuck, learned } — the mandatory reflection.
+export const saveJournal = async (req: Request, res: Response) => {
+  try {
+    const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
+    if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    const { firstThought, gotStuck, learned } = req.body || {};
+    ch.journal = {
+      firstThought: String(firstThought || '').slice(0, 1500),
+      gotStuck: String(gotStuck || '').slice(0, 1500),
+      learned: String(learned || '').slice(0, 1500),
+      answeredAt: new Date(),
+    };
+    let bonus: any = null;
+    if (!ch.journalXpAwarded) { bonus = await creditBonusXp(req, 15); ch.journalXpAwarded = true; }
+    await ch.save();
+    res.json({ saved: true, xpEarned: bonus ? 15 : 0, coinsEarned: bonus?.coinsEarned || 0, newBadges: bonus?.newBadges || [] });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// GET /thinking-lab/profile — the rolling Thinking Profile (recomputed when stale).
+export const getProfile = async (req: Request, res: Response) => {
+  try {
+    const force = req.query.refresh === '1';
+    const journalCount = await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), 'journal.answeredAt': { $exists: true } });
+    let prof: any = await ThinkingProfile.findOne({ tenantId: tId(req), studentId: uId(req) });
+
+    const stale = !prof || force || (journalCount - (prof.basedOnCount || 0) >= 3);
+    if (journalCount < 2 && !prof) {
+      return res.json({ profile: null, journalCount, needMore: Math.max(0, 2 - journalCount) });
+    }
+    if (stale && journalCount >= 2) {
+      const rows = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req) })
+        .sort({ createdAt: -1 }).limit(40)
+        .select('difficulty passed aiFeedback journal voiceEval problemId').populate('problemId', 'category').lean();
+      const samples = rows.map((r: any) => ({
+        category: r.problemId?.category || 'General', difficulty: r.difficulty, passed: r.passed,
+        scores: r.aiFeedback, journal: r.journal, voice: r.voiceEval,
+      }));
+      const computed = await lab.computeThinkingProfile({ samples });
+      prof = await ThinkingProfile.findOneAndUpdate(
+        { tenantId: tId(req), studentId: uId(req) },
+        { $set: { ...computed, basedOnCount: journalCount, computedAt: new Date() } },
+        { new: true, upsert: true }
+      );
+    }
+    res.json({ profile: prof ? { summary: prof.summary, strengths: prof.strengths, weaknesses: prof.weaknesses, traits: prof.traits, recommendations: prof.recommendations, basedOnCount: prof.basedOnCount, computedAt: prof.computedAt } : null, journalCount });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 

@@ -120,6 +120,49 @@ export async function evaluateSubmission(input: {
   }
 }
 
+// ── Voice "Explain to AI" evaluation ─────────────────────────────────────────
+// Scores a spoken explanation of the approach on communication dimensions.
+export async function evaluateVoiceExplanation(input: {
+  statement: string; transcript: string; durationSec: number;
+}): Promise<any> {
+  const sys = 'You are a warm but honest technical communication coach. A student explained aloud how they would solve a coding problem (audio transcribed below). Evaluate their SPOKEN explanation. Output ONLY raw JSON.';
+  const usr = `PROBLEM:\n"""${(input.statement || '').slice(0, 1500)}"""\n\n` +
+    `Spoken length ~${input.durationSec}s. TRANSCRIPT:\n"""${(input.transcript || '').slice(0, 4000)}"""\n\n` +
+    `Score each 0-100 based on what they actually said. Return JSON:\n` +
+    `{"confidence":0-100,"communication":0-100,"grammar":0-100,"logic":0-100,"flow":0-100,"professionalism":0-100,"technicalVocabulary":0-100,"overall":0-100,` +
+    `"summary":"2-sentence encouraging assessment","tips":["specific tip to sound clearer/more confident next time","..."]}`;
+  try { return JSON.parse(stripJson(await evalAi(sys, usr, 900))); }
+  catch {
+    const wc = (input.transcript || '').split(/\s+/).filter(Boolean).length;
+    const base = Math.min(85, 40 + Math.round(wc / 3));
+    return { confidence: base, communication: base, grammar: base, logic: base, flow: base, professionalism: base, technicalVocabulary: base - 10, overall: base,
+      summary: 'Good effort explaining your thinking out loud. Keep practising to sound more structured and confident.', tips: ['Structure it as: problem → approach → steps → complexity.', 'Speak a little slower and use the key technical terms.'] };
+  }
+}
+
+// ── Thinking Profile ─────────────────────────────────────────────────────────
+// Build a rolling profile from journals + rubric scores + categories + voice.
+export async function computeThinkingProfile(payload: {
+  samples: { category: string; difficulty: string; passed: boolean; scores?: any; journal?: any; voice?: any }[];
+}): Promise<any> {
+  const n = payload.samples.length;
+  const compact = payload.samples.slice(0, 40).map((s, i) =>
+    `#${i + 1} ${s.category}/${s.difficulty} ${s.passed ? 'SOLVED' : 'unsolved'}` +
+    (s.scores ? ` | logic:${s.scores.logicalThinking ?? '-'} approach:${s.scores.approach ?? '-'} opt:${s.scores.optimization ?? '-'} edge:${s.scores.edgeCases ?? '-'} comm:${s.scores.communication ?? '-'}` : '') +
+    (s.voice ? ` | voice conf:${s.voice.confidence ?? '-'} comm:${s.voice.communication ?? '-'}` : '') +
+    (s.journal ? ` | first:"${(s.journal.firstThought || '').slice(0, 80)}" stuck:"${(s.journal.gotStuck || '').slice(0, 80)}" learned:"${(s.journal.learned || '').slice(0, 80)}"` : '')
+  ).join('\n');
+
+  const sys = 'You are a mentor building a longitudinal "thinking profile" of an engineering student from their problem-solving history and self-reflections. Be specific and constructive. Output ONLY raw JSON.';
+  const usr = `The student has ${n} recorded attempts. Data (most recent first):\n${compact}\n\n` +
+    `Identify durable patterns in HOW they think — not one-off results. Return JSON:\n` +
+    `{"summary":"3-4 sentence portrait of them as a problem-solver","strengths":["..."],"weaknesses":["..."],` +
+    `"traits":[{"label":"e.g. Strong in patterns / Weak in optimization / Needs confidence / Excellent debugging / Slow decision maker / Great communication","note":"1 line why"}],` +
+    `"recommendations":["concrete next-step advice"]}`;
+  try { return JSON.parse(stripJson(await evalAi(sys, usr, 1200))); }
+  catch { return { summary: 'Keep solving daily challenges and journaling — your thinking profile will sharpen as more data comes in.', strengths: [], weaknesses: [], traits: [], recommendations: ['Solve at least one challenge a day and answer the journal questions honestly.'] }; }
+}
+
 // ── XP for a submission ──────────────────────────────────────────────────────
 export function computeXp(opts: {
   problemXp: number; allPassed: boolean; attempts: number; hintsUsed: number; explainedThinking: boolean;

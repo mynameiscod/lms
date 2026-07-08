@@ -34,6 +34,12 @@ export interface IDailyChallenge extends Document {
   xpEarned: number;
   gameAwarded: boolean;        // XP/coins/badges already credited (idempotency)
   aiFeedback?: IAiRubric;
+  // Voice "Explain to AI"
+  voiceEval?: any;             // { transcript, confidence, communication, grammar, logic, flow, professionalism, technicalVocabulary, overall, summary, tips[] }
+  voiceXpAwarded: boolean;
+  // Thinking Journal (3 reflection questions)
+  journal?: { firstThought?: string; gotStuck?: string; learned?: string; answeredAt?: Date };
+  journalXpAwarded: boolean;
   startedAt: Date;
   submittedAt?: Date;
   createdAt: Date;
@@ -64,6 +70,10 @@ const DailyChallengeSchema = new Schema<IDailyChallenge>(
     xpEarned:   { type: Number, default: 0 },
     gameAwarded:{ type: Boolean, default: false },
     aiFeedback: { type: Schema.Types.Mixed },
+    voiceEval:  { type: Schema.Types.Mixed },
+    voiceXpAwarded: { type: Boolean, default: false },
+    journal:    { type: Schema.Types.Mixed },
+    journalXpAwarded: { type: Boolean, default: false },
     startedAt:  { type: Date, default: Date.now },
     submittedAt:{ type: Date },
   },

@@ -29,6 +29,8 @@ export interface TLChallenge {
 export interface TLStats { xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number; }
 export interface TLBadge { key: string; name: string; icon: string; desc: string; earned: boolean; earnedAt?: string | null; }
 export interface TLLeaderRow { rank: number; studentId: string; name: string; xp: number; level?: number; solved?: number; streak?: number; isMe: boolean; }
+export interface TLVoiceEval { transcript: string; durationSec: number; confidence: number; communication: number; grammar: number; logic: number; flow: number; professionalism: number; technicalVocabulary: number; overall: number; summary: string; tips: string[]; }
+export interface TLProfile { summary?: string; strengths: string[]; weaknesses: string[]; traits: { label: string; note?: string }[]; recommendations: string[]; basedOnCount: number; computedAt?: string; }
 export interface TLRunResult { results: { index: number; passed: boolean; hidden: boolean }[]; allPassed: boolean; compileError?: string; passedCount: number; total: number; }
 export interface TLSubmitResult extends TLRunResult { feedback: TLRubric; xpEarned: number; coinsEarned: number; newBadges: { key: string; name: string; icon: string }[]; status: string; }
 export interface TLAdminProblem { id: string; title: string; category: string; difficulty: string; language: string; xp: number; active: boolean; timesAssigned: number; timesSolved: number; createdAt: string; }
@@ -45,6 +47,13 @@ export const thinkingLabApi = {
   revealHint: async (id: string): Promise<{ hint: string; hintsUsed: number; totalHints: number }> => (await axios.post(`${BASE}/${id}/hint`, {}, h())).data,
   run: async (id: string, code: string, language: string): Promise<TLRunResult> => (await axios.post(`${BASE}/${id}/run`, { code, language }, { ...h(), timeout: 120000 })).data,
   submit: async (id: string, code: string, language: string, timeSpentSec: number): Promise<TLSubmitResult> => (await axios.post(`${BASE}/${id}/submit`, { code, language, timeSpentSec }, { ...h(), timeout: 120000 })).data,
+  voiceExplain: async (id: string, blob: Blob): Promise<{ voiceEval: TLVoiceEval; xpEarned: number; coinsEarned: number; newBadges: { key: string; name: string; icon: string }[] }> => {
+    const fd = new FormData();
+    fd.append('recording', blob, 'explain.webm');
+    return (await axios.post(`${BASE}/${id}/voice`, fd, { headers: { ...authHeader() }, timeout: 300000 })).data;
+  },
+  saveJournal: async (id: string, answers: { firstThought: string; gotStuck: string; learned: string }): Promise<{ saved: boolean; xpEarned: number; coinsEarned: number }> => (await axios.post(`${BASE}/${id}/journal`, answers, h())).data,
+  profile: async (refresh = false): Promise<{ profile: TLProfile | null; journalCount: number; needMore?: number }> => (await axios.get(`${BASE}/profile`, { ...h(), params: refresh ? { refresh: 1 } : {} })).data,
 
   // Admin
   meta: async (): Promise<{ categories: string[]; difficulties: string[] }> => (await axios.get(`${BASE}/admin/meta`, h())).data,

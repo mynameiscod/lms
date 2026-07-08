@@ -46,7 +46,7 @@ const ProjectBuilder: React.FC = () => {
   return (
     <div style={{ padding: '20px 24px 60px', background: '#f6f7fb', minHeight: '100vh' }}>
       <div style={{ maxWidth: 1100, margin: '0 auto' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: INK, margin: '0 0 4px' }}>🚀 AI Project Builder</h1>
+        <h1 style={{ fontSize: 24, fontWeight: 800, color: INK, margin: '0 0 4px' }}>AI Project Builder</h1>
         <p style={{ color: MUTED, margin: '0 0 20px' }}>Portfolio-worthy projects tailored to your target role — with schema, APIs, README, deploy steps and a build checklist.</p>
 
         {/* Generate */}

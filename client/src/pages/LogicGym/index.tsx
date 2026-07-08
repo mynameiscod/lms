@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { drillApi, DrillProblem, RunResult, DrillProgress, LANGS } from '../../api/drillApi';
+import { drillApi, DrillProblem, RunResult, DrillProgress, MyAssignment, LANGS } from '../../api/drillApi';
 
 const PURPLE = '#6366f1', TEAL = '#14a89c';
 
@@ -10,6 +10,7 @@ const LogicGym: React.FC = () => {
   const [difficulty, setDifficulty] = useState('easy');
   const [language, setLanguage] = useState('javascript');
   const [progress, setProgress] = useState<DrillProgress | null>(null);
+  const [assignments, setAssignments] = useState<MyAssignment[]>([]);
   const [problem, setProblem] = useState<DrillProblem | null>(null);
   const [loadingP, setLoadingP] = useState(false);
   const [err, setErr] = useState('');
@@ -24,14 +25,19 @@ const LogicGym: React.FC = () => {
   const [result, setResult] = useState<RunResult | null>(null);
 
   const loadProgress = async () => { try { setProgress(await drillApi.myProgress()); } catch { /* ignore */ } };
-  useEffect(() => { drillApi.concepts().then(c => { setConceptList(c); setConcept(c[0] || ''); }); loadProgress(); }, []);
+  const loadAssignments = async () => { try { setAssignments(await drillApi.myAssignments()); } catch { /* ignore */ } };
+  useEffect(() => { drillApi.concepts().then(c => { setConceptList(c); setConcept(c[0] || ''); }); loadProgress(); loadAssignments(); }, []);
 
-  const newProblem = async () => {
-    if (!concept) return;
+  // Start a problem. If `assignment` is passed, it's an admin-assigned problem — the
+  // server seeds concept/difficulty/language from it and marks it in-progress.
+  const newProblem = async (assignment?: MyAssignment) => {
+    const c = assignment?.concept || concept;
+    if (!c) return;
     setLoadingP(true); setErr(''); setProblem(null); setResult(null); setPlan(''); setPlanMsg(null); setStage('plan');
     try {
-      const p = await drillApi.newProblem(concept, difficulty, language);
+      const p = await drillApi.newProblem(c, assignment?.difficulty || difficulty, assignment?.language || language, assignment?._id);
       setProblem(p); setCode(p.starterCode || '');
+      if (assignment) loadAssignments();
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not generate a problem. Try again.'); }
     finally { setLoadingP(false); }
   };
@@ -46,14 +52,37 @@ const LogicGym: React.FC = () => {
   const runCode = async () => {
     if (!problem) return;
     setRunning(true);
-    try { const r = await drillApi.run(problem.attemptId, code); setResult(r); if (r.allPassed) loadProgress(); }
+    try { const r = await drillApi.run(problem.attemptId, code); setResult(r); if (r.allPassed) { loadProgress(); loadAssignments(); } }
     catch (e: any) { setResult(null); setErr(e?.response?.data?.message || 'Run failed.'); } finally { setRunning(false); }
   };
 
+  const openAssignments = assignments.filter(a => a.status !== 'completed');
+
   return (
     <div style={{ maxWidth: 1080, margin: '0 auto', padding: 22 }}>
-      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>🧠 Logic Gym</h1>
+      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>Logic Building</h1>
       <p style={{ marginTop: 4, color: '#64748b', fontSize: 13.5 }}>Build problem-solving the right way: plan in plain English first, then code. The AI coaches with hints — never the answer.</p>
+
+      {openAssignments.length > 0 && (
+        <div style={{ marginTop: 16, background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>🧩 Assigned to you</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 10 }}>
+            {openAssignments.map(a => (
+              <div key={a._id} style={{ border: '1px solid #eef1f6', borderRadius: 12, padding: 12, background: '#f8fafc' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 6 }}>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: PURPLE, background: '#eef0fe', borderRadius: 999, padding: '2px 9px' }}>{a.concept}</span>
+                  <span style={{ fontSize: 11, color: '#94a3b8', textTransform: 'capitalize' }}>{a.difficulty} · {a.language}</span>
+                </div>
+                {a.note && <div style={{ fontSize: 12.5, color: '#475569', marginBottom: 6 }}>{a.note}</div>}
+                {a.dueDate && <div style={{ fontSize: 11.5, color: '#b45309', fontWeight: 600, marginBottom: 6 }}>Due {new Date(a.dueDate).toLocaleDateString('en-IN', { dateStyle: 'medium' } as any)}</div>}
+                <button onClick={() => newProblem(a)} disabled={loadingP} style={{ width: '100%', background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 9, padding: '9px', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  {a.status === 'in_progress' ? 'Continue →' : 'Start →'}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {progress && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 12, margin: '16px 0' }}>
@@ -68,7 +97,7 @@ const LogicGym: React.FC = () => {
         <label style={{ flex: 1, minWidth: 180 }}><span style={lbl}>Concept</span><select style={sel} value={concept} onChange={e => setConcept(e.target.value)}>{conceptList.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
         <label><span style={lbl}>Level</span><select style={sel} value={difficulty} onChange={e => setDifficulty(e.target.value)}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label>
         <label><span style={lbl}>Language</span><select style={sel} value={language} onChange={e => setLanguage(e.target.value)}>{LANGS.map(l => <option key={l.v} value={l.v}>{l.l}</option>)}</select></label>
-        <button onClick={newProblem} disabled={loadingP} style={{ background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{loadingP ? 'Generating…' : problem ? '↻ New problem' : '✨ Start a problem'}</button>
+        <button onClick={() => newProblem()} disabled={loadingP} style={{ background: `linear-gradient(90deg,${PURPLE},${TEAL})`, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{loadingP ? 'Generating…' : problem ? '↻ New problem' : '✨ Start a problem'}</button>
       </div>
       {err && <div style={{ background: '#fef2f2', color: '#b91c1c', borderRadius: 8, padding: '9px 12px', fontSize: 13, marginTop: 10 }}>{err}</div>}
 
@@ -119,7 +148,7 @@ const LogicGym: React.FC = () => {
                   <div style={{ fontSize: 28 }}>🎉</div>
                   <div style={{ fontSize: 18, fontWeight: 800 }}>Solved! Score {result.score}/100</div>
                   <div style={{ fontSize: 13, opacity: .92, marginTop: 4 }}>Great problem-solving. Try another to keep your streak going.</div>
-                  <button onClick={newProblem} style={{ marginTop: 12, background: '#fff', color: PURPLE, border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, cursor: 'pointer' }}>Next problem →</button>
+                  <button onClick={() => newProblem()} style={{ marginTop: 12, background: '#fff', color: PURPLE, border: 'none', borderRadius: 10, padding: '10px 20px', fontWeight: 800, cursor: 'pointer' }}>Next problem →</button>
                 </div>
               ) : result && (
                 <div style={{ marginTop: 12 }}>

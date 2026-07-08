@@ -1,7 +1,9 @@
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import DrillAttempt from '../models/DrillAttempt';
+import DrillAssignment from '../models/DrillAssignment';
 import User from '../models/User';
+import { createNotifications } from '../notifications/notificationService';
 import { generateProblem, evaluatePlan, runAgainstTests, hintForFailure, scoreDrill, DRILL_CONCEPTS } from '../services/drillService';
 
 const tId = (req: Request) => (req as any).tenantId as string;
@@ -12,19 +14,31 @@ const publicAttempt = (a: any) => ({ attemptId: String(a._id), concept: a.concep
 // GET /drills/concepts
 export const concepts = (_req: Request, res: Response) => res.json({ concepts: DRILL_CONCEPTS });
 
-// POST /drills/new  { concept, difficulty, language }
+// POST /drills/new  { concept, difficulty, language, assignmentId? }
 export const newProblem = async (req: Request, res: Response) => {
   try {
-    const { concept, difficulty, language } = req.body || {};
+    let { concept, difficulty, language, assignmentId } = req.body || {};
+    // If starting from an admin assignment, seed concept/difficulty/language from it.
+    let assignment: any = null;
+    if (assignmentId) {
+      assignment = await DrillAssignment.findOne({ _id: assignmentId, tenantId: tId(req), studentId: uId(req) });
+      if (!assignment) return res.status(404).json({ message: 'Assignment not found' });
+      if (assignment.status === 'completed') return res.status(409).json({ message: 'You already completed this assigned problem.' });
+      concept = assignment.concept; difficulty = assignment.difficulty; language = assignment.language;
+    }
     if (!concept) return res.status(400).json({ message: 'concept is required' });
-    const p = await generateProblem(tId(req), concept, difficulty || 'easy', language || 'javascript');
+    const p = await generateProblem(tId(req), concept, difficulty || 'easy', language || 'javascript', assignment?.customPrompt);
     if (!p) return res.status(503).json({ message: "Couldn't generate a problem right now — try again (check the AI key / Piston service)." });
     const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
     const a = await DrillAttempt.create({
       tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
       concept, difficulty: ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'easy', language: p.language,
       prompt: p.prompt, starterCode: p.starterCode, examples: p.examples, testCases: p.testCases, status: 'in_progress', attempts: 0, hintsUsed: 0,
+      assignmentId: assignment?._id,
     });
+    if (assignment && assignment.status === 'assigned') {
+      assignment.status = 'in_progress'; assignment.attemptId = a._id; await assignment.save();
+    }
     res.status(201).json({ problem: publicAttempt(a) });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to create problem' }); }
 };
@@ -55,6 +69,13 @@ export const run = async (req: Request, res: Response) => {
     if (allPassed) {
       a.passed = true; a.status = 'solved'; a.solvedAt = new Date();
       a.score = scoreDrill(!!a.planOk, a.attempts, a.hintsUsed); score = a.score;
+      // Mark the linked admin assignment complete, if any.
+      if (a.assignmentId) {
+        await DrillAssignment.updateOne(
+          { _id: a.assignmentId, tenantId: tId(req), studentId: uId(req) },
+          { $set: { status: 'completed', score: a.score, completedAt: new Date(), attemptId: a._id } }
+        );
+      }
     } else if (firstFail) {
       hint = await hintForFailure(a.prompt, code, firstFail); a.hintsUsed += 1;
     }
@@ -113,5 +134,68 @@ export const adminOverview = async (req: Request, res: Response) => {
       students: agg.map((r: any) => ({ studentId: String(r._id), name: r.name || 'Student', attempts: r.attempts, solved: r.solved, avg: Math.round(r.avg || 0), last: r.last })),
       weakConcepts: byConcept.map((c: any) => ({ concept: c.concept, total: c.total, solved: c.solved, rate: Math.round((c.rate || 0) * 100) })),
     });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// POST /drills/admin/assign  { concept, difficulty, language, studentIds?[], batchId?, note?, customPrompt?, dueDate? }
+export const assignProblem = async (req: Request, res: Response) => {
+  try {
+    const { concept, difficulty, language, studentIds, batchId, note, customPrompt, dueDate } = req.body || {};
+    if (!concept) return res.status(400).json({ message: 'concept is required' });
+    if (!DRILL_CONCEPTS.includes(concept)) return res.status(400).json({ message: 'Unknown concept' });
+
+    // Resolve target students: explicit list, or whole batch.
+    let targets: any[] = [];
+    if (Array.isArray(studentIds) && studentIds.length) {
+      targets = await User.find({ _id: { $in: studentIds }, tenantId: tId(req), role: 'STUDENT' }).select('firstName lastName batchId').lean();
+    } else if (batchId) {
+      targets = await User.find({ batchId, tenantId: tId(req), role: 'STUDENT', isActive: { $ne: false } }).select('firstName lastName batchId').lean();
+    }
+    if (!targets.length) return res.status(400).json({ message: 'Select at least one student or a batch with students.' });
+
+    const diff = ['easy', 'medium', 'hard'].includes(difficulty) ? difficulty : 'easy';
+    const docs = targets.map((u: any) => ({
+      tenantId: tId(req), assignedBy: uId(req), studentId: u._id,
+      studentName: [u.firstName, u.lastName].filter(Boolean).join(' '), batchId: u.batchId,
+      concept, difficulty: diff, language: language || 'javascript',
+      customPrompt: customPrompt || undefined, note: note || undefined,
+      dueDate: dueDate ? new Date(dueDate) : undefined, status: 'assigned',
+    }));
+    const created = await DrillAssignment.insertMany(docs);
+
+    // In-app bell notification.
+    const due = dueDate ? ` (due ${new Date(dueDate).toLocaleDateString('en-IN', { dateStyle: 'medium' } as any)})` : '';
+    await createNotifications(
+      String(tId(req)), targets.map((u: any) => String(u._id)), 'general',
+      '🧩 New Logic Building problem assigned',
+      `${concept} · ${diff}${due} — open Logic Building to solve it.`,
+      '/logic-gym'
+    );
+    res.status(201).json({ created: created.length });
+  } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to assign' }); }
+};
+
+// GET /drills/admin/assignments?batchId=&status=
+export const listAssignments = async (req: Request, res: Response) => {
+  try {
+    const filter: any = { tenantId: tId(req) };
+    if (req.query.batchId) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
+    if (req.query.status) filter.status = req.query.status;
+    const rows = await DrillAssignment.find(filter).sort({ createdAt: -1 }).limit(500).lean();
+    res.json({ assignments: rows.map((a: any) => ({
+      _id: String(a._id), studentName: a.studentName || 'Student', concept: a.concept, difficulty: a.difficulty,
+      language: a.language, note: a.note, dueDate: a.dueDate, status: a.status, score: a.score, createdAt: a.createdAt,
+    })) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// GET /drills/assigned — the student's own assigned problems (open ones first)
+export const myAssignments = async (req: Request, res: Response) => {
+  try {
+    const rows = await DrillAssignment.find({ tenantId: tId(req), studentId: uId(req) }).sort({ status: 1, createdAt: -1 }).limit(100).lean();
+    res.json({ assignments: rows.map((a: any) => ({
+      _id: String(a._id), concept: a.concept, difficulty: a.difficulty, language: a.language,
+      note: a.note, dueDate: a.dueDate, status: a.status, score: a.score,
+    })) });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

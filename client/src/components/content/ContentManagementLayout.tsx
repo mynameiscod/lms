@@ -155,7 +155,7 @@ const ContentManagementLayout: React.FC = () => {
           <div className="content-header">
             <div className="content-header-top">
               <div>
-                <h1>📚 Content Management</h1>
+                <h1>Content Management</h1>
                 <p className="header-subtitle">
                   Create and manage your learning content across subjects, chapters, and topics
                 </p>

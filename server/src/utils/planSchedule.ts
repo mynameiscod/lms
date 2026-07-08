@@ -11,6 +11,16 @@ export const isWeekend = (d: Date): boolean => {
   return x === 0 || x === 6; // Sun / Sat
 };
 
+// Default weekly off-days: Sunday (0) + Saturday (6). Batches can override this
+// (e.g. a Mon–Sat batch passes {0} so Saturdays count as class/content days).
+export const DEFAULT_OFF_DAYS = new Set<number>([0, 6]);
+
+// A date is "off" (does not consume a curriculum Day) if it falls on a weekly
+// off-day, OR it's a listed skip date — holidays AND non-content events like a
+// mock-interview day are all folded into `holidays` by the schedule resolver.
+const makeIsOff = (holidays: Set<string>, offDays: Set<number>) =>
+  (x: Date) => offDays.has(x.getDay()) || holidays.has(ymd(x));
+
 // "Today" as an India (Asia/Kolkata) calendar date, returned as a local-midnight Date
 // so it compares consistently with the stored batch/enrollment dates. Batches run on
 // IST dates, but the server clock is UTC — using new Date() directly makes the current
@@ -51,9 +61,9 @@ export function asLocalDate(input: string | Date): Date {
  * skipping weekends and holidays. If startDate itself is a non-working day,
  * day 1 rolls forward to the next working day.
  */
-export function workingDateForDay(startDate: Date | string, dayNumber: number, holidays: Set<string> = new Set()): Date {
+export function workingDateForDay(startDate: Date | string, dayNumber: number, holidays: Set<string> = new Set(), offDays: Set<number> = DEFAULT_OFF_DAYS): Date {
   const d = asLocalDate(startDate instanceof Date ? startDate : new Date(startDate));
-  const isOff = (x: Date) => isWeekend(x) || holidays.has(ymd(x));
+  const isOff = makeIsOff(holidays, offDays);
   while (isOff(d)) d.setDate(d.getDate() + 1);
   let remaining = dayNumber - 1;
   while (remaining > 0) {
@@ -64,10 +74,10 @@ export function workingDateForDay(startDate: Date | string, dayNumber: number, h
 }
 
 /** Which plan day number is "today" for a cohort, or null if before start / past end. */
-export function planDayForDate(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = istToday()): number | null {
+export function planDayForDate(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = istToday(), offDays: Set<number> = DEFAULT_OFF_DAYS): number | null {
   const t = asLocalDate(today);
   for (let day = 1; day <= totalDays; day++) {
-    const dd = workingDateForDay(startDate, day, holidays);
+    const dd = workingDateForDay(startDate, day, holidays, offDays);
     if (ymd(dd) === ymd(t)) return day;
     if (dd > t) return null; // hasn't reached a planned day yet
   }
@@ -80,11 +90,11 @@ export function planDayForDate(startDate: Date | string, totalDays: number, holi
  * still returns the last working-day number on a weekend/holiday (not null), so it's
  * the right value for a "Today's Day N" indicator. Null only if today is before start.
  */
-export function workingDayCount(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = istToday()): number | null {
+export function workingDayCount(startDate: Date | string, totalDays: number, holidays: Set<string> = new Set(), today = istToday(), offDays: Set<number> = DEFAULT_OFF_DAYS): number | null {
   const t = asLocalDate(today);
   const start = asLocalDate(startDate);
   if (t < start) return null;
-  const isOff = (x: Date) => isWeekend(x) || holidays.has(ymd(x));
+  const isOff = makeIsOff(holidays, offDays);
   let count = 0;
   const cur = new Date(start);
   while (cur <= t) {

@@ -36,4 +36,23 @@ describe('planSchedule utils', () => {
     const day = planDayForDate(startDate, 145, new Set(), new Date('2026-07-05'));
     expect(day).toBeNull();
   });
+
+  it('default off-days skip Saturday (Mon–Fri batch)', () => {
+    // Mon Jul 6 → D1, Fri Jul 10 → D5, Sat Jul 11 stays D5 (no new day)
+    expect(workingDayCount('2026-07-06', 145, new Set(), new Date('2026-07-11'))).toBe(5);
+  });
+
+  it('custom off-days [0] count Saturdays as content days (Mon–Sat batch)', () => {
+    // Only Sunday off: Mon Jul 6 → D1 … Sat Jul 11 → D6
+    const offDays = new Set([0]);
+    expect(workingDayCount('2026-07-06', 145, new Set(), new Date('2026-07-11'), offDays)).toBe(6);
+  });
+
+  it('skip dates (holiday / mock-interview) do not consume a Day', () => {
+    // Mon–Sat cadence, but Wed Jul 8 is a mock-interview day → skipped.
+    // Mon6=D1,Tue7=D2,(Wed8 skip),Thu9=D3,Fri10=D4,Sat11=D5
+    const offDays = new Set([0]);
+    const skip = new Set(['2026-07-08']);
+    expect(workingDayCount('2026-07-06', 145, skip, new Date('2026-07-11'), offDays)).toBe(5);
+  });
 });

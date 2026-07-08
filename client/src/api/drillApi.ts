@@ -18,10 +18,15 @@ export interface RunResult {
 export interface DrillProgress { solvedTotal: number; streak: number; today: number; byConcept: Record<string, { solved: number; avg: number }>; }
 export interface DrillStudentRow { studentId: string; name: string; attempts: number; solved: number; avg: number; last: string; }
 export interface WeakConcept { concept: string; total: number; solved: number; rate: number; }
+export interface MyAssignment { _id: string; concept: string; difficulty: string; language: string; note?: string; dueDate?: string; status: string; score?: number; }
+export interface AdminAssignment extends MyAssignment { studentName: string; createdAt: string; }
 
 export const drillApi = {
   concepts: async (): Promise<string[]> => (await axios.get(`${BASE}/concepts`, { headers: authHeader() })).data.concepts || [],
-  newProblem: async (concept: string, difficulty: string, language: string): Promise<DrillProblem> => (await axios.post(`${BASE}/new`, { concept, difficulty, language }, { headers: authHeader(), timeout: 120000 })).data.problem,
+  newProblem: async (concept: string, difficulty: string, language: string, assignmentId?: string): Promise<DrillProblem> => (await axios.post(`${BASE}/new`, { concept, difficulty, language, assignmentId }, { headers: authHeader(), timeout: 120000 })).data.problem,
+  myAssignments: async (): Promise<MyAssignment[]> => (await axios.get(`${BASE}/assigned`, { headers: authHeader() })).data.assignments || [],
+  assign: async (data: { concept: string; difficulty: string; language: string; studentIds?: string[]; batchId?: string; note?: string; customPrompt?: string; dueDate?: string }): Promise<{ created: number }> => (await axios.post(`${BASE}/admin/assign`, data, { headers: authHeader() })).data,
+  listAssignments: async (batchId?: string): Promise<AdminAssignment[]> => (await axios.get(`${BASE}/admin/assignments${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data.assignments || [],
   checkPlan: async (id: string, plan: string): Promise<{ ok: boolean; hint: string }> => (await axios.post(`${BASE}/${id}/plan`, { plan }, { headers: authHeader(), timeout: 60000 })).data,
   run: async (id: string, code: string): Promise<RunResult> => (await axios.post(`${BASE}/${id}/run`, { code }, { headers: authHeader(), timeout: 120000 })).data,
   myProgress: async (): Promise<DrillProgress> => (await axios.get(`${BASE}/my-progress`, { headers: authHeader() })).data,

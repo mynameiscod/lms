@@ -46,7 +46,7 @@ const RecordingDiagnostics: React.FC = () => {
 
   return (
     <div style={{ padding: 24, maxWidth: 1100, margin: '0 auto' }}>
-      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0 }}>🎥 Recording Diagnostics</h1>
+      <h1 style={{ fontSize: 22, fontWeight: 700, color: '#0f172a', margin: 0 }}>Recording Diagnostics</h1>
       <p style={{ color: '#64748b', fontSize: 14, margin: '4px 0 16px' }}>End-to-end timeline of every recording session — see exactly where a class recording or interview video succeeded or failed.</p>
 
       <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>

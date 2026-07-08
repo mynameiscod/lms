@@ -4,12 +4,28 @@ import { BatchService } from '../services/batchService';
 
 const batchService = new BatchService();
 
+// Weekly off-days: JS getDay() numbers (0=Sun … 6=Sat). Falls back to Sat+Sun off.
+const sanitizeOffDays = (v: any): number[] => {
+  if (!Array.isArray(v)) return [0, 6];
+  const nums = [...new Set(v.map((n: any) => Number(n)).filter((n: number) => Number.isInteger(n) && n >= 0 && n <= 6))];
+  return nums.length ? nums : [0, 6]; // never allow "all days are class days" via empty=all; empty means default
+};
+
+// Special (non-content) dates that skip a curriculum Day: holidays, mock interviews, events.
+const sanitizeSpecialDays = (v: any): any[] => {
+  if (!Array.isArray(v)) return [];
+  const types = ['holiday', 'mock_interview', 'event', 'off'];
+  return v
+    .filter((s: any) => s && /^\d{4}-\d{2}-\d{2}$/.test(String(s.date)))
+    .map((s: any) => ({ date: String(s.date), type: types.includes(s.type) ? s.type : 'off', label: s.label ? String(s.label).slice(0, 120) : undefined }));
+};
+
 export const createBatch = async (
   req: AuthenticatedRequest,
   res: Response<ApiResponse<any>>
 ) => {
   try {
-    const { name, courseId, startDate, endDate, timings, instructors, capacity, departmentId, holidays } = req.body;
+    const { name, courseId, startDate, endDate, timings, instructors, capacity, departmentId, holidays, weeklyOffDays, specialDays } = req.body;
 
     if (!name || !startDate || !endDate || !timings || !Array.isArray(timings) || timings.length === 0) {
       return res.status(400).json({
@@ -41,6 +57,8 @@ export const createBatch = async (
       capacity: capacity || 30,
       departmentId: departmentId || null,
       holidays: Array.isArray(holidays) ? holidays.filter((d: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(d))) : [],
+      weeklyOffDays: sanitizeOffDays(weeklyOffDays),
+      specialDays: sanitizeSpecialDays(specialDays),
     };
 
     const batch = await batchService.createBatch(batchData);
@@ -117,7 +135,7 @@ export const updateBatch = async (
 ) => {
   try {
     const { batchId } = req.params;
-    const { name, courseId, startDate, endDate, timings, instructors, capacity, departmentId, holidays } = req.body;
+    const { name, courseId, startDate, endDate, timings, instructors, capacity, departmentId, holidays, weeklyOffDays, specialDays } = req.body;
 
     const updateData: any = {};
     if (name) updateData.name = name;
@@ -129,6 +147,8 @@ export const updateBatch = async (
     if (capacity) updateData.capacity = capacity;
     if (departmentId !== undefined) updateData.departmentId = departmentId || null;
     if (Array.isArray(holidays)) updateData.holidays = holidays.filter((d: any) => /^\d{4}-\d{2}-\d{2}$/.test(String(d)));
+    if (weeklyOffDays !== undefined) updateData.weeklyOffDays = sanitizeOffDays(weeklyOffDays);
+    if (specialDays !== undefined) updateData.specialDays = sanitizeSpecialDays(specialDays);
 
     // Validate date range if both dates are provided
     if (updateData.startDate && updateData.endDate) {

@@ -126,7 +126,7 @@ const AssignmentReports: React.FC = () => {
       {/* Header */}
       <div className="reports-header">
         <div className="header-left">
-          <h1>📊 Assignment Reports</h1>
+          <h1>Assignment Reports</h1>
           <p>Analytics and insights for assignment performance</p>
         </div>
         <div className="header-actions">

@@ -46,7 +46,7 @@ const ResourceLibrary: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1120, margin: '0 auto', padding: 22 }}>
-      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>📚 Project Library</h1>
+      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>Project Library</h1>
       <p style={{ marginTop: 4, color: '#64748b', fontSize: 13.5 }}>Download starter projects, templates and docs shared by your mentors.</p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '16px 0' }}>

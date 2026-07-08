@@ -186,7 +186,7 @@ const PlatformSettings: React.FC = () => {
       {/* Sticky top bar: title + scope + save (no scrolling to save) */}
       <div className="ps-topbar">
         <div className="ps-title">
-          <h1>⚙️ Platform Settings</h1>
+          <h1>Platform Settings</h1>
           <p>Manage API keys, models and integrations here instead of the server <code>.env</code>. Values here override <code>.env</code> and take effect immediately.</p>
         </div>
         <div className="ps-topbar-actions">

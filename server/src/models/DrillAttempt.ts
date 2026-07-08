@@ -25,6 +25,7 @@ export interface IDrillAttempt extends Document {
   score: number;
   status: 'in_progress' | 'solved' | 'given_up';
   solvedAt?: Date;
+  assignmentId?: mongoose.Types.ObjectId; // set when this attempt fulfils an admin-assigned problem
   createdAt: Date;
   updatedAt: Date;
 }
@@ -51,6 +52,7 @@ const DrillAttemptSchema = new Schema<IDrillAttempt>(
     score:       { type: Number, default: 0 },
     status:      { type: String, enum: ['in_progress', 'solved', 'given_up'], default: 'in_progress' },
     solvedAt:    { type: Date },
+    assignmentId:{ type: Schema.Types.ObjectId, ref: 'DrillAssignment' },
   },
   { timestamps: true }
 );

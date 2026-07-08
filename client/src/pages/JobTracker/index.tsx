@@ -71,7 +71,7 @@ const JobTracker: React.FC = () => {
   return (
     <div style={{ padding: 24, maxWidth: 1400, margin: '0 auto' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
-        <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>🎯 Job Tracker</h1>
+        <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>Job Tracker</h1>
         <div style={{ flex: 1 }} />
         <button onClick={() => setEditing(emptyApp())}
           style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>

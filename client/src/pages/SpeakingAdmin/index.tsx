@@ -51,7 +51,7 @@ const SpeakingAdmin: React.FC = () => {
   return (
     <div style={{ maxWidth: 1120, margin: '0 auto', padding: 22 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>🎤 Speaking Tasks</h1>
+        <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>Speaking Tasks</h1>
         <div style={{ flex: 1 }} />
         <button onClick={() => setShowForm(true)} style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>+ New speaking task</button>
       </div>

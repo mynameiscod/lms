@@ -40,6 +40,9 @@ const BatchesPage: React.FC = () => {
     name: '', courseId: '', departmentId: '', startDate: '', endDate: '',
     timings: [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }] as Timing[],
     instructors: [] as string[], capacity: 30, holidays: [] as string[],
+    // Content-pacing: which weekdays advance a curriculum Day (getDay nums 0=Sun..6=Sat).
+    contentDays: [1, 2, 3, 4, 5] as number[],
+    specialDays: [] as { date: string; type: string; label?: string }[],
   });
 
   useEffect(() => { fetchData(); }, []);
@@ -64,7 +67,8 @@ const BatchesPage: React.FC = () => {
     const today = new Date().toISOString().split('T')[0];
     setEditingBatch(null);
     setForm({ name: '', courseId: '', departmentId: '', startDate: today, endDate: calcEnd(today),
-      timings: DAYS.slice(0, 5).map(day => ({ day, startTime: '10:00', endTime: '11:30' })), instructors: [], capacity: 30, holidays: [] });
+      timings: DAYS.slice(0, 5).map(day => ({ day, startTime: '10:00', endTime: '11:30' })), instructors: [], capacity: 30, holidays: [],
+      contentDays: [1, 2, 3, 4, 5], specialDays: [] });
     setStep(0); setError(''); setView('wizard');
   };
   const openEdit = (batch: Batch) => {
@@ -77,6 +81,11 @@ const BatchesPage: React.FC = () => {
       timings: batch.timings.length ? batch.timings : [{ day: 'Monday', startTime: '10:00', endTime: '11:30' }],
       instructors: batch.instructors.map(i => i._id), capacity: batch.capacity || 30,
       holidays: (batch as any).holidays || [],
+      contentDays: (() => {
+        const off = new Set<number>(Array.isArray((batch as any).weeklyOffDays) && (batch as any).weeklyOffDays.length ? (batch as any).weeklyOffDays : [0, 6]);
+        return [0, 1, 2, 3, 4, 5, 6].filter(d => !off.has(d));
+      })(),
+      specialDays: (batch as any).specialDays || [],
     });
     setStep(0); setError(''); setView('wizard');
   };
@@ -105,7 +114,12 @@ const BatchesPage: React.FC = () => {
     if (!form.name || !form.startDate || !form.endDate || form.timings.length === 0) { setError('Please complete all required fields'); return; }
     try {
       setSubmitting(true); setError('');
-      const payload: any = { ...form };
+      const { contentDays, ...rest } = form;
+      const payload: any = {
+        ...rest,
+        weeklyOffDays: [0, 1, 2, 3, 4, 5, 6].filter(d => !contentDays.includes(d)),
+        specialDays: form.specialDays.filter(s => /^\d{4}-\d{2}-\d{2}$/.test(s.date)),
+      };
       if (editingBatch) { await batchApi.updateBatch(editingBatch._id, payload); setSuccess('Batch updated successfully'); }
       else { await batchApi.createBatch(payload); setSuccess('Batch created successfully'); }
       backToList(); fetchData();
@@ -210,6 +224,53 @@ const BatchesPage: React.FC = () => {
                     </div>
                   );
                 })}
+              </div>
+
+              {/* Content pacing — which weekdays advance a curriculum Day */}
+              <h3 className="bm-section-title" style={{ marginTop: 24 }}>Curriculum Day Pacing</h3>
+              <p className="bm-section-sub">A curriculum "Day" advances only on these weekdays. Tick Saturday if this batch runs Saturday classes. Sunday is usually off.</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {([['Mon', 1], ['Tue', 2], ['Wed', 3], ['Thu', 4], ['Fri', 5], ['Sat', 6], ['Sun', 0]] as [string, number][]).map(([lbl, num]) => {
+                  const on = form.contentDays.includes(num);
+                  return (
+                    <button key={num} type="button"
+                      onClick={() => setForm(f => ({ ...f, contentDays: on ? f.contentDays.filter(d => d !== num) : [...f.contentDays, num] }))}
+                      style={{ padding: '8px 14px', borderRadius: 10, border: `1.5px solid ${on ? '#6366f1' : '#e2e8f0'}`, background: on ? '#eef0fe' : '#fff', color: on ? '#4338ca' : '#64748b', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                      {on ? '✓ ' : ''}{lbl}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Special (non-content) dates — mock interviews / events that skip a Day */}
+              <h3 className="bm-section-title" style={{ marginTop: 24 }}>Special Days <span className="opt" style={{ fontWeight: 400 }}>(mock interview / event — skipped, does not consume a Day)</span></h3>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                <input className="bm-input" type="date" style={{ maxWidth: 180 }} id="bm-special-date" />
+                <select className="bm-input" style={{ maxWidth: 170 }} id="bm-special-type" defaultValue="mock_interview">
+                  <option value="mock_interview">Mock Interview</option>
+                  <option value="event">Event</option>
+                  <option value="off">Off day</option>
+                </select>
+                <button type="button" className="bm-btn-ghost"
+                  onClick={() => {
+                    const dEl = document.getElementById('bm-special-date') as HTMLInputElement;
+                    const tEl = document.getElementById('bm-special-type') as HTMLSelectElement;
+                    const v = dEl?.value;
+                    if (v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !form.specialDays.some(s => s.date === v)) {
+                      setForm(f => ({ ...f, specialDays: [...f.specialDays, { date: v, type: tEl.value }].sort((a, b) => a.date.localeCompare(b.date)) }));
+                      dEl.value = '';
+                    }
+                  }}
+                  style={{ padding: '9px 14px', borderRadius: 8, border: '1.5px solid #6366f1', background: '#fff', color: '#4338ca', fontWeight: 700, cursor: 'pointer' }}>+ Add</button>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+                {form.specialDays.length === 0 && <span style={{ color: '#94a3b8', fontSize: 13 }}>No special days added</span>}
+                {form.specialDays.map(s => (
+                  <span key={s.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#fef3c7', color: '#92400e', borderRadius: 16, padding: '4px 10px', fontSize: 13, fontWeight: 600 }}>
+                    {s.date} · {s.type === 'mock_interview' ? 'Mock' : s.type === 'event' ? 'Event' : 'Off'}
+                    <button type="button" onClick={() => setForm(f => ({ ...f, specialDays: f.specialDays.filter(x => x.date !== s.date) }))} style={{ border: 'none', background: 'none', color: '#b45309', cursor: 'pointer', fontSize: 15, lineHeight: 1 }}>×</button>
+                  </span>
+                ))}
               </div>
             </>
           )}

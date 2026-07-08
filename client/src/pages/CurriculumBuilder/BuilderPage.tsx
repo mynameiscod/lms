@@ -554,8 +554,8 @@ export default function BuilderPage() {
       <div className="cb-tabs">
         {([
           { key: 'overview', label: '📋 Overview' },
-          { key: 'topics',   label: '📚 Topics' },
-          { key: 'daily',    label: '📅 Daily Plan', disabled: isCreate },
+          { key: 'topics',   label: 'Topics' },
+          { key: 'daily',    label: 'Daily Plan', disabled: isCreate },
           { key: 'weekend',  label: '🏖 Weekend Plan', disabled: isCreate },
         ] as { key: Tab; label: string; disabled?: boolean }[]).map(t => (
           <button key={t.key} className={`cb-tab ${tab === t.key ? 'active' : ''}`} onClick={() => !t.disabled && setTab(t.key)} disabled={t.disabled}>

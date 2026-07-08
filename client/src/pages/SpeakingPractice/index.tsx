@@ -25,7 +25,7 @@ const SpeakingPractice: React.FC = () => {
 
   return (
     <div style={{ maxWidth: 1000, margin: '0 auto', padding: 22 }}>
-      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>🎤 Speaking Practice</h1>
+      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>Speaking Practice</h1>
       <p style={{ marginTop: 4, color: '#64748b', fontSize: 13.5 }}>Record your assigned speaking tasks. An AI coach scores your fluency, clarity and confidence and gives you feedback.</p>
 
       {loading ? <div style={{ color: '#94a3b8', padding: 30 }}>Loading…</div> : (

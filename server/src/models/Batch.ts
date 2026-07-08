@@ -18,6 +18,13 @@ export interface IBatch extends Document {
   enrolledCount?: number;
   departmentId?: mongoose.Types.ObjectId;
   holidays?: string[]; // 'YYYY-MM-DD' dates that don't advance the curriculum day
+  // Weekly off-days as JS getDay() numbers (0=Sun … 6=Sat). Default [0,6] (Sat+Sun off).
+  // A Mon–Sat batch sets [0] so Saturdays count as content days.
+  weeklyOffDays?: number[];
+  // Specific dates that are NOT content days (skipped in Day counting) but are real
+  // calendar events — e.g. a mock-interview day or a one-off event. Functionally these
+  // skip a Day just like a holiday; `type` is for display/reporting only.
+  specialDays?: { date: string; type: 'holiday' | 'mock_interview' | 'event' | 'off'; label?: string }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -102,6 +109,21 @@ const BatchSchema: Schema = new Schema(
     },
     holidays: {
       type: [String], // 'YYYY-MM-DD' — skipped when counting curriculum days
+      default: []
+    },
+    weeklyOffDays: {
+      type: [Number], // getDay() numbers; default Sat+Sun off. [0]=only Sunday off (Mon–Sat batch)
+      default: [0, 6]
+    },
+    specialDays: {
+      type: [
+        {
+          _id: false,
+          date: { type: String, required: true }, // 'YYYY-MM-DD'
+          type: { type: String, enum: ['holiday', 'mock_interview', 'event', 'off'], default: 'off' },
+          label: { type: String }
+        }
+      ],
       default: []
     }
   },

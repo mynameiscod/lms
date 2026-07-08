@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { drillApi, DrillStudentRow, WeakConcept } from '../../api/drillApi';
-import { batchApi } from '../../api';
+import { drillApi, DrillStudentRow, WeakConcept, AdminAssignment, LANGS } from '../../api/drillApi';
+import { batchApi, userApi } from '../../api';
 
 const rateColor = (n: number) => (n >= 70 ? '#16a34a' : n >= 40 ? '#d97706' : '#dc2626');
+const PURPLE = '#6366f1';
+const statusColor: Record<string, string> = { assigned: '#3b82f6', in_progress: '#d97706', completed: '#16a34a' };
 
 const DrillsAdmin: React.FC = () => {
   const [students, setStudents] = useState<DrillStudentRow[]>([]);
@@ -11,21 +13,111 @@ const DrillsAdmin: React.FC = () => {
   const [batchId, setBatchId] = useState('');
   const [loading, setLoading] = useState(true);
 
+  // Assign panel
+  const [concepts, setConcepts] = useState<string[]>([]);
+  const [roster, setRoster] = useState<any[]>([]);
+  const [assignments, setAssignments] = useState<AdminAssignment[]>([]);
+  const [form, setForm] = useState({ concept: '', difficulty: 'easy', language: 'javascript', batchId: '', studentIds: [] as string[], note: '', dueDate: '' });
+  const [assigning, setAssigning] = useState(false);
+  const [msg, setMsg] = useState('');
+
   const load = async (bId?: string) => {
     setLoading(true);
     try { const d = await drillApi.adminOverview(bId || undefined); setStudents(d.students); setWeak(d.weakConcepts); }
     finally { setLoading(false); }
   };
+  const loadAssignments = async () => { try { setAssignments(await drillApi.listAssignments()); } catch { /* ignore */ } };
+
   useEffect(() => {
     batchApi.getBatches().then((b: any) => setBatches((Array.isArray(b) ? b : (b?.data || b?.batches || [])).map((x: any) => ({ _id: x._id, name: x.name })))).catch(() => {});
-    load();
+    drillApi.concepts().then(c => { setConcepts(c); setForm(f => ({ ...f, concept: c[0] || '' })); }).catch(() => {});
+    userApi.getUsers().then((res: any) => setRoster((res.users || res.data || res || []).filter((u: any) => u.role === 'STUDENT' && u.isActive !== false))).catch(() => {});
+    load(); loadAssignments();
   }, []);
+
+  const rosterForBatch = form.batchId ? roster.filter(u => String(u.batchId?._id || u.batchId) === form.batchId) : roster;
+  const toggleStudent = (id: string) => setForm(f => ({ ...f, studentIds: f.studentIds.includes(id) ? f.studentIds.filter(s => s !== id) : [...f.studentIds, id] }));
+
+  const submitAssign = async () => {
+    if (!form.concept) { setMsg('Pick a concept'); return; }
+    if (!form.batchId && form.studentIds.length === 0) { setMsg('Pick a batch or select students'); return; }
+    try {
+      setAssigning(true); setMsg('');
+      const payload: any = { concept: form.concept, difficulty: form.difficulty, language: form.language, note: form.note || undefined, dueDate: form.dueDate || undefined };
+      if (form.studentIds.length) payload.studentIds = form.studentIds; else payload.batchId = form.batchId;
+      const r = await drillApi.assign(payload);
+      setMsg(`✅ Assigned to ${r.created} student${r.created === 1 ? '' : 's'}.`);
+      setForm(f => ({ ...f, studentIds: [], note: '', dueDate: '' }));
+      loadAssignments();
+    } catch (e: any) { setMsg(e?.response?.data?.message || 'Failed to assign'); }
+    finally { setAssigning(false); }
+  };
+
+  const inp: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 8, padding: '9px 11px', fontSize: 13.5, width: '100%', boxSizing: 'border-box' };
+  const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: '#475569', display: 'block', marginBottom: 4 };
 
   return (
     <div style={{ maxWidth: 1120, margin: '0 auto', padding: 22 }}>
-      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>🧠 Problem-Solving Dashboard</h1>
-      <p style={{ color: '#64748b', fontSize: 13.5 }}>Track who's practising logic drills, their solve rate, and which concepts the batch struggles with.</p>
+      <h1 style={{ margin: 0, fontSize: 24, color: '#0f172a' }}>Logic Building Problems</h1>
+      <p style={{ color: '#64748b', fontSize: 13.5 }}>Assign logic-building problems to students, and track who's practising, their solve rate, and which concepts the batch struggles with.</p>
 
+      {/* Assign a problem */}
+      <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 18, margin: '14px 0' }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>🧩 Assign a problem</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
+          <label><span style={lbl}>Concept</span><select style={inp} value={form.concept} onChange={e => setForm({ ...form, concept: e.target.value })}>{concepts.map(c => <option key={c} value={c}>{c}</option>)}</select></label>
+          <label><span style={lbl}>Level</span><select style={inp} value={form.difficulty} onChange={e => setForm({ ...form, difficulty: e.target.value })}><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></label>
+          <label><span style={lbl}>Language</span><select style={inp} value={form.language} onChange={e => setForm({ ...form, language: e.target.value })}>{LANGS.map(l => <option key={l.v} value={l.v}>{l.l}</option>)}</select></label>
+          <label><span style={lbl}>Batch</span><select style={inp} value={form.batchId} onChange={e => setForm({ ...form, batchId: e.target.value, studentIds: [] })}><option value="">— pick students below —</option>{batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select></label>
+          <label><span style={lbl}>Due date (optional)</span><input style={inp} type="date" value={form.dueDate} onChange={e => setForm({ ...form, dueDate: e.target.value })} /></label>
+        </div>
+        <label style={{ display: 'block', marginTop: 12 }}><span style={lbl}>Note / brief (optional)</span><input style={inp} placeholder="e.g. Focus on loops after today's class" value={form.note} onChange={e => setForm({ ...form, note: e.target.value })} /></label>
+
+        {!form.batchId && (
+          <div style={{ marginTop: 12 }}>
+            <span style={lbl}>Select students {form.studentIds.length > 0 && <b style={{ color: PURPLE }}>({form.studentIds.length} selected)</b>}</span>
+            <div style={{ maxHeight: 160, overflowY: 'auto', border: '1px solid #eef1f6', borderRadius: 10, padding: 8, display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 4 }}>
+              {rosterForBatch.length === 0 ? <span style={{ color: '#94a3b8', fontSize: 13, padding: 6 }}>No students found.</span> :
+                rosterForBatch.map(u => (
+                  <label key={u._id} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 13, padding: '4px 6px', borderRadius: 6, cursor: 'pointer' }}>
+                    <input type="checkbox" checked={form.studentIds.includes(u._id)} onChange={() => toggleStudent(u._id)} />
+                    {[u.firstName, u.lastName].filter(Boolean).join(' ') || u.email}
+                  </label>
+                ))}
+            </div>
+          </div>
+        )}
+        {form.batchId && <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 8 }}>Will assign to all active students in this batch.</div>}
+
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginTop: 14 }}>
+          <button onClick={submitAssign} disabled={assigning} style={{ background: PURPLE, color: '#fff', border: 'none', borderRadius: 9, padding: '10px 20px', fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>{assigning ? 'Assigning…' : '➤ Assign problem'}</button>
+          {msg && <span style={{ fontSize: 13, color: msg.startsWith('✅') ? '#16a34a' : '#dc2626', fontWeight: 600 }}>{msg}</span>}
+        </div>
+      </div>
+
+      {/* Recent assignments */}
+      {assignments.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 12, marginBottom: 16, overflowX: 'auto' }}>
+          <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', padding: '12px 14px 0' }}>Recent assignments</div>
+          <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: 13, minWidth: 620 }}>
+            <thead><tr style={{ textAlign: 'left' }}>{['Student', 'Concept', 'Level', 'Due', 'Status', 'Score'].map(h => <th key={h} style={{ padding: '8px 14px', fontSize: 11, textTransform: 'uppercase', color: '#94a3b8' }}>{h}</th>)}</tr></thead>
+            <tbody>
+              {assignments.slice(0, 50).map(a => (
+                <tr key={a._id} style={{ borderTop: '1px solid #eef1f6' }}>
+                  <td style={{ padding: '8px 14px', fontWeight: 600, color: '#0f172a' }}>{a.studentName}</td>
+                  <td style={{ padding: '8px 14px', color: '#475569' }}>{a.concept}</td>
+                  <td style={{ padding: '8px 14px', color: '#64748b', textTransform: 'capitalize' }}>{a.difficulty}</td>
+                  <td style={{ padding: '8px 14px', color: '#64748b' }}>{a.dueDate ? new Date(a.dueDate).toLocaleDateString() : '—'}</td>
+                  <td style={{ padding: '8px 14px' }}><span style={{ fontSize: 11.5, fontWeight: 700, color: '#fff', background: statusColor[a.status] || '#94a3b8', borderRadius: 999, padding: '2px 9px', textTransform: 'capitalize' }}>{a.status.replace('_', ' ')}</span></td>
+                  <td style={{ padding: '8px 14px', fontWeight: 700 }}>{a.score != null ? a.score : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Practice overview */}
       <div style={{ margin: '14px 0' }}>
         <select value={batchId} onChange={e => { setBatchId(e.target.value); load(e.target.value); }} style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 12px', fontSize: 13.5 }}>
           <option value="">All students</option>

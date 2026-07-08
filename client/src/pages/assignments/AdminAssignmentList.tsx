@@ -379,7 +379,7 @@ const AdminAssignmentList: React.FC = () => {
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1>📋 Assignments</h1>
+          <h1>Assignments</h1>
           <p>Create and manage assignments for your students</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>

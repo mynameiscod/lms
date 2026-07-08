@@ -12,10 +12,12 @@ const norm = (s: string) => (s || '').replace(/\r\n/g, '\n').replace(/[ \t]+$/gm
 const diffNum = (d: string) => (d === 'hard' ? 4 : d === 'medium' ? 3 : 1);
 
 // ── Generate a fully Piston-verified micro-problem for a concept + level ──────
-export async function generateProblem(tenantId: string, concept: string, difficulty: string, language: string) {
+export async function generateProblem(tenantId: string, concept: string, difficulty: string, language: string, promptHint?: string) {
+  const base = `Beginner-friendly problem-solving drill on: ${concept}. Keep it SMALL and single-concept — one clear task, reads from stdin, prints to stdout.`;
+  const context = promptHint ? `${base}\nBase the problem on this instructor brief: ${promptHint}` : base;
   const items = await generateItems(tenantId, {
     type: 'live_code' as any, dimension: 'dsa' as any, difficulty: diffNum(difficulty),
-    language, count: 1, context: `Beginner-friendly problem-solving drill on: ${concept}. Keep it SMALL and single-concept — one clear task, reads from stdin, prints to stdout.`,
+    language, count: 1, context,
   } as any, { persist: false });
   const it: any = items && items[0];
   if (!it || !Array.isArray(it.testCases) || !it.testCases.length) return null;

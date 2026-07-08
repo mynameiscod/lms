@@ -63,6 +63,8 @@ import CodePlayground from './pages/CodePlayground';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
 import AIMentor from './pages/AIMentor';
+import ResourceLibrary from './pages/ResourceLibrary';
+import ResourceAdmin from './pages/ResourceAdmin';
 import InterviewQuestionsPage from './pages/InterviewQuestions';
 import InterviewQuestionBankPage from './pages/InterviewQuestionBank';
 
@@ -411,6 +413,28 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <AIMentor />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/resource-library"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ResourceLibrary />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/resources"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <ResourceAdmin />
             </Layout>
           </ProtectedRoute>
         }

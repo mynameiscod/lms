@@ -64,6 +64,9 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'BUNNY_STREAM_API_KEY', label: 'Bunny Stream API Key', group: 'storage', isSecret: true, type: 'password', placeholder: 'bunny api key' },
   { key: 'BUNNY_STREAM_LIBRARY_ID', label: 'Bunny Library ID', group: 'storage', type: 'text', placeholder: '12345' },
   { key: 'BUNNY_STREAM_CDN_HOSTNAME', label: 'Bunny CDN Hostname', group: 'storage', type: 'text', placeholder: 'vz-xxxx.b-cdn.net' },
+  { key: 'BUNNY_STORAGE_ZONE', label: 'Bunny Storage Zone Name', group: 'storage', type: 'text', placeholder: 'codebegun-resources', help: 'For the Resource Library (project ZIPs / docs).' },
+  { key: 'BUNNY_STORAGE_ACCESSKEY', label: 'Bunny Storage Password (AccessKey)', group: 'storage', isSecret: true, type: 'password', placeholder: 'storage zone password' },
+  { key: 'BUNNY_STORAGE_HOSTNAME', label: 'Bunny Storage Hostname', group: 'storage', type: 'text', placeholder: 'storage.bunnycdn.com', help: 'Region endpoint, e.g. storage.bunnycdn.com or sg.storage.bunnycdn.com.' },
 
   // ── OAuth Providers ──────────────────────────────────────────────────────────
   { key: 'GITHUB_CLIENT_ID', label: 'GitHub Client ID', group: 'oauth', type: 'text', placeholder: 'Iv1....' },

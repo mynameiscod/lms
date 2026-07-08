@@ -184,6 +184,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Project Builder', path: '/project-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-rocket', permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Job Tracker', path: '/job-tracker', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Mentor', path: '/ai-mentor', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-compass', permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Project Library', path: '/resource-library', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-folder-open', permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Resource Library', path: '/admin/resources', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-box-archive', permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Leave Requests', path: '/admin/leave-requests', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-xmark', moduleKey: 'attendance', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Resume Builder', path: '/resume-builder', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-file-lines', featureKey: 'resumeBuilder' as keyof StudentFeatures, permissions: ['enroll_courses', 'submit_assignments', 'manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Career Profile', path: '/career-profile', roles: ['STUDENT'], icon: 'fa-solid fa-id-badge', permissions: ['enroll_courses', 'view_courses'] },
@@ -350,7 +352,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const isStudent = user?.role === 'STUDENT';
   
   const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const academicItems = filteredItems.filter(i => ['📅 My Learning Plan', '✅ My Tasks', 'Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'My Work', 'Resume Builder', 'Career Profile', 'Career Profiles', '🎤 My Interviews', 'Apply Leave', 'Code Playground', 'Project Builder', 'Job Tracker', 'AI Mentor'].includes(i.label));
+  const academicItems = filteredItems.filter(i => ['📅 My Learning Plan', '✅ My Tasks', 'Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'My Work', 'Resume Builder', 'Career Profile', 'Career Profiles', '🎤 My Interviews', 'Apply Leave', 'Code Playground', 'Project Builder', 'Job Tracker', 'AI Mentor', 'Project Library', 'Resource Library'].includes(i.label));
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
   const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
 

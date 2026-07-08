@@ -1,5 +1,6 @@
 import Question, { IQuestion } from '../models/Question';
 import Quiz from '../models/Quiz';
+import { normalizeQuestion } from './aiService';
 
 export class QuestionService {
   // Create question
@@ -419,6 +420,58 @@ export class QuestionService {
       bySource: sourceMap,
       totalTags: allTags.length
     };
+  }
+
+  /**
+   * Find (and optionally remove) duplicate question-bank questions for a tenant.
+   * Groups bank questions (not tied to a specific quiz) by normalized text, keeps the
+   * earliest of each group as canonical, and — on execute — repoints any quiz that
+   * referenced a duplicate to the canonical question before deleting the extras, so
+   * no quiz is left with a broken reference. dryRun just reports the counts.
+   */
+  async dedupeBankQuestions(tenantId: string, dryRun = true): Promise<{ groups: number; duplicates: number; removed: number; samples: string[] }> {
+    const all = await Question.find({ tenantId, quizId: { $exists: false } })
+      .select('question createdAt')
+      .sort({ createdAt: 1, _id: 1 })
+      .lean();
+
+    const groups = new Map<string, any[]>();
+    for (const q of all) {
+      const key = normalizeQuestion((q as any).question || '');
+      if (!key) continue;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(q);
+    }
+
+    const dupToCanonical = new Map<string, string>();
+    const samples: string[] = [];
+    let groupCount = 0;
+    for (const arr of groups.values()) {
+      if (arr.length < 2) continue;
+      groupCount++;
+      if (samples.length < 20) samples.push(String(arr[0].question).slice(0, 100));
+      const canonical = String(arr[0]._id);
+      for (let i = 1; i < arr.length; i++) dupToCanonical.set(String(arr[i]._id), canonical);
+    }
+    const dupIds = [...dupToCanonical.keys()];
+
+    if (dryRun || dupIds.length === 0) {
+      return { groups: groupCount, duplicates: dupIds.length, removed: 0, samples };
+    }
+
+    // Repoint quizzes off the duplicates, then delete the duplicates.
+    const quizzes = await Quiz.find({ tenantId, questionIds: { $in: dupIds } }).select('questionIds totalQuestions questionCount');
+    for (const quiz of quizzes) {
+      const mapped = ((quiz as any).questionIds || []).map((id: string) => dupToCanonical.get(String(id)) || String(id));
+      const uniq = [...new Set(mapped)];
+      (quiz as any).questionIds = uniq;
+      if ((quiz as any).totalQuestions !== undefined) (quiz as any).totalQuestions = uniq.length;
+      if ((quiz as any).questionCount !== undefined) (quiz as any).questionCount = uniq.length;
+      await quiz.save();
+    }
+    await Question.deleteMany({ tenantId, _id: { $in: dupIds } });
+
+    return { groups: groupCount, duplicates: dupIds.length, removed: dupIds.length, samples };
   }
 }
 

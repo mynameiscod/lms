@@ -114,6 +114,25 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
     fetchQuestionBank();
   }, [fetchQuestionBank]);
 
+  // Preview then remove duplicate bank questions (keeps one canonical per group).
+  const [dedupingBusy, setDedupingBusy] = useState(false);
+  const handleDedupe = async () => {
+    try {
+      setDedupingBusy(true); setError(''); setSuccessMessage('');
+      const preview = await quizApi.dedupeQuestionBank(true);
+      const n = preview?.duplicates || 0;
+      if (n === 0) { setSuccessMessage('✅ No duplicate questions found.'); return; }
+      if (!window.confirm(`Found ${n} duplicate question(s) across ${preview.groups} group(s). Remove the extras (keeping one of each)? Quizzes are automatically re-pointed to the kept copy.`)) return;
+      const res = await quizApi.dedupeQuestionBank(false);
+      setSuccessMessage(`✅ Removed ${res.removed} duplicate question(s).`);
+      await fetchQuestionBank();
+    } catch (err: any) {
+      setError(err.message || 'De-duplication failed');
+    } finally {
+      setDedupingBusy(false);
+    }
+  };
+
   // Apply filters whenever search term, tags, difficulty, or date changes
   useEffect(() => {
     let filtered = questions;
@@ -482,6 +501,16 @@ const QuestionBank: React.FC<QuestionBankProps> = ({ onClose }) => {
       <div className="qb-header">
         <div>
           <h2>Question Bank</h2>
+        </div>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginLeft: 'auto' }}>
+          <button
+            onClick={handleDedupe}
+            disabled={dedupingBusy || loading}
+            title="Find and remove duplicate questions, keeping one of each"
+            style={{ background: '#fff', border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '8px 14px', fontWeight: 600, fontSize: 13, color: '#b45309', cursor: dedupingBusy ? 'default' : 'pointer' }}
+          >
+            {dedupingBusy ? '⏳ Checking…' : '🧹 Remove duplicates'}
+          </button>
         </div>
         {onClose && (
           <Button

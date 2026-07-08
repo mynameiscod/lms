@@ -1340,6 +1340,13 @@ export const quizApi = {
     });
   },
 
+  // Preview (dryRun) or remove duplicate bank questions
+  dedupeQuestionBank: async (dryRun = true) => {
+    return authenticatedFetch(`${API_BASE_URL}/questions/bank/dedupe?dryRun=${dryRun}`, {
+      method: 'POST'
+    });
+  },
+
   // Mark a question as duplicate
   markAsDuplicate: async (questionId: string, duplicateOfId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/questions/bank/${questionId}/mark-duplicate`, {

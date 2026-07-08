@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import questionService from '../services/questionService';
 import quizService from '../services/quizService';
 import Quiz from '../models/Quiz';
-import { generateQuestionsWithAI } from '../services/aiService';
+import { generateQuestionsWithAI, normalizeQuestion } from '../services/aiService';
+import Question from '../models/Question';
 
 export const createQuestion = async (req: Request, res: Response) => {
   try {
@@ -204,6 +205,18 @@ export const checkDuplicate = async (req: Request, res: Response) => {
   }
 };
 
+// Preview or remove duplicate bank questions. ?dryRun=false to actually delete.
+export const dedupeQuestionBank = async (req: Request, res: Response) => {
+  try {
+    const tenantId = (req as any).tenantId;
+    const dryRun = String(req.query.dryRun ?? 'true') !== 'false';
+    const result = await questionService.dedupeBankQuestions(tenantId, dryRun);
+    res.json({ ...result, dryRun });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // Get questions by tags
 export const getQuestionsByTags = async (req: Request, res: Response) => {
   try {
@@ -280,9 +293,28 @@ export const generateAIQuestions = async (req: Request, res: Response) => {
     }
 
     const countNum = Math.min(Math.max(parseInt(count) || 5, 1), 20);
+    const tenantId = (req as any).tenantId;
 
-    const questions = await generateQuestionsWithAI({ topic, type, difficulty, count: countNum });
-    res.json({ questions });
+    // Pull existing bank questions for this topic so the AI doesn't regenerate them
+    // (saves cost) and so we can hard-filter any duplicate it returns anyway.
+    const term = String(topic).trim();
+    const esc = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = tenantId ? await Question.find({
+      tenantId,
+      $or: [
+        { topic: { $regex: esc, $options: 'i' } },
+        { tags: { $regex: esc, $options: 'i' } },
+        { question: { $regex: esc, $options: 'i' } },
+      ],
+    }).select('question').limit(300).lean() : [];
+    const avoid = existing.map((q: any) => q.question).filter(Boolean);
+    const existingKeys = new Set(avoid.map((q: string) => normalizeQuestion(q)));
+
+    let questions = await generateQuestionsWithAI({ topic, type, difficulty, count: countNum, avoid });
+    // Hard filter against the DB — never hand back a question that already exists.
+    const before = questions.length;
+    questions = questions.filter((q: any) => !existingKeys.has(normalizeQuestion(q.question || '')));
+    res.json({ questions, skippedDuplicates: before - questions.length, existingChecked: avoid.length });
   } catch (error: any) {
     console.error('AI generation error:', error);
     if (error.status === 401) {

@@ -62,6 +62,13 @@ router.post(
   questionController.generateAIQuestions
 );
 
+// Preview / remove duplicate bank questions — must be before /bank/:questionId
+router.post(
+  '/bank/dedupe',
+  roleGuard(['delete_question']),
+  questionController.dedupeQuestionBank
+);
+
 // Update a question in Question Bank
 router.put(
   '/bank/:questionId',

@@ -16,7 +16,12 @@ export interface GenerateQuestionsParams {
   type: 'mcq_single' | 'mcq_multiple' | 'short_answer';
   difficulty: 'easy' | 'medium' | 'hard' | 'mixed';
   count: number;
+  avoid?: string[];   // existing question texts the AI must not repeat/paraphrase
 }
+
+// Normalise a question for duplicate comparison.
+export const normalizeQuestion = (s: string): string =>
+  (s || '').toLowerCase().replace(/[^\w ]+/g, ' ').replace(/\s+/g, ' ').trim();
 
 export interface GenerateCodingAssignmentParams {
   title: string;
@@ -61,6 +66,7 @@ function buildPrompt(params: GenerateQuestionsParams): string {
 Generate exactly ${count} ${typeDesc} questions about the topic: "${topic}".
 ${difficultyInstruction}
 Assign marks: easy=1, medium=2, hard=3.
+${params.avoid && params.avoid.length ? `\nIMPORTANT — the question bank ALREADY contains the questions below. Do NOT repeat, rephrase, or paraphrase any of them; generate genuinely new, distinct questions on other aspects of the topic:\n${params.avoid.slice(0, 60).map((q) => `- ${q}`).join('\n')}\n` : ''}
 
 Return ONLY a valid JSON object with a single key "questions" containing an array. Each item must follow this schema exactly:
 
@@ -138,8 +144,18 @@ export async function generateQuestionsWithAI(
     throw new Error('AI returned no questions. Please try a different topic or try again.');
   }
 
+  // Safety net: drop anything that duplicates the avoid-list or repeats within this batch.
+  const seen = new Set((params.avoid || []).map(normalizeQuestion));
+  const deduped = questions.filter((q) => {
+    const key = normalizeQuestion((q as any).question || '');
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const finalQuestions = deduped.length ? deduped : questions;
+
   // Sanitize: ensure required fields and trim results to requested count
-  return questions.slice(0, params.count).map((q) => {
+  return finalQuestions.slice(0, params.count).map((q) => {
     const qType: 'mcq_single' | 'mcq_multiple' | 'short_answer' = q.type || params.type;
 
     // Sanitize options and guarantee correct isCorrect placement

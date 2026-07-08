@@ -27,7 +27,8 @@ export interface Resource {
 }
 
 export interface ResourceRequestRow {
-  _id: string; resourceId: any; studentId: string; studentName?: string;
+  _id: string; resourceId: any; studentId: any; studentName?: string;
+  student?: { name: string; email: string; phone: string; batch: string };
   status: string; note?: string; reviewNote?: string; createdAt: string; reviewedAt?: string;
 }
 

@@ -156,8 +156,32 @@ export const listRequests = async (req: Request, res: Response) => {
     const filter: any = { tenantId: tId(req) };
     if (req.query.status) filter.status = req.query.status;
     const requests = await ResourceRequest.find(filter).sort({ createdAt: -1 })
-      .populate('resourceId', 'title resourceType').lean();
-    res.json({ requests });
+      .populate('resourceId', 'title resourceType')
+      .populate('studentId', 'firstName lastName email phone batchId batchName')
+      .lean();
+
+    // Resolve batch names — prefer the user's stored batchName, else look it up,
+    // else fall back to the student's most recent curriculum enrolment batch.
+    const Batch = mongoose.model('Batch');
+    const needBatch = requests.filter((r: any) => r.studentId?.batchId && !r.studentId?.batchName);
+    const batchIds = [...new Set(needBatch.map((r: any) => String(r.studentId.batchId)))];
+    const batches = batchIds.length ? await Batch.find({ _id: { $in: batchIds } }).select('name').lean() as any[] : [];
+    const batchMap: Record<string, string> = {};
+    batches.forEach((b: any) => { batchMap[String(b._id)] = b.name; });
+
+    const enriched = await Promise.all(requests.map(async (r: any) => {
+      const s = r.studentId || {};
+      let batch = s.batchName || (s.batchId ? batchMap[String(s.batchId)] : '') || '';
+      if (!batch) {
+        const enr: any = await CurriculumEnrollment.findOne({ tenantId: tId(req), studentId: s._id }).sort({ createdAt: -1 }).select('batchName batchId').lean();
+        batch = enr?.batchName || '';
+      }
+      return {
+        ...r,
+        student: { name: [s.firstName, s.lastName].filter(Boolean).join(' ') || r.studentName || 'Student', email: s.email || '', phone: s.phone || '', batch },
+      };
+    }));
+    res.json({ requests: enriched });
   } catch (err) { res.status(500).json({ message: 'Failed to load requests', error: String(err) }); }
 };
 

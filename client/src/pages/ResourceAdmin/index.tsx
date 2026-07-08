@@ -136,11 +136,18 @@ const ResourceAdmin: React.FC = () => {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {requests.length === 0 ? <div style={{ color: '#94a3b8', padding: 30 }}>No access requests yet.</div> : requests.map(q => (
-            <div key={q._id} style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 12, padding: 14, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-              <div style={{ flex: 1, minWidth: 220 }}>
-                <div style={{ fontWeight: 700, color: '#0f172a' }}>{q.studentName || 'Student'} <span style={{ color: '#94a3b8', fontWeight: 500 }}>→ {q.resourceId?.title || 'resource'}</span></div>
-                {q.note && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 3 }}>“{q.note}”</div>}
-                <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 3 }}>{new Date(q.createdAt).toLocaleString()}</div>
+            <div key={q._id} style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 12, padding: 14, display: 'flex', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14.5 }}>{q.student?.name || q.studentName || 'Student'} <span style={{ color: '#94a3b8', fontWeight: 500 }}>→ requesting</span> {q.resourceId?.title || 'resource'}</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {q.student?.batch && <span style={chip('#eef0fe', '#4338ca')}>🎓 {q.student.batch}</span>}
+                  {q.student?.email && <span style={chip('#f1f5f9', '#475569')}>✉ {q.student.email}</span>}
+                  {q.student?.phone && <span style={chip('#f1f5f9', '#475569')}>📞 {q.student.phone}</span>}
+                  <span style={chip('#f0f7ff', '#0369a1')}>🕒 {new Date(q.createdAt).toLocaleString()}</span>
+                </div>
+                {q.note ? <div style={{ fontSize: 13, color: '#334155', marginTop: 8, background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 8, padding: '8px 10px' }}><b style={{ color: '#64748b', fontSize: 11.5 }}>REASON:</b> {q.note}</div>
+                  : <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 8 }}>No reason provided.</div>}
+                {q.reviewNote && <div style={{ fontSize: 12, color: '#b45309', marginTop: 4 }}>Review note: {q.reviewNote}</div>}
               </div>
               <span style={{ color: STATUS_C[q.status], fontWeight: 700, fontSize: 12.5, textTransform: 'capitalize' }}>{q.status}</span>
               {q.status === 'requested' && <>
@@ -225,6 +232,7 @@ const ResourceAdmin: React.FC = () => {
 };
 
 const ab = (color: string): React.CSSProperties => ({ background: 'none', border: 'none', color, fontWeight: 700, fontSize: 12.5, cursor: 'pointer', marginRight: 10 });
+const chip = (bg: string, color: string): React.CSSProperties => ({ background: bg, color, borderRadius: 999, padding: '3px 10px', fontSize: 11.5, fontWeight: 600 });
 const modalBg: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: 24, overflowY: 'auto' };
 const modalCard: React.CSSProperties = { background: '#fff', borderRadius: 16, width: 'min(560px,100%)', margin: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.25)', overflow: 'hidden' };
 

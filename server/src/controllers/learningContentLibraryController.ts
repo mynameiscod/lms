@@ -7,9 +7,15 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 export const listContent = async (req: Request, res: Response) => {
   try {
     const tenantId = (req as any).user?.tenantId;
-    const { type, topic, course, search, published } = req.query;
+    const { type, topic, course, search, published, source } = req.query;
 
     const query: any = { tenantId };
+
+    // CareerPilot funnel content (createdBy 'ai-day-gen') is kept out of the default
+    // Content Library + Curriculum Builder view so it doesn't drown the offline-class
+    // content. `source=generated` shows only it (the AI tab); `source=all` shows both.
+    if (source === 'generated') query.createdBy = 'ai-day-gen';
+    else if (source !== 'all') query.createdBy = { $ne: 'ai-day-gen' };
 
     if (type)   query.type = type;
     if (topic)  query.topicTags  = { $in: [topic] };

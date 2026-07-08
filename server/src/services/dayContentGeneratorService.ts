@@ -94,6 +94,31 @@ export async function ensureDayContentGenerated(
     const language = languageForCurriculum(curriculum);
     const difficulty = difficultyForCurriculum(curriculum);
 
+    // ── De-dup: reuse an already-generated content set for this exact concept ──────
+    // Personalized plans clone the same master-track, so hundreds of candidates hit
+    // identical concepts. Instead of generating (and storing) a fresh copy each time,
+    // reuse the first canonical set — stops duplicate library entries + saves AI cost.
+    const canonical: any = await InteractiveLesson.findOne({
+      tenantId, concept, language, difficulty, createdBy: 'ai-day-gen', contentLibraryId: { $exists: true, $ne: null },
+    }).select('contentLibraryId').sort({ createdAt: 1 }).lean();
+    if (canonical?.contentLibraryId) {
+      const byType = async (t: string) => LearningContentLibrary.findOne({ tenantId, createdBy: 'ai-day-gen', type: t, topicTags: concept }).select('_id title estimatedDuration').sort({ createdAt: 1 }).lean() as any;
+      const lessonLib: any = await LearningContentLibrary.findById(canonical.contentLibraryId).select('_id title estimatedDuration').lean();
+      const reuseItems: any[] = [];
+      if (lessonLib) reuseItems.push({ kind: 'content', contentId: lessonLib._id, contentTitle: lessonLib.title, contentType: 'interactive_lesson', slot: 'anytime', isGating: false, required: true, order: 0, estimatedDuration: lessonLib.estimatedDuration || 10 });
+      const qa2 = await byType('tech_qa'); if (qa2) reuseItems.push({ kind: 'content', contentId: qa2._id, contentTitle: qa2.title, contentType: 'tech_qa', slot: 'anytime', isGating: false, required: false, order: 1, estimatedDuration: qa2.estimatedDuration || 10 });
+      const dsa2 = await byType('practice_coding'); if (dsa2) reuseItems.push({ kind: 'content', contentId: dsa2._id, contentTitle: dsa2.title, contentType: 'practice_coding', slot: 'anytime', isGating: false, required: false, order: 2, estimatedDuration: dsa2.estimatedDuration || 20 });
+      const miR = milestoneForDay(curriculum.totalDays, dayNumber);
+      if (miR && miR.kind === 'mock') {
+        const tmplR: any = await InterviewTemplate.findOne({ tenantId, status: 'published' }).select('_id title').sort({ updatedAt: -1 }).lean();
+        if (tmplR) reuseItems.push({ kind: 'mockInterview', sourceModel: 'InterviewTemplate', sourceId: tmplR._id, contentTitle: miR.title, contentType: 'mockInterview', slot: 'anytime', isGating: false, required: false, order: reuseItems.length, estimatedDuration: 30 });
+      }
+      if (reuseItems.length) {
+        await DayPlan.updateOne({ _id: dayPlanId }, { $set: { items: reuseItems, aiGenStatus: 'done' } });
+        return { generated: true, status: 'done' };
+      }
+    }
+
     const gen = await generateLesson({ concept, language, difficulty });
     if (!gen || !Array.isArray(gen.scenes) || gen.scenes.length === 0) {
       await DayPlan.updateOne({ _id: dayPlanId }, { $set: { aiGenStatus: 'error', aiGenError: 'empty generation (AI key/limit?)' } });

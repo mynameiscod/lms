@@ -86,6 +86,7 @@ export interface ListFilters {
   course?: string;
   search?: string;
   published?: 'true' | 'false';
+  source?: 'generated' | 'all';   // omit = curriculum/manual content only (default)
 }
 
 const authHeader = () => {
@@ -105,6 +106,7 @@ export const learningContentLibraryApi = {
     if (filters.course)    params.set('course',     filters.course);
     if (filters.search)    params.set('search',     filters.search);
     if (filters.published) params.set('published',  filters.published);
+    if (filters.source)    params.set('source',     filters.source);
     const { data } = await axios.get(`${BASE}?${params}`, { headers: authHeader() });
     return data;
   },

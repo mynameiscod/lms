@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import ThinkingProblem from '../models/ThinkingProblem';
 import DailyChallenge from '../models/DailyChallenge';
+import StudentGameStats from '../models/StudentGameStats';
 import User from '../models/User';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
+import * as game from '../services/gamificationService';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -173,30 +175,84 @@ export const submit = async (req: Request, res: Response) => {
     const xp = lab.computeXp({ problemXp: p.xp, allPassed, attempts: ch.attempts, hintsUsed: ch.hintsUsed, explainedThinking: (ch.approachWordCount || 0) >= lab.MIN_APPROACH_WORDS });
     ch.aiFeedback = feedback; ch.score = feedback?.overall ?? (allPassed ? 80 : Math.round(passedCount / Math.max(1, results.length) * 60));
     ch.passed = allPassed; ch.xpEarned = xp; ch.status = allPassed ? 'solved' : 'submitted'; ch.submittedAt = new Date();
+
+    // Gamification: award XP/coins/badges once, only on a first-time solve of this challenge.
+    let newBadges: any[] = []; let coinsEarned = 0;
+    const firstSolve = allPassed && !ch.gameAwarded;
+    if (firstSolve) {
+      const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+      const gs: any = await StudentGameStats.findOneAndUpdate(
+        { tenantId: tId(req), studentId: uId(req) },
+        { $setOnInsert: { tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId } },
+        { new: true, upsert: true }
+      );
+      const r = game.applySolve(gs, { xpEarned: xp, category: p.category, difficulty: p.difficulty, hintsUsed: ch.hintsUsed, perfect: (ch.attempts <= 1 && ch.hintsUsed === 0), dateStr: today() });
+      await gs.save();
+      newBadges = r.newBadges; coinsEarned = r.coinsEarned;
+      (ch as any).gameAwarded = true;
+    }
     await ch.save();
     if (allPassed) await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesSolved: 1 } });
 
     res.json({
       allPassed, passedCount, total: results.length,
       results: results.map((r: any) => ({ index: r.index, passed: r.passed, hidden: r.hidden })),
-      feedback, xpEarned: xp, status: ch.status,
+      feedback, xpEarned: xp, coinsEarned, newBadges, status: ch.status,
     });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to submit' }); }
 };
 
-// GET /thinking-lab/stats — XP total, streak, solved count for the header.
+// GET /thinking-lab/stats — XP/level/streak/coins for the header (from game stats).
 export const stats = async (req: Request, res: Response) => {
   try {
-    const rows = await DailyChallenge.find({ tenantId: tId(req), studentId: uId(req), passed: true }).select('xpEarned date').lean();
-    const xpTotal = rows.reduce((s: number, r: any) => s + (r.xpEarned || 0), 0);
-    const days = new Set(rows.map((r: any) => r.date));
-    // streak of consecutive days ending today or yesterday
-    const d = istToday();
-    if (!days.has(ymd(d))) d.setDate(d.getDate() - 1);
-    let streak = 0;
-    while (days.has(ymd(d))) { streak++; d.setDate(d.getDate() - 1); }
-    const level = Math.floor(xpTotal / 500) + 1;
-    res.json({ xpTotal, level, streak, solvedTotal: rows.length, solvedToday: rows.filter((r: any) => r.date === today()).length });
+    const gs: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
+    const solvedToday = await DailyChallenge.countDocuments({ tenantId: tId(req), studentId: uId(req), passed: true, date: today() });
+    res.json({
+      xpTotal: gs?.xpTotal || 0, level: gs?.level || 1, coins: gs?.coins || 0,
+      streak: gs?.currentStreak || 0, longestStreak: gs?.longestStreak || 0,
+      solvedTotal: gs?.solvedTotal || 0, solvedToday, badgeCount: (gs?.badges || []).length,
+    });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// GET /thinking-lab/badges — full catalog with which the student has earned.
+export const badges = async (req: Request, res: Response) => {
+  try {
+    const gs: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
+    res.json({ badges: game.badgeStatus(gs) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// GET /thinking-lab/leaderboard?scope=overall|weekly|monthly|batch&limit=
+export const leaderboard = async (req: Request, res: Response) => {
+  try {
+    const scope = String(req.query.scope || 'overall');
+    const limit = Math.min(50, Math.max(5, Number(req.query.limit) || 20));
+    const me: any = await StudentGameStats.findOne({ tenantId: tId(req), studentId: uId(req) }).lean();
+
+    let rows: any[] = [];
+    if (scope === 'weekly' || scope === 'monthly') {
+      // XP earned in the current period, aggregated from solves.
+      const d = istToday();
+      if (scope === 'weekly') { const dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow); } // Monday
+      else d.setDate(1);
+      const since = ymd(d);
+      const agg = await DailyChallenge.aggregate([
+        { $match: { tenantId: tId(req), passed: true, date: { $gte: since } } },
+        { $group: { _id: '$studentId', name: { $first: '$studentName' }, xp: { $sum: '$xpEarned' }, solved: { $sum: 1 } } },
+        { $sort: { xp: -1 } }, { $limit: limit },
+      ]);
+      rows = agg.map((r: any) => ({ studentId: String(r._id), name: r.name || 'Student', xp: r.xp, solved: r.solved }));
+    } else {
+      const q: any = { tenantId: tId(req) };
+      if (scope === 'batch' && me?.batchId) q.batchId = me.batchId;
+      const gsRows = await StudentGameStats.find(q).sort({ xpTotal: -1 }).limit(limit)
+        .select('studentId studentName xpTotal level solvedTotal currentStreak').lean();
+      rows = gsRows.map((r: any) => ({ studentId: String(r.studentId), name: r.studentName || 'Student', xp: r.xpTotal, level: r.level, solved: r.solvedTotal, streak: r.currentStreak }));
+    }
+    const myId = String(uId(req));
+    const myRankIdx = rows.findIndex(r => r.studentId === myId);
+    res.json({ scope, leaderboard: rows.map((r, i) => ({ rank: i + 1, ...r, isMe: r.studentId === myId })), myRank: myRankIdx >= 0 ? myRankIdx + 1 : null });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 

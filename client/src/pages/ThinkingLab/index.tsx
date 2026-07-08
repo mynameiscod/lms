@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
+import { thinkingLabApi, TLChallenge, TLStats, TLRunResult, TLSubmitResult, TLBadge, TLLeaderRow, TL_LANGS, DIFF_COLORS } from '../../api/thinkingLabApi';
 
 const BLUE = '#2563eb', INK = '#0f172a', SUB = '#64748b';
 const fmtTime = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -24,6 +24,12 @@ const ThinkingLab: React.FC = () => {
   const [hints, setHints] = useState<string[]>([]);
   const [seconds, setSeconds] = useState(0);
 
+  const [tab, setTab] = useState<'challenge' | 'progress' | 'leaderboard'>('challenge');
+  const [celebration, setCelebration] = useState<TLSubmitResult | null>(null);
+  const [badges, setBadges] = useState<TLBadge[] | null>(null);
+  const [lbScope, setLbScope] = useState('overall');
+  const [lb, setLb] = useState<{ leaderboard: TLLeaderRow[]; myRank: number | null } | null>(null);
+
   const timerRef = useRef<any>(null);
   const wc = approach.trim().split(/\s+/).filter(Boolean).length;
   const minWords = challenge?.minApproachWords ?? 30;
@@ -39,7 +45,7 @@ const ThinkingLab: React.FC = () => {
     setHints(ch.problem?.hints || []);
     setSeconds(ch.timeSpentSec || 0);
     setRunResult(null);
-    setSubmitResult(ch.aiFeedback ? { feedback: ch.aiFeedback, allPassed: ch.passed, xpEarned: ch.xpEarned, status: ch.status, results: [], passedCount: 0, total: 0 } : null);
+    setSubmitResult(ch.aiFeedback ? { feedback: ch.aiFeedback, allPassed: ch.passed, xpEarned: ch.xpEarned, coinsEarned: 0, newBadges: [], status: ch.status, results: [], passedCount: 0, total: 0 } : null);
   }, []);
 
   const load = useCallback(async () => {
@@ -62,6 +68,10 @@ const ThinkingLab: React.FC = () => {
       return () => clearInterval(timerRef.current);
     }
   }, [challenge, done]);
+
+  // Lazy-load Progress + Leaderboard when their tab opens.
+  useEffect(() => { if (tab === 'progress' && !badges) thinkingLabApi.badges().then(setBadges).catch(() => setBadges([])); }, [tab, badges]);
+  useEffect(() => { if (tab === 'leaderboard') { setLb(null); thinkingLabApi.leaderboard(lbScope).then(setLb).catch(() => setLb({ leaderboard: [], myRank: null })); } }, [tab, lbScope]);
 
   const checkApproach = async () => {
     if (!challenge) return;
@@ -94,8 +104,10 @@ const ThinkingLab: React.FC = () => {
     try {
       const r = await thinkingLabApi.submit(challenge.challengeId, code, language, seconds);
       setSubmitResult(r);
+      if (r.allPassed) setCelebration(r); // confetti + XP/coins/badges
       setChallenge(c => c ? { ...c, status: r.status, passed: r.allPassed, xpEarned: r.xpEarned } : c);
       thinkingLabApi.stats().then(setStats).catch(() => {});
+      setBadges(null); // force refresh next time Progress opens
     } catch (e: any) { setErr(e?.response?.data?.message || 'Submit failed.'); }
     finally { setSubmitting(false); }
   };
@@ -124,20 +136,28 @@ const ThinkingLab: React.FC = () => {
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <Stat label="XP" value={stats.xpTotal} accent={BLUE} />
             <Stat label="Level" value={stats.level} accent="#7c3aed" />
+            <Stat label="🪙 Coins" value={stats.coins} accent="#d97706" />
             <Stat label="🔥 Streak" value={`${stats.streak}d`} accent="#ea580c" />
-            <Stat label="Solved" value={stats.solvedTotal} accent="#16a34a" />
+            <Stat label="🏅 Badges" value={stats.badgeCount} accent="#16a34a" />
           </div>
         )}
       </div>
 
-      {empty && (
+      {/* Tabs */}
+      <div style={{ display: 'flex', gap: 6, marginTop: 16, borderBottom: '1px solid #e6e8f0' }}>
+        {([['challenge', "Today's Challenge"], ['progress', 'My Progress'], ['leaderboard', 'Leaderboard']] as [any, string][]).map(([k, l]) => (
+          <button key={k} onClick={() => setTab(k)} style={{ background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? BLUE : 'transparent'}`, color: tab === k ? BLUE : SUB, fontWeight: 700, fontSize: 14, padding: '10px 14px', cursor: 'pointer' }}>{l}</button>
+        ))}
+      </div>
+
+      {tab === 'challenge' && empty && (
         <div style={{ marginTop: 20, background: '#fff', border: '1px dashed #cbd5e1', borderRadius: 16, padding: 40, textAlign: 'center' }}>
           <div style={{ fontSize: 34 }}>🧠</div>
           <div style={{ fontSize: 16, fontWeight: 700, color: INK, marginTop: 8 }}>{empty}</div>
         </div>
       )}
 
-      {p && challenge && (
+      {tab === 'challenge' && p && challenge && (
         <>
           {/* Challenge top bar */}
           <div style={{ marginTop: 18, background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: '16px 18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
@@ -248,6 +268,101 @@ const ThinkingLab: React.FC = () => {
           {submitResult && <Feedback result={submitResult} onNext={nextChallenge} />}
         </>
       )}
+
+      {/* Progress tab — badges */}
+      {tab === 'progress' && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 20 }}>
+            <SectionH>🏅 Badges {stats && `(${stats.badgeCount}/${badges?.length ?? 11})`}</SectionH>
+            {!badges ? <div style={{ color: SUB, fontSize: 13 }}>Loading…</div> : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 12 }}>
+                {badges.map(b => (
+                  <div key={b.key} style={{ border: `1px solid ${b.earned ? '#bfdbfe' : '#eef1f6'}`, background: b.earned ? '#eff6ff' : '#f8fafc', borderRadius: 12, padding: 14, textAlign: 'center', opacity: b.earned ? 1 : 0.55 }}>
+                    <div style={{ fontSize: 30, filter: b.earned ? 'none' : 'grayscale(1)' }}>{b.icon}</div>
+                    <div style={{ fontSize: 12.5, fontWeight: 800, color: INK, marginTop: 4 }}>{b.name}</div>
+                    <div style={{ fontSize: 11, color: SUB, marginTop: 2 }}>{b.desc}</div>
+                    {b.earned && <div style={{ fontSize: 10, color: BLUE, fontWeight: 700, marginTop: 4 }}>✓ Earned</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {stats && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: 12, marginTop: 12 }}>
+              <Stat label="Total XP" value={stats.xpTotal} accent={BLUE} />
+              <Stat label="Level" value={stats.level} accent="#7c3aed" />
+              <Stat label="🪙 Coins" value={stats.coins} accent="#d97706" />
+              <Stat label="Solved" value={stats.solvedTotal} accent="#16a34a" />
+              <Stat label="🔥 Best streak" value={`${stats.longestStreak}d`} accent="#ea580c" />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Leaderboard tab */}
+      {tab === 'leaderboard' && (
+        <div style={{ marginTop: 18 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+            {[['overall', 'Overall'], ['weekly', 'This Week'], ['monthly', 'This Month'], ['batch', 'My Batch']].map(([k, l]) => (
+              <button key={k} onClick={() => setLbScope(k)} style={{ border: `1.5px solid ${lbScope === k ? BLUE : '#e2e8f0'}`, background: lbScope === k ? '#eff6ff' : '#fff', color: lbScope === k ? BLUE : SUB, borderRadius: 999, padding: '6px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{l}</button>
+            ))}
+          </div>
+          <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, overflow: 'hidden' }}>
+            {!lb ? <div style={{ color: SUB, fontSize: 13, padding: 20 }}>Loading…</div> :
+              lb.leaderboard.length === 0 ? <div style={{ color: SUB, fontSize: 13, padding: 20, textAlign: 'center' }}>No rankings yet — be the first to solve a challenge!</div> :
+                lb.leaderboard.map(r => (
+                  <div key={r.studentId + r.rank} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', borderTop: '1px solid #f1f5f9', background: r.isMe ? '#eff6ff' : '#fff' }}>
+                    <div style={{ width: 30, textAlign: 'center', fontWeight: 800, fontSize: 15, color: r.rank <= 3 ? ['#eab308', '#94a3b8', '#b45309'][r.rank - 1] : SUB }}>{r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</div>
+                    <div style={{ flex: 1, fontWeight: r.isMe ? 800 : 600, color: INK, fontSize: 14 }}>{r.name}{r.isMe && <span style={{ color: BLUE, fontSize: 12 }}> (you)</span>}</div>
+                    {typeof r.streak === 'number' && r.streak > 0 && <span style={{ fontSize: 12, color: '#ea580c', fontWeight: 700 }}>🔥{r.streak}</span>}
+                    {typeof r.solved === 'number' && <span style={{ fontSize: 12, color: SUB }}>{r.solved} solved</span>}
+                    <div style={{ fontWeight: 800, color: BLUE, fontSize: 14, minWidth: 70, textAlign: 'right' }}>{r.xp} XP</div>
+                  </div>
+                ))}
+            {lb && lb.myRank && lb.myRank > lb.leaderboard.length && (
+              <div style={{ padding: '11px 16px', borderTop: '1px solid #f1f5f9', background: '#eff6ff', fontSize: 13, color: SUB }}>Your rank: <b style={{ color: BLUE }}>#{lb.myRank}</b></div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {celebration && <CelebrationModal result={celebration} onClose={() => setCelebration(null)} />}
+    </div>
+  );
+};
+
+// ── Celebration modal with confetti ──────────────────────────────────────────
+const CelebrationModal: React.FC<{ result: TLSubmitResult; onClose: () => void }> = ({ result, onClose }) => {
+  const colors = ['#2563eb', '#7c3aed', '#16a34a', '#f59e0b', '#ef4444', '#0ea5e9'];
+  const pieces = Array.from({ length: 44 });
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', display: 'grid', placeItems: 'center', zIndex: 3000, overflow: 'hidden' }}>
+      <style>{`@keyframes tl-fall{0%{transform:translateY(-60px) rotate(0);opacity:1}100%{transform:translateY(105vh) rotate(720deg);opacity:.9}}@keyframes tl-pop{0%{transform:scale(.7);opacity:0}60%{transform:scale(1.05)}100%{transform:scale(1);opacity:1}}`}</style>
+      {pieces.map((_, i) => (
+        <span key={i} style={{ position: 'fixed', top: -20, left: `${(i * 2.27) % 100}%`, width: 9, height: 14, background: colors[i % colors.length], borderRadius: 2, animation: `tl-fall ${2 + (i % 5) * 0.4}s linear ${(i % 7) * 0.12}s infinite` }} />
+      ))}
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', background: '#fff', borderRadius: 20, padding: 28, width: 380, maxWidth: '90vw', textAlign: 'center', animation: 'tl-pop .35s ease-out', boxShadow: '0 20px 60px rgba(0,0,0,.3)' }}>
+        <div style={{ fontSize: 46 }}>🎉</div>
+        <div style={{ fontSize: 22, fontWeight: 900, color: INK }}>Challenge solved!</div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 12, marginTop: 14 }}>
+          <div style={{ background: '#eff6ff', borderRadius: 12, padding: '10px 18px' }}><div style={{ fontSize: 22, fontWeight: 900, color: BLUE }}>+{result.xpEarned}</div><div style={{ fontSize: 11, color: SUB, fontWeight: 700 }}>XP</div></div>
+          <div style={{ background: '#fffbeb', borderRadius: 12, padding: '10px 18px' }}><div style={{ fontSize: 22, fontWeight: 900, color: '#d97706' }}>+{result.coinsEarned}</div><div style={{ fontSize: 11, color: SUB, fontWeight: 700 }}>🪙 Coins</div></div>
+        </div>
+        {result.newBadges?.length > 0 && (
+          <div style={{ marginTop: 16 }}>
+            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#7c3aed' }}>NEW BADGE{result.newBadges.length > 1 ? 'S' : ''} UNLOCKED!</div>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 8, flexWrap: 'wrap' }}>
+              {result.newBadges.map(b => (
+                <div key={b.key} style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12, padding: '8px 12px' }}>
+                  <div style={{ fontSize: 26 }}>{b.icon}</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: INK }}>{b.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        <button onClick={onClose} style={{ marginTop: 20, background: BLUE, color: '#fff', border: 'none', borderRadius: 10, padding: '11px 26px', fontWeight: 800, fontSize: 14, cursor: 'pointer' }}>Awesome!</button>
+      </div>
     </div>
   );
 };

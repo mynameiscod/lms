@@ -32,6 +32,7 @@ export interface IDailyChallenge extends Document {
   passed: boolean;
   score?: number;
   xpEarned: number;
+  gameAwarded: boolean;        // XP/coins/badges already credited (idempotency)
   aiFeedback?: IAiRubric;
   startedAt: Date;
   submittedAt?: Date;
@@ -61,6 +62,7 @@ const DailyChallengeSchema = new Schema<IDailyChallenge>(
     passed:     { type: Boolean, default: false },
     score:      { type: Number },
     xpEarned:   { type: Number, default: 0 },
+    gameAwarded:{ type: Boolean, default: false },
     aiFeedback: { type: Schema.Types.Mixed },
     startedAt:  { type: Date, default: Date.now },
     submittedAt:{ type: Date },

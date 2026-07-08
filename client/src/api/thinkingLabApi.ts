@@ -26,9 +26,11 @@ export interface TLChallenge {
   code: string; language: string; attempts: number; hintsUsed: number; timeSpentSec: number;
   passed: boolean; score?: number; xpEarned: number; aiFeedback?: TLRubric; problem: TLProblem | null;
 }
-export interface TLStats { xpTotal: number; level: number; streak: number; solvedTotal: number; solvedToday: number; }
+export interface TLStats { xpTotal: number; level: number; coins: number; streak: number; longestStreak: number; solvedTotal: number; solvedToday: number; badgeCount: number; }
+export interface TLBadge { key: string; name: string; icon: string; desc: string; earned: boolean; earnedAt?: string | null; }
+export interface TLLeaderRow { rank: number; studentId: string; name: string; xp: number; level?: number; solved?: number; streak?: number; isMe: boolean; }
 export interface TLRunResult { results: { index: number; passed: boolean; hidden: boolean }[]; allPassed: boolean; compileError?: string; passedCount: number; total: number; }
-export interface TLSubmitResult extends TLRunResult { feedback: TLRubric; xpEarned: number; status: string; }
+export interface TLSubmitResult extends TLRunResult { feedback: TLRubric; xpEarned: number; coinsEarned: number; newBadges: { key: string; name: string; icon: string }[]; status: string; }
 export interface TLAdminProblem { id: string; title: string; category: string; difficulty: string; language: string; xp: number; active: boolean; timesAssigned: number; timesSolved: number; createdAt: string; }
 
 const h = () => ({ headers: authHeader() });
@@ -37,6 +39,8 @@ export const thinkingLabApi = {
   getToday: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean; message?: string }> => (await axios.get(`${BASE}/today`, h())).data,
   next: async (): Promise<{ challenge: TLChallenge | null; empty?: boolean }> => (await axios.post(`${BASE}/next`, {}, h())).data,
   stats: async (): Promise<TLStats> => (await axios.get(`${BASE}/stats`, h())).data,
+  badges: async (): Promise<TLBadge[]> => (await axios.get(`${BASE}/badges`, h())).data.badges || [],
+  leaderboard: async (scope: string): Promise<{ scope: string; leaderboard: TLLeaderRow[]; myRank: number | null }> => (await axios.get(`${BASE}/leaderboard`, { ...h(), params: { scope } })).data,
   saveApproach: async (id: string, approach: string): Promise<{ unlocked: boolean; wordCount: number; minApproachWords: number }> => (await axios.post(`${BASE}/${id}/approach`, { approach }, h())).data,
   revealHint: async (id: string): Promise<{ hint: string; hintsUsed: number; totalHints: number }> => (await axios.post(`${BASE}/${id}/hint`, {}, h())).data,
   run: async (id: string, code: string, language: string): Promise<TLRunResult> => (await axios.post(`${BASE}/${id}/run`, { code, language }, { ...h(), timeout: 120000 })).data,

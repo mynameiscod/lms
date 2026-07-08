@@ -11,6 +11,8 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/today', ctrl.getToday);
 router.post('/next', ctrl.nextChallenge);
 router.get('/stats', ctrl.stats);
+router.get('/badges', ctrl.badges);
+router.get('/leaderboard', ctrl.leaderboard);
 router.post('/:id/approach', ctrl.saveApproach);   // think-first gate (>=30 words)
 router.post('/:id/hint', ctrl.revealHint);
 router.post('/:id/run', ctrl.run);

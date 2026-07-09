@@ -123,6 +123,8 @@ import LeadApprovalsPage from './pages/LeadApprovals';
 import LeadKanbanPage from './pages/LeadKanban';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
+import CertificateVerify from './pages/CertificateVerify';
+import CertificatesAdmin from './pages/CertificatesAdmin';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
 import LeadSourcesPage from './pages/LeadSources';
@@ -294,6 +296,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />
+      <Route path="/verify/:code" element={<CertificateVerify />} />
       <Route path="/resume/view/:token" element={<PublicResumeView />} />
       <Route path="/quiz/:token" element={<QuizSession />} />
       <Route path="/assessment/:tenantId" element={<AssessmentLanding />} />
@@ -507,6 +510,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <ThinkingLabAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/certificates"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <CertificatesAdmin />
             </Layout>
           </ProtectedRoute>
         }

@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import User from '../models/User';
 import { createNotifications } from '../notifications/notificationService';
+import { issueCertificate } from './certificateService';
 
 // The single source of truth for a student's placement. Called by placement drives and
 // partner placements so "who is placed" is answerable in one query (and shown on the profile).
@@ -43,6 +44,17 @@ export async function markStudentPlaced(tenantId: string, userId: string, input:
       '🎉 Congratulations — you\'re placed!',
       `You've been marked placed${where}${input.ctc ? ` · ₹${input.ctc} LPA` : ''}. Amazing work!`,
       '/my-applications');
+  } catch { /* non-fatal */ }
+
+  // Issue a persistent, verifiable placement certificate (idempotent per student+drive/partner).
+  try {
+    await issueCertificate({
+      tenantId: String(tenantId), type: 'placement', studentId: String(userId),
+      studentName: [user.firstName, user.lastName].filter(Boolean).join(' ') || 'Student',
+      title: 'Placement Certificate', company: input.company, role: input.role, ctc: input.ctc,
+      referenceModel: input.source === 'partner' ? 'PlacementPartner' : 'PlacementDrive',
+      referenceId: input.driveId ? String(input.driveId) : (input.partnerId ? String(input.partnerId) : undefined),
+    });
   } catch { /* non-fatal */ }
 }
 

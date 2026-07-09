@@ -4,6 +4,8 @@ import { AuthenticatedRequest } from '../types';
 import PlacementDrive from '../models/PlacementDrive';
 import CollegeMembership from '../models/CollegeMembership';
 import User from '../models/User';
+import { issueCertificate } from '../services/certificateService';
+import * as settings from '../services/settingsService';
 
 // GET /api/v1/college/placement/:driveId/certificate/:userId
 export const downloadCertificate = async (req: AuthenticatedRequest, res: Response) => {
@@ -93,20 +95,28 @@ export const downloadCertificate = async (req: AuthenticatedRequest, res: Respon
 
     doc.moveDown(4);
 
+    // Persist a verifiable certificate record (idempotent) so it can be verified publicly.
+    const cert: any = await issueCertificate({
+      tenantId: String(tenantId), type: 'placement', studentId: String(userId), studentName,
+      title: 'Placement Certificate', company: drive.companyName, role: drive.role,
+      ctc: drive.ctcMax ?? drive.ctcMin, department, referenceModel: 'PlacementDrive', referenceId: String(driveId),
+    });
+    const clientUrl = (settings.getStr('CLIENT_URL', settings.getStr('FRONTEND_URL', 'https://platform.codebegun.com', String(tenantId)), String(tenantId))).replace(/\/$/, '');
+    const verifyUrl = `${clientUrl}/verify/${cert.verifyCode}`;
+
     // ── Footer separator ─────────────────────────────────────────────────────────
-    const footerY = doc.page.height - 120;
+    const footerY = doc.page.height - 130;
     doc.moveTo(60, footerY).lineTo(doc.page.width - 60, footerY).stroke('#e5e7eb');
 
     doc.fontSize(10).fillColor('#6b7280').font('Helvetica')
       .text('Authorized by Placement Cell', 60, footerY + 15)
       .text('CodeBegun Learning Management System', 60, footerY + 30);
 
-    doc.fontSize(9).fillColor('#9ca3af')
-      .text(
-        `Generated on ${new Date().toLocaleString('en-IN')} · This is a computer-generated certificate.`,
-        60, footerY + 50,
-        { align: 'center', width: doc.page.width - 120 }
-      );
+    doc.fontSize(9).fillColor('#374151').font('Helvetica-Bold')
+      .text(`Certificate No: ${cert.certificateNumber}`, 60, footerY + 52);
+    doc.fontSize(8.5).fillColor('#9ca3af').font('Helvetica')
+      .text(`Verify at ${verifyUrl}`, 60, footerY + 66, { width: doc.page.width - 120 })
+      .text(`Generated on ${new Date().toLocaleString('en-IN')} · Computer-generated certificate.`, 60, footerY + 80, { width: doc.page.width - 120 });
 
     doc.end();
   } catch (err) {

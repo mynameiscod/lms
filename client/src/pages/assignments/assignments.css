@@ -2015,3 +2015,105 @@
   display: flex; align-items: center; justify-content: space-between; gap: 8px;
   border-top: 1px solid #f1f5f9; padding-top: 10px; font-size: 12.5px; color: #64748b;
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Redesigned Filters card
+   ───────────────────────────────────────────────────────────────────────── */
+.filters-card {
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 14px;
+  padding: 18px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .04);
+}
+.filters-card-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px;
+}
+.filters-card-title {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; font-weight: 800; color: #0f172a;
+}
+.filters-card-title .fi-ic { color: #6366f1; font-size: 16px; }
+.filters-toggle {
+  border: none; background: none; color: #2563eb;
+  font-size: 13px; font-weight: 700; cursor: pointer; padding: 4px;
+}
+.filters-toggle:hover { text-decoration: underline; }
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px 16px;
+}
+.filter-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.filter-field--search { grid-column: 1 / -1; }
+@media (min-width: 900px) { .filter-field--search { grid-column: span 1; } }
+.filter-field label {
+  font-size: 12px; font-weight: 600; color: #64748b;
+}
+.filter-field select {
+  border: 1px solid #e2e8f0; border-radius: 9px; padding: 10px 12px;
+  font-size: 13.5px; background: #fff; color: #334155; width: 100%;
+  transition: border-color .15s ease;
+}
+.filter-field select:focus { outline: none; border-color: #6366f1; }
+.ff-search { position: relative; }
+.ff-search-ic {
+  position: absolute; left: 11px; top: 50%; transform: translateY(-50%);
+  font-size: 13px; color: #94a3b8; pointer-events: none;
+}
+.ff-search input {
+  width: 100%; box-sizing: border-box;
+  border: 1px solid #e2e8f0; border-radius: 9px;
+  padding: 10px 12px 10px 32px; font-size: 13.5px; color: #334155;
+}
+.ff-search input:focus { outline: none; border-color: #6366f1; }
+
+.active-filters-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid #f1f5f9;
+}
+.af-label { font-size: 12.5px; font-weight: 700; color: #475569; }
+.af-chips { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex: 1; }
+.af-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe;
+  border-radius: 20px; padding: 4px 6px 4px 12px; font-size: 12px; font-weight: 600;
+}
+.af-chip button {
+  border: none; background: none; color: #2563eb; cursor: pointer;
+  font-size: 15px; line-height: 1; padding: 0 4px;
+}
+.af-chip button:hover { color: #1e3a8a; }
+.af-actions { display: flex; align-items: center; gap: 10px; }
+.btn-clear-all {
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+  border-radius: 9px; padding: 9px 16px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.btn-clear-all:hover { background: #f8fafc; }
+.btn-apply {
+  border: none; background: #2563eb; color: #fff;
+  border-radius: 9px; padding: 9px 18px; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.btn-apply:hover { background: #1d4ed8; }
+
+/* ── Table: title icon tile + creator avatar ── */
+.title-cell-inner { display: flex; align-items: center; gap: 12px; }
+.type-tile {
+  width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 15px; font-weight: 800;
+  font-family: ui-monospace, monospace;
+}
+.title-main { font-weight: 600; color: #0f172a; }
+.title-topics { font-size: 12px; color: #6b7280; margin-top: 2px; }
+.creator-cell { display: inline-flex; align-items: center; gap: 8px; }
+.creator-avatar {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: grid; place-items: center; color: #fff; font-size: 11px; font-weight: 700;
+}
+.creator-name { color: #334155; font-weight: 500; }
+
+/* Slightly softer table rows to match the mockup */
+.assignments-table tbody tr:hover { background: #f8fafc; }

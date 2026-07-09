@@ -344,6 +344,7 @@ export const assignmentApi = {
     difficulty?: DifficultyLevel;
     course?: string;
     batch?: string;
+    createdBy?: string;
     language?: string;
     search?: string;
     isInBank?: boolean;

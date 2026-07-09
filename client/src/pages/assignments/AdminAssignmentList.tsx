@@ -7,7 +7,7 @@ import {
   AssignmentType, 
   DifficultyLevel 
 } from '../../api/assignmentApi';
-import { batchApi } from '../../api';
+import { batchApi, userApi } from '../../api';
 import AssignmentPreviewModal from '../AssignmentReports/AssignmentPreviewModal';
 import './assignments.css';
 
@@ -122,7 +122,10 @@ const AdminAssignmentList: React.FC = () => {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const [batchFilter, setBatchFilter] = useState<string>('');
   const [languageFilter, setLanguageFilter] = useState<string>('');
+  const [createdByFilter, setCreatedByFilter] = useState<string>('');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
+  const [creators, setCreators] = useState<{ _id: string; name: string }[]>([]);
+  const [showFilters, setShowFilters] = useState<boolean>(true);
   const [sortOption, setSortOption] = useState<string>('newest');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [stats, setStats] = useState<{ totalAssignments: number; publishedAssignments: number; draftAssignments: number; byType?: { _id: string; count: number }[] } | null>(null);
@@ -143,10 +146,10 @@ const AdminAssignmentList: React.FC = () => {
     points: { sortBy: 'totalPoints', sortOrder: 'desc', label: 'Highest Points' },
     title: { sortBy: 'title', sortOrder: 'asc', label: 'Title (A–Z)' },
   };
-  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter);
+  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter || createdByFilter);
   const clearFilters = () => {
     setSearch(''); setStatusFilter(''); setTypeFilter(''); setDifficultyFilter('');
-    setBatchFilter(''); setLanguageFilter(''); setPage(1);
+    setBatchFilter(''); setLanguageFilter(''); setCreatedByFilter(''); setPage(1);
   };
 
   const loadAssignments = useCallback(async () => {
@@ -162,6 +165,7 @@ const AdminAssignmentList: React.FC = () => {
         difficulty: difficultyFilter as DifficultyLevel || undefined,
         batch: batchFilter || undefined,
         language: languageFilter || undefined,
+        createdBy: createdByFilter || undefined,
         sortBy: sort.sortBy,
         sortOrder: sort.sortOrder
       });
@@ -175,14 +179,21 @@ const AdminAssignmentList: React.FC = () => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, sortOption]);
+  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, createdByFilter, sortOption]);
 
-  // Load batches for the batch filter
+  // Load batches + creators for the filters
   useEffect(() => {
     (async () => {
       try {
         const res: any = await batchApi.getBatches();
         setBatches(res.batches || res.data || res || []);
+      } catch { /* non-fatal */ }
+      try {
+        const ures: any = await userApi.getUsers();
+        const all = ures.users || ures.data || ures || [];
+        setCreators(all
+          .filter((u: any) => ['INSTRUCTOR', 'TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF'].includes((u.role || '').toUpperCase()))
+          .map((u: any) => ({ _id: u._id, name: [u.firstName, u.lastName].filter(Boolean).join(' ') || u.email })));
       } catch { /* non-fatal */ }
     })();
   }, []);
@@ -358,12 +369,30 @@ const AdminAssignmentList: React.FC = () => {
   const LANGUAGES = ['javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'sql', 'html', 'css'];
   const LANG_LABEL: Record<string, string> = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', java: 'Java', cpp: 'C++', c: 'C', csharp: 'C#', go: 'Go', rust: 'Rust', sql: 'SQL', html: 'HTML', css: 'CSS' };
 
+  const AVATAR_COLORS = ['#6366f1', '#16a34a', '#d97706', '#0ea5e9', '#ec4899', '#7c3aed'];
   const creatorName = (a: Assignment) => {
     const c: any = a.createdBy;
     if (!c || typeof c === 'string') return <span style={{ color: '#94a3b8' }}>—</span>;
     const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.name || c.email || '—';
-    return <span style={{ color: '#334155', fontWeight: 500 }}>{name}</span>;
+    const initials = name.split(' ').map((s: string) => s[0]).slice(0, 2).join('').toUpperCase();
+    const color = AVATAR_COLORS[(name.charCodeAt(0) || 0) % AVATAR_COLORS.length];
+    return (
+      <span className="creator-cell">
+        <span className="creator-avatar" style={{ background: color }}>{initials}</span>
+        <span className="creator-name">{name}</span>
+      </span>
+    );
   };
+
+  // Icon tile shown before an assignment's title, keyed by type.
+  const TYPE_TILE: Record<string, { icon: string; bg: string; color: string }> = {
+    coding: { icon: '</>', bg: '#eef2ff', color: '#6366f1' },
+    mcq: { icon: '✓', bg: '#ecfeff', color: '#0891b2' },
+    theory: { icon: '📖', bg: '#fef3c7', color: '#d97706' },
+    project: { icon: '🗂', bg: '#f0fdf4', color: '#16a34a' },
+    file_upload: { icon: '📎', bg: '#faf5ff', color: '#a855f7' },
+  };
+  const typeTile = (type: string) => TYPE_TILE[type] || { icon: '🌐', bg: '#eff6ff', color: '#2563eb' };
 
   const getStatusBadge = (status: AssignmentStatus) => {
     return <span className={`badge badge-${status}`}>{status}</span>;
@@ -740,78 +769,103 @@ const AdminAssignmentList: React.FC = () => {
       })()}
 
       {/* Filters */}
-      <div className="filters-bar">
-        <input
-          type="text"
-          className="search-input"
-          placeholder="Search assignments..."
-          value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-        />
-        <div className="filter-group">
-          <label>Status:</label>
-          <select 
-            value={statusFilter} 
-            onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All</option>
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Type:</label>
-          <select 
-            value={typeFilter} 
-            onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All</option>
-            <option value="coding">Coding</option>
-            <option value="mcq">MCQ</option>
-            <option value="theory">Theory</option>
-            <option value="project">Project</option>
-            <option value="file_upload">File Upload</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Difficulty:</label>
-          <select
-            value={difficultyFilter}
-            onChange={(e) => { setDifficultyFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All</option>
-            <option value="beginner">Beginner</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-            <option value="expert">Expert</option>
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Batch:</label>
-          <select
-            value={batchFilter}
-            onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All Batches</option>
-            {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
-          </select>
-        </div>
-        <div className="filter-group">
-          <label>Language:</label>
-          <select
-            value={languageFilter}
-            onChange={(e) => { setLanguageFilter(e.target.value); setPage(1); }}
-          >
-            <option value="">All Languages</option>
-            {LANGUAGES.map(l => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
-          </select>
-        </div>
-        {hasFilters && (
-          <button className="clear-filters-btn" onClick={clearFilters} title="Clear all filters">
-            ↺ Clear Filters
+      <div className="filters-card">
+        <div className="filters-card-head">
+          <div className="filters-card-title"><span className="fi-ic">⚙</span> Filters</div>
+          <button className="filters-toggle" onClick={() => setShowFilters(s => !s)}>
+            {showFilters ? 'Hide Filters ▲' : 'Show Filters ▼'}
           </button>
+        </div>
+
+        {showFilters && (
+          <>
+            <div className="filters-grid">
+              <div className="filter-field filter-field--search">
+                <label>Search</label>
+                <div className="ff-search">
+                  <span className="ff-search-ic">🔍</span>
+                  <input type="text" placeholder="Search by title or description..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+                </div>
+              </div>
+              <div className="filter-field">
+                <label>Status</label>
+                <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Statuses</option>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Type</label>
+                <select value={typeFilter} onChange={(e) => { setTypeFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Types</option>
+                  <option value="coding">Coding</option>
+                  <option value="mcq">MCQ</option>
+                  <option value="theory">Theory</option>
+                  <option value="project">Project</option>
+                  <option value="file_upload">File Upload</option>
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Difficulty</label>
+                <select value={difficultyFilter} onChange={(e) => { setDifficultyFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Difficulties</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="easy">Easy</option>
+                  <option value="medium">Medium</option>
+                  <option value="hard">Hard</option>
+                  <option value="expert">Expert</option>
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Batch</label>
+                <select value={batchFilter} onChange={(e) => { setBatchFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Batches</option>
+                  {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Language</label>
+                <select value={languageFilter} onChange={(e) => { setLanguageFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Languages</option>
+                  {LANGUAGES.map(l => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Created By</label>
+                <select value={createdByFilter} onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Users</option>
+                  {creators.map(c => <option key={c._id} value={c._id}>{c.name}</option>)}
+                </select>
+              </div>
+            </div>
+
+            {hasFilters && (() => {
+              const chips: { label: string; clear: () => void }[] = [];
+              if (search) chips.push({ label: `Search: "${search}"`, clear: () => setSearch('') });
+              if (statusFilter) chips.push({ label: `Status: ${statusFilter}`, clear: () => setStatusFilter('') });
+              if (typeFilter) chips.push({ label: `Type: ${typeFilter}`, clear: () => setTypeFilter('') });
+              if (difficultyFilter) chips.push({ label: `Difficulty: ${difficultyFilter}`, clear: () => setDifficultyFilter('') });
+              if (batchFilter) chips.push({ label: `Batch: ${batches.find(b => b._id === batchFilter)?.name || batchFilter}`, clear: () => setBatchFilter('') });
+              if (languageFilter) chips.push({ label: `Language: ${LANG_LABEL[languageFilter] || languageFilter}`, clear: () => setLanguageFilter('') });
+              if (createdByFilter) chips.push({ label: `Created By: ${creators.find(c => c._id === createdByFilter)?.name || createdByFilter}`, clear: () => setCreatedByFilter('') });
+              return (
+                <div className="active-filters-row">
+                  <span className="af-label">Active Filters:</span>
+                  <div className="af-chips">
+                    {chips.map((c, i) => (
+                      <span className="af-chip" key={i}>{c.label}<button onClick={() => { c.clear(); setPage(1); }}>×</button></span>
+                    ))}
+                  </div>
+                  <div className="af-actions">
+                    <button className="btn-clear-all" onClick={clearFilters}>↺ Clear All</button>
+                    <button className="btn-apply" onClick={() => { setPage(1); loadAssignments(); }}>▽ Apply Filters</button>
+                  </div>
+                </div>
+              );
+            })()}
+          </>
         )}
       </div>
 
@@ -852,7 +906,7 @@ const AdminAssignmentList: React.FC = () => {
           {/* Toolbar */}
           <div className="list-toolbar">
             <div className="list-toolbar-left">
-              <h3>Recent Assignments</h3>
+              <h3>Assignments</h3>
               <span className="total-badge">{total} Total</span>
             </div>
             <div className="list-toolbar-right">
@@ -892,13 +946,18 @@ const AdminAssignmentList: React.FC = () => {
                     return (
                       <tr key={assignment._id}>
                         <td className="title-cell">
-                          <div style={{ fontWeight: 600 }}>{assignment.title}</div>
-                          {assignment.topics.length > 0 && (
-                            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                              {assignment.topics.slice(0, 3).join(', ')}
-                              {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
+                          <div className="title-cell-inner">
+                            <span className="type-tile" style={{ background: typeTile(assignment.type).bg, color: typeTile(assignment.type).color }}>{typeTile(assignment.type).icon}</span>
+                            <div>
+                              <div className="title-main">{assignment.title}</div>
+                              {assignment.topics.length > 0 && (
+                                <div className="title-topics">
+                                  {assignment.topics.slice(0, 3).join(', ')}
+                                  {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
+                                </div>
+                              )}
                             </div>
-                          )}
+                          </div>
                         </td>
                         <td>{getTypeBadge(assignment.type)}</td>
                         <td>{getDifficultyBadge(assignment.difficulty)}</td>
@@ -952,7 +1011,7 @@ const AdminAssignmentList: React.FC = () => {
           {/* Pagination + rows per page */}
           <div className="list-pagination">
             <span className="page-info">
-              Showing {total === 0 ? 0 : (page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} assignments
+              Showing {total === 0 ? 0 : (page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} results
             </span>
             <div className="pager">
               <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(1)} title="First">«</button>

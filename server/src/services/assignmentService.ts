@@ -70,6 +70,7 @@ interface ListAssignmentsFilter {
   difficulty?: DifficultyLevel;
   course?: Types.ObjectId;
   batch?: Types.ObjectId;
+  createdBy?: Types.ObjectId | string;
   language?: string;
   isInBank?: boolean;
   bankCategory?: string;
@@ -191,6 +192,7 @@ class AssignmentService {
     if (filter.type) query.type = filter.type;
     if (filter.difficulty) query.difficulty = filter.difficulty;
     if (filter.course) query.course = filter.course;
+    if (filter.createdBy) query.createdBy = filter.createdBy;
     if (filter.language) query.allowedLanguages = filter.language; // matches assignments whose allowedLanguages array contains it
     if (filter.isInBank !== undefined) query.isInBank = filter.isInBank;
     if (filter.bankCategory) query.bankCategory = filter.bankCategory;

@@ -12,6 +12,7 @@ import { createPartnerTask } from '../services/partnerTaskService';
 import { generateOnePager } from '../services/candidateProfilePdf';
 import { EmailService } from '../services/emailService';
 import * as settings from '../services/settingsService';
+import * as placementStatus from '../services/placementStatusService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -318,6 +319,13 @@ export const markPlaced = async (req: AuthenticatedRequest, res: Response) => {
     }
     partner.outreach.status = 'stopped';
     await partner.save();
+
+    // Sync the canonical placement status on the student + notify them.
+    if (studentId) {
+      await placementStatus.markStudentPlaced(String(tId(req)), String(studentId), {
+        company: partner.companyName, ctc: ctc != null && ctc !== '' ? Number(ctc) : undefined, source: 'partner', partnerId: String(partner._id),
+      });
+    }
     res.json({ success: true, message: 'Marked as placed 🎉', data: partner });
   } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
 };

@@ -3,8 +3,17 @@ import { AuthenticatedRequest } from '../types';
 import * as svc from './placementDriveService';
 import User from '../models/User';
 import { EmailService } from '../services/emailService';
+import { placementOverview } from '../services/placementStatusService';
 
 const emailService = new EmailService();
+
+// GET /college/placement/overview — unified placement stats from the canonical User.placement.
+export const overview = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await placementOverview(req.user!.tenantId, { batchId: req.query.batchId as string });
+    res.json({ success: true, data });
+  } catch (e: any) { res.status(500).json({ success: false, message: e.message }); }
+};
 
 export const list = async (req: AuthenticatedRequest, res: Response) => {
   try {

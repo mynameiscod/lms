@@ -21,6 +21,19 @@ export interface IUser extends Document {
   bio?: string;
   linkedin?: string;
   github?: string;
+  // Canonical placement status (the single source of truth for "is this student placed").
+  // Set by the placement service when a drive/partner marks the student placed.
+  placement?: {
+    status: 'not_placed' | 'placed' | 'multiple_offers';
+    company?: string;
+    role?: string;
+    ctc?: number;              // LPA
+    source?: 'drive' | 'partner' | 'manual';
+    offers?: number;
+    placedAt?: Date;
+    driveId?: mongoose.Types.ObjectId;
+    partnerId?: mongoose.Types.ObjectId;
+  };
   resetToken?: string;
   resetTokenExpires?: Date;
   createdAt: Date;
@@ -116,6 +129,21 @@ const UserSchema: Schema = new Schema(
     github: {
       type: String,
       default: null
+    },
+    placement: {
+      type: {
+        status: { type: String, enum: ['not_placed', 'placed', 'multiple_offers'], default: 'not_placed' },
+        company: { type: String },
+        role: { type: String },
+        ctc: { type: Number },
+        source: { type: String, enum: ['drive', 'partner', 'manual'] },
+        offers: { type: Number, default: 0 },
+        placedAt: { type: Date },
+        driveId: { type: mongoose.Types.ObjectId, ref: 'PlacementDrive' },
+        partnerId: { type: mongoose.Types.ObjectId, ref: 'PlacementPartner' },
+        _id: false,
+      },
+      default: undefined,
     },
     resetToken: {
       type: String,

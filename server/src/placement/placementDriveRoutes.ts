@@ -10,6 +10,7 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/stats',             ctrl.getStats);
 router.get('/snapshot',          ctrl.getSnapshot);
 router.get('/analytics',         ctrl.getAnalytics);
+router.get('/overview',          ctrl.overview);
 router.get('/my-applications',   ctrl.getMyApplications);
 router.get('/',              ctrl.list);
 router.get('/:id',           ctrl.getOne);

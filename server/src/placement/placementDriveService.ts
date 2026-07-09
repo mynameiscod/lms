@@ -3,6 +3,7 @@ import CollegeMembership from '../models/CollegeMembership';
 import User from '../models/User';
 import mongoose from 'mongoose';
 import { eventBus } from '../utils/eventBus';
+import * as placementStatus from '../services/placementStatusService';
 
 export const listDrives = (tenantId: string, status?: string) => {
   const query: Record<string, any> = { tenantId, isActive: true };
@@ -137,11 +138,22 @@ export const updateApplicantStatus = async (
   userId: string,
   status: 'applied' | 'shortlisted' | 'selected' | 'rejected' | 'placed'
 ) => {
-  return PlacementDrive.findOneAndUpdate(
+  const drive = await PlacementDrive.findOneAndUpdate(
     { _id: id, tenantId },
     { $set: { [`applicantStatuses.${userId}`]: status } },
     { new: true }
   );
+  // Sync canonical placement + notify the student.
+  if (drive) {
+    if (status === 'placed') {
+      await placementStatus.markStudentPlaced(tenantId, userId, {
+        company: drive.companyName, role: drive.role, ctc: (drive as any).ctcMax ?? (drive as any).ctcMin, source: 'drive', driveId: id,
+      });
+    } else {
+      await placementStatus.notifyDriveStatus(tenantId, userId, status, drive.companyName);
+    }
+  }
+  return drive;
 };
 
 // ─── College snapshot (for admin dashboard) ───────────────────────────────────
@@ -213,6 +225,22 @@ export const bulkUpdateApplicantStatuses = async (
   if (!Object.keys(setFields).length) return { updated: 0, errors };
 
   await PlacementDrive.updateOne({ _id: id, tenantId }, { $set: setFields });
+
+  // Sync canonical placement + notify for each row (best-effort, doesn't block the import).
+  const drive: any = await PlacementDrive.findOne({ _id: id, tenantId }).select('companyName role ctcMax ctcMin').lean();
+  if (drive) {
+    for (const row of valid) {
+      const uid = row.email ? emailToId[row.email] : row.rollNumber ? rollToId[row.rollNumber] : undefined;
+      if (!uid) continue;
+      try {
+        if (row.status === 'placed') {
+          await placementStatus.markStudentPlaced(tenantId, uid, { company: drive.companyName, role: drive.role, ctc: drive.ctcMax ?? drive.ctcMin, source: 'drive', driveId: id });
+        } else {
+          await placementStatus.notifyDriveStatus(tenantId, uid, row.status, drive.companyName);
+        }
+      } catch { /* non-fatal */ }
+    }
+  }
   return { updated: Object.keys(setFields).length, errors };
 };
 

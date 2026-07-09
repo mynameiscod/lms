@@ -2457,6 +2457,9 @@ export const placementDriveApi = {
   getStats: () =>
     authenticatedFetch(`${API_BASE_URL}/college/placement/stats`),
 
+  getOverview: (batchId?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/college/placement/overview${batchId ? `?batchId=${batchId}` : ''}`),
+
   getApplicants: (id: string) =>
     authenticatedFetch(`${API_BASE_URL}/college/placement/${id}/applicants`),
 

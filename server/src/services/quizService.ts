@@ -289,15 +289,27 @@ export class QuizService {
     const attempt = await QuizAttempt.findById(attemptId);
     if (!attempt) throw new Error('Attempt not found');
 
+    // Idempotency: if this attempt was already submitted (e.g. the student's first
+    // request completed but their flaky network dropped the response and they retried),
+    // just return the existing result instead of re-grading / duplicating submissions.
+    if (attempt.status === 'submitted') return attempt;
+
     const quiz = await Quiz.findById(attempt.quizId);
     if (!quiz) throw new Error('Quiz not found');
+
+    // Batch-load every question in one query (was one findById per answer → slow, and a
+    // slow submit widens the window for the client connection to drop = "Failed to fetch").
+    const qIds = [...new Set(answers.map((a: any) => a.questionId).filter(Boolean))];
+    const questionDocs = await Question.find({ _id: { $in: qIds } });
+    const qById = new Map<string, any>(questionDocs.map((q: any) => [String(q._id), q]));
 
     // Save submissions and calculate marks
     let obtainedMarks = 0;
     let correctAnswers = 0;
+    const submissionDocs: any[] = [];
 
     for (const answer of answers) {
-      const question = await Question.findById(answer.questionId);
+      const question = qById.get(String(answer.questionId));
       if (!question) continue;
 
       let isCorrect = false;
@@ -379,8 +391,8 @@ export class QuizService {
         studentAnswerValue = answer.answer || '';
       }
 
-      // Save submission
-      const submission = new QuizSubmission({
+      // Collect submission (inserted in one batch after the loop)
+      submissionDocs.push({
         quizAttemptId: attemptId,
         quizId: attempt.quizId,
         questionId: answer.questionId,
@@ -393,9 +405,10 @@ export class QuizService {
         isCorrect,
         marksAwarded
       });
-
-      await submission.save();
     }
+
+    // One batched insert instead of N sequential saves (keeps the submit fast).
+    if (submissionDocs.length) await QuizSubmission.insertMany(submissionDocs, { ordered: false });
 
     // Update attempt
     const percentage = (obtainedMarks / quiz.totalMarks) * 100;

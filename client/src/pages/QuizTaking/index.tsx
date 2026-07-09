@@ -20,6 +20,7 @@ const QuizTakingPage: React.FC = () => {
   const [startingQuiz, setStartingQuiz] = useState(false);
   const [showTabWarnModal, setShowTabWarnModal] = useState(false);
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
@@ -276,6 +277,9 @@ const QuizTakingPage: React.FC = () => {
   const handleSubmitQuiz = useCallback(async () => {
     try {
       if (!attempt || !quiz) return;
+      if (submitting) return; // guard against double-submit
+      setSubmitting(true);
+      setError('');
 
       // Prepare submissions
       const submissions = Array.from(answers.entries()).map(([questionId, answer]) => {
@@ -297,7 +301,24 @@ const QuizTakingPage: React.FC = () => {
         return submission;
       });
 
-      await quizApi.submitAttempt(quizId, attempt._id, submissions);
+      // Retry the submit on transient network failures ("Failed to fetch"). The server
+      // is idempotent, so retrying after a dropped connection is safe. This fixes students
+      // getting stranded on flaky wifi when the connection drops mid-submit.
+      let lastErr: any = null;
+      for (let attemptNo = 1; attemptNo <= 4; attemptNo++) {
+        try {
+          await quizApi.submitAttempt(quizId, attempt._id, submissions);
+          lastErr = null;
+          break;
+        } catch (e: any) {
+          lastErr = e;
+          const msg = String(e?.message || '');
+          const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || msg.includes('network') || e?.name === 'TypeError';
+          if (!isNetwork || attemptNo === 4) throw e;
+          await new Promise(res => setTimeout(res, attemptNo * 1500)); // 1.5s, 3s, 4.5s backoff
+        }
+      }
+      if (lastErr) throw lastErr;
 
       // Stop recording and save blob to server
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -325,9 +346,14 @@ const QuizTakingPage: React.FC = () => {
       // Redirect to results
       window.location.href = `/quiz/${quizId}/results/${attempt._id}`;
     } catch (err: any) {
-      setError(err.message || 'Failed to submit quiz');
+      const msg = String(err?.message || '');
+      const isNetwork = msg.includes('Failed to fetch') || msg.includes('NetworkError') || err?.name === 'TypeError';
+      setError(isNetwork
+        ? 'Network issue while submitting — your answers are kept. Please check your connection and press Submit again.'
+        : (err.message || 'Failed to submit quiz'));
+      setSubmitting(false);
     }
-  }, [quizId, attempt, answers, questions, quiz]);
+  }, [quizId, attempt, answers, questions, quiz, submitting]);
 
   // Keep ref in sync so tab-switch handler can call it without circular deps
   useEffect(() => {
@@ -541,12 +567,13 @@ const QuizTakingPage: React.FC = () => {
             You have answered {Array.from(answers.keys()).length} out of {questions.length} questions.
           </p>
           <p>Are you sure you want to submit the quiz? You cannot change your answers after submission.</p>
+          {error && <p style={{ color: '#dc2626', fontSize: 13, fontWeight: 600 }}>{error}</p>}
           <div className="button-group">
-            <Button onClick={() => setShowSubmitConfirmModal(false)}>
+            <Button onClick={() => setShowSubmitConfirmModal(false)} disabled={submitting}>
               Continue Quiz
             </Button>
-            <Button onClick={handleSubmitQuiz} className="btn-danger">
-              Submit Quiz
+            <Button onClick={handleSubmitQuiz} className="btn-danger" disabled={submitting}>
+              {submitting ? 'Submitting…' : 'Submit Quiz'}
             </Button>
           </div>
         </div>

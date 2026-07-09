@@ -9,7 +9,6 @@ import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import Attendance from '../models/Attendance';
 import Assignment from '../models/Assignment';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
-import Batch from '../models/Batch';
 import { AuthRequest } from '../types/express';
 import { computeProfileCompleteness, computeProfileMissing } from '../utils/profileCompleteness';
 import { EmailService } from '../services/emailService';
@@ -502,33 +501,40 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
     const tenantStr = tenantId as string;
     const tenantObjId = mongoose.Types.ObjectId.isValid(tenantStr) ? new mongoose.Types.ObjectId(tenantStr) : null;
 
-    // Who is this student — batch (and its course) drive what's ASSIGNED to them.
+    // Who is this student — their batch drives what's ASSIGNED to them.
     const student: any = await User.findById(userObjId).select('batchId').lean();
     const batchId = student?.batchId ? new mongoose.Types.ObjectId(String(student.batchId)) : null;
     const batchStr = batchId ? String(batchId) : '';
-    const batch: any = batchId ? await Batch.findById(batchId).select('courseId').lean() : null;
-    const courseId = batch?.courseId ? new mongoose.Types.ObjectId(String(batch.courseId)) : null;
+
+    // "Assigned to this student" = targeted to THEIR BATCH or to THEM INDIVIDUALLY.
+    // We deliberately exclude "everyone"/course-wide/global items so the profile shows
+    // only what was really assigned to this person (no flood of unrelated tasks).
+    const NONE = { _id: { $in: [] as any[] } }; // matches nothing when no batch
+    const quizQuery: any = {
+      tenantId: tenantStr, archivedAt: { $in: [null, undefined] },
+      $or: [
+        ...(batchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchStr }] : []),
+        { accessibleTo: 'individual', selectedStudents: userId },
+      ],
+    };
+    const assignmentQuery: any = {
+      ...(tenantObjId ? { tenant: tenantObjId } : {}), status: 'published',
+      $or: [
+        ...(batchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchStr }] : []),
+        { accessibleTo: 'individual', selectedStudents: userId },
+        ...(batchId ? [{ accessibleTo: { $exists: false }, batch: batchId }] : []), // legacy batch-scoped
+      ],
+    };
+    const snippetQuery: any = batchStr ? { tenantId: tenantStr, status: 'published', batchIds: batchStr } : NONE;
 
     const [attendanceRecords, quizAttemptsRaw, submissionsRaw, snippetSubsRaw, assignedQuizzes, assignedAssignments, assignedSnippets] = await Promise.all([
       Attendance.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) }).sort({ date: -1 }).limit(60).lean(),
       QuizAttempt.find({ studentId: userId, tenantId: tenantStr }).sort({ createdAt: -1 }).lean(),
       Submission.find({ student: userObjId, ...(tenantObjId ? { tenant: tenantObjId } : {}) }).sort({ createdAt: -1 }).lean(),
       CodeSnippetSubmission.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) }).sort({ createdAt: -1 }).lean(),
-      // Assigned quizzes: everyone / this student's batch / this student individually.
-      Quiz.find({
-        tenantId: tenantStr, archivedAt: { $in: [null, undefined] },
-        $or: [{ accessibleTo: 'everyone' }, ...(batchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchStr }] : []), { accessibleTo: 'individual', selectedStudents: userId }],
-      }).select('title totalMarks startDate endDate').sort({ createdAt: -1 }).lean(),
-      // Assigned assignments: published, for this batch/course (or tenant-wide).
-      Assignment.find({
-        ...(tenantObjId ? { tenant: tenantObjId } : {}), status: 'published',
-        $or: [...(batchId ? [{ batch: batchId }] : []), ...(courseId ? [{ course: courseId }] : []), { batch: null, course: null }],
-      }).select('title type totalPoints dueDate').sort({ createdAt: -1 }).lean(),
-      // Assigned code-snippet assessments: published, for this batch/course.
-      CodeSnippetAssessment.find({
-        tenantId: tenantStr, status: 'published',
-        $or: [...(batchStr ? [{ batchIds: batchStr }] : []), ...(courseId ? [{ courseId }] : [])],
-      }).select('title language totalMarks').sort({ createdAt: -1 }).lean(),
+      Quiz.find(quizQuery).select('title totalMarks').sort({ createdAt: -1 }).lean(),
+      Assignment.find(assignmentQuery).select('title type totalPoints dueDate').sort({ createdAt: -1 }).lean(),
+      CodeSnippetAssessment.find(snippetQuery).select('title language totalMarks').sort({ createdAt: -1 }).lean(),
     ]);
 
     // ── Merge assigned items with the student's attempts/submissions ──────────

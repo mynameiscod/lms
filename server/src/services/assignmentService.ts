@@ -109,7 +109,7 @@ class AssignmentService {
     return Assignment.findOne({ _id: id, tenant })
       .populate('course', 'name')
       .populate('batch', 'name')
-      .populate('createdBy', 'name email');
+      .populate('createdBy', 'firstName lastName email');
   }
 
   // Update assignment
@@ -227,6 +227,7 @@ class AssignmentService {
       Assignment.find(query)
         .populate('course', 'name')
         .populate('batch', 'name')
+        .populate('createdBy', 'firstName lastName email')
         .sort(sort)
         .skip(skip)
         .limit(limit),

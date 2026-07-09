@@ -11,6 +11,19 @@ import { batchApi } from '../../api';
 import AssignmentPreviewModal from '../AssignmentReports/AssignmentPreviewModal';
 import './assignments.css';
 
+// Windowed page numbers with ellipses, e.g. 1 … 4 5 [6] 7 8 … 20
+const pageNumbers = (page: number, totalPages: number): (number | '…')[] => {
+  if (totalPages <= 1) return [1];
+  const out: (number | '…')[] = [];
+  const push = (n: number) => { if (!out.includes(n)) out.push(n); };
+  push(1);
+  if (page - 1 > 2) out.push('…');
+  for (let n = Math.max(2, page - 1); n <= Math.min(totalPages - 1, page + 1); n++) push(n);
+  if (page + 1 < totalPages - 1) out.push('…');
+  push(totalPages);
+  return out;
+};
+
 const ActionsDropdown: React.FC<{
   assignment: Assignment;
   onEdit: () => void;
@@ -23,27 +36,51 @@ const ActionsDropdown: React.FC<{
   onDelete: () => void;
 }> = ({ assignment, onEdit, onPreview, onTry, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  // Position the menu with fixed coordinates so it escapes the table's overflow:hidden
+  // (which was clipping the last item — Delete). Flip upward when near the viewport bottom.
+  const toggle = () => {
+    if (open) { setOpen(false); return; }
+    const r = btnRef.current?.getBoundingClientRect();
+    if (r) {
+      const MENU_W = 200, MENU_H = 330;
+      const left = Math.max(8, r.right - MENU_W);
+      const spaceBelow = window.innerHeight - r.bottom;
+      if (spaceBelow < MENU_H && r.top > spaceBelow) setPos({ bottom: window.innerHeight - r.top + 4, left });
+      else setPos({ top: r.bottom + 4, left });
+    }
+    setOpen(true);
+  };
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (ref.current && ref.current.contains(e.target as Node)) return; setOpen(false); };
+    const dismiss = () => setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [open]);
 
   return (
     <div className="actions-dropdown" ref={ref}>
       <button
+        ref={btnRef}
         className="btn btn-icon btn-secondary"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         title="Actions"
       >
         ⋮
       </button>
       {open && (
-        <div className="actions-dropdown-menu">
+        <div className="actions-dropdown-menu" style={{ position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left, right: 'auto', maxHeight: '80vh', overflowY: 'auto' }}>
           <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>
           <button onClick={() => { onTry(); setOpen(false); }}>🧪 Try it (as student)</button>
           <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>
@@ -320,6 +357,13 @@ const AdminAssignmentList: React.FC = () => {
 
   const LANGUAGES = ['javascript', 'typescript', 'python', 'java', 'cpp', 'c', 'csharp', 'go', 'rust', 'sql', 'html', 'css'];
   const LANG_LABEL: Record<string, string> = { javascript: 'JavaScript', typescript: 'TypeScript', python: 'Python', java: 'Java', cpp: 'C++', c: 'C', csharp: 'C#', go: 'Go', rust: 'Rust', sql: 'SQL', html: 'HTML', css: 'CSS' };
+
+  const creatorName = (a: Assignment) => {
+    const c: any = a.createdBy;
+    if (!c || typeof c === 'string') return <span style={{ color: '#94a3b8' }}>—</span>;
+    const name = [c.firstName, c.lastName].filter(Boolean).join(' ') || c.name || c.email || '—';
+    return <span style={{ color: '#334155', fontWeight: 500 }}>{name}</span>;
+  };
 
   const getStatusBadge = (status: AssignmentStatus) => {
     return <span className={`badge badge-${status}`}>{status}</span>;
@@ -836,6 +880,7 @@ const AdminAssignmentList: React.FC = () => {
                     <th>Status</th>
                     <th>Points</th>
                     <th>Due Date</th>
+                    <th>Created By</th>
                     <th>Created On</th>
                     <th>Actions</th>
                   </tr>
@@ -863,6 +908,7 @@ const AdminAssignmentList: React.FC = () => {
                           <div>{formatDate(assignment.dueDate)}</div>
                           {due && <div className={`due-chip ${due.overdue ? 'overdue' : ''}`}>{due.text}</div>}
                         </td>
+                        <td>{creatorName(assignment)}</td>
                         <td>
                           <div style={{ color: '#334155' }}>{created.date}</div>
                           <div style={{ fontSize: '12px', color: '#94a3b8' }}>{created.time}</div>
@@ -909,9 +955,17 @@ const AdminAssignmentList: React.FC = () => {
               Showing {total === 0 ? 0 : (page - 1) * limit + 1} to {Math.min(page * limit, total)} of {total} assignments
             </span>
             <div className="pager">
+              <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(1)} title="First">«</button>
               <button className="btn btn-secondary btn-sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>‹ Prev</button>
-              <span style={{ padding: '6px 12px', color: '#6b7280' }}>Page {page} of {totalPages}</span>
+              {pageNumbers(page, totalPages).map((n, i) => (
+                n === '…'
+                  ? <span key={`e${i}`} style={{ padding: '6px 8px', color: '#94a3b8' }}>…</span>
+                  : <button key={n} onClick={() => setPage(n as number)}
+                      className="btn btn-sm"
+                      style={{ minWidth: 34, fontWeight: 700, background: n === page ? '#2563eb' : '#fff', color: n === page ? '#fff' : '#334155', border: `1px solid ${n === page ? '#2563eb' : '#e5e7eb'}` }}>{n}</button>
+              ))}
               <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>Next ›</button>
+              <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => setPage(totalPages)} title="Last">»</button>
             </div>
             <label className="rows-per-page">
               <span>Rows per page</span>

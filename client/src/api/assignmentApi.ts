@@ -153,7 +153,7 @@ export interface Assignment {
   hints: string[];
   isInBank: boolean;
   bankCategory?: string;
-  createdBy?: { _id: string; name: string; email: string };
+  createdBy?: { _id: string; name?: string; firstName?: string; lastName?: string; email: string };
   settings?: {
     shuffleQuestions?: boolean;
     shuffleOptions?: boolean;

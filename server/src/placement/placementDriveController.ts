@@ -3,7 +3,16 @@ import { AuthenticatedRequest } from '../types';
 import * as svc from './placementDriveService';
 import User from '../models/User';
 import { EmailService } from '../services/emailService';
-import { placementOverview } from '../services/placementStatusService';
+import { placementOverview, notifyRound } from '../services/placementStatusService';
+
+// Applicant userIds actively in the process (shortlisted/selected), or all applicants if none yet.
+function roundAudience(drive: any): string[] {
+  const map: Record<string, string> = drive.applicantStatuses instanceof Map
+    ? Object.fromEntries(drive.applicantStatuses) : (drive.applicantStatuses || {});
+  const active = Object.entries(map).filter(([, s]) => s === 'shortlisted' || s === 'selected').map(([uid]) => uid);
+  if (active.length) return active;
+  return (drive.applicants || []).map((a: any) => String(a));
+}
 
 const emailService = new EmailService();
 
@@ -131,6 +140,7 @@ export const addRound = async (req: AuthenticatedRequest, res: Response) => {
     if (!name) return res.status(400).json({ success: false, message: 'Round name is required' });
     const drive = await svc.addRound(req.params.id, req.user!.tenantId, { name, date, venue, description });
     if (!drive) return res.status(404).json({ success: false, message: 'Not found' });
+    if (date) await notifyRound(req.user!.tenantId, roundAudience(drive), (drive as any).companyName, { name, date, venue });
     res.json({ success: true, data: drive.rounds });
   } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };
@@ -141,6 +151,11 @@ export const updateRound = async (req: AuthenticatedRequest, res: Response) => {
     if (isNaN(idx)) return res.status(400).json({ success: false, message: 'Invalid round index' });
     const drive = await svc.updateRound(req.params.id, req.user!.tenantId, idx, req.body);
     if (!drive) return res.status(404).json({ success: false, message: 'Not found' });
+    // Notify only when a date was (re)scheduled in this edit.
+    if (req.body?.date) {
+      const r: any = (drive.rounds as any[])[idx] || {};
+      await notifyRound(req.user!.tenantId, roundAudience(drive), (drive as any).companyName, { name: r.name || req.body.name, date: req.body.date, venue: r.venue || req.body.venue });
+    }
     res.json({ success: true, data: drive.rounds });
   } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };

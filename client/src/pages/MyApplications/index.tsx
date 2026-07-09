@@ -142,7 +142,7 @@ const MyApplications: React.FC = () => {
                             <div className="ma-tl-dot" />
                             <div className="ma-tl-content">
                               <div className="ma-tl-name">{r.name}</div>
-                              {r.date && <div className="ma-tl-detail">📅 {new Date(r.date).toLocaleDateString()}</div>}
+                              {r.date && <div className="ma-tl-detail">📅 {new Date(r.date).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })}</div>}
                               {r.venue && <div className="ma-tl-detail">📍 {r.venue}</div>}
                               {r.description && <div className="ma-tl-desc">{r.description}</div>}
                             </div>

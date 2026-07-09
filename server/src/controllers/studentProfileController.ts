@@ -7,6 +7,9 @@ import Quiz from '../models/Quiz';
 import Submission from '../models/Submission';
 import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import Attendance from '../models/Attendance';
+import Assignment from '../models/Assignment';
+import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
+import Batch from '../models/Batch';
 import { AuthRequest } from '../types/express';
 import { computeProfileCompleteness, computeProfileMissing } from '../utils/profileCompleteness';
 import { EmailService } from '../services/emailService';
@@ -499,37 +502,68 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
     const tenantStr = tenantId as string;
     const tenantObjId = mongoose.Types.ObjectId.isValid(tenantStr) ? new mongoose.Types.ObjectId(tenantStr) : null;
 
-    const [attendanceRecords, quizAttempts, assignmentSubmissions, snippetSubmissions] = await Promise.all([
-      Attendance.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) })
-        .sort({ date: -1 })
-        .limit(60)
-        .lean(),
-      QuizAttempt.find({ studentId: userId, tenantId: tenantStr })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .lean(),
-      Submission.find({ student: userObjId, ...(tenantObjId ? { tenant: tenantObjId } : {}) })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .populate('assignment', 'title type totalPoints dueDate')
-        .lean(),
-      CodeSnippetSubmission.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) })
-        .sort({ createdAt: -1 })
-        .limit(20)
-        .populate('assessmentId', 'title language totalMarks')
-        .lean(),
+    // Who is this student — batch (and its course) drive what's ASSIGNED to them.
+    const student: any = await User.findById(userObjId).select('batchId').lean();
+    const batchId = student?.batchId ? new mongoose.Types.ObjectId(String(student.batchId)) : null;
+    const batchStr = batchId ? String(batchId) : '';
+    const batch: any = batchId ? await Batch.findById(batchId).select('courseId').lean() : null;
+    const courseId = batch?.courseId ? new mongoose.Types.ObjectId(String(batch.courseId)) : null;
+
+    const [attendanceRecords, quizAttemptsRaw, submissionsRaw, snippetSubsRaw, assignedQuizzes, assignedAssignments, assignedSnippets] = await Promise.all([
+      Attendance.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) }).sort({ date: -1 }).limit(60).lean(),
+      QuizAttempt.find({ studentId: userId, tenantId: tenantStr }).sort({ createdAt: -1 }).lean(),
+      Submission.find({ student: userObjId, ...(tenantObjId ? { tenant: tenantObjId } : {}) }).sort({ createdAt: -1 }).lean(),
+      CodeSnippetSubmission.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) }).sort({ createdAt: -1 }).lean(),
+      // Assigned quizzes: everyone / this student's batch / this student individually.
+      Quiz.find({
+        tenantId: tenantStr, archivedAt: { $in: [null, undefined] },
+        $or: [{ accessibleTo: 'everyone' }, ...(batchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchStr }] : []), { accessibleTo: 'individual', selectedStudents: userId }],
+      }).select('title totalMarks startDate endDate').sort({ createdAt: -1 }).lean(),
+      // Assigned assignments: published, for this batch/course (or tenant-wide).
+      Assignment.find({
+        ...(tenantObjId ? { tenant: tenantObjId } : {}), status: 'published',
+        $or: [...(batchId ? [{ batch: batchId }] : []), ...(courseId ? [{ course: courseId }] : []), { batch: null, course: null }],
+      }).select('title type totalPoints dueDate').sort({ createdAt: -1 }).lean(),
+      // Assigned code-snippet assessments: published, for this batch/course.
+      CodeSnippetAssessment.find({
+        tenantId: tenantStr, status: 'published',
+        $or: [...(batchStr ? [{ batchIds: batchStr }] : []), ...(courseId ? [{ courseId }] : [])],
+      }).select('title language totalMarks').sort({ createdAt: -1 }).lean(),
     ]);
 
-    // Attach quiz titles (QuizAttempt only stores quizId, not the title).
-    const quizIds = [...new Set(quizAttempts.map((q: any) => q.quizId).filter(Boolean))];
-    if (quizIds.length) {
-      const quizzes = await Quiz.find({ _id: { $in: quizIds } }).select('title').lean();
-      const titleById: Record<string, string> = {};
-      quizzes.forEach((q: any) => { titleById[String(q._id)] = q.title; });
-      quizAttempts.forEach((q: any) => { q.quizTitle = titleById[String(q.quizId)] || null; });
-    }
+    // ── Merge assigned items with the student's attempts/submissions ──────────
+    const bestBy = (rows: any[], key: (r: any) => string) => {
+      const m = new Map<string, any>();
+      for (const r of rows) { const k = key(r); if (!m.has(k)) m.set(k, r); } // rows are newest-first
+      return m;
+    };
+    const attemptByQuiz = bestBy(quizAttemptsRaw, (r) => String(r.quizId));
+    const subByAssignment = bestBy(submissionsRaw, (r) => String(r.assignment));
+    const subBySnippet = bestBy(snippetSubsRaw, (r) => String(r.assessmentId));
 
-    // Compute attendance summary
+    // Quizzes → all assigned, with attempt info (pending = 'pending').
+    const quizAttempts = assignedQuizzes.map((q: any) => {
+      const a = attemptByQuiz.get(String(q._id));
+      return a
+        ? { ...a, quizId: String(q._id), quizTitle: q.title, totalMarks: a.totalMarks ?? q.totalMarks, assigned: true }
+        : { quizId: String(q._id), quizTitle: q.title, totalMarks: q.totalMarks, status: 'pending', assigned: true, attempted: false };
+    });
+
+    // Assignments → all assigned, with submission info.
+    const assignmentSubmissions = assignedAssignments.map((asg: any) => {
+      const s = subByAssignment.get(String(asg._id));
+      const assignment = { _id: asg._id, title: asg.title, type: asg.type, totalPoints: asg.totalPoints, dueDate: asg.dueDate };
+      return s ? { ...s, assignment, assigned: true } : { assignmentId: String(asg._id), assignment, status: 'PENDING', assigned: true, attempted: false };
+    });
+
+    // Code snippets → all assigned, with submission info.
+    const snippetSubmissions = assignedSnippets.map((asmt: any) => {
+      const s = subBySnippet.get(String(asmt._id));
+      const assessmentId = { _id: asmt._id, title: asmt.title, language: asmt.language, totalMarks: asmt.totalMarks };
+      return s ? { ...s, assessmentId, assigned: true } : { status: 'pending', assessmentId, assigned: true, attempted: false };
+    });
+
+    // Attendance summary
     const present = attendanceRecords.filter((a: any) => a.status === 'present').length;
     const absent = attendanceRecords.filter((a: any) => a.status === 'absent').length;
     const late = attendanceRecords.filter((a: any) => a.status === 'late').length;

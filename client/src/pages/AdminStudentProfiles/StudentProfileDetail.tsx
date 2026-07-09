@@ -13,15 +13,15 @@ type DetailTab = 'overview' | 'profile' | 'attendance' | 'quizzes' | 'assignment
 const ACTIVITY_TABS: DetailTab[] = ['attendance', 'quizzes', 'assignments', 'snippets'];
 const REPORT_TABS: DetailTab[] = ['overview', 'interviews', 'fees', 'exams'];
 const TAB_LABELS: Record<DetailTab, string> = {
-  overview: '📊 Overview',
-  profile: '👤 Profile',
-  attendance: '📅 Attendance',
-  quizzes: '📝 Quizzes',
-  assignments: '📋 Assignments',
-  snippets: '💻 Code Snippets',
-  interviews: '🎤 Interviews',
-  fees: '💰 Fees',
-  exams: '📄 Exams',
+  overview: 'Overview',
+  profile: 'Profile',
+  attendance: 'Attendance',
+  quizzes: 'Quizzes',
+  assignments: 'Assignments',
+  snippets: 'Code Snippets',
+  interviews: 'Interviews',
+  fees: 'Fees',
+  exams: 'Exams',
 };
 
 const avatarColor = (name: string) => {
@@ -547,7 +547,7 @@ const StudentProfileDetail: React.FC = () => {
         {/* ── Quizzes Tab ── */}
         {activeTab === 'quizzes' && (
           loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
-          quizAttempts.length === 0 ? <p className="spd-empty">No quiz attempts found.</p> :
+          quizAttempts.length === 0 ? <p className="spd-empty">No quizzes assigned.</p> :
           <div className="spd-table-wrap">
             <table className="spd-table">
               <thead><tr><th>Quiz</th><th>Score</th><th>Time Taken</th><th>Status</th><th>Date</th></tr></thead>
@@ -574,7 +574,7 @@ const StudentProfileDetail: React.FC = () => {
         {/* ── Assignments Tab ── */}
         {activeTab === 'assignments' && (
           loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
-          assignments.length === 0 ? <p className="spd-empty">No assignment submissions found.</p> :
+          assignments.length === 0 ? <p className="spd-empty">No assignments assigned.</p> :
           <div className="spd-table-wrap">
             <table className="spd-table">
               <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Due Date</th><th>Time Taken</th><th>Status</th><th>Submitted</th></tr></thead>
@@ -598,7 +598,7 @@ const StudentProfileDetail: React.FC = () => {
         {/* ── Code Snippets Tab ── */}
         {activeTab === 'snippets' && (
           loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
-          snippets.length === 0 ? <p className="spd-empty">No code snippet submissions found.</p> :
+          snippets.length === 0 ? <p className="spd-empty">No code assessments assigned.</p> :
           <div className="spd-table-wrap">
             <table className="spd-table">
               <thead><tr><th>Assessment</th><th>Language</th><th>Score</th><th>Status</th><th>Submitted</th></tr></thead>

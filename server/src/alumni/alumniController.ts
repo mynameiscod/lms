@@ -113,3 +113,53 @@ export const respondToMentoringRequest = async (req: AuthenticatedRequest, res: 
     res.json({ success: true, data: request });
   } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
 };
+
+// ---- Success Stories ----
+export const getSuccessStories = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await svc.getSuccessStories(req.user!.tenantId);
+    res.json({ success: true, data });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
+// ---- Referrals ----
+export const listReferrals = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    // Students only see open (non-expired) referrals; admins see all.
+    const isStudent = req.user!.role === 'STUDENT';
+    const data = await svc.listReferrals(req.user!.tenantId, { openOnly: isStudent });
+    res.json({ success: true, data });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
+export const createReferral = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { company, role } = req.body;
+    if (!company || !role) return res.status(400).json({ success: false, message: 'company and role are required' });
+    const data = await svc.createReferral(req.user!.tenantId, req.user!.id, req.body);
+    res.status(201).json({ success: true, data });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
+export const updateReferral = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const data = await svc.updateReferral(req.params.id, req.user!.tenantId, req.body);
+    if (!data) return res.status(404).json({ success: false, message: 'Not found' });
+    res.json({ success: true, data });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
+export const deleteReferral = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    await svc.deleteReferral(req.params.id, req.user!.tenantId);
+    res.json({ success: true, message: 'Referral removed' });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};
+
+export const expressInterest = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const r = await svc.expressInterest(req.params.id, req.user!.tenantId, req.user!.id || (req.user! as any)._id);
+    if (!r.ok) return res.status(r.reason === 'not_found' ? 404 : 409).json({ success: false, message: r.reason === 'closed' ? 'This referral is closed.' : 'Referral not found' });
+    res.json({ success: true, already: (r as any).already || false });
+  } catch (e) { res.status(500).json({ success: false, message: 'Server error' }); }
+};

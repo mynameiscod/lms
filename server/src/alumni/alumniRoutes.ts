@@ -8,6 +8,14 @@ router.use(authMiddleware, tenantMiddleware);
 
 // Alumni stats — must be before /:id
 router.get('/stats', ctrl.getStats);
+router.get('/success-stories', ctrl.getSuccessStories);
+
+// Referrals (static prefix before /:id)
+router.get('/referrals', ctrl.listReferrals);
+router.post('/referrals', ctrl.createReferral);
+router.put('/referrals/:id', ctrl.updateReferral);
+router.delete('/referrals/:id', ctrl.deleteReferral);
+router.post('/referrals/:id/interest', ctrl.expressInterest);
 
 // Mentoring requests — student creates, views their own
 router.post('/mentoring-requests', ctrl.createMentoringRequest);

@@ -23,6 +23,8 @@ export interface IAlumni extends Document {
   linkedInUrl?: string;
   // Testimonial / profile
   testimonial?: string;
+  story?: string;                             // longer success story for the showcase
+  featured?: boolean;                         // pinned to the Success Stories showcase
   profilePicture?: string;
   isAvailableForMentoring: boolean;
   isActive: boolean;
@@ -47,6 +49,8 @@ const AlumniSchema: Schema = new Schema(
     ctcPackage: { type: Number, default: null },
     linkedInUrl: { type: String },
     testimonial: { type: String },
+    story: { type: String },
+    featured: { type: Boolean, default: false },
     profilePicture: { type: String },
     isAvailableForMentoring: { type: Boolean, default: false },
     isActive: { type: Boolean, default: true },

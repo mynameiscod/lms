@@ -1,4 +1,8 @@
+import mongoose from 'mongoose';
 import Alumni from '../models/Alumni';
+import AlumniReferral from '../models/AlumniReferral';
+import User from '../models/User';
+import { createNotifications } from '../notifications/notificationService';
 
 export const listAlumni = (tenantId: string, filters: { year?: number; department?: string; mentoring?: boolean } = {}) => {
   const query: Record<string, any> = { tenantId, isActive: true };
@@ -49,4 +53,52 @@ export const getAlumniStats = async (tenantId: string) => {
     byDept: Object.entries(byDept).map(([dept, count]) => ({ dept, count })).sort((a, b) => b.count - a.count),
     topCompanies: Object.entries(topCompanies).map(([company, count]) => ({ company, count })).sort((a, b) => b.count - a.count).slice(0, 10),
   };
+};
+
+// ─── Success Stories showcase ─────────────────────────────────────────────────
+export const getSuccessStories = (tenantId: string) =>
+  Alumni.find({ tenantId, isActive: true, $or: [{ featured: true }, { story: { $exists: true, $ne: '' } }, { testimonial: { $exists: true, $ne: '' } }] })
+    .select('firstName lastName graduationYear department currentCompany currentRole ctcPackage linkedInUrl profilePicture testimonial story featured')
+    .sort({ featured: -1, ctcPackage: -1, graduationYear: -1 })
+    .limit(60);
+
+// ─── Alumni Referrals ─────────────────────────────────────────────────────────
+export const createReferral = (tenantId: string, userId: string, data: Record<string, any>) =>
+  AlumniReferral.create({ tenantId, createdBy: userId, ...data });
+
+export const listReferrals = (tenantId: string, opts: { openOnly?: boolean } = {}) => {
+  const q: any = { tenantId };
+  if (opts.openOnly) { q.status = 'open'; q.$or = [{ deadline: { $exists: false } }, { deadline: null }, { deadline: { $gte: new Date() } }]; }
+  return AlumniReferral.find(q).sort({ createdAt: -1 }).limit(300);
+};
+
+export const updateReferral = (id: string, tenantId: string, data: Record<string, any>) =>
+  AlumniReferral.findOneAndUpdate({ _id: id, tenantId }, data, { new: true });
+
+export const deleteReferral = (id: string, tenantId: string) =>
+  AlumniReferral.deleteOne({ _id: id, tenantId });
+
+// A student expresses interest → recorded + admins notified.
+export const expressInterest = async (id: string, tenantId: string, studentId: string) => {
+  const ref: any = await AlumniReferral.findOne({ _id: id, tenantId });
+  if (!ref) return { ok: false, reason: 'not_found' };
+  if (ref.status !== 'open') return { ok: false, reason: 'closed' };
+  if (ref.interested.some((i: any) => String(i.studentId) === String(studentId))) return { ok: true, already: true };
+
+  const u: any = await User.findById(studentId).select('firstName lastName').lean();
+  const studentName = [u?.firstName, u?.lastName].filter(Boolean).join(' ') || 'Student';
+  ref.interested.push({ studentId: new mongoose.Types.ObjectId(studentId), studentName, at: new Date() });
+  await ref.save();
+
+  // Notify admins/placement team.
+  try {
+    const admins = await User.find({ tenantId, role: { $in: ['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF'] }, isActive: { $ne: false } }).select('_id').lean();
+    if (admins.length) {
+      await createNotifications(String(tenantId), admins.map((a: any) => String(a._id)), 'general',
+        '🙋 Student interested in a referral',
+        `${studentName} is interested in the ${ref.role} referral at ${ref.company}.`,
+        '/admin/college/alumni');
+    }
+  } catch { /* non-fatal */ }
+  return { ok: true };
 };

@@ -43,8 +43,7 @@ const AlumniManagement: React.FC = () => {
   const load = async () => {
     try {
       setLoading(true);
-      const res = await alumniApi.list(yearFilter ? { year: Number(yearFilter) } : {});
-      const json = await res.json();
+      const json: any = await alumniApi.list(yearFilter ? { year: Number(yearFilter) } : {});
       if (json.success) setAlumni(json.data);
     } catch { setError('Failed to load alumni'); }
     finally { setLoading(false); }
@@ -95,10 +94,9 @@ const AlumniManagement: React.FC = () => {
       if (!payload.phone) delete payload.phone;
       if (!payload.ctcPackage) delete payload.ctcPackage;
 
-      const res = editId
+      const json: any = editId
         ? await alumniApi.update(editId, payload)
         : await alumniApi.create(payload);
-      const json = await res.json();
       if (!json.success) { setError(json.message || 'Save failed'); return; }
       setShowModal(false);
       await load();
@@ -134,6 +132,8 @@ const AlumniManagement: React.FC = () => {
         </div>
         <button className="btn btn-primary btn-sm" onClick={openCreate}>+ Add Alumni</button>
       </div>
+
+      <AdminReferrals />
 
       <div className="am-filters">
         <input
@@ -273,6 +273,71 @@ const AlumniManagement: React.FC = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+};
+
+// ── Admin referral management (post referrals from alumni; track interest) ──────
+const AdminReferrals: React.FC = () => {
+  const [rows, setRows] = useState<any[]>([]);
+  const [open, setOpen] = useState(false);
+  const [form, setForm] = useState({ alumniName: '', company: '', role: '', location: '', workMode: '', ctc: '', description: '', applyUrl: '', skills: '', deadline: '' });
+  const [saving, setSaving] = useState(false);
+
+  const load = async () => { try { const r = await (alumniApi as any).listReferrals(); if (r.success) setRows(r.data || []); } catch { /* ignore */ } };
+  useEffect(() => { load(); }, []);
+
+  const post = async () => {
+    if (!form.company || !form.role) return;
+    setSaving(true);
+    try {
+      await (alumniApi as any).createReferral({ ...form, skills: form.skills ? form.skills.split(',').map(s => s.trim()).filter(Boolean) : [], deadline: form.deadline || undefined });
+      setForm({ alumniName: '', company: '', role: '', location: '', workMode: '', ctc: '', description: '', applyUrl: '', skills: '', deadline: '' });
+      setOpen(false); load();
+    } catch { /* ignore */ } finally { setSaving(false); }
+  };
+  const close = async (id: string, status: string) => { await (alumniApi as any).updateReferral(id, { status }); load(); };
+  const del = async (id: string) => { if (!window.confirm('Delete this referral?')) return; await (alumniApi as any).deleteReferral(id); load(); };
+
+  const inp: React.CSSProperties = { border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 10px', fontSize: 13, width: '100%', boxSizing: 'border-box' };
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16, margin: '14px 0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>💼 Alumni Referrals <span style={{ color: '#94a3b8', fontWeight: 500, fontSize: 12 }}>({rows.length})</span></div>
+        <button className="btn btn-primary btn-sm" onClick={() => setOpen(o => !o)}>{open ? 'Cancel' : '+ Post referral'}</button>
+      </div>
+
+      {open && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 8, marginBottom: 12 }}>
+          <input style={inp} placeholder="Company *" value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} />
+          <input style={inp} placeholder="Role *" value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} />
+          <input style={inp} placeholder="Referred by (alumni name)" value={form.alumniName} onChange={e => setForm({ ...form, alumniName: e.target.value })} />
+          <input style={inp} placeholder="Location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} />
+          <select style={inp} value={form.workMode} onChange={e => setForm({ ...form, workMode: e.target.value })}><option value="">Work mode</option><option value="onsite">Onsite</option><option value="remote">Remote</option><option value="hybrid">Hybrid</option></select>
+          <input style={inp} placeholder="CTC (e.g. 8-12 LPA)" value={form.ctc} onChange={e => setForm({ ...form, ctc: e.target.value })} />
+          <input style={inp} placeholder="Skills (comma-separated)" value={form.skills} onChange={e => setForm({ ...form, skills: e.target.value })} />
+          <input style={inp} type="date" value={form.deadline} onChange={e => setForm({ ...form, deadline: e.target.value })} />
+          <input style={{ ...inp, gridColumn: '1 / -1' }} placeholder="Apply URL" value={form.applyUrl} onChange={e => setForm({ ...form, applyUrl: e.target.value })} />
+          <textarea style={{ ...inp, gridColumn: '1 / -1', minHeight: 50, fontFamily: 'inherit' }} placeholder="Description" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} />
+          <button className="btn btn-primary btn-sm" style={{ gridColumn: '1 / -1', justifySelf: 'start' }} disabled={saving} onClick={post}>{saving ? 'Posting…' : 'Post referral'}</button>
+        </div>
+      )}
+
+      {rows.length === 0 ? <div style={{ color: '#94a3b8', fontSize: 13 }}>No referrals yet.</div> :
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map((r: any) => (
+            <div key={r._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 11px', background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 10 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0f172a' }}>{r.role} · {r.company} {r.status !== 'open' && <span style={{ fontSize: 11, color: '#94a3b8' }}>({r.status})</span>}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>{r.interested?.length || 0} interested{r.alumniName ? ` · by ${r.alumniName}` : ''}</div>
+              </div>
+              {r.interested?.length > 0 && <span title={r.interested.map((i: any) => i.studentName).join(', ')} style={{ fontSize: 11.5, fontWeight: 700, color: '#16a34a', background: '#dcfce7', borderRadius: 12, padding: '2px 9px', cursor: 'help' }}>🙋 {r.interested.length}</span>}
+              {r.status === 'open' && <button onClick={() => close(r._id, 'closed')} style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: 7, padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: '#64748b' }}>Close</button>}
+              <button onClick={() => del(r._id)} style={{ border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12.5 }}>Delete</button>
+            </div>
+          ))}
+        </div>}
     </div>
   );
 };

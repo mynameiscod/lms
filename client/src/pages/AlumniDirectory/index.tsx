@@ -43,6 +43,11 @@ const AlumniDirectoryPage: React.FC = () => {
   const [requestMsg, setRequestMsg] = useState('');
   const [submittingRequest, setSubmittingRequest] = useState(false);
 
+  // Referrals + success stories
+  const [referrals, setReferrals] = useState<any[]>([]);
+  const [stories, setStories] = useState<any[]>([]);
+  const [interested, setInterested] = useState<Record<string, boolean>>({});
+
   const loadAlumni = useCallback(async () => {
     try {
       setLoading(true);
@@ -59,6 +64,16 @@ const AlumniDirectoryPage: React.FC = () => {
   }, []);
 
   useEffect(() => { loadAlumni(); }, [loadAlumni]);
+
+  useEffect(() => {
+    (alumniApi as any).listReferrals().then((r: any) => { if (r.success) setReferrals(r.data || []); }).catch(() => {});
+    (alumniApi as any).getSuccessStories().then((r: any) => { if (r.success) setStories(r.data || []); }).catch(() => {});
+  }, []);
+
+  const expressInterest = async (id: string) => {
+    try { const r = await (alumniApi as any).expressInterest(id); if (r.success) { setInterested(m => ({ ...m, [id]: true })); setSuccess('Interest registered — the placement team will be in touch.'); } }
+    catch { setError('Could not register interest.'); }
+  };
 
   useEffect(() => {
     let list = [...alumni];
@@ -115,6 +130,47 @@ const AlumniDirectoryPage: React.FC = () => {
 
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} />}
+
+      {/* Success Stories strip */}
+      {stories.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>🌟 Success Stories</div>
+          <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 4 }}>
+            {stories.map((s: any) => (
+              <div key={s._id} style={{ minWidth: 250, maxWidth: 250, background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 12, padding: 14, flexShrink: 0 }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>{s.firstName} {s.lastName}{s.featured && <span style={{ color: '#d97706' }}> ★</span>}</div>
+                <div style={{ fontSize: 12.5, color: '#334155', marginTop: 2 }}>{s.currentRole ? `${s.currentRole} · ` : ''}<b>{s.currentCompany || '—'}</b>{s.ctcPackage ? ` · ₹${s.ctcPackage} LPA` : ''}</div>
+                <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{s.department ? `${s.department} · ` : ''}Batch of {s.graduationYear}</div>
+                {(s.story || s.testimonial) && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 8, fontStyle: 'italic', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>"{s.story || s.testimonial}"</div>}
+                {s.linkedInUrl && <a href={s.linkedInUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#2563eb', fontWeight: 600, marginTop: 6, display: 'inline-block' }}>LinkedIn ↗</a>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Alumni referrals */}
+      {referrals.length > 0 && (
+        <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 14, padding: 16, marginBottom: 16 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>💼 Job referrals from our alumni</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(280px,1fr))', gap: 12 }}>
+            {referrals.map((r: any) => (
+              <div key={r._id} style={{ border: '1px solid #eef1f6', borderRadius: 12, padding: 14, background: '#f8fafc' }}>
+                <div style={{ fontWeight: 700, color: '#0f172a', fontSize: 14 }}>{r.role}</div>
+                <div style={{ fontSize: 13, color: '#334155' }}><b>{r.company}</b>{r.location ? ` · ${r.location}` : ''}{r.workMode ? ` · ${r.workMode}` : ''}{r.ctc ? ` · ${r.ctc}` : ''}</div>
+                {r.alumniName && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>Referred by {r.alumniName}</div>}
+                {r.description && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 6 }}>{r.description}</div>}
+                {r.skills?.length > 0 && <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 8 }}>{r.skills.map((sk: string) => <span key={sk} style={{ fontSize: 11, background: '#eef2ff', color: '#4338ca', borderRadius: 12, padding: '2px 9px' }}>{sk}</span>)}</div>}
+                {r.deadline && <div style={{ fontSize: 11.5, color: '#b45309', fontWeight: 600, marginTop: 6 }}>Apply by {new Date(r.deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</div>}
+                <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+                  <button onClick={() => expressInterest(r._id)} disabled={interested[r._id]} style={{ flex: 1, background: interested[r._id] ? '#dcfce7' : '#2563eb', color: interested[r._id] ? '#15803d' : '#fff', border: 'none', borderRadius: 8, padding: '8px', fontWeight: 700, fontSize: 12.5, cursor: interested[r._id] ? 'default' : 'pointer' }}>{interested[r._id] ? '✓ Interested' : "I'm interested"}</button>
+                  {r.applyUrl && <a href={r.applyUrl} target="_blank" rel="noreferrer" style={{ border: '1px solid #cbd5e1', borderRadius: 8, padding: '8px 12px', fontSize: 12.5, fontWeight: 700, color: '#475569', textDecoration: 'none' }}>Apply ↗</a>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="alumni-dir-filters">

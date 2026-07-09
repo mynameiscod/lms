@@ -2587,6 +2587,14 @@ export const alumniApi = {
       method: 'PATCH',
       body: JSON.stringify({ status, responseMessage })
     }),
+
+  // Success stories + referrals
+  getSuccessStories: () => authenticatedFetch(`${API_BASE_URL}/college/alumni/success-stories`),
+  listReferrals: () => authenticatedFetch(`${API_BASE_URL}/college/alumni/referrals`),
+  createReferral: (data: any) => authenticatedFetch(`${API_BASE_URL}/college/alumni/referrals`, { method: 'POST', body: JSON.stringify(data) }),
+  updateReferral: (id: string, data: any) => authenticatedFetch(`${API_BASE_URL}/college/alumni/referrals/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  deleteReferral: (id: string) => authenticatedFetch(`${API_BASE_URL}/college/alumni/referrals/${id}`, { method: 'DELETE' }),
+  expressInterest: (id: string) => authenticatedFetch(`${API_BASE_URL}/college/alumni/referrals/${id}/interest`, { method: 'POST' }),
 };
 
 // --- Curriculum API ----------------------------------------------------------

@@ -16,6 +16,12 @@ export type PartnerStage = 'target' | 'contacted' | 'replied' | 'interested' | '
 
 export interface PartnerStageMeta { id: PartnerStage; name: string; color: string; }
 
+export interface PartnerTaskRow {
+  id: string; partnerId: string; company: string; stage?: PartnerStage; tier?: PartnerTier;
+  kind: 'reply' | 'interested' | 'checkin' | 'guarantee' | 'manual'; kindLabel: string; content: string;
+  dueAt?: string; open: boolean; overdue: boolean; today: boolean;
+}
+
 export interface PlacementPartner {
   _id: string;
   companyName: string;
@@ -155,6 +161,12 @@ export const placementPartnerApi = {
   markPlaced: (id: string, data: { studentId?: string; studentName?: string; ctc?: number }) =>
     API.post(`/placement-partners/${id}/mark-placed`, data),
   analytics: () => API.get<{ data: PartnerAnalytics }>('/placement-partners/analytics'),
+
+  // ── Reminders / tasks ──
+  listTasks: (filter = 'open') => API.get<{ data: { tasks: PartnerTaskRow[]; summary: { open: number; overdue: number; today: number } } }>('/placement-partners/tasks', { params: { filter } }),
+  completeTask: (tid: string) => API.patch(`/placement-partners/tasks/${tid}/complete`),
+  snoozeTask: (tid: string, days: number) => API.patch(`/placement-partners/tasks/${tid}/snooze`, { days }),
+  addTask: (id: string, content: string, dueAt?: string) => API.post(`/placement-partners/${id}/tasks`, { content, dueAt }),
 
   import: (file: File) => {
     const fd = new FormData();

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics, ThreadItem, AttachmentRef } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, PartnerStage, PartnerStageMeta, ImportResult, OutreachMessage, MatchedStudent, PartnerAnalytics, ThreadItem, AttachmentRef, PartnerTaskRow } from '../../api/placementPartnerApi';
 import './PartnerPipeline.css';
 
 // Shared: upload picked files and return their attachment refs.
@@ -26,8 +26,10 @@ export default function PartnerPipeline() {
   const [showImport, setShowImport] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
   const [showAnalytics, setShowAnalytics] = useState(false);
+  const [showReminders, setShowReminders] = useState(false);
   const [selected, setSelected] = useState<PlacementPartner | null>(null);
   const [approvalCount, setApprovalCount] = useState(0);
+  const [taskCount, setTaskCount] = useState(0);
 
   const dragRef = useRef<{ id: string; from: PartnerStage } | null>(null);
   const [dragOver, setDragOver] = useState<string | null>(null);
@@ -52,7 +54,10 @@ export default function PartnerPipeline() {
   const refreshApprovalCount = useCallback(async () => {
     try { const r = await api.getQueue('pending_approval'); setApprovalCount(r.data.data.length); } catch { /* ignore */ }
   }, []);
-  useEffect(() => { refreshApprovalCount(); }, [refreshApprovalCount]);
+  const refreshTaskCount = useCallback(async () => {
+    try { const r = await api.listTasks('open'); setTaskCount(r.data.data.summary.overdue + r.data.data.summary.today); } catch { /* ignore */ }
+  }, []);
+  useEffect(() => { refreshApprovalCount(); refreshTaskCount(); }, [refreshApprovalCount, refreshTaskCount]);
 
   const handleDrop = async (to: PartnerStage) => {
     setDragOver(null);
@@ -80,6 +85,7 @@ export default function PartnerPipeline() {
         <div className="pp-actions">
           <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={load} disabled={loading}>↻ Refresh</button>
           <button className="pp-btn pp-btn-ghost" onClick={() => setShowAnalytics(true)}>📊 Analytics</button>
+          <button className="pp-btn pp-btn-ghost" onClick={() => setShowReminders(true)}>⏰ Reminders{taskCount > 0 ? ` (${taskCount})` : ''}</button>
           <button className="pp-btn pp-btn-ghost" onClick={() => setShowApprovals(true)}>📥 Approvals{approvalCount > 0 ? ` (${approvalCount})` : ''}</button>
           <button className="pp-btn pp-btn-teal" onClick={() => setShowImport(true)}>⬆ Import CSV</button>
           <button className="pp-btn pp-btn-primary" onClick={() => setShowAdd(true)}>+ Add partner</button>
@@ -153,6 +159,62 @@ export default function PartnerPipeline() {
           onChanged={() => { refreshApprovalCount(); load(); }} />
       )}
       {showAnalytics && <AnalyticsModal onClose={() => setShowAnalytics(false)} />}
+      {showReminders && <RemindersModal onClose={() => setShowReminders(false)} onChanged={refreshTaskCount} />}
+    </div>
+  );
+}
+
+// ── Reminders / tasks dashboard ───────────────────────────────────────────────
+function RemindersModal({ onClose, onChanged }: { onClose: () => void; onChanged: () => void }) {
+  const [tab, setTab] = useState<'open' | 'overdue' | 'today' | 'all'>('open');
+  const [tasks, setTasks] = useState<PartnerTaskRow[]>([]);
+  const [summary, setSummary] = useState<{ open: number; overdue: number; today: number }>({ open: 0, overdue: 0, today: 0 });
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try { const r = await api.listTasks(tab); setTasks(r.data.data.tasks); setSummary(r.data.data.summary); }
+    catch { /* ignore */ } finally { setLoading(false); }
+  }, [tab]);
+  useEffect(() => { load(); }, [load]);
+
+  const done = async (id: string) => { await api.completeTask(id); load(); onChanged(); };
+  const snooze = async (id: string, days: number) => { await api.snoozeTask(id, days); load(); onChanged(); };
+
+  const KIND_COLOR: Record<string, string> = { reply: '#2563eb', interested: '#7c3aed', checkin: '#0ea5e9', guarantee: '#dc2626', manual: '#64748b' };
+  const fmt = (d?: string) => d ? new Date(d).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '—';
+
+  return (
+    <div className="pp-modal-overlay" onClick={onClose}>
+      <div className="pp-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 640 }}>
+        <div className="pp-modal-head">
+          <h3>⏰ Reminders</h3>
+          <button className="pp-drawer-x" onClick={onClose}>×</button>
+        </div>
+        <div style={{ display: 'flex', gap: 6, padding: '0 4px 12px', flexWrap: 'wrap' }}>
+          {([['open', `Open (${summary.open})`], ['overdue', `Overdue (${summary.overdue})`], ['today', `Today (${summary.today})`], ['all', 'All']] as [any, string][]).map(([k, l]) => (
+            <button key={k} onClick={() => setTab(k)} style={{ border: `1.5px solid ${tab === k ? '#2563eb' : '#e2e8f0'}`, background: tab === k ? '#eff6ff' : '#fff', color: tab === k ? '#2563eb' : '#64748b', borderRadius: 999, padding: '5px 13px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{l}</button>
+          ))}
+        </div>
+        <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+          {loading ? <div style={{ padding: 24, color: '#94a3b8' }}>Loading…</div> :
+            tasks.length === 0 ? <div style={{ padding: 24, color: '#94a3b8', textAlign: 'center' }}>🎉 No reminders here — you're all caught up.</div> :
+              tasks.map(t => (
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 8px', borderTop: '1px solid #f1f5f9' }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: KIND_COLOR[t.kind], flexShrink: 0 }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: '#0f172a' }}>{t.company} <span style={{ fontSize: 11, fontWeight: 700, color: KIND_COLOR[t.kind] }}>· {t.kindLabel}</span></div>
+                    <div style={{ fontSize: 12, color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.content}</div>
+                  </div>
+                  <span style={{ fontSize: 11.5, fontWeight: 700, color: t.overdue ? '#dc2626' : t.today ? '#d97706' : '#94a3b8', whiteSpace: 'nowrap' }}>{t.overdue ? 'Overdue' : t.today ? 'Today' : fmt(t.dueAt)}</span>
+                  {t.open && <>
+                    <button title="Snooze 3 days" onClick={() => snooze(t.id, 3)} style={{ border: '1px solid #e2e8f0', background: '#fff', borderRadius: 7, padding: '4px 8px', fontSize: 11.5, cursor: 'pointer', color: '#64748b' }}>💤 3d</button>
+                    <button onClick={() => done(t.id)} style={{ border: 'none', background: '#16a34a', color: '#fff', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>✓ Done</button>
+                  </>}
+                </div>
+              ))}
+        </div>
+      </div>
     </div>
   );
 }

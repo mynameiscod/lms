@@ -14,6 +14,7 @@ import {
   getPartnerMessages, getQueue, updateMessage, approveMessage, cancelMessage,
   getPartnerThread, markInboundRead, testImap, replyToPartner,
 } from '../controllers/partnerOutreachController';
+import { listTasks, completeTask, snoozeTask, addTask } from '../controllers/partnerTaskController';
 
 const router = express.Router();
 
@@ -58,6 +59,11 @@ router.post('/imap-test', testImap);
 router.patch('/inbound/:mid/read', markInboundRead);
 router.post('/attachments', attachUpload.single('file'), uploadAttachment);
 
+// reminders / tasks dashboard (static prefixes before /:id)
+router.get('/tasks', listTasks);
+router.patch('/tasks/:tid/complete', completeTask);
+router.patch('/tasks/:tid/snooze', snoozeTask);
+
 router.get('/', listPartners);
 router.post('/', createPartner);
 router.get('/:id', getPartner);
@@ -84,5 +90,6 @@ router.post('/:id/draft-candidate-profiles', draftCandidateProfilesEndpoint);
 router.get('/:id/candidate-pdf/:studentId', candidatePdf);
 router.post('/:id/schedule-interview', scheduleInterview);
 router.post('/:id/mark-placed', markPlaced);
+router.post('/:id/tasks', addTask);
 
 export default router;

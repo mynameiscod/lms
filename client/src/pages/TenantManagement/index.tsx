@@ -14,6 +14,10 @@ interface TenantModules {
   leads: boolean;
   marketing: boolean;
   feeManagement: boolean;
+  thinkingLab: boolean;
+  speakingPractice: boolean;
+  resourceLibrary: boolean;
+  careerPilot: boolean;
 }
 
 interface TenantRow {
@@ -39,28 +43,43 @@ const MODULE_DEFS: { key: keyof TenantModules; label: string; icon: string; desc
   { key: 'leads',           label: 'Leads / CRM',          icon: 'fa-solid fa-user-tag',          desc: 'Lead management & telecaller' },
   { key: 'marketing',       label: 'Marketing',            icon: 'fa-solid fa-bullhorn',          desc: 'Campaigns, analytics, insights' },
   { key: 'feeManagement',   label: 'Fee Management',       icon: 'fa-solid fa-wallet',            desc: 'Seat reservations, payments, receipts, installments' },
+  { key: 'thinkingLab',     label: 'Logical Thinking Lab', icon: 'fa-solid fa-brain',             desc: 'AI-graded logic & aptitude drills' },
+  { key: 'speakingPractice',label: 'Speaking Practice',    icon: 'fa-solid fa-microphone',        desc: 'AI speaking practice & feedback' },
+  { key: 'resourceLibrary', label: 'Resource Library',     icon: 'fa-solid fa-box-archive',       desc: 'Projects, references & downloads' },
+  { key: 'careerPilot',     label: 'CareerPilot',          icon: 'fa-solid fa-compass',           desc: 'AI Mentor, Job Tracker, Project Builder, Career Profile' },
 ];
 
 const STUDENT_FEATURES = [
-  { key: 'dashboard',      label: 'Dashboard',        icon: 'fa-solid fa-gauge-high' },
-  { key: 'myCourse',       label: 'My Courses',       icon: 'fa-solid fa-book-open' },
-  { key: 'classHub',       label: 'Class Hub',        icon: 'fa-solid fa-video' },
-  { key: 'attendance',     label: 'Attendance',       icon: 'fa-solid fa-calendar-check' },
-  { key: 'quizzes',        label: 'Quizzes',          icon: 'fa-solid fa-circle-question' },
-  { key: 'assignments',    label: 'Assignments',      icon: 'fa-solid fa-file-pen' },
-  { key: 'mockInterviews', label: 'Mock Interviews',  icon: 'fa-solid fa-comments' },
-  { key: 'feeDetails',     label: 'Fee Details',      icon: 'fa-solid fa-wallet' },
+  { key: 'dashboard',       label: 'Dashboard',        icon: 'fa-solid fa-gauge-high' },
+  { key: 'myCourse',        label: 'My Courses',       icon: 'fa-solid fa-book-open' },
+  { key: 'classHub',        label: 'Class Hub',        icon: 'fa-solid fa-video' },
+  { key: 'attendance',      label: 'Attendance',       icon: 'fa-solid fa-calendar-check' },
+  { key: 'quizzes',         label: 'Quizzes',          icon: 'fa-solid fa-circle-question' },
+  { key: 'assignments',     label: 'Assignments',      icon: 'fa-solid fa-file-pen' },
+  { key: 'mockInterviews',  label: 'Mock Interviews',  icon: 'fa-solid fa-comments' },
+  { key: 'feeDetails',      label: 'Fee Details',      icon: 'fa-solid fa-wallet' },
+  { key: 'thinkingLab',     label: 'Thinking Lab',     icon: 'fa-solid fa-brain' },
+  { key: 'speakingPractice',label: 'Speaking Practice',icon: 'fa-solid fa-microphone' },
+  { key: 'codePlayground',  label: 'Code Playground',  icon: 'fa-solid fa-code' },
+  { key: 'resourceLibrary', label: 'Resource Library', icon: 'fa-solid fa-box-archive' },
+  { key: 'careerProfile',   label: 'Career Profile',   icon: 'fa-solid fa-id-badge' },
+  { key: 'aiMentor',        label: 'AI Mentor',        icon: 'fa-solid fa-compass' },
+  { key: 'jobTracker',      label: 'Job Tracker',      icon: 'fa-solid fa-briefcase' },
+  { key: 'projectBuilder',  label: 'Project Builder',  icon: 'fa-solid fa-rocket' },
 ];
 
 const DEFAULT_MODULES: TenantModules = {
   courses: true, attendance: true, quizzes: true, assignments: true,
   classRecordings: true, codeAssessments: true, mockInterviews: true,
   placement: true, leads: true, marketing: true, feeManagement: true,
+  thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true,
 };
 
 const DEFAULT_STUDENT_FEATURES: Record<string, boolean> = {
   dashboard: true, myCourse: true, classHub: true,
   attendance: true, quizzes: true, assignments: true, mockInterviews: true, feeDetails: true,
+  thinkingLab: true, speakingPractice: true, codePlayground: true,
+  resourceLibrary: true, careerProfile: true, aiMentor: true, jobTracker: true, projectBuilder: true,
 };
 
 // ── Create Tenant Modal ────────────────────────────────────────────────────
@@ -73,6 +92,7 @@ const DEFAULT_CREATE_MODULES: TenantModules = {
   courses: true, attendance: true, quizzes: true, assignments: true,
   classRecordings: false, codeAssessments: false, mockInterviews: false,
   placement: false, leads: false, marketing: false, feeManagement: true,
+  thinkingLab: false, speakingPractice: false, resourceLibrary: false, careerPilot: false,
 };
 
 const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {
@@ -222,7 +242,7 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
           <div className="tm-form-group">
             <label>
               Enabled Modules
-              <span className="tm-hint ms-2">({enabledCount}/10 enabled — only these modules are visible to this tenant)</span>
+              <span className="tm-hint ms-2">({enabledCount}/{MODULE_DEFS.length} enabled — only these modules are visible to this tenant)</span>
             </label>
             <div className="tm-module-select-grid">
               {MODULE_DEFS.map(m => {
@@ -477,7 +497,7 @@ const TenantManagementPage: React.FC = () => {
                     </span>
                   );
                 })}
-                <span className="tm-chip-count">{enabledCount(t.modules)}/10</span>
+                <span className="tm-chip-count">{enabledCount(t.modules)}/{MODULE_DEFS.length}</span>
               </div>
               <div className="tm-card-actions" onClick={e => e.stopPropagation()}>
                 <button
@@ -545,7 +565,7 @@ const TenantManagementPage: React.FC = () => {
             <div className="tm-panel-footer">
               <span className="tm-enabled-count">
                 <i className="fa-solid fa-circle-check" style={{ color: 'var(--bs-success)' }} />
-                {' '}{Object.values(editModules).filter(Boolean).length} of 10 modules enabled
+                {' '}{Object.values(editModules).filter(Boolean).length} of {MODULE_DEFS.length} modules enabled
               </span>
               <button className="btn btn-primary" onClick={save} disabled={saving}>
                 {saving ? <span className="spinner-border spinner-border-sm me-2" /> : null}

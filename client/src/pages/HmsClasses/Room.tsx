@@ -70,7 +70,8 @@ const RoomInner: React.FC = () => {
   const screenOn = useHMSStore(selectIsLocalScreenShared);
 
   const [phase, setPhase] = useState<'lobby' | 'joining' | 'joined'>('lobby');
-  const [err, setErr] = useState('');
+  const [err, setErr] = useState('');       // fatal — ejects to error screen
+  const [notice, setNotice] = useState(''); // non-fatal — inline banner, keeps you in the room
   const [role, setRole] = useState('');
   const [tokenData, setTokenData] = useState<any>(null);
   const [camReady, setCamReady] = useState(true);
@@ -144,7 +145,17 @@ const RoomInner: React.FC = () => {
   }, [isBroadcaster, hlsState?.running, hlsState?.variants, id]);
 
   const goLive = useCallback(async () => {
-    try { await hmsActions.startHLSStreaming(); } catch (e: any) { setErr(e.message || 'Could not start stream'); }
+    try {
+      await hmsActions.startHLSStreaming();
+      setNotice('');
+    } catch (e: any) {
+      const msg = String(e?.message || 'Could not start stream');
+      setNotice(
+        /permission/i.test(msg)
+          ? "Couldn't start the live stream — your 100ms 'broadcaster' role is missing HLS Streaming permission. Enable it in 100ms → Templates → broadcaster → Permissions. (You can still teach with screen-share + on-stage students.)"
+          : `Couldn't start the live stream: ${msg}`
+      );
+    }
   }, [hmsActions]);
 
   const stopLive = useCallback(async () => {
@@ -152,7 +163,8 @@ const RoomInner: React.FC = () => {
   }, [hmsActions]);
 
   const changeRole = async (peerId: string, toStage: boolean) => {
-    try { await hmsClassApi.changeRole(id!, peerId, toStage); } catch (e: any) { setErr(e.message); }
+    try { await hmsClassApi.changeRole(id!, peerId, toStage); setNotice(''); }
+    catch (e: any) { setNotice(`Could not move the participant: ${e?.message || 'error'}`); }
   };
 
   const leave = async () => { await hmsActions.leave().catch(() => {}); navigate('/hms-classes'); };
@@ -216,6 +228,13 @@ const RoomInner: React.FC = () => {
         </div>
         <button onClick={leave} style={btn('#dc2626')}>Leave</button>
       </div>
+
+      {notice && (
+        <div style={{ background: '#3f2d10', border: '1px solid #7c5b1e', color: '#fde68a', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13.5, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+          <span style={{ flex: 1 }}>⚠ {notice}</span>
+          <button onClick={() => setNotice('')} style={{ background: 'none', border: 'none', color: '#fde68a', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+        </div>
+      )}
 
       {/* VIEWER: watch HLS */}
       {isViewer && (

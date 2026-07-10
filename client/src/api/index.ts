@@ -3129,3 +3129,40 @@ export const metaLeadsApi = {
   setupWebhook: () =>
     authenticatedFetch(`${API_BASE_URL}/meta-leads/setup-webhook`, { method: 'POST' }),
 };
+
+// ── Live Classes (100ms) ──────────────────────────────────────────────────────
+export interface HmsClass {
+  _id: string;
+  title: string;
+  description?: string;
+  mode: 'online' | 'offline' | 'hybrid';
+  instructorName: string;
+  scheduledAt: string;
+  durationMin: number;
+  status: 'scheduled' | 'live' | 'ended' | 'cancelled';
+  hlsUrl?: string;
+  recordingReady?: boolean;
+  recordingUrl?: string;
+}
+
+export const hmsClassApi = {
+  list: (status?: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes${status ? `?status=${status}` : ''}`),
+  get: (id: string) => authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}`),
+  create: (body: any) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes`, { method: 'POST', body: JSON.stringify(body) }),
+  update: (id: string, body: any) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+  remove: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}`, { method: 'DELETE' }),
+  start: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/start`, { method: 'POST' }),
+  end: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/end`, { method: 'POST' }),
+  joinToken: (id: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/join-token`, { method: 'POST' }),
+  setHlsUrl: (id: string, hlsUrl: string) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/hls-url`, { method: 'POST', body: JSON.stringify({ hlsUrl }) }),
+  changeRole: (id: string, peerId: string, toStage: boolean) =>
+    authenticatedFetch(`${API_BASE_URL}/hms-classes/${id}/change-role`, { method: 'POST', body: JSON.stringify({ peerId, toStage }) }),
+};

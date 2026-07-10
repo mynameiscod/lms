@@ -35,6 +35,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'integrations',label: 'Other Integrations', icon: '🔌', description: 'Google Ads webhook, UPI and Razorpay payment configuration (learning-plan unlock).' },
   { id: 'placement',   label: 'Placement Outreach', icon: '🤝', description: 'Daily send cap, gap between sends and sender name for the placement-partner outreach pipeline. Todoist token for hot-lead/check-in tasks.' },
   { id: 'interview',   label: 'AI Interview', icon: '🎙️', description: 'Realistic AI mock interviews — natural voice (ElevenLabs) and a talking-head interviewer (D-ID). Leave blank to use the free browser voice + animated avatar.' },
+  { id: 'live-classes',label: 'Live Classes (100ms)', icon: '🎥', description: 'Live online / hybrid classes powered by 100ms. Instructor broadcasts, 500+ students watch via HLS, and any student can be brought on stage. Recordings auto-save to Class Hub.' },
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -119,6 +120,13 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'DID_API_KEY', label: 'D-ID API Key', group: 'interview', isSecret: true, type: 'password', placeholder: 'basic ...', help: 'D-ID → Studio → API. Powers the real-time talking-head interviewer.', perTenant: true },
   { key: 'INTERVIEW_AVATAR_IMAGE_URL', label: 'Interviewer Avatar Image URL', group: 'interview', type: 'text', placeholder: 'https://.../interviewer.jpg', help: 'A professional headshot used as the talking-head presenter (and the avatar tile).', perTenant: true },
   { key: 'INTERVIEW_INTERVIEWER_NAME', label: 'Interviewer Name', group: 'interview', type: 'text', placeholder: 'Maya', help: 'The persona name the AI introduces itself as.', perTenant: true },
+
+  // ── Live Classes (100ms) ─────────────────────────────────────────────────────
+  { key: 'HMS_APP_ACCESS_KEY', label: '100ms App Access Key', group: 'live-classes', isSecret: true, type: 'password', placeholder: 'app access key', help: '100ms Dashboard → Developer → App Credentials → App Access Key.' },
+  { key: 'HMS_APP_SECRET', label: '100ms App Secret', group: 'live-classes', isSecret: true, type: 'password', placeholder: 'app secret', help: '100ms Dashboard → Developer → App Credentials → App Secret. Signs room/join tokens — kept server-side only.' },
+  { key: 'HMS_TEMPLATE_ID', label: '100ms Template ID', group: 'live-classes', type: 'text', placeholder: '6a5114e5...', help: '100ms Dashboard → Templates → your Webinar template → Template ID. Defines the roles (broadcaster / viewer / viewer-on-stage).' },
+  { key: 'HMS_SUBDOMAIN', label: '100ms Subdomain', group: 'live-classes', type: 'text', placeholder: 'code-webinar-2111.app.100ms.live', help: 'Your 100ms app subdomain (from the dashboard).' },
+  { key: 'HMS_WEBHOOK_SECRET', label: '100ms Webhook Secret', group: 'live-classes', isSecret: true, type: 'password', help: 'Optional. Shared secret to verify 100ms webhook calls (recording ready, peer join/leave). Set the same value in Dashboard → Developer → Webhooks.' },
 ];
 
 export const SECRET_KEYS = new Set(SETTING_DEFS.filter(d => d.isSecret).map(d => d.key));

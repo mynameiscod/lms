@@ -66,6 +66,8 @@ import mentorRoutes from './mentorRoutes';
 import resourceRoutes from './resourceRoutes';
 import speakingRoutes from './speakingRoutes';
 import drillRoutes from './drillRoutes';
+import liveClassRoutes from './liveClassRoutes';
+import { hmsWebhook } from '../controllers/liveClassController';
 import thinkingLabRoutes from './thinkingLabRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
@@ -104,6 +106,7 @@ router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
+router.post('/hms/webhook', hmsWebhook); // 100ms webhook (public) — recording ready, peer join/leave
 
 router.use('/auth', authRoutes);
 router.use('/tenants', tenantRoutes);
@@ -169,6 +172,7 @@ router.use('/public-quizzes', adminPublicQuizRoutes);
 // ─── Learning Plan Module ──────────────────────────────────────────────────────
 router.use('/learning-library', learningContentLibraryRoutes);
 router.use('/live-classes', liveSessionRoutes);
+router.use('/hms-classes', liveClassRoutes); // 100ms-backed hybrid live classes (webinar stage model)
 router.use('/curricula', learningCurriculumRoutes);
 router.use('/enrollment-plans', enrollmentPlanRoutes);
 router.use('/projects', projectRoutes);

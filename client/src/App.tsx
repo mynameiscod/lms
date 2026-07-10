@@ -180,6 +180,8 @@ import AdminLogs from './pages/AdminLogs';
 // Scheduled Interview Module
 import ScheduledInterviewsPage from './pages/ScheduledInterviews';
 import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
+import HmsClassesPage from './pages/HmsClasses';
+import HmsRoomPage from './pages/HmsClasses/Room';
 import MyInterviewsPage from './pages/MyInterviews';
 
 
@@ -501,6 +503,25 @@ const AppRoutes: React.FC = () => {
             <Layout>
               <ThinkingLab />
             </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/hms-classes"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <HmsClassesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/hms-classes/:id/room"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <HmsRoomPage />
           </ProtectedRoute>
         }
       />

@@ -3,6 +3,7 @@ import FormData from 'form-data';
 import axios from 'axios';
 import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
 import * as settings from './settingsService';
+import { recordUsage } from './aiGateway';
 
 /**
  * speakingService — occurrence scheduling, Whisper transcription and AI evaluation
@@ -53,7 +54,7 @@ export function weekKey(dateStr: string): string {
 }
 
 // Transcribe a recorded file (audio or video/webm) via OpenAI Whisper.
-export async function transcribeFile(filePath: string): Promise<{ text: string; durationSec: number }> {
+export async function transcribeFile(filePath: string, tenantId?: string, module = 'whisper'): Promise<{ text: string; durationSec: number }> {
   const apiKey = settings.getStr('OPENAI_API_KEY', process.env.OPENAI_API_KEY || '');
   if (!apiKey) throw new Error('OPENAI_API_KEY is not configured (needed for speech-to-text).');
   const form = new FormData();
@@ -64,7 +65,9 @@ export async function transcribeFile(filePath: string): Promise<{ text: string; 
     headers: { ...form.getHeaders(), Authorization: `Bearer ${apiKey}` },
     maxContentLength: Infinity, maxBodyLength: Infinity, timeout: 300_000,
   });
-  return { text: r.data?.text || '', durationSec: Math.round(r.data?.duration || 0) };
+  const durationSec = Math.round(r.data?.duration || 0);
+  await recordUsage({ tenantId, module, provider: 'whisper', model: 'whisper-1', audioSeconds: durationSec });
+  return { text: r.data?.text || '', durationSec };
 }
 
 const stripJson = (s: string) => (s || '').replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();

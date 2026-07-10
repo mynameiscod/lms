@@ -1,8 +1,7 @@
-import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
-import * as settings from './settingsService';
 import codeRunner from './codeRunnerService';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { generateItems } from './assessmentQuestionGeneratorService';
+import { aiComplete } from './aiGateway';
 
 const RUNNABLE: Record<string, ProgrammingLanguage> = {
   javascript: ProgrammingLanguage.JAVASCRIPT, python: ProgrammingLanguage.PYTHON, java: ProgrammingLanguage.JAVA,
@@ -39,19 +38,9 @@ export async function generateProblem(tenantId: string, concept: string, difficu
 }
 
 async function ai(system: string, user: string, maxTokens = 500): Promise<string> {
-  if (isAnthropicEnabled()) {
-    const a = getAnthropic();
-    if (a) {
-      const model = settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6');
-      const r: any = await a.messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] });
-      return (r.content || []).map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
-    }
-  }
-  const o = getOpenAI();
-  if (!o) return '';
-  const model = settings.getStr('OPENAI_MODEL', 'gpt-4o-mini');
-  const r = await o.chat.completions.create({ model, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
-  return r.choices?.[0]?.message?.content?.trim() || '';
+  // Gateway = auto failover OpenAI↔Claude + cost logging (module: drill).
+  try { return await aiComplete({ module: 'drill', system, user, maxTokens }); }
+  catch { return ''; }
 }
 
 const stripJson = (s: string) => (s || '').replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();

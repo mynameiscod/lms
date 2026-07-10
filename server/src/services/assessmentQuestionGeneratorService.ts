@@ -1,4 +1,5 @@
 import { getAnthropic, isAnthropicEnabled } from './aiClients';
+import { recordUsage } from './aiGateway';
 import * as settings from './settingsService';
 import AssessmentItem from '../models/AssessmentItem';
 import codeRunner from './codeRunnerService';
@@ -59,15 +60,16 @@ function buildPrompt(spec: GenSpec): string {
   ].filter(Boolean).join('\n');
 }
 
-async function callClaude(spec: GenSpec): Promise<any[]> {
+async function callClaude(spec: GenSpec, tenantId?: string): Promise<any[]> {
   const client = getAnthropic();
   if (!client) return [];
-  const resp = await client.messages.create({
+  const resp: any = await client.messages.create({
     model: MODEL(),
     max_tokens: 2200,
     system: 'You are an expert technical interviewer writing precise, auto-gradable coding-assessment items. Output only raw JSON.',
     messages: [{ role: 'user', content: buildPrompt(spec) }],
   });
+  await recordUsage({ tenantId, module: 'question_gen', provider: 'anthropic', model: MODEL(), inputTokens: resp.usage?.input_tokens || 0, outputTokens: resp.usage?.output_tokens || 0 });
   const text = resp.content.map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
   const arr = JSON.parse(text.replace(/^```(?:json)?|```$/g, '').trim());
   return Array.isArray(arr) ? arr : [arr];
@@ -152,7 +154,7 @@ async function finalizeItem(raw: any, spec: GenSpec): Promise<any | null> {
 export async function generateItems(tenantId: string, spec: GenSpec, opts: { persist?: boolean } = {}): Promise<any[]> {
   if (!isAnthropicEnabled() || spec.count <= 0) return [];
   let raws: any[] = [];
-  try { raws = await callClaude(spec); } catch { return []; }
+  try { raws = await callClaude(spec, tenantId); } catch { return []; }
 
   const finalized: any[] = [];
   for (const raw of raws.slice(0, spec.count + 2)) {

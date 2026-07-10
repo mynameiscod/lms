@@ -1,6 +1,6 @@
-import { getAnthropic, getOpenAI, isAnthropicEnabled } from './aiClients';
 import * as settings from './settingsService';
 import { generateProblem, runAgainstTests } from './drillService';
+import { aiComplete } from './aiGateway';
 
 // ── Categories & difficulty ──────────────────────────────────────────────────
 export const THINKING_CATEGORIES = [
@@ -13,31 +13,15 @@ export const THINKING_DIFFICULTIES = ['easy', 'medium', 'hard', 'expert', 'inter
 export const XP_BY_DIFFICULTY: Record<string, number> = { easy: 50, medium: 70, hard: 100, expert: 130, interview: 120 };
 export const DIFF_NUM: Record<string, number> = { easy: 1, medium: 2, hard: 3, expert: 4, interview: 3 };
 
-// ── Cheap-by-default AI helper (routine eval → gpt-4o-mini via settings) ──────
-// Only "premium" callers pass preferAnthropic=true.
-async function evalAi(system: string, user: string, maxTokens = 1200, preferAnthropic = false): Promise<string> {
-  if (preferAnthropic && isAnthropicEnabled()) {
-    const a = getAnthropic();
-    if (a) {
-      const model = settings.getStr('THINKING_PREMIUM_MODEL', settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6'));
-      const r: any = await a.messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] });
-      return (r.content || []).map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
-    }
-  }
-  const o = getOpenAI();
-  if (o) {
-    const model = settings.getStr('THINKING_EVAL_MODEL', settings.getStr('OPENAI_MODEL', 'gpt-4o-mini'));
-    const r = await o.chat.completions.create({ model, max_tokens: maxTokens, messages: [{ role: 'system', content: system }, { role: 'user', content: user }] });
-    return r.choices?.[0]?.message?.content?.trim() || '';
-  }
-  // Fall back to Anthropic if OpenAI isn't configured.
-  const a = getAnthropic();
-  if (a) {
-    const model = settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6');
-    const r: any = await a.messages.create({ model, max_tokens: maxTokens, system, messages: [{ role: 'user', content: user }] });
-    return (r.content || []).map((b: any) => (b.type === 'text' ? b.text : '')).join('').trim();
-  }
-  return '';
+// Cheap-by-default AI helper via the gateway (auto failover OpenAI↔Claude + cost logging).
+// Premium callers pass preferAnthropic=true. tenantId/module tag the spend.
+async function evalAi(system: string, user: string, maxTokens = 1200, preferAnthropic = false, tenantId?: string, module = 'thinking_lab'): Promise<string> {
+  return aiComplete({
+    tenantId, module, system, user, maxTokens,
+    prefer: preferAnthropic ? 'anthropic' : 'openai',
+    openaiModel: settings.getStr('THINKING_EVAL_MODEL', settings.getStr('OPENAI_MODEL', 'gpt-4o-mini')),
+    anthropicModel: preferAnthropic ? settings.getStr('THINKING_PREMIUM_MODEL', settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6')) : undefined,
+  });
 }
 
 const stripJson = (s: string) => (s || '').replace(/^```(?:json)?/i, '').replace(/```$/i, '').trim();
@@ -55,7 +39,7 @@ export async function generateThinkingProblem(
   try {
     const sys = 'You add teaching metadata to a coding problem. Output ONLY raw JSON, no prose.';
     const usr = `Category: ${category}\nDifficulty: ${difficulty}\nProblem:\n"""${base.prompt}"""\n\nReturn JSON: {"title":"<=8-word title","constraints":"1-3 short constraint lines","hints":["tiny clue","medium clue","almost-complete logic"],"expectedTimeComplexity":"e.g. O(n)","expectedSpaceComplexity":"e.g. O(1)","estimatedMinutes":10}`;
-    meta = JSON.parse(stripJson(await evalAi(sys, usr, 500)));
+    meta = JSON.parse(stripJson(await evalAi(sys, usr, 500, false, tenantId, 'thinking_lab_gen')));
   } catch { /* metadata is best-effort */ }
 
   return {
@@ -82,7 +66,7 @@ export const runCode = runAgainstTests;
 export async function evaluateSubmission(input: {
   statement: string; approach: string; code: string; language: string;
   allPassed: boolean; passedCount: number; total: number;
-  expectedTime?: string; expectedSpace?: string; premium?: boolean;
+  expectedTime?: string; expectedSpace?: string; premium?: boolean; tenantId?: string;
 }): Promise<any> {
   const sys = [
     'You are an expert coding mentor for engineering students. Evaluate a submission on THINKING quality, not just correctness.',
@@ -102,7 +86,7 @@ export async function evaluateSubmission(input: {
     `"improvedSolution":"a short better version or key change (plain text, may include code)","alternativeSolution":"a different approach in 1-2 lines",` +
     `"summary":"2-sentence encouraging summary"}`;
   try {
-    const parsed = JSON.parse(stripJson(await evalAi(sys, usr, 1400, !!input.premium)));
+    const parsed = JSON.parse(stripJson(await evalAi(sys, usr, 1400, !!input.premium, input.tenantId, 'thinking_lab_eval')));
     return parsed;
   } catch {
     // Deterministic fallback so the student always gets feedback.
@@ -123,7 +107,7 @@ export async function evaluateSubmission(input: {
 // ── Voice "Explain to AI" evaluation ─────────────────────────────────────────
 // Scores a spoken explanation of the approach on communication dimensions.
 export async function evaluateVoiceExplanation(input: {
-  statement: string; transcript: string; durationSec: number;
+  statement: string; transcript: string; durationSec: number; tenantId?: string;
 }): Promise<any> {
   const sys = 'You are a warm but honest technical communication coach. A student explained aloud how they would solve a coding problem (audio transcribed below). Evaluate their SPOKEN explanation. Output ONLY raw JSON.';
   const usr = `PROBLEM:\n"""${(input.statement || '').slice(0, 1500)}"""\n\n` +
@@ -131,7 +115,7 @@ export async function evaluateVoiceExplanation(input: {
     `Score each 0-100 based on what they actually said. Return JSON:\n` +
     `{"confidence":0-100,"communication":0-100,"grammar":0-100,"logic":0-100,"flow":0-100,"professionalism":0-100,"technicalVocabulary":0-100,"overall":0-100,` +
     `"summary":"2-sentence encouraging assessment","tips":["specific tip to sound clearer/more confident next time","..."]}`;
-  try { return JSON.parse(stripJson(await evalAi(sys, usr, 900))); }
+  try { return JSON.parse(stripJson(await evalAi(sys, usr, 900, false, input.tenantId, 'thinking_lab_voice'))); }
   catch {
     const wc = (input.transcript || '').split(/\s+/).filter(Boolean).length;
     const base = Math.min(85, 40 + Math.round(wc / 3));
@@ -143,7 +127,7 @@ export async function evaluateVoiceExplanation(input: {
 // ── Thinking Profile ─────────────────────────────────────────────────────────
 // Build a rolling profile from journals + rubric scores + categories + voice.
 export async function computeThinkingProfile(payload: {
-  samples: { category: string; difficulty: string; passed: boolean; scores?: any; journal?: any; voice?: any }[];
+  samples: { category: string; difficulty: string; passed: boolean; scores?: any; journal?: any; voice?: any }[]; tenantId?: string;
 }): Promise<any> {
   const n = payload.samples.length;
   const compact = payload.samples.slice(0, 40).map((s, i) =>
@@ -159,7 +143,7 @@ export async function computeThinkingProfile(payload: {
     `{"summary":"3-4 sentence portrait of them as a problem-solver","strengths":["..."],"weaknesses":["..."],` +
     `"traits":[{"label":"e.g. Strong in patterns / Weak in optimization / Needs confidence / Excellent debugging / Slow decision maker / Great communication","note":"1 line why"}],` +
     `"recommendations":["concrete next-step advice"]}`;
-  try { return JSON.parse(stripJson(await evalAi(sys, usr, 1200))); }
+  try { return JSON.parse(stripJson(await evalAi(sys, usr, 1200, false, payload.tenantId, 'thinking_lab_profile'))); }
   catch { return { summary: 'Keep solving daily challenges and journaling — your thinking profile will sharpen as more data comes in.', strengths: [], weaknesses: [], traits: [], recommendations: ['Solve at least one challenge a day and answer the journal questions honestly.'] }; }
 }
 
@@ -191,12 +175,12 @@ export const publicProblem = (p: any, revealedHints = 0) => ({
 });
 
 // Step-by-step dry run of the student's solution (post-submission learning).
-export async function explainStepByStep(input: { statement: string; code: string; language: string; expectedTime?: string }): Promise<any> {
+export async function explainStepByStep(input: { statement: string; code: string; language: string; expectedTime?: string; tenantId?: string }): Promise<any> {
   const sys = 'You are a patient tutor producing a STEP-BY-STEP dry run of a student\'s solution so they can see exactly how it executes. Output ONLY raw JSON.';
   const usr = `PROBLEM:\n"""${(input.statement || '').slice(0, 1500)}"""\n\nSTUDENT CODE (${input.language}):\n"""${(input.code || '').slice(0, 3000)}"""\n\n` +
     `Pick ONE small representative input and trace execution. Return JSON:\n` +
     `{"sampleInput":"...","dryRun":[{"step":1,"action":"what happens","state":"key variable values after this step"}],` +
     `"finalOutput":"...","timeComplexity":"O(...)","spaceComplexity":"O(...)","bestPractice":"1-2 lines on how a pro would write/optimize this","altLogic":"a different approach in 1 line"}`;
-  try { return JSON.parse(stripJson(await evalAi(sys, usr, 1400))); }
+  try { return JSON.parse(stripJson(await evalAi(sys, usr, 1400, false, input.tenantId, 'thinking_lab_explain'))); }
   catch { return { sampleInput: '', dryRun: [], finalOutput: '', timeComplexity: input.expectedTime || 'n/a', spaceComplexity: 'n/a', bestPractice: 'Trace your code by hand on a small input to internalise how each step changes the variables.', altLogic: '' }; }
 }

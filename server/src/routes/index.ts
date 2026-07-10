@@ -82,6 +82,7 @@ import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import publicCertificateRoutes from './publicCertificateRoutes';
 import certificateRoutes from './certificateRoutes';
+import aiUsageRoutes from './aiUsageRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
 import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
@@ -100,6 +101,7 @@ router.use('/public/certificate', publicCertificateRoutes); // certificate verif
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public', publicLeadRoutes);
 router.use('/certificates', certificateRoutes);
+router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
 

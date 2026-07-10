@@ -205,7 +205,7 @@ export const submit = async (req: Request, res: Response) => {
       statement: p.statement, approach: ch.approach || '', code, language: ch.language,
       allPassed, passedCount, total: results.length,
       expectedTime: p.expectedTimeComplexity, expectedSpace: p.expectedSpaceComplexity,
-      premium: p.difficulty === 'interview',
+      premium: p.difficulty === 'interview', tenantId: tId(req),
     });
 
     const xp = lab.computeXp({ problemXp: p.xp, allPassed, attempts: ch.attempts, hintsUsed: ch.hintsUsed, explainedThinking: (ch.approachWordCount || 0) >= lab.MIN_APPROACH_WORDS });
@@ -301,9 +301,9 @@ export const voiceExplain = async (req: Request, res: Response) => {
     if (!file) return res.status(400).json({ message: 'No recording uploaded.' });
     const p: any = await ThinkingProblem.findById(ch.problemId).lean();
 
-    const { text, durationSec } = await transcribeFile(file.path);
+    const { text, durationSec } = await transcribeFile(file.path, tId(req), 'thinking_lab_voice_stt');
     if (!text.trim()) return res.status(422).json({ message: "Couldn't hear a clear explanation — try recording again in a quieter spot." });
-    const evalRes = await lab.evaluateVoiceExplanation({ statement: p?.statement || '', transcript: text, durationSec });
+    const evalRes = await lab.evaluateVoiceExplanation({ statement: p?.statement || '', transcript: text, durationSec, tenantId: tId(req) });
     const voiceEval = { transcript: text, durationSec, ...evalRes };
     ch.voiceEval = voiceEval;
 
@@ -357,7 +357,7 @@ export const getProfile = async (req: Request, res: Response) => {
         category: r.problemId?.category || 'General', difficulty: r.difficulty, passed: r.passed,
         scores: r.aiFeedback, journal: r.journal, voice: r.voiceEval,
       }));
-      const computed = await lab.computeThinkingProfile({ samples });
+      const computed = await lab.computeThinkingProfile({ samples, tenantId: tId(req) });
       prof = await ThinkingProfile.findOneAndUpdate(
         { tenantId: tId(req), studentId: uId(req) },
         { $set: { ...computed, basedOnCount: journalCount, computedAt: new Date() } },
@@ -426,7 +426,7 @@ export const explain = async (req: Request, res: Response) => {
     if (!ch) return res.status(404).json({ message: 'Challenge not found' });
     if (!ch.code) return res.status(400).json({ message: 'Submit a solution first.' });
     const p: any = await ThinkingProblem.findById(ch.problemId).lean();
-    const out = await lab.explainStepByStep({ statement: p?.statement || '', code: ch.code, language: ch.language, expectedTime: p?.expectedTimeComplexity });
+    const out = await lab.explainStepByStep({ statement: p?.statement || '', code: ch.code, language: ch.language, expectedTime: p?.expectedTimeComplexity, tenantId: tId(req) });
     res.json({ explanation: out });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

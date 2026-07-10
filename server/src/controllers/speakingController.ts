@@ -217,7 +217,7 @@ export const submit = async (req: Request, res: Response) => {
 
     // 1) Transcribe from the temp file (before it's removed).
     let transcript = ''; let durationSec = 0;
-    try { const t = await transcribeFile(file.path); transcript = t.text; durationSec = t.durationSec; } catch (e: any) { /* eval will note low content */ }
+    try { const t = await transcribeFile(file.path, (req as any).tenantId, 'speaking_stt'); transcript = t.text; durationSec = t.durationSec; } catch (e: any) { /* eval will note low content */ }
 
     // 2) Upload the recording to Bunny.
     const key = `speaking/${tId(req)}/${uId(req)}/${Date.now()}-${crypto.randomBytes(4).toString('hex')}.webm`;

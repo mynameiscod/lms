@@ -125,6 +125,7 @@ import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './page
 import CertificatePage from './pages/Certificate/CertificatePage';
 import CertificateVerify from './pages/CertificateVerify';
 import CertificatesAdmin from './pages/CertificatesAdmin';
+import AiSpend from './pages/AiSpend';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
 import LeadScoringSettingsPage from './pages/LeadScoringSettings';
 import LeadSourcesPage from './pages/LeadSources';
@@ -521,6 +522,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <CertificatesAdmin />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/ai-spend"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN']}>
+            <Layout>
+              <AiSpend />
             </Layout>
           </ProtectedRoute>
         }

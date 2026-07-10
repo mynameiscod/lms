@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { hmsClassApi, HmsClass } from '../../api';
+import { hmsClassApi, HmsClass, batchApi } from '../../api';
 
 const HOST_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
@@ -25,7 +25,8 @@ const HmsClassesPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
-  const [form, setForm] = useState({ title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '' });
+  const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
+  const [form, setForm] = useState({ title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '', batchId: '' });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -41,13 +42,24 @@ const HmsClassesPage: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  useEffect(() => {
+    if (!isHost) return;
+    (async () => {
+      try {
+        const res: any = await batchApi.getBatches();
+        const list = res?.data || res?.batches || res || [];
+        setBatches((Array.isArray(list) ? list : []).map((b: any) => ({ _id: b._id, name: b.name || b.batchName || 'Batch' })));
+      } catch { /* ignore — batch is optional */ }
+    })();
+  }, [isHost]);
+
   const create = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title || !form.scheduledAt) { setMsg('Title and date/time are required'); return; }
     setBusy('create');
     try {
       const res: any = await hmsClassApi.create(form);
-      if (res.success) { setShowCreate(false); setForm({ title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '' }); load(); }
+      if (res.success) { setShowCreate(false); setForm({ title: '', description: '', mode: 'hybrid', scheduledAt: '', durationMin: 60, instructorName: '', batchId: '' }); load(); }
       else setMsg(res.message || 'Failed');
     } catch (e: any) { setMsg(e.message || 'Failed'); } finally { setBusy(''); }
   };
@@ -192,6 +204,13 @@ const HmsClassesPage: React.FC = () => {
                 <label style={lbl}>Instructor Name</label>
                 <input style={input} value={form.instructorName} onChange={e => setForm(f => ({ ...f, instructorName: e.target.value }))} placeholder={user?.email} />
               </div>
+            </div>
+            <div>
+              <label style={lbl}>Batch <span style={{ fontWeight: 400, color: '#9ca3af' }}>(for auto-attendance & reminders)</span></label>
+              <select style={input} value={form.batchId} onChange={e => setForm(f => ({ ...f, batchId: e.target.value }))}>
+                <option value="">— No batch (attendance won’t be recorded) —</option>
+                {batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}
+              </select>
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
               <button type="button" onClick={() => setShowCreate(false)} style={{ padding: '9px 16px', background: '#f3f4f6', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14 }}>Cancel</button>

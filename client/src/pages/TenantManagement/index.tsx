@@ -95,7 +95,7 @@ const DEFAULT_CREATE_MODULES: TenantModules = {
   thinkingLab: false, speakingPractice: false, resourceLibrary: false, careerPilot: false,
 };
 
-const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {
+const CreateTenantPanel: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {
   const [form, setForm] = useState({
     organizationName: '', firstName: '', lastName: '', email: '', password: ''
   });
@@ -163,14 +163,13 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
   };
 
   return (
-    <div className="tm-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="tm-modal tm-modal-wide">
-        <div className="tm-modal-header">
-          <h4><i className="fa-solid fa-building me-2" />Add New Organization</h4>
-          <button className="tm-close" onClick={onClose}><i className="fa-solid fa-xmark" /></button>
-        </div>
+    <div className="tm-panel tm-create-panel">
+      <div className="tm-panel-head tm-create-head">
+        <h4 className="tm-panel-title"><i className="fa-solid fa-building me-2" />Add New Organization</h4>
+        <button className="tm-close" onClick={onClose}><i className="fa-solid fa-xmark" /></button>
+      </div>
 
-        <form onSubmit={submit} className="tm-modal-body">
+      <form onSubmit={submit} className="tm-modal-body tm-create-body">
           {error && <div className="tm-modal-error">{error}</div>}
 
           {/* Org Type & Plan */}
@@ -285,8 +284,7 @@ const CreateTenantModal: React.FC<CreateModalProps> = ({ onClose, onCreated }) =
               {saving ? 'Creating…' : 'Create Organization'}
             </button>
           </div>
-        </form>
-      </div>
+      </form>
     </div>
   );
 };
@@ -359,6 +357,7 @@ const TenantManagementPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<'newest' | 'oldest' | 'name'>('newest');
   const [showCreate, setShowCreate] = useState(false);
   const [successLinks, setSuccessLinks] = useState<{ name: string; login: string; register: string } | null>(null);
   const [copiedId, setCopiedId] = useState('');
@@ -427,10 +426,22 @@ const TenantManagementPage: React.FC = () => {
   const enabledCount = (m?: TenantModules) =>
     Object.values(m || DEFAULT_MODULES).filter(Boolean).length;
 
-  const filtered = tenants.filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.slug.toLowerCase().includes(search.toLowerCase())
-  );
+  const openCreate = () => {
+    setSelected(null);
+    setShowCreate(true);
+  };
+
+  const filtered = tenants
+    .filter(t =>
+      t.name.toLowerCase().includes(search.toLowerCase()) ||
+      t.slug.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sort === 'name') return a.name.localeCompare(b.name);
+      const at = new Date(a.createdAt).getTime();
+      const bt = new Date(b.createdAt).getTime();
+      return sort === 'oldest' ? at - bt : bt - at;
+    });
 
   return (
     <div className="tm-page">
@@ -446,12 +457,12 @@ const TenantManagementPage: React.FC = () => {
             <i className="fa-solid fa-magnifying-glass" />
             <input
               className="tm-search"
-              placeholder="Search tenantsâ€¦"
+              placeholder="Search tenants…"
               value={search}
               onChange={e => setSearch(e.target.value)}
             />
           </div>
-          <button className="btn btn-primary btn-sm tm-add-btn" onClick={() => setShowCreate(true)}>
+          <button className="btn btn-primary btn-sm tm-add-btn" onClick={openCreate}>
             <i className="fa-solid fa-plus me-1" />Add Tenant
           </button>
         </div>
@@ -459,16 +470,25 @@ const TenantManagementPage: React.FC = () => {
 
       {toast && <div className="tm-toast">{toast}</div>}
 
-      <div className="tm-layout">
+      <div className={`tm-layout${showCreate ? ' adding' : ''}`}>
         {/* Left: tenant list */}
-        <div className="tm-list">
+        <div className="tm-list-col">
+          <div className="tm-list-head">
+            <span className="tm-list-count">Tenants <b>({filtered.length})</b></span>
+            <select className="tm-sort" value={sort} onChange={e => setSort(e.target.value as typeof sort)}>
+              <option value="newest">Newest First</option>
+              <option value="oldest">Oldest First</option>
+              <option value="name">Name (A–Z)</option>
+            </select>
+          </div>
+          <div className="tm-list">
           {loading ? (
             <div className="tm-loading"><div className="spinner-border spinner-border-sm" /></div>
           ) : filtered.length === 0 ? (
             <div className="tm-empty-state">
               <i className="fa-solid fa-building-circle-exclamation" />
               <p>No tenants yet.</p>
-              <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
+              <button className="btn btn-primary btn-sm" onClick={openCreate}>
                 <i className="fa-solid fa-plus me-1" />Add First Tenant
               </button>
             </div>
@@ -482,7 +502,7 @@ const TenantManagementPage: React.FC = () => {
                 <div className="tm-avatar">{t.name[0].toUpperCase()}</div>
                 <div className="tm-card-info">
                   <div className="tm-card-name">{t.name}</div>
-                  <div className="tm-card-meta">{t.slug} Â· {t.subscriptionPlan}</div>
+                  <div className="tm-card-meta">{t.slug} · {t.subscriptionPlan}</div>
                 </div>
                 <span className={`tm-badge ${t.isActive ? 'active' : 'inactive'}`}>
                   {t.isActive ? 'Active' : 'Inactive'}
@@ -497,7 +517,15 @@ const TenantManagementPage: React.FC = () => {
                     </span>
                   );
                 })}
-                <span className="tm-chip-count">{enabledCount(t.modules)}/{MODULE_DEFS.length}</span>
+              </div>
+              <div className="tm-card-progress">
+                <div className="tm-progress-track">
+                  <div
+                    className="tm-progress-fill"
+                    style={{ width: `${(enabledCount(t.modules) / MODULE_DEFS.length) * 100}%` }}
+                  />
+                </div>
+                <span className="tm-modules-label">{enabledCount(t.modules)} / {MODULE_DEFS.length} Modules</span>
               </div>
               <div className="tm-card-actions" onClick={e => e.stopPropagation()}>
                 <button
@@ -513,9 +541,10 @@ const TenantManagementPage: React.FC = () => {
               </div>
             </div>
           ))}
+          </div>
         </div>
 
-        {/* Right: edit panel */}
+        {/* Middle: edit panel */}
         {selected ? (
           <div className="tm-panel">
             <div className="tm-panel-head">
@@ -539,7 +568,7 @@ const TenantManagementPage: React.FC = () => {
             </div>
             <p className="tm-panel-hint">
               Toggle modules on/off. <strong>Disabled modules are completely hidden</strong> from all
-              users in this tenant â€” admins, instructors, and students alike.
+              users in this tenant — admins, instructors, and students alike.
             </p>
             <div className="tm-module-grid">
               {MODULE_DEFS.map(m => {
@@ -575,18 +604,20 @@ const TenantManagementPage: React.FC = () => {
           </div>
         ) : (
           <div className="tm-panel tm-panel-empty">
-            <i className="fa-solid fa-arrow-left tm-panel-empty-icon" />
-            <p>Select a tenant from the list to configure its modules.</p>
+            <i className="fa-solid fa-building tm-panel-empty-icon" />
+            <p className="tm-panel-empty-title">Select a tenant to configure</p>
+            <p className="tm-panel-empty-sub">Choose a tenant from the list to view and manage its enabled modules and settings.</p>
           </div>
         )}
-      </div>
 
-      {showCreate && (
-        <CreateTenantModal
-          onClose={() => setShowCreate(false)}
-          onCreated={handleCreated}
-        />
-      )}
+        {/* Right: inline create-organization panel */}
+        {showCreate && (
+          <CreateTenantPanel
+            onClose={() => setShowCreate(false)}
+            onCreated={handleCreated}
+          />
+        )}
+      </div>
 
       {successLinks && (
         <InviteLinksModal

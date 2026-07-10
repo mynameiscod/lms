@@ -163,7 +163,10 @@ const RoomInner: React.FC = () => {
   }, [hmsActions]);
 
   const changeRole = async (peerId: string, toStage: boolean) => {
-    try { await hmsClassApi.changeRole(id!, peerId, toStage); setNotice(''); }
+    // Client-side role change via the SDK (the broadcaster role has changeRole permission).
+    const act: any = hmsActions;
+    const fn = act.changeRoleOfPeer || act.changeRole;
+    try { await fn.call(act, peerId, toStage ? STAGE : 'viewer', true); setNotice(''); }
     catch (e: any) { setNotice(`Could not move the participant: ${e?.message || 'error'}`); }
   };
 

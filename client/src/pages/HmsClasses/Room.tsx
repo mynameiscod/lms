@@ -69,38 +69,72 @@ const RoomInner: React.FC = () => {
   const audioOn = useHMSStore(selectIsLocalAudioEnabled);
   const screenOn = useHMSStore(selectIsLocalScreenShared);
 
-  const [joining, setJoining] = useState(true);
+  const [phase, setPhase] = useState<'lobby' | 'joining' | 'joined'>('lobby');
   const [err, setErr] = useState('');
   const [role, setRole] = useState('');
+  const [tokenData, setTokenData] = useState<any>(null);
+  const [camReady, setCamReady] = useState(true);
+  const [micReady, setMicReady] = useState(true);
+  const previewRef = useRef<HTMLVideoElement>(null);
+  const previewStreamRef = useRef<MediaStream | null>(null);
 
   const role_ = localPeer?.roleName || role;
   const isBroadcaster = role_ === BROADCASTER;
   const isOnStage = role_ === STAGE;
   const isViewer = !isBroadcaster && !isOnStage;
+  const willPublish = role === BROADCASTER || role === STAGE; // needs camera/mic
 
-  // Join on mount
+  // 1) Fetch the join token up front (but don't join yet — show the lobby first)
   useEffect(() => {
     let cancelled = false;
     (async () => {
       try {
         const res: any = await hmsClassApi.joinToken(id!);
         if (!res.success) throw new Error(res.message || 'Could not get join token');
-        if (cancelled) return;
-        setRole(res.data.role);
-        await hmsActions.join({
-          authToken: res.data.token,
-          userName: [user?.email].filter(Boolean).join(' ') || 'Guest',
-          settings: { isAudioMuted: true, isVideoMuted: true },
-        });
+        if (!cancelled) { setTokenData(res.data); setRole(res.data.role); }
       } catch (e: any) {
-        if (!cancelled) setErr(e.message || 'Failed to join');
-      } finally {
-        if (!cancelled) setJoining(false);
+        if (!cancelled) setErr(e.message || 'Failed to load the class');
       }
     })();
-    return () => { cancelled = true; hmsActions.leave().catch(() => {}); };
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
+
+  // 2) In the lobby, show a camera preview for hosts / on-stage roles
+  useEffect(() => {
+    if (phase !== 'lobby' || !willPublish) return;
+    let stream: MediaStream | null = null;
+    (async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        previewStreamRef.current = stream;
+        if (previewRef.current) previewRef.current.srcObject = stream;
+      } catch {
+        setCamReady(false); setMicReady(false);
+      }
+    })();
+    return () => { stream?.getTracks().forEach(t => t.stop()); };
+  }, [phase, willPublish]);
+
+  // Leave the room on unmount
+  useEffect(() => () => { hmsActions.leave().catch(() => {}); }, [hmsActions]);
+
+  const doJoin = async () => {
+    if (!tokenData) return;
+    setPhase('joining');
+    previewStreamRef.current?.getTracks().forEach(t => t.stop()); // free devices for the SDK
+    try {
+      await hmsActions.join({
+        authToken: tokenData.token,
+        userName: [user?.email].filter(Boolean).join(' ') || 'Guest',
+        settings: { isAudioMuted: willPublish ? !micReady : true, isVideoMuted: willPublish ? !camReady : true },
+      });
+      setPhase('joined');
+    } catch (e: any) {
+      setErr(e.message || 'Failed to join');
+      setPhase('lobby');
+    }
+  };
 
   // Publish the HLS url to the server once the broadcaster goes live (so late viewers get it)
   useEffect(() => {
@@ -133,7 +167,41 @@ const RoomInner: React.FC = () => {
       </div>
     );
   }
-  if (joining || !isConnected) {
+  // ── Pre-join lobby (device check) ──────────────────────────────────────────
+  if (phase === 'lobby') {
+    return (
+      <div style={{ minHeight: '100vh', display: 'grid', placeItems: 'center', background: '#0b1220', color: '#fff', padding: 16 }}>
+        <div style={{ width: '100%', maxWidth: 520, background: '#111827', borderRadius: 16, padding: 24, textAlign: 'center' }}>
+          <h2 style={{ margin: '0 0 4px', fontSize: 20 }}>{tokenData?.title || 'Live Class'}</h2>
+          <p style={{ color: '#9ca3af', fontSize: 13, margin: '0 0 18px' }}>
+            {willPublish ? 'You are joining as a host — check your camera & mic.' : 'You are joining as a viewer — you will watch the live stream.'}
+          </p>
+
+          {willPublish ? (
+            <>
+              <div style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden', aspectRatio: '16 / 9', marginBottom: 14 }}>
+                <video ref={previewRef} autoPlay playsInline muted style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)' }} />
+                {!camReady && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#9ca3af', fontSize: 13 }}>Camera unavailable</div>}
+              </div>
+              <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginBottom: 18 }}>
+                <button onClick={() => setMicReady(v => !v)} style={btn(micReady ? '#374151' : '#dc2626')}>{micReady ? '🎙 Mic on' : '🔇 Mic off'}</button>
+                <button onClick={() => setCamReady(v => !v)} style={btn(camReady ? '#374151' : '#dc2626')}>{camReady ? '📹 Cam on' : '📷 Cam off'}</button>
+              </div>
+            </>
+          ) : (
+            <div style={{ display: 'grid', placeItems: 'center', height: 160, background: '#0b1220', borderRadius: 12, marginBottom: 18, fontSize: 40 }}>🎥</div>
+          )}
+
+          <button onClick={doJoin} disabled={!tokenData} style={{ ...btn('#16a34a'), width: '100%', padding: '12px 0', fontSize: 15 }}>
+            {tokenData ? (willPublish ? 'Join Class' : 'Join & Watch') : 'Loading…'}
+          </button>
+          <button onClick={() => navigate('/hms-classes')} style={{ ...btn('transparent'), marginTop: 8, color: '#9ca3af' }}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
     return <div style={{ minHeight: '60vh', display: 'grid', placeItems: 'center', color: '#9ca3af', background: '#0b1220' }}>Joining live class…</div>;
   }
 

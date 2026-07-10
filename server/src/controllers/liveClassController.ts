@@ -2,6 +2,7 @@ import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import LiveClass from '../models/LiveClass';
 import * as hms from '../services/hmsService';
+import { recordJoin, recordLeave, finalizeAttendance } from '../services/liveClassAttendanceService';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
@@ -183,6 +184,8 @@ export const endLiveClass = async (req: AuthenticatedRequest, res: Response<ApiR
     lc.endedAt = new Date();
     lc.hlsUrl = undefined;
     await lc.save();
+    // Turn the watch logs into attendance (best-effort; doesn't block the response)
+    finalizeAttendance(String(lc._id)).catch(() => {});
     res.status(200).json({ success: true, message: 'Class ended', data: lc });
   } catch (error: any) {
     res.status(400).json({ success: false, message: error.message, error: error.message });
@@ -195,9 +198,10 @@ export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
     const event = (req.body || {}) as any;
     const type = event.type;
     const data = event.data || {};
+    const roomId = data.room_id || data.roomId;
+
     // Recording finished → stash the URL on the matching class (Class Hub import comes in Phase 3)
     if (type === 'recording.success' || type === 'beam.recording.success') {
-      const roomId = data.room_id || data.roomId;
       const url = data.recording_path || data.recording_presigned_url || data.path;
       if (roomId && url) {
         await LiveClass.findOneAndUpdate(
@@ -206,6 +210,18 @@ export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
         );
       }
     }
+
+    // Attendance — accumulate watch time from peer lifecycle events
+    if (type === 'peer.join.success') {
+      await recordJoin(roomId, data.user_id || data.userId, data.role);
+    } else if (type === 'peer.leave.success') {
+      await recordLeave(roomId, data.user_id || data.userId, data.duration);
+    } else if (type === 'session.close.success' || type === 'room.end.success') {
+      // Session/room closed by 100ms — finalise attendance for that class
+      const lc = roomId ? await LiveClass.findOne({ hmsRoomId: roomId }).select('_id') : null;
+      if (lc) finalizeAttendance(String(lc._id)).catch(() => {});
+    }
+
     // Always 200 so 100ms doesn't retry-storm us
     res.status(200).json({ ok: true });
   } catch {

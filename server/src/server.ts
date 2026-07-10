@@ -16,6 +16,7 @@ import { startDueReminderScheduler } from './jobs/dueReminderCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
+import { startLiveClassReminderScheduler } from './jobs/liveClassReminderCron';
 import { startPartnerOutreachScheduler } from './jobs/partnerOutreachCron';
 import { startPartnerRetentionScheduler } from './jobs/partnerRetentionCron';
 import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
@@ -301,6 +302,9 @@ const startServer = async () => {
 
     // Start AI-interview start-reminder scheduler (in-app, 30m lead, every 5 min)
     startInterviewReminderScheduler();
+
+    // Start live-class "starts soon" reminder scheduler (in-app + email, 20m lead)
+    startLiveClassReminderScheduler();
 
     // Start placement-partner outreach sender (cap + gap enforced in service)
     startPartnerOutreachScheduler();

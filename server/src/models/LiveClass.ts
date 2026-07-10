@@ -27,6 +27,7 @@ export interface ILiveClass extends Document {
   status: LiveClassStatus;
   startedAt?: Date;
   endedAt?: Date;
+  reminderSent: boolean;   // "starts soon" reminder fired
 
   // Recording (auto-start on the 100ms template; url arrives via webhook)
   recordingReady: boolean;
@@ -59,6 +60,7 @@ const LiveClassSchema = new Schema<ILiveClass>(
     status: { type: String, enum: ['scheduled', 'live', 'ended', 'cancelled'], default: 'scheduled', index: true },
     startedAt: { type: Date },
     endedAt: { type: Date },
+    reminderSent: { type: Boolean, default: false },
 
     recordingReady: { type: Boolean, default: false },
     recordingUrl: { type: String },

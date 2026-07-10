@@ -3,6 +3,7 @@ import { AuthenticatedRequest, ApiResponse } from '../types';
 import LiveClass from '../models/LiveClass';
 import * as hms from '../services/hmsService';
 import { recordJoin, recordLeave, finalizeAttendance } from '../services/liveClassAttendanceService';
+import { importRecording, generateNotesFromTranscript, fetchTranscriptText } from '../services/liveClassRecordingService';
 
 const ADMIN_ROLES = ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'];
 
@@ -200,14 +201,31 @@ export const hmsWebhook = async (req: AuthenticatedRequest, res: Response) => {
     const data = event.data || {};
     const roomId = data.room_id || data.roomId;
 
-    // Recording finished → stash the URL on the matching class (Class Hub import comes in Phase 3)
+    // Recording finished → stash the URL and import it into the Class Hub (Bunny + published video)
     if (type === 'recording.success' || type === 'beam.recording.success') {
       const url = data.recording_path || data.recording_presigned_url || data.path;
       if (roomId && url) {
-        await LiveClass.findOneAndUpdate(
+        const lc = await LiveClass.findOneAndUpdate(
           { hmsRoomId: roomId },
-          { $set: { recordingReady: true, recordingUrl: url } }
+          { $set: { recordingReady: true, recordingUrl: url } },
+          { new: true }
         );
+        if (lc) importRecording(String(lc._id), url).catch(() => {});
+      }
+    }
+
+    // Transcription/summary add-on delivered → generate AI notes/quiz via Claude
+    if (type === 'transcription.success' || type === 'summary.success' || type === 'transcript.success') {
+      const lc = roomId ? await LiveClass.findOne({ hmsRoomId: roomId }).select('_id') : null;
+      // find any URL-ish field pointing at the transcript/summary text
+      const url: string | undefined = Object.values(data as Record<string, any>).find(
+        (v) => typeof v === 'string' && /^https?:\/\//.test(v) && /(transcript|summary|\.txt|\.json|\.vtt|\.srt)/i.test(v)
+      ) as string | undefined;
+      if (lc && url) {
+        (async () => {
+          const text = await fetchTranscriptText(url);
+          if (text) await generateNotesFromTranscript(String(lc._id), text);
+        })().catch(() => {});
       }
     }
 

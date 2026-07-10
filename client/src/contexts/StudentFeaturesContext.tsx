@@ -16,6 +16,14 @@ export interface StudentFeatures {
   scheduledInterviews: boolean;
   resumeBuilder: boolean;
   learningPlan: boolean;
+  thinkingLab: boolean;
+  speakingPractice: boolean;
+  jobTracker: boolean;
+  aiMentor: boolean;
+  projectBuilder: boolean;
+  resourceLibrary: boolean;
+  codePlayground: boolean;
+  careerProfile: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -32,6 +40,14 @@ const DEFAULT_FEATURES: StudentFeatures = {
   scheduledInterviews: true,
   resumeBuilder: true,
   learningPlan: true,
+  thinkingLab: true,
+  speakingPractice: true,
+  jobTracker: true,
+  aiMentor: true,
+  projectBuilder: true,
+  resourceLibrary: true,
+  codePlayground: true,
+  careerProfile: true,
 };
 
 interface StudentFeaturesContextType {

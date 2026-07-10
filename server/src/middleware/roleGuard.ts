@@ -133,6 +133,58 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_snippets', label: 'View & Submit Snippet Assessments' },
     ]
   },
+  thinkingLab: {
+    label: 'Logical Thinking Lab',
+    permissions: [
+      { key: 'manage_thinking_lab', label: 'Manage Thinking Lab Question Bank' },
+      { key: 'use_thinking_lab', label: 'Attempt Thinking Lab Drills' },
+    ]
+  },
+  speakingPractice: {
+    label: 'Speaking Practice',
+    permissions: [
+      { key: 'manage_speaking', label: 'Manage Speaking Practice Prompts' },
+      { key: 'use_speaking', label: 'Attempt Speaking Practice' },
+    ]
+  },
+  resourceLibrary: {
+    label: 'Resource Library',
+    permissions: [
+      { key: 'manage_resources', label: 'Manage Resource / Project Library' },
+      { key: 'view_resources', label: 'View & Download Resources' },
+    ]
+  },
+  careerPilot: {
+    label: 'CareerPilot (AI Career Suite)',
+    permissions: [
+      { key: 'manage_career_pilot', label: 'Manage CareerPilot & Review Profiles' },
+      { key: 'use_ai_mentor', label: 'Use AI Mentor' },
+      { key: 'use_job_tracker', label: 'Use Job Tracker' },
+      { key: 'use_project_builder', label: 'Use Project Builder' },
+      { key: 'use_career_profile', label: 'Use Career Profile Builder' },
+    ]
+  },
+  certificates: {
+    label: 'Certificates',
+    permissions: [
+      { key: 'manage_certificates', label: 'Issue & Manage Certificates' },
+      { key: 'view_certificates', label: 'View Own Certificates' },
+    ]
+  },
+  placement: {
+    label: 'Placement & Alumni',
+    permissions: [
+      { key: 'manage_placement', label: 'Manage Placement Drives & Partners' },
+      { key: 'manage_placement_status', label: 'Update Student Placement Status' },
+      { key: 'view_placement', label: 'View Placement Drives & Apply' },
+    ]
+  },
+  aiSpend: {
+    label: 'AI Spend',
+    permissions: [
+      { key: 'view_ai_spend', label: 'View AI Spend Dashboard' },
+    ]
+  },
 };
 
 // Flatten all permission keys
@@ -174,6 +226,20 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_marketing',
     // Coding Snippets
     'manage_snippets', 'grade_snippets', 'view_snippets',
+    // Thinking Lab
+    'manage_thinking_lab', 'use_thinking_lab',
+    // Speaking Practice
+    'manage_speaking', 'use_speaking',
+    // Resource Library
+    'manage_resources', 'view_resources',
+    // CareerPilot
+    'manage_career_pilot', 'use_ai_mentor', 'use_job_tracker', 'use_project_builder', 'use_career_profile',
+    // Certificates
+    'manage_certificates', 'view_certificates',
+    // Placement & Alumni
+    'manage_placement', 'manage_placement_status', 'view_placement',
+    // AI Spend
+    'view_ai_spend',
   ],
   INSTRUCTOR: [
     // Courses
@@ -195,6 +261,16 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_reports',
     // Coding Snippets
     'manage_snippets', 'grade_snippets', 'view_snippets',
+    // Thinking Lab
+    'manage_thinking_lab', 'use_thinking_lab',
+    // Speaking Practice
+    'manage_speaking', 'use_speaking',
+    // Resource Library
+    'manage_resources', 'view_resources',
+    // Certificates
+    'view_certificates',
+    // Placement & Alumni
+    'view_placement',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',
@@ -216,6 +292,18 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'take_interviews', 'attempt_interviews',
     // Coding Snippets
     'view_snippets',
+    // Thinking Lab
+    'use_thinking_lab',
+    // Speaking Practice
+    'use_speaking',
+    // Resource Library
+    'view_resources',
+    // CareerPilot
+    'use_ai_mentor', 'use_job_tracker', 'use_project_builder', 'use_career_profile',
+    // Certificates
+    'view_certificates',
+    // Placement & Alumni
+    'view_placement',
   ],
   GUEST: ['view_public_courses'],
 };

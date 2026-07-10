@@ -17,6 +17,14 @@ interface FeatureConfig {
   scheduledInterviews: boolean;
   resumeBuilder: boolean;
   learningPlan: boolean;
+  thinkingLab: boolean;
+  speakingPractice: boolean;
+  jobTracker: boolean;
+  aiMentor: boolean;
+  projectBuilder: boolean;
+  resourceLibrary: boolean;
+  codePlayground: boolean;
+  careerProfile: boolean;
 }
 
 // Map each student feature to the module that must be enabled for it
@@ -34,6 +42,14 @@ const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
   scheduledInterviews:  null,
   resumeBuilder:        null,
   learningPlan:         'courses',
+  thinkingLab:          'thinkingLab',
+  speakingPractice:     'speakingPractice',
+  jobTracker:           'careerPilot',
+  aiMentor:             'careerPilot',
+  projectBuilder:       'careerPilot',
+  resourceLibrary:      'resourceLibrary',
+  codePlayground:       'codeAssessments',
+  careerProfile:        'careerPilot',
 };
 
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
@@ -50,6 +66,14 @@ const FEATURE_META: { key: keyof FeatureConfig; label: string; description: stri
   { key: 'resumeBuilder',  label: 'Resume Builder',                   description: 'Build, score, download and share a resume', icon: '📄' },
   { key: 'feeDetails',          label: 'Fee Details',           description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰' },
   { key: 'scheduledInterviews', label: 'My Interviews',         description: 'View scheduled mock interviews and released feedback from interviewers', icon: '🗓' },
+  { key: 'thinkingLab',     label: 'Logical Thinking Lab',    description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩' },
+  { key: 'speakingPractice',label: 'Speaking Practice',       description: 'AI speaking practice with transcription and pronunciation feedback', icon: '🗣' },
+  { key: 'codePlayground',  label: 'Code Playground',         description: 'Free-form multi-language code playground with run & GitHub push', icon: '🎮' },
+  { key: 'resourceLibrary', label: 'Resource Library',        description: 'Curated projects, references and downloadable learning resources', icon: '📁' },
+  { key: 'careerProfile',   label: 'Career Profile (CareerPilot)', description: 'AI review of resume, GitHub and LinkedIn with improvement suggestions', icon: '🎯' },
+  { key: 'aiMentor',        label: 'AI Mentor (CareerPilot)', description: 'Personal AI mentor for guidance, doubts and career questions', icon: '🤖' },
+  { key: 'jobTracker',      label: 'Job Tracker (CareerPilot)', description: 'Track job applications, statuses and interview pipeline', icon: '📋' },
+  { key: 'projectBuilder',  label: 'Project Builder (CareerPilot)', description: 'Guided project builder to create portfolio-ready projects', icon: '🛠' },
 ];
 
 const StudentFeaturesPage: React.FC = () => {
@@ -68,6 +92,14 @@ const StudentFeaturesPage: React.FC = () => {
     scheduledInterviews: true,
     resumeBuilder: true,
     learningPlan: true,
+    thinkingLab: true,
+    speakingPractice: true,
+    jobTracker: true,
+    aiMentor: true,
+    projectBuilder: true,
+    resourceLibrary: true,
+    codePlayground: true,
+    careerProfile: true,
   });
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [modulesLoaded, setModulesLoaded] = useState(false);

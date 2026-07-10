@@ -183,7 +183,15 @@ export const getStudentFeatures = async (
       feeDetails: true,
       scheduledInterviews: true,
       resumeBuilder: true,
-      learningPlan: true
+      learningPlan: true,
+      thinkingLab: true,
+      speakingPractice: true,
+      jobTracker: true,
+      aiMentor: true,
+      projectBuilder: true,
+      resourceLibrary: true,
+      codePlayground: true,
+      careerProfile: true
     };
 
     const featureData = { ...defaults, ...(tenant.studentFeatures || {}) };
@@ -211,7 +219,8 @@ export const updateStudentFeatures = async (
 
     const allowedKeys: (keyof IStudentFeatures)[] = [
       'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments', 'mockInterviews',
-      'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews', 'resumeBuilder', 'learningPlan'
+      'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews', 'resumeBuilder', 'learningPlan',
+      'thinkingLab', 'speakingPractice', 'jobTracker', 'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {
@@ -277,7 +286,8 @@ export const getTenantModules = async (
     const defaults: ITenantModules = {
       courses: true, attendance: true, quizzes: true, assignments: true,
       classRecordings: true, codeAssessments: true, mockInterviews: true,
-      placement: true, leads: true, marketing: true, feeManagement: true
+      placement: true, leads: true, marketing: true, feeManagement: true,
+      thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true
     };
     res.status(200).json({ success: true, message: 'Modules fetched', data: tenant.modules || defaults });
   } catch (error: any) {
@@ -296,7 +306,8 @@ export const updateTenantModules = async (
     const allowedKeys: (keyof ITenantModules)[] = [
       'courses', 'attendance', 'quizzes', 'assignments',
       'classRecordings', 'codeAssessments', 'mockInterviews',
-      'placement', 'leads', 'marketing'
+      'placement', 'leads', 'marketing', 'feeManagement',
+      'thinkingLab', 'speakingPractice', 'resourceLibrary', 'careerPilot'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {

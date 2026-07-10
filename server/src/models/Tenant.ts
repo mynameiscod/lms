@@ -22,6 +22,15 @@ export interface IStudentFeatures {
   scheduledInterviews?: boolean;
   resumeBuilder?: boolean;
   learningPlan?: boolean;
+  // Newer student-facing modules
+  thinkingLab?: boolean;
+  speakingPractice?: boolean;
+  jobTracker?: boolean;
+  aiMentor?: boolean;
+  projectBuilder?: boolean;
+  resourceLibrary?: boolean;
+  codePlayground?: boolean;
+  careerProfile?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -37,6 +46,10 @@ export interface ITenantModules {
   leads: boolean;            // CRM / Leads module
   marketing: boolean;        // Marketing module
   feeManagement: boolean;    // Fee Management — seat reservations, payments, receipts
+  thinkingLab?: boolean;     // Logical Thinking Lab
+  speakingPractice?: boolean;// Speaking Practice
+  resourceLibrary?: boolean; // Project / Resource Library
+  careerPilot?: boolean;     // CareerPilot suite: AI Mentor, Job Tracker, Project Builder, Career Profile
 }
 
 // College-specific information (only populated when type = 'college')
@@ -172,7 +185,15 @@ const TenantSchema: Schema = new Schema(
       feeDetails: { type: Boolean, default: true },
       scheduledInterviews: { type: Boolean, default: true },
       resumeBuilder: { type: Boolean, default: true },
-      learningPlan: { type: Boolean, default: true }
+      learningPlan: { type: Boolean, default: true },
+      thinkingLab: { type: Boolean, default: true },
+      speakingPractice: { type: Boolean, default: true },
+      jobTracker: { type: Boolean, default: true },
+      aiMentor: { type: Boolean, default: true },
+      projectBuilder: { type: Boolean, default: true },
+      resourceLibrary: { type: Boolean, default: true },
+      codePlayground: { type: Boolean, default: true },
+      careerProfile: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
     modules: {
@@ -186,7 +207,11 @@ const TenantSchema: Schema = new Schema(
       placement:        { type: Boolean, default: true },
       leads:            { type: Boolean, default: true },
       marketing:        { type: Boolean, default: true },
-      feeManagement:    { type: Boolean, default: true }
+      feeManagement:    { type: Boolean, default: true },
+      thinkingLab:      { type: Boolean, default: true },
+      speakingPractice: { type: Boolean, default: true },
+      resourceLibrary:  { type: Boolean, default: true },
+      careerPilot:      { type: Boolean, default: true }
     },
     // College-specific info — all optional, existing tenants unaffected
     collegeInfo: {

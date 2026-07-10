@@ -14,6 +14,10 @@ export interface TenantModules {
   leads: boolean;
   marketing: boolean;
   feeManagement: boolean;
+  thinkingLab: boolean;
+  speakingPractice: boolean;
+  resourceLibrary: boolean;
+  careerPilot: boolean;
 }
 
 const DEFAULT_MODULES: TenantModules = {
@@ -28,6 +32,10 @@ const DEFAULT_MODULES: TenantModules = {
   leads: true,
   marketing: true,
   feeManagement: true,
+  thinkingLab: true,
+  speakingPractice: true,
+  resourceLibrary: true,
+  careerPilot: true,
 };
 
 const ALL_DISABLED_MODULES: TenantModules = {
@@ -42,6 +50,10 @@ const ALL_DISABLED_MODULES: TenantModules = {
   leads: false,
   marketing: false,
   feeManagement: false,
+  thinkingLab: false,
+  speakingPractice: false,
+  resourceLibrary: false,
+  careerPilot: false,
 };
 
 interface TenantModulesContextType {

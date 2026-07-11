@@ -14,6 +14,7 @@ import LearningContentLibrary from '../models/LearningContentLibrary';
 import { getStr, isSet } from './settingsService';
 import { aiComplete } from './aiGateway';
 import { isAnthropicEnabled } from './aiClients';
+import { getRecordingDownloadUrl } from './hmsService';
 
 const BUNNY_API = 'https://video.bunnycdn.com';
 
@@ -32,8 +33,9 @@ async function bunnyPull(title: string, sourceUrl: string): Promise<{ videoId: s
   // 2) tell Bunny to fetch/pull the source (async on Bunny's side)
   try {
     await axios.post(`${BUNNY_API}/library/${libraryId}/videos/${videoId}/fetch`, { url: sourceUrl }, { headers, timeout: 20000 });
-  } catch {
-    // fetch trigger failed — the video object still exists; leave it, url fallback below
+  } catch (e: any) {
+    // eslint-disable-next-line no-console
+    console.error('[liveClassRecording] Bunny fetch failed:', e.response?.status, e.response?.data || e.message);
   }
   const playUrl = cdn ? `https://${cdn}/${videoId}/playlist.m3u8` : undefined;
   return { videoId, libraryId, playUrl };
@@ -44,14 +46,24 @@ export async function importRecording(liveClassId: string, recordingUrl: string)
   if (!lc || !recordingUrl) return;
   if (lc.recordingContentId) return; // already imported — idempotent
 
+  // The webhook hands us a gs:// path that Bunny can't download — resolve a real
+  // presigned HTTPS URL from 100ms whenever the URL isn't already an http(s) one.
+  let downloadUrl = recordingUrl;
+  if (!/^https?:\/\//i.test(downloadUrl) && lc.hmsRoomId) {
+    try {
+      const fresh = await getRecordingDownloadUrl(lc.hmsRoomId, String(lc.tenantId));
+      if (fresh) downloadUrl = fresh;
+    } catch { /* fall back to the raw value */ }
+  }
+
   let videoSource: 'bunny' | 'upload' = 'upload';
   let bunnyVideoId: string | undefined;
   let bunnyLibraryId: number | undefined;
-  let videoUrl = recordingUrl; // fallback: the raw (time-limited) 100ms URL
+  let videoUrl = downloadUrl; // fallback: the presigned URL (time-limited)
 
-  if (isSet('BUNNY_STREAM_API_KEY')) {
+  if (isSet('BUNNY_STREAM_API_KEY') && /^https?:\/\//i.test(downloadUrl)) {
     try {
-      const b = await bunnyPull(`Live Class: ${lc.title}`, recordingUrl);
+      const b = await bunnyPull(`Live Class: ${lc.title}`, downloadUrl);
       if (b) {
         videoSource = 'bunny';
         bunnyVideoId = b.videoId;

@@ -121,6 +121,25 @@ export async function changeRole(
   );
 }
 
+/**
+ * Resolve a downloadable HTTPS URL for a room's recording.
+ * The recording webhook hands us a `gs://` path that Bunny/others can't fetch, so we
+ * ask 100ms for the room-composite asset and its short-lived presigned URL.
+ */
+export async function getRecordingDownloadUrl(roomId: string, tenantId?: string): Promise<string | null> {
+  if (!roomId) return null;
+  const auth = { headers: { Authorization: `Bearer ${managementToken(tenantId)}` }, timeout: 15000 };
+  const res = await axios.get(`${HMS_API_BASE}/recording-assets?room_id=${roomId}`, auth);
+  const list: any[] = res.data?.data || res.data?.assets || [];
+  const asset =
+    list.find((a) => a.type === 'room-composite') ||
+    list.find((a) => /mp4|composite|video/i.test(a.type || '')) ||
+    list[0];
+  if (!asset?.id) return null;
+  const pre = await axios.get(`${HMS_API_BASE}/recording-assets/${asset.id}/presigned-url`, auth);
+  return pre.data?.url || pre.data?.path || pre.data?.presigned_url || null;
+}
+
 /** End an active room (kicks everyone, stops HLS/recording). Best-effort. */
 export async function endRoom(roomId: string, reason = 'Class ended', tenantId?: string): Promise<void> {
   try {

@@ -308,9 +308,19 @@ export const submitFeedback = async (req: AuthenticatedRequest, res: Response<Ap
     });
     if (!interview) return res.status(404).json({ success: false, message: 'Interview not found' });
 
-    // Auto-calculate overall score
+    const isAbsent = attendanceStatus === 'absent';
+
+    // Auto-calculate overall score — an absent candidate scores 0
     const scores: number[] = (criteriaRatings || []).map((c: any) => c.score).filter(Boolean);
-    const overallScore = scores.length ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10 : undefined;
+    const overallScore = isAbsent
+      ? 0
+      : (scores.length ? Math.round((scores.reduce((a: number, b: number) => a + b, 0) / scores.length) * 10) / 10 : undefined);
+
+    // Detect a fresh present→absent transition so the alert email fires only once
+    const prev = await InterviewScheduleFeedback
+      .findOne({ interviewId: req.params.id, studentId: new mongoose.Types.ObjectId(studentId) })
+      .select('attendanceStatus').lean();
+    const newlyAbsent = isAbsent && prev?.attendanceStatus !== 'absent';
 
     const feedback = await InterviewScheduleFeedback.findOneAndUpdate(
       { interviewId: req.params.id, studentId: new mongoose.Types.ObjectId(studentId) },
@@ -320,7 +330,7 @@ export const submitFeedback = async (req: AuthenticatedRequest, res: Response<Ap
           interviewId: new mongoose.Types.ObjectId(req.params.id as string),
           studentId: new mongoose.Types.ObjectId(studentId),
           attendanceStatus: attendanceStatus || 'present',
-          criteriaRatings: criteriaRatings || [],
+          criteriaRatings: isAbsent ? [] : (criteriaRatings || []), // no ratings for an absentee
           overallComment: overallComment || '',
           overallScore,
           submittedBy: new mongoose.Types.ObjectId(String(req.user!.id)),
@@ -329,6 +339,32 @@ export const submitFeedback = async (req: AuthenticatedRequest, res: Response<Ap
       },
       { upsert: true, new: true }
     );
+
+    // Red-alert email to the candidate the moment they're marked absent
+    if (newlyAbsent) {
+      try {
+        const student: any = await User.findById(studentId).select('email firstName').lean();
+        if (student?.email) {
+          const when = `${new Date(interview.date).toLocaleDateString('en-IN', { dateStyle: 'medium' })}${interview.time ? ' at ' + interview.time : ''}`;
+          const html = `
+            <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;border:1px solid #fecaca;border-radius:12px;overflow:hidden">
+              <div style="background:#dc2626;color:#fff;padding:16px 20px;font-size:18px;font-weight:700">⚠ Marked Absent</div>
+              <div style="padding:20px">
+                <p>Hi ${student.firstName || 'there'},</p>
+                <p>You were marked <strong style="color:#dc2626">ABSENT</strong> for the interview:</p>
+                <p style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 14px">
+                  <strong>${interview.title}</strong><br/>${when}
+                </p>
+                <p>As a result, this interview is recorded as <strong>0/10</strong>. If you believe this is a mistake, please contact your trainer immediately.</p>
+                <p style="color:#6b7280;font-size:13px">— CodeBegun Placements</p>
+              </div>
+            </div>`;
+          new EmailService()
+            .sendGenericEmail(student.email, `⚠ You were marked absent — ${interview.title}`, html)
+            .catch(() => {});
+        }
+      } catch { /* best-effort — never block the save */ }
+    }
 
     res.json({ success: true, message: 'Feedback saved', data: feedback });
   } catch (error: any) {

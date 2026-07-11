@@ -231,10 +231,17 @@ const InterviewDetailPage: React.FC = () => {
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
                       {hasSubmitted ? (
-                        <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10,
-                          background: '#f0fdf4', color: '#16a34a', fontWeight: 600 }}>
-                          ✓ {fb.overallScore?.toFixed(1) || '–'}/10
-                        </span>
+                        fb.attendanceStatus === 'absent' ? (
+                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10,
+                            background: '#fef2f2', color: '#dc2626', fontWeight: 600 }}>
+                            ✗ Absent · 0/10
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10,
+                            background: '#f0fdf4', color: '#16a34a', fontWeight: 600 }}>
+                            ✓ {fb.overallScore?.toFixed(1) || '–'}/10
+                          </span>
+                        )
                       ) : (
                         <span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 10,
                           background: '#f3f4f6', color: '#6b7280' }}>Pending</span>

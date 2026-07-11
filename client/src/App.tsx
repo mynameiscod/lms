@@ -182,6 +182,7 @@ import ScheduledInterviewsPage from './pages/ScheduledInterviews';
 import InterviewDetailPage from './pages/ScheduledInterviews/InterviewDetail';
 import HmsClassesPage from './pages/HmsClasses';
 import HmsRoomPage from './pages/HmsClasses/Room';
+import CommunicationLab from './pages/CommunicationLab';
 import MyInterviewsPage from './pages/MyInterviews';
 
 
@@ -513,6 +514,16 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <HmsClassesPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ai-communication-lab"
+        element={
+          <ProtectedRoute requiredRoles={['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <CommunicationLab />
             </Layout>
           </ProtectedRoute>
         }

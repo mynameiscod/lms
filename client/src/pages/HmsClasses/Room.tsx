@@ -13,6 +13,8 @@ import {
   selectIsLocalVideoEnabled,
   selectIsLocalAudioEnabled,
   selectIsLocalScreenShared,
+  selectPeerScreenSharing,
+  selectScreenShareByPeerID,
 } from '@100mslive/react-sdk';
 import { useAuth } from '../../contexts/AuthContext';
 import { hmsClassApi } from '../../api';
@@ -29,6 +31,21 @@ const VideoTile: React.FC<{ peer: any }> = ({ peer }) => {
         style={{ width: '100%', height: '100%', objectFit: 'cover', transform: peer.isLocal ? 'scaleX(-1)' : undefined }} />
       <span style={{ position: 'absolute', bottom: 6, left: 8, fontSize: 12, color: '#fff', background: 'rgba(0,0,0,.55)', padding: '2px 8px', borderRadius: 6 }}>
         {peer.name}{peer.isLocal ? ' (You)' : ''}
+      </span>
+    </div>
+  );
+};
+
+// ── Shared-screen tile (large) ────────────────────────────────────────────────
+const ScreenTile: React.FC<{ peer: any }> = ({ peer }) => {
+  const track: any = useHMSStore(selectScreenShareByPeerID(peer.id));
+  const trackId = typeof track === 'string' ? track : track?.id;
+  const { videoRef } = useVideo({ trackId });
+  return (
+    <div style={{ position: 'relative', background: '#000', borderRadius: 12, overflow: 'hidden', width: '100%', aspectRatio: '16 / 9', marginBottom: 12 }}>
+      <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+      <span style={{ position: 'absolute', top: 8, left: 10, fontSize: 12, color: '#fff', background: 'rgba(0,0,0,.6)', padding: '3px 9px', borderRadius: 6 }}>
+        🖥 {peer.name}{peer.isLocal ? ' (You)' : ''} is sharing screen
       </span>
     </div>
   );
@@ -68,6 +85,7 @@ const RoomInner: React.FC = () => {
   const videoOn = useHMSStore(selectIsLocalVideoEnabled);
   const audioOn = useHMSStore(selectIsLocalAudioEnabled);
   const screenOn = useHMSStore(selectIsLocalScreenShared);
+  const screenPeer = useHMSStore(selectPeerScreenSharing);
 
   const [phase, setPhase] = useState<'lobby' | 'joining' | 'joined'>('lobby');
   const [err, setErr] = useState('');       // fatal — ejects to error screen
@@ -261,7 +279,8 @@ const RoomInner: React.FC = () => {
       {(isBroadcaster || isOnStage) && (
         <div style={{ display: 'grid', gridTemplateColumns: isBroadcaster ? '1fr 300px' : '1fr', gap: 16 }}>
           <div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+            {screenPeer && <ScreenTile peer={screenPeer} />}
+            <div style={{ display: 'grid', gridTemplateColumns: screenPeer ? 'repeat(auto-fill, minmax(150px, 1fr))' : 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
               {stagePeers.map(p => <VideoTile key={p.id} peer={p} />)}
             </div>
 

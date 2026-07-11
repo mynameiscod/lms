@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import LiveClass from '../models/LiveClass';
+import User from '../models/User';
 import * as hms from '../services/hmsService';
 import { recordJoin, recordLeave, finalizeAttendance } from '../services/liveClassAttendanceService';
 import { importRecording, generateNotesFromTranscript, fetchTranscriptText } from '../services/liveClassRecordingService';
@@ -43,7 +44,15 @@ export const listLiveClasses = async (req: AuthenticatedRequest, res: Response<A
     const tenantId = req.tenantId || req.user?.tenantId;
     const q: any = { tenantId };
     if (req.query.status) q.status = req.query.status;
-    // Students only see classes that are upcoming / live / recently ended
+
+    // Students only see live classes assigned to THEIR batch (hosts/admins see all)
+    if (!isAdminish(req)) {
+      const me = await User.findById(req.user?.id).select('batchId').lean();
+      const myBatch = (me as any)?.batchId;
+      if (!myBatch) return res.status(200).json({ success: true, message: 'Live classes', data: [] });
+      q.batchId = myBatch;
+    }
+
     const items = await LiveClass.find(q).sort({ scheduledAt: -1 }).limit(200).lean();
     res.status(200).json({ success: true, message: 'Live classes', data: items });
   } catch (error: any) {
@@ -130,6 +139,14 @@ export const getJoinToken = async (req: AuthenticatedRequest, res: Response<ApiR
     }
     // The instructor (or an admin) joins as broadcaster; everyone else as viewer (HLS audience)
     const isHost = isAdminish(req) || String(lc.instructorId) === String(req.user?.id);
+
+    // A student may only join a class assigned to their batch
+    if (!isHost && lc.batchId) {
+      const me = await User.findById(req.user?.id).select('batchId').lean();
+      if (String((me as any)?.batchId) !== String(lc.batchId)) {
+        return res.status(403).json({ success: false, message: 'This live class is for a different batch', error: 'not_your_batch' });
+      }
+    }
     const role = isHost ? hms.HMS_ROLES.broadcaster : hms.HMS_ROLES.viewer;
     const token = hms.authToken(lc.hmsRoomId, String(req.user?.id), role, tenantId);
     res.status(200).json({

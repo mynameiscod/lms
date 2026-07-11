@@ -17,6 +17,8 @@ import {
   selectScreenShareByPeerID,
   selectHMSMessages,
   selectRecordingState,
+  useHMSNotifications,
+  HMSNotificationTypes,
 } from '@100mslive/react-sdk';
 import { useAuth } from '../../contexts/AuthContext';
 import { hmsClassApi } from '../../api';
@@ -125,8 +127,10 @@ const RoomInner: React.FC = () => {
   const screenOn = useHMSStore(selectIsLocalScreenShared);
   const screenPeer = useHMSStore(selectPeerScreenSharing);
   const recording: any = useHMSStore(selectRecordingState);
+  const unmuteReq: any = useHMSNotifications(HMSNotificationTypes.CHANGE_TRACK_STATE_REQUEST);
 
   const [phase, setPhase] = useState<'lobby' | 'joining' | 'joined'>('lobby');
+  const [askOn, setAskOn] = useState<{ audio: boolean; video: boolean } | null>(null);
   const [err, setErr] = useState('');
   const [notice, setNotice] = useState('');
   const [role, setRole] = useState('');
@@ -176,6 +180,21 @@ const RoomInner: React.FC = () => {
   }, [phase, willPublish]);
 
   useEffect(() => () => { hmsActions.leave().catch(() => {}); }, [hmsActions]);
+
+  // Host asked me to turn my mic/camera ON — 100ms requires the student to consent,
+  // so surface a one-tap prompt instead of silently doing nothing.
+  useEffect(() => {
+    const d: any = unmuteReq?.data;
+    if (unmuteReq?.type === HMSNotificationTypes.CHANGE_TRACK_STATE_REQUEST && d?.enabled) {
+      setAskOn({ audio: d?.track?.type === 'audio', video: d?.track?.type === 'video' });
+    }
+  }, [unmuteReq]);
+
+  const acceptAskOn = async () => {
+    if (askOn?.audio) await hmsActions.setLocalAudioEnabled(true).catch(() => {});
+    if (askOn?.video) await hmsActions.setLocalVideoEnabled(true).catch(() => {});
+    setAskOn(null);
+  };
 
   const doJoin = async () => {
     if (!tokenData) return;
@@ -233,7 +252,7 @@ const RoomInner: React.FC = () => {
 
   const leave = async () => { await hmsActions.leave().catch(() => {}); navigate('/hms-classes'); };
 
-  const canShareScreen = isBroadcaster || isOnStage;
+  const canShareScreen = isBroadcaster; // host + co-hosts (broadcaster role) only
 
   if (err) {
     return (
@@ -296,6 +315,14 @@ const RoomInner: React.FC = () => {
         </div>
         <button onClick={leave} style={btn('#dc2626')}>Leave</button>
       </div>
+
+      {askOn && (
+        <div style={{ background: '#0e3a2b', border: '1px solid #1c7a56', color: '#a7f3d0', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13.5, display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
+          <span style={{ flex: 1 }}>🎤 The host asked you to turn on your {askOn.audio ? 'microphone' : ''}{askOn.audio && askOn.video ? ' & ' : ''}{askOn.video ? 'camera' : ''}.</span>
+          <button onClick={acceptAskOn} style={smallBtn('#16a34a')}>Turn on</button>
+          <button onClick={() => setAskOn(null)} style={smallBtn('#374151')}>Dismiss</button>
+        </div>
+      )}
 
       {notice && (
         <div style={{ background: '#3f2d10', border: '1px solid #7c5b1e', color: '#fde68a', borderRadius: 10, padding: '10px 14px', marginBottom: 12, fontSize: 13.5, display: 'flex', gap: 10, alignItems: 'flex-start', flexShrink: 0 }}>

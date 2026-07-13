@@ -7,10 +7,10 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
-  matchStudents, addCandidate, removeCandidate, candidatePdf, scheduleInterview, markPlaced, analytics, uploadAttachment,
+  analytics, uploadAttachment,
 } from '../controllers/placementPartnerController';
 import {
-  startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint, draftCandidateProfilesEndpoint,
+  startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint,
   getPartnerMessages, getQueue, updateMessage, approveMessage, cancelMessage,
   getPartnerThread, markInboundRead, testImap, replyToPartner,
 } from '../controllers/partnerOutreachController';
@@ -80,16 +80,7 @@ router.post('/:id/mark-replied', markReplied);
 router.post('/:id/mark-bounced', markBounced);
 router.post('/:id/draft-vouch', draftVouchEndpoint);
 
-// student matching + candidate selection (Step 3)
-router.get('/:id/match-students', matchStudents);
-router.post('/:id/candidates', addCandidate);
-router.delete('/:id/candidates/:studentId', removeCandidate);
-
-// candidate profiles + interview scheduling (Step 4)
-router.post('/:id/draft-candidate-profiles', draftCandidateProfilesEndpoint);
-router.get('/:id/candidate-pdf/:studentId', candidatePdf);
-router.post('/:id/schedule-interview', scheduleInterview);
-router.post('/:id/mark-placed', markPlaced);
+// manual reminder/task add
 router.post('/:id/tasks', addTask);
 
 export default router;

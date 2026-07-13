@@ -1,8 +1,10 @@
-# Partner / Placement Outreach
+# Placement Partnership (formerly Partner / Placement Outreach)
 **Completion:** 80%  |  **Priority:** P2  |  **Business Impact:** High
 
+> **Change log (2026-07-13, Phase 1):** Renamed to **Placement Partnership** and **simplified to a focused outreach-only flow** per product decision. The student-matching, candidate-PDF, interview-scheduling, and mark-placed features were **removed** (UI + endpoints `match-students`, `candidates`, `candidate-pdf`, `draft-candidate-profiles`, `schedule-interview`, `mark-placed`) — recoverable from git history. New UI: a simple contact list by status + drawer (send intro → auto follow-up → reply thread). Route `/admin/partners` → `/admin/placement-partnership`. **Phase 2 (pending):** Apollo.io "Add by Company" contact enrichment (auto-find HR/decision-maker/CEO) — needs `APOLLO_API_KEY`.
+
 ## Purpose & Business Goal
-Self-contained module for the placements team to **source, track, and convert hiring companies** into placements for trainees. Lifecycle: source companies (CSV/manual) → Kanban pipeline by tier/priority/fresher-fit → automated cold + follow-up email outreach with cadence/caps and approval-gated "trust" emails → match trained students by skill → send candidate one-pagers, schedule interviews, mark placed → 90-day guarantee + quarterly retention check-ins. Reminders mirrored to Todoist; replies pulled back via IMAP. Directly drives placement revenue, hence High impact.
+Focused tool for the placements team to **reach out to hiring companies and convert them into placement partners**. Flow: add a contact (paste from LinkedIn, or — Phase 2 — enter a company and auto-enrich HR/decision-maker/CEO) → send a CodeBegun intro (who we are, our students, projects they've shipped) → **automated cold + follow-up cadence (paced/capped)** → replies pulled back via IMAP into a thread → reminders mirrored to Todoist. Student matching / interview / placement tracking are **out of scope here** (handled later, elsewhere). Directly drives placement revenue, hence High impact.
 
 ## Primary Users & Roles
 - **TENANT_ADMIN / placement team** (`manage_leads` OR `manage_tenant`) — every management endpoint is guarded to this pair.

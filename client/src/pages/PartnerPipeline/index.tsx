@@ -490,7 +490,7 @@ function EnrichModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
     finally { setLoading(false); }
   };
 
-  const useContact = async (c: EnrichedContact, idx: number) => {
+  const pickContact = async (c: EnrichedContact, idx: number) => {
     setAddingIdx(idx); setErr('');
     try {
       await api.create({
@@ -536,7 +536,7 @@ function EnrichModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
                   <div className="pp-stud row">
                     <span className="nm">{c.name}{c.title ? <span style={{ fontWeight: 400, color: '#64748b' }}> · {c.title}</span> : null}</span>
                     <span className="pp-row-badge" style={{ color: cf.color, background: cf.bg }}>{cf.label}</span>
-                    <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={addingIdx !== null} onClick={() => useContact(c, i)}>
+                    <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={addingIdx !== null} onClick={() => pickContact(c, i)}>
                       {addingIdx === i ? 'Adding…' : 'Add'}
                     </button>
                   </div>

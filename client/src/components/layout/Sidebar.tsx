@@ -362,10 +362,23 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   // Group menu items by section for students
   const isStudent = user?.role === 'STUDENT';
   
-  const mainItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
-  const academicItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'Assignments', 'Quizzes', 'Attendance', 'Code Snippets', 'AI Interviews', 'Learning Plans', 'My Work', 'Resume Builder', 'Career Profile', 'Career Profiles', 'My Interviews', 'Apply Leave', 'Code Playground', 'Project Builder', 'Job Tracker', 'AI Mentor', 'Project Library', 'Resource Library', 'Speaking Practice', 'Speaking Tasks', 'Logical Thinking Lab', 'Thinking Lab — Bank', 'Live Classes', 'AI Communication Lab', 'Communication Lab — Manage'].includes(i.label));
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
-  const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
+
+  // ── Admin / staff navigation grouped into logical sections ───────────────────
+  const ADMIN_SECTIONS: { title: string; labels: string[] }[] = [
+    { title: 'OVERVIEW',                labels: ['Dashboard', 'Notifications'] },
+    { title: 'PEOPLE',                  labels: ['Users', 'Roles', 'Batches', 'Concerns'] },
+    { title: 'TEACHING',                labels: ['Learning Plans', 'Quizzes', 'Assignments', 'Code Snippets', 'Attendance', 'Live Classes', 'Leave Requests'] },
+    { title: 'STUDENT LABS',            labels: ['AI Communication Lab', 'Communication Lab — Manage', 'Logical Thinking Lab', 'Thinking Lab — Bank', 'Speaking Practice', 'Speaking Tasks', 'Code Playground', 'Resource Library', 'Project Library'] },
+    { title: 'ASSESSMENTS & INTERVIEWS',labels: ['Skill Assessment', 'Assessment Candidates', 'AI Interviews', 'Scheduled Interviews', 'Interview Q&A Bank'] },
+    { title: 'CAREER',                  labels: ['Resume Builder', 'Career Profiles', 'Project Builder', 'Job Tracker', 'AI Mentor'] },
+    { title: 'CRM & GROWTH',            labels: ['Leads', 'Partner Pipeline'] },
+    { title: 'COLLEGE',                 labels: ['College'] },
+    { title: 'BILLING',                 labels: ['Fees'] },
+    { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
+  ];
+  const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));
+  const adminMiscItems = filteredItems.filter(i => !adminSectionLabels.has(i.label) && !supportItems.includes(i));
 
   // ── Student navigation grouped by the real daily flow ────────────────────────
   const homeItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
@@ -450,11 +463,29 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           </>
         ) : (
           <>
-            {otherItems.length > 0 && (
-              <ul>{[...mainItems, ...otherItems, ...academicItems].map(item => renderMenuItem(item))}</ul>
+            {ADMIN_SECTIONS.map(sec => {
+              const items = sec.labels
+                .map(l => filteredItems.find(i => i.label === l))
+                .filter(Boolean) as MenuItem[];
+              if (items.length === 0) return null;
+              return (
+                <div key={sec.title} className="nav-section">
+                  <span className="nav-section-label">{sec.title}</span>
+                  <ul>{items.map(item => renderMenuItem(item))}</ul>
+                </div>
+              );
+            })}
+            {adminMiscItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">MORE</span>
+                <ul>{adminMiscItems.map(item => renderMenuItem(item))}</ul>
+              </div>
             )}
-            {otherItems.length === 0 && (
-              <ul>{filteredItems.map(item => renderMenuItem(item))}</ul>
+            {supportItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">SUPPORT</span>
+                <ul>{supportItems.map(item => renderMenuItem(item))}</ul>
+              </div>
             )}
           </>
         )}

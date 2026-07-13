@@ -187,7 +187,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Job Tracker', path: '/job-tracker', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'careerPilot', featureKey: 'jobTracker' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Mentor', path: '/ai-mentor', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-compass', moduleKey: 'careerPilot', featureKey: 'aiMentor' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Project Library', path: '/resource-library', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-folder-open', moduleKey: 'resourceLibrary', featureKey: 'resourceLibrary' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'Speaking Practice', path: '/speaking-practice', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microphone', moduleKey: 'speakingPractice', featureKey: 'speakingPractice' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    // Retired from the student menu in favour of AI Communication Lab (which supersedes it).
+    // Kept for admin/instructor preview; the /speaking-practice route still works.
+    { label: 'Speaking Practice', path: '/speaking-practice', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microphone', moduleKey: 'speakingPractice', featureKey: 'speakingPractice' as keyof StudentFeatures, permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
@@ -365,6 +367,15 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const supportItems = filteredItems.filter(i => ['Help & support'].includes(i.label));
   const otherItems = filteredItems.filter(i => !mainItems.includes(i) && !academicItems.includes(i) && !supportItems.includes(i));
 
+  // ── Student navigation grouped by the real daily flow ────────────────────────
+  const homeItems = filteredItems.filter(i => ['Dashboard', 'My Course', 'My courses'].includes(i.label));
+  const dailyPracticeItems = filteredItems.filter(i => ['AI Communication Lab', 'Logical Thinking Lab'].includes(i.label));
+  const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance'].includes(i.label));
+  const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library'].includes(i.label));
+  const accountItems = filteredItems.filter(i => ['Fee Details', 'Apply Leave'].includes(i.label));
+  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...learnItems, ...careerItems, ...accountItems, ...supportItems]);
+  const studentMiscItems = filteredItems.filter(i => !studentGrouped.has(i));
+
   return (
     <aside className={`sidebar ${isOpen ? 'open' : 'closed'} ${mobileOpen ? 'mobile-open' : ''}`}>
       {/* Sidebar Header - Logo */}
@@ -387,16 +398,40 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       <nav className="sidebar-nav">
         {isStudent ? (
           <>
-            {mainItems.length > 0 && (
+            {homeItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">MAIN</span>
-                <ul>{mainItems.map(item => renderMenuItem(item))}</ul>
+                <span className="nav-section-label">HOME</span>
+                <ul>{homeItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
-            {academicItems.length > 0 && (
+            {dailyPracticeItems.length > 0 && (
               <div className="nav-section">
-                <span className="nav-section-label">ACADEMICS</span>
-                <ul>{academicItems.map(item => renderMenuItem(item))}</ul>
+                <span className="nav-section-label">🔥 DAILY PRACTICE</span>
+                <ul>{dailyPracticeItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {learnItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">MY LEARNING</span>
+                <ul>{learnItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {careerItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">PREP &amp; CAREER</span>
+                <ul>{careerItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {accountItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">MY ACCOUNT</span>
+                <ul>{accountItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {studentMiscItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">MORE</span>
+                <ul>{studentMiscItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {supportItems.length > 0 && (

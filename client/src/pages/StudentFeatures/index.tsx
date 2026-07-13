@@ -54,29 +54,37 @@ const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
   aiCommunicationLab:   'aiCommunicationLab',
 };
 
-const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
-  { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and quick actions', icon: '☑' },
-  { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: '📚' },
-  { key: 'topicHub',       label: 'Topic Hub',                        description: 'Topic-wise practice, mastery and learning hub', icon: '🧠' },
-  { key: 'classHub',       label: '🎥 My Classes (Class Hub)',        description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: '🎬' },
-  { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: '📊' },
-  { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: '✍' },
-  { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: '📝' },
-  { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: '🎙' },
-  { key: 'codingSnippets', label: 'Coding Snippets',                 description: 'Code editor access with snippet manager and practice problems', icon: '💻' },
-  { key: 'learningPlan',   label: 'Learning Plan',                    description: 'Personalised learning plan and curriculum schedule', icon: '📅' },
-  { key: 'resumeBuilder',  label: 'Resume Builder',                   description: 'Build, score, download and share a resume', icon: '📄' },
-  { key: 'feeDetails',          label: 'Fee Details',           description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰' },
-  { key: 'scheduledInterviews', label: 'My Interviews',         description: 'View scheduled mock interviews and released feedback from interviewers', icon: '🗓' },
-  { key: 'thinkingLab',     label: 'Logical Thinking Lab',    description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩' },
-  { key: 'speakingPractice',label: 'Speaking Practice',       description: 'AI speaking practice with transcription and pronunciation feedback', icon: '🗣' },
-  { key: 'codePlayground',  label: 'Code Playground',         description: 'Free-form multi-language code playground with run & GitHub push', icon: '🎮' },
-  { key: 'resourceLibrary', label: 'Resource Library',        description: 'Curated projects, references and downloadable learning resources', icon: '📁' },
-  { key: 'careerProfile',   label: 'Career Profile (CareerPilot)', description: 'AI review of resume, GitHub and LinkedIn with improvement suggestions', icon: '🎯' },
-  { key: 'aiMentor',        label: 'AI Mentor (CareerPilot)', description: 'Personal AI mentor for guidance, doubts and career questions', icon: '🤖' },
-  { key: 'jobTracker',      label: 'Job Tracker (CareerPilot)', description: 'Track job applications, statuses and interview pipeline', icon: '📋' },
-  { key: 'projectBuilder',  label: 'Project Builder (CareerPilot)', description: 'Guided project builder to create portfolio-ready projects', icon: '🛠' },
-  { key: 'aiCommunicationLab', label: 'AI Communication Lab', description: 'Daily self-introduction practice — record, get AI feedback, build a streak', icon: '🎙' },
+type FeatureGroup = 'Home' | 'Daily Practice' | 'My Learning' | 'Prep & Career' | 'My Account';
+const GROUP_ORDER: FeatureGroup[] = ['Home', 'Daily Practice', 'My Learning', 'Prep & Career', 'My Account'];
+
+const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string; group: FeatureGroup }[] = [
+  // Home
+  { key: 'dashboard',      label: 'Dashboard',                       description: 'Student dashboard with stats, progress, deadlines, and daily challenge cards', icon: '☑', group: 'Home' },
+  // Daily Practice
+  { key: 'aiCommunicationLab', label: 'AI Communication Lab', description: 'Daily self-introduction practice — record, get AI feedback, build a streak', icon: '🎙', group: 'Daily Practice' },
+  { key: 'thinkingLab',     label: 'Logical Thinking Lab',    description: 'AI-graded logic, aptitude and problem-solving drills', icon: '🧩', group: 'Daily Practice' },
+  { key: 'speakingPractice',label: 'Speaking Practice (retired)', description: 'Superseded by AI Communication Lab — hidden from students. Leave off unless you specifically need the old tool.', icon: '🗣', group: 'Daily Practice' },
+  // My Learning
+  { key: 'myCourse',       label: 'My Course',                       description: 'Course content, chapters, and learning materials', icon: '📚', group: 'My Learning' },
+  { key: 'learningPlan',   label: 'Learning Plan',                    description: 'Personalised learning plan and curriculum schedule', icon: '📅', group: 'My Learning' },
+  { key: 'topicHub',       label: 'Topic Hub',                        description: 'Topic-wise practice, mastery and learning hub', icon: '🧠', group: 'My Learning' },
+  { key: 'classHub',       label: '🎥 My Classes (Class Hub)',        description: 'View recorded classes with AI summary, quiz, notes, practice & assignment tabs', icon: '🎬', group: 'My Learning' },
+  { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: '✍', group: 'My Learning' },
+  { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: '📝', group: 'My Learning' },
+  { key: 'codingSnippets', label: 'Code Practice',                   description: 'Code editor access with snippet manager and practice problems', icon: '💻', group: 'My Learning' },
+  { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: '📊', group: 'My Learning' },
+  // Prep & Career
+  { key: 'codePlayground',  label: 'Code Playground',         description: 'Free-form multi-language code playground with run & GitHub push', icon: '🎮', group: 'Prep & Career' },
+  { key: 'mockInterviews', label: 'Mock Interviews',                  description: 'Practice mock interviews with AI feedback', icon: '🎙', group: 'Prep & Career' },
+  { key: 'scheduledInterviews', label: 'My Interviews',         description: 'View scheduled mock interviews and released feedback from interviewers', icon: '🗓', group: 'Prep & Career' },
+  { key: 'resumeBuilder',  label: 'Resume Builder',                   description: 'Build, score, download and share a resume', icon: '📄', group: 'Prep & Career' },
+  { key: 'careerProfile',   label: 'Career Profile (CareerPilot)', description: 'AI review of resume, GitHub and LinkedIn with improvement suggestions', icon: '🎯', group: 'Prep & Career' },
+  { key: 'aiMentor',        label: 'AI Mentor (CareerPilot)', description: 'Personal AI mentor for guidance, doubts and career questions', icon: '🤖', group: 'Prep & Career' },
+  { key: 'jobTracker',      label: 'Job Tracker (CareerPilot)', description: 'Track job applications, statuses and interview pipeline', icon: '📋', group: 'Prep & Career' },
+  { key: 'projectBuilder',  label: 'Project Builder (CareerPilot)', description: 'Guided project builder to create portfolio-ready projects', icon: '🛠', group: 'Prep & Career' },
+  { key: 'resourceLibrary', label: 'Resource Library',        description: 'Curated projects, references and downloadable learning resources', icon: '📁', group: 'Prep & Career' },
+  // My Account
+  { key: 'feeDetails',          label: 'Fee Details',           description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰', group: 'My Account' },
 ];
 
 const StudentFeaturesPage: React.FC = () => {
@@ -194,32 +202,43 @@ const StudentFeaturesPage: React.FC = () => {
         </div>
       )}
 
-      <div className="sf-features-grid">
-        {FEATURE_META.map(({ key, label, description, icon }) => {
-          const locked = isModuleLocked(key);
-          return (
-            <div key={key} className={`sf-feature-card ${features[key] && !locked ? 'enabled' : 'disabled'}${locked ? ' sf-locked' : ''}`}>
-              <div className="sf-feature-info">
-                <span className="sf-feature-icon">{icon}</span>
-                <div className="sf-feature-text">
-                  <h3>{label} {locked && <span className="sf-lock-badge"><i className="fa-solid fa-lock" /> Module disabled</span>}</h3>
-                  <p>{description}</p>
-                </div>
-              </div>
-              <label className={`sf-toggle${locked ? ' sf-toggle-disabled' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={features[key] && !locked}
-                  onChange={() => handleToggle(key)}
-                  disabled={locked}
-                />
-                <span className="sf-toggle-slider"></span>
-                <span className="sf-toggle-label">{locked ? 'Locked' : features[key] ? 'Visible' : 'Hidden'}</span>
-              </label>
+      {GROUP_ORDER.map((group) => {
+        const groupFeatures = FEATURE_META.filter((f) => f.group === group);
+        if (groupFeatures.length === 0) return null;
+        return (
+          <div key={group} className="sf-group">
+            <h2 className="sf-group-title" style={{ fontSize: 14, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.05em', margin: '22px 0 10px' }}>
+              {group === 'Daily Practice' ? '🔥 ' : ''}{group}
+            </h2>
+            <div className="sf-features-grid">
+              {groupFeatures.map(({ key, label, description, icon }) => {
+                const locked = isModuleLocked(key);
+                return (
+                  <div key={key} className={`sf-feature-card ${features[key] && !locked ? 'enabled' : 'disabled'}${locked ? ' sf-locked' : ''}`}>
+                    <div className="sf-feature-info">
+                      <span className="sf-feature-icon">{icon}</span>
+                      <div className="sf-feature-text">
+                        <h3>{label} {locked && <span className="sf-lock-badge"><i className="fa-solid fa-lock" /> Module disabled</span>}</h3>
+                        <p>{description}</p>
+                      </div>
+                    </div>
+                    <label className={`sf-toggle${locked ? ' sf-toggle-disabled' : ''}`}>
+                      <input
+                        type="checkbox"
+                        checked={features[key] && !locked}
+                        onChange={() => handleToggle(key)}
+                        disabled={locked}
+                      />
+                      <span className="sf-toggle-slider"></span>
+                      <span className="sf-toggle-label">{locked ? 'Locked' : features[key] ? 'Visible' : 'Hidden'}</span>
+                    </label>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          </div>
+        );
+      })}
 
       <div className="sf-actions">
         <button className="sf-save-btn" onClick={handleSave} disabled={saving}>

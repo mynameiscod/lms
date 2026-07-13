@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>codebegun-tech-doc — Product Audit (71%)</title>
+<style>
+  :root{
+    --ground:#0f172a; --ground2:#1e293b; --bg:#f1f5f9; --card:#ffffff;
+    --ink:#0f172a; --body:#475569; --muted:#64748b; --line:#e2e8f0; --line2:#cbd5e1;
+    --accent:#4f46e5; --accent2:#0ea5e9; --navy:#1e3a8a;
+    --good:#16a34a; --warn:#d97706; --poor:#dc2626; --crit:#7f1d1d; --miss:#94a3b8;
+    --good-bg:#dcfce7; --warn-bg:#fef3c7; --poor-bg:#fee2e2; --crit-bg:#fde8e8;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--body);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{color:var(--ink);line-height:1.2;text-wrap:balance;margin:0}
+  a{color:var(--accent)}
+  code,.mono{font-family:var(--mono);font-size:.86em}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+  .scroll{overflow-x:auto}
+
+  /* Top bar */
+  .topbar{position:sticky;top:0;z-index:50;background:rgba(15,23,42,.92);backdrop-filter:blur(8px);border-bottom:1px solid #1e293b}
+  .topbar .wrap{display:flex;align-items:center;gap:18px;height:52px}
+  .topbar .brand{color:#fff;font-weight:700;font-size:15px;letter-spacing:.3px;white-space:nowrap}
+  .topbar .brand span{color:#818cf8}
+  .topbar nav{display:flex;gap:2px;overflow-x:auto;margin-left:auto}
+  .topbar nav a{color:#cbd5e1;text-decoration:none;font-size:13px;padding:6px 10px;border-radius:6px;white-space:nowrap}
+  .topbar nav a:hover{background:#1e293b;color:#fff}
+
+  /* Hero */
+  .hero{background:linear-gradient(160deg,#0f172a,#1e293b 70%,#312e81);color:#e2e8f0;padding:56px 0 40px;border-bottom:1px solid #1e293b}
+  .hero .eyebrow{color:#818cf8;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  .hero h1{color:#fff;font-size:40px;margin:10px 0 6px;letter-spacing:-.5px}
+  .hero p.sub{color:#94a3b8;font-size:16px;max-width:760px;margin:0 0 28px}
+  .hero .meta{display:flex;flex-wrap:wrap;gap:10px 22px;color:#cbd5e1;font-size:13px}
+  .hero .meta b{color:#fff}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-top:30px}
+  .kpi{background:rgba(255,255,255,.04);border:1px solid rgba(148,163,184,.18);border-radius:12px;padding:16px 18px}
+  .kpi .n{font-size:30px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+  .kpi .l{color:#94a3b8;font-size:12.5px;margin-top:6px}
+  .kpi .n.good{color:#4ade80}.kpi .n.warn{color:#fbbf24}.kpi .n.poor{color:#f87171}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  section:nth-child(even){background:#fff}
+  .sec-eyebrow{color:var(--accent);font-weight:700;letter-spacing:.12em;text-transform:uppercase;font-size:12px;margin-bottom:8px}
+  h2.sec{font-size:27px;letter-spacing:-.4px;margin-bottom:6px}
+  .sec-lead{color:var(--muted);max-width:820px;margin:0 0 26px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+  section:nth-child(even) .card{background:#f8fafc}
+
+  /* completion bar */
+  .bar{position:relative;height:8px;border-radius:99px;background:#e2e8f0;overflow:hidden}
+  .bar>span{position:absolute;left:0;top:0;bottom:0;border-radius:99px}
+  .fill-good{background:var(--good)}.fill-warn{background:var(--warn)}.fill-poor{background:var(--poor)}.fill-crit{background:var(--crit)}.fill-miss{background:var(--miss)}
+  .pct{font-variant-numeric:tabular-nums;font-weight:700}
+
+  /* domain cards */
+  .domains{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+  .dcard{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;border-top:3px solid var(--accent)}
+  .dcard h3{font-size:16px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+  .dcard h3 .p{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
+  .dcard .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted);margin:10px 0 6px}
+  .dcard small{color:var(--muted);font-size:12.5px;display:block;margin-top:8px}
+
+  /* tables */
+  table{border-collapse:collapse;width:100%;font-size:13.5px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;background:#f8fafc;position:sticky;top:52px}
+  tbody tr:hover{background:#f8fafc}
+  td.num{font-variant-numeric:tabular-nums;text-align:right}
+  .chip{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11.5px;font-weight:600;white-space:nowrap}
+  .chip.p1{background:#fee2e2;color:#b91c1c}.chip.p2{background:#ffedd5;color:#c2410c}.chip.p3{background:#fef9c3;color:#a16207}.chip.p4{background:#e0e7ff;color:#4338ca}.chip.p5{background:#e2e8f0;color:#475569}
+  .chip.hi{background:#fee2e2;color:#b91c1c}.chip.med{background:#fef3c7;color:#a16207}.chip.lo{background:#dcfce7;color:#15803d}
+  .tag{display:inline-block;background:#eef2ff;color:#4338ca;border:1px solid #e0e7ff;border-radius:6px;font-size:11px;padding:1px 7px;margin:1px}
+
+  /* module explorer controls */
+  .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+  .controls input,.controls select{font:inherit;font-size:13.5px;padding:8px 11px;border:1px solid var(--line2);border-radius:8px;background:#fff;color:var(--ink)}
+  .controls input{flex:1;min-width:190px}
+  .controls .count{color:var(--muted);font-size:13px;margin-left:auto}
+  .miniscore{display:inline-flex;align-items:center;gap:8px;min-width:120px}
+  .miniscore .bar{flex:1;width:70px}
+
+  /* flow / connection map */
+  .flow{background:#0f172a;color:#cbd5e1;border-radius:12px;padding:22px;font-family:var(--mono);font-size:12.5px;line-height:1.7;overflow-x:auto;white-space:pre}
+  .flow b{color:#818cf8}.flow .g{color:#4ade80}.flow .y{color:#fbbf24}.flow .r{color:#f87171}
+
+  ul.clean{margin:8px 0;padding-left:20px}
+  ul.clean li{margin:5px 0}
+  .risk{border-left:3px solid var(--poor);background:var(--poor-bg);padding:12px 16px;border-radius:0 8px 8px 0;margin:10px 0}
+  .risk b{color:#991b1b}
+  .win{border-left:3px solid var(--good);background:var(--good-bg);padding:12px 16px;border-radius:0 8px 8px 0;margin:10px 0}
+  .note{border-left:3px solid var(--accent2);background:#e0f2fe;padding:12px 16px;border-radius:0 8px 8px 0;margin:10px 0}
+
+  /* scorecard grid */
+  .scores{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+  .score{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+  .score .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .score .top .l{font-size:13.5px;font-weight:600;color:var(--ink)}
+  .score .top .v{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  /* roadmap */
+  .phase{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--accent)}
+  .phase h3{font-size:17px;display:flex;flex-wrap:wrap;gap:10px;align-items:baseline}
+  .phase .badges{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px;font-size:12px;color:var(--muted)}
+  .phase .badges span{background:#f1f5f9;border:1px solid var(--line);border-radius:6px;padding:2px 8px}
+
+  footer{background:#0f172a;color:#94a3b8;padding:34px 0;font-size:13px}
+  footer b{color:#e2e8f0}
+  .legend{display:flex;flex-wrap:wrap;gap:14px;font-size:12.5px;color:var(--muted);margin-top:14px}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">CodeBegun<span>·</span>Audit</div>
+    <nav>
+      <a href="#summary">Summary</a>
+      <a href="#domains">Domains</a>
+      <a href="#modules">Modules</a>
+      <a href="#connections">Connections</a>
+      <a href="#workflows">Workflows</a>
+      <a href="#gaps">Gaps</a>
+      <a href="#automation">Automation</a>
+      <a href="#ai">AI</a>
+      <a href="#cost">Cost</a>
+      <a href="#scorecard">Scorecard</a>
+      <a href="#roadmap">Roadmap</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Complete Product Audit</div>
+    <h1>CodeBegun LMS</h1>
+    <p class="sub">An enterprise-grade audit prepared as a Principal Product Manager + Senior Software Architect review. Every completion percentage is traced from the real implementation — models, routes, services, jobs, and client pages. Nothing assumed; absent features marked <em>Not Implemented</em>.</p>
+    <div class="meta">
+      <div>📅 <b>2026-07-13</b></div>
+      <div>🗄️ <b>121</b> models</div>
+      <div>🛣️ <b>85</b> route files</div>
+      <div>⚙️ <b>84</b> services</div>
+      <div>⏱️ <b>13</b> cron jobs</div>
+      <div>🖥️ <b>129</b> pages</div>
+      <div>🔌 <b>23</b> integrations</div>
+      <div>🧩 <b>70</b> modules audited</div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="n warn">71%</div><div class="l">Overall completion</div></div>
+      <div class="kpi"><div class="n poor">48%</div><div class="l">Security posture</div></div>
+      <div class="kpi"><div class="n good">82%</div><div class="l">AI readiness</div></div>
+      <div class="kpi"><div class="n poor">6%</div><div class="l">Test coverage</div></div>
+      <div class="kpi"><div class="n">₹4–12k</div><div class="l">Est. run-cost / mo @200</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- EXECUTIVE SUMMARY -->
+<section id="summary">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 1 · Executive Summary</div>
+    <h2 class="sec">A broad, capable platform in its hardening stage</h2>
+    <p class="sec-lead">CodeBegun packs an LMS, an AI assessment engine, an interview platform, a full CRM, a placement suite, and an AI career stack into one multi-tenant codebase. Breadth is exceptional. The gaps are <b>horizontal</b>, not feature-shaped — they cluster in security hardening, automated testing, cost governance, and consolidation of duplicated/legacy subsystems.</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:10px">What's genuinely strong</h3>
+        <ul class="clean">
+          <li><b>AI infrastructure (88%)</b> — dual-provider failover gateway (OpenAI→Claude) with per-call ₹ cost logging to <code>AiUsage</code>.</li>
+          <li><b>Interviews domain (avg 84%)</b> — real Claude interviewer brain with deterministic fallbacks + voice/avatar.</li>
+          <li><b>AI Communication Lab (90%)</b> and <b>Enrollment / AI day-wise Learning Plan (85%)</b> — production-grade signature features.</li>
+          <li><b>Skill Assessment Funnel (82%)</b> — end-to-end candidate→student→lead pipeline at ~₹0.10/candidate.</li>
+          <li><b>Lead Management (88%)</b> — mature CRM core with configurable pipeline.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:10px">Top cross-cutting risks</h3>
+        <div class="risk"><b>Security (48%)</b> — cross-tenant read/write on <code>:id</code>/<code>:userId</code> routes; unverified webhooks (<code>/hms/webhook</code> no HMAC, Meta HMAC fails-open, WhatsApp/Exotel unverified); JWT/encryption-key fallback to hardcoded constants; missing <code>roleGuard</code> on many newer routes; XP forgery; unauthenticated video stream.</div>
+        <div class="risk"><b>Testing (6%)</b> — ~6 test files across the whole repo. High regression risk on AI/scoring logic.</div>
+        <div class="risk"><b>Cost governance</b> — only LLM/Whisper metered; 100ms + Bunny Stream are unbounded "cost bombs" with no caps.</div>
+      </div>
+    </div>
+
+    <div class="note" style="margin-top:20px"><b>Reconciliation note:</b> Razorpay payments are <b>complete</b> (order→verify→<code>unlockCandidatePlans</code> with webhook signature check) and Raise-a-Concern is <b>complete</b> — these correct earlier internal notes. The real assessment revenue blocker is the <em>student-facing unlock UI</em>, not the payment plumbing.</div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:var(--good)"></span>≥80% strong</span>
+      <span><span class="dot" style="background:var(--warn)"></span>60–79% functional</span>
+      <span><span class="dot" style="background:var(--poor)"></span>40–59% partial</span>
+      <span><span class="dot" style="background:var(--crit)"></span>&lt;40% stub</span>
+      <span><span class="dot" style="background:var(--miss)"></span>orphaned / not wired</span>
+    </div>
+  </div>
+</section>
+
+<!-- DOMAIN SCORECARD -->
+<section id="domains">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 6 · Domain Scorecard</div>
+    <h2 class="sec">Nine domains, 70 modules</h2>
+    <p class="sec-lead">Domain averages of module-level completion. Interviews and CareerPilot lead; Assessments is dragged down by an orphaned Exam model; Placement/Platform by weak automation.</p>
+    <div class="domains" id="domainCards"></div>
+  </div>
+</section>
+
+<!-- MODULE EXPLORER -->
+<section id="modules">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 2 & 3 · Module Inventory</div>
+    <h2 class="sec">Every module, scored &amp; searchable</h2>
+    <p class="sec-lead">All 70 modules with traced completion, priority, business impact, and one-line status. Full per-module detail (purpose, APIs, DB, events, AI, validation, gaps, effort) lives in each module's markdown file under <code>docs/audit/</code>.</p>
+    <div class="controls">
+      <input id="q" type="text" placeholder="Search modules, status, gaps…" aria-label="Search modules"/>
+      <select id="domainFilter" aria-label="Filter by domain"></select>
+      <select id="sortBy" aria-label="Sort by">
+        <option value="score-asc">Sort: lowest % first</option>
+        <option value="score-desc">Sort: highest % first</option>
+        <option value="domain">Sort: by domain</option>
+        <option value="priority">Sort: by priority</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="scroll">
+      <table id="modTable">
+        <thead><tr>
+          <th>Module</th><th>Domain</th><th style="min-width:150px">Completion</th><th>Priority</th><th>Impact</th><th>Status / key gap</th>
+        </tr></thead>
+        <tbody id="modBody"></tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- CONNECTION MAP -->
+<section id="connections">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 4 & 10 · Connection & Dependency Map</div>
+    <h2 class="sec">How the modules wire together</h2>
+    <p class="sec-lead">The golden path from acquisition to placement, and the load-bearing dependencies that make modules unable to stand alone.</p>
+    <div class="flow">
+<b>ACQUISITION</b>          <b>ONBOARDING</b>              <b>LEARNING LOOP</b>                 <b>OUTCOMES</b>
+Lead / Ad / ────► <b>Skill Assessment</b> ──► auto <b>Account</b> ──► <b>Personalized Day-Wise Plan</b> ──┐
+Organic           <span class="g">Funnel (82%)</span>        (STUDENT)      <span class="g">Enrollment (85%)</span>              │
+   │                  │  WhatsApp OTP                          │                          │
+   ▼                  ▼  Claude exam + Piston grade            ▼                          ▼
+<b>CRM / Leads</b> ◄──── lead sync                 Interactive Lessons · Quizzes ·   <b>Certificates</b>
+<span class="g">(88%)</span>                                        Assignments+Coding · Live Classes  <span class="y">(62%)</span>
+   │                                              Daily Practice · Attendance          │
+   ▼                                                    │                              ▼
+<b>Placement Drives</b> ◄──────────────────────────── <b>CareerPilot</b> ◄── Progress ──► <b>Interviews</b>
+<span class="y">(70%)</span> ──► <b>Alumni</b>                     Resume·Profile·Mentor·Jobs      AI Virtual + Manual <span class="g">(84%)</span>
+      </div>
+
+    <div class="grid2" style="margin-top:22px">
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:8px">Cannot work independently</h3>
+        <ul class="clean">
+          <li>All student features depend on <b>Enrollment/Plan + Tenant module gates + student-feature gates + RBAC</b>.</li>
+          <li><b>Assessment Funnel</b> → WhatsApp, AI gateway, Piston, User creation, Curriculum, Payments, CRM.</li>
+          <li><b>Live Classes / Attendance / Recordings / AI Notes</b> all hang off the single <code>/hms/webhook</code>.</li>
+          <li>All <b>AI features</b> route through the AI Infrastructure gateway (aiGateway + settings + AiUsage).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:8px">Should auto-trigger (but don't)</h3>
+        <ul class="clean">
+          <li>Assessment submit → paid-unlock UI (plumbing exists, screen missing).</li>
+          <li>Class end → recording import → AI notes (silent-fails if transcription add-on off).</li>
+          <li>Quiz/assignment pass → certificate (only <code>placement</code> certs ever issue).</li>
+          <li>Lesson complete → advance enrollment day (link stored, unused).</li>
+          <li>Interview graded → result-ready notification (none exists).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WORKFLOWS -->
+<section id="workflows">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 5 · Role Workflow Audit</div>
+    <h2 class="sec">End-to-end journeys by role</h2>
+    <p class="sec-lead"><span class="tag">✓ automated</span> <span class="tag">~ manual/partial</span> <span class="tag">✗ missing</span> — where each workflow breaks or needs a human.</p>
+    <div class="grid2">
+      <div class="card"><h3 style="font-size:15px">🎓 Student</h3><p class="mono" style="font-size:12.5px;color:var(--body)">Assessment ✓ → Account ✓ → Plan ✓ → Day content (AI) ✓ → Lessons/Quizzes/Coding ✓ → Live class ✓ → Daily practice ✓ → Attendance ~ → Progress ✓ → CareerPilot ✓ → Interview ✓ → <b>Placement-ready</b> ~ → Paid unlock ✗</p></div>
+      <div class="card"><h3 style="font-size:15px">👩‍🏫 Trainer</h3><p class="mono" style="font-size:12.5px;color:var(--body)">Build curriculum ✓ → Enroll batch ✓ → Assign quiz/assignment/drill ~ → Host live class ✓ → Mark attendance ~ → Grade (MCQ ✓ / coding ✗ / short-answer ~) → Feedback ✓ → Analytics ~ (filters unwired)</p></div>
+      <div class="card"><h3 style="font-size:15px">🛠️ Admin / Tenant Admin</h3><p class="mono" style="font-size:12.5px;color:var(--body)">Config modules/features ✓ → Users/roles ✓ → Platform settings/AI keys ✓ → Fees ✓ → Certificates (placement only) ~ → Reports ~ → Cost view (LLM only) ~ → Audit trail ✗</p></div>
+      <div class="card"><h3 style="font-size:15px">📞 Counsellor / Sales</h3><p class="mono" style="font-size:12.5px;color:var(--body)">Lead intake (form/Meta/Sheet) ✓ → Auto-assign ~ (race) → Qualify ~ (scoreImpact unwired) → WhatsApp drip ✗ (no HSM/opt-out) → AI call ~ → Follow-ups ✓ → Convert → Seat reserve ✓ (no expiry ✗)</p></div>
+      <div class="card"><h3 style="font-size:15px">🤝 Placement Team</h3><p class="mono" style="font-size:12.5px;color:var(--body)">Source partners ✓ → Outreach (email/IMAP reply) ✓ → Create drive ~ → Match students ✗ (manual) → Track applications ~ → Offer ~ → Alumni ~</p></div>
+      <div class="card"><h3 style="font-size:15px">👑 Super Admin</h3><p class="mono" style="font-size:12.5px;color:var(--body)">Manage tenants ✓ → Platform module gates ✓ → AI models/keys ✓ → AI spend ✓ → <b>Cross-tenant isolation ✗ (not enforced on :id routes)</b> → Global audit ✗</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- GAP ANALYSIS -->
+<section id="gaps">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 7 · Gap Analysis</div>
+    <h2 class="sec">The recurring gaps, by theme</h2>
+    <p class="sec-lead">Rather than 70× repetition, here are the gap patterns that appear across most modules — the highest-leverage places to invest.</p>
+    <div class="grid3">
+      <div class="card"><h3 style="font-size:15px;color:var(--poor)">🔒 Security &amp; Permissions</h3><ul class="clean"><li>Tenant-ownership not checked on <code>:id</code> routes</li><li>Webhooks unverified (hms, Meta fails-open, WhatsApp, Exotel)</li><li>Secret fallbacks (JWT <code>'secret-key'</code>)</li><li>Missing roleGuard on newer routes</li><li>Plaintext tokens (GitHub, Exotel)</li><li>No rate-limiting on public endpoints</li></ul></div>
+      <div class="card"><h3 style="font-size:15px;color:var(--warn)">🧪 Testing &amp; Error Handling</h3><ul class="clean"><li>~6 test files repo-wide (≈6%)</li><li>No tests on scoring/grading/AI-fallback</li><li>Empty/loading/error states patchy in UI</li><li>No retry on transient AI/API failures</li></ul></div>
+      <div class="card"><h3 style="font-size:15px;color:var(--warn)">🔔 Notifications</h3><ul class="clean"><li>No email/WhatsApp on: leave decision, career review, mentoring, result-ready, resource request</li><li>WhatsApp non-compliant (no HSM/STOP/suppression)</li><li>In-app only; single-instance socket</li></ul></div>
+      <div class="card"><h3 style="font-size:15px;color:var(--warn)">🤖 Automation</h3><ul class="clean"><li>Daily challenges pull-only (no cron)</li><li>Seat expiry never triggers</li><li>Placement matching fully manual</li><li>Assignment expiry flags dormant</li></ul></div>
+      <div class="card"><h3 style="font-size:15px;color:var(--muted)">📊 Reports &amp; Analytics</h3><ul class="clean"><li>In-memory aggregations (no pipelines)</li><li>No unified BI / cost ledger</li><li>Conversion-funnel metrics absent</li><li>Interview analytics filters unwired</li></ul></div>
+      <div class="card"><h3 style="font-size:15px;color:var(--muted)">♻️ Tech Debt / Duplication</h3><ul class="clean"><li>LiveClass(100ms) vs LiveSession(Jitsi)</li><li>Certificate vs shareToken systems</li><li>3 interview/question models</li><li>2 lead-scoring engines</li><li>Dead code: AdCampaign, scraper (699 L), <code>Lesson.ts</code></li><li>Fabricated exec metrics (<code>Math.random()</code>)</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- AUTOMATION -->
+<section id="automation">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 8 · Automation Audit</div>
+    <h2 class="sec">Manual today → automatable</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Manual process today</th><th>Automation opportunity</th><th>Effort</th></tr></thead>
+        <tbody>
+          <tr><td>Daily challenge assignment (pull-only)</td><td>6 AM IST cron pre-assigns adaptive problem + push/WhatsApp nudge</td><td class="num">3 d</td></tr>
+          <tr><td>Coding &amp; short-answer grading</td><td>Wire through Code Execution Engine + AI rubric grading</td><td class="num">1.5 wk</td></tr>
+          <tr><td>Seat-reservation expiry / capacity</td><td>Expiry cron flips <code>expired</code>, frees capacity, notifies</td><td class="num">2 d</td></tr>
+          <tr><td>Placement student↔company matching</td><td>AI matching engine on skills + readiness + role</td><td class="num">2 wk</td></tr>
+          <tr><td>Lead nurture (drip broken)</td><td>Compliant WhatsApp HSM templates + STOP/opt-out + scheduler</td><td class="num">1 wk</td></tr>
+          <tr><td>Interview scheduling &amp; result release</td><td>Auto-scheduler + result-ready notification cron</td><td class="num">4 d</td></tr>
+          <tr><td>Resume / profile review</td><td>Already AI — extend to auto re-score on GitHub/LinkedIn change</td><td class="num">3 d</td></tr>
+          <tr><td>Cost tracking (LLM only)</td><td>Unified cost ledger: 100ms min, Bunny GB, WhatsApp, Razorpay, Exotel</td><td class="num">1 wk</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- AI OPPORTUNITIES -->
+<section id="ai">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 9 · AI Opportunities</div>
+    <h2 class="sec">Where AI already works — and where it should go next</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:8px">Live AI today</h3>
+        <ul class="clean">
+          <li><b>Assessment:</b> Claude exam design, question gen (Piston-verified), roadmap, skill-gap, resume/comms scoring.</li>
+          <li><b>Interviews:</b> Claude interviewer brain, answer eval, transcript grading; ElevenLabs voice + D-ID avatar (opt-in).</li>
+          <li><b>Communication/Thinking Labs:</b> Whisper STT + Claude/OpenAI rubric + gamification.</li>
+          <li><b>Learning:</b> AI day-content generation (lessons + Q&amp;A + verified DSA).</li>
+          <li><b>CareerPilot:</b> resume/GitHub/LinkedIn review, AI mentor chat.</li>
+          <li><b>CRM:</b> lead scoring, AI voice calls (Exotel), talk-tracks.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="font-size:16px;margin-bottom:8px">Highest-value AI to add</h3>
+        <ul class="clean">
+          <li><b>AI coding grader</b> for assignments/quizzes (currently auto-0 / manual).</li>
+          <li><b>Placement matching engine</b> (student readiness ↔ company reqs).</li>
+          <li><b>Prediction AI:</b> dropout/at-risk, placement-likelihood, lead-conversion propensity.</li>
+          <li><b>Recommendation AI:</b> next-best lesson/drill; semantic question dedup via embeddings.</li>
+          <li><b>Real body-language scoring</b> for Communication Lab (currently null).</li>
+          <li><b>Provider consolidation</b> onto Claude + meter <em>all</em> AI spend (AI Mentor/Speaking currently invisible).</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COST -->
+<section id="cost">
+  <div class="wrap">
+    <div class="sec-eyebrow">Cost &amp; Third-Party Dependencies</div>
+    <h2 class="sec">23 integrations · ₹ run-cost @ 200 students</h2>
+    <p class="sec-lead">Almost every key is read from Platform Settings with graceful fallback — only MongoDB, SMTP, and the JWT secret are load-bearing at boot. USD→INR at the app's own ₹85 default.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Service</th><th>Category</th><th>Purpose</th><th>Pricing (₹)</th><th class="num">Est / mo</th></tr></thead>
+        <tbody id="costBody"></tbody>
+      </table>
+    </div>
+    <div class="grid3" style="margin-top:18px">
+      <div class="card"><h3 style="font-size:14px">Baseline (current usage)</h3><div style="font-size:26px;font-weight:800;color:var(--warn)">₹4,000–12,000</div><small>AI + Whisper + WhatsApp + VPS. No live classes / paid voice.</small></div>
+      <div class="card"><h3 style="font-size:14px">+ Live Classes (100ms)</h3><div style="font-size:26px;font-weight:800;color:var(--poor)">+₹15,000–30,000</div><small>Becomes the single largest line item once daily HLS + recordings run.</small></div>
+      <div class="card"><h3 style="font-size:14px">+ AI Voice/Avatar</h3><div style="font-size:26px;font-weight:800;color:var(--poor)">+₹5,000–15,000</div><small>Exotel + ElevenLabs + D-ID if enabled. Razorpay ~2% of fees (revenue-linked).</small></div>
+    </div>
+    <div class="risk" style="margin-top:16px"><b>Cost-governance gap:</b> 100ms, Bunny, Razorpay, WhatsApp, Exotel spend is <b>not</b> captured in <code>AiUsage</code> — only LLM/Whisper is dashboarded. No per-tenant budget caps or alerts. Add a unified cost ledger before scaling live classes.</div>
+  </div>
+</section>
+
+<!-- SCORECARD -->
+<section id="scorecard">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 12 · Final Scorecard</div>
+    <h2 class="sec">Product health, by axis</h2>
+    <p class="sec-lead">Architect-level synthesis across all 70 modules. Security, scalability, and testing are the axes holding back an otherwise commercially-capable product.</p>
+    <div class="scores" id="scoreGrid"></div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section id="roadmap">
+  <div class="wrap">
+    <div class="sec-eyebrow">Phase 11 & 13 · Prioritized Implementation Plan</div>
+    <h2 class="sec">What to do, in order</h2>
+    <p class="sec-lead">Sequenced by risk-reduction and revenue impact. Each priority lists estimated time, complexity, dependencies, business value, and technical risk. <b>No work has been started</b> — this is the plan for your approval.</p>
+
+    <div class="phase" style="border-left-color:#dc2626">
+      <h3>P1 — Security &amp; Correctness Hardening <span class="chip hi">Must-have</span></h3>
+      <div class="badges"><span>⏱ 2–3 weeks</span><span>🧠 Medium</span><span>🔗 none (do first)</span><span>💰 Very High (prevents breach)</span><span>⚠️ Low risk</span></div>
+      <ul class="clean">
+        <li>Enforce tenant-ownership on all <code>:id</code>/<code>:userId</code> routes; add roleGuard to newer routes (curriculum, learning-library, interactive-lesson, enrollment-plan, dashboard-admin, resume <code>/all</code>, career-profile admin).</li>
+        <li>Verify all public webhooks (hms HMAC, Meta HMAC fix fail-open→fail-closed, WhatsApp, Exotel). Remove JWT/encryption secret fallbacks.</li>
+        <li>Fix XP forgery (validate against <code>scene.xpReward</code>), authenticate the video-stream route, fix the double lead-assignment race, make the code runner <b>fail-closed</b> for scored work (no <code>Math.random()</code> metrics / simulation pass).</li>
+        <li>Rate-limit public endpoints (assessment register/verify/run-code, public quiz).</li>
+      </ul>
+    </div>
+
+    <div class="phase" style="border-left-color:#ea580c">
+      <h3>P2 — Trust &amp; Revenue <span class="chip hi">Must-have</span></h3>
+      <div class="badges"><span>⏱ 2–4 weeks</span><span>🧠 Medium</span><span>🔗 P1</span><span>💰 High (unlocks revenue)</span><span>⚠️ Medium</span></div>
+      <ul class="clean">
+        <li>First automated test suite targeting scoring/grading/AI-fallback logic (highest-risk code).</li>
+        <li>Ship the <b>assessment paid-unlock UI</b> (payment plumbing already complete) — the direct revenue blocker.</li>
+        <li>Notifications: result-ready, leave decision, career-review complete, mentoring accept/decline.</li>
+        <li>WhatsApp compliance: HSM templates + STOP/opt-out + suppression list (currently non-functional at scale).</li>
+      </ul>
+    </div>
+
+    <div class="phase" style="border-left-color:#d97706">
+      <h3>P3 — Cost &amp; Scale <span class="chip med">High value</span></h3>
+      <div class="badges"><span>⏱ 2–3 weeks</span><span>🧠 Medium-High</span><span>🔗 P1</span><span>💰 High (before scale)</span><span>⚠️ Medium</span></div>
+      <ul class="clean">
+        <li>Unified cost ledger (100ms min, Bunny GB, WhatsApp, Razorpay, Exotel) + per-tenant budget caps &amp; alerts.</li>
+        <li>Redis Socket.io adapter (unblocks multi-instance / live-class scale-out).</li>
+        <li>Email queue + paid provider (Brevo/SES) with backpressure; keep SMTP fallback.</li>
+        <li>Pagination + N+1 fixes (quiz/question analytics, candidate lists, attendance summary).</li>
+      </ul>
+    </div>
+
+    <div class="phase" style="border-left-color:#ca8a04">
+      <h3>P4 — Consolidation &amp; Debt <span class="chip med">Good-to-have</span></h3>
+      <div class="badges"><span>⏱ 2–4 weeks</span><span>🧠 Medium</span><span>🔗 P1–P3</span><span>💰 Medium (maintainability)</span><span>⚠️ Medium</span></div>
+      <ul class="clean">
+        <li>Retire Jitsi <code>LiveSession</code>; unify certificate systems; collapse 3 interview/question models &amp; 2 lead-scoring engines.</li>
+        <li>Delete dead code (AdCampaign controller, Playwright scraper, <code>Lesson.ts</code>); decide Exam model (deprecate → <code>AssessmentSubmission</code>).</li>
+        <li>Consolidate AI onto Claude where product direction dictates; meter all AI spend.</li>
+      </ul>
+    </div>
+
+    <div class="phase" style="border-left-color:#4f46e5">
+      <h3>P5 — AI Depth &amp; Automation <span class="chip p4">Enterprise / Premium</span></h3>
+      <div class="badges"><span>⏱ ongoing</span><span>🧠 High</span><span>🔗 P1–P4</span><span>💰 High (differentiation)</span><span>⚠️ Medium-High</span></div>
+      <ul class="clean">
+        <li>Daily-challenge cron + reminders; AI coding/short-answer grader; auto-certificate issuance for all types.</li>
+        <li>AI placement-matching engine; prediction AI (at-risk / placement-likelihood / lead-conversion); recommendation AI.</li>
+        <li>Real body-language scoring; audit-log coverage across all admin actions; mobile support.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>CodeBegun LMS — Complete Product Audit.</b> Prepared 2026-07-13 as a Principal PM + Software Architect review. Every figure traced from source; absent features marked "Not Implemented".<br/>
+    Per-module detail: <b>70 module files</b> + 6 domain summaries + cost rollup under <code>docs/audit/</code>. Index: <code>docs/audit/MASTER_INDEX.md</code>. <b>Living document</b> — updated on every feature change.
+  </div>
+</footer>
+
+<script>
+const MODULES = [
+  // Identity & Access
+  {n:"Authentication",d:"Identity & Access",o:72,p:"P1",i:"High",s:"Functional core; no rate-limit/lockout, secret fallbacks",f:"authentication"},
+  {n:"User Management",d:"Identity & Access",o:74,p:"P1",i:"High",s:"Feature-rich; cross-tenant access on :userId, no audit",f:"user-management"},
+  {n:"Roles & Permissions (RBAC)",d:"Identity & Access",o:78,p:"P1",i:"High",s:"Solid; ATTENDANCE_ADMIN enum mismatch, fail-open guard",f:"roles-and-permissions-rbac"},
+  {n:"Multi-Tenancy & Tenant Mgmt",d:"Identity & Access",o:70,p:"P1",i:"High",s:"Rich config; cross-tenant read/write on :id",f:"multi-tenancy-and-tenant-management"},
+  {n:"Student/Instructor Profiles",d:"Identity & Access",o:76,p:"P2",i:"Medium",s:"Strong student; instructor profile thin, disk uploads",f:"student-instructor-profiles"},
+  {n:"Platform Settings & Config",d:"Identity & Access",o:82,p:"P2",i:"High",s:"Best-built; enc-key fallback, no settings audit",f:"platform-settings-and-system-configuration"},
+  {n:"Audit Logs",d:"Identity & Access",o:30,p:"P2",i:"Medium",s:"Good schema, lead-only coverage, open raw-log endpoint",f:"audit-logs"},
+  // Learning
+  {n:"Course Management",d:"Learning & Curriculum",o:62,p:"P2",i:"Medium",s:"Legacy hierarchy w/ roleGuard; thinner UI",f:"course-management"},
+  {n:"Curriculum & Content Library",d:"Learning & Curriculum",o:78,p:"P1",i:"High",s:"Strong; newer routes lack roleGuard",f:"curriculum-content-library"},
+  {n:"Lessons & Lesson Progress",d:"Learning & Curriculum",o:55,p:"P3",i:"Medium",s:"Lesson.ts dead code; progress refs InteractiveLesson",f:"lessons-lesson-progress"},
+  {n:"Interactive Lessons",d:"Learning & Curriculum",o:78,p:"P1",i:"High",s:"Scene-based; XP forgery, uncapped Piston/Claude",f:"interactive-lessons"},
+  {n:"Enrollment & Learning Plans",d:"Learning & Curriculum",o:85,p:"P1",i:"High",s:"Crown jewel — AI day-wise plan in production",f:"enrollment-learning-plans"},
+  {n:"Batch Management",d:"Learning & Curriculum",o:62,p:"P2",i:"Medium",s:"Functional; GET routes miss roleGuard",f:"batch-management"},
+  {n:"Student Progress & Personalization",d:"Learning & Curriculum",o:68,p:"P2",i:"High",s:"Master-track cloning; completeLesson doesn't advance day",f:"student-progress-personalization"},
+  {n:"Dashboard",d:"Learning & Curriculum",o:70,p:"P2",i:"High",s:"admin-overview reachable by STUDENT token",f:"dashboard"},
+  // Assessments
+  {n:"Quizzes",d:"Assessments",o:75,p:"P1",i:"High",s:"Mature proctoring/scheduling; N+1, coding grading stub",f:"quizzes"},
+  {n:"Question Bank",d:"Assessments",o:75,p:"P2",i:"Medium",s:"AI gen (OpenAI) MCQ only; no pagination, regex dedup",f:"question-bank"},
+  {n:"Exams",d:"Assessments",o:14,p:"P4",i:"Low",s:"Orphaned model; no routes/UI, only student reports",f:"exams"},
+  {n:"Public Quiz",d:"Assessments",o:68,p:"P2",i:"High",s:"Lead-capture funnel; leaderboard scale risk, no rate-limit",f:"public-quiz"},
+  {n:"Skill Assessment Funnel",d:"Assessments",o:82,p:"P1",i:"High",s:"Flagship AI funnel; paid-unlock UI + anti-cheat + rate-limit gaps",f:"skill-assessment-funnel"},
+  {n:"Logical Thinking Lab",d:"Assessments",o:72,p:"P2",i:"Medium",s:"Rich gamified AI; pull-only (no cron), unrate-limited gen",f:"logical-thinking-lab"},
+  {n:"Drills / LogicGym",d:"Assessments",o:70,p:"P3",i:"Medium",s:"Plan-first coding; manual assign, no reminders",f:"drills-logic-gym"},
+  {n:"Qualification Questions",d:"Assessments",o:67,p:"P3",i:"Medium",s:"Config-driven; scoreImpact/fieldToUpdate not applied",f:"qualification-questions"},
+  // Assignments & Coding
+  {n:"Assignments",d:"Assignments & Coding",o:82,p:"P1",i:"High",s:"Most mature; plagiarism schema-only, no AI grading",f:"assignments"},
+  {n:"Code Snippet Assessments",d:"Assignments & Coding",o:60,p:"P2",i:"Medium",s:"No code execution; MCQs graded manually",f:"code-snippet-assessments"},
+  {n:"Code Playground",d:"Assignments & Coding",o:75,p:"P2",i:"Medium",s:"Monaco + PythonTutor debug; GitHub token plaintext",f:"code-playground"},
+  {n:"Project Builder",d:"Assignments & Coding",o:63,p:"P3",i:"Medium",s:"Claude recommend; AI spend unlogged, no rate-limit",f:"project-builder"},
+  {n:"Code Execution Engine",d:"Assignments & Coding",o:70,p:"P1",i:"High",s:"Self-hosted Piston; fabricated metrics, sim fallback mis-grades",f:"code-execution-engine"},
+  {n:"Gamification",d:"Assignments & Coding",o:68,p:"P3",i:"Medium",s:"Solid in Thinking Lab; coins unspendable, coding awards no XP",f:"gamification"},
+  // Attendance / Live / Certs
+  {n:"Attendance",d:"Attendance / Live / Certs",o:68,p:"P2",i:"High",s:"No unique index (race dedupe); leave counts against %",f:"attendance"},
+  {n:"Leave Management",d:"Attendance / Live / Certs",o:72,p:"P2",i:"Medium",s:"Works; zero notifications, no overlap/quota validation",f:"leave-management"},
+  {n:"Live Classes (100ms)",d:"Attendance / Live / Certs",o:74,p:"P1",i:"High",s:"Polished 100ms; legacy Jitsi stub coexists",f:"live-classes"},
+  {n:"Live-Class Attendance",d:"Attendance / Live / Certs",o:66,p:"P2",i:"Medium",s:"Auto from join events; non-joiners never marked absent",f:"live-class-attendance"},
+  {n:"Class Recordings",d:"Attendance / Live / Certs",o:64,p:"P2",i:"Medium",s:"Bunny import; diagnostics read-only, AI notes silent-fail",f:"class-recordings"},
+  {n:"Certificates",d:"Attendance / Live / Certs",o:62,p:"P2",i:"Medium",s:"Only placement issued; 3-byte cert# no collision retry",f:"certificates"},
+  // Interviews
+  {n:"Interview Templates",d:"Interviews",o:88,p:"P2",i:"High",s:"Robust lifecycle",f:"interview-templates"},
+  {n:"Interview Question Bank (modern)",d:"Interviews",o:84,p:"P2",i:"Medium",s:"Template-driving bank",f:"interview-question-bank"},
+  {n:"Interview Legacy Q&A",d:"Interviews",o:90,p:"P3",i:"Low",s:"Separate chapter-study system (naming hazard)",f:"interview-legacy-qa"},
+  {n:"Interview Assignments",d:"Interviews",o:82,p:"P2",i:"Medium",s:"Dormant expiry/notify flags, no cron",f:"interview-assignments"},
+  {n:"AI Virtual Interview",d:"Interviews",o:80,p:"P1",i:"High",s:"Flagship Claude brain + voice/avatar; sync grading latency",f:"ai-virtual-interview"},
+  {n:"Scheduled / Manual Interviews",d:"Interviews",o:85,p:"P2",i:"High",s:"Absent→0 + red-alert email + calendar invites",f:"scheduled-manual-interviews"},
+  {n:"Interview Analytics & Reports",d:"Interviews",o:76,p:"P2",i:"Medium",s:"Filters built in UI but never sent to API",f:"interview-analytics-feedback-reports"},
+  // CareerPilot
+  {n:"AI Communication Lab",d:"CareerPilot & Communication",o:90,p:"P1",i:"High",s:"Production-grade; video body-language scores null",f:"ai-communication-lab"},
+  {n:"Resume Builder",d:"CareerPilot & Communication",o:84,p:"P1",i:"High",s:"8 templates; /resume/all lacks roleGuard, disk uploads",f:"resume-builder"},
+  {n:"Career Profile (CareerPilot)",d:"CareerPilot & Communication",o:80,p:"P1",i:"High",s:"AI review resume+GitHub+LinkedIn; admin routes no roleGuard",f:"career-profile"},
+  {n:"Resource Library",d:"CareerPilot & Communication",o:85,p:"P2",i:"Medium",s:"Bunny-backed; request review sends no notification",f:"resource-library"},
+  {n:"Job Tracker",d:"CareerPilot & Communication",o:78,p:"P2",i:"Medium",s:"Solid application tracker",f:"job-tracker"},
+  {n:"AI Mentor",d:"CareerPilot & Communication",o:72,p:"P2",i:"Medium",s:"Claude chat; AI spend unmetered",f:"ai-mentor"},
+  {n:"Speaking Practice (legacy)",d:"CareerPilot & Communication",o:80,p:"P4",i:"Low",s:"Retired; superseded by Communication Lab",f:"speaking-practice"},
+  {n:"Mentoring Requests",d:"CareerPilot & Communication",o:68,p:"P3",i:"Medium",s:"tenantId String vs ObjectId mismatch bug",f:"mentoring-requests"},
+  // CRM / Leads
+  {n:"Lead Management",d:"CRM / Leads & Marketing",o:88,p:"P1",i:"High",s:"Mature CRM; double-assignment race",f:"lead-management"},
+  {n:"Lead Configuration",d:"CRM / Leads & Marketing",o:85,p:"P2",i:"Medium",s:"8-model config surface; two scoring engines",f:"lead-configuration"},
+  {n:"Lead Scoring & AI",d:"CRM / Leads & Marketing",o:78,p:"P2",i:"Medium",s:"OpenAI scoring; redundant with priority config",f:"lead-scoring-ai"},
+  {n:"Lead Distribution",d:"CRM / Leads & Marketing",o:72,p:"P2",i:"Medium",s:"Round-robin; race with scoring assign",f:"lead-distribution"},
+  {n:"Meta & Google Ads",d:"CRM / Leads & Marketing",o:50,p:"P2",i:"Medium",s:"AdCampaign controller unwired; scraper dead code",f:"meta-google-ads-integration"},
+  {n:"Google Sheets Integration",d:"CRM / Leads & Marketing",o:80,p:"P3",i:"Medium",s:"Public-CSV poll every 5 min",f:"google-sheets-integration"},
+  {n:"WhatsApp Automation",d:"CRM / Leads & Marketing",o:50,p:"P1",i:"High",s:"Non-compliant: no HSM templates/STOP/suppression",f:"whatsapp-automation"},
+  {n:"Sales Enablement",d:"CRM / Leads & Marketing",o:60,p:"P3",i:"Medium",s:"Share sends nothing (TODO stub)",f:"sales-enablement"},
+  {n:"AI Voice Calling",d:"CRM / Leads & Marketing",o:72,p:"P2",i:"Medium",s:"Exotel + BullMQ; webhook unverified, recording 401s",f:"ai-voice-calling"},
+  {n:"Partner / Placement Outreach",d:"CRM / Leads & Marketing",o:80,p:"P2",i:"Medium",s:"IMAP replies; solid outreach engine",f:"partner-placement-outreach"},
+  // Placement / Platform
+  {n:"Placement & Companies",d:"Placement / College & Platform",o:70,p:"P2",i:"High",s:"Drive lifecycle + partner CRM + job tracker",f:"placement-and-companies"},
+  {n:"College Management",d:"Placement / College & Platform",o:61,p:"P3",i:"Medium",s:"Dept/curriculum/CRT; automation 10%",f:"college-management"},
+  {n:"Alumni Network",d:"Placement / College & Platform",o:61,p:"P3",i:"Medium",s:"Directory + referrals; tenantId type mismatch",f:"alumni-network"},
+  {n:"Fees & Payments",d:"Placement / College & Platform",o:75,p:"P1",i:"High",s:"Razorpay complete incl webhook verify; UPI manual",f:"fees-and-payments"},
+  {n:"Notifications",d:"Placement / College & Platform",o:55,p:"P2",i:"High",s:"In-app + socket; no email/WhatsApp bridge, single-instance",f:"notifications"},
+  {n:"Email System",d:"Placement / College & Platform",o:70,p:"P1",i:"High",s:"SMTP single-instance in-process; no queue/backpressure",f:"email-system"},
+  {n:"AI Infrastructure",d:"Placement / College & Platform",o:88,p:"P1",i:"High",s:"Dual-provider failover gateway; ₹ cost logging",f:"ai-infrastructure"},
+  {n:"Reports & Analytics",d:"Placement / College & Platform",o:69,p:"P2",i:"Medium",s:"In-memory aggregations; no unified BI",f:"reports-and-analytics"},
+  {n:"Concerns / Support",d:"Placement / College & Platform",o:55,p:"P3",i:"Medium",s:"Raise/list/respond built; no notifications",f:"concerns-support"},
+  {n:"Meetings & Scheduling",d:"Placement / College & Platform",o:45,p:"P3",i:"Low",s:"Thin; no indexes, minimal UI",f:"meetings-and-scheduling"},
+];
+
+const SCORES = [
+  ["Overall Product",71],["Architecture",78],["Code Quality",68],["Scalability",55],["Performance",62],
+  ["Security",48],["UI",78],["UX",72],["Student Experience",80],["Trainer Experience",72],
+  ["Admin Experience",74],["Placement Experience",64],["AI Readiness",82],["Enterprise Readiness",55],
+  ["Commercial Readiness",70],["Maintainability",65],["Test Coverage",6],
+];
+
+const COST = [
+  ["Anthropic Claude","AI/LLM","Lesson gen, interview brain, assessment, roadmaps","Haiku ₹85/₹425·Sonnet ₹255/₹1275 per M","₹1,500–6,000"],
+  ["OpenAI GPT","AI/LLM","Default cheap LLM (gpt-4o-mini)","₹12.75/₹51 per M","₹800–3,000"],
+  ["OpenAI Whisper","STT","Speaking/comms/interview transcription","₹0.51/audio-min","₹300–1,500"],
+  ["100ms","Live video","Live-class webinar + HLS + recordings","~₹0.24/participant-min","₹0 → ₹15,000+"],
+  ["Bunny Storage","Object store","Resource ZIPs/docs","~₹0.85/GB/mo","₹200–800"],
+  ["Bunny Stream","Video CDN","Class-recording playback (HLS)","~₹0.85/GB + delivery","₹500–3,000"],
+  ["Razorpay","Payments","Fee/seat online payments","2% per txn","~2% of fees"],
+  ["ElevenLabs","TTS","AI interviewer voice","~₹1,800/mo tier","₹0 (default browser TTS)"],
+  ["D-ID","AI avatar","Talking-head interviewer","~₹1,500–4,000/mo","₹0 (default animated)"],
+  ["Exotel","Telephony","Outbound AI lead calls","~₹0.60–1.10/min + platform","₹0 (unless enabled)"],
+  ["Piston","Code exec","Run/grade student code","self-hosted","₹0 marginal"],
+  ["GitHub API","Dev/scoring","Candidate scoring, playground push, OAuth","free (5k/hr token)","₹0"],
+  ["LinkedIn OAuth","Auth","Profile connect","free","₹0"],
+  ["Google Sheets","Lead intake","Poll public CSV → leads","free (public CSV)","₹0"],
+  ["Meta WhatsApp Cloud","Messaging","OTP, welcome, drip, confirmations","~₹0.13–0.35/conv (1k free)","₹200–1,500"],
+  ["Meta Lead Ads","Lead intake","Webhook + Graph sync","free (ad spend separate)","₹0"],
+  ["Google Ads","Lead intake","Webhook → lead","free","₹0"],
+  ["SMTP/IMAP (Hostinger)","Email","Transactional + partner-reply poll","bundled w/ hosting","~₹0"],
+  ["Brevo","Email fallback","Daily-summary fallback","free ≤300/day","₹0"],
+  ["Playwright","Scraping","Ad/competitor scraping (dead code)","self-run","₹0"],
+  ["BullMQ + Redis","Queue","AI voice-call jobs","self-host or ~₹500–1,500/mo","₹0–1,500"],
+  ["Socket.io","Realtime","Notifications, live signaling","bundled (single-instance)","₹0"],
+  ["MongoDB","Database","Primary datastore","VPS self-host / Atlas M10","₹0 → ₹4,800"],
+];
+
+function band(o){return o>=80?"good":o>=60?"warn":o>=40?"poor":o<=30?"miss":"crit";}
+function fillClass(o){return o>=80?"fill-good":o>=60?"fill-warn":o>=40?"fill-poor":o<=30?"fill-miss":"fill-crit";}
+function colorFor(o){return o>=80?"var(--good)":o>=60?"var(--warn)":o>=40?"var(--poor)":o<=30?"var(--miss)":"var(--crit)";}
+
+// Domain cards
+const domainMap={};
+MODULES.forEach(m=>{(domainMap[m.d]=domainMap[m.d]||[]).push(m.o);});
+const domainAvg=Object.entries(domainMap).map(([d,arr])=>[d,Math.round(arr.reduce((a,b)=>a+b,0)/arr.length),arr.length]).sort((a,b)=>b[1]-a[1]);
+document.getElementById("domainCards").innerHTML=domainAvg.map(([d,avg,n])=>{
+  const best=MODULES.filter(m=>m.d===d).sort((a,b)=>b.o-a.o)[0];
+  const worst=MODULES.filter(m=>m.d===d).sort((a,b)=>a.o-b.o)[0];
+  return `<div class="dcard" style="border-top-color:${colorFor(avg)}">
+    <h3><span>${d}</span><span class="p" style="color:${colorFor(avg)}">${avg}%</span></h3>
+    <div class="bar"><span class="${fillClass(avg)}" style="width:${avg}%"></span></div>
+    <div class="row"><span>${n} modules</span><span>avg completion</span></div>
+    <small>▲ ${best.n} <b>${best.o}%</b> · ▼ ${worst.n} <b>${worst.o}%</b></small>
+  </div>`;
+}).join("");
+
+// Domain filter options
+const domains=[...new Set(MODULES.map(m=>m.d))];
+document.getElementById("domainFilter").innerHTML='<option value="">All domains ('+MODULES.length+')</option>'+domains.map(d=>`<option value="${d}">${d} (${MODULES.filter(m=>m.d===d).length})</option>`).join("");
+
+// Module table render
+function render(){
+  const q=document.getElementById("q").value.toLowerCase();
+  const df=document.getElementById("domainFilter").value;
+  const sb=document.getElementById("sortBy").value;
+  let rows=MODULES.filter(m=>(!df||m.d===df)&&(!q||(m.n+m.s+m.d).toLowerCase().includes(q)));
+  const pOrder={P1:1,P2:2,P3:3,P4:4,P5:5};
+  if(sb==="score-asc")rows.sort((a,b)=>a.o-b.o);
+  else if(sb==="score-desc")rows.sort((a,b)=>b.o-a.o);
+  else if(sb==="domain")rows.sort((a,b)=>a.d.localeCompare(b.d)||b.o-a.o);
+  else if(sb==="priority")rows.sort((a,b)=>pOrder[a.p]-pOrder[b.p]||b.o-a.o);
+  document.getElementById("count").textContent=rows.length+" of "+MODULES.length+" modules";
+  document.getElementById("modBody").innerHTML=rows.map(m=>`<tr>
+    <td><a href="${m.f}.md" style="font-weight:600;color:var(--ink);text-decoration:none">${m.n}</a></td>
+    <td style="color:var(--muted);font-size:12.5px">${m.d}</td>
+    <td><div class="miniscore"><span class="pct" style="color:${colorFor(m.o)}">${m.o}%</span><span class="bar"><span class="${fillClass(m.o)}" style="width:${m.o}%"></span></span></div></td>
+    <td><span class="chip ${m.p.toLowerCase()}">${m.p}</span></td>
+    <td><span class="chip ${m.i==='High'?'hi':m.i==='Medium'?'med':'lo'}">${m.i}</span></td>
+    <td style="color:var(--body);font-size:12.5px">${m.s}</td>
+  </tr>`).join("");
+}
+["q","domainFilter","sortBy"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+render();
+
+// Scorecard
+document.getElementById("scoreGrid").innerHTML=SCORES.map(([l,v])=>`<div class="score">
+  <div class="top"><span class="l">${l}</span><span class="v" style="color:${colorFor(v)}">${v}</span></div>
+  <div class="bar"><span class="${fillClass(v)}" style="width:${v}%"></span></div>
+</div>`).join("");
+
+// Cost table
+document.getElementById("costBody").innerHTML=COST.map(c=>`<tr>
+  <td style="font-weight:600;color:var(--ink)">${c[0]}</td>
+  <td style="color:var(--muted);font-size:12px">${c[1]}</td>
+  <td style="font-size:12.5px">${c[2]}</td>
+  <td class="mono" style="font-size:11.5px">${c[3]}</td>
+  <td class="num" style="font-weight:600">${c[4]}</td>
+</tr>`).join("");
+</script>
+</body>
+</html>

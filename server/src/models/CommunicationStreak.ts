@@ -13,6 +13,7 @@ export interface ICommunicationStreak extends Document {
   totalMissedDays: number;
   lastCompletedDate?: string;      // YYYY-MM-DD
   completedDates: string[];        // distinct completed days (kept bounded)
+  lastRemindedDate?: string;       // YYYY-MM-DD — dedupe daily nudges
   updatedAt: Date;
   createdAt: Date;
 }
@@ -27,6 +28,7 @@ const CommunicationStreakSchema = new Schema<ICommunicationStreak>(
     totalMissedDays: { type: Number, default: 0 },
     lastCompletedDate: { type: String },
     completedDates: { type: [String], default: [] },
+    lastRemindedDate: { type: String },
   },
   { timestamps: true }
 );

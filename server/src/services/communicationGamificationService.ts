@@ -28,19 +28,28 @@ export const ACHIEVEMENTS: AchievementDef[] = [
   { code: 'project_expert', name: 'Project Expert', description: 'Score above 90 in project explanation', icon: '🛠', kind: 'skill', target: 90 },
 ];
 
-/** Award any newly-earned achievements after a submission. */
-export async function evaluateAchievements(tenantId: string, studentId: string, streak: { currentStreak: number; longestStreak: number; totalCompletedDays: number }, ev: IEvaluation): Promise<void> {
+/** Pure: which achievement codes a submission qualifies for (server-authoritative). */
+export function achievementsEarned(
+  streak: { currentStreak?: number; longestStreak?: number; totalCompletedDays?: number },
+  ev: Pick<IEvaluation, 'overallScore' | 'projectExplanationScore' | 'fillerWords' | 'speakingSpeed'>
+): string[] {
   const earnedNow: string[] = [];
-  if (streak.totalCompletedDays >= 1) earnedNow.push('first_step');
-  if (streak.longestStreak >= 3) earnedNow.push('three_day');
-  if (streak.longestStreak >= 7) earnedNow.push('seven_day');
-  if (streak.longestStreak >= 30) earnedNow.push('thirty_day');
+  if ((streak.totalCompletedDays ?? 0) >= 1) earnedNow.push('first_step');
+  if ((streak.longestStreak ?? 0) >= 3) earnedNow.push('three_day');
+  if ((streak.longestStreak ?? 0) >= 7) earnedNow.push('seven_day');
+  if ((streak.longestStreak ?? 0) >= 30) earnedNow.push('thirty_day');
   if (ev.overallScore >= 80) earnedNow.push('confident');
   if (ev.overallScore >= 90) earnedNow.push('interview_ready');
   if (ev.overallScore >= 95) earnedNow.push('elite');
   if ((ev.fillerWords?.total ?? 99) < 3) earnedNow.push('filler_free');
   if (ev.speakingSpeed?.status === 'GOOD') earnedNow.push('perfect_pace');
   if ((ev.projectExplanationScore ?? 0) >= 90) earnedNow.push('project_expert');
+  return earnedNow;
+}
+
+/** Award any newly-earned achievements after a submission. */
+export async function evaluateAchievements(tenantId: string, studentId: string, streak: { currentStreak: number; longestStreak: number; totalCompletedDays: number }, ev: IEvaluation): Promise<void> {
+  const earnedNow = achievementsEarned(streak, ev);
 
   await Promise.all(earnedNow.map((code) =>
     CommunicationAchievement.updateOne(

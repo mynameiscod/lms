@@ -95,12 +95,31 @@ export interface PartnerThread { items: ThreadItem[]; unread: number; }
 
 export interface AttachmentRef { filename: string; path: string; size: number; contentType?: string; url?: string; }
 
+// Apollo "Add by Company" enrichment
+export interface EnrichedContact {
+  name: string;
+  title?: string;
+  seniority?: string;
+  email?: string;
+  emailStatus?: string;
+  linkedinUrl?: string;
+  confidence: 'high' | 'medium' | 'low';
+}
+export interface EnrichResult {
+  configured: boolean;
+  company: string;
+  domain?: string;
+  contacts: EnrichedContact[];
+  note?: string;
+}
+
 export const placementPartnerApi = {
   getStages: () => API.get<{ data: PartnerStageMeta[] }>('/placement-partners/stages'),
   list: (params?: { tier?: string; priority?: string; stage?: string; search?: string }) =>
     API.get<{ data: PlacementPartner[] }>('/placement-partners', { params }),
   get: (id: string) => API.get<{ data: PlacementPartner }>(`/placement-partners/${id}`),
   create: (data: Partial<PlacementPartner>) => API.post('/placement-partners', data),
+  enrich: (company: string, domain?: string) => API.post<{ data: EnrichResult }>('/placement-partners/enrich', { company, domain }),
   update: (id: string, data: Partial<PlacementPartner>) => API.patch(`/placement-partners/${id}`, data),
   moveStage: (id: string, stage: PartnerStage) => API.patch(`/placement-partners/${id}/stage`, { stage }),
   remove: (id: string) => API.delete(`/placement-partners/${id}`),

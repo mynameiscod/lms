@@ -13,6 +13,7 @@ import { generateOnePager } from '../services/candidateProfilePdf';
 import { EmailService } from '../services/emailService';
 import * as settings from '../services/settingsService';
 import * as placementStatus from '../services/placementStatusService';
+import { enrichCompanyContacts } from '../services/contactEnrichmentService';
 
 const oid = (s: string) => new mongoose.Types.ObjectId(s);
 const tId = (req: AuthenticatedRequest) => req.user!.tenantId as string;
@@ -26,6 +27,20 @@ export const uploadAttachment = async (req: AuthenticatedRequest, res: Response)
     success: true,
     data: { filename: f.originalname, path: f.path, size: f.size, contentType: f.mimetype, url: `/uploads/partner-attachments/${f.filename}` },
   });
+};
+
+// POST /placement-partners/enrich — Apollo: find HR / decision-maker / CEO contacts for a company
+export const enrichCompany = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { company, domain } = req.body || {};
+    if (!company && !domain) {
+      return res.status(400).json({ success: false, message: 'Company name or domain is required' });
+    }
+    const data = await enrichCompanyContacts(tId(req), { company, domain });
+    res.json({ success: true, message: 'OK', data });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e?.message || 'Enrichment failed' });
+  }
 };
 
 // ── Normalizers (tolerant of messy CSV values) ───────────────────────────────

@@ -1,7 +1,9 @@
 # Placement Partnership (formerly Partner / Placement Outreach)
-**Completion:** 80%  |  **Priority:** P2  |  **Business Impact:** High
+**Completion:** 82%  |  **Priority:** P2  |  **Business Impact:** High
 
-> **Change log (2026-07-13, Phase 1):** Renamed to **Placement Partnership** and **simplified to a focused outreach-only flow** per product decision. The student-matching, candidate-PDF, interview-scheduling, and mark-placed features were **removed** (UI + endpoints `match-students`, `candidates`, `candidate-pdf`, `draft-candidate-profiles`, `schedule-interview`, `mark-placed`) — recoverable from git history. New UI: a simple contact list by status + drawer (send intro → auto follow-up → reply thread). Route `/admin/partners` → `/admin/placement-partnership`. **Phase 2 (pending):** Apollo.io "Add by Company" contact enrichment (auto-find HR/decision-maker/CEO) — needs `APOLLO_API_KEY`.
+> **Change log (2026-07-13, Phase 1):** Renamed to **Placement Partnership** and **simplified to a focused outreach-only flow**. Student-matching, candidate-PDF, interview-scheduling, and mark-placed removed (UI + endpoints) — recoverable from git history. New UI: contact list by status + drawer (send intro → auto follow-up → reply thread). Route `/admin/partners` → `/admin/placement-partnership`.
+>
+> **Change log (2026-07-13, Phase 2 — BUILT):** **"Add by Company" Apollo enrichment.** New `contactEnrichmentService.ts` (Apollo People Search: company/domain → HR / talent / hiring-manager / decision-maker / CEO contacts with confidence from Apollo's email-verification status; best-effort org-domain resolve). New endpoint `POST /placement-partners/enrich` + `EnrichModal` UI (enter company → pick a contact → creates the partner → send intro). New per-tenant secret `APOLLO_API_KEY` in Platform Settings → Placement Outreach. Degrades gracefully (`configured:false`) until the key is set; locked Apollo emails are surfaced but flagged low-confidence. **Note:** revealing locked emails uses Apollo credits; multi-contact-per-company (one partner per company today) is a future enhancement.
 
 ## Purpose & Business Goal
 Focused tool for the placements team to **reach out to hiring companies and convert them into placement partners**. Flow: add a contact (paste from LinkedIn, or — Phase 2 — enter a company and auto-enrich HR/decision-maker/CEO) → send a CodeBegun intro (who we are, our students, projects they've shipped) → **automated cold + follow-up cadence (paced/capped)** → replies pulled back via IMAP into a thread → reminders mirrored to Todoist. Student matching / interview / placement tracking are **out of scope here** (handled later, elsewhere). Directly drives placement revenue, hence High impact.
@@ -41,6 +43,7 @@ Focused tool for the placements team to **reach out to hiring companies and conv
 | Hostinger SMTP (nodemailer) | Outbound email | Near-free (mailbox incl.) | Daily cap 25 + 20-min gap for deliverability/throttle |
 | Hostinger/Gmail IMAP (imapflow) | Reply polling | Near-free | Same mailbox; 10-min poll, BODY.PEEK keeps mail unread |
 | Todoist REST API | Reminders mirror | ₹0 (free tier; optional, degrades gracefully) | Per-tenant token |
+| Apollo.io People Search | "Add by Company" contact enrichment (HR/decision-maker/CEO) | ~₹4,000–6,500/mo (tiered; free trial) | Per-tenant `APOLLO_API_KEY`; email reveal uses credits |
 
 ## Validation Rules & Edge Cases
 - Suppression checked at start AND every send (double); one-click unsubscribe.

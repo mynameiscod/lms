@@ -7,7 +7,7 @@ import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
 import {
   getStages, listPartners, getPartner, createPartner, updatePartner, moveStage, deletePartner, importPartners,
-  analytics, uploadAttachment,
+  analytics, uploadAttachment, enrichCompany,
 } from '../controllers/placementPartnerController';
 import {
   startOutreach, startOutreachBulk, markReplied, markBounced, draftVouchEndpoint,
@@ -46,6 +46,7 @@ router.use(authMiddleware, tenantResolver, guard);
 router.get('/stages', getStages);
 router.get('/analytics', analytics);
 router.post('/import', upload.single('file'), importPartners);
+router.post('/enrich', enrichCompany);
 router.post('/start-outreach', startOutreachBulk);
 
 // outreach queue + message actions (static prefix, before /:id)

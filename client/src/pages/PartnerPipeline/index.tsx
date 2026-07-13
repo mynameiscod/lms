@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { placementPartnerApi as api, PlacementPartner, OutreachMessage, ThreadItem, AttachmentRef, PartnerTaskRow, ImportResult } from '../../api/placementPartnerApi';
+import { placementPartnerApi as api, PlacementPartner, OutreachMessage, ThreadItem, AttachmentRef, PartnerTaskRow, ImportResult, EnrichResult, EnrichedContact } from '../../api/placementPartnerApi';
 import './PartnerPipeline.css';
 
 // Shared: upload picked files and return their attachment refs.
@@ -29,6 +29,7 @@ export default function PlacementPartnership() {
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState<{ status: '' | OutStatus; search: string }>({ status: '', search: '' });
   const [showAdd, setShowAdd] = useState(false);
+  const [showEnrich, setShowEnrich] = useState(false);
   const [showImport, setShowImport] = useState(false);
   const [showApprovals, setShowApprovals] = useState(false);
   const [showReminders, setShowReminders] = useState(false);
@@ -70,7 +71,8 @@ export default function PlacementPartnership() {
           <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={load} disabled={loading}>↻ Refresh</button>
           <button className="pp-btn pp-btn-ghost" onClick={() => setShowReminders(true)}>⏰ Reminders{taskCount > 0 ? ` (${taskCount})` : ''}</button>
           <button className="pp-btn pp-btn-ghost" onClick={() => setShowApprovals(true)}>📥 Approvals{approvalCount > 0 ? ` (${approvalCount})` : ''}</button>
-          <button className="pp-btn pp-btn-teal" onClick={() => setShowImport(true)}>⬆ Import CSV</button>
+          <button className="pp-btn pp-btn-ghost" onClick={() => setShowImport(true)}>⬆ Import CSV</button>
+          <button className="pp-btn pp-btn-teal" onClick={() => setShowEnrich(true)}>🔍 Add by company</button>
           <button className="pp-btn pp-btn-primary" onClick={() => setShowAdd(true)}>+ Add contact</button>
         </div>
       </div>
@@ -117,6 +119,7 @@ export default function PlacementPartnership() {
       )}
 
       {showAdd && <AddModal onClose={() => setShowAdd(false)} onSaved={() => { setShowAdd(false); load(); }} />}
+      {showEnrich && <EnrichModal onClose={() => setShowEnrich(false)} onAdded={() => { setShowEnrich(false); load(); }} />}
       {showImport && <ImportModal onClose={() => setShowImport(false)} onDone={() => load()} />}
       {selected && (
         <PartnerDrawer partner={selected} onClose={() => setSelected(null)}
@@ -459,6 +462,94 @@ function AddModal({ onClose, onSaved }: { onClose: () => void; onSaved: () => vo
           <button className="pp-btn pp-btn-ghost" onClick={onClose}>Cancel</button>
           <button className="pp-btn pp-btn-primary" onClick={save} disabled={busy}>{busy ? 'Saving…' : 'Add contact'}</button>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Add by Company — Apollo enrichment (Use Case 2) ───────────────────────────
+const CONF_META: Record<string, { label: string; color: string; bg: string }> = {
+  high: { label: 'Verified email', color: '#16a34a', bg: '#dcfce7' },
+  medium: { label: 'Likely email', color: '#d97706', bg: '#fef3c7' },
+  low: { label: 'Email locked', color: '#64748b', bg: '#f1f5f9' },
+};
+
+function EnrichModal({ onClose, onAdded }: { onClose: () => void; onAdded: () => void }) {
+  const [company, setCompany] = useState('');
+  const [domain, setDomain] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [res, setRes] = useState<EnrichResult | null>(null);
+  const [err, setErr] = useState('');
+  const [addingIdx, setAddingIdx] = useState<number | null>(null);
+
+  const search = async () => {
+    if (!company.trim() && !domain.trim()) { setErr('Enter a company name or website'); return; }
+    setLoading(true); setErr(''); setRes(null);
+    try { const r = await api.enrich(company.trim(), domain.trim() || undefined); setRes(r.data.data); }
+    catch (e: any) { setErr(e?.response?.data?.message || 'Search failed'); }
+    finally { setLoading(false); }
+  };
+
+  const useContact = async (c: EnrichedContact, idx: number) => {
+    setAddingIdx(idx); setErr('');
+    try {
+      await api.create({
+        companyName: res?.company || company.trim(),
+        website: res?.domain ? `https://${res.domain}` : (domain.trim() || undefined),
+        contactName: c.name,
+        contactEmail: c.email,
+        contactTitle: c.title,
+        contactLinkedin: c.linkedinUrl,
+      });
+      onAdded();
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not add — this company may already be in your pipeline.');
+    } finally { setAddingIdx(null); }
+  };
+
+  return (
+    <div className="pp-overlay" onClick={onClose}>
+      <div className="pp-modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
+        <h2>Add by company</h2>
+        <div className="pp-hint" style={{ marginTop: 0 }}>Found a company that's hiring? We'll look up their HR / decision-maker / CEO contacts via Apollo. Pick one to add, then open the card and hit <b>Send intro</b>.</div>
+        {err && <div className="pp-banner err">{err}</div>}
+        <div className="pp-grid2">
+          <div className="pp-field"><label>Company name</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Acme Tech" autoFocus onKeyDown={e => e.key === 'Enter' && search()} /></div>
+          <div className="pp-field"><label>Website / domain (optional)</label><input value={domain} onChange={e => setDomain(e.target.value)} placeholder="acme.com — improves accuracy" onKeyDown={e => e.key === 'Enter' && search()} /></div>
+        </div>
+        <div className="pp-modal-actions" style={{ marginTop: 4 }}>
+          <button className="pp-btn pp-btn-ghost" onClick={onClose}>Cancel</button>
+          <button className="pp-btn pp-btn-primary" onClick={search} disabled={loading}>{loading ? 'Searching…' : '🔍 Find contacts'}</button>
+        </div>
+
+        {res && !res.configured && (
+          <div className="pp-banner err" style={{ marginTop: 12 }}>{res.note || 'Apollo is not configured. Add an API key in Platform Settings → Placement Outreach.'}</div>
+        )}
+        {res && res.configured && (
+          <div style={{ marginTop: 8 }}>
+            {res.domain && <div className="pp-hint" style={{ marginTop: 0 }}>Matched domain: <b>{res.domain}</b></div>}
+            {res.note && <div className="pp-hint">{res.note}</div>}
+            {res.contacts.map((c, i) => {
+              const cf = CONF_META[c.confidence];
+              return (
+                <div className="pp-stud col" key={i}>
+                  <div className="pp-stud row">
+                    <span className="nm">{c.name}{c.title ? <span style={{ fontWeight: 400, color: '#64748b' }}> · {c.title}</span> : null}</span>
+                    <span className="pp-row-badge" style={{ color: cf.color, background: cf.bg }}>{cf.label}</span>
+                    <button className="pp-btn pp-btn-primary pp-btn-sm" disabled={addingIdx !== null} onClick={() => useContact(c, i)}>
+                      {addingIdx === i ? 'Adding…' : 'Add'}
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: '#64748b' }}>
+                    {c.email || <span style={{ color: '#94a3b8' }}>email hidden — add, then fill it manually (or reveal in Apollo)</span>}
+                    {c.linkedinUrl ? <> · <a href={c.linkedinUrl} target="_blank" rel="noreferrer">LinkedIn</a></> : null}
+                  </div>
+                </div>
+              );
+            })}
+            {res.contacts.length === 0 && !res.note && <div className="pp-empty">No contacts found.</div>}
+          </div>
+        )}
       </div>
     </div>
   );

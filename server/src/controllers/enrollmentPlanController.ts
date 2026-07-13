@@ -765,24 +765,11 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
     // cohort is on the same curriculum day (offering, if present, is the calendar).
     const { start: anchorStart, cohort: cohortMode, holidays: anchorHolidays, offDays: anchorOffDays } = await resolveSchedule(enrollment, tId);
 
-    // Sequential lock check: if enforceSequential, previous day must be completed.
-    // Skipped for assessment-personalized plans — there the preview paywall is the
-    // only intended gate (no confusing "finish day N" on a paid-but-teased day).
+    // Day-wise locks (sequential "finish previous day" + cohort/batch schedule) are
+    // DISABLED for all batches — students can open any curriculum day. Only the
+    // assessment preview/paywall gate below still applies.
     let isLocked = false;
     let lockReason: 'sequential' | 'preview' | 'schedule' | null = null;
-    const personalized = !!(curriculum as any).personalizedFor;
-    if (enrollment.settings.enforceSequential && dayNumber > 1 && !personalized) {
-      const prevDayPlan = await DayPlan.findOne({ curriculumId: enrollment.curriculumId, dayNumber: dayNumber - 1 }).lean();
-      if (prevDayPlan) {
-        const gatingItems = effectiveItemsForDay(prevDayPlan.items, offering, dayNumber - 1).filter((i: any) => i.isGating);
-        if (gatingItems.length > 0) {
-          const prevModuleStatus = await resolveModuleStatuses(sId, gatingItems);
-          const allGatingDone = gatingItems.every(gi => itemDone(gi, dayNumber - 1, enrollment.completedItems, prevModuleStatus));
-          isLocked = !allGatingDone;
-          if (isLocked) lockReason = 'sequential';
-        }
-      }
-    }
 
     // Assessment-funnel preview gating: free taste, then locked behind the paywall.
     if ((enrollment as any).previewOnly && dayNumber > ((enrollment as any).previewDays || 2)) {
@@ -795,12 +782,8 @@ export const getStudentDayPlan = async (req: Request, res: Response) => {
       ? planDayForDate(offering.startDate, curriculum.totalDays, hSet)
       : workingDayCount(anchorStart, curriculum.totalDays, anchorHolidays, istToday(), anchorOffDays);
 
-    // Cohort schedule gate: you can open any day up to the cohort's current day (to catch
-    // up), but future days stay locked until the cohort reaches them.
-    if (cohortMode && todayPlanDay != null && dayNumber > todayPlanDay && !isLocked) {
-      isLocked = true;
-      lockReason = 'schedule';
-    }
+    // Cohort schedule gate REMOVED for all batches — future days are no longer locked
+    // by the batch calendar. (todayPlanDay is still returned for "current day" display.)
 
     // Compute calendar date for this day (offering = holiday-aware cohort calendar)
     const dayDate = offering
@@ -959,13 +942,15 @@ export const getJourney = async (req: Request, res: Response) => {
       if (!weeks[w - 1]) weeks[w - 1] = { week: w, title: '', days: [], milestones: [] };
       const t = topicForDay(d);
       const dp = planByDay[d];
-      // Locked: preview paywall, or (cohort) a future day the cohort hasn't reached yet.
-      const locked = previewOnly ? d > previewDays : (cohortDay != null ? d > cohortDay : false);
+      // Day-wise cohort/schedule lock removed for all batches — only the preview paywall
+      // still locks days (assessment funnel).
+      const locked = previewOnly ? d > previewDays : false;
+      const anchorDay = cohortDay != null ? cohortDay : currentDay;
       const status = completed.has(d)
         ? 'completed'
-        : cohortDay != null
-          ? (d === cohortDay ? 'current' : d < cohortDay ? 'available' : 'locked')
-          : (d === currentDay ? 'current' : locked ? 'locked' : 'available');
+        : locked
+          ? 'locked'
+          : (d === anchorDay ? 'current' : 'available');
       weeks[w - 1].days.push({
         day: d,
         title: dp?.title || (t ? t.title : `Day ${d}`),

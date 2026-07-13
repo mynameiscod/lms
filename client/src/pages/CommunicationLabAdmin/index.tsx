@@ -245,9 +245,46 @@ const ChallengeModal: React.FC<{ challenge: CommChallenge | 'new'; batches: { _i
   );
 };
 
+// ── Instructor review form (per attempt) ──────────────────────────────────────
+const ReviewForm: React.FC<{ attempt: any; onClose: () => void; onSaved: () => void }> = ({ attempt, onClose, onSaved }) => {
+  const [f, setF] = useState<any>({ feedback: '', recommendedFocus: '', scoreOverride: '', overrideReason: '', reattemptRequired: false, interviewReady: false });
+  const [busy, setBusy] = useState(false);
+  useEffect(() => { communicationApi.getInstructorFeedback(attempt._id).then((r) => { if (r.feedback) setF({ feedback: r.feedback.feedback || '', recommendedFocus: r.feedback.recommendedFocus || '', scoreOverride: r.feedback.scoreOverride ?? '', overrideReason: r.feedback.overrideReason || '', reattemptRequired: !!r.feedback.reattemptRequired, interviewReady: !!r.feedback.interviewReady }); }).catch(() => {}); }, [attempt._id]);
+  const set = (k: string, v: any) => setF((x: any) => ({ ...x, [k]: v }));
+  const save = async () => {
+    if (f.scoreOverride !== '' && !f.overrideReason.trim()) { alert('A reason is required when overriding the score.'); return; }
+    setBusy(true);
+    try { await communicationApi.saveInstructorFeedback(attempt._id, f); onSaved(); } finally { setBusy(false); }
+  };
+  const lbl: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 3, display: 'block' };
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', zIndex: 1100, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '28px 16px' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div style={{ ...card, width: '100%', maxWidth: 480, padding: 20, display: 'grid', gap: 10 }}>
+        <div style={{ fontWeight: 700, fontSize: 15 }}>Review — {attempt.challengeTitle}</div>
+        <div style={{ fontSize: 12, color: '#6b7280' }}>AI score: <strong>{attempt.evaluation?.overallScore ?? '—'}</strong>{attempt.overriddenScore != null && <> · Current override: <strong>{attempt.overriddenScore}</strong></>}</div>
+        <div><label style={lbl}>Feedback to student</label><textarea style={{ ...input, minHeight: 70 }} value={f.feedback} onChange={(e) => set('feedback', e.target.value)} /></div>
+        <div><label style={lbl}>Recommended focus</label><input style={input} value={f.recommendedFocus} onChange={(e) => set('recommendedFocus', e.target.value)} /></div>
+        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 10 }}>
+          <div><label style={lbl}>Override score</label><input style={input} type="number" min={0} max={100} value={f.scoreOverride} onChange={(e) => set('scoreOverride', e.target.value)} placeholder="—" /></div>
+          <div><label style={lbl}>Reason (required to override)</label><input style={input} value={f.overrideReason} onChange={(e) => set('overrideReason', e.target.value)} /></div>
+        </div>
+        <div style={{ display: 'flex', gap: 16, fontSize: 13 }}>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={f.reattemptRequired} onChange={(e) => set('reattemptRequired', e.target.checked)} /> Require re-attempt</label>
+          <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}><input type="checkbox" checked={f.interviewReady} onChange={(e) => set('interviewReady', e.target.checked)} /> Mark interview-ready</label>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+          <button onClick={onClose} style={{ ...btn('#f3f4f6'), color: '#374151' }}>Cancel</button>
+          <button onClick={save} disabled={busy} style={btn('#1a5490')}>{busy ? 'Saving…' : 'Save review'}</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ── Student detail modal ──────────────────────────────────────────────────────
 const StudentDetailModal: React.FC<{ detail: any; onClose: () => void }> = ({ detail, onClose }) => {
   const s = detail.student;
+  const [reviewing, setReviewing] = useState<any>(null);
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflowY: 'auto', padding: '28px 16px' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div style={{ ...card, width: '100%', maxWidth: 640, padding: 22 }}>
@@ -265,16 +302,18 @@ const StudentDetailModal: React.FC<{ detail: any; onClose: () => void }> = ({ de
           <div style={{ display: 'grid', gap: 6, maxHeight: 320, overflowY: 'auto' }}>
             {detail.attempts.map((a: any) => (
               <div key={a._id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', border: '1px solid #f1f5f9', borderRadius: 8 }}>
-                <div style={{ width: 34, fontWeight: 800, color: a.evaluation ? scoreColor(a.evaluation.overallScore) : '#9ca3af' }}>{a.evaluation?.overallScore ?? '—'}</div>
+                <div style={{ width: 34, fontWeight: 800, color: a.evaluation ? scoreColor(a.overriddenScore ?? a.evaluation.overallScore) : '#9ca3af' }}>{a.overriddenScore ?? a.evaluation?.overallScore ?? '—'}</div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>{a.challengeTitle}</div>
+                  <div style={{ fontSize: 13, color: '#111827', fontWeight: 600 }}>{a.challengeTitle}{a.instructorReviewed && <span style={{ fontSize: 10.5, color: '#7c3aed', marginLeft: 6 }}>✓ reviewed</span>}</div>
                   <div style={{ fontSize: 11.5, color: '#9ca3af' }}>{a.practiceDate} · {a.recordingType} · {a.recordingDuration}s · {a.wordsPerMinute || 0} wpm</div>
                 </div>
+                <button onClick={() => setReviewing(a)} style={{ ...sBtn('#eff6ff'), color: '#1a5490' }} disabled={!a.evaluation}>Review</button>
               </div>
             ))}
           </div>
         )}
       </div>
+      {reviewing && <ReviewForm attempt={reviewing} onClose={() => setReviewing(null)} onSaved={() => setReviewing(null)} />}
     </div>
   );
 };

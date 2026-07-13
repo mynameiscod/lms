@@ -25,6 +25,8 @@ router.use(authMiddleware, tenantMiddleware);
 router.get('/admin/dashboard', ADMIN, ctrl.adminDashboard);
 router.get('/admin/students', ADMIN, ctrl.adminStudents);
 router.get('/admin/students/:studentId', ADMIN, ctrl.adminStudentDetail);
+router.get('/admin/attempts/:id/feedback', ADMIN, ctrl.getInstructorFeedback);
+router.post('/admin/attempts/:id/feedback', ADMIN, ctrl.instructorFeedback);
 router.get('/admin/challenges', ADMIN, ctrl.listChallenges);
 router.post('/admin/challenges', ADMIN, ctrl.createChallenge);
 router.post('/admin/challenges/reorder', ADMIN, ctrl.reorderChallenges);
@@ -38,6 +40,8 @@ router.put('/profile', ctrl.updateProfile);
 router.post('/submit', upload.single('recording'), ctrl.submit);
 router.get('/history', ctrl.getHistory);
 router.get('/progress', ctrl.getProgress);
+router.get('/achievements', ctrl.getAchievements);
+router.get('/leaderboard', ctrl.getLeaderboard);
 router.get('/attempts/:id', ctrl.getAttempt);
 router.get('/play/:id', ctrl.playRecording);
 

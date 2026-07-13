@@ -12,6 +12,10 @@ import { transcribeFile } from '../services/speakingService';
 import { evaluateIntroduction, computeSpeechMetrics, generateTemplate } from '../services/communicationEvalService';
 import { ensureSeedChallenges } from '../seed/communicationChallenges';
 import { createNotifications } from '../notifications/notificationService';
+import { evaluateAchievements, getAchievementsForStudent, computeLeaderboard } from '../services/communicationGamificationService';
+import CommunicationInstructorFeedback from '../models/CommunicationInstructorFeedback';
+import CommunicationAuditLog from '../models/CommunicationAuditLog';
+import * as settings from '../services/settingsService';
 
 const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
@@ -152,8 +156,10 @@ export const submit = async (req: Request, res: Response) => {
       status: 'completed', evaluation, submittedAt: new Date(),
     });
 
-    // 4) Update the daily streak (server-authoritative)
+    // 4) Update the daily streak (server-authoritative) + award achievements
     await bumpStreak(tenantId, uId(req), practiceDate);
+    const st: any = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
+    if (st) evaluateAchievements(tenantId, uId(req), st, evaluation).catch(() => {});
 
     // 5) Notify
     createNotifications(tenantId, [uId(req)], 'general',
@@ -420,5 +426,80 @@ export const adminStudentDetail = async (req: Request, res: Response) => {
     ]);
     if (!user) return res.status(404).json({ message: 'Student not found' });
     res.json({ student: user, profile, streak, attempts });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Achievements ──────────────────────────────────────────────────────────────
+export const getAchievements = async (req: Request, res: Response) => {
+  try {
+    const achievements = await getAchievementsForStudent(tId(req), uId(req));
+    res.json({ achievements });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Leaderboard (batch, privacy-gated) ────────────────────────────────────────
+export const getLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tId(req);
+    if (settings.getStr('COMMUNICATION_LAB_LEADERBOARD', 'true', tenantId) === 'false') {
+      return res.json({ enabled: false, rows: [], me: null });
+    }
+    let batchId = req.query.batchId ? String(req.query.batchId) : undefined;
+    if (!isAdminish(req)) { const me: any = await User.findById(uId(req)).select('batchId').lean(); batchId = me?.batchId ? String(me.batchId) : undefined; }
+    const { rows, me } = await computeLeaderboard(tenantId, uId(req), batchId);
+    res.json({ enabled: true, rows, me });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Instructor: manual feedback + audited score override ──────────────────────
+export const instructorFeedback = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tId(req);
+    const attemptId = req.params.id;
+    const b = req.body || {};
+    const attempt = await CommunicationAttempt.findOne({ _id: attemptId, tenantId });
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+
+    const override = (b.scoreOverride === '' || b.scoreOverride == null) ? null : Math.max(0, Math.min(100, Math.round(Number(b.scoreOverride))));
+
+    await CommunicationInstructorFeedback.findOneAndUpdate(
+      { tenantId, attemptId },
+      { $set: {
+        studentId: attempt.studentId, instructorId: uId(req),
+        feedback: String(b.feedback || '').slice(0, 3000),
+        recommendedFocus: String(b.recommendedFocus || '').slice(0, 500),
+        scoreOverride: override, overrideReason: String(b.overrideReason || '').slice(0, 500),
+        reattemptRequired: !!b.reattemptRequired, interviewReady: !!b.interviewReady,
+      } },
+      { upsert: true, new: true }
+    );
+
+    // Apply + audit the score override
+    if (override != null && override !== attempt.overriddenScore) {
+      await CommunicationAuditLog.create({
+        tenantId, entityType: 'attempt', entityId: attempt._id, action: 'score_override',
+        performedBy: uId(req),
+        previousValue: String(attempt.overriddenScore ?? attempt.evaluation?.overallScore ?? ''),
+        newValue: String(override), reason: String(b.overrideReason || ''),
+      });
+      attempt.overriddenScore = override;
+    }
+    attempt.instructorReviewed = true;
+    await attempt.save();
+
+    if (b.reattemptRequired) {
+      createNotifications(tenantId, [String(attempt.studentId)], 'general',
+        'Your trainer asked you to re-record',
+        `Please re-attempt "${attempt.challengeTitle}". ${b.recommendedFocus ? 'Focus: ' + b.recommendedFocus : ''}`,
+        '/ai-communication-lab').catch(() => {});
+    }
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+export const getInstructorFeedback = async (req: Request, res: Response) => {
+  try {
+    const fb = await CommunicationInstructorFeedback.findOne({ tenantId: tId(req), attemptId: req.params.id }).lean();
+    res.json({ feedback: fb || null });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

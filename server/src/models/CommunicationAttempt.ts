@@ -74,6 +74,9 @@ export interface ICommunicationAttempt extends Document {
   failureReason?: string;
   evaluation?: IEvaluation;
 
+  overriddenScore?: number | null;   // instructor override (AI score kept in evaluation)
+  instructorReviewed: boolean;
+
   submittedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -133,6 +136,8 @@ const CommunicationAttemptSchema = new Schema<ICommunicationAttempt>(
     status: { type: String, enum: ['uploading', 'transcribing', 'evaluating', 'completed', 'failed'], default: 'uploading', index: true },
     failureReason: { type: String },
     evaluation: { type: EvaluationSchema, default: undefined },
+    overriddenScore: { type: Number, default: null },
+    instructorReviewed: { type: Boolean, default: false },
 
     submittedAt: { type: Date },
   },

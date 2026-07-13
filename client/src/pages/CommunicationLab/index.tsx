@@ -311,17 +311,21 @@ const ProfileForm: React.FC = () => {
 
 // ── Main page ─────────────────────────────────────────────────────────────────
 const CommunicationLab: React.FC = () => {
-  const [tab, setTab] = useState<'daily' | 'profile' | 'history' | 'progress'>('daily');
+  const [tab, setTab] = useState<'daily' | 'profile' | 'history' | 'progress' | 'achievements' | 'leaderboard'>('daily');
   const [today, setToday] = useState<CommToday | null>(null);
   const [recording, setRecording] = useState(false);
   const [result, setResult] = useState<CommAttempt | null>(null);
   const [history, setHistory] = useState<CommAttempt[]>([]);
   const [progress, setProgress] = useState<CommProgress | null>(null);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [board, setBoard] = useState<{ enabled: boolean; rows: any[]; me: any } | null>(null);
 
   const loadToday = useCallback(() => { communicationApi.today(todayStr()).then(setToday).catch(() => {}); }, []);
   useEffect(() => { loadToday(); }, [loadToday]);
   useEffect(() => { if (tab === 'history') communicationApi.history().then(setHistory).catch(() => {}); }, [tab]);
   useEffect(() => { if (tab === 'progress') communicationApi.progress().then(setProgress).catch(() => {}); }, [tab]);
+  useEffect(() => { if (tab === 'achievements') communicationApi.achievements().then((r) => setAchievements(r.achievements)).catch(() => {}); }, [tab]);
+  useEffect(() => { if (tab === 'leaderboard') communicationApi.leaderboard().then(setBoard).catch(() => {}); }, [tab]);
 
   const onDone = (a: CommAttempt) => { setRecording(false); setResult(a); loadToday(); };
 
@@ -338,7 +342,7 @@ const CommunicationLab: React.FC = () => {
       </div>
 
       <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 20, flexWrap: 'wrap' }}>
-        {tabBtn('daily', 'Daily Practice')}{tabBtn('profile', 'My Profile')}{tabBtn('history', 'History')}{tabBtn('progress', 'Progress')}
+        {tabBtn('daily', 'Daily Practice')}{tabBtn('profile', 'My Profile')}{tabBtn('history', 'History')}{tabBtn('progress', 'Progress')}{tabBtn('achievements', 'Achievements')}{tabBtn('leaderboard', 'Leaderboard')}
       </div>
 
       {tab === 'daily' && (result ? (
@@ -440,6 +444,50 @@ const CommunicationLab: React.FC = () => {
                   <div key={i} title={`${t.date}: ${t.score}`} style={{ flex: 1, background: scoreColor(t.score), height: `${Math.max(4, t.score)}%`, borderRadius: '4px 4px 0 0', minWidth: 6 }} />
                 ))}
               </div>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {tab === 'achievements' && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(180px,1fr))', gap: 14 }}>
+          {achievements.map((a) => (
+            <div key={a.code} style={{ ...card, padding: 18, textAlign: 'center', opacity: a.earned ? 1 : 0.6 }}>
+              <div style={{ fontSize: 38, filter: a.earned ? 'none' : 'grayscale(1)' }}>{a.icon}</div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 6, color: '#111827' }}>{a.name}</div>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3, minHeight: 32 }}>{a.description}</div>
+              {a.earned ? (
+                <div style={{ fontSize: 11.5, color: '#16a34a', fontWeight: 600, marginTop: 6 }}>✓ Earned</div>
+              ) : (
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ height: 6, background: '#f1f5f9', borderRadius: 4, overflow: 'hidden' }}><div style={{ width: `${a.progress}%`, height: '100%', background: '#1a5490' }} /></div>
+                  <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 3 }}>{a.progress}%</div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'leaderboard' && (!board ? <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading…</div> : !board.enabled ? (
+        <div style={{ ...card, padding: 40, textAlign: 'center', color: '#9ca3af' }}>The leaderboard is turned off for your institute.</div>
+      ) : (
+        <div style={{ ...card, padding: 8 }}>
+          {board.rows.length === 0 && <div style={{ padding: 32, textAlign: 'center', color: '#9ca3af' }}>No rankings yet — be the first to practise!</div>}
+          {board.rows.map((r) => (
+            <div key={r.studentId} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', borderBottom: '1px solid #f1f5f9', background: r.me ? '#eff6ff' : 'transparent' }}>
+              <div style={{ width: 30, fontWeight: 800, color: r.rank <= 3 ? '#f59e0b' : '#9ca3af', fontSize: 16 }}>{r.rank <= 3 ? ['🥇', '🥈', '🥉'][r.rank - 1] : r.rank}</div>
+              <div style={{ flex: 1, fontWeight: 600, color: '#111827' }}>{r.name}{r.me ? ' (You)' : ''}</div>
+              <div style={{ fontSize: 12.5, color: '#6b7280' }}>🔥 {r.streak} · {r.days} days</div>
+              <div style={{ fontWeight: 700, color: scoreColor(r.avg), width: 44, textAlign: 'right' }}>{r.avg}</div>
+            </div>
+          ))}
+          {board.me && board.me.rank > 10 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 16px', background: '#eff6ff', borderTop: '2px solid #dbeafe' }}>
+              <div style={{ width: 30, fontWeight: 800, color: '#1a5490' }}>{board.me.rank}</div>
+              <div style={{ flex: 1, fontWeight: 600 }}>{board.me.name} (You)</div>
+              <div style={{ fontSize: 12.5, color: '#6b7280' }}>🔥 {board.me.streak} · {board.me.days} days</div>
+              <div style={{ fontWeight: 700, color: scoreColor(board.me.avg), width: 44, textAlign: 'right' }}>{board.me.avg}</div>
             </div>
           )}
         </div>

@@ -73,4 +73,10 @@ export const communicationApi = {
   adminDashboard: async (date: string): Promise<any> => (await axios.get(`${BASE}/admin/dashboard?date=${date}`, { headers: authHeader() })).data,
   adminStudents: async (batchId?: string): Promise<{ students: any[] }> => (await axios.get(`${BASE}/admin/students${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
   adminStudentDetail: async (studentId: string): Promise<any> => (await axios.get(`${BASE}/admin/students/${studentId}`, { headers: authHeader() })).data,
+  // Gamification
+  achievements: async (): Promise<{ achievements: any[] }> => (await axios.get(`${BASE}/achievements`, { headers: authHeader() })).data,
+  leaderboard: async (batchId?: string): Promise<{ enabled: boolean; rows: any[]; me: any }> => (await axios.get(`${BASE}/leaderboard${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
+  // Instructor review
+  getInstructorFeedback: async (attemptId: string): Promise<{ feedback: any }> => (await axios.get(`${BASE}/admin/attempts/${attemptId}/feedback`, { headers: authHeader() })).data,
+  saveInstructorFeedback: async (attemptId: string, body: any) => { await axios.post(`${BASE}/admin/attempts/${attemptId}/feedback`, body, { headers: authHeader() }); },
 };

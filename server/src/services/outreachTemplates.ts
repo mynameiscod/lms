@@ -1,61 +1,50 @@
 import { IPlacementPartner } from '../models/PlacementPartner';
 
 /**
- * Outreach copy. Cold email is matched to the company's tier; the vouch email
- * is a personal trust-point draft (always held for approval). Tokens are filled
- * from the partner record; `senderName` comes from settings.
+ * Outreach copy + branded HTML rendering for Placement Partnership emails.
+ *
+ * Templates return plain text (used as the text/plain part + for reply threading);
+ * `brandedHtml` turns that text into a polished, on-brand HTML email:
+ *   - a CodeBegun header band + tagline
+ *   - the message as properly-spaced paragraphs (blank line = new paragraph)
+ *   - lines starting with "•" or "-" become a clean bulleted list
+ *   - a lone "—" line separates the message from a styled signature block
+ *   - a compliant footer (mailing address + one-click unsubscribe)
+ *
+ * Keep the copy warm, specific and short — this is 1:1 B2B outreach to hiring
+ * teams, not bulk marketing.
  */
 
 export interface Draft { subject: string; body: string; }
 
 const firstName = (full?: string) => (full || '').trim().split(/\s+/)[0] || 'there';
+// The sender setting may be "Siva — CodeBegun Placements"; use just the person for the signature name line.
+const personName = (sender: string) => (sender.split('—')[0] || sender).trim() || sender;
 
+// A lone "—" line is the sentinel that separates message from signature (see brandedHtml).
 const SIGNATURE = (sender: string) =>
-  `\n\nWarm regards,\n${sender}\nCodeBegun — Java Full Stack Training & Placements, Hyderabad`;
+  `\n—\n${personName(sender)}\nCodeBegun — Java Full Stack Training & Placements\nHyderabad · codebegun.com`;
 
-// ── First cold email, per tier ────────────────────────────────────────────────
+// ── First intro (cold) email ──────────────────────────────────────────────────
 export function coldEmail(p: IPlacementPartner, senderName: string): Draft {
   const fn = firstName(p.contactName);
   const company = p.companyName;
   const angle = p.outreachAngle?.trim();
 
-  if (p.tier === 'tier1') {
-    return {
-      subject: `Pre-screened Java full-stack freshers for ${company}`,
-      body:
-`Hi ${fn},
-
-I lead placements at CodeBegun, a Hyderabad-based Java Full Stack training institute. We graduate job-ready freshers who've already built real projects and cleared a structured screening (DSA, Spring Boot, React, SQL and a live coding round).
-
-${angle ? `I'm reaching out specifically because ${angle}.\n\n` : ''}For a team like ${company}'s, I'd only put forward candidates who clear our internal bar — so you'd review a shortlist, not a pile of resumes. Would you be open to a quick look at 2–3 profiles that fit your stack?
-
-If helpful, I can share their project work and a short technical summary.${SIGNATURE(senderName)}`,
-    };
-  }
-
-  if (p.tier === 'tier2') {
-    return {
-      subject: `Job-ready Java/React freshers for ${company}`,
-      body:
-`Hi ${fn},
-
-I'm with CodeBegun, a Java Full Stack training institute in Hyderabad. We train freshers on Spring Boot, React, SQL and DSA, with real projects and mock interviews before they graduate.
-
-${angle ? `${angle.charAt(0).toUpperCase() + angle.slice(1)} — which is why I thought of ${company}.\n\n` : ''}If you have fresher or junior openings, I'd be glad to send 2–3 matched profiles you can interview directly. No cost to evaluate.
-
-Open to it?${SIGNATURE(senderName)}`,
-    };
-  }
-
-  // tier3 — direct & fast
   return {
-    subject: `Freshers ready to interview for ${company}`,
+    subject: `Java full-stack freshers, ready to interview — ${company}`,
     body:
 `Hi ${fn},
 
-Quick one — I run placements at CodeBegun (Java Full Stack training, Hyderabad). I have trained freshers ready to interview now: Java, Spring Boot, React, SQL.
+I'm ${personName(senderName)} from CodeBegun, a Java Full Stack training institute in Hyderabad. We train and screen freshers until they're genuinely job-ready — real project work and live coding rounds, not just certificates.
 
-${angle ? `${angle}.\n\n` : ''}Want me to send a couple of profiles that match your openings? You can interview them directly.${SIGNATURE(senderName)}`,
+${angle ? `${angle.replace(/\.?\s*$/, '')}.\n\n` : ''}Our current batch is ready to interview now, and strong on:
+
+• Java, Spring Boot & REST APIs
+• React & modern front-end
+• SQL, data structures & problem-solving
+
+Every candidate clears our internal screening, so you'd review a short, pre-vetted shortlist — not a pile of resumes. Could I send you 2–3 profiles that fit ${company}'s openings? You can interview them directly, and there's no cost to evaluate.${SIGNATURE(senderName)}`,
   };
 }
 
@@ -63,28 +52,29 @@ ${angle ? `${angle}.\n\n` : ''}Want me to send a couple of profiles that match y
 export function followupEmail(p: IPlacementPartner, step: number, senderName: string): Draft {
   const fn = firstName(p.contactName);
   const company = p.companyName;
+
   if (step <= 1) {
     return {
-      subject: `Re: Freshers for ${company}`,
+      subject: `Re: Java full-stack freshers for ${company}`,
       body:
 `Hi ${fn},
 
 Just floating this back to the top of your inbox — I know hiring inboxes get busy.
 
-If fresher/junior hiring is on the cards at ${company}, I'd be happy to send a couple of matched profiles you can interview directly. No commitment to evaluate.
+If fresher or junior hiring is on the cards at ${company}, I'd be glad to send a couple of matched, pre-screened profiles you can interview directly. No commitment to take a look.
 
 Worth a quick look?${SIGNATURE(senderName)}`,
     };
   }
   if (step === 2) {
     return {
-      subject: `Re: Freshers for ${company}`,
+      subject: `Re: Java full-stack freshers for ${company}`,
       body:
 `Hi ${fn},
 
-One more nudge — and then I'll get out of your inbox :)
+One more gentle nudge — then I'll leave your inbox in peace :)
 
-If now isn't the right time, even a quick "not now" helps me know whether to check back next quarter. And if it is, I can share 2–3 strong profiles today.${SIGNATURE(senderName)}`,
+Even a quick "not now" helps me know whether to check back next quarter. And if the timing is right, I can share 2–3 strong profiles today.${SIGNATURE(senderName)}`,
     };
   }
   // Final, graceful close
@@ -95,11 +85,11 @@ If now isn't the right time, even a quick "not now" helps me know whether to che
 
 I'll assume the timing isn't right for now, so I won't keep emailing.
 
-If you ever need job-ready Java/React freshers, just reply to this and I'll send profiles the same day. Wishing you and the ${company} team a great quarter.${SIGNATURE(senderName)}`,
+Whenever you need job-ready Java / React freshers, just reply to this note and I'll send profiles the same day. Wishing you and the ${company} team a great quarter ahead.${SIGNATURE(senderName)}`,
   };
 }
 
-// ── Personal vouch (trust point — always drafted, approved before send) ────────
+// ── Personal vouch (trust point — drafted, approved before send) ──────────────
 export function vouchEmail(p: IPlacementPartner, senderName: string): Draft {
   const fn = firstName(p.contactName);
   return {
@@ -109,7 +99,7 @@ export function vouchEmail(p: IPlacementPartner, senderName: string): Draft {
 
 I wanted to reach out personally rather than send another generic mail.
 
-I've worked closely with the freshers we train at CodeBegun, and a few of them stand out — not just on skills, but on attitude and how fast they pick things up. I'd genuinely vouch for them in an interview setting.
+I've worked closely with the freshers we train at CodeBegun, and a few of them really stand out — not just on skills, but on attitude and how fast they pick things up. I'd genuinely vouch for them in an interview setting.
 
 If you're open to it, I'd love to introduce 1–2 of them to ${p.companyName}. I'm confident they'd be worth your team's time.
 
@@ -117,7 +107,7 @@ Happy to jump on a 10-minute call whenever suits you.${SIGNATURE(senderName)}`,
   };
 }
 
-/** Minimal HTML wrapper so the plain-text body renders cleanly in email clients. */
+/** Minimal HTML wrapper (kept for callers that want a bare body). */
 export function toHtml(body: string): string {
   const esc = body.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1f2937;white-space:pre-wrap">${esc}</div>`;
@@ -131,37 +121,76 @@ export interface BrandOpts {
   links?: { label: string; url: string }[];   // download links for large attachments
 }
 
+const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+/** Turn the plain body (paragraphs, "•" bullets) into formatted HTML blocks. */
+function renderBlocks(text: string): string {
+  return text
+    .split(/\n{2,}/)
+    .map(b => b.replace(/\s+$/,'').replace(/^\s+/,''))
+    .filter(Boolean)
+    .map(block => {
+      const lines = block.split('\n');
+      const isList = lines.length > 0 && lines.every(l => /^\s*[•\-]\s+/.test(l));
+      if (isList) {
+        return `<ul style="margin:0 0 16px;padding-left:22px">${lines
+          .map(l => `<li style="margin:5px 0;color:#334155;font-size:15px;line-height:1.6">${esc(l.replace(/^\s*[•\-]\s+/, ''))}</li>`)
+          .join('')}</ul>`;
+      }
+      return `<p style="margin:0 0 15px;color:#334155;font-size:15px;line-height:1.65">${esc(block).replace(/\n/g, '<br>')}</p>`;
+    })
+    .join('');
+}
+
 /**
- * Render an outreach email body as HTML.
- *  - 'light' (cold / follow-up): plain, text-like, NO images — best deliverability.
- *  - 'full' (vouch / candidate-profile / reply): logo header + card.
- * Both append any large-attachment links and a compliant footer (address +
- * one-click unsubscribe) when provided.
+ * Render an outreach email as a polished, on-brand HTML message.
+ * Used for cold / follow-up / vouch / reply. Deliverability-friendly: single
+ * column, inline CSS, no remote images unless a logo URL is configured.
  */
 export function brandedHtml(body: string, opts: BrandOpts): string {
-  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-  const bodyHtml = `<div style="white-space:pre-wrap">${esc(body)}</div>`;
+  const [messageRaw, ...sigParts] = body.split(/\n—\n/);
+  const signatureRaw = sigParts.join('\n—\n').trim();
+
+  const messageHtml = renderBlocks(messageRaw);
+
   const linksHtml = opts.links?.length
-    ? `<div style="margin-top:16px;font-size:13px">${opts.links.map(l => `<a href="${l.url}" style="color:#0a66c2">📎 ${esc(l.label)}</a>`).join('<br>')}</div>`
+    ? `<div style="margin:2px 0 16px;font-size:14px">${opts.links
+        .map(l => `<a href="${l.url}" style="color:#0a66c2;text-decoration:none">📎 ${esc(l.label)}</a>`)
+        .join('<br>')}</div>`
     : '';
+
+  let signatureHtml = '';
+  if (signatureRaw) {
+    const sl = signatureRaw.split('\n').map(l => l.trim()).filter(Boolean);
+    const name = sl[0] || '';
+    const rest = sl.slice(1);
+    signatureHtml = `<div style="margin-top:22px;padding-top:16px;border-top:1px solid #eef2f7">
+      <div style="color:#051D64;font-weight:700;font-size:14px">${esc(name)}</div>
+      ${rest.map(l => `<div style="color:#64748b;font-size:13px;line-height:1.55">${esc(l)}</div>`).join('')}
+    </div>`;
+  }
+
   const footerBits: string[] = [];
   if (opts.mailingAddress) footerBits.push(esc(opts.mailingAddress));
   if (opts.unsubscribeUrl) footerBits.push(`<a href="${opts.unsubscribeUrl}" style="color:#94a3b8">Unsubscribe</a>`);
   const footer = footerBits.length
-    ? `<div style="margin-top:20px;padding-top:12px;border-top:1px solid #e5e7eb;color:#94a3b8;font-size:11px;line-height:1.6">${footerBits.join(' &middot; ')}</div>`
+    ? `<div style="padding:14px 28px;border-top:1px solid #e5e7eb;color:#94a3b8;font-size:11px;line-height:1.6">${footerBits.join(' &middot; ')}</div>`
     : '';
 
-  if (opts.mode === 'light') {
-    return `<div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#1f2937">${bodyHtml}${linksHtml}${footer}</div>`;
-  }
+  const brandMark = opts.logoUrl
+    ? `<img src="${esc(opts.logoUrl)}" alt="CodeBegun" style="height:30px;display:block">`
+    : `<div style="color:#ffffff;font-size:21px;font-weight:800;letter-spacing:.3px;line-height:1">Code<span style="color:#5eb3c7">Begun</span></div>`;
 
-  const logo = opts.logoUrl
-    ? `<img src="${opts.logoUrl}" alt="CodeBegun" style="height:34px;margin-bottom:16px">`
-    : `<div style="font-weight:800;color:#051D64;font-size:19px;margin-bottom:16px">CodeBegun</div>`;
-  return `<div style="font-family:Arial,Helvetica,sans-serif;background:#f4f6fb;padding:20px">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;padding:26px">
-    ${logo}
-    <div style="font-size:14px;line-height:1.6;color:#1f2937">${bodyHtml}${linksHtml}</div>
+  return `<div style="margin:0;padding:24px 12px;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+  <div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+    <div style="background:#051D64;padding:20px 28px">
+      ${brandMark}
+      <div style="color:#93c5fd;font-size:12px;margin-top:5px">Java Full Stack Training &amp; Placements &middot; Hyderabad</div>
+    </div>
+    <div style="height:3px;background:#359AAD"></div>
+    <div style="padding:26px 28px 20px">
+      ${messageHtml}${linksHtml}${signatureHtml}
+    </div>
     ${footer}
   </div>
 </div>`;

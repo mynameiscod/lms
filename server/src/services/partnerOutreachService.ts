@@ -284,10 +284,11 @@ export async function deliverMessage(messageId: mongoose.Types.ObjectId | string
     const domain = (settings.getStr('EMAIL_USER', '', tenantId).split('@')[1] || 'codebegun.com').trim();
     const messageId = `<po-${msg._id}-${Date.now().toString(36)}@${domain}>`;
 
-    // Cold/follow-up: keep it light + carry a one-click unsubscribe (deliverability).
+    // Cold/follow-up carry a one-click unsubscribe (deliverability + compliance);
+    // all outreach uses the branded template so it looks professional in the inbox.
     const isColdSequence = msg.type === 'cold' || msg.type === 'followup';
     const unsubscribeUrl = isColdSequence ? unsubUrl(tenantId, msg.partnerId.toString()) : undefined;
-    const html = renderEmail(msg.body, tenantId, { mode: isColdSequence ? 'light' : 'full', links, unsubscribeUrl });
+    const html = renderEmail(msg.body, tenantId, { mode: 'full', links, unsubscribeUrl });
     const headers = unsubscribeUrl
       ? {
           'List-Unsubscribe': `<${unsubscribeUrl}>, <mailto:${settings.getStr('EMAIL_USER', '', tenantId)}?subject=unsubscribe>`,

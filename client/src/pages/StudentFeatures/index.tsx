@@ -25,6 +25,7 @@ interface FeatureConfig {
   resourceLibrary: boolean;
   codePlayground: boolean;
   careerProfile: boolean;
+  aiCommunicationLab: boolean;
 }
 
 // Map each student feature to the module that must be enabled for it
@@ -50,6 +51,7 @@ const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
   resourceLibrary:      'resourceLibrary',
   codePlayground:       'codeAssessments',
   careerProfile:        'careerPilot',
+  aiCommunicationLab:   'aiCommunicationLab',
 };
 
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string }[] = [
@@ -74,6 +76,7 @@ const FEATURE_META: { key: keyof FeatureConfig; label: string; description: stri
   { key: 'aiMentor',        label: 'AI Mentor (CareerPilot)', description: 'Personal AI mentor for guidance, doubts and career questions', icon: '🤖' },
   { key: 'jobTracker',      label: 'Job Tracker (CareerPilot)', description: 'Track job applications, statuses and interview pipeline', icon: '📋' },
   { key: 'projectBuilder',  label: 'Project Builder (CareerPilot)', description: 'Guided project builder to create portfolio-ready projects', icon: '🛠' },
+  { key: 'aiCommunicationLab', label: 'AI Communication Lab', description: 'Daily self-introduction practice — record, get AI feedback, build a streak', icon: '🎙' },
 ];
 
 const StudentFeaturesPage: React.FC = () => {
@@ -100,6 +103,7 @@ const StudentFeaturesPage: React.FC = () => {
     resourceLibrary: true,
     codePlayground: true,
     careerProfile: true,
+    aiCommunicationLab: true,
   });
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [modulesLoaded, setModulesLoaded] = useState(false);

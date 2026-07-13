@@ -36,7 +36,11 @@ export const getToday = async (req: Request, res: Response) => {
     await ensureSeedChallenges(tenantId, uId(req));
     const today = validDate(req.query.date);
 
-    const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true })
+    const me: any = await User.findById(uId(req)).select('batchId').lean();
+    const batchFilter: any = me?.batchId
+      ? { $or: [{ batchIds: { $size: 0 } }, { batchIds: me.batchId }] }
+      : { batchIds: { $size: 0 } };
+    const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, ...batchFilter })
       .sort({ sequenceNumber: 1 }).lean();
     if (!challenges.length) return res.json({ challenge: null, status: 'not_started' });
 
@@ -271,6 +275,7 @@ export const createChallenge = async (req: Request, res: Response) => {
       instructions: b.instructions, suggestedPoints: arr(b.suggestedPoints),
       minSeconds: Number(b.minSeconds) || 120, targetSeconds: Number(b.targetSeconds) || 180, maxSeconds: Number(b.maxSeconds) || 210,
       maxAttempts: Number(b.maxAttempts) || 2, recordingModes: arr(b.recordingModes).length ? arr(b.recordingModes) : ['audio', 'video'],
+      batchIds: arr(b.batchIds).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s)),
       sequenceNumber: (last?.sequenceNumber || 0) + 1, active: b.active !== false, createdBy: uId(req),
     });
     res.status(201).json({ challenge: c });
@@ -279,9 +284,13 @@ export const createChallenge = async (req: Request, res: Response) => {
 
 export const updateChallenge = async (req: Request, res: Response) => {
   try {
-    const allowed = ['title', 'description', 'instructions', 'suggestedPoints', 'minSeconds', 'targetSeconds', 'maxSeconds', 'maxAttempts', 'recordingModes', 'sequenceNumber', 'active', 'challengeType'];
+    const allowed = ['title', 'description', 'instructions', 'suggestedPoints', 'minSeconds', 'targetSeconds', 'maxSeconds', 'maxAttempts', 'recordingModes', 'sequenceNumber', 'active', 'challengeType', 'batchIds'];
+    const listKeys = ['suggestedPoints', 'recordingModes', 'batchIds'];
     const set: any = {};
-    for (const k of allowed) if (k in req.body) set[k] = k === 'suggestedPoints' || k === 'recordingModes' ? arr(req.body[k]) : req.body[k];
+    for (const k of allowed) if (k in req.body) {
+      if (k === 'batchIds') set[k] = arr(req.body[k]).filter((s: string) => mongoose.isValidObjectId(s)).map((s: string) => new mongoose.Types.ObjectId(s));
+      else set[k] = listKeys.includes(k) ? arr(req.body[k]) : req.body[k];
+    }
     const c = await CommunicationChallenge.findOneAndUpdate({ _id: req.params.id, tenantId: tId(req) }, { $set: set }, { new: true });
     if (!c) return res.status(404).json({ message: 'Not found' });
     res.json({ challenge: c });
@@ -293,5 +302,123 @@ export const deleteChallenge = async (req: Request, res: Response) => {
     const c = await CommunicationChallenge.findOneAndDelete({ _id: req.params.id, tenantId: tId(req) });
     if (!c) return res.status(404).json({ message: 'Not found' });
     res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+export const reorderChallenges = async (req: Request, res: Response) => {
+  try {
+    const order: string[] = Array.isArray(req.body?.order) ? req.body.order : [];
+    await Promise.all(order.map((id, i) =>
+      CommunicationChallenge.updateOne({ _id: id, tenantId: tId(req) }, { $set: { sequenceNumber: i + 1 } })
+    ));
+    res.json({ ok: true });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Admin: monitoring dashboard ───────────────────────────────────────────────
+export const adminDashboard = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tId(req);
+    const today = validDate(req.query.date);
+    const monthAgo = ymdMinus(today, 30);
+
+    const students = await User.find({ tenantId, role: 'STUDENT', isActive: { $ne: false } }).select('_id batchId').lean();
+    const totalStudents = students.length;
+    const studentIds = students.map((s: any) => s._id);
+
+    const [completedToday, monthAttempts] = await Promise.all([
+      CommunicationAttempt.distinct('studentId', { tenantId, practiceDate: today, status: 'completed' }),
+      CommunicationAttempt.find({ tenantId, status: 'completed', practiceDate: { $gte: monthAgo } })
+        .select('studentId batchId practiceDate evaluation.overallScore').lean(),
+    ]);
+
+    const scores = monthAttempts.map((a: any) => a.evaluation?.overallScore || 0);
+    const avgScore = scores.length ? Math.round(scores.reduce((x, y) => x + y, 0) / scores.length) : 0;
+
+    // Batch-wise performance
+    const batchMap: Record<string, { count: number; sum: number }> = {};
+    monthAttempts.forEach((a: any) => {
+      const k = String(a.batchId || 'none');
+      (batchMap[k] = batchMap[k] || { count: 0, sum: 0 });
+      batchMap[k].count++; batchMap[k].sum += a.evaluation?.overallScore || 0;
+    });
+
+    res.json({
+      date: today,
+      totalStudents,
+      completedToday: completedToday.length,
+      pendingToday: totalStudents - completedToday.length,
+      avgScore,
+      highestScore: scores.length ? Math.max(...scores) : 0,
+      lowestScore: scores.length ? Math.min(...scores) : 0,
+      totalAttempts30d: monthAttempts.length,
+      byBatch: Object.entries(batchMap).map(([batchId, v]) => ({ batchId, attempts: v.count, avg: Math.round(v.sum / v.count) })),
+      activeStudents30d: new Set(monthAttempts.map((a: any) => String(a.studentId))).size,
+      _studentIds: studentIds.length, // internal sanity
+    });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Admin: per-student monitoring table ───────────────────────────────────────
+export const adminStudents = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tId(req);
+    const today = validDate(req.query.date);
+    const weekAgo = ymdMinus(today, 7);
+    const filter: any = { tenantId, role: 'STUDENT', isActive: { $ne: false } };
+    if (req.query.batchId && mongoose.isValidObjectId(String(req.query.batchId))) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
+
+    const students = await User.find(filter).select('firstName lastName email batchId').lean();
+    const ids = students.map((s: any) => s._id);
+    const [streaks, weekAttempts, todayDone, lastScores] = await Promise.all([
+      CommunicationStreak.find({ tenantId, studentId: { $in: ids } }).lean(),
+      CommunicationAttempt.find({ tenantId, studentId: { $in: ids }, status: 'completed', practiceDate: { $gte: weekAgo } }).select('studentId evaluation.overallScore').lean(),
+      CommunicationAttempt.distinct('studentId', { tenantId, studentId: { $in: ids }, practiceDate: today, status: 'completed' }),
+      CommunicationAttempt.aggregate([
+        { $match: { tenantId: new mongoose.Types.ObjectId(tenantId), studentId: { $in: ids }, status: 'completed' } },
+        { $sort: { createdAt: -1 } },
+        { $group: { _id: '$studentId', last: { $first: '$evaluation.overallScore' } } },
+      ]),
+    ]);
+
+    const streakMap: Record<string, any> = {}; streaks.forEach((s: any) => { streakMap[String(s.studentId)] = s; });
+    const weekMap: Record<string, number[]> = {}; weekAttempts.forEach((a: any) => { (weekMap[String(a.studentId)] = weekMap[String(a.studentId)] || []).push(a.evaluation?.overallScore || 0); });
+    const doneToday = new Set(todayDone.map((x: any) => String(x)));
+    const lastMap: Record<string, number> = {}; (lastScores as any[]).forEach((r) => { lastMap[String(r._id)] = r.last || 0; });
+
+    const rows = students.map((s: any) => {
+      const id = String(s._id);
+      const wk = weekMap[id] || [];
+      const streak = streakMap[id]?.currentStreak || 0;
+      const total = streakMap[id]?.totalCompletedDays || 0;
+      const weeklyAvg = wk.length ? Math.round(wk.reduce((x, y) => x + y, 0) / wk.length) : 0;
+      const risk = !doneToday.has(id) && streak === 0 && total === 0 ? 'no_activity'
+        : (weeklyAvg > 0 && weeklyAvg < 50) ? 'low_score'
+        : (streak === 0 && total > 0) ? 'streak_broken' : 'ok';
+      return {
+        studentId: id, name: [s.firstName, s.lastName].filter(Boolean).join(' ') || s.email, email: s.email,
+        batchId: s.batchId ? String(s.batchId) : null,
+        todayStatus: doneToday.has(id) ? 'completed' : 'pending',
+        currentStreak: streak, weeklyAvg, lastScore: lastMap[id] || 0, totalDays: total, risk,
+      };
+    });
+    res.json({ students: rows });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Admin: single student detail ──────────────────────────────────────────────
+export const adminStudentDetail = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tId(req);
+    const studentId = req.params.studentId;
+    if (!mongoose.isValidObjectId(studentId)) return res.status(400).json({ message: 'Invalid student' });
+    const [user, profile, streak, attempts] = await Promise.all([
+      User.findOne({ _id: studentId, tenantId }).select('firstName lastName email batchId').lean(),
+      CommunicationProfile.findOne({ tenantId, studentId }).lean(),
+      CommunicationStreak.findOne({ tenantId, studentId }).lean(),
+      CommunicationAttempt.find({ tenantId, studentId }).sort({ createdAt: -1 }).limit(60).select('-recordingKey -transcript').lean(),
+    ]);
+    if (!user) return res.status(404).json({ message: 'Student not found' });
+    res.json({ student: user, profile, streak, attempts });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

@@ -191,7 +191,8 @@ export const getStudentFeatures = async (
       projectBuilder: true,
       resourceLibrary: true,
       codePlayground: true,
-      careerProfile: true
+      careerProfile: true,
+      aiCommunicationLab: true
     };
 
     const featureData = { ...defaults, ...(tenant.studentFeatures || {}) };
@@ -220,7 +221,7 @@ export const updateStudentFeatures = async (
     const allowedKeys: (keyof IStudentFeatures)[] = [
       'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments', 'mockInterviews',
       'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews', 'resumeBuilder', 'learningPlan',
-      'thinkingLab', 'speakingPractice', 'jobTracker', 'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile'
+      'thinkingLab', 'speakingPractice', 'jobTracker', 'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile', 'aiCommunicationLab'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {
@@ -287,7 +288,7 @@ export const getTenantModules = async (
       courses: true, attendance: true, quizzes: true, assignments: true,
       classRecordings: true, codeAssessments: true, mockInterviews: true,
       placement: true, leads: true, marketing: true, feeManagement: true,
-      thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true
+      thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true, aiCommunicationLab: true
     };
     res.status(200).json({ success: true, message: 'Modules fetched', data: tenant.modules || defaults });
   } catch (error: any) {
@@ -307,7 +308,7 @@ export const updateTenantModules = async (
       'courses', 'attendance', 'quizzes', 'assignments',
       'classRecordings', 'codeAssessments', 'mockInterviews',
       'placement', 'leads', 'marketing', 'feeManagement',
-      'thinkingLab', 'speakingPractice', 'resourceLibrary', 'careerPilot'
+      'thinkingLab', 'speakingPractice', 'resourceLibrary', 'careerPilot', 'aiCommunicationLab'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {

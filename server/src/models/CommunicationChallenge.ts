@@ -29,6 +29,7 @@ export interface ICommunicationChallenge extends Document {
   evaluationCriteria?: string;
   sequenceNumber: number;
   active: boolean;
+  batchIds: mongoose.Types.ObjectId[]; // empty = all batches; else only these batches see it
   isSeed?: boolean;           // marks the built-in seeded set (so re-seeding is idempotent)
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
@@ -56,6 +57,7 @@ const CommunicationChallengeSchema = new Schema<ICommunicationChallenge>(
     evaluationCriteria: { type: String, trim: true },
     sequenceNumber: { type: Number, default: 0, index: true },
     active: { type: Boolean, default: true, index: true },
+    batchIds: { type: [Schema.Types.ObjectId], ref: 'Batch', default: [] },
     isSeed: { type: Boolean, default: false },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },

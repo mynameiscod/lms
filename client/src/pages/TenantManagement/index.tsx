@@ -18,6 +18,7 @@ interface TenantModules {
   speakingPractice: boolean;
   resourceLibrary: boolean;
   careerPilot: boolean;
+  aiCommunicationLab: boolean;
 }
 
 interface TenantRow {
@@ -47,6 +48,7 @@ const MODULE_DEFS: { key: keyof TenantModules; label: string; icon: string; desc
   { key: 'speakingPractice',label: 'Speaking Practice',    icon: 'fa-solid fa-microphone',        desc: 'AI speaking practice & feedback' },
   { key: 'resourceLibrary', label: 'Resource Library',     icon: 'fa-solid fa-box-archive',       desc: 'Projects, references & downloads' },
   { key: 'careerPilot',     label: 'CareerPilot',          icon: 'fa-solid fa-compass',           desc: 'AI Mentor, Job Tracker, Project Builder, Career Profile' },
+  { key: 'aiCommunicationLab', label: 'AI Communication Lab', icon: 'fa-solid fa-comment-dots',   desc: 'Daily self-introduction practice with AI feedback' },
 ];
 
 const STUDENT_FEATURES = [
@@ -66,20 +68,21 @@ const STUDENT_FEATURES = [
   { key: 'aiMentor',        label: 'AI Mentor',        icon: 'fa-solid fa-compass' },
   { key: 'jobTracker',      label: 'Job Tracker',      icon: 'fa-solid fa-briefcase' },
   { key: 'projectBuilder',  label: 'Project Builder',  icon: 'fa-solid fa-rocket' },
+  { key: 'aiCommunicationLab', label: 'Communication Lab', icon: 'fa-solid fa-comment-dots' },
 ];
 
 const DEFAULT_MODULES: TenantModules = {
   courses: true, attendance: true, quizzes: true, assignments: true,
   classRecordings: true, codeAssessments: true, mockInterviews: true,
   placement: true, leads: true, marketing: true, feeManagement: true,
-  thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true,
+  thinkingLab: true, speakingPractice: true, resourceLibrary: true, careerPilot: true, aiCommunicationLab: true,
 };
 
 const DEFAULT_STUDENT_FEATURES: Record<string, boolean> = {
   dashboard: true, myCourse: true, classHub: true,
   attendance: true, quizzes: true, assignments: true, mockInterviews: true, feeDetails: true,
   thinkingLab: true, speakingPractice: true, codePlayground: true,
-  resourceLibrary: true, careerProfile: true, aiMentor: true, jobTracker: true, projectBuilder: true,
+  resourceLibrary: true, careerProfile: true, aiMentor: true, jobTracker: true, projectBuilder: true, aiCommunicationLab: true,
 };
 
 // ── Create Tenant Modal ────────────────────────────────────────────────────
@@ -92,7 +95,7 @@ const DEFAULT_CREATE_MODULES: TenantModules = {
   courses: true, attendance: true, quizzes: true, assignments: true,
   classRecordings: false, codeAssessments: false, mockInterviews: false,
   placement: false, leads: false, marketing: false, feeManagement: true,
-  thinkingLab: false, speakingPractice: false, resourceLibrary: false, careerPilot: false,
+  thinkingLab: false, speakingPractice: false, resourceLibrary: false, careerPilot: false, aiCommunicationLab: false,
 };
 
 const CreateTenantPanel: React.FC<CreateModalProps> = ({ onClose, onCreated }) => {

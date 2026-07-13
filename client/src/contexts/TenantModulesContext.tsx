@@ -18,6 +18,7 @@ export interface TenantModules {
   speakingPractice: boolean;
   resourceLibrary: boolean;
   careerPilot: boolean;
+  aiCommunicationLab: boolean;
 }
 
 const DEFAULT_MODULES: TenantModules = {
@@ -36,6 +37,7 @@ const DEFAULT_MODULES: TenantModules = {
   speakingPractice: true,
   resourceLibrary: true,
   careerPilot: true,
+  aiCommunicationLab: true,
 };
 
 const ALL_DISABLED_MODULES: TenantModules = {
@@ -54,6 +56,7 @@ const ALL_DISABLED_MODULES: TenantModules = {
   speakingPractice: false,
   resourceLibrary: false,
   careerPilot: false,
+  aiCommunicationLab: false,
 };
 
 interface TenantModulesContextType {

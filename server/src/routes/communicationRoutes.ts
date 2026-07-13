@@ -21,9 +21,13 @@ const ADMIN = roleGuard(['manage_communication_lab', 'create_courses', 'edit_cou
 
 router.use(authMiddleware, tenantMiddleware);
 
-// Admin — challenge management (declared before /:id student routes)
+// Admin — monitoring + challenge management (declared before /:id student routes)
+router.get('/admin/dashboard', ADMIN, ctrl.adminDashboard);
+router.get('/admin/students', ADMIN, ctrl.adminStudents);
+router.get('/admin/students/:studentId', ADMIN, ctrl.adminStudentDetail);
 router.get('/admin/challenges', ADMIN, ctrl.listChallenges);
 router.post('/admin/challenges', ADMIN, ctrl.createChallenge);
+router.post('/admin/challenges/reorder', ADMIN, ctrl.reorderChallenges);
 router.patch('/admin/challenges/:id', ADMIN, ctrl.updateChallenge);
 router.delete('/admin/challenges/:id', ADMIN, ctrl.deleteChallenge);
 

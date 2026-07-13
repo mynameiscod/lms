@@ -69,4 +69,8 @@ export const communicationApi = {
   createChallenge: async (body: any): Promise<CommChallenge> => (await axios.post(`${BASE}/admin/challenges`, body, { headers: authHeader() })).data.challenge,
   updateChallenge: async (id: string, patch: any): Promise<CommChallenge> => (await axios.patch(`${BASE}/admin/challenges/${id}`, patch, { headers: authHeader() })).data.challenge,
   deleteChallenge: async (id: string) => { await axios.delete(`${BASE}/admin/challenges/${id}`, { headers: authHeader() }); },
+  reorderChallenges: async (order: string[]) => { await axios.post(`${BASE}/admin/challenges/reorder`, { order }, { headers: authHeader() }); },
+  adminDashboard: async (date: string): Promise<any> => (await axios.get(`${BASE}/admin/dashboard?date=${date}`, { headers: authHeader() })).data,
+  adminStudents: async (batchId?: string): Promise<{ students: any[] }> => (await axios.get(`${BASE}/admin/students${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
+  adminStudentDetail: async (studentId: string): Promise<any> => (await axios.get(`${BASE}/admin/students/${studentId}`, { headers: authHeader() })).data,
 };

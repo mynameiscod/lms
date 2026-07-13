@@ -24,6 +24,7 @@ export interface StudentFeatures {
   resourceLibrary: boolean;
   codePlayground: boolean;
   careerProfile: boolean;
+  aiCommunicationLab: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -48,6 +49,7 @@ const DEFAULT_FEATURES: StudentFeatures = {
   resourceLibrary: true,
   codePlayground: true,
   careerProfile: true,
+  aiCommunicationLab: true,
 };
 
 interface StudentFeaturesContextType {

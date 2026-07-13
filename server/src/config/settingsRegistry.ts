@@ -36,6 +36,7 @@ export const SETTING_GROUPS: SettingGroup[] = [
   { id: 'placement',   label: 'Placement Outreach', icon: '🤝', description: 'Daily send cap, gap between sends and sender name for the placement-partner outreach pipeline. Todoist token for hot-lead/check-in tasks.' },
   { id: 'interview',   label: 'AI Interview', icon: '🎙️', description: 'Realistic AI mock interviews — natural voice (ElevenLabs) and a talking-head interviewer (D-ID). Leave blank to use the free browser voice + animated avatar.' },
   { id: 'live-classes',label: 'Live Classes (100ms)', icon: '🎥', description: 'Live online / hybrid classes powered by 100ms. Instructor broadcasts, 500+ students watch via HLS, and any student can be brought on stage. Recordings auto-save to Class Hub.' },
+  { id: 'communication-lab', label: 'AI Communication Lab', icon: '🎙️', description: 'Daily self-introduction practice — enable/disable, gamification, and recording retention.' },
 ];
 
 export const SETTING_DEFS: SettingDef[] = [
@@ -127,6 +128,12 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'HMS_TEMPLATE_ID', label: '100ms Template ID', group: 'live-classes', type: 'text', placeholder: '6a5114e5...', help: '100ms Dashboard → Templates → your Webinar template → Template ID. Defines the roles (broadcaster / viewer / viewer-on-stage).' },
   { key: 'HMS_SUBDOMAIN', label: '100ms Subdomain', group: 'live-classes', type: 'text', placeholder: 'code-webinar-2111.app.100ms.live', help: 'Your 100ms app subdomain (from the dashboard).' },
   { key: 'HMS_WEBHOOK_SECRET', label: '100ms Webhook Secret', group: 'live-classes', isSecret: true, type: 'password', help: 'Optional. Shared secret to verify 100ms webhook calls (recording ready, peer join/leave). Set the same value in Dashboard → Developer → Webhooks.' },
+
+  // ── AI Communication Lab ─────────────────────────────────────────────────────
+  { key: 'COMMUNICATION_LAB_LEADERBOARD', label: 'Show Leaderboard', group: 'communication-lab', type: 'select', options: ['true', 'false'], placeholder: 'true', help: 'Batch leaderboard visibility for students.', perTenant: true },
+  { key: 'COMMUNICATION_LAB_ACHIEVEMENTS', label: 'Enable Achievements', group: 'communication-lab', type: 'select', options: ['true', 'false'], placeholder: 'true', help: 'Award achievement badges for streaks and scores.', perTenant: true },
+  { key: 'COMMUNICATION_LAB_STREAK_LEAVE_PROTECT', label: 'Leave Protects Streak', group: 'communication-lab', type: 'select', options: ['false', 'true'], placeholder: 'false', help: 'When on, an approved-leave day does not reset a student’s streak.', perTenant: true },
+  { key: 'COMMUNICATION_LAB_RETENTION_DAYS', label: 'Recording Retention (days)', group: 'communication-lab', type: 'number', placeholder: '180', help: 'How long practice recordings are kept before cleanup. Blank = keep indefinitely.', perTenant: true },
 ];
 
 export const SECRET_KEYS = new Set(SETTING_DEFS.filter(d => d.isSecret).map(d => d.key));

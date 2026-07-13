@@ -59,7 +59,7 @@ export function renderEmail(
 ): string {
   return brandedHtml(body, {
     mode: opts.mode,
-    logoUrl: settings.getStr('PARTNER_EMAIL_LOGO_URL', '', tenantId) || undefined,
+    logoUrl: settings.getStr('PARTNER_EMAIL_LOGO_URL', '', tenantId) || `${publicBase()}/assets/logo.png`,
     mailingAddress: settings.getStr('PARTNER_MAILING_ADDRESS', '', tenantId) || undefined,
     unsubscribeUrl: opts.unsubscribeUrl,
     links: opts.links,

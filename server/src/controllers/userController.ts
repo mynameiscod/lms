@@ -13,6 +13,7 @@ import StudentProfile from '../models/StudentProfile';
 import { computeProfileCompleteness } from '../utils/profileCompleteness';
 import { ROLE_PERMISSIONS } from '../middleware/roleGuard';
 import csvParser from 'csv-parser';
+import * as XLSX from 'xlsx';
 
 const userService = new UserService();
 const emailService = new EmailService();
@@ -164,6 +165,68 @@ export const getUsers = async (req: AuthenticatedRequest, res: Response) => {
     res.json({ success: true, message: 'Users fetched successfully', data: users });
   } catch (error: any) {
     res.status(500).json({ success: false, message: error.message || 'Failed to fetch users' });
+  }
+};
+
+// Export the tenant's users as an .xlsx (respects the same role/search filters as the list)
+export const exportUsers = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { search, role } = req.query as { search?: string; role?: string };
+    const filter: any = { tenantId: req.tenantId };
+    if (role) filter.role = role;
+    if (search) {
+      const re = { $regex: search, $options: 'i' };
+      filter.$or = [{ firstName: re }, { lastName: re }, { name: re }, { email: re }];
+    }
+    const users = await User.find(filter)
+      .select('firstName lastName name email phone role batchId isActive createdAt')
+      .sort({ createdAt: -1 }).lean();
+
+    const batches = await Batch.find({ tenantId: req.tenantId }).select('name').lean();
+    const batchMap: Record<string, string> = {};
+    batches.forEach((b: any) => { batchMap[String(b._id)] = b.name; });
+
+    const headers = ['Name', 'Email', 'Phone', 'Role', 'Batch', 'Status', 'Joined'];
+    const rows = users.map((u: any) => ([
+      [u.firstName, u.lastName].filter(Boolean).join(' ') || u.name || '',
+      u.email || '',
+      u.phone || '',
+      u.role || '',
+      u.batchId ? (batchMap[String(u.batchId)] || '') : '',
+      u.isActive === false ? 'Inactive' : 'Active',
+      u.createdAt ? new Date(u.createdAt).toISOString().split('T')[0] : '',
+    ]));
+
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    ws['!cols'] = headers.map((h, i) => ({ wch: Math.max(h.length, ...rows.map(r => String(r[i] || '').length), 10) }));
+
+    // Summary sheet — total + role breakdown
+    const byRole: Record<string, number> = {};
+    users.forEach((u: any) => { byRole[u.role || 'unknown'] = (byRole[u.role || 'unknown'] || 0) + 1; });
+    const active = users.filter((u: any) => u.isActive !== false).length;
+    const summary = [
+      ['Users Export', ''],
+      ['Generated At', new Date().toISOString()],
+      ['Total Users', users.length],
+      ['Active', active],
+      ['Inactive', users.length - active],
+      ['', ''],
+      ['Role Breakdown', ''],
+      ...Object.entries(byRole).map(([r, c]) => [r, c]),
+    ];
+    const wsSummary = XLSX.utils.aoa_to_sheet(summary);
+    wsSummary['!cols'] = [{ wch: 22 }, { wch: 20 }];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Users');
+    XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=users_export_${new Date().toISOString().split('T')[0]}.xlsx`);
+    res.end(buf);
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: 'Failed to export users', error: error.message });
   }
 };
 

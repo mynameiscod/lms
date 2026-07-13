@@ -15,7 +15,8 @@ import {
   updateProfile,
   bulkUploadStudents,
   downloadBulkTemplate,
-  getMyPermissions
+  getMyPermissions,
+  exportUsers
 } from '../controllers/userController';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { authMiddleware } from '../middleware/auth';
@@ -64,6 +65,9 @@ router.post('/', roleGuard(['manage_tenant_users']), createUser);
 
 // Get all users in tenant
 router.get('/', getUsers);
+
+// Export users as .xlsx (specific path — must be before /:userId)
+router.get('/export', roleGuard(['manage_tenant_users']), exportUsers);
 
 // Get user by ID
 router.get('/:userId', getUserById);

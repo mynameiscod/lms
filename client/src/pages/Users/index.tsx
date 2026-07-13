@@ -162,6 +162,14 @@ const UsersPage: React.FC = () => {
     setSelectedCustomRoleId('');
   };
 
+  const [exporting, setExporting] = useState(false);
+  const handleExport = async () => {
+    setExporting(true);
+    try { await userApi.exportUsers(); }
+    catch (e: any) { alert(e?.message || 'Failed to export users'); }
+    finally { setExporting(false); }
+  };
+
   const [bulkSending, setBulkSending] = useState(false);
   const handleBulkReminders = async () => {
     if (!window.confirm('Email every student with an incomplete profile a checklist of their missing items?')) return;
@@ -408,6 +416,13 @@ const UsersPage: React.FC = () => {
             className="btn-header-sm btn-secondary-header"
           >
             👥 Create User
+          </Button>
+          <Button
+            onClick={handleExport}
+            disabled={exporting}
+            className="btn-header-sm btn-secondary-header"
+          >
+            {exporting ? '⏳ Exporting…' : '📊 Export to Excel'}
           </Button>
           <Button
             onClick={handleBulkReminders}

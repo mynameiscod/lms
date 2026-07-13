@@ -41,9 +41,11 @@ export const getToday = async (req: Request, res: Response) => {
     const today = validDate(req.query.date);
 
     const me: any = await User.findById(uId(req)).select('batchId').lean();
+    // A challenge with no batchIds (empty OR field absent) is for all batches.
+    const allBatches = [{ batchIds: { $exists: false } }, { batchIds: { $size: 0 } }];
     const batchFilter: any = me?.batchId
-      ? { $or: [{ batchIds: { $size: 0 } }, { batchIds: me.batchId }] }
-      : { batchIds: { $size: 0 } };
+      ? { $or: [...allBatches, { batchIds: me.batchId }] }
+      : { $or: allBatches };
     const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, ...batchFilter })
       .sort({ sequenceNumber: 1 }).lean();
     if (!challenges.length) return res.json({ challenge: null, status: 'not_started' });

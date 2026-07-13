@@ -54,6 +54,7 @@ export async function ensureSeedChallenges(tenantId: string, createdBy?: string)
           suggestedPoints: s.points || [],
           minSeconds: 120, targetSeconds: 180, maxSeconds: 210, maxAttempts: 2,
           recordingModes: ['audio', 'video'],
+          batchIds: [],
           sequenceNumber: i + 1,
           active: true, isSeed: true,
           ...(createdBy ? { createdBy: new mongoose.Types.ObjectId(createdBy) } : {}),

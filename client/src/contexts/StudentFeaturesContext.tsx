@@ -25,6 +25,10 @@ export interface StudentFeatures {
   codePlayground: boolean;
   careerProfile: boolean;
   aiCommunicationLab: boolean;
+  liveClasses: boolean;
+  collegePortal: boolean;
+  myApplications: boolean;
+  alumniDirectory: boolean;
 }
 
 const DEFAULT_FEATURES: StudentFeatures = {
@@ -50,6 +54,10 @@ const DEFAULT_FEATURES: StudentFeatures = {
   codePlayground: true,
   careerProfile: true,
   aiCommunicationLab: true,
+  liveClasses: true,
+  collegePortal: true,
+  myApplications: true,
+  alumniDirectory: true,
 };
 
 interface StudentFeaturesContextType {

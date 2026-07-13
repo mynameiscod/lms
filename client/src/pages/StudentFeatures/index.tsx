@@ -26,6 +26,10 @@ interface FeatureConfig {
   codePlayground: boolean;
   careerProfile: boolean;
   aiCommunicationLab: boolean;
+  liveClasses: boolean;
+  collegePortal: boolean;
+  myApplications: boolean;
+  alumniDirectory: boolean;
 }
 
 // Map each student feature to the module that must be enabled for it
@@ -52,10 +56,14 @@ const FEATURE_MODULE_MAP: Record<keyof FeatureConfig, string | null> = {
   codePlayground:       'codeAssessments',
   careerProfile:        'careerPilot',
   aiCommunicationLab:   'aiCommunicationLab',
+  liveClasses:          null,
+  collegePortal:        'placement',
+  myApplications:       'placement',
+  alumniDirectory:      'placement',
 };
 
-type FeatureGroup = 'Home' | 'Daily Practice' | 'My Learning' | 'Prep & Career' | 'My Account';
-const GROUP_ORDER: FeatureGroup[] = ['Home', 'Daily Practice', 'My Learning', 'Prep & Career', 'My Account'];
+type FeatureGroup = 'Home' | 'Daily Practice' | 'My Learning' | 'Prep & Career' | 'College' | 'My Account';
+const GROUP_ORDER: FeatureGroup[] = ['Home', 'Daily Practice', 'My Learning', 'Prep & Career', 'College', 'My Account'];
 
 const FEATURE_META: { key: keyof FeatureConfig; label: string; description: string; icon: string; group: FeatureGroup }[] = [
   // Home
@@ -72,6 +80,7 @@ const FEATURE_META: { key: keyof FeatureConfig; label: string; description: stri
   { key: 'quizzes',        label: 'Quizzes',                          description: 'Take quizzes and view quiz results', icon: '✍', group: 'My Learning' },
   { key: 'assignments',    label: 'Assignments',                      description: 'Submit coding assignments and view results', icon: '📝', group: 'My Learning' },
   { key: 'codingSnippets', label: 'Code Practice',                   description: 'Code editor access with snippet manager and practice problems', icon: '💻', group: 'My Learning' },
+  { key: 'liveClasses',    label: 'Live Classes',                     description: 'Join scheduled live/online classes with recording playback', icon: '🎥', group: 'My Learning' },
   { key: 'attendance',     label: 'Attendance',                       description: 'View attendance records and attendance percentage', icon: '📊', group: 'My Learning' },
   // Prep & Career
   { key: 'codePlayground',  label: 'Code Playground',         description: 'Free-form multi-language code playground with run & GitHub push', icon: '🎮', group: 'Prep & Career' },
@@ -83,6 +92,10 @@ const FEATURE_META: { key: keyof FeatureConfig; label: string; description: stri
   { key: 'jobTracker',      label: 'Job Tracker (CareerPilot)', description: 'Track job applications, statuses and interview pipeline', icon: '📋', group: 'Prep & Career' },
   { key: 'projectBuilder',  label: 'Project Builder (CareerPilot)', description: 'Guided project builder to create portfolio-ready projects', icon: '🛠', group: 'Prep & Career' },
   { key: 'resourceLibrary', label: 'Resource Library',        description: 'Curated projects, references and downloadable learning resources', icon: '📁', group: 'Prep & Career' },
+  // College (placement module — leave OFF for non-college tenants like coding bootcamps)
+  { key: 'collegePortal',   label: 'My College Portal',       description: 'College dashboard: departments, curriculum, CRT & placement drives', icon: '🏛', group: 'College' },
+  { key: 'myApplications',  label: 'My Applications',         description: 'Track placement-drive applications and their status', icon: '📄', group: 'College' },
+  { key: 'alumniDirectory', label: 'Alumni Directory',        description: 'Browse alumni and request mentoring from industry professionals', icon: '🎓', group: 'College' },
   // My Account
   { key: 'feeDetails',          label: 'Fee Details',           description: 'Student fee ledger, payments, receipts, and reservation status', icon: '💰', group: 'My Account' },
 ];
@@ -112,6 +125,10 @@ const StudentFeaturesPage: React.FC = () => {
     codePlayground: true,
     careerProfile: true,
     aiCommunicationLab: true,
+    liveClasses: true,
+    collegePortal: true,
+    myApplications: true,
+    alumniDirectory: true,
   });
   const [enabledModules, setEnabledModules] = useState<Record<string, boolean>>({});
   const [modulesLoaded, setModulesLoaded] = useState(false);
@@ -208,7 +225,7 @@ const StudentFeaturesPage: React.FC = () => {
         return (
           <div key={group} className="sf-group">
             <h2 className="sf-group-title" style={{ fontSize: 14, fontWeight: 700, color: '#334155', textTransform: 'uppercase', letterSpacing: '.05em', margin: '22px 0 10px' }}>
-              {group === 'Daily Practice' ? '🔥 ' : ''}{group}
+              {group === 'Daily Practice' ? '🔥 ' : group === 'College' ? '🎓 ' : ''}{group}
             </h2>
             <div className="sf-features-grid">
               {groupFeatures.map(({ key, label, description, icon }) => {

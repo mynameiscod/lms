@@ -32,6 +32,10 @@ export interface IStudentFeatures {
   codePlayground?: boolean;
   careerProfile?: boolean;
   aiCommunicationLab?: boolean;
+  liveClasses?: boolean;
+  collegePortal?: boolean;
+  myApplications?: boolean;
+  alumniDirectory?: boolean;
 }
 
 // Platform-level module gates set by SUPER_ADMIN (applies to ALL roles in the tenant)
@@ -196,7 +200,11 @@ const TenantSchema: Schema = new Schema(
       resourceLibrary: { type: Boolean, default: true },
       codePlayground: { type: Boolean, default: true },
       careerProfile: { type: Boolean, default: true },
-      aiCommunicationLab: { type: Boolean, default: true }
+      aiCommunicationLab: { type: Boolean, default: true },
+      liveClasses: { type: Boolean, default: true },
+      collegePortal: { type: Boolean, default: true },
+      myApplications: { type: Boolean, default: true },
+      alumniDirectory: { type: Boolean, default: true }
     },
     // Platform-level module gates — set by SUPER_ADMIN, apply to ALL roles in the tenant
     modules: {

@@ -137,9 +137,9 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       ],
     },
     // Student Reports & Student Profiles merged into the unified Student Detail page — click a student in Users.
-    { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
-    { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'placement', permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My College Portal',  path: '/student/college',           roles: ['STUDENT'], icon: 'fa-solid fa-university',  moduleKey: 'placement', featureKey: 'collegePortal' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'My Applications',    path: '/student/my-applications',   roles: ['STUDENT'], icon: 'fa-solid fa-file-lines',  moduleKey: 'placement', featureKey: 'myApplications' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
+    { label: 'Alumni Directory',   path: '/student/alumni-directory',  roles: ['STUDENT'], icon: 'fa-solid fa-graduation-cap', moduleKey: 'placement', featureKey: 'alumniDirectory' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses'] },
     { label: 'Notifications',      path: '/notifications',             roles: ['STUDENT', 'TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-bell', permissions: [] },
     {
       label: 'College',
@@ -190,7 +190,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // Retired from the student menu in favour of AI Communication Lab (which supersedes it).
     // Kept for admin/instructor preview; the /speaking-practice route still works.
     { label: 'Speaking Practice', path: '/speaking-practice', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-microphone', moduleKey: 'speakingPractice', featureKey: 'speakingPractice' as keyof StudentFeatures, permissions: ['create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
-    { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
+    { label: 'Live Classes', path: '/hms-classes', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-video', featureKey: 'liveClasses' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
     { label: 'AI Communication Lab', path: '/ai-communication-lab', roles: ['STUDENT', 'SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-comment-dots', moduleKey: 'aiCommunicationLab', featureKey: 'aiCommunicationLab' as keyof StudentFeatures, permissions: ['use_communication_lab', 'manage_communication_lab'] },
     { label: 'Communication Lab — Manage', path: '/admin/communication-lab', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-headset', moduleKey: 'aiCommunicationLab', permissions: ['manage_communication_lab'] },
     { label: 'Logical Thinking Lab', path: '/thinking-lab', roles: ['STUDENT'], icon: 'fa-solid fa-brain', moduleKey: 'thinkingLab', featureKey: 'thinkingLab' as keyof StudentFeatures, permissions: ['enroll_courses', 'view_courses', 'submit_assignments'] },
@@ -373,7 +373,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const learnItems = filteredItems.filter(i => ['My Learning Plan', 'My Tasks', 'My Work', 'Live Classes', 'Attendance'].includes(i.label));
   const careerItems = filteredItems.filter(i => ['Code Playground', 'My Interviews', 'Resume Builder', 'Career Profile', 'AI Mentor', 'Job Tracker', 'Project Builder', 'Project Library', 'Resource Library'].includes(i.label));
   const accountItems = filteredItems.filter(i => ['Fee Details', 'Apply Leave'].includes(i.label));
-  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...learnItems, ...careerItems, ...accountItems, ...supportItems]);
+  const collegeItems = filteredItems.filter(i => ['My College Portal', 'My Applications', 'Alumni Directory'].includes(i.label));
+  const studentGrouped = new Set<any>([...homeItems, ...dailyPracticeItems, ...learnItems, ...careerItems, ...accountItems, ...collegeItems, ...supportItems]);
   const studentMiscItems = filteredItems.filter(i => !studentGrouped.has(i));
 
   return (
@@ -420,6 +421,12 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
               <div className="nav-section">
                 <span className="nav-section-label">PREP &amp; CAREER</span>
                 <ul>{careerItems.map(item => renderMenuItem(item))}</ul>
+              </div>
+            )}
+            {collegeItems.length > 0 && (
+              <div className="nav-section">
+                <span className="nav-section-label">🎓 COLLEGE</span>
+                <ul>{collegeItems.map(item => renderMenuItem(item))}</ul>
               </div>
             )}
             {accountItems.length > 0 && (

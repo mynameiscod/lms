@@ -192,7 +192,11 @@ export const getStudentFeatures = async (
       resourceLibrary: true,
       codePlayground: true,
       careerProfile: true,
-      aiCommunicationLab: true
+      aiCommunicationLab: true,
+      liveClasses: true,
+      collegePortal: true,
+      myApplications: true,
+      alumniDirectory: true
     };
 
     const featureData = { ...defaults, ...(tenant.studentFeatures || {}) };
@@ -221,7 +225,8 @@ export const updateStudentFeatures = async (
     const allowedKeys: (keyof IStudentFeatures)[] = [
       'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments', 'mockInterviews',
       'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews', 'resumeBuilder', 'learningPlan',
-      'thinkingLab', 'speakingPractice', 'jobTracker', 'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile', 'aiCommunicationLab'
+      'thinkingLab', 'speakingPractice', 'jobTracker', 'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile', 'aiCommunicationLab',
+      'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory'
     ];
     const updateObj: Record<string, boolean> = {};
     for (const key of allowedKeys) {

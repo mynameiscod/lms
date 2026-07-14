@@ -84,6 +84,8 @@ import placementPartnerRoutes from './placementPartnerRoutes';
 import feeRoutes from './feeRoutes';
 import publicAssessmentRoutes from './publicAssessmentRoutes';
 import publicCertificateRoutes from './publicCertificateRoutes';
+import publicProofRoutes from './publicProofRoutes';
+import candidateProofRoutes from './candidateProofRoutes';
 import certificateRoutes from './certificateRoutes';
 import aiUsageRoutes from './aiUsageRoutes';
 import assessmentItemRoutes from './assessmentItemRoutes';
@@ -102,6 +104,7 @@ const router = express.Router();
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
+router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
 router.use('/public', publicLeadRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
@@ -131,6 +134,7 @@ router.use('/oauth', oauthRoutes);
 router.use('/assignments', assignmentRoutes);
 router.use('/dashboard', dashboardRoutes);
 router.use('/student-reports', studentReportRoutes);
+router.use('/candidate-proof', candidateProofRoutes);
 router.use('/interview-questions', interviewQuestionRoutes);
 router.use('/topics', topicRoutes);
 router.use('/sub-topics', subTopicRoutes);

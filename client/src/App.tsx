@@ -124,6 +124,7 @@ import LeadKanbanPage from './pages/LeadKanban';
 import { AdminCodeSnippets, StudentCodeSnippets, GradeSubmissions } from './pages/CodeSnippets';
 import CertificatePage from './pages/Certificate/CertificatePage';
 import CertificateVerify from './pages/CertificateVerify';
+import CandidateProfile from './pages/CandidateProfile';
 import CertificatesAdmin from './pages/CertificatesAdmin';
 import AiSpend from './pages/AiSpend';
 import GoogleSheetIntegrationPage from './pages/GoogleSheetIntegration';
@@ -302,6 +303,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/certificate/:type/:token" element={<CertificatePage />} />
       <Route path="/verify/:code" element={<CertificateVerify />} />
+      <Route path="/candidate/:token" element={<CandidateProfile />} />
       <Route path="/resume/view/:token" element={<PublicResumeView />} />
       <Route path="/quiz/:token" element={<QuizSession />} />
       <Route path="/assessment/:tenantId" element={<AssessmentLanding />} />

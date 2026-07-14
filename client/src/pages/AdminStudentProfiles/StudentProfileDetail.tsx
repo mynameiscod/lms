@@ -4,6 +4,7 @@ import { studentProfileAPI } from '../../api/studentProfileAPI';
 import { getStudentReport } from '../../api/studentReportApi';
 import { interviewAnalyticsApi } from '../../api/interviewModuleApi';
 import { scheduledInterviewApi } from '../../api';
+import { candidateProofApi } from '../../api/candidateProofApi';
 import { Spinner } from '../../components/common';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
@@ -251,6 +252,9 @@ const StudentProfileDetail: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Candidate Proof Profile — shareable HR-facing link */}
+      {userId && <ProofPanel userId={userId} name={fullName} />}
 
       {/* Profile completeness breakdown + reminder email */}
       {hasProfile && Array.isArray(profile?.missing) && profile.missing.length > 0 && (
@@ -784,5 +788,85 @@ const StudentProfileDetail: React.FC = () => {
     </div>
   );
 };
+
+// ── Candidate Proof Profile panel (placement team: publish + copy the HR link) ──
+const ProofPanel: React.FC<{ userId: string; name: string }> = ({ userId, name }) => {
+  const [data, setData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    candidateProofApi.get(userId)
+      .then((r) => setData(r.data.data))
+      .catch(() => setData(null))
+      .finally(() => setLoading(false));
+  }, [userId]);
+
+  const publish = async () => {
+    setBusy(true);
+    try {
+      const r = await candidateProofApi.publish(userId);
+      setData((d: any) => ({ ...(d || {}), published: true, shareToken: r.data.data.shareToken, url: r.data.data.url }));
+      copy(r.data.data.url);
+    } catch { /* ignore */ } finally { setBusy(false); }
+  };
+  const unpublish = async () => {
+    setBusy(true);
+    try { await candidateProofApi.unpublish(userId); setData((d: any) => ({ ...(d || {}), published: false })); }
+    catch { /* ignore */ } finally { setBusy(false); }
+  };
+  const copy = (url?: string) => {
+    if (!url) return;
+    navigator.clipboard?.writeText(url).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1800); }).catch(() => {});
+  };
+
+  const pf = data?.profile;
+  const live = data?.published && data?.url;
+  const readiness = pf?.assessment?.readiness, interview = pf?.interview?.score, comm = pf?.communication?.score;
+
+  return (
+    <div style={{ background: 'linear-gradient(135deg,#051D64,#0a2a86)', borderRadius: 14, padding: '18px 22px', margin: '0 0 16px', color: '#fff' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>🌉 Candidate Proof Profile</div>
+          <div style={{ color: '#c3cfe6', fontSize: 12.5, marginTop: 2 }}>A shareable, HR-facing page with {name.split(' ')[0]}'s verified scores — send it instead of a plain resume.</div>
+        </div>
+        {!loading && (
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {!live && <button onClick={publish} disabled={busy} style={btnT}>{busy ? 'Publishing…' : '🔗 Publish & copy link'}</button>}
+            {live && <>
+              <a href={data.url} target="_blank" rel="noreferrer" style={btnG}>👁 Preview ↗</a>
+              <button onClick={() => copy(data.url)} style={btnT}>{copied ? '✓ Copied' : '📋 Copy link'}</button>
+              <button onClick={unpublish} disabled={busy} style={btnGhost}>Disable</button>
+            </>}
+          </div>
+        )}
+      </div>
+      {!loading && (
+        <div style={{ display: 'flex', gap: 14, marginTop: 14, flexWrap: 'wrap', fontSize: 12.5 }}>
+          <ProofStat label="Readiness" v={readiness} suffix="%" />
+          <ProofStat label="Mock Interview" v={interview} />
+          <ProofStat label="Communication" v={comm} />
+          {live && <div style={{ flex: 1, minWidth: 200, alignSelf: 'center', color: '#93c5fd', fontSize: 11.5, wordBreak: 'break-all' }}>{data.url}</div>}
+        </div>
+      )}
+      {!loading && !readiness && !interview && !comm && (
+        <div style={{ marginTop: 10, color: '#fbbf24', fontSize: 12 }}>⚠ This student has little proof data yet (no assessment / mock-interview / communication scores). The page will still work but look thin.</div>
+      )}
+    </div>
+  );
+};
+
+const ProofStat: React.FC<{ label: string; v?: number; suffix?: string }> = ({ label, v, suffix = '' }) => (
+  <div style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(148,178,230,.25)', borderRadius: 10, padding: '8px 14px', minWidth: 92, textAlign: 'center' }}>
+    <div style={{ fontSize: 20, fontWeight: 800, color: v == null ? '#94a3b8' : v >= 80 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171' }}>{v != null ? `${v}${suffix}` : '—'}</div>
+    <div style={{ color: '#c3cfe6', fontSize: 11 }}>{label}</div>
+  </div>
+);
+
+const btnT: React.CSSProperties = { background: '#359AAD', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, cursor: 'pointer' };
+const btnG: React.CSSProperties = { background: '#fff', color: '#051D64', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, textDecoration: 'none', cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { background: 'transparent', color: '#c3cfe6', border: '1px solid rgba(148,178,230,.4)', borderRadius: 9, padding: '9px 15px', fontWeight: 600, fontSize: 13, cursor: 'pointer' };
 
 export default StudentProfileDetail;

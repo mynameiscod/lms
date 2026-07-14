@@ -1,5 +1,7 @@
 # Placement Partnership (formerly Partner / Placement Outreach)
-**Completion:** 82%  |  **Priority:** P2  |  **Business Impact:** High
+**Completion:** 84%  |  **Priority:** P2  |  **Business Impact:** High
+
+> **Change log (2026-07-14, Candidate Proof Profile):** New **shareable, HR-facing candidate proof page** — the "send proof, not a resume" artifact from the Placement Bridge vision. New `CandidateProofProfile` model (token per student), `candidateProofService.buildProofProfile()` aggregates live from Skill Assessment (readiness/percentile/sub-scores), best published `InterviewAttempt` (mock grade + strengths/weaknesses), `CommunicationAttempt`+streak, `CareerProfile` (resume/GitHub/LinkedIn scores), `ProjectPlan`, `Resume`, `Certificate` — respecting release gates + the candidateUserId/String-tenantId gotchas. Public route `GET /public/proof/:token` (no auth, mounted before generic /public) + client page `/candidate/:token`; contact routed via CodeBegun (no student email/phone leaked). Placement team publishes/copies the link from the **student detail page** (`ProofPanel` on `/users/:userId`). Admin routes `/candidate-proof/:studentId` (get/publish/unpublish), placement-gated.
 
 > **Change log (2026-07-13, Phase 1):** Renamed to **Placement Partnership** and **simplified to a focused outreach-only flow**. Student-matching, candidate-PDF, interview-scheduling, and mark-placed removed (UI + endpoints) — recoverable from git history. New UI: contact list by status + drawer (send intro → auto follow-up → reply thread). Route `/admin/partners` → `/admin/placement-partnership`.
 >

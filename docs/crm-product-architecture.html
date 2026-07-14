@@ -84,7 +84,7 @@
 <div class="topbar"><div class="wrap">
   <div class="brand">Savas<span>CRM</span> · Architecture</div>
   <nav>
-    <a href="#understand">Understand</a><a href="#matrix">K/M/R Matrix</a><a href="#arch">Architecture</a>
+    <a href="#revision" style="color:#f6c667">★ Revisions</a><a href="#ingestion">Ingestion</a><a href="#understand">Understand</a><a href="#matrix">K/M/R Matrix</a><a href="#arch">Architecture</a>
     <a href="#data">Data Model</a><a href="#ledger">Ledger</a><a href="#pipeline">Pipeline</a>
     <a href="#engines">Engines</a><a href="#catalog">Catalog/Demand</a><a href="#caps">Capabilities</a>
     <a href="#integrations">Integrations</a><a href="#ia">Screens/IA</a><a href="#api">API/Events</a>
@@ -156,6 +156,24 @@
     <a href="#s46"><b>46</b> Open Questions</a>
   </div>
   <div class="note">Legend for every recommendation: <span class="badge b-current">CURRENT</span> <span class="badge b-keep">KEEP</span> <span class="badge b-modify">MODIFY</span> <span class="badge b-merge">MERGE</span> <span class="badge b-replace">REPLACE</span> <span class="badge b-remove">REMOVE</span> <span class="badge b-new">NEW</span></div>
+</div></section>
+
+<!-- ============ REVISION SUMMARY (R1) ============ -->
+<section id="revision"><div class="wrap">
+  <div class="part-label">Revision R1 · applied after direction approval — architecture only, no code</div>
+  <h2 class="sec">Architecture Revision Summary</h2>
+  <p class="lead">Seven mandatory corrections applied on top of the approved base document. Affected sections (ER, module boundaries, dependency rules, APIs, events, queues, analytics, settings IA, phases, acceptance, matrix) were updated in place.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>#</th><th>Correction</th><th>Previous design</th><th>Revised design</th><th>Why</th></tr></thead><tbody>
+    <tr><td>1</td><td><b>Lead Ingestion first-class</b></td><td>Intake logic implied inside providers/leads; each webhook normalized &amp; created leads ad-hoc.</td><td>Dedicated <code>lead-ingestion</code> module = the ONE door for lead creation; <code>lead_intake_records</code>; providers only verify→normalize→submit; monitoring UI + analytics. (§NEW, §6, §8, §9, §33, §34, §36)</td><td>One place for dedup/attribution/idempotency; provider accountability ("Meta sent 800 → created 742").</td></tr>
+    <tr><td>2</td><td><b>Task status vs timing</b></td><td>Mixed <code>OPEN/…</code> with <code>DUE/OVERDUE/MISSED</code> treated as statuses.</td><td><b>STATUS</b> {OPEN,IN_PROGRESS,COMPLETED,MISSED,CANCELLED} + <b>derived TIMING_STATE</b> {UPCOMING,DUE,OVERDUE}; idempotent lifecycle events. (§11, §36, §34, §29, §30)</td><td>Removes inconsistency; stops duplicate <code>task.overdue.v1</code> every worker run.</td></tr>
+    <tr><td>3</td><td><b>Ledger ≠ Audit Log</b></td><td>Both mentioned; boundary implicit.</td><td>Explicit split: Activity Ledger = business operational truth; Audit Log = security/config/admin change history; some ops write both. (§10, §6, §28, §26)</td><td>Correct semantics — timeline/accountability vs compliance/investigation.</td></tr>
+    <tr><td>4</td><td><b>Adapter ownership (API↔worker)</b></td><td>Adapters appeared worker-owned.</td><td><code>integration-sdk</code> holds interfaces/contracts; provider impls in <code>integrations/*</code> registered in <b>both</b> runtimes. <b>Integration Management Layer</b> (API: config/test/health/logs) vs <b>Integration Execution Layer</b> (worker: async actions/retries/webhooks). (§22, §21, §5)</td><td>Reuse without duplication; API configures/tests, worker executes.</td></tr>
+    <tr><td>5</td><td><b>Core rule execution early</b></td><td>Automation was Phase 9 (last).</td><td>Split: <b>Level 1 — Core Rule Execution</b> lands by Phase 3; <b>Level 2 — Advanced Automation</b> stays late (Phase 10). (§19, §44)</td><td>Avoid building a manual CRM then retrofitting event-driven behaviour.</td></tr>
+    <tr><td>6</td><td><b>Re-run acceptance</b></td><td>Flows were generic.</td><td>All 4 use cases re-run with the owning <b>module annotated per step</b> and the corrected task model. (§Acceptance)</td><td>Prove end-to-end correctness after the changes.</td></tr>
+    <tr><td>7</td><td><b>Update affected sections</b></td><td>—</td><td>ER, module boundaries, dependency rules, API map, event catalog, queues, analytics, settings IA, phases, matrix all updated + Readiness Check added.</td><td>Keep the document internally consistent.</td></tr>
+  </tbody></table></div>
+  <div class="note">A final <a href="#readiness"><b>Architecture Readiness Check</b></a> (PASS/FAIL) is at the end of the document.</div>
 </div></section>
 
 <!-- ============ PART A — UNDERSTANDING ============ -->
@@ -234,7 +252,7 @@
     <tr><td><code>AdCampaign</code> controller (unrouted), Playwright scraper</td><td><span class="badge b-remove">REMOVE</span></td><td>Dead code — do not migrate.</td></tr>
     <tr><td>Business rules (approval gate on lost, requiresNote, hot/warm thresholds)</td><td><span class="badge b-keep">KEEP</span></td><td>Ported into pipeline/scoring config; actually enforced this time.</td></tr>
     <tr><td>Everything else in LMS (courses, attendance, quizzes…)</td><td><span class="badge b-current">CURRENT</span></td><td>Stays in LMS; CRM talks to it only via connector when LMS capability is on.</td></tr>
-    <tr><td>Unified Activity Ledger, Capability Registry, Demand Gap, My Work, Command Center, Outbox</td><td><span class="badge b-new">NEW</span></td><td>Net-new in the product.</td></tr>
+    <tr><td><b>Lead Ingestion module</b>, Unified Activity Ledger, Capability Registry, Demand Gap, My Work, Command Center, Outbox, Task timing-state model</td><td><span class="badge b-new">NEW</span></td><td>Net-new in the product.</td></tr>
     </tbody></table></div>
 </div></section>
 
@@ -274,13 +292,14 @@ packages/       (shared, versioned, no business logic that belongs in a module)
 
 src/modules/    (backend domain modules — see §6)
   tenants users memberships roles permissions
-  leads activities tasks pipelines assignments scoring priorities
+  lead-ingestion leads activities tasks pipelines assignments scoring priorities
   catalog demand-intelligence reasons outcomes appointments conversions
   automation analytics integrations capabilities files audit notifications</div>
 
   <h2 class="sec" id="s6"><span class="n">06</span> Domain Module Boundaries</h2>
   <div class="scroll"><table>
     <thead><tr><th>Module</th><th>Owns</th><th>Emits / consumes</th></tr></thead><tbody>
+    <tr><td><b>lead-ingestion</b> <span class="badge b-new">Correction 1</span></td><td>The ONE door: raw intake, provider normalization, tenant resolution, validation, dedup orchestration, source/campaign attribution, create-vs-merge, intake status/error tracking.</td><td>consumes provider submissions → emits <code>lead.created/merged</code>, <code>lead.intake.*</code></td></tr>
     <tr><td><b>leads</b></td><td>Lead aggregate, stage transitions (enforced), lifecycle timestamps, optimistic version.</td><td>emits <code>lead.created/updated/stage.changed/lost/converted</code></td></tr>
     <tr><td><b>activities</b></td><td>Activity Ledger (append-only), verification levels, idempotency.</td><td>consumes most events → writes <code>activity.recorded</code></td></tr>
     <tr><td><b>tasks</b></td><td>Tasks + Next-Action rules; due/overdue/missed lifecycle.</td><td>emits <code>task.created/due/completed/missed</code></td></tr>
@@ -302,6 +321,51 @@ src/modules/    (backend domain modules — see §6)
   <div class="rule"><b>Rule 2 — CRM Core never imports an integration implementation.</b> Core depends on <code>integration-sdk</code> interfaces + the Capability Registry only. <code>leads</code> must never <code>import VoicePilotAdapter</code>.</div>
   <div class="rule"><b>Rule 3 — dependency direction is one-way.</b> <code>leads/tasks/appointments/conversions</code> → emit events. <code>automation/analytics/activities/integrations</code> → consume. No cycles. Automation calls capabilities, never a module's write API directly except through its public service.</div>
   <div class="rule"><b>Rule 4 — no tenant-name checks, ever.</b> Behaviour branches only on <b>config</b>, <b>capability presence</b>, or <b>permission</b> — never <code>if (tenant.name === 'CodeBegun')</code>.</div>
+</div></section>
+
+<!-- ============ CORRECTION 1 — LEAD INGESTION ============ -->
+<section id="ingestion"><div class="wrap">
+  <div class="part-label">Correction 1 · first-class domain</div>
+  <h2 class="sec"><span class="n">C1</span> Lead Ingestion — the ONE door for lead creation <span class="badge b-new">NEW</span></h2>
+  <p class="lead">Every source enters through a single ingestion pipeline. Providers (Meta, Google Ads, Website, Generic Webhook, Sheets, CSV/Excel, Manual, WhatsApp, future) only <b>verify + normalize + submit</b>. They must not independently create leads, score, assign, or deduplicate. Manual entry and CSV import also go through this pipeline.</p>
+  <div class="flow">
+ LEAD SOURCE PROVIDER (verify request · normalize payload)
+   ▼ submit
+ <b>lead-ingestion</b>:  RAW INTAKE → TENANT RESOLUTION → NORMALIZE → VALIDATE → DEDUPLICATE
+                     → RESOLVE SOURCE/CAMPAIGN → CREATE-OR-MERGE
+   ▼
+ <b>lead.created.v1</b>  OR  <b>lead.merged.v1</b>   (via transactional outbox)</div>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">lead_intake_records (audit-able intake trail)</h3>
+      <div class="kv">id  tenant_id
+provider  source_id?  external_lead_id?
+received_at
+raw_payload JSONB   normalized_payload JSONB
+processing_status
+lead_id?   duplicate_of_lead_id?
+error_code?  error_message?
+created_at  processed_at?
+UNIQUE(tenant_id, provider, external_lead_id)   -- idempotency
+status: RECEIVED · VALIDATING · VALIDATED · DUPLICATE
+        · CREATED · MERGED · REJECTED · FAILED</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Module + rules</h3><ul class="clean">
+      <li>Module <code>lead-ingestion</code> owns: raw intake, provider normalization, tenant resolution, validation, dedup orchestration (calls the dedup policy), source/campaign attribution, create-vs-merge, ingestion status &amp; error tracking.</li>
+      <li>Async: submissions land on a <code>lead-ingestion</code> queue; the worker processes → writes the intake record + (on success) creates/merges the lead in one tx with the outbox event.</li>
+      <li>Idempotent where a provider <code>external_lead_id</code> exists (unique above); re-delivery updates the same record, never a duplicate lead.</li>
+      <li><b>Rule:</b> provider webhook controllers <b>do not create leads</b> — they <code>verify → normalize → submit</code> to ingestion (<span class="badge b-modify">Correction 7</span>).</li>
+    </ul></div>
+  </div>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Required analytics (per provider)</h3>
+      <div class="kv">Meta sent 800:
+  Received 800 · Created 742 · Merged 21
+  Duplicates 22 · Rejected 7 · Failed 8</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Monitoring UI — <code>/settings/data/intake</code></h3><ul class="clean">
+      <li>Per-provider table: Received · Created · Merged · Duplicates · Rejected · Failed · Last Intake · Last Error.</li>
+      <li><b>Intake Record detail view</b> for debugging (raw vs normalized payload, status, error, resulting lead/duplicate).</li>
+    </ul></div>
+  </div>
+  <div class="note"><b>Fixes the audit's</b> "public intake always HOT, no unified normalizer" and the provider-by-provider lead creation — now there is exactly one ingestion path, observable and idempotent.</div>
 </div></section>
 
 <!-- ============ PART C — DATA MODEL ============ -->
@@ -366,32 +430,58 @@ src/modules/    (backend domain modules — see §6)
       <li>Imported legacy event → <span class="pill cap">MIGRATED</span> (keeps <code>source_model</code>, <code>migration_batch_id</code>).</li>
       <li>Managers filter/segment by verification → answers "was it a real integrated call or a manual entry?" (Problem 1).</li>
     </ul>
-    <div class="note" style="margin-top:8px">Solves the audit's <b>3 divergent logs</b>: <code>Lead.activities[]</code> + <code>LeadStageHistory</code> + <code>AuditLog</code> all collapse into this one ledger; STAGE_CHANGED/OWNER_CHANGED/PRIORITY_CHANGED are ledger entries.</div></div>
+    <div class="note" style="margin-top:8px">Collapses the audit's <b>3 divergent business logs</b> (<code>Lead.activities[]</code> + <code>LeadStageHistory</code>) into this ledger; STAGE_CHANGED/OWNER_CHANGED/PRIORITY_CHANGED are ledger entries. Note the legacy <code>AuditLog</code> does NOT collapse here — see below.</div></div>
   </div>
+
+  <h3 class="sub">Activity Ledger ≠ Audit Log — two different systems <span class="badge b-modify">Correction 3</span></h3>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">📒 Activity Ledger — <b>business operational truth</b></h3><ul class="clean">
+      <li>Lead created/assigned · call started/completed/outcome · WhatsApp replied · task created/completed/missed · stage changed · appointment completed · objection recorded · lead lost · conversion completed · LMS onboarding completed.</li>
+      <li>Powers: Lead 360 Timeline · Employee Activity · operational analytics · Next Best Lead · conversion analysis.</li>
+    </ul></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">🔒 Audit Log — <b>security / config / admin change history</b></h3><ul class="clean">
+      <li>Scoring rule changed · pipeline config updated · reason deleted/deactivated · role permission changed · API key generated · integration credentials updated/disabled · lead email changed A→B · custom-field definition changed · automation rule activated.</li>
+      <li>Powers: security review · compliance · admin investigations · configuration-change tracking.</li>
+    </ul></div>
+  </div>
+  <div class="rule"><b>Both when appropriate.</b> Admin manually changes a lead owner → <b>Activity Ledger:</b> <code>OWNER_CHANGED</code> (actor=USER) <em>and</em> <b>Audit Log:</b> "Lead owner changed from A to B by Admin C". Business events → ledger; administrative/config mutations → audit log; owner-change is both. Module boundaries (§6): <code>activities</code> owns the ledger, <code>audit</code> owns the audit log — they never merge.</div>
 </div></section>
 
-<h2 class="sec" id="s11"><span class="n">11</span> Task / Next-Action Engine</h2>
-  <p class="lead"><span class="badge b-replace">REPLACE</span> <code>FollowUpReminder</code>. No lead exists without visibility into <b>Last Activity · Stage · Owner · Outcome · Next Action</b>. Task state is persisted and enforced by a worker — <b>not</b> dependent on browser activity.</p>
+<section id="engines"><div class="wrap"><div class="part-label">Part C · domain engines</div>
+  <h2 class="sec" id="s11"><span class="n">11</span> Task / Next-Action — Status vs Timing State <span class="badge b-modify">Correction 2</span></h2>
+  <p class="lead"><span class="badge b-replace">REPLACE</span> <code>FollowUpReminder</code>. Separate a task's <b>persisted STATUS</b> from its <b>derived TIMING STATE</b>. Status is stored and changes via explicit transitions; timing state is computed. The worker is <b>idempotent</b> — it never re-emits <code>task.overdue.v1</code> on every run.</p>
   <div class="grid2">
     <div class="card"><div class="kv">tasks
   id tenant_id lead_id task_type_id
   title description assigned_to
-  due_at status priority source
+  due_at  grace_minutes?          -- from SLA/config
+  status  priority source
   automation_run_id?  outcome_id?
-  created_by completed_by completed_at
-  created_at updated_at
-status: OPEN|IN_PROGRESS|COMPLETED|MISSED|CANCELLED</div>
-    <div class="note" style="margin-top:8px">Scheduler worker sweeps: <code>OPEN &amp; due_at&lt;now</code> → <b>DUE</b> → <b>OVERDUE</b> → <b>MISSED</b>, emitting <code>task.due/overdue/missed</code> ledger events. This is what makes "13 follow-ups missed" trustworthy (Problem 2).</div></div>
-    <div class="card"><h3 class="sub" style="margin-top:0">Next-Action Engine (configurable, not hardcoded)</h3>
-      <div class="kv">WHEN stage = QUALIFIED
- AND  outcome = INTERESTED
- AND  no open task of type APPOINTMENT exists
-THEN CREATE TASK
-     task_type = APPOINTMENT   (CodeBegun label: "Demo")
-     due_in = 2h</div>
-      <div class="note" style="margin-top:8px">Rules live in config; CodeBegun labels APPOINTMENT as "Demo". Never hardcode "Book Demo".</div>
+  due_notified_at?  overdue_notified_at?  missed_at?   -- idempotency stamps
+  created_by completed_by completed_at created_at updated_at
+
+STATUS (persisted): OPEN | IN_PROGRESS | COMPLETED | MISSED | CANCELLED
+TIMING_STATE (derived, not stored):
+  status=OPEN & due_at &gt; now                → UPCOMING
+  status=OPEN & now ≥ due_at                 → DUE
+  status=OPEN & now ≥ due_at+grace           → OVERDUE
+  status=MISSED (after missed threshold)     → (terminal)</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Idempotent worker sweep</h3>
+      <div class="kv">every tick (BullMQ repeatable):
+ OPEN & DUE   & due_notified_at IS NULL
+    → emit task.due.v1     ; set due_notified_at
+ OPEN & OVERDUE & overdue_notified_at IS NULL
+    → emit task.overdue.v1 ; set overdue_notified_at
+ OPEN & now ≥ due_at+missed_threshold
+    → status=MISSED ; set missed_at
+    → emit task.missed.v1  (once)</div>
+      <div class="note" style="margin-top:8px">The <code>*_notified_at</code> stamps guarantee each lifecycle event fires <b>exactly once</b>. Completing an OPEN/DUE/OVERDUE task → <code>task.completed.v1</code>. Timing state is what <b>My Work</b> (§29) and <b>Employee Center</b> (§30) display &amp; count.</div>
     </div>
   </div>
+  <h3 class="sub">Next-Action Engine (configurable, not hardcoded)</h3>
+  <div class="kv">WHEN stage = QUALIFIED  AND outcome = INTERESTED  AND no open task of type APPOINTMENT exists
+THEN CREATE TASK  task_type = APPOINTMENT  (CodeBegun label "Demo")  due_in = 2h
+Rules live in config; never hardcode "Book Demo". Implemented via Level-1 Core Rule Execution (§19).</div>
 
   <h2 class="sec" id="s12"><span class="n">12</span> Pipeline Design</h2>
   <p class="lead"><span class="badge b-modify">MODIFY</span> Stages are business states only. Call outcomes, comm events, tasks, and system events are <b>not</b> stages. Transition constraints are <b>actually enforced</b> (unlike current).</p>
@@ -493,19 +583,29 @@ CodeBegun label = "Enrollment". Emits conversion.completed.v1.
 Handler: capability LMS_ONBOARDING enabled? → CodeBegunLmsConnector ; else → no-op (RealEstate has none).</div>
   <div class="win">Core conversion logic is identical for every tenant; only the <b>post-conversion event handler</b> differs, gated by capability. No <code>if student</code>, no LMS coupling.</div>
 
-  <h2 class="sec" id="s19"><span class="n">19</span> Automation Engine</h2>
-  <p class="lead"><span class="badge b-new">NEW</span> Rule-based (no visual builder in Phase 1, but modelled so one can be added). Every external action is <b>capability-checked</b>, with a fallback.</p>
+  <h2 class="sec" id="s19"><span class="n">19</span> Automation Engine — two levels <span class="badge b-modify">Correction 5</span></h2>
+  <p class="lead">Split into <b>Level 1 (Core Rule Execution)</b> — introduced <b>early</b> (by Phase 3) so the CRM is event-driven from the start — and <b>Level 2 (Advanced Automation)</b> — later. Same <code>automation_definitions</code>/<code>automation_runs</code> data model; Level 2 just adds richer triggers/actions and a future visual builder. Every external action is capability-checked with a fallback.</p>
   <div class="grid2">
-    <div class="card"><div class="kv">automation_definitions: id tenant_id name trigger_event
-  conditions JSONB actions JSONB status version …
-automation_runs: id tenant_id definition_id version trigger_event_id
-  entity_type entity_id status started_at completed_at failed_at error context JSONB</div></div>
-    <div class="card"><h3 class="sub" style="margin-top:0">Actions (capability-gated)</h3>
-      <div class="kv">CREATE_TASK CHANGE_STAGE SET_PRIORITY ASSIGN_LEAD
-RECORD_ACTIVITY SEND_WHATSAPP SEND_EMAIL START_VOICE_CALL
-SCHEDULE_APPOINTMENT_REMINDER ADD_REASON ADD_TO_SEGMENT NOTIFY_USER</div>
-      <div class="rule"><b>"Call hot lead in 10s"</b> needs <code>VOICE_CALL</code>. Capability present → provider; absent → fallback <code>CREATE_TASK</code> (human call). Integration failure never breaks lead core; action marked SKIPPED/FAILED on the run.</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Level 1 — Core Rule Execution <span class="badge b-new">Phase 3</span></h3>
+      <div class="kv">Trigger (domain event) → conditions → deterministic action
+Actions: CREATE_TASK · CHANGE_STAGE · SET_PRIORITY
+         · ASSIGN_LEAD · RECORD_ACTIVITY · NOTIFY_USER
+Examples:
+ lead.created.v1        → Score Lead
+ lead.scored.v1         → Assign Lead
+ HOT & no human call    → Create Human Call Task
+ appointment.completed & no next action → Create Follow-up Task
+ task.missed.v1         → Notify Manager</div>
+      <div class="note" style="margin-top:8px">This is what makes the platform event-driven immediately — not a manual CRM retrofitted later.</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Level 2 — Advanced Automation <span class="badge b-new">Phase 10</span></h3>
+      <div class="kv">Adds: SEND_WHATSAPP · SEND_EMAIL · START_VOICE_CALL
+      · SCHEDULE_APPOINTMENT_REMINDER · ADD_REASON · ADD_TO_SEGMENT
+Multi-step delayed workflows · WhatsApp journeys · voice sequences
+· re-engagement campaigns · templates · branching · visual builder</div>
+      <div class="rule"><b>"Call hot lead in 10s"</b> (Level 2) needs <code>VOICE_CALL</code>: capability present → provider; absent → fallback <code>CREATE_TASK</code>. Integration failure never breaks lead core; the action is marked SKIPPED/FAILED on the run.</div></div>
   </div>
+  <div class="kv">automation_definitions: id tenant_id name trigger_event conditions JSONB actions JSONB level(1|2) status version …
+automation_runs: id tenant_id definition_id version trigger_event_id entity_type entity_id status started/completed/failed_at error context JSONB</div>
 </div></section>
 
 <!-- ============ PART D — CAPABILITIES & INTEGRATIONS ============ -->
@@ -553,6 +653,23 @@ interface LeadSourceProvider  { verify(webhook); normalize(payload): LeadDraft; 
 // Every adapter registers the capabilities it provides. Core imports the INTERFACE, never the impl.</div>
   <div class="rule"><b>Hard rule:</b> <code>LeadService</code> must not <code>import VoicePilotAdapter</code>. It resolves a <code>VoiceProvider</code> from the capability registry (or gets none → fallback).</div>
 
+  <h3 class="sub">Adapter ownership: API ↔ Worker (shared, not worker-only) <span class="badge b-modify">Correction 4</span></h3>
+  <p class="lead">Interfaces + contracts live in <code>packages/integration-sdk</code>. Each provider implementation lives in its own <code>integrations/&lt;provider&gt;</code> module (e.g. <code>integrations/voicepilot</code> → <code>VoicePilotModule</code> + <code>VoicePilotAdapter</code>) and is <b>registered in both <code>crm-api</code> and <code>crm-worker</code></b>. No duplicated adapter logic; provider execution is not forced into either runtime.</p>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Integration Management Layer — <b>crm-api</b></h3><ul class="clean">
+      <li>Configure integration · store/validate credentials · <b>test connection</b> · fetch available agents/configs where supported · capability registration · enable/disable · integration health · view logs.</li>
+      <li>Some <em>synchronous</em> provider ops run here only when explicitly required (e.g. "Test Connection", "Create Payment Link" if a checkout redirect is needed now).</li>
+    </ul></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Integration Execution Layer — <b>crm-worker</b> (primary)</h3><ul class="clean">
+      <li>Asynchronous actions · retries/backoff · queued webhook processing · long-running provider work · automation actions.</li>
+      <li>e.g. VoicePilot: API <em>tests connection / lists agents</em>; worker <em>starts calls, retries, consumes provider events</em>. LMS: API <em>tests connection</em>; worker <em>runs onboarding after <code>conversion.completed.v1</code></em>.</li>
+    </ul></div>
+  </div>
+  <div class="kv">packages/integration-sdk:  VoiceProvider MessagingProvider EmailProvider SmsProvider PaymentProvider
+  CalendarProvider AIProvider LmsConnector FileStorageProvider LeadSourceProvider  + capability contracts + error types
+integrations/&lt;provider&gt;/  → Nest module exporting the adapter ; imported by BOTH crm-api and crm-worker
+  provider registry maps capability → adapter instance (same instance contract in each runtime)</div>
+
   <h2 class="sec" id="s23"><span class="n">23</span> CodeBegun LMS Integration</h2>
   <p class="lead"><span class="badge b-replace">REPLACE</span> the current direct <code>User(STUDENT)</code> creation. CRM <b>never</b> queries or writes the LMS Mongo DB. It calls <code>CodeBegunLmsConnector</code> over an API/event boundary.</p>
   <div class="flow">
@@ -598,7 +715,7 @@ future: S3FileStorageProvider | AzureBlob | GCS (same interface)</div></div>
       <b>CRM Configuration</b><ul class="clean"><li>Pipeline · Lead Sources · Assignment · Scoring &amp; Priority · SLA</li><li>Activities · Outcomes · Reason Taxonomy · Qualification</li><li>Custom Fields · Catalog · Appointment Types · Task Types · Terminology</li></ul></div>
     <div class="card"><b>Automation</b><ul class="clean"><li>Rules · Notifications · Templates</li></ul>
       <b>Integrations</b><ul class="clean"><li>All · Communication · Lead Sources · Payments · Calendars</li><li>AI Providers · Internal Savas Products · Storage</li></ul></div>
-    <div class="card"><b>Data</b><ul class="clean"><li>Import · Export · Migration · Data Quality · Duplicate Rules</li></ul>
+    <div class="card"><b>Data</b><ul class="clean"><li><b>Lead Ingestion</b> — <code>/settings/data/intake</code> (per-provider counters + intake-record detail)</li><li>Import · Export · Migration · Data Quality · Duplicate Rules</li></ul>
       <b>Audit &amp; Security</b><ul class="clean"><li>Audit Logs · Integration Logs · API Keys · Webhook Logs</li></ul></div>
   </div>
   <div class="note"><b>Integration card</b> shows: logo · name · category · description · status (NOT_CONNECTED/CONNECTED/ERROR/DISABLED) · capabilities provided · last sync · last error · actions [Configure · Test · Disable · Reconnect · View Logs]. Per-provider config page masks secrets (<code>vp_live_••••x92a</code>), never returns full secret after save.</div>
@@ -668,7 +785,7 @@ Factors (configurable weights): priority, score, age, SLA risk,
   <h2 class="sec" id="s32"><span class="n">32</span> Analytics Projections</h2>
   <p class="lead"><span class="badge b-new">NEW</span> Don't compute dashboards from transactional tables per page-load. Event-driven projections into daily metric tables / materialized views.</p>
   <div class="kv">daily_owner_metrics · daily_source_metrics · daily_stage_metrics
-daily_reason_metrics · daily_demand_gap_metrics · daily_sla_metrics
+daily_reason_metrics · daily_demand_gap_metrics · daily_sla_metrics · daily_intake_metrics (provider funnel)
 Reports: lead volume · source perf · response time · stage conversion · owner perf
   · activity accountability · task completion · SLA breach · appointment conversion
   · objection · lost-reason · demand-gap · conversion · revenue/value
@@ -679,17 +796,27 @@ Projectors run in crm-worker, fed by domain events (idempotent upserts by (tenan
 <section id="api"><div class="wrap">
   <div class="part-label">Part F · API, events, async</div>
   <h2 class="sec" id="s33"><span class="n">33</span> API Route Map (<code>/api/v1</code>, DTOs, OpenAPI)</h2>
-  <div class="kv">/leads  /leads/:id/activities  /leads/:id/tasks  /leads/:id/appointments
-/leads/:id/reasons  /leads/:id/catalog-requests  /leads/:id/conversions
-/my-work  /my-work/next-best  /team/activity  /analytics/*
-/settings/pipelines  /settings/reasons  /settings/custom-fields  /settings/catalog
-/settings/integrations  /settings/integrations/:id  /settings/integrations/:id/test
-  /settings/integrations/:id/logs
-Thin controllers → application services. DTOs only (no schema leakage). Zod/Nest validation. Swagger/OpenAPI generated.</div>
+  <div class="kv">Lead creation (ALL via ingestion):
+  POST /leads                       -- manual create → submits to lead-ingestion
+  POST /lead-intake/manual          -- explicit manual intake
+  POST /lead-intake/import          -- CSV/Excel bulk → ingestion
+Provider ingress (verify+normalize+SUBMIT — never create leads directly):
+  POST /webhooks/meta/leads   POST /webhooks/google-ads   POST /webhooks/whatsapp
+Ingestion monitoring:
+  GET  /settings/data/intake        -- per-provider counters
+  GET  /settings/data/intake/:intakeRecordId   -- record detail (raw/normalized/status/error)
+Core:
+  /leads  /leads/:id/activities  /leads/:id/tasks  /leads/:id/appointments
+  /leads/:id/reasons  /leads/:id/catalog-requests  /leads/:id/conversions
+  /my-work  /my-work/next-best  /team/activity  /analytics/*
+  /settings/pipelines  /settings/reasons  /settings/custom-fields  /settings/catalog
+  /settings/integrations  /settings/integrations/:id  /settings/integrations/:id/test  /…/logs
+Thin controllers → application services. DTOs only. Zod/Nest validation. OpenAPI generated.</div>
 
   <h2 class="sec" id="s34"><span class="n">34</span> Event Catalog (versioned)</h2>
   <div class="scroll"><table><thead><tr><th>Event</th><th>Producer</th><th>Key consumers</th></tr></thead><tbody>
-    <tr><td class="mono-cell">lead.created.v1 · lead.updated.v1 · lead.scored.v1 · lead.assigned.v1 · lead.stage.changed.v1</td><td>leads/scoring/assignments</td><td>activities, automation, analytics</td></tr>
+    <tr><td class="mono-cell">lead.intake.received.v1 · lead.intake.failed.v1</td><td>lead-ingestion</td><td>ingestion analytics, monitoring UI</td></tr>
+    <tr><td class="mono-cell">lead.created.v1 · <b>lead.merged.v1</b> · lead.updated.v1 · lead.scored.v1 · lead.assigned.v1 · lead.stage.changed.v1</td><td>lead-ingestion/leads/scoring/assignments</td><td>activities, automation, analytics</td></tr>
     <tr><td class="mono-cell">activity.recorded.v1</td><td>activities</td><td>analytics, notifications</td></tr>
     <tr><td class="mono-cell">task.created/due/completed/missed.v1</td><td>tasks + scheduler</td><td>activities, analytics, notifications</td></tr>
     <tr><td class="mono-cell">appointment.scheduled/completed/no-show.v1</td><td>appointments</td><td>next-action, activities, analytics</td></tr>
@@ -717,7 +844,8 @@ Thin controllers → application services. DTOs only (no schema leakage). Zod/Ne
     <tr><td class="mono-cell">automation-runs</td><td>automation module</td><td>evaluate conditions → capability-gated actions</td></tr>
     <tr><td class="mono-cell">scheduler</td><td>repeatable (cron-like)</td><td>task due/overdue/missed sweep · SLA breach · daily summary</td></tr>
     <tr><td class="mono-cell">provider-actions</td><td>automation/adapters</td><td>voice call · whatsapp · email · payment link (retry/backoff)</td></tr>
-    <tr><td class="mono-cell">webhooks-inbound</td><td>api webhook endpoint</td><td>verify signature → normalize → record (idempotent)</td></tr>
+    <tr><td class="mono-cell">webhooks-inbound</td><td>api webhook endpoint (verify only)</td><td>verify signature → normalize → <b>submit to lead-ingestion</b> (never creates leads directly)</td></tr>
+    <tr><td class="mono-cell">lead-ingestion</td><td>all sources (webhook/manual/CSV)</td><td>tenant-resolve · validate · dedup · attribute · create-or-merge (idempotent by provider external id)</td></tr>
     <tr><td class="mono-cell">projections</td><td>domain-events</td><td>upsert daily_*_metrics</td></tr>
   </tbody></table></div>
   <div class="note">Schedulers live in the <b>worker</b> (BullMQ repeatable jobs), not <code>setInterval</code> on the API — fixing the audit's "in-process, single-instance" scheduler risk. Horizontal scale: workers are stateless; Socket.IO uses a Redis adapter.</div>
@@ -821,40 +949,45 @@ Confidence = REVIEW_REQUIRED when: ambiguous stage/conversion, unmapped owner, c
 <!-- ============ PART I — ACCEPTANCE USE CASES ============ -->
 <section id="accept"><div class="wrap">
   <div class="part-label">Part I · Acceptance — all four proven end-to-end</div>
+  <p class="lead" style="margin-top:-6px">Re-run after R1 corrections. Each step tags the <span class="m">[owning module]</span>.</p>
   <h2 class="sec"><span class="n">UC1</span> Hot Meta lead → VoicePilot → human → appointment → conversion → LMS</h2>
   <div class="flow">
- Meta webhook (SIGNED, fail-closed) → webhooks-inbound → normalize → dedupe → <b>lead.created.v1</b> (outbox)
- → scoring → HOT → automation "call hot lead": needs VOICE_CALL ✓ → VoicePilotAdapter.startCall
- → voice.call.started/completed + analysis.completed → ledger (PROVIDER_VERIFIED) · qualification captured
- → Assignment engine → counsellor · Task "Human takeover" created
- → counsellor calls → records outcome → books Appointment (Demo) → COMPLETED → records objection (usage=OBJECTION)
- → Next-Action rule creates task → lead converts → <b>conversion.completed.v1</b>
- → capability LMS_ONBOARDING ✓ → CodeBegunLmsConnector.onboard → studentId → external_system_links
- → ledger: LMS_ACCOUNT_ACTIVATED.   <span class="g">No direct CRM→LMS DB access anywhere.</span></div>
+ Meta webhook (SIGNED, fail-closed) <span class="m">[integrations]</span> verify+normalize → SUBMIT
+ → <b>lead-ingestion</b> <span class="m">[lead-ingestion]</span>: tenant-resolve · validate · dedupe · attribute → intake CREATED → <b>lead.created.v1</b> (outbox)
+ → <span class="m">[scoring]</span> HOT → <span class="m">[automation L1]</span> assign → <span class="m">[assignments]</span> counsellor
+ → <span class="m">[automation L2]</span> "call hot lead" needs VOICE_CALL ✓ → <span class="m">[integrations/worker]</span> VoicePilotAdapter.startCall
+ → voice.call.started/completed/analysis <span class="m">[activities]</span> ledger PROVIDER_VERIFIED · qualification captured
+ → <span class="m">[tasks]</span> "Human takeover" task → counsellor records outcome → <span class="m">[appointments]</span> Demo → COMPLETED
+ → <span class="m">[reasons]</span> objection (usage=OBJECTION) → <span class="m">[automation L1]</span> next-action task → <span class="m">[conversions]</span> <b>conversion.completed.v1</b>
+ → LMS_ONBOARDING ✓ → <span class="m">[integrations/worker]</span> CodeBegunLmsConnector.onboard → studentId → external_system_links
+ → <span class="m">[activities]</span> ledger LMS_ONBOARDING_COMPLETED · <span class="m">[audit]</span> config unchanged.  <span class="g">No CRM→LMS DB access.</span></div>
 
-  <h2 class="sec"><span class="n">UC2</span> No answer → follow-up → WhatsApp re-engagement (VoicePilot on OR off)</h2>
+  <h2 class="sec"><span class="n">UC2</span> No answer → task lifecycle → WhatsApp re-engagement (VoicePilot on OR off)</h2>
   <div class="flow">
- Lead created → (VoicePilot ON: call → NO_ANSWER) / (VoicePilot OFF: <b>fallback CREATE_TASK</b> human call)
- → stays CONTACTING → activity recorded → Task created → due → OVERDUE → MISSED (worker, persisted)
- → manager sees it (Employee Center). If WHATSAPP capability: automation sends configured message
- → lead replies → WHATSAPP_REPLIED (PROVIDER_VERIFIED) → re-score → HOT → "human takeover" task → counsellor works.
- <span class="g">Works identically whether VoicePilot is enabled or not.</span></div>
+ <b>lead-ingestion</b> → lead.created → <span class="m">[automation L1]</span>: VoicePilot ON → call → NO_ANSWER <span class="m">[activities PROVIDER_VERIFIED]</span>
+                                        VoicePilot OFF → <b>fallback CREATE_TASK</b> (human call) <span class="m">[tasks]</span>
+ → stays CONTACTING → <span class="m">[tasks]</span> follow-up task:  STATUS=OPEN
+     TIMING: UPCOMING → DUE (task.due.v1 once) → OVERDUE (task.overdue.v1 once) → STATUS=MISSED (task.missed.v1 once)
+ → <span class="m">[analytics/Employee Center]</span> manager sees "N missed" (counts by timing state, verification-aware)
+ → WHATSAPP capability? → <span class="m">[automation L2]</span> send message → reply WHATSAPP_REPLIED <span class="m">[activities PROVIDER_VERIFIED]</span>
+ → <span class="m">[scoring]</span> re-score → HOT → <span class="m">[tasks]</span> human-takeover.  <span class="g">Identical whether VoicePilot is on or off.</span></div>
 
-  <h2 class="sec"><span class="n">UC3</span> Course/product not available → demand gap</h2>
+  <h2 class="sec"><span class="n">UC3</span> Requested catalog item not available → demand gap (generic)</h2>
   <div class="flow">
- Lead asks DevOps → DevOps not in catalog → catalog_request(requested=DevOps, availability=NOT_AVAILABLE)
- → lead intent=INTERESTED (not "not interested") → reason usage=DEMAND_GAP_REASON, reason=COURSE_NOT_AVAILABLE
- → <b>demand.gap.recorded.v1</b> → lead joins demand_segment → analytics shows DevOps demand
- Later: DevOps catalog item created → system finds prior DevOps demand leads → admin builds re-engagement segment.
- <span class="g">Generic CATALOG/REQUESTED/AVAILABILITY — "DevOps" is never hardcoded.</span></div>
+ Lead asks "DevOps" → <span class="m">[catalog]</span> not in catalog → catalog_request(requested=DevOps, availability=NOT_AVAILABLE)
+ → intent=INTERESTED (NOT "not interested") → <span class="m">[reasons]</span> usage=DEMAND_GAP_REASON, reason=COURSE_NOT_AVAILABLE
+ → <b>demand.gap.recorded.v1</b> → <span class="m">[demand-intelligence]</span> lead → demand_segment → <span class="m">[analytics]</span> DevOps demand
+ Later: DevOps catalog_item created → <span class="m">[demand-intelligence]</span> finds prior demand leads → <span class="m">[automation L2]</span> re-engagement segment.
+ <span class="g">CRM Core uses CATALOG/REQUESTED/AVAILABILITY — "DevOps" never hardcoded.</span></div>
 
-  <h2 class="sec"><span class="n">UC4</span> Client without LMS and without VoicePilot (ABC Properties)</h2>
+  <h2 class="sec"><span class="n">UC4</span> External client: no LMS, no VoicePilot (ABC Properties, RealEstate template)</h2>
   <div class="flow">
- Modules: CRM_CORE on · LMS off · VoicePilot off · WhatsApp on
- Website lead → score → assign → no VOICE_CALL capability → <b>Create Human Call Task</b>
- → counsellor calls manually → records MANUAL activity → books Site Visit → outcome → DECISION
- → converts to Booking → conversion.completed.v1 → no LMS capability → <b>no LMS action, no error</b>
- <span class="g">No CodeBegun-specific UI; terminology = RealEstate template.</span></div>
+ Capabilities: CRM_CORE on · LMS off · VOICE_CALL absent · WHATSAPP on
+ Website form <span class="m">[integrations]</span> → SUBMIT → <b>lead-ingestion</b> → lead.created
+ → <span class="m">[scoring]</span> → <span class="m">[assignments]</span> → <span class="m">[automation L1]</span> needs VOICE_CALL → absent → <b>fallback Create Human Call Task</b> <span class="m">[tasks]</span>
+ → counsellor calls → <span class="m">[activities]</span> MANUAL activity → <span class="m">[appointments]</span> Site Visit → outcome → DECISION
+ → <span class="m">[conversions]</span> Booking → conversion.completed.v1 → LMS_ONBOARDING absent → <b>no LMS action, no error</b>
+ <span class="g">No CodeBegun-specific code or UI; terminology = RealEstate.</span></div>
 </div></section>
 
 <!-- ============ PART J — PHASES / RISKS / QUESTIONS ============ -->
@@ -862,17 +995,19 @@ Confidence = REVIEW_REQUIRED when: ambiguous stage/conversion, unmapped owner, c
   <div class="part-label">Part J · Delivery</div>
   <h2 class="sec" id="s44"><span class="n">44</span> Implementation Phases</h2>
   <div class="scroll"><table><thead><tr><th>Phase</th><th>Delivers</th></tr></thead><tbody>
-    <tr><td><b>0 Discovery</b></td><td>Read audit + code (done here). KEEP/MODIFY/… matrix (§43). No code.</td></tr>
-    <tr><td><b>1 Platform Foundation</b></td><td>NestJS API · Next.js web · Postgres · Prisma · Redis · BullMQ · tenant context · auth adapter · event contracts · <b>transactional outbox</b> · Activity Ledger foundation · LocalFileStorage.</td></tr>
-    <tr><td><b>2 CRM Core</b></td><td>Leads · pipelines · stages · activities · tasks · outcomes · reasons · catalog · custom fields · assignment · scoring · priority · Lead 360.</td></tr>
-    <tr><td><b>3 Daily Ops</b></td><td>My Work · Next Best Lead · Save &amp; Next · follow-up enforcement · SLA · Team Activity · accountability.</td></tr>
-    <tr><td><b>4 Configuration</b></td><td>Settings shell + all CRM config screens + terminology.</td></tr>
-    <tr><td><b>5 Integrations</b></td><td>Capability + integration registry · Integration Settings UI · VoicePilot adapter · LMS connector · Meta WhatsApp · Local storage · webhook framework · logs.</td></tr>
-    <tr><td><b>6 CodeBegun Template</b></td><td>Education terminology · pipeline · course catalog · demo/visit/parent appts · reasons · user mapping · LMS onboarding · VoicePilot automation.</td></tr>
-    <tr><td><b>7 Migration</b></td><td>Legacy adapter · stage mapping · activity normalization · follow-ups→tasks · user mapping · conversion reconciliation · reports · review queue.</td></tr>
-    <tr><td><b>8 Analytics</b></td><td>Command Center · Employee Activity · loss/objection/demand/source/funnel/SLA analytics.</td></tr>
-    <tr><td><b>9 Automation</b></td><td>Rule engine · triggers · conditions · actions · capability checks · fallbacks · re-engagement segments.</td></tr>
+    <tr><td><b>0 Discovery</b></td><td>Read audit + code (done). KEEP/MODIFY/… matrix (§43). No code.</td></tr>
+    <tr><td><b>1 Platform Foundation</b></td><td>NestJS API · Next.js web · Postgres · Prisma · Redis · BullMQ · tenant context · auth adapter · event contracts · <b>transactional outbox</b> · Activity Ledger foundation · integration-sdk skeleton · LocalFileStorage.</td></tr>
+    <tr><td><b>2 Lead Ingestion + CRM Core</b></td><td><b>lead-ingestion (the one door)</b> + leads · pipelines · stages · activities · outcomes · reasons · catalog · custom fields · assignment · scoring · priority · Lead 360.</td></tr>
+    <tr><td><b>3 Activity / Tasks / <span style="color:#6d28d9">Core Rule Execution</span></b></td><td>Tasks (status + timing state) · SLA · <b>Level-1 automation (score→assign, HOT→call task, appointment→follow-up, task-missed→notify)</b>. <span class="badge b-modify">Correction 5 — early</span></td></tr>
+    <tr><td><b>4 My Work + Employee Accountability</b></td><td>My Work · Next Best Lead · Save &amp; Next · follow-up enforcement · Team Activity · Employee Command Center.</td></tr>
+    <tr><td><b>5 Configuration / Settings</b></td><td>Settings shell + all CRM config screens + terminology + ingestion monitoring UI.</td></tr>
+    <tr><td><b>6 Capability Registry + Integrations</b></td><td>Capability + integration registry · Integration Settings UI · provider adapters (management API + execution worker) · Meta WhatsApp · Local storage · webhook framework (submit-to-ingestion) · logs.</td></tr>
+    <tr><td><b>7 CodeBegun Template + LMS + VoicePilot</b></td><td>Education terminology · pipeline · course catalog · demo/visit/parent appts · reasons · user mapping · LMS onboarding connector · VoicePilot adapter + automation.</td></tr>
+    <tr><td><b>8 Migration</b></td><td>Legacy adapter · 21-stage mapping · activity normalization · follow-ups→tasks · user mapping · conversion reconciliation · reports · review queue.</td></tr>
+    <tr><td><b>9 Analytics / Command Center</b></td><td>Owner Command Center · Employee Activity · loss/objection/demand/source/funnel/SLA/ingestion analytics (projections).</td></tr>
+    <tr><td><b>10 Advanced Automation</b></td><td>Level-2: WhatsApp/voice sequences · multi-step delayed workflows · re-engagement campaigns · templates · branching · visual-builder foundations.</td></tr>
   </tbody></table></div>
+  <div class="note"><b>Key change:</b> Core Rule Execution (Level 1) moves from the end (old Phase 9) to <b>Phase 3</b>, so the CRM is event-driven from the start — we never build a manual CRM and retrofit automation.</div>
 
   <h2 class="sec" id="s45"><span class="n">45</span> Risks</h2>
   <ul class="clean">
@@ -896,8 +1031,30 @@ Confidence = REVIEW_REQUIRED when: ambiguous stage/conversion, unmapped owner, c
   </ul>
 </div></section>
 
+<section id="readiness"><div class="wrap">
+  <div class="part-label">Final · after R1 corrections</div>
+  <h2 class="sec">Architecture Readiness Check</h2>
+  <p class="lead">Every criterion below is satisfied by the revised architecture. No implementation has begun.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Criterion</th><th>Result</th><th>Where / how</th></tr></thead><tbody>
+    <tr><td>Lead Ingestion</td><td><span class="badge b-keep">PASS</span></td><td>One-door <code>lead-ingestion</code> module + <code>lead_intake_records</code> + monitoring UI; providers verify→normalize→submit (§C1).</td></tr>
+    <tr><td>Single Activity Ledger</td><td><span class="badge b-keep">PASS</span></td><td>One append-only ledger with verification levels; collapses the 3 legacy business logs (§10).</td></tr>
+    <tr><td>Separate Audit Log</td><td><span class="badge b-keep">PASS</span></td><td>Explicit boundary — business truth vs security/config change history; both when appropriate (§10, §6).</td></tr>
+    <tr><td>Task Timing Model</td><td><span class="badge b-keep">PASS</span></td><td>STATUS {OPEN…CANCELLED} vs derived TIMING {UPCOMING/DUE/OVERDUE}; idempotent lifecycle events (§11).</td></tr>
+    <tr><td>Single Assignment Engine</td><td><span class="badge b-keep">PASS</span></td><td>One engine, transaction-safe; ends the double-assign race (§13).</td></tr>
+    <tr><td>Single Scoring Engine</td><td><span class="badge b-keep">PASS</span></td><td>One versioned engine; merges the two current implementations (§14).</td></tr>
+    <tr><td>Core Rule Execution Early</td><td><span class="badge b-keep">PASS</span></td><td>Level-1 rules land in Phase 3 (not last); Level-2 stays late (§19, §44).</td></tr>
+    <tr><td>Optional VoicePilot</td><td><span class="badge b-keep">PASS</span></td><td>Capability-gated; absent → human-call fallback; lead flow never fails (§24, UC2/UC4).</td></tr>
+    <tr><td>Optional LMS</td><td><span class="badge b-keep">PASS</span></td><td>Post-conversion connector gated by LMS_ONBOARDING; no DB coupling; absent → no-op (§23, UC4).</td></tr>
+    <tr><td>Provider Adapters Shared</td><td><span class="badge b-keep">PASS</span></td><td><code>integration-sdk</code> interfaces + <code>integrations/*</code> registered in api &amp; worker; Management vs Execution layers (§22).</td></tr>
+    <tr><td>Existing Data Migration</td><td><span class="badge b-keep">PASS</span></td><td>Legacy adapter · 21-stage mapping · normalizer · conversion reconciliation · confidence + review queue (§39–42).</td></tr>
+    <tr><td>External Client Use Case</td><td><span class="badge b-keep">PASS</span></td><td>ABC Properties completes with no LMS/VoicePilot and no CodeBegun-specific code (UC4).</td></tr>
+  </tbody></table></div>
+  <div class="win"><b>Ready for a Phase-0/1 execution plan on your go</b> — but per the strict rule, no Prisma schemas, NestJS modules, Next.js pages, or migrations are created until you explicitly approve implementation. The Open Questions (§46) remain the gate.</div>
+</div></section>
+
 <footer><div class="wrap">
-  <b>Savas CRM — Product Architecture.</b> Grounded in the CodeBegun Lead Flow Audit (source of truth). No product code written — architecture spec for approval. Prepared 2026-07-14.<br/>
+  <b>Savas CRM — Product Architecture (R1 revised).</b> Grounded in the CodeBegun Lead Flow Audit (source of truth). No product code written — architecture spec for approval. Prepared 2026-07-14.<br/>
   Legend: CURRENT / KEEP / MODIFY / MERGE / REPLACE / REMOVE / NEW. Continues with sections 11–46 above.
 </div></footer>
 </body>

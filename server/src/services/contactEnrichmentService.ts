@@ -18,7 +18,9 @@ import * as settings from './settingsService';
  * but omit the unusable email and mark low confidence.
  */
 
-const APOLLO_BASE = 'https://api.apollo.io/v1';
+// Apollo's current API base is /api/v1 (the bare /v1 host rejects auth). Key goes
+// in the X-Api-Key header — Apollo has deprecated passing it as a URL/body param.
+const APOLLO_BASE = 'https://api.apollo.io/api/v1';
 
 // Titles we care about for fresher/junior placement outreach.
 const TARGET_TITLES = [
@@ -58,8 +60,8 @@ const isLocked = (email?: string | null): boolean => !email || /not_unlocked|no_
 async function apollo(path: string, key: string, body: Record<string, any>): Promise<any> {
   const res = await axios.post(
     `${APOLLO_BASE}${path}`,
-    { api_key: key, ...body },
-    { headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache', 'X-Api-Key': key }, timeout: 20000 },
+    body,
+    { headers: { 'Content-Type': 'application/json', accept: 'application/json', 'Cache-Control': 'no-cache', 'X-Api-Key': key }, timeout: 20000 },
   );
   return res.data;
 }
@@ -101,11 +103,20 @@ export async function enrichCompanyContacts(
     data = await apollo('/mixed_people/search', key, body);
   } catch (e: any) {
     const status = e?.response?.status;
-    const note = status === 401 || status === 403
-      ? 'Apollo rejected the API key. Check it in Platform Settings.'
-      : status === 429
-        ? 'Apollo rate limit hit — try again shortly.'
-        : `Apollo request failed${status ? ` (${status})` : ''}.`;
+    const apolloMsg = (e?.response?.data && (e.response.data.error || e.response.data.message)) || '';
+    console.warn('[apollo] people search failed', status, apolloMsg || e?.message);
+    let note: string;
+    if (status === 401) {
+      note = 'Apollo rejected the API key (invalid). Re-copy it from Apollo → Settings → API Keys into Platform Settings → Placement Outreach.';
+    } else if (status === 403) {
+      note = `Apollo denied access to People Search — this usually means your Apollo plan doesn't include API search access (a paid plan is typically required).${apolloMsg ? ` Apollo: ${apolloMsg}` : ''}`;
+    } else if (status === 402) {
+      note = 'Apollo says credits/payment are required for this request (free plans are limited).';
+    } else if (status === 429) {
+      note = 'Apollo rate limit hit — try again shortly.';
+    } else {
+      note = `Apollo request failed${status ? ` (${status})` : ''}.${apolloMsg ? ` Apollo: ${apolloMsg}` : ''}`;
+    }
     return { configured: true, company, domain, contacts: [], note };
   }
 

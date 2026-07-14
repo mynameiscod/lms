@@ -105,11 +105,25 @@ export interface EnrichedContact {
   linkedinUrl?: string;
   confidence: 'high' | 'medium' | 'low';
 }
+export interface CompanyInfo {
+  name?: string;
+  industry?: string;
+  employees?: number;
+  linkedinUrl?: string;
+  logoUrl?: string;
+  jobOpenings?: number;
+}
+export interface HiringLinks {
+  linkedinJobs: string;
+  googleJobs: string;
+}
 export interface EnrichResult {
   configured: boolean;
   company: string;
   domain?: string;
   contacts: EnrichedContact[];
+  companyInfo?: CompanyInfo;
+  hiringLinks?: HiringLinks;
   note?: string;
 }
 

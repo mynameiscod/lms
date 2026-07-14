@@ -43,11 +43,25 @@ export interface EnrichedContact {
   confidence: Confidence;
 }
 
+export interface CompanyInfo {
+  name?: string;
+  industry?: string;
+  employees?: number;
+  linkedinUrl?: string;
+  logoUrl?: string;
+  jobOpenings?: number;    // open-roles count, if Apollo exposes it on this plan
+}
+export interface HiringLinks {
+  linkedinJobs: string;    // deep-link to the company's LinkedIn Jobs
+  googleJobs: string;      // deep-link to Google Jobs for the company
+}
 export interface EnrichResult {
   configured: boolean;     // is APOLLO_API_KEY set?
   company: string;
   domain?: string;
   contacts: EnrichedContact[];
+  companyInfo?: CompanyInfo;
+  hiringLinks?: HiringLinks;   // constructed URLs — work with no Apollo API/plan
   note?: string;
 }
 
@@ -66,15 +80,32 @@ async function apollo(path: string, key: string, body: Record<string, any>): Pro
   return res.data;
 }
 
-/** Resolve a company name to its primary domain via Apollo org search (best-effort). */
-async function resolveDomain(key: string, company: string): Promise<string | undefined> {
+/** Look up the company's org record (firmographics + domain) via Apollo. Best-effort. */
+async function fetchOrg(key: string, q: { company?: string; domain?: string }): Promise<any | null> {
   try {
-    const data = await apollo('/mixed_companies/search', key, { q_organization_name: company, page: 1, per_page: 1 });
-    const org = data?.organizations?.[0] || data?.accounts?.[0];
-    return cleanDomain(org?.primary_domain || org?.website_url);
+    const body: Record<string, any> = { page: 1, per_page: 1 };
+    if (q.domain) body.q_organization_domains = q.domain;
+    else if (q.company) body.q_organization_name = q.company;
+    const data = await apollo('/mixed_companies/search', key, body);
+    return data?.organizations?.[0] || data?.accounts?.[0] || null;
   } catch {
-    return undefined;
+    return null;
   }
+}
+
+/** Read an open-roles count from an Apollo org record if the plan exposes one. */
+function jobOpeningsOf(org: any): number | undefined {
+  const v = org?.num_current_job_openings ?? org?.job_postings_count ?? (Array.isArray(org?.job_postings) ? org.job_postings.length : undefined);
+  return typeof v === 'number' && v >= 0 ? v : undefined;
+}
+
+/** Deep-links to a company's live openings — plain constructed URLs, no API/plan needed. */
+function buildHiringLinks(company: string, domain?: string): HiringLinks {
+  const term = company || domain || '';
+  return {
+    linkedinJobs: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(term)}`,
+    googleJobs: `https://www.google.com/search?q=${encodeURIComponent(term + ' jobs')}&ibp=htl;jobs`,
+  };
 }
 
 export async function enrichCompanyContacts(
@@ -86,13 +117,28 @@ export async function enrichCompanyContacts(
   let domain = cleanDomain(input.domain);
 
   if (!key) {
-    return { configured: false, company, contacts: [], note: 'Apollo API key not set. Add it in Platform Settings → Placement Outreach to enable "Add by Company".' };
+    return {
+      configured: false, company, contacts: [],
+      hiringLinks: (company || domain) ? buildHiringLinks(company, domain) : undefined,
+      note: 'Apollo API key not set — contact discovery is off (the openings links below still work). Add the key in Platform Settings → Placement Outreach.',
+    };
   }
   if (!company && !domain) {
     return { configured: true, company, contacts: [], note: 'Enter a company name or website domain.' };
   }
 
-  if (!domain && company) domain = await resolveDomain(key, company);
+  // Company firmographics + domain (best-effort; needs a paid Apollo plan).
+  const org = await fetchOrg(key, { company, domain });
+  if (!domain) domain = cleanDomain(org?.primary_domain || org?.website_url) || domain;
+  const companyInfo: CompanyInfo | undefined = org ? {
+    name: org.name || company || undefined,
+    industry: org.industry || undefined,
+    employees: typeof org.estimated_num_employees === 'number' ? org.estimated_num_employees : undefined,
+    linkedinUrl: org.linkedin_url || undefined,
+    logoUrl: org.logo_url || undefined,
+    jobOpenings: jobOpeningsOf(org),
+  } : (company ? { name: company } : undefined);
+  const hiringLinks = buildHiringLinks(company, domain);
 
   const body: Record<string, any> = { person_titles: TARGET_TITLES, person_seniorities: TARGET_SENIORITIES, page: 1, per_page: 10 };
   if (domain) body.q_organization_domains = domain;
@@ -117,7 +163,7 @@ export async function enrichCompanyContacts(
     } else {
       note = `Apollo request failed${status ? ` (${status})` : ''}.${apolloMsg ? ` Apollo: ${apolloMsg}` : ''}`;
     }
-    return { configured: true, company, domain, contacts: [], note };
+    return { configured: true, company, domain, contacts: [], companyInfo, hiringLinks, note };
   }
 
   const people: any[] = Array.isArray(data?.people) ? data.people : [];
@@ -145,5 +191,5 @@ export async function enrichCompanyContacts(
       ? 'Found people, but their emails are locked in Apollo (revealing them uses Apollo credits). Reveal in Apollo or add the email manually.'
       : undefined;
 
-  return { configured: true, company, domain, contacts, note };
+  return { configured: true, company, domain, contacts, companyInfo, hiringLinks, note };
 }

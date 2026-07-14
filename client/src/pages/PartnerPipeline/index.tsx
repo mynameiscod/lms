@@ -511,7 +511,7 @@ function EnrichModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
     <div className="pp-overlay" onClick={onClose}>
       <div className="pp-modal" style={{ maxWidth: 640 }} onClick={e => e.stopPropagation()}>
         <h2>Add by company</h2>
-        <div className="pp-hint" style={{ marginTop: 0 }}>Found a company that's hiring? We'll look up their HR / decision-maker / CEO contacts via Apollo. Pick one to add, then open the card and hit <b>Send intro</b>.</div>
+        <div className="pp-hint" style={{ marginTop: 0 }}>Enter a company — we'll show its <b>current openings</b> (LinkedIn / Google Jobs) and look up its HR / decision-maker / CEO contacts via Apollo. Pick one to add, then open the card and hit <b>Send intro</b>.</div>
         {err && <div className="pp-banner err">{err}</div>}
         <div className="pp-grid2">
           <div className="pp-field"><label>Company name</label><input value={company} onChange={e => setCompany(e.target.value)} placeholder="e.g. Acme Tech" autoFocus onKeyDown={e => e.key === 'Enter' && search()} /></div>
@@ -521,6 +521,30 @@ function EnrichModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
           <button className="pp-btn pp-btn-ghost" onClick={onClose}>Cancel</button>
           <button className="pp-btn pp-btn-primary" onClick={search} disabled={loading}>{loading ? 'Searching…' : '🔍 Find contacts'}</button>
         </div>
+
+        {res && (res.hiringLinks || res.companyInfo) && (
+          <div style={{ marginTop: 14, border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 14px', background: '#f8fafc' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {res.companyInfo?.logoUrl && <img src={res.companyInfo.logoUrl} alt="" style={{ width: 34, height: 34, borderRadius: 7, objectFit: 'contain', background: '#fff', border: '1px solid #e2e8f0' }} />}
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 700, color: 'var(--pp-navy)', fontSize: 14.5 }}>{res.companyInfo?.name || res.company}</div>
+                <div style={{ fontSize: 12, color: '#64748b' }}>
+                  {[res.companyInfo?.industry, res.companyInfo?.employees ? `${res.companyInfo.employees.toLocaleString()} employees` : '', res.domain].filter(Boolean).join(' · ')}
+                </div>
+              </div>
+              {typeof res.companyInfo?.jobOpenings === 'number' && (
+                <span className="pp-row-badge" style={{ color: '#15803d', background: '#dcfce7' }}>{res.companyInfo.jobOpenings} open role{res.companyInfo.jobOpenings === 1 ? '' : 's'}</span>
+              )}
+            </div>
+            {res.hiringLinks && (
+              <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                <a className="pp-btn pp-btn-teal pp-btn-sm" href={res.hiringLinks.linkedinJobs} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>🔎 Openings on LinkedIn</a>
+                <a className="pp-btn pp-btn-ghost pp-btn-sm" href={res.hiringLinks.googleJobs} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>🔎 Google Jobs</a>
+                {res.companyInfo?.linkedinUrl && <a className="pp-btn pp-btn-ghost pp-btn-sm" href={res.companyInfo.linkedinUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>Company LinkedIn</a>}
+              </div>
+            )}
+          </div>
+        )}
 
         {res && !res.configured && (
           <div className="pp-banner err" style={{ marginTop: 12 }}>{res.note || 'Apollo is not configured. Add an API key in Platform Settings → Placement Outreach.'}</div>

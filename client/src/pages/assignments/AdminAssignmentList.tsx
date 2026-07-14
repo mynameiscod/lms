@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
   assignmentApi, 
@@ -38,6 +39,7 @@ const ActionsDropdown: React.FC<{
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
   // Position the menu with fixed coordinates so it escapes the table's overflow:hidden
@@ -57,7 +59,7 @@ const ActionsDropdown: React.FC<{
 
   useEffect(() => {
     if (!open) return;
-    const onDown = (e: MouseEvent) => { if (ref.current && ref.current.contains(e.target as Node)) return; setOpen(false); };
+    const onDown = (e: MouseEvent) => { const t = e.target as Node; if (ref.current?.contains(t) || menuRef.current?.contains(t)) return; setOpen(false); };
     const dismiss = () => setOpen(false);
     document.addEventListener('mousedown', onDown);
     window.addEventListener('scroll', dismiss, true);
@@ -79,8 +81,8 @@ const ActionsDropdown: React.FC<{
       >
         ⋮
       </button>
-      {open && (
-        <div className="actions-dropdown-menu" style={{ position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left, right: 'auto', maxHeight: '80vh', overflowY: 'auto' }}>
+      {open && createPortal(
+        <div ref={menuRef} className="actions-dropdown-menu" style={{ position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left, right: 'auto', maxHeight: '80vh', overflowY: 'auto', zIndex: 3000 }}>
           <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>
           <button onClick={() => { onTry(); setOpen(false); }}>🧪 Try it (as student)</button>
           <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>
@@ -95,7 +97,8 @@ const ActionsDropdown: React.FC<{
           )}
           <button onClick={() => { onClone(); setOpen(false); }}>📋 Clone</button>
           <button className="danger" onClick={() => { onDelete(); setOpen(false); }}>🗑️ Delete</button>
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

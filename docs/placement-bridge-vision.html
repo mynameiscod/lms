@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CodeBegun — Placement Bridge Vision</title>
+<style>
+  :root{
+    --navy:#051D64; --navy2:#0a2a86; --teal:#359AAD; --teal-d:#2b8294; --teal-l:#5eb3c7;
+    --ink:#0f172a; --body:#41506a; --muted:#697a94; --line:#e5e9f2; --line2:#cdd6e6;
+    --bg:#f6f8fc; --card:#ffffff; --amber:#c07a1e; --amber-bg:#fdf3e3; --good:#16a34a; --good-bg:#e7f6ec;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--body);font-family:var(--sans);font-size:16px;line-height:1.65;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{color:var(--ink);line-height:1.15;text-wrap:balance;margin:0;letter-spacing:-.01em}
+  a{color:var(--teal-d)}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 26px}
+  .scroll{overflow-x:auto}
+  .eyebrow{color:var(--teal-d);font-weight:800;letter-spacing:.16em;text-transform:uppercase;font-size:12px}
+
+  /* hero */
+  .hero{background:radial-gradient(1200px 500px at 80% -10%,#123a8f 0%,transparent 60%),linear-gradient(155deg,#051D64,#0a2a86 65%,#123a8f);color:#e7edf9;padding:74px 0 60px}
+  .hero .eyebrow{color:var(--teal-l)}
+  .hero h1{color:#fff;font-size:46px;margin:14px 0 14px;max-width:16ch}
+  .hero h1 span{color:var(--teal-l)}
+  .hero p{color:#c3cfe6;font-size:19px;max-width:60ch;margin:0}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;margin-top:30px}
+  .chip{background:rgba(255,255,255,.07);border:1px solid rgba(148,178,230,.28);border-radius:99px;padding:8px 15px;font-size:13.5px;color:#dbe4f5}
+  .chip b{color:#fff}
+
+  section{padding:58px 0;border-bottom:1px solid var(--line)}
+  section.alt{background:var(--card)}
+  h2.sec{font-size:30px;margin:8px 0 10px}
+  .lead{color:var(--muted);font-size:17px;max-width:70ch;margin:0 0 26px}
+  h3.sub{font-size:18px;color:var(--navy);margin:0 0 8px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px 24px}
+  section.alt .card{background:#f8fafc}
+  .card.pop{border:1px solid var(--teal);box-shadow:0 8px 30px rgba(53,154,173,.10)}
+
+  .moat{background:linear-gradient(135deg,#fff,#f2f9fb);border:1px solid #cfe6ec;border-radius:16px;padding:26px 28px}
+  .prooftags{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+  .prooftag{background:#fff;border:1px solid var(--teal-l);color:var(--teal-d);border-radius:9px;padding:7px 13px;font-size:13.5px;font-weight:700}
+  .vs{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px;font-size:15px}
+  .vs .bad{color:#b91c1c;background:#fef2f2;border:1px solid #fecaca;border-radius:9px;padding:8px 14px;font-weight:600;text-decoration:line-through}
+  .vs .arrow{color:var(--muted);font-weight:800}
+  .vs .win{color:#15803d;background:var(--good-bg);border:1px solid #bbf7d0;border-radius:9px;padding:8px 14px;font-weight:800}
+
+  .flow{background:var(--navy);color:#dbe4f5;border-radius:16px;padding:26px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;white-space:pre;margin:4px 0 22px}
+  .flow b{color:var(--teal-l)}.flow .g{color:#7ee0a0}.flow .y{color:#f6c667}
+
+  .move{display:flex;gap:16px;align-items:flex-start;padding:16px 0;border-top:1px solid var(--line)}
+  .move:first-child{border-top:none}
+  .move .n{flex:none;width:38px;height:38px;border-radius:11px;background:var(--navy);color:#fff;font-weight:800;display:flex;align-items:center;justify-content:center;font-size:16px}
+  .move .t b{color:var(--ink);font-size:16px}
+  .move .t span{color:var(--muted);font-size:12px;background:#eef2f9;border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:6px}
+
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{text-align:left;padding:11px 13px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);background:#f1f5fb}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:800;white-space:nowrap}
+  .have{background:var(--good-bg);color:#15803d}.partial{background:#fef3c7;color:#a16207}.build{background:#e0e7ff;color:#4338ca}
+
+  .idea{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px;border-top:4px solid var(--teal)}
+  .idea .rank{font-size:12px;font-weight:800;color:var(--teal-d);letter-spacing:.08em}
+  .idea h3{font-size:17px;margin:6px 0 8px;color:var(--ink)}
+  .idea .meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;font-size:11.5px}
+  .idea .meta span{background:#f1f5fb;border:1px solid var(--line);border-radius:7px;padding:3px 9px;color:var(--muted)}
+
+  .phase{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--teal);border-radius:12px;padding:18px 22px;margin-bottom:14px}
+  .phase h3{display:flex;flex-wrap:wrap;gap:10px;align-items:baseline;font-size:18px}
+  .phase .tag{font-size:12px;font-weight:800;color:#fff;background:var(--teal);border-radius:7px;padding:2px 10px}
+
+  ul.clean{margin:10px 0;padding-left:20px}ul.clean li{margin:6px 0}
+  .callouts{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-top:8px}
+  .metric{background:var(--card);border:1px solid var(--line);border-radius:13px;padding:18px}
+  .metric .big{font-size:26px;font-weight:800;color:var(--navy);line-height:1.1}
+  .metric .lbl{color:var(--muted);font-size:13px;margin-top:5px}
+  .amberbox{background:var(--amber-bg);border:1px solid #f0d8ac;border-left:4px solid var(--amber);border-radius:0 12px 12px 0;padding:16px 20px;margin:14px 0}
+  .amberbox b{color:#9a5b12}
+  .usecard h3{display:flex;align-items:center;gap:9px;font-size:16px;margin-bottom:6px}
+  footer{background:var(--navy);color:#aebbd6;padding:40px 0;font-size:14px}
+  footer b{color:#e7edf9}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">CodeBegun · Product Vision</div>
+    <h1>The Placement Bridge: we don't send resumes, we send <span>proof</span>.</h1>
+    <p>You've trained hundreds of job-ready developers. Companies are desperate for pre-screened headcount they can interview today. CodeBegun is the bridge — a two-sided placement engine where every candidate arrives with verified evidence of their skill.</p>
+    <div class="chips">
+      <div class="chip">🎓 Supply: <b>trained, screened students</b></div>
+      <div class="chip">🏢 Demand: <b>companies needing headcount</b></div>
+      <div class="chip">🔗 Bridge: <b>match · prove · interview · place</b></div>
+      <div class="chip">🛡️ Moat: <b>verified proof, not resumes</b></div>
+    </div>
+  </div>
+</header>
+
+<!-- OPPORTUNITY -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The Opportunity</div>
+    <h2 class="sec">You already own both sides of a marketplace</h2>
+    <p class="lead">The two hardest things in any placement business are (1) a reliable supply of good candidates and (2) demand from companies. You have both. The gap is that they aren't <em>connected</em> yet — the pieces exist as islands.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3 class="sub">🎓 The Supply side — your students</h3>
+        <p>Hundreds of developers who've completed structured training <em>and</em> been assessed: DSA, Spring Boot, React, SQL, live coding, mock interviews, communication. This is inventory most placement agencies would kill for — and it's <b>pre-qualified</b>.</p>
+      </div>
+      <div class="card">
+        <h3 class="sub">🏢 The Demand side — hiring companies</h3>
+        <p>Companies constantly need fresher/junior headcount and are buried in unqualified resumes. They want a <b>trusted, curated channel</b> that sends them 2–3 people worth interviewing — not 200 to sift. That trusted channel is what you become.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MOAT -->
+<section class="alt">
+  <div class="wrap">
+    <div class="eyebrow">The Moat</div>
+    <h2 class="sec">Your unfair advantage: proof, not paper</h2>
+    <p class="lead">Anyone can email a company a resume. What no job board and no agency can do is hand an HR manager <b>verifiable evidence</b> that a candidate is actually good — and you generate all of it automatically, every day.</p>
+    <div class="moat">
+      <h3 class="sub" style="margin-top:0">Every CodeBegun candidate already produces:</h3>
+      <div class="prooftags">
+        <span class="prooftag">✅ Assessment readiness score + percentile</span>
+        <span class="prooftag">✅ AI mock-interview grade</span>
+        <span class="prooftag">✅ Communication score</span>
+        <span class="prooftag">✅ Real project work + GitHub score</span>
+        <span class="prooftag">✅ Resume + verified certificate</span>
+      </div>
+      <div class="vs">
+        <span class="bad">Here's a resume, please review</span>
+        <span class="arrow">→</span>
+        <span class="win">Here's proof this person can do the job — interview them today</span>
+      </div>
+    </div>
+    <div class="amberbox"><b>Why this wins:</b> HRs don't fear a bad resume — they fear wasting an interview slot. The moment your shortlist means "vetted, low-risk, worth my time," companies stop treating you as a vendor and start treating you as their hiring partner. That trust is the whole business.</div>
+  </div>
+</section>
+
+<!-- THE BRIDGE -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">How the Bridge Works</div>
+    <h2 class="sec">The bridge in 5 moves</h2>
+    <p class="lead">This is the loop the product should run. You do Move 1 today (manually). Moves 2–5 are the build — and each reuses something you already have.</p>
+    <div class="flow">
+ <b>1 DISCOVER</b>        <b>2 MATCH</b>            <b>3 SHORTLIST w/ PROOF</b>   <b>4 INTERVIEW</b>        <b>5 LEARN</b>
+ hiring companies ──► AI matches your ──► send 2–3 <b>verified</b>   ──► one-click     ──► capture why
+ (openings feature,   placement-ready     candidate profiles       schedule +        pass/fail ──┐
+  alumni, inbound)    students to the     (not resumes)            track feedback               │
+        ▲             role                                              │                        │
+        │                                                               ▼                        │
+        └────────────────────  feedback improves training + next shortlist  ◄────────────────────┘
+    </div>
+    <div class="card">
+      <div class="move"><div class="n">1</div><div class="t"><b>Discover demand</b> <span>have it</span><br/>Find companies that are hiring — your new openings feature (Google/LinkedIn jobs), alumni working inside companies, and inbound HR interest.</div></div>
+      <div class="move"><div class="n">2</div><div class="t"><b>Match students to the role</b> <span>to build</span><br/>AI matches placement-ready students to a real opening by stack, role, readiness, location and salary. Reuses your assessment scores + AI infrastructure.</div></div>
+      <div class="move"><div class="n">3</div><div class="t"><b>Send a shortlist with proof</b> <span>to build</span><br/>2–3 <b>Verified Candidate Profiles</b> — a shareable link showing readiness %, mock-interview grade, project demo, communication score. This is the trust artifact.</div></div>
+      <div class="move"><div class="n">4</div><div class="t"><b>Interview &amp; track</b> <span>partly have it</span><br/>One-click schedule into your Interviews module → track status → capture the HR's decision + reason → mark placed → 90-day guarantee.</div></div>
+      <div class="move"><div class="n">5</div><div class="t"><b>Feedback flywheel</b> <span>to build</span><br/>Every rejection reason feeds back into student prep and your curriculum. Over a year your students become measurably better than any other institute's.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- WHAT YOU HAVE -->
+<section class="alt">
+  <div class="wrap">
+    <div class="eyebrow">You're Not Starting From Zero</div>
+    <h2 class="sec">Every ingredient maps to a module you already run</h2>
+    <p class="lead">This is why the bridge is buildable, not a moonshot — you're mostly <em>connecting</em> and <em>surfacing</em> things you already generate.</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Ingredient the bridge needs</th><th>Where it already lives</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Company discovery + HR contacts + openings</td><td>Placement Partnership (Add-by-company, openings links)</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Branded outreach + auto follow-up</td><td>Placement Partnership (branded intro email)</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Candidate skill proof (readiness, percentile)</td><td>Skill Assessment funnel</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Mock-interview performance</td><td>AI Virtual Interview + Scheduled Interviews</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Communication proof</td><td>AI Communication Lab</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Project work + GitHub score</td><td>Project Builder / Career Profile</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Resume + certificate</td><td>Resume Builder + Certificates</td><td><span class="pill have">Have</span></td></tr>
+          <tr><td>Warm referrals inside companies</td><td>Alumni Network</td><td><span class="pill partial">Partial</span></td></tr>
+          <tr><td><b>Verified Candidate Profile (one link)</b></td><td>—</td><td><span class="pill build">Build</span></td></tr>
+          <tr><td><b>Student ↔ opening matching</b></td><td>— (was in old pipeline, removed)</td><td><span class="pill build">Build</span></td></tr>
+          <tr><td><b>Placement → interview → feedback wiring</b></td><td>— (islands today)</td><td><span class="pill build">Build</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- IDEAS -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">The Ideas</div>
+    <h2 class="sec">7 moves to make the bridge great, ranked</h2>
+    <div class="grid2">
+      <div class="idea card pop"><div class="rank">#1 · START HERE</div><h3>Verified Candidate Profile</h3><p>A shareable link per student that aggregates readiness %, mock-interview grade, top project (live demo/GitHub), communication score, resume — the trust artifact an HR opens in 5 seconds. It's what makes companies say yes.</p><div class="meta"><span>Effort: Medium</span><span>Impact: Very High</span></div></div>
+      <div class="idea card pop"><div class="rank">#2 · CORE OF THE BRIDGE</div><h3>Request-Candidates → AI shortlist</h3><p>On an opening, "Request candidates" → AI matches placement-ready students → you approve → send 2–3 verified profiles. The matching you deferred, now powered by assessment data + your AI infra.</p><div class="meta"><span>Effort: Medium</span><span>Impact: Very High</span></div></div>
+      <div class="idea card"><div class="rank">#3 · THE BACKBONE</div><h3>Close the loop: Placement → Interview → Feedback → Placed</h3><p>Wire outreach into the Interviews module: schedule, capture HR decision + reason, mark placed, trigger 90-day guarantee. Turns islands into one operational spine and gives you data nobody else has.</p><div class="meta"><span>Effort: Medium</span><span>Impact: High</span></div></div>
+      <div class="idea card"><div class="rank">#4 · PROTECT THE BRAND</div><h3>"Placement-Ready" gating + badge</h3><p>Only students who clear a bar (mock interview passed + readiness ≥ X + communication ≥ Y) are surfaced to companies, with a badge they earn. One bad candidate burns an HR relationship — this protects it and motivates students.</p><div class="meta"><span>Effort: Low</span><span>Impact: High</span></div></div>
+      <div class="idea card"><div class="rank">#5 · THE NORTH STAR</div><h3>Company / HR self-serve portal</h3><p>A light company-facing view: see anonymized shortlists, request interviews, give feedback themselves. Turns manual outreach into a self-serve channel. Bigger build — do it after #1–#3 prove the model.</p><div class="meta"><span>Effort: High</span><span>Impact: High (long-term)</span></div></div>
+      <div class="idea card"><div class="rank">#6 · COMPOUNDING MOAT</div><h3>Feedback → training flywheel</h3><p>Interview rejection reasons feed back into curriculum ("3 failed on system design → add a module"). Over a year, your students measurably out-perform every other institute's. This is the moat that compounds.</p><div class="meta"><span>Effort: Medium</span><span>Impact: Compounding</span></div></div>
+      <div class="idea card"><div class="rank">#7 · FILL THE PIPELINE</div><h3>Demand generation on autopilot</h3><p>Extend openings discovery: monitor job boards for companies hiring your students' stack in your city → auto-queue outreach. Plus alumni referrals — your warmest channel.</p><div class="meta"><span>Effort: Medium</span><span>Impact: High</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="alt">
+  <div class="wrap">
+    <div class="eyebrow">Roadmap</div>
+    <h2 class="sec">A phased build that reuses what you have</h2>
+    <div class="phase"><h3><span class="tag">Phase 1</span> The proof + the match <span style="font-size:13px;color:var(--muted);font-weight:600">— the minimum that makes it a real bridge</span></h3><ul class="clean"><li><b>Verified Candidate Profile</b> — plumb assessment + mock-interview + communication + project data into one shareable link.</li><li><b>Request-Candidates → AI shortlist</b> — match placement-ready students to an opening, approve, send verified profiles.</li></ul></div>
+    <div class="phase"><h3><span class="tag">Phase 2</span> Close the loop</h3><ul class="clean"><li>Wire shortlist → schedule interview → capture feedback → mark placed → guarantee.</li><li>Add the <b>Placement-Ready gate + badge</b> so only strong candidates surface.</li></ul></div>
+    <div class="phase"><h3><span class="tag">Phase 3</span> Scale demand + the flywheel</h3><ul class="clean"><li>Auto-discover hiring companies; activate alumni referrals.</li><li>Feed interview feedback into curriculum + student prep.</li></ul></div>
+    <div class="phase"><h3><span class="tag">Phase 4</span> Self-serve company portal</h3><ul class="clean"><li>Let HRs browse anonymized shortlists, request interviews and give feedback themselves — the long-term marketplace.</li></ul></div>
+  </div>
+</section>
+
+<!-- HOW IT HELPS -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">How it helps you</div>
+    <h2 class="sec">Placements are your best growth engine</h2>
+    <p class="lead">This isn't a side feature — it's the flywheel that grows the whole institute. Better placements → stronger reputation → more admissions → more students to place.</p>
+    <div class="flow">
+   <b>Strong placements</b> ──► proof &amp; testimonials ──► <b>more admissions</b> ──► more trained students
+        ▲                                                                        │
+        │                                                                        ▼
+   repeat company demand ◄── HRs trust your shortlist ◄── verified, low-risk candidates ◄─┘
+    </div>
+    <div class="grid3">
+      <div class="card"><h3 class="sub" style="margin-top:0">💰 Revenue</h3><p>Placement fees on conversions (you already have a fee % setting), <b>and</b> placement outcomes are the #1 thing that sells the next batch of seats.</p></div>
+      <div class="card"><h3 class="sub" style="margin-top:0">🔁 Repeat demand</h3><p>An HR who gets one good hire from you comes back for the next role — and refers peers. Trust turns one-off outreach into a standing pipeline.</p></div>
+      <div class="card"><h3 class="sub" style="margin-top:0">📊 Data moat</h3><p>Interview feedback nobody else has → sharper training → better candidates → higher placement rate. It compounds every quarter.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW TO USE -->
+<section class="alt">
+  <div class="wrap">
+    <div class="eyebrow">How to use it</div>
+    <h2 class="sec">Who this is for &amp; how you run it day-to-day</h2>
+    <p class="lead">Two things: (1) this <b>document</b> is a tool you share to align people and win companies; (2) the <b>product</b> gives your placement team a simple daily loop.</p>
+
+    <h3 class="sub">📄 Use this document with three audiences</h3>
+    <div class="grid3" style="margin-bottom:26px">
+      <div class="card usecard"><h3>👥 Your placement team</h3><p>As the operating playbook — what we do, in what order, and why. Aligns everyone on "we send proof, not resumes."</p></div>
+      <div class="card usecard"><h3>🏢 Companies / HRs</h3><p>As a one-page pitch for <em>why partner with CodeBegun</em> — the proof, the no-fee-to-evaluate promise, the guarantee. Send the link when opening a conversation.</p></div>
+      <div class="card usecard"><h3>💼 Investors / stakeholders</h3><p>As the vision + roadmap — a credible, buildable plan that turns your student base into a placement marketplace.</p></div>
+    </div>
+
+    <h3 class="sub">⚙️ The daily loop for your placement team (once built)</h3>
+    <div class="card">
+      <div class="move"><div class="n">1</div><div class="t"><b>Find who's hiring</b> — open Placement Partnership → Add-by-company → see their current openings (already live).</div></div>
+      <div class="move"><div class="n">2</div><div class="t"><b>Reach the right person</b> — Apollo finds HR/decision-maker → send the branded intro (already live).</div></div>
+      <div class="move"><div class="n">3</div><div class="t"><b>Send proof</b> — Request candidates for the role → approve the AI shortlist → send 2–3 Verified Candidate Profiles <em>(Phase 1)</em>.</div></div>
+      <div class="move"><div class="n">4</div><div class="t"><b>Get them interviewing</b> — schedule from the reply, track status, log the outcome <em>(Phase 2)</em>.</div></div>
+      <div class="move"><div class="n">5</div><div class="t"><b>Place &amp; learn</b> — mark placed, start the guarantee, feed feedback into training <em>(Phase 2–3)</em>.</div></div>
+    </div>
+    <div class="amberbox" style="margin-top:18px"><b>What works today, before any new build:</b> Add-by-company already shows a company's live openings (Google Jobs) and finds their HR contacts, and the branded intro goes out with auto follow-ups. So you can run Moves 1–2 <em>right now</em> — Phase 1 just makes Move 3 (the proof shortlist) one click instead of manual.</div>
+  </div>
+</section>
+
+<!-- METRICS -->
+<section>
+  <div class="wrap">
+    <div class="eyebrow">What success looks like</div>
+    <h2 class="sec">The numbers to watch</h2>
+    <div class="callouts">
+      <div class="metric"><div class="big">↑ Placement rate</div><div class="lbl">% of placement-ready students placed / quarter</div></div>
+      <div class="metric"><div class="big">↑ Repeat companies</div><div class="lbl">companies that hire more than once</div></div>
+      <div class="metric"><div class="big">↓ Time-to-interview</div><div class="lbl">company reply → interview scheduled</div></div>
+      <div class="metric"><div class="big">↑ Shortlist→interview %</div><div class="lbl">profiles sent that convert to interviews</div></div>
+      <div class="metric"><div class="big">↑ Offer rate</div><div class="lbl">interviews → offers (feedback-driven)</div></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>CodeBegun — Placement Bridge Vision.</b> A product strategy for turning trained students + hiring companies into a proof-driven placement marketplace.<br/>
+    Prepared 2026-07-14. Recommended first build: <b>Phase 1 — Verified Candidate Profile + Request-Candidates shortlist.</b>
+  </div>
+</footer>
+</body>
+</html>

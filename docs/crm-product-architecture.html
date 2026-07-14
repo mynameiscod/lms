@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Savas CRM — Product Architecture (extracted from CodeBegun)</title>
+<style>
+  :root{
+    --navy:#071b4d; --navy2:#0c2e7a; --teal:#2f9bb0; --teal-d:#237687; --teal-l:#63c3d6;
+    --ink:#0e1726; --body:#3c4a63; --muted:#697894; --line:#e4e8f1; --line2:#ccd4e3;
+    --bg:#f5f7fc; --card:#ffffff; --amber:#b06f16; --amber-bg:#fdf2df;
+    --good:#15803d; --good-bg:#e6f6ec; --red:#c02626; --red-bg:#fdecec; --violet:#6d28d9; --violet-bg:#f1ebff;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--body);font-family:var(--sans);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{color:var(--ink);line-height:1.18;text-wrap:balance;margin:0;letter-spacing:-.01em}
+  a{color:var(--teal-d)}
+  code{font-family:var(--mono);font-size:.85em;background:#eef1f8;padding:1px 5px;border-radius:4px;color:#334}
+  .wrap{max-width:1220px;margin:0 auto;padding:0 24px}
+  .scroll{overflow-x:auto}
+
+  .topbar{position:sticky;top:0;z-index:60;background:rgba(7,27,77,.97);backdrop-filter:blur(8px);border-bottom:1px solid #0c2e7a}
+  .topbar .wrap{display:flex;align-items:center;gap:14px;height:50px}
+  .topbar .brand{color:#fff;font-weight:800;font-size:14px;white-space:nowrap}
+  .topbar .brand span{color:var(--teal-l)}
+  .topbar nav{display:flex;gap:1px;overflow-x:auto;margin-left:auto}
+  .topbar nav a{color:#c3cee8;text-decoration:none;font-size:12px;padding:5px 9px;border-radius:5px;white-space:nowrap}
+  .topbar nav a:hover{background:#0c2e7a;color:#fff}
+
+  .hero{background:radial-gradient(1100px 480px at 82% -10%,#123a8f 0%,transparent 60%),linear-gradient(155deg,#071b4d,#0c2e7a 65%,#123a8f);color:#e6ecfa;padding:56px 0 44px}
+  .hero .eyebrow{color:var(--teal-l);font-weight:800;letter-spacing:.15em;text-transform:uppercase;font-size:12px}
+  .hero h1{color:#fff;font-size:38px;margin:12px 0 12px;max-width:20ch}
+  .hero h1 span{color:var(--teal-l)}
+  .hero p{color:#c3cee8;font-size:16.5px;max-width:74ch;margin:0}
+  .rules{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+  .rules .r{background:rgba(255,255,255,.06);border:1px solid rgba(120,160,230,.28);border-radius:8px;padding:6px 11px;font-size:12.5px;color:#dbe4f6}
+
+  section{padding:44px 0;border-bottom:1px solid var(--line)}
+  section:nth-of-type(even){background:var(--card)}
+  .part-label{color:var(--teal-d);font-weight:800;letter-spacing:.12em;text-transform:uppercase;font-size:11.5px;margin-bottom:6px}
+  h2.sec{font-size:24px;margin:2px 0 12px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  h2.sec .n{color:var(--teal);font-weight:800;font-size:15px;font-variant-numeric:tabular-nums}
+  h3.sub{font-size:16px;color:var(--navy);margin:22px 0 8px}
+  .lead{color:var(--muted);max-width:92ch;margin:0 0 16px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:12px 0}
+  section:nth-of-type(even) .card{background:#f8fafd}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:900px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);background:#eef2f9;position:sticky;top:50px}
+  tbody tr:hover{background:#f6f8fc}
+  .mono-cell{font-family:var(--mono);font-size:11.5px;color:#475}
+
+  .flow{background:#08132e;color:#cdd8f0;border-radius:12px;padding:20px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;margin:12px 0}
+  .flow b{color:var(--teal-l)}.flow .g{color:#7ee0a0}.flow .y{color:#f6c667}.flow .r{color:#f79393}.flow .m{color:#c4b5fd}
+
+  .badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10.5px;font-weight:800;letter-spacing:.03em;white-space:nowrap}
+  .b-current{background:#e2e8f0;color:#475569}.b-keep{background:var(--good-bg);color:#15803d}.b-modify{background:#fef3c7;color:#a16207}
+  .b-merge{background:#e0f2fe;color:#0369a1}.b-replace{background:var(--amber-bg);color:#9a5b12}.b-remove{background:var(--red-bg);color:#b91c1c}.b-new{background:var(--violet-bg);color:#6d28d9}
+  .pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:700}
+  .pill.cap{background:#e0f2fe;color:#0369a1}.pill.evt{background:#f1ebff;color:#6d28d9}.pill.mod{background:var(--good-bg);color:#15803d}
+
+  ul.clean{margin:8px 0;padding-left:20px}ul.clean li{margin:5px 0}
+  .risk{border-left:3px solid var(--red);background:var(--red-bg);padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .risk b{color:#991b1b}
+  .win{border-left:3px solid var(--good);background:var(--good-bg);padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .note{border-left:3px solid var(--teal);background:#e9f6f9;padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .rule{border-left:3px solid var(--amber);background:var(--amber-bg);padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .toc{columns:3;column-gap:26px}@media(max-width:820px){.toc{columns:1}}
+  .toc a{display:block;padding:3px 0;font-size:13.5px;text-decoration:none;color:var(--body)}
+  .toc a:hover{color:var(--teal-d)}.toc a b{color:var(--teal);width:24px;display:inline-block;font-variant-numeric:tabular-nums}
+  footer{background:var(--navy);color:#aebbdc;padding:34px 0;font-size:13px}footer b{color:#e6ecfa}
+  .kv{font-family:var(--mono);font-size:12px;color:#475;background:#f1f5fb;border:1px solid var(--line);border-radius:8px;padding:12px 14px;white-space:pre;overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap">
+  <div class="brand">Savas<span>CRM</span> · Architecture</div>
+  <nav>
+    <a href="#understand">Understand</a><a href="#matrix">K/M/R Matrix</a><a href="#arch">Architecture</a>
+    <a href="#data">Data Model</a><a href="#ledger">Ledger</a><a href="#pipeline">Pipeline</a>
+    <a href="#engines">Engines</a><a href="#catalog">Catalog/Demand</a><a href="#caps">Capabilities</a>
+    <a href="#integrations">Integrations</a><a href="#ia">Screens/IA</a><a href="#api">API/Events</a>
+    <a href="#outbox">Outbox/Queues</a><a href="#tenancy">Tenancy</a><a href="#migration">Migration</a>
+    <a href="#accept">Use Cases</a><a href="#phases">Phases</a><a href="#risks">Risks/Q</a>
+  </nav>
+</div></div>
+
+<header class="hero"><div class="wrap">
+  <div class="eyebrow">Architecture Spec · No code until approved</div>
+  <h1>Savas CRM — extracting CodeBegun's lead engine into a <span>generic, multi-tenant CRM product</span></h1>
+  <p>A modular-monolith redesign that runs standalone (no LMS, no VoicePilot, no WhatsApp, no payments), is industry-neutral at the core, and drives CodeBegun as one tenant template. Grounded in the existing <b style="color:#fff">Lead Flow Audit</b> (20 models · 91 endpoints · 21 stages) — treated as the source of truth for the current implementation.</p>
+  <div class="rules">
+    <span class="r">Modular monolith + workers</span><span class="r">Domain events + transactional outbox</span>
+    <span class="r">Provider/adapter pattern</span><span class="r">Capability → Integration mapping</span>
+    <span class="r">No microservices · No Kafka · No S3 · No K8s (now)</span><span class="r">NestJS · Next.js · PostgreSQL · Prisma · Redis/BullMQ</span>
+  </div>
+</div></header>
+
+<section id="toc"><div class="wrap">
+  <div class="part-label">Contents — 46 required outputs</div>
+  <h2 class="sec">All sections</h2>
+  <div class="toc card">
+    <a href="#s1"><b>1</b> Current System Understanding</a>
+    <a href="#s2"><b>2</b> CRM Audit Summary</a>
+    <a href="#s3"><b>3</b> Existing Architecture Problems</a>
+    <a href="#s4"><b>4</b> New Product Architecture</a>
+    <a href="#s5"><b>5</b> Modular Monolith Diagram</a>
+    <a href="#s6"><b>6</b> Domain Module Boundaries</a>
+    <a href="#s7"><b>7</b> Module Dependency Rules</a>
+    <a href="#s8"><b>8</b> Core Entity Model</a>
+    <a href="#s9"><b>9</b> PostgreSQL ER Diagram</a>
+    <a href="#s10"><b>10</b> Activity Ledger Design</a>
+    <a href="#s11"><b>11</b> Task / Next-Action Design</a>
+    <a href="#s12"><b>12</b> Pipeline Design</a>
+    <a href="#s13"><b>13</b> Assignment Engine</a>
+    <a href="#s14"><b>14</b> Scoring Engine</a>
+    <a href="#s15"><b>15</b> Reason Taxonomy</a>
+    <a href="#s16"><b>16</b> Catalog &amp; Demand Gap</a>
+    <a href="#s17"><b>17</b> Appointment Design</a>
+    <a href="#s18"><b>18</b> Conversion Design</a>
+    <a href="#s19"><b>19</b> Automation Engine</a>
+    <a href="#s20"><b>20</b> Capability Registry</a>
+    <a href="#s21"><b>21</b> Integration Registry</a>
+    <a href="#s22"><b>22</b> Provider Adapter Interfaces</a>
+    <a href="#s23"><b>23</b> CodeBegun LMS Integration</a>
+    <a href="#s24"><b>24</b> VoicePilot Integration</a>
+    <a href="#s25"><b>25</b> Local File Storage</a>
+    <a href="#s26"><b>26</b> Settings IA</a>
+    <a href="#s27"><b>27</b> Main CRM Navigation</a>
+    <a href="#s28"><b>28</b> Lead 360 Screen</a>
+    <a href="#s29"><b>29</b> My Work Screen</a>
+    <a href="#s30"><b>30</b> Employee Activity Center</a>
+    <a href="#s31"><b>31</b> Command Center</a>
+    <a href="#s32"><b>32</b> Analytics Projections</a>
+    <a href="#s33"><b>33</b> API Route Map</a>
+    <a href="#s34"><b>34</b> Event Catalog</a>
+    <a href="#s35"><b>35</b> Transactional Outbox</a>
+    <a href="#s36"><b>36</b> Redis / BullMQ Queues</a>
+    <a href="#s37"><b>37</b> Multi-Tenant Design</a>
+    <a href="#s38"><b>38</b> Permission Model</a>
+    <a href="#s39"><b>39</b> Data Migration Plan</a>
+    <a href="#s40"><b>40</b> 21-Stage → New Mapping</a>
+    <a href="#s41"><b>41</b> Conversion Reconciliation</a>
+    <a href="#s42"><b>42</b> Migration Confidence</a>
+    <a href="#s43"><b>43</b> KEEP/MODIFY/… Matrix</a>
+    <a href="#s44"><b>44</b> Implementation Phases</a>
+    <a href="#s45"><b>45</b> Risks</a>
+    <a href="#s46"><b>46</b> Open Questions</a>
+  </div>
+  <div class="note">Legend for every recommendation: <span class="badge b-current">CURRENT</span> <span class="badge b-keep">KEEP</span> <span class="badge b-modify">MODIFY</span> <span class="badge b-merge">MERGE</span> <span class="badge b-replace">REPLACE</span> <span class="badge b-remove">REMOVE</span> <span class="badge b-new">NEW</span></div>
+</div></section>
+
+<!-- ============ PART A — UNDERSTANDING ============ -->
+<section id="understand"><div class="wrap">
+  <div class="part-label">Part A · Understanding the current system</div>
+
+  <h2 class="sec" id="s1"><span class="n">01</span> Current System Understanding</h2>
+  <p class="lead">Source of truth: <code>docs/audit/lead-flow-audit.html</code> + <code>docs/audit/lead-flow/01–06.md</code>. The current CRM is a set of modules <b>inside</b> the CodeBegun LMS monolith (Node/Express + Mongoose/MongoDB, React SPA), multi-tenant via a <code>tenantId</code> field, sharing the LMS auth, users, and deployment.</p>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Scale &amp; shape (traced)</h3><ul class="clean">
+      <li><b>20 Mongoose models</b> (Lead + 19 config/support), <b>91 HTTP endpoints</b> across 10 areas, <b>21 seeded pipeline stages</b>, <b>23 React screens</b>, <b>5 integrations</b>, <b>5 in-process schedulers</b>.</li>
+      <li>Auth chain: <code>authMiddleware → tenantMiddleware → roleGuard → leadScope</code>. Data-visibility layer <code>leadScope.ts</code>: <code>manage_leads→ALL</code>, <code>assign_leads→TEAM</code>, else <code>OWN</code>.</li>
+      <li>Integrations: Meta Lead Ads, Google Ads, WhatsApp Cloud, Google Sheets, Exotel (AI voice). Email only for welcome; <b>no SMS</b>.</li>
+      <li>Schedulers are in-process <code>setInterval</code> in <code>server.ts</code> (follow-up 5m, SLA 30m, daily summary 20:00, Sheets sync 5m) + one BullMQ AI-call worker.</li>
+    </ul></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Lifecycle reality</h3><ul class="clean">
+      <li><b>No top-level <code>status</code></b> — status is derived from <code>stageId → LeadStage.category</code> (new/engaging/qualified/negotiation/converted/lost).</li>
+      <li>Stage transitions are logged in <b>three parallel places that can diverge</b>: <code>Lead.activities[]</code>, <code>LeadStageHistory</code>, <code>AuditLog</code>.</li>
+      <li>Most stage metadata (<code>allowedNextStages</code>, <code>sla</code>, <code>triggers</code>) is <b>declared but never enforced</b>.</li>
+      <li>Dedup key <code>{tenantId, phone(last-10)}</code> is enforced in app code only — <b>no DB unique index</b>.</li>
+      <li><b>No soft-delete, no <code>updatedBy</code></b> anywhere; <code>createdBy</code> + timestamps on most models.</li>
+    </ul></div>
+  </div>
+
+  <h2 class="sec" id="s2"><span class="n">02</span> CRM Audit Summary</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Area</th><th>What exists</th><th>Health</th></tr></thead><tbody>
+    <tr><td>Lead intake</td><td>Website form, Meta, Google Ads, Google Sheets, manual/CSV. Public intake always creates a HOT lead, IP rate-limited 10/min (in-memory).</td><td>Works; no unified normalizer</td></tr>
+    <tr><td>Scoring</td><td><b>Two</b> implementations — <code>scoreAndAssignLead</code> (create-flow, rule points) + class-based <code>LeadScoringService</code> (priority config).</td><td>Duplicated</td></tr>
+    <tr><td>Assignment</td><td><b>Two</b> auto-assign paths both writing <code>assignedTo</code> on create (<code>leadController.ts:456 &amp; 468</code>).</td><td>Race condition</td></tr>
+    <tr><td>Pipeline</td><td>21 stages mixing business stages, system events, comm events, call outcomes, tasks, final outcomes.</td><td>Overloaded</td></tr>
+    <tr><td>Activities</td><td>3 divergent logs (embedded activities, LeadStageHistory, AuditLog); dedup by phone only.</td><td>No single ledger</td></tr>
+    <tr><td>Conversion</td><td>Seat-reservation path creates <code>User(STUDENT)</code> but never touches the Lead; <code>convertToStudent</code> targets a <code>"Converted"</code> stage that isn't seeded (silent no-op).</td><td>Broken / disconnected</td></tr>
+    <tr><td>Webhooks</td><td>WhatsApp POST unsigned; Exotel status no auth; Meta HMAC fails-open (<code>JSON.stringify(req.body)</code>); Google Ads fails-open.</td><td>Insecure</td></tr>
+    <tr><td>Config surface</td><td>17 Lead sidebar items; role-only route gates (fine perms guard only the menu, not the route).</td><td>Sprawl + gate gap</td></tr>
+    </tbody></table></div>
+
+  <h2 class="sec" id="s3"><span class="n">03</span> Existing Architecture Problems (must be fixed by the redesign)</h2>
+  <div class="grid2">
+    <div class="card"><ul class="clean">
+      <li><span class="badge b-replace">REPLACE</span> Double auto-assignment race → one Assignment Engine.</li>
+      <li><span class="badge b-merge">MERGE</span> Two scoring engines → one Scoring Engine.</li>
+      <li><span class="badge b-replace">REPLACE</span> 3 divergent activity logs → one Activity Ledger.</li>
+      <li><span class="badge b-modify">MODIFY</span> 21 overloaded stages → clean pipeline + activities/tasks/outcomes split.</li>
+      <li><span class="badge b-modify">MODIFY</span> Dedup phone-only, no unique index → configurable dedup + DB constraints.</li>
+    </ul></div>
+    <div class="card"><ul class="clean">
+      <li><span class="badge b-replace">REPLACE</span> Two disconnected conversion paths → one Conversion Engine + reconciliation.</li>
+      <li><span class="badge b-modify">MODIFY</span> Unverified/fail-open webhooks → provider-verified, fail-closed.</li>
+      <li><span class="badge b-modify">MODIFY</span> Role-only route gates → enforce permissions on routes.</li>
+      <li><span class="badge b-remove">REMOVE</span> Dead code (AdCampaign controller, Playwright scraper).</li>
+      <li><span class="badge b-modify">MODIFY</span> In-process schedulers on one instance → separate worker + BullMQ.</li>
+    </ul></div>
+  </div>
+</div></section>
+
+<!-- ============ K/M/R MATRIX (43) — placed early per its importance ============ -->
+<section id="matrix"><div class="wrap">
+  <div class="part-label">Part A · Disposition of the current CRM</div>
+  <h2 class="sec" id="s43"><span class="n">43</span> KEEP / MODIFY / MERGE / REPLACE / REMOVE Matrix</h2>
+  <p class="lead">Every current capability, with its disposition in the new product. "KEEP the idea, REPLACE the implementation" is common — the new stack is PostgreSQL/NestJS, so almost nothing is literally kept, but the <em>concepts</em> and <em>business rules</em> are preserved or improved.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Current thing (Mongo/Express)</th><th>Disposition</th><th>New home / note</th></tr></thead><tbody>
+    <tr><td><code>Lead</code> model (rich, phone-dedup)</td><td><span class="badge b-modify">MODIFY</span></td><td>New relational <code>leads</code> + Custom Field Engine; keep first-class searchable fields as columns.</td></tr>
+    <tr><td><code>LeadStage</code> (21 seeded, category)</td><td><span class="badge b-modify">MODIFY</span></td><td>New <code>pipeline_stages</code>; split non-stages into activities/tasks/outcomes (§40).</td></tr>
+    <tr><td><code>LeadStageHistory</code></td><td><span class="badge b-merge">MERGE</span></td><td>Folded into the single Activity Ledger (<code>STAGE_CHANGED</code>).</td></tr>
+    <tr><td><code>Lead.activities[]</code> embedded</td><td><span class="badge b-merge">MERGE</span></td><td>Folded into Activity Ledger.</td></tr>
+    <tr><td><code>AuditLog</code> (lead-only coverage)</td><td><span class="badge b-modify">MODIFY</span></td><td>Generic <code>audit_logs</code> (all entities) + Activity Ledger for business events.</td></tr>
+    <tr><td><code>scoreAndAssignLead</code> + <code>LeadScoringService</code></td><td><span class="badge b-merge">MERGE</span></td><td>One versioned Scoring Engine (§14).</td></tr>
+    <tr><td><code>scoreAndAssignLead</code> + <code>autoAssignLead</code></td><td><span class="badge b-merge">MERGE</span></td><td>One Assignment Engine, transaction-safe (§13).</td></tr>
+    <tr><td><code>FollowUpReminder</code></td><td><span class="badge b-replace">REPLACE</span></td><td>Generic Task/Next-Action Engine (§11).</td></tr>
+    <tr><td><code>SeatReservation</code> + <code>convertToStudent</code></td><td><span class="badge b-replace">REPLACE</span></td><td>Generic Conversion Engine + payment reference; LMS onboarding via connector (§18/§23).</td></tr>
+    <tr><td>Lead config models (Source/Form/Priority/Distribution/LostReason/Qualification/Disposition)</td><td><span class="badge b-modify">MODIFY</span></td><td>Config modules under Settings; Reason Taxonomy Engine (§15).</td></tr>
+    <tr><td>Meta / Google Ads / Sheets / WhatsApp / Exotel</td><td><span class="badge b-modify">MODIFY</span></td><td>Provider adapters behind capabilities; fail-closed webhooks (§21/§22).</td></tr>
+    <tr><td>Direct LMS coupling (User(STUDENT) creation)</td><td><span class="badge b-replace">REPLACE</span></td><td><code>CodeBegunLmsConnector</code> via events; no DB coupling (§23).</td></tr>
+    <tr><td><code>AdCampaign</code> controller (unrouted), Playwright scraper</td><td><span class="badge b-remove">REMOVE</span></td><td>Dead code — do not migrate.</td></tr>
+    <tr><td>Business rules (approval gate on lost, requiresNote, hot/warm thresholds)</td><td><span class="badge b-keep">KEEP</span></td><td>Ported into pipeline/scoring config; actually enforced this time.</td></tr>
+    <tr><td>Everything else in LMS (courses, attendance, quizzes…)</td><td><span class="badge b-current">CURRENT</span></td><td>Stays in LMS; CRM talks to it only via connector when LMS capability is on.</td></tr>
+    <tr><td>Unified Activity Ledger, Capability Registry, Demand Gap, My Work, Command Center, Outbox</td><td><span class="badge b-new">NEW</span></td><td>Net-new in the product.</td></tr>
+    </tbody></table></div>
+</div></section>
+
+<!-- ============ PART B — ARCHITECTURE ============ -->
+<section id="arch"><div class="wrap">
+  <div class="part-label">Part B · New product architecture</div>
+
+  <h2 class="sec" id="s4"><span class="n">04</span> New Product Architecture</h2>
+  <p class="lead">A <b>modular monolith</b> API + a <b>separate worker</b> process + a <b>Next.js web</b> app, on PostgreSQL/Prisma with Redis/BullMQ. One deployable API, one deployable worker, one web — <em>not</em> 20 services. Internal decoupling comes from <b>domain modules + domain events + transactional outbox</b>, not network boundaries.</p>
+  <div class="flow">
+ <b>crm-web (Next.js)</b> ──REST /api/v1──►  <b>crm-api (NestJS modular monolith)</b>  ──►  <b>PostgreSQL</b> (+ outbox)
+        │  Socket.IO (realtime)                    │  writes lead + outbox_event in ONE tx        │
+        └──────────────────────────────────────────┤                                             │
+                                                    ▼                                             ▼
+                              <b>crm-worker (NestJS + BullMQ)</b>  ◄── outbox dispatcher polls ── <b>Redis</b> (queues)
+                                 · outbox → domain-event handlers      · scheduler (SLA, due/overdue/missed)
+                                 · automation runner (capability-gated) · analytics projectors
+                                 · provider adapters (voice/msg/lms…)   · webhook processors
+  </div>
+  <div class="note"><b>Why this shape:</b> the audit's core failures were <em>shared mutable state on one Express process</em> (assignment race, in-process schedulers, 3 activity logs). Splitting <b>API vs worker</b> and routing all side-effects through <b>outbox → events</b> removes the race and the "did it actually run?" ambiguity, without the ops burden of microservices.</p>
+
+  <h2 class="sec" id="s5"><span class="n">05</span> Modular Monolith Diagram</h2>
+  <div class="kv">apps/
+  crm-web/      Next.js · React · TS · Tailwind · shadcn/ui · TanStack Query · Zustand · RHF + Zod
+  crm-api/      NestJS · REST · Prisma · thin controllers → application services → domain services → repos
+  crm-worker/   NestJS · BullMQ consumers · outbox dispatcher · schedulers · projectors · adapters
+
+packages/       (shared, versioned, no business logic that belongs in a module)
+  event-contracts/   typed domain-event payloads (lead.created.v1 …) — single source of truth
+  api-contracts/     DTOs + Zod schemas shared by web & api (OpenAPI generated)
+  auth/              token verification + platform-identity types
+  tenant-context/    request-scoped TenantContext + guard
+  permissions/       permission constants + policy evaluation
+  configuration-sdk/ read tenant config/terminology/thresholds
+  integration-sdk/   provider interfaces + capability registry contracts
+  ui/  logger/  shared-types/
+
+src/modules/    (backend domain modules — see §6)
+  tenants users memberships roles permissions
+  leads activities tasks pipelines assignments scoring priorities
+  catalog demand-intelligence reasons outcomes appointments conversions
+  automation analytics integrations capabilities files audit notifications</div>
+
+  <h2 class="sec" id="s6"><span class="n">06</span> Domain Module Boundaries</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Module</th><th>Owns</th><th>Emits / consumes</th></tr></thead><tbody>
+    <tr><td><b>leads</b></td><td>Lead aggregate, stage transitions (enforced), lifecycle timestamps, optimistic version.</td><td>emits <code>lead.created/updated/stage.changed/lost/converted</code></td></tr>
+    <tr><td><b>activities</b></td><td>Activity Ledger (append-only), verification levels, idempotency.</td><td>consumes most events → writes <code>activity.recorded</code></td></tr>
+    <tr><td><b>tasks</b></td><td>Tasks + Next-Action rules; due/overdue/missed lifecycle.</td><td>emits <code>task.created/due/completed/missed</code></td></tr>
+    <tr><td><b>pipelines</b></td><td>Pipeline + stage config, transition constraints, SLA.</td><td>config read by leads</td></tr>
+    <tr><td><b>assignments</b></td><td>Single assignment engine + strategies + ownership history.</td><td>emits <code>lead.assigned</code></td></tr>
+    <tr><td><b>scoring / priorities</b></td><td>One versioned scoring engine; threshold-driven priority + manual override.</td><td>emits <code>lead.scored</code></td></tr>
+    <tr><td><b>catalog / demand-intelligence</b></td><td>Catalog items, catalog requests, availability, demand pool/segments.</td><td>emits <code>demand.gap.recorded</code></td></tr>
+    <tr><td><b>reasons / outcomes</b></td><td>Reason taxonomy (usage types), reason occurrences, outcomes.</td><td>—</td></tr>
+    <tr><td><b>appointments</b></td><td>Generic appointments + types + statuses.</td><td>emits <code>appointment.*</code></td></tr>
+    <tr><td><b>conversions</b></td><td>Generic conversion + payment reference.</td><td>emits <code>conversion.completed</code></td></tr>
+    <tr><td><b>automation</b></td><td>Rule definitions + runs; capability-gated actions + fallbacks.</td><td>consumes trigger events</td></tr>
+    <tr><td><b>capabilities / integrations</b></td><td>Capability registry, integration registry, provider adapters, webhooks, encrypted secrets.</td><td>emits <code>integration.connected/failed</code>, provider events</td></tr>
+    <tr><td><b>analytics</b></td><td>Projections/materialized metrics (owner/source/stage/reason/demand/SLA).</td><td>consumes events</td></tr>
+    <tr><td><b>files / audit / notifications</b></td><td>FileStorageProvider abstraction; generic audit; in-app + push notifications.</td><td>—</td></tr>
+    </tbody></table></div>
+
+  <h2 class="sec" id="s7"><span class="n">07</span> Module Dependency Rules</h2>
+  <div class="rule"><b>Rule 1 — no module imports another module's internals.</b> Modules interact via (a) their public application service, (b) domain events, or (c) shared <code>packages/*</code> contracts. No cross-module Prisma access.</div>
+  <div class="rule"><b>Rule 2 — CRM Core never imports an integration implementation.</b> Core depends on <code>integration-sdk</code> interfaces + the Capability Registry only. <code>leads</code> must never <code>import VoicePilotAdapter</code>.</div>
+  <div class="rule"><b>Rule 3 — dependency direction is one-way.</b> <code>leads/tasks/appointments/conversions</code> → emit events. <code>automation/analytics/activities/integrations</code> → consume. No cycles. Automation calls capabilities, never a module's write API directly except through its public service.</div>
+  <div class="rule"><b>Rule 4 — no tenant-name checks, ever.</b> Behaviour branches only on <b>config</b>, <b>capability presence</b>, or <b>permission</b> — never <code>if (tenant.name === 'CodeBegun')</code>.</div>
+</div></section>
+
+<!-- ============ PART C — DATA MODEL ============ -->
+<section id="data"><div class="wrap">
+  <div class="part-label">Part C · Data model</div>
+
+  <h2 class="sec" id="s8"><span class="n">08</span> Core Entity Model</h2>
+  <p class="lead">Industry-neutral aggregates. Terminology (Lead=Lead, Customer=Student, Catalog Item=Course, Appointment=Demo, Conversion=Enrollment) is <b>tenant config</b>, not schema. Every tenant-owned table carries <code>tenant_id</code>.</p>
+  <div class="grid3">
+    <div class="card"><b>Identity</b><ul class="clean"><li>platform_users</li><li>tenants</li><li>memberships</li><li>product_access</li><li>roles · permissions · role_permissions</li></ul></div>
+    <div class="card"><b>CRM Core</b><ul class="clean"><li>leads · lead_ownership_history</li><li>pipelines · pipeline_stages</li><li>activities (ledger) · activity_types</li><li>tasks · task_types</li><li>outcomes · reason_categories · reasons · reason_usage_types · lead_reason_occurrences</li><li>appointments · appointment_types</li><li>conversions</li><li>custom_field_definitions · custom_field_values</li></ul></div>
+    <div class="card"><b>Catalog / Config / Platform</b><ul class="clean"><li>catalog_items · catalog_requests · demand_segments</li><li>sources · assignment_rules · scoring_rules · sla_policies</li><li>automation_definitions · automation_runs</li><li>capabilities · integrations · integration_capabilities · webhook_events · external_system_links</li><li>files · audit_logs · outbox_events</li><li>daily_*_metrics (projections)</li></ul></div>
+  </div>
+
+  <h2 class="sec" id="s9"><span class="n">09</span> PostgreSQL ER Diagram (core)</h2>
+  <div class="flow">
+                         <b>tenants</b> ──1:N── memberships ──N:1── <b>platform_users</b>
+                            │                                          │
+                            │  (every table below has tenant_id)       │ owner_id / actor_id
+                            ▼                                          ▼
+  <b>pipelines</b> ─1:N─ <b>pipeline_stages</b> ◄─stage_id── <b>LEADS</b> ──owner_id──► platform_users
+                                                 │  ├─ pipeline_id, source_id, catalog_item_id?
+                                                 │  ├─ priority, score, next_action_at, last_activity_at
+                                                 │  ├─ converted_at?, lost_at?, version
+                                                 │
+        ┌──────────────┬───────────────┬─────────┼───────────────┬──────────────┬───────────────┐
+        ▼              ▼               ▼         ▼               ▼              ▼               ▼
+  <b>activities</b>   <b>tasks</b>       lead_ownership   <b>appointments</b>  lead_reason_    <b>conversions</b>   catalog_requests
+  (ledger,      (next-action) _history         (typed)       occurrences    (payment ref)  ─N:1─ catalog_items
+   append-only) │                                             │                              │  availability, intent
+   actor/verify │ task_types    assignment_rules   appointment_types   reasons ─ reason_       │
+   outcome_id?  │               scoring_rules      outcomes           categories · usage_types demand_segments
+        │
+  activity_types                custom_field_definitions ─1:N─ custom_field_values (entity_type, entity_id)
+        │
+  <b>outbox_events</b> (written in same tx as the aggregate)   external_system_links (LEAD/CONVERSION → INTEGRATION → external id)
+  <b>webhook_events</b>  integrations ─N:M─ capabilities (integration_capabilities)   files   audit_logs   daily_*_metrics</div>
+  <div class="note">Concurrency: <code>leads.version</code> (optimistic) + row locks for assignment. Idempotency: <code>activities(source_system, source_record_id)</code> unique; <code>webhook_events(integration_id, external_event_id)</code> unique; <code>conversions(lead_id)</code> unique where appropriate. Consider Postgres RLS on <code>tenant_id</code> as defence-in-depth.</div>
+
+  <h2 class="sec" id="s10"><span class="n">10</span> Activity Ledger Design</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> The single authoritative history. Append-only. Every business/system/provider/migrated event lands here with a <b>verification level</b>, powering both the Lead Timeline and all accountability analytics.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">activities
+  id  tenant_id
+  entity_type  entity_id        -- LEAD, TASK, APPOINTMENT…
+  activity_type_id              -- CALL_CONNECTED, WHATSAPP_READ…
+  actor_type  actor_id          -- USER | SYSTEM | INTEGRATION | AI_AGENT
+  verification_type             -- SYSTEM_VERIFIED | PROVIDER_VERIFIED
+                                --  | MANUAL | MIGRATED
+  source  provider              -- 'voicepilot','meta','manual'
+  outcome_id?                   -- e.g. NO_ANSWER
+  occurred_at                   -- provider timestamp, not insert time
+  metadata JSONB
+  correlation_id  causation_id  -- trace a chain of events
+  source_system  source_record_id  -- idempotency for provider/migration
+  created_at
+  UNIQUE(tenant_id, source_system, source_record_id)</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Verification is first-class</h3><ul class="clean">
+      <li>A VoicePilot call → <span class="pill cap">PROVIDER_VERIFIED</span> with real <code>occurred_at</code>, duration, outcome.</li>
+      <li>"Called from my personal phone" note → <span class="pill cap">MANUAL</span>.</li>
+      <li>System-created follow-up-due → <span class="pill cap">SYSTEM_VERIFIED</span>.</li>
+      <li>Imported legacy event → <span class="pill cap">MIGRATED</span> (keeps <code>source_model</code>, <code>migration_batch_id</code>).</li>
+      <li>Managers filter/segment by verification → answers "was it a real integrated call or a manual entry?" (Problem 1).</li>
+    </ul>
+    <div class="note" style="margin-top:8px">Solves the audit's <b>3 divergent logs</b>: <code>Lead.activities[]</code> + <code>LeadStageHistory</code> + <code>AuditLog</code> all collapse into this one ledger; STAGE_CHANGED/OWNER_CHANGED/PRIORITY_CHANGED are ledger entries.</div></div>
+  </div>
+</div></section>
+
+<h2 class="sec" id="s11"><span class="n">11</span> Task / Next-Action Engine</h2>
+  <p class="lead"><span class="badge b-replace">REPLACE</span> <code>FollowUpReminder</code>. No lead exists without visibility into <b>Last Activity · Stage · Owner · Outcome · Next Action</b>. Task state is persisted and enforced by a worker — <b>not</b> dependent on browser activity.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">tasks
+  id tenant_id lead_id task_type_id
+  title description assigned_to
+  due_at status priority source
+  automation_run_id?  outcome_id?
+  created_by completed_by completed_at
+  created_at updated_at
+status: OPEN|IN_PROGRESS|COMPLETED|MISSED|CANCELLED</div>
+    <div class="note" style="margin-top:8px">Scheduler worker sweeps: <code>OPEN &amp; due_at&lt;now</code> → <b>DUE</b> → <b>OVERDUE</b> → <b>MISSED</b>, emitting <code>task.due/overdue/missed</code> ledger events. This is what makes "13 follow-ups missed" trustworthy (Problem 2).</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Next-Action Engine (configurable, not hardcoded)</h3>
+      <div class="kv">WHEN stage = QUALIFIED
+ AND  outcome = INTERESTED
+ AND  no open task of type APPOINTMENT exists
+THEN CREATE TASK
+     task_type = APPOINTMENT   (CodeBegun label: "Demo")
+     due_in = 2h</div>
+      <div class="note" style="margin-top:8px">Rules live in config; CodeBegun labels APPOINTMENT as "Demo". Never hardcode "Book Demo".</div>
+    </div>
+  </div>
+
+  <h2 class="sec" id="s12"><span class="n">12</span> Pipeline Design</h2>
+  <p class="lead"><span class="badge b-modify">MODIFY</span> Stages are business states only. Call outcomes, comm events, tasks, and system events are <b>not</b> stages. Transition constraints are <b>actually enforced</b> (unlike current).</p>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Generic default template</h3>
+      <div class="flow" style="font-size:12.5px">NEW → CONTACTING → CONNECTED → QUALIFIED → ENGAGEMENT → DECISION → PAYMENT → CONVERTED
+LOST = final outcome category (not a linear stage)</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">CodeBegun Education template (labels)</h3>
+      <div class="flow" style="font-size:12.5px">NEW → CONTACTING → CONNECTED → QUALIFIED → COUNSELLING → DEMO/VISIT → DECISION → PAYMENT → ENROLLED</div></div>
+  </div>
+  <div class="kv">pipeline_stages: id tenant_id pipeline_id name category order
+  is_final is_lost  sla_minutes  required_fields[] requires_reason requires_note
+  allowed_next_stage_ids[]  allowed_prev_stage_ids[]  entry_rules JSONB  exit_rules JSONB  automation_trigger?</div>
+  <div class="risk"><b>Enforced this time:</b> a transition not in <code>allowed_next_stage_ids</code> is rejected (409); moving to an <code>is_lost</code> stage requires a reason + (for non-admins) manager approval; <code>requires_note</code>/<code>required_fields</code> validated server-side.</div>
+
+  <h2 class="sec" id="s13"><span class="n">13</span> Assignment Engine (single, transaction-safe)</h2>
+  <p class="lead"><span class="badge b-merge">MERGE</span> the two racing paths into ONE engine invoked once per assignment decision, inside a transaction with row locking.</p>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Strategies</h3><ul class="clean"><li>MANUAL · ROUND_ROBIN · WEIGHTED_ROUND_ROBIN</li><li>LEAST_LOADED · RULE_BASED · SKILL_BASED</li></ul>
+      <div class="kv">assignment_rules: match on source, catalog_item, language,
+  location, priority, score, custom_field, team, availability,
+  daily_capacity → target strategy + pool</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">History + safety</h3>
+      <div class="kv">lead_ownership_history
+  id tenant_id lead_id previous_owner_id new_owner_id
+  assignment_method rule_id assigned_by assigned_at metadata</div>
+      <div class="note" style="margin-top:8px">Round-robin counters updated atomically inside the same tx; the value returned to the client is the committed assignee (kills the audit's "client value ≠ stored value" bug).</div></div>
+  </div>
+
+  <h2 class="sec" id="s14"><span class="n">14</span> Scoring Engine (one, versioned)</h2>
+  <p class="lead"><span class="badge b-merge">MERGE</span> the two implementations. Configurable rules, versioned, with an audited manual priority override.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">scoring_rules (versioned):
+ Location=Hyderabad     +10
+ Mode=Offline           +10
+ Immediate requirement  +20
+ WhatsApp replied       +15
+ Appointment requested  +20
+leads: score  score_version  last_scored_at
+       priority  priority_override_by?  priority_override_reason?</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Priority thresholds — per tenant, not global</h3>
+      <div class="kv">HOT  &gt;= 80   WARM 40–79   COLD &lt; 40   (configurable per pipeline)</div>
+      <div class="note" style="margin-top:8px">Manual override allowed but recorded in the ledger (<code>PRIORITY_CHANGED</code>, actor=USER) so it's auditable and distinguishable from computed priority.</div></div>
+  </div>
+
+  <h2 class="sec" id="s15"><span class="n">15</span> Reason Taxonomy Engine (objection ≠ lost)</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> Configurable <b>Category → Reason → Sub-reason</b>, where a reason can be enabled for one or more <b>usage types</b>. Preserves the critical distinction: an objection is not a loss.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">reason_categories (COURSE_GAP, FEE, PLACEMENT, COMPETITOR, DELIVERY, LOCATION, PERSONAL, LEAD_QUALITY)
+reasons (parent_id for sub-reason)
+reason_usage_types: OBJECTION | DROP_REASON | LOST_REASON
+                    | DISQUALIFICATION_REASON | DEMAND_GAP_REASON
+lead_reason_occurrences
+  id tenant_id lead_id reason_id usage_type status
+  recorded_by recorded_at resolved_at? notes metadata</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">The example, preserved</h3>
+      <div class="flow" style="font-size:12px">"Fee is high"  → occurrence(reason=TOO_EXPENSIVE, usage=<b>OBJECTION</b>, status=OPEN)
+   ... lead still active ...
+"Joined another institute" → occurrence(reason=JOINED_COMPETITOR, usage=<b>LOST_REASON</b>)
+   → lead.lost.v1 ; final_outcome=LOST ; category=COMPETITOR</div>
+      <div class="note" style="margin-top:8px">UI + analytics treat objections (in-flight signals) separately from lost reasons (final). Objection analytics ≠ Lost-reason analytics.</div></div>
+  </div>
+
+  <h2 class="sec" id="s16"><span class="n">16</span> Catalog &amp; Demand-Gap Intelligence</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> Generic catalog. "Lead asked for DevOps but we don't offer it" = <b>demand gap</b>, not "not interested". Leads persist in a demand pool for re-engagement when the item launches.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">catalog_items: id tenant_id type name code status metadata
+   (CodeBegun label=Course · RealEstate=Property · Insurance=Policy)
+catalog_requests
+  id tenant_id lead_id requested_name normalized_name
+  matched_catalog_item_id?  availability_status
+  alternative_catalog_item_id?  intent_level
+  recorded_by recorded_at metadata
+availability: AVAILABLE|NOT_AVAILABLE|UNKNOWN|DISCONTINUED
+demand_segments: pool of leads by requested item + intent</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Analytics + re-engagement</h3>
+      <div class="flow" style="font-size:12px">Unmet demand:  DevOps 182 · Python FS 126 · Cyber 94 · AWS 81
+ by intent:    Hot 42 · Warm 89 · Cold 51
+ + location · preferred mode · source · est. value
+
+Later: DevOps catalog item created
+   → system finds the 182 demand leads
+   → admin creates re-engagement segment/campaign</div>
+      <div class="note" style="margin-top:8px">CRM Core says <b>CATALOG_ITEM / REQUESTED / AVAILABILITY / MATCHED / ALTERNATIVE</b> — "Course Demand" is only a CodeBegun label.</div></div>
+  </div>
+
+  <h2 class="sec" id="s17"><span class="n">17</span> Appointment Engine</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> Generic; types are config. CodeBegun: ONLINE_DEMO, CAMPUS_VISIT, COUNSELLING, PARENT_COUNSELLING. Real-estate: SITE_VISIT. Healthcare: CONSULTATION.</p>
+  <div class="kv">appointments: id tenant_id lead_id appointment_type_id assigned_to
+  scheduled_start scheduled_end status location meeting_url outcome_id created_by …
+status: SCHEDULED|CONFIRMED|ATTENDED|NO_SHOW|RESCHEDULED|CANCELLED|COMPLETED
+→ emits appointment.scheduled/completed/no-show ; Next-Action rules react (e.g. COMPLETED with no follow-up → create task)</div>
+
+  <h2 class="sec" id="s18"><span class="n">18</span> Conversion Engine</h2>
+  <p class="lead"><span class="badge b-replace">REPLACE</span> the two disconnected paths with one generic conversion. LMS onboarding happens <b>after</b> conversion, via a connector, only if the capability is enabled.</p>
+  <div class="kv">conversions: id tenant_id lead_id conversion_type status catalog_item_id?
+  converted_value? currency? converted_by converted_at metadata
+CodeBegun label = "Enrollment". Emits conversion.completed.v1.
+Handler: capability LMS_ONBOARDING enabled? → CodeBegunLmsConnector ; else → no-op (RealEstate has none).</div>
+  <div class="win">Core conversion logic is identical for every tenant; only the <b>post-conversion event handler</b> differs, gated by capability. No <code>if student</code>, no LMS coupling.</div>
+
+  <h2 class="sec" id="s19"><span class="n">19</span> Automation Engine</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> Rule-based (no visual builder in Phase 1, but modelled so one can be added). Every external action is <b>capability-checked</b>, with a fallback.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">automation_definitions: id tenant_id name trigger_event
+  conditions JSONB actions JSONB status version …
+automation_runs: id tenant_id definition_id version trigger_event_id
+  entity_type entity_id status started_at completed_at failed_at error context JSONB</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Actions (capability-gated)</h3>
+      <div class="kv">CREATE_TASK CHANGE_STAGE SET_PRIORITY ASSIGN_LEAD
+RECORD_ACTIVITY SEND_WHATSAPP SEND_EMAIL START_VOICE_CALL
+SCHEDULE_APPOINTMENT_REMINDER ADD_REASON ADD_TO_SEGMENT NOTIFY_USER</div>
+      <div class="rule"><b>"Call hot lead in 10s"</b> needs <code>VOICE_CALL</code>. Capability present → provider; absent → fallback <code>CREATE_TASK</code> (human call). Integration failure never breaks lead core; action marked SKIPPED/FAILED on the run.</div></div>
+  </div>
+</div></section>
+
+<!-- ============ PART D — CAPABILITIES & INTEGRATIONS ============ -->
+<section id="caps"><div class="wrap">
+  <div class="part-label">Part D · Capabilities &amp; integrations</div>
+  <h2 class="sec" id="s20"><span class="n">20</span> Capability Registry</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> The mandatory indirection: <b>MODULE needs CAPABILITY, provided by INTEGRATION.</b> Business logic asks "does this tenant have <code>VOICE_CALL</code>?" — never "does VoicePilot exist?".</p>
+  <div class="flow">
+ <b>MODULE</b> (CRM_CORE, AI_INSIGHTS, EDUCATION, REAL_ESTATE, ADMISSIONS)
+    │ needs
+    ▼
+ <b>CAPABILITY</b> (VOICE_CALL, AI_CALL_ANALYSIS, TRANSCRIPTION, WHATSAPP, SMS, EMAIL,
+             PAYMENT, LMS_ONBOARDING, STUDENT_SYNC, BATCH_SYNC, LEARNING_SUMMARY,
+             CALENDAR_BOOKING, AI_ANALYSIS, FILE_STORAGE)
+    │ provided by
+    ▼
+ <b>INTEGRATION</b> (VOICEPILOT, META_WHATSAPP, RAZORPAY, GOOGLE_CALENDAR, CODEBEGUN_LMS,
+              OPENAI, ANTHROPIC, LOCAL_STORAGE …)</div>
+  <div class="kv">capabilities(id, key, description)
+integrations(id, tenant_id, provider, status, config_encrypted, …)
+integration_capabilities(integration_id, capability_id, enabled)
+// resolve: capabilityAvailable(tenant, 'VOICE_CALL') = any enabled integration providing it</div>
+
+  <h2 class="sec" id="s21"><span class="n">21</span> Integration Registry</h2>
+  <p class="lead"><span class="badge b-modify">MODIFY</span> today's ad-hoc integrations into first-class registry entries with status, capabilities, logs, and encrypted secrets.</p>
+  <div class="scroll"><table><thead><tr><th>Integration</th><th>Category</th><th>Capabilities provided</th><th>Disposition</th></tr></thead><tbody>
+    <tr><td>VoicePilot</td><td>Internal Savas · Voice</td><td><span class="pill cap">VOICE_CALL</span> <span class="pill cap">AI_CALL_ANALYSIS</span> <span class="pill cap">TRANSCRIPTION</span></td><td><span class="badge b-new">NEW</span> adapter (wraps Exotel-era logic)</td></tr>
+    <tr><td>CodeBegun LMS</td><td>Internal Savas</td><td><span class="pill cap">LMS_ONBOARDING</span> <span class="pill cap">STUDENT_SYNC</span> <span class="pill cap">BATCH_SYNC</span> <span class="pill cap">LEARNING_SUMMARY</span></td><td><span class="badge b-replace">REPLACE</span> direct coupling</td></tr>
+    <tr><td>Meta WhatsApp</td><td>Communication</td><td><span class="pill cap">WHATSAPP</span></td><td><span class="badge b-modify">MODIFY</span> (fail-closed webhook, HSM templates, opt-out)</td></tr>
+    <tr><td>Meta Lead Ads / Google Ads / Sheets / Webhook</td><td>Lead sources</td><td>(inbound leads)</td><td><span class="badge b-modify">MODIFY</span> (signed, fail-closed)</td></tr>
+    <tr><td>Razorpay / Stripe / Custom</td><td>Payments</td><td><span class="pill cap">PAYMENT</span></td><td><span class="badge b-new">NEW</span> adapter</td></tr>
+    <tr><td>Google / Microsoft Calendar</td><td>Productivity</td><td><span class="pill cap">CALENDAR_BOOKING</span></td><td><span class="badge b-new">NEW</span></td></tr>
+    <tr><td>OpenAI / Anthropic / Gemini</td><td>AI</td><td><span class="pill cap">AI_ANALYSIS</span></td><td><span class="badge b-modify">MODIFY</span> (reuse gateway idea)</td></tr>
+    <tr><td>Local Storage</td><td>Storage</td><td><span class="pill cap">FILE_STORAGE</span></td><td><span class="badge b-new">NEW</span> (§25)</td></tr>
+  </tbody></table></div>
+
+  <h2 class="sec" id="s22"><span class="n">22</span> Provider Adapter Interfaces</h2>
+  <div class="kv">interface VoiceProvider     { startCall(req): CallRef; capabilities(): Capability[] }
+interface MessagingProvider { sendWhatsApp(req); }        interface EmailProvider  { send(req); }
+interface SmsProvider       { send(req); }                interface PaymentProvider{ createLink(req); verify(webhook); }
+interface CalendarProvider  { book(req); }                interface AIProvider     { complete(req); analyzeCall(req); }
+interface LmsConnector      { onboard(ref); studentSync(); batchSync(); learningSummary(id); }
+interface FileStorageProvider { put(key, stream); get(key); url(key); delete(key); }
+interface LeadSourceProvider  { verify(webhook); normalize(payload): LeadDraft; }
+// Every adapter registers the capabilities it provides. Core imports the INTERFACE, never the impl.</div>
+  <div class="rule"><b>Hard rule:</b> <code>LeadService</code> must not <code>import VoicePilotAdapter</code>. It resolves a <code>VoiceProvider</code> from the capability registry (or gets none → fallback).</div>
+
+  <h2 class="sec" id="s23"><span class="n">23</span> CodeBegun LMS Integration</h2>
+  <p class="lead"><span class="badge b-replace">REPLACE</span> the current direct <code>User(STUDENT)</code> creation. CRM <b>never</b> queries or writes the LMS Mongo DB. It calls <code>CodeBegunLmsConnector</code> over an API/event boundary.</p>
+  <div class="flow">
+ conversion.completed.v1
+   → capability LMS_ONBOARDING enabled for tenant?
+        NO  → nothing (RealEstate etc.)
+        YES → <b>CodeBegunLmsConnector.onboard({ leadId, name, phone, catalogItem, ... })</b>
+              → LMS returns { studentId }
+              → external_system_links: LEAD/CONVERSION → CODEBEGUN_LMS → studentId
+              → Activity Ledger: LMS_ONBOARDING_COMPLETED (PROVIDER_VERIFIED)</div>
+  <div class="kv">external_system_links: id tenant_id entity_type entity_id integration_id
+  external_entity_type external_entity_id metadata created_at
+// Do NOT duplicate LMS learning data. Optional LMS-summary read model only (name, batch, progress %).</div>
+
+  <h2 class="sec" id="s24"><span class="n">24</span> VoicePilot Integration</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> boundary. CRM knows nothing about Exotel/STT/TTS/models. VoicePilot owns telephony, recording, transcription, AI analysis and publishes events; CRM consumes them into the ledger.</p>
+  <div class="flow">
+ lead.created.v1 → Automation → rule matched → needs VOICE_CALL
+   → capability present? YES → VoicePilotAdapter.startCall(...)
+                          NO  → fallback CREATE_TASK (human call)
+ VoicePilot publishes: voice.call.started/completed/failed/analysis.completed.v1
+   → CRM records CALL_STARTED / CALL_COMPLETED / CALL_ANALYSIS (PROVIDER_VERIFIED) in the ledger
+ If VoicePilot disabled → lead creation NEVER fails; human call task instead.</div>
+
+  <h2 class="sec" id="s25"><span class="n">25</span> Local File Storage</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> All file access behind <code>FileStorageProvider</code>. Phase-1 impl = <code>LocalFileStorageProvider</code>. No S3 now; no local-FS logic leaking into modules. Binaries never in Postgres.</p>
+  <div class="grid2">
+    <div class="card"><div class="kv">FILE_STORAGE_DRIVER=local
+FILE_STORAGE_PATH=/data/uploads   (dev: ./storage/uploads ; prod: mounted volume)
+future: S3FileStorageProvider | AzureBlob | GCS (same interface)</div></div>
+    <div class="card"><div class="kv">files: id tenant_id original_name stored_name mime_type
+  size_bytes storage_provider storage_key checksum created_by created_at</div></div>
+  </div>
+</div></section>
+
+<!-- ============ PART E — SCREENS / IA ============ -->
+<section id="ia"><div class="wrap">
+  <div class="part-label">Part E · Screens &amp; information architecture</div>
+  <h2 class="sec" id="s26"><span class="n">26</span> Settings Information Architecture</h2>
+  <p class="lead"><span class="badge b-modify">MODIFY</span> the current 17-item Lead sidebar sprawl into ONE Settings section. Main nav stays operational.</p>
+  <div class="grid3">
+    <div class="card"><b>General</b><ul class="clean"><li>Organization · Users &amp; Teams · Roles &amp; Permissions</li></ul>
+      <b>CRM Configuration</b><ul class="clean"><li>Pipeline · Lead Sources · Assignment · Scoring &amp; Priority · SLA</li><li>Activities · Outcomes · Reason Taxonomy · Qualification</li><li>Custom Fields · Catalog · Appointment Types · Task Types · Terminology</li></ul></div>
+    <div class="card"><b>Automation</b><ul class="clean"><li>Rules · Notifications · Templates</li></ul>
+      <b>Integrations</b><ul class="clean"><li>All · Communication · Lead Sources · Payments · Calendars</li><li>AI Providers · Internal Savas Products · Storage</li></ul></div>
+    <div class="card"><b>Data</b><ul class="clean"><li>Import · Export · Migration · Data Quality · Duplicate Rules</li></ul>
+      <b>Audit &amp; Security</b><ul class="clean"><li>Audit Logs · Integration Logs · API Keys · Webhook Logs</li></ul></div>
+  </div>
+  <div class="note"><b>Integration card</b> shows: logo · name · category · description · status (NOT_CONNECTED/CONNECTED/ERROR/DISABLED) · capabilities provided · last sync · last error · actions [Configure · Test · Disable · Reconnect · View Logs]. Per-provider config page masks secrets (<code>vp_live_••••x92a</code>), never returns full secret after save.</div>
+
+  <h2 class="sec" id="s27"><span class="n">27</span> Main CRM Navigation (operational, not config)</h2>
+  <div class="kv">Command Center · My Work · Leads · Pipeline · Follow-ups/Tasks · Appointments
+  · Conversations · Conversions · Team · Analytics · Settings</div>
+
+  <h2 class="sec" id="s28"><span class="n">28</span> Lead 360 Screen</h2>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Header + capability-driven quick actions</h3>
+      <div class="kv">Header: name phone email · stage priority score owner · source catalog · last activity next action
+Quick actions (config/capability-driven):
+  CALL → VOICE_CALL? provider : (LOG MANUAL CALL | CREATE CALL TASK)
+  WHATSAPP → only if WHATSAPP capability
+  EMAIL CREATE_TASK BOOK_APPOINTMENT CHANGE_STAGE RECORD_OUTCOME</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Sections</h3><ul class="clean">
+      <li>Summary · Intelligence · <b>Activity Timeline</b> (the one ledger) · Tasks · Appointments</li>
+      <li>Reasons/Objections · Conversations · Catalog/Demand · Conversion · External Systems</li>
+      <li><b>LMS Summary</b> — rendered only if LMS capability enabled; absent for non-LMS tenants.</li>
+    </ul></div>
+  </div>
+
+  <h2 class="sec" id="s29"><span class="n">29</span> My Work — Counsellor Work OS</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> The most-used daily screen. Loop: <b>Open → Work → Record outcome → Pick/create next action → Save &amp; Next</b> (immediately opens the next recommended lead — no return to a big table).</p>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Today's target + queues</h3><ul class="clean"><li>Calls completed · connected · qualified · appointments · conversions</li><li>Queues: CALL NOW · FOLLOW-UPS DUE · OVERDUE · HOT LEADS · AI/INTEGRATION HANDOFF · NO NEXT ACTION</li></ul></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Next Best Lead (rule-based, explained)</h3>
+      <div class="kv">Ravi Kumar — Work Priority 94
+Why now? HOT · created 4 min ago · WhatsApp replied
+  · no human call yet · SLA due in 6 min
+Factors (configurable weights): priority, score, age, SLA risk,
+  last-activity age, follow-up due, WA engagement, appointment intent,
+  previous call outcome, owner workload.</div>
+      <div class="rule">No black-box score — the explanation is <b>required</b>. Initially rule-based; no AI needed.</div></div>
+  </div>
+
+  <h2 class="sec" id="s30"><span class="n">30</span> Employee Activity Command Center</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> Solves Problem 2 — the manager's complete view of each CRM user. Actionable, not just charts.</p>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Per-user metrics (from the ledger + tasks)</h3><ul class="clean">
+      <li>Login time · leads assigned/worked/untouched</li><li>Calls attempted · <b>verified vs manual</b> · connected · no-answer · busy · wrong-number · avg duration</li>
+      <li>Follow-ups due/completed/missed/overdue · qualified · appointments booked/completed · conversions</li>
+      <li>Leads with no next action · hot leads not contacted · no activity 24h+ · appointments completed without follow-up</li></ul></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Actionable warnings</h3>
+      <div class="kv">⚠ 13 follow-ups missed
+⚠ 5 HOT leads not contacted
+⚠ 3 leads no activity 24h+
+⚠ 8 qualified leads no next action
+⚠ 2 appointments completed with no post-appointment follow-up</div>
+      <div class="note" style="margin-top:8px">Each warning links to the exact list to act on. Powered by deterministic queries over ledger/tasks (verification level distinguishes real vs manual).</div></div>
+  </div>
+
+  <h2 class="sec" id="s31"><span class="n">31</span> Command Center (owner/manager)</h2>
+  <div class="grid2">
+    <div class="card"><h3 class="sub" style="margin-top:0">Actionable insights (deterministic SQL)</h3>
+      <div class="kv">32 HOT leads not called · 18 follow-ups overdue
+7 appointments completed, no follow-up · 12 conversion actions pending
+24 AI calls need human takeover</div></div>
+    <div class="card"><h3 class="sub" style="margin-top:0">Funnel + rates + intelligence</h3><ul class="clean">
+      <li>Funnel: New→Contacted→Connected→Qualified→Engagement→Decision→Converted</li>
+      <li>Response time · contact rate · qualification rate · appointment rate · conversion rate</li>
+      <li>Why leads are lost · top objections · unmet demand · employee problems · source performance</li>
+      <li>AI only <b>explains/summarizes</b> — the numbers are deterministic.</li></ul></div>
+  </div>
+
+  <h2 class="sec" id="s32"><span class="n">32</span> Analytics Projections</h2>
+  <p class="lead"><span class="badge b-new">NEW</span> Don't compute dashboards from transactional tables per page-load. Event-driven projections into daily metric tables / materialized views.</p>
+  <div class="kv">daily_owner_metrics · daily_source_metrics · daily_stage_metrics
+daily_reason_metrics · daily_demand_gap_metrics · daily_sla_metrics
+Reports: lead volume · source perf · response time · stage conversion · owner perf
+  · activity accountability · task completion · SLA breach · appointment conversion
+  · objection · lost-reason · demand-gap · conversion · revenue/value
+Projectors run in crm-worker, fed by domain events (idempotent upserts by (tenant, day, dimension)).</div>
+</div></section>
+
+<!-- ============ PART F — API / EVENTS / OUTBOX / QUEUES ============ -->
+<section id="api"><div class="wrap">
+  <div class="part-label">Part F · API, events, async</div>
+  <h2 class="sec" id="s33"><span class="n">33</span> API Route Map (<code>/api/v1</code>, DTOs, OpenAPI)</h2>
+  <div class="kv">/leads  /leads/:id/activities  /leads/:id/tasks  /leads/:id/appointments
+/leads/:id/reasons  /leads/:id/catalog-requests  /leads/:id/conversions
+/my-work  /my-work/next-best  /team/activity  /analytics/*
+/settings/pipelines  /settings/reasons  /settings/custom-fields  /settings/catalog
+/settings/integrations  /settings/integrations/:id  /settings/integrations/:id/test
+  /settings/integrations/:id/logs
+Thin controllers → application services. DTOs only (no schema leakage). Zod/Nest validation. Swagger/OpenAPI generated.</div>
+
+  <h2 class="sec" id="s34"><span class="n">34</span> Event Catalog (versioned)</h2>
+  <div class="scroll"><table><thead><tr><th>Event</th><th>Producer</th><th>Key consumers</th></tr></thead><tbody>
+    <tr><td class="mono-cell">lead.created.v1 · lead.updated.v1 · lead.scored.v1 · lead.assigned.v1 · lead.stage.changed.v1</td><td>leads/scoring/assignments</td><td>activities, automation, analytics</td></tr>
+    <tr><td class="mono-cell">activity.recorded.v1</td><td>activities</td><td>analytics, notifications</td></tr>
+    <tr><td class="mono-cell">task.created/due/completed/missed.v1</td><td>tasks + scheduler</td><td>activities, analytics, notifications</td></tr>
+    <tr><td class="mono-cell">appointment.scheduled/completed/no-show.v1</td><td>appointments</td><td>next-action, activities, analytics</td></tr>
+    <tr><td class="mono-cell">lead.lost.v1 · demand.gap.recorded.v1 · conversion.completed.v1</td><td>leads/demand/conversions</td><td>analytics, lms connector (gated)</td></tr>
+    <tr><td class="mono-cell">integration.connected/failed.v1 · voice.call.started/completed/failed/analysis.completed.v1</td><td>integrations/adapters</td><td>activities, automation, alerts</td></tr>
+  </tbody></table></div>
+  <div class="note">All payloads live in <code>packages/event-contracts</code>, suffixed <code>.v1</code>; new fields are additive; breaking changes bump to <code>.v2</code> with both handled during transition.</div>
+
+  <h2 class="sec" id="s35"><span class="n">35</span> Transactional Outbox</h2>
+  <div class="flow">
+ Application service (e.g. createLead):
+   BEGIN
+     INSERT lead
+     INSERT lead_ownership_history        (same tx)
+     INSERT outbox_events (type='lead.created.v1', payload, tenant_id, status='PENDING')
+   COMMIT                                  ← lead + event are atomic; no lost events, no dual-write
+ Outbox dispatcher (crm-worker): poll PENDING (FOR UPDATE SKIP LOCKED) → publish to BullMQ → mark SENT
+   retries with backoff; DLQ after N; idempotent consumers.</div>
+  <div class="kv">outbox_events: id tenant_id aggregate_type aggregate_id event_type payload JSONB
+  status(PENDING|SENT|FAILED) attempts available_at created_at sent_at</div>
+
+  <h2 class="sec" id="s36"><span class="n">36</span> Redis / BullMQ Queues</h2>
+  <div class="scroll"><table><thead><tr><th>Queue</th><th>Producer</th><th>Worker job</th></tr></thead><tbody>
+    <tr><td class="mono-cell">domain-events</td><td>outbox dispatcher</td><td>fan-out to activity/automation/analytics handlers</td></tr>
+    <tr><td class="mono-cell">automation-runs</td><td>automation module</td><td>evaluate conditions → capability-gated actions</td></tr>
+    <tr><td class="mono-cell">scheduler</td><td>repeatable (cron-like)</td><td>task due/overdue/missed sweep · SLA breach · daily summary</td></tr>
+    <tr><td class="mono-cell">provider-actions</td><td>automation/adapters</td><td>voice call · whatsapp · email · payment link (retry/backoff)</td></tr>
+    <tr><td class="mono-cell">webhooks-inbound</td><td>api webhook endpoint</td><td>verify signature → normalize → record (idempotent)</td></tr>
+    <tr><td class="mono-cell">projections</td><td>domain-events</td><td>upsert daily_*_metrics</td></tr>
+  </tbody></table></div>
+  <div class="note">Schedulers live in the <b>worker</b> (BullMQ repeatable jobs), not <code>setInterval</code> on the API — fixing the audit's "in-process, single-instance" scheduler risk. Horizontal scale: workers are stateless; Socket.IO uses a Redis adapter.</div>
+</div></section>
+
+<!-- ============ PART G — TENANCY / SECURITY / PERMISSIONS ============ -->
+<section id="tenancy"><div class="wrap">
+  <div class="part-label">Part G · Multi-tenancy, security, permissions</div>
+  <h2 class="sec" id="s37"><span class="n">37</span> Multi-Tenant Design</h2>
+  <div class="kv">Shared DB + shared schema; every tenant-owned table has tenant_id (indexed, part of composite keys).
+Tenant context from AUTH, never from a client-supplied tenantId:
+  Auth → TenantContextGuard (resolves membership) → Application Service → Repository (auto-scopes tenant_id)
+Defence-in-depth: evaluate Postgres RLS policies on tenant_id. Tenant config/terminology isolated per tenant.</div>
+  <div class="risk"><b>Fixes audit gaps:</b> current system trusts <code>X-Tenant-Id</code> in places and has cross-tenant reachable routes. Here tenant is derived from the authenticated membership; repositories refuse cross-tenant reads/writes.</div>
+
+  <h2 class="sec" id="sec-security"><span class="n">—</span> Security (webhooks, secrets, passwords)</h2>
+  <div class="grid2">
+    <div class="card"><div class="kv">webhook_events: id tenant_id integration_id provider event_type
+  external_event_id verification_status received_at processed_at status payload JSONB error
+UNIQUE(integration_id, external_event_id)  // idempotent, no replay
+Every provider that supports signatures → verified, FAIL CLOSED.
+No unsigned provider webhooks accepted.</div></div>
+    <div class="card"><ul class="clean">
+      <li>Integration secrets: <b>application-level encryption</b> at rest; masked to UI; never a hardcoded fallback (fixes current <code>'secret-key'</code> / plaintext Exotel creds).</li>
+      <li><b>No weak default passwords</b> (<code>Welcome@123</code> removed) — conversion/onboarding sets a reset flow.</li>
+      <li>API keys + webhook logs are first-class settings screens.</li>
+    </ul></div>
+  </div>
+
+  <h2 class="sec" id="s38"><span class="n">38</span> Permission Model &amp; Platform Identity</h2>
+  <p class="lead">Shared platform identity so CodeBegun users aren't duplicated across CRM &amp; LMS.</p>
+  <div class="flow">
+ <b>platform_users</b> ── memberships ──► <b>tenants</b>
+        │ product_access: {CRM: yes, LMS: yes}
+        ▼
+ per-product roles: Swathi → CRM=Counsellor, LMS=Staff
+ roles → permissions (crm.lead.view/create/edit/assign/convert, crm.settings.manage,
+   crm.analytics.view, crm.integration.manage …) — enforced on ROUTES (not just menus).
+ Data scope: ALL | TEAM | OWN (ported from leadScope, now enforced consistently).</div>
+  <div class="note"><b>Transition:</b> Phase-1 integrates existing CodeBegun auth via an <b>adapter</b> (verify the LMS JWT, map to platform_user + membership) — no full auth rewrite required to start. Documented migration to shared identity over time.</div>
+</div></section>
+
+<!-- ============ PART H — MIGRATION ============ -->
+<section id="migration"><div class="wrap">
+  <div class="part-label">Part H · Existing data migration</div>
+  <h2 class="sec" id="s39"><span class="n">39</span> Data Migration Plan</h2>
+  <p class="lead">Do not delete or mutate the live Mongo collections. <code>LegacyCodeBegunCrmAdapter</code> reads Mongo → normalizes → writes PostgreSQL, in batches, with reconciliation. Every migrated event → <code>verification_type=MIGRATED</code>.</p>
+  <div class="flow">
+ Sources: Lead · LeadStageHistory · Lead.activities[] · AuditLog · FollowUpReminder
+          · SeatReservation · convertedStudentId
+   → <b>Migration Event Normalizer</b> (dedupe overlapping histories)
+   → <b>Unified Activity Ledger</b>  (each keeps source_system, source_model, source_record_id, migration_batch_id)
+ Batches: 100 → 1,000 → 10,000 → full. Reconciliation report per batch. Errors are surfaced, never silently skipped.</div>
+  <div class="kv">Preserve: Lead · Source · Owner · Priority · Qualification · Follow-ups → Tasks
+  · Seat Reservation · Converted Student refs · Activities · Stage History · Audit Logs
+Reconciliation: source vs migrated leads · duplicates · failed · source vs migrated activities
+  · dedup events · follow-ups→tasks · conversion reconciliation</div>
+
+  <h2 class="sec" id="s40"><span class="n">40</span> Complete 21 Old Stage → New (Stage + Activity) Mapping</h2>
+  <p class="lead">The core insight: <b>most old "stages" are not stages</b> — they are activities, tasks, appointments, or outcomes. Mapping (old category in brackets):</p>
+  <div class="scroll"><table><thead><tr><th>#</th><th>Old stage</th><th>New Stage</th><th>+ Activity / Task / Outcome</th></tr></thead><tbody>
+    <tr><td>0</td><td>New Lead <span style="color:#697894">[new]</span></td><td>NEW</td><td><span class="pill evt">LEAD_CREATED</span></td></tr>
+    <tr><td>1</td><td>Auto WhatsApp Sent <span style="color:#697894">[new]</span></td><td>NEW</td><td><span class="pill evt">WHATSAPP_SENT</span> (not a stage)</td></tr>
+    <tr><td>2</td><td>WhatsApp Replied <span style="color:#697894">[new]</span></td><td>CONTACTING</td><td><span class="pill evt">WHATSAPP_REPLIED</span> (PROVIDER_VERIFIED) → score bump</td></tr>
+    <tr><td>3</td><td>Priority Evaluated <span style="color:#697894">[engaging]</span></td><td>NEW (unchanged)</td><td><span class="pill evt">lead.scored</span> SYSTEM event — not a stage</td></tr>
+    <tr><td>4</td><td>Assigned <span style="color:#697894">[engaging]</span></td><td>(unchanged)</td><td><span class="pill evt">LEAD_ASSIGNED</span> + ownership_history — not a stage</td></tr>
+    <tr><td>5</td><td>First Call Pending <span style="color:#697894">[engaging]</span></td><td>CONTACTING</td><td>Task CALL (OPEN) — not a stage</td></tr>
+    <tr><td>6</td><td>First Call Attempted <span style="color:#697894">[engaging]</span></td><td>CONTACTING</td><td><span class="pill evt">CALL_ATTEMPTED / CALL_NO_ANSWER</span></td></tr>
+    <tr><td>7</td><td>Connected <span style="color:#697894">[engaging]</span></td><td>CONNECTED</td><td><span class="pill evt">CALL_CONNECTED</span></td></tr>
+    <tr><td>8</td><td>Qualified <span style="color:#697894">[qualified]</span></td><td>QUALIFIED</td><td>outcome INTERESTED; requires_note preserved</td></tr>
+    <tr><td>9</td><td>Follow-up Scheduled <span style="color:#697894">[qualified]</span></td><td>(unchanged)</td><td>Task FOLLOWUP — not a stage</td></tr>
+    <tr><td>10</td><td>Online Meeting Set <span style="color:#697894">[qualified]</span></td><td>ENGAGEMENT (Demo/Visit)</td><td>Appointment ONLINE_DEMO (SCHEDULED)</td></tr>
+    <tr><td>11</td><td>Campus Visit Set <span style="color:#697894">[qualified]</span></td><td>ENGAGEMENT</td><td>Appointment CAMPUS_VISIT (SCHEDULED)</td></tr>
+    <tr><td>12</td><td>Demo Completed <span style="color:#697894">[qualified]</span></td><td>ENGAGEMENT→DECISION</td><td>Appointment COMPLETED</td></tr>
+    <tr><td>13</td><td>Payment Link Sent <span style="color:#697894">[negotiation]</span></td><td>PAYMENT</td><td><span class="pill evt">PAYMENT_LINK_SENT</span> (not a stage)</td></tr>
+    <tr><td>14</td><td>Seat Reserved <span style="color:#697894">[negotiation]</span></td><td>PAYMENT</td><td>Conversion(status=pending)/PAYMENT activity; see §41</td></tr>
+    <tr><td>15</td><td>Demo Student <span style="color:#697894">[negotiation]</span></td><td>DECISION</td><td>Conversion type=PREVIEW/TRIAL (metadata) — review</td></tr>
+    <tr><td>16</td><td>Enrolled Student <span style="color:#697894">[converted]</span></td><td>CONVERTED (final)</td><td>Conversion COMPLETED (type=ENROLLMENT) → LMS link</td></tr>
+    <tr><td>17</td><td>No Response <span style="color:#697894">[lost]</span></td><td>LOST (final)</td><td>lost_reason NO_RESPONSE (candidate for demand/dormant pool)</td></tr>
+    <tr><td>18</td><td>Not Interested <span style="color:#697894">[lost]</span></td><td>LOST</td><td>lost_reason via taxonomy (needs sub-reason — see §46)</td></tr>
+    <tr><td>19</td><td>Lost to Competitor <span style="color:#697894">[lost]</span></td><td>LOST</td><td>lost_reason JOINED_COMPETITOR (COMPETITOR)</td></tr>
+    <tr><td>20</td><td>Wrong Number <span style="color:#697894">[lost]</span></td><td>DISQUALIFIED (lost)</td><td>disqualification_reason WRONG_NUMBER (LEAD_QUALITY)</td></tr>
+  </tbody></table></div>
+
+  <h2 class="sec" id="s41"><span class="n">41</span> Conversion Reconciliation</h2>
+  <p class="lead">The audit found two disconnected sources: <code>Lead.convertedStudentId</code> and <code>SeatReservation.studentId</code>. Migration must reconcile.</p>
+  <div class="scroll"><table><thead><tr><th>Situation</th><th>Inference</th><th>Confidence</th></tr></thead><tbody>
+    <tr><td><code>convertedStudentId</code> null; SeatReservation exists, status=enrolled</td><td>Conversion COMPLETED; source = LEGACY_SEAT_RESERVATION</td><td><span class="badge b-keep">HIGH</span></td></tr>
+    <tr><td><code>convertedStudentId</code> set; verified student relation</td><td>Conversion COMPLETED; source = LEGACY_CONVERTED_ID</td><td><span class="badge b-keep">HIGH</span></td></tr>
+    <tr><td>Stage=Seat Reserved; no SeatReservation; no <code>convertedStudentId</code></td><td>Cannot infer conversion</td><td><span class="badge b-remove">REVIEW_REQUIRED</span></td></tr>
+    <tr><td>Both present but point to different students</td><td>Conflict</td><td><span class="badge b-remove">REVIEW_REQUIRED</span></td></tr>
+  </tbody></table></div>
+
+  <h2 class="sec" id="s42"><span class="n">42</span> Migration Confidence Strategy</h2>
+  <div class="kv">Confidence = HIGH  when: tenant mapped · user mapped · stage mapped · activities reconciled · student relation verified
+Confidence = MEDIUM when: minor gaps (e.g. owner mapped by email, few unmatched activities)
+Confidence = REVIEW_REQUIRED when: ambiguous stage/conversion, unmapped owner, conflicting refs
+→ Migration Review Queue (human resolves) ; nothing auto-guessed silently.</div>
+</div></section>
+
+<!-- ============ PART I — ACCEPTANCE USE CASES ============ -->
+<section id="accept"><div class="wrap">
+  <div class="part-label">Part I · Acceptance — all four proven end-to-end</div>
+  <h2 class="sec"><span class="n">UC1</span> Hot Meta lead → VoicePilot → human → appointment → conversion → LMS</h2>
+  <div class="flow">
+ Meta webhook (SIGNED, fail-closed) → webhooks-inbound → normalize → dedupe → <b>lead.created.v1</b> (outbox)
+ → scoring → HOT → automation "call hot lead": needs VOICE_CALL ✓ → VoicePilotAdapter.startCall
+ → voice.call.started/completed + analysis.completed → ledger (PROVIDER_VERIFIED) · qualification captured
+ → Assignment engine → counsellor · Task "Human takeover" created
+ → counsellor calls → records outcome → books Appointment (Demo) → COMPLETED → records objection (usage=OBJECTION)
+ → Next-Action rule creates task → lead converts → <b>conversion.completed.v1</b>
+ → capability LMS_ONBOARDING ✓ → CodeBegunLmsConnector.onboard → studentId → external_system_links
+ → ledger: LMS_ACCOUNT_ACTIVATED.   <span class="g">No direct CRM→LMS DB access anywhere.</span></div>
+
+  <h2 class="sec"><span class="n">UC2</span> No answer → follow-up → WhatsApp re-engagement (VoicePilot on OR off)</h2>
+  <div class="flow">
+ Lead created → (VoicePilot ON: call → NO_ANSWER) / (VoicePilot OFF: <b>fallback CREATE_TASK</b> human call)
+ → stays CONTACTING → activity recorded → Task created → due → OVERDUE → MISSED (worker, persisted)
+ → manager sees it (Employee Center). If WHATSAPP capability: automation sends configured message
+ → lead replies → WHATSAPP_REPLIED (PROVIDER_VERIFIED) → re-score → HOT → "human takeover" task → counsellor works.
+ <span class="g">Works identically whether VoicePilot is enabled or not.</span></div>
+
+  <h2 class="sec"><span class="n">UC3</span> Course/product not available → demand gap</h2>
+  <div class="flow">
+ Lead asks DevOps → DevOps not in catalog → catalog_request(requested=DevOps, availability=NOT_AVAILABLE)
+ → lead intent=INTERESTED (not "not interested") → reason usage=DEMAND_GAP_REASON, reason=COURSE_NOT_AVAILABLE
+ → <b>demand.gap.recorded.v1</b> → lead joins demand_segment → analytics shows DevOps demand
+ Later: DevOps catalog item created → system finds prior DevOps demand leads → admin builds re-engagement segment.
+ <span class="g">Generic CATALOG/REQUESTED/AVAILABILITY — "DevOps" is never hardcoded.</span></div>
+
+  <h2 class="sec"><span class="n">UC4</span> Client without LMS and without VoicePilot (ABC Properties)</h2>
+  <div class="flow">
+ Modules: CRM_CORE on · LMS off · VoicePilot off · WhatsApp on
+ Website lead → score → assign → no VOICE_CALL capability → <b>Create Human Call Task</b>
+ → counsellor calls manually → records MANUAL activity → books Site Visit → outcome → DECISION
+ → converts to Booking → conversion.completed.v1 → no LMS capability → <b>no LMS action, no error</b>
+ <span class="g">No CodeBegun-specific UI; terminology = RealEstate template.</span></div>
+</div></section>
+
+<!-- ============ PART J — PHASES / RISKS / QUESTIONS ============ -->
+<section id="phases"><div class="wrap">
+  <div class="part-label">Part J · Delivery</div>
+  <h2 class="sec" id="s44"><span class="n">44</span> Implementation Phases</h2>
+  <div class="scroll"><table><thead><tr><th>Phase</th><th>Delivers</th></tr></thead><tbody>
+    <tr><td><b>0 Discovery</b></td><td>Read audit + code (done here). KEEP/MODIFY/… matrix (§43). No code.</td></tr>
+    <tr><td><b>1 Platform Foundation</b></td><td>NestJS API · Next.js web · Postgres · Prisma · Redis · BullMQ · tenant context · auth adapter · event contracts · <b>transactional outbox</b> · Activity Ledger foundation · LocalFileStorage.</td></tr>
+    <tr><td><b>2 CRM Core</b></td><td>Leads · pipelines · stages · activities · tasks · outcomes · reasons · catalog · custom fields · assignment · scoring · priority · Lead 360.</td></tr>
+    <tr><td><b>3 Daily Ops</b></td><td>My Work · Next Best Lead · Save &amp; Next · follow-up enforcement · SLA · Team Activity · accountability.</td></tr>
+    <tr><td><b>4 Configuration</b></td><td>Settings shell + all CRM config screens + terminology.</td></tr>
+    <tr><td><b>5 Integrations</b></td><td>Capability + integration registry · Integration Settings UI · VoicePilot adapter · LMS connector · Meta WhatsApp · Local storage · webhook framework · logs.</td></tr>
+    <tr><td><b>6 CodeBegun Template</b></td><td>Education terminology · pipeline · course catalog · demo/visit/parent appts · reasons · user mapping · LMS onboarding · VoicePilot automation.</td></tr>
+    <tr><td><b>7 Migration</b></td><td>Legacy adapter · stage mapping · activity normalization · follow-ups→tasks · user mapping · conversion reconciliation · reports · review queue.</td></tr>
+    <tr><td><b>8 Analytics</b></td><td>Command Center · Employee Activity · loss/objection/demand/source/funnel/SLA analytics.</td></tr>
+    <tr><td><b>9 Automation</b></td><td>Rule engine · triggers · conditions · actions · capability checks · fallbacks · re-engagement segments.</td></tr>
+  </tbody></table></div>
+
+  <h2 class="sec" id="s45"><span class="n">45</span> Risks</h2>
+  <ul class="clean">
+    <li><b>Dual-write during migration</b> — CodeBegun runs on both old (LMS Mongo) and new (Postgres) CRM for a while. Mitigation: one-way legacy→new sync + a cut-over date; new is source of truth post-cutover; freeze old writes.</li>
+    <li><b>Auth split</b> — bridging LMS JWT to platform identity. Mitigation: adapter first, shared identity later; never duplicate users.</li>
+    <li><b>VoicePilot boundary</b> — VoicePilot currently is Exotel-era code inside the LMS; extracting it into a callable service with published events is its own effort. Mitigation: adapter can wrap current endpoints initially.</li>
+    <li><b>Reason sub-taxonomy data loss</b> — old "Not Interested" has no sub-reason; migration can only set the category. Mitigation: mark MEDIUM confidence; capture sub-reason going forward.</li>
+    <li><b>Demand-gap backfill</b> — old leads never recorded catalog requests; demand analytics is forward-looking unless free-text notes are mined. Mitigation: optional NLP pass over legacy notes (later).</li>
+    <li><b>Scope</b> — 46 sections is a multi-quarter build. Mitigation: Phases 1–3 deliver a usable CRM; integrations/migration follow.</li>
+  </ul>
+
+  <h2 class="sec" id="s46"><span class="n">46</span> Open Questions (based only on code evidence)</h2>
+  <ul class="clean">
+    <li><b>"Demo Student" &amp; "Seat Reserved" semantics</b> — are these true conversions (preview enrolment) or negotiation states? Code treats them as [negotiation] stages; the Skill-Assessment funnel also creates preview enrolments. Which is canonical for the new Conversion model?</li>
+    <li><b>Canonical scoring/distribution config</b> — both <code>LeadScoringConfig</code> and <code>LeadDistributionConfig</code> run on create today. Which one reflects real ops, so the merged engine matches current behaviour?</li>
+    <li><b>"No Response" = lost or dormant?</b> Code marks it <code>isLostStage</code>, but it's often re-engageable. Should it map to LOST or to a dormant/demand pool?</li>
+    <li><b>VoicePilot ownership</b> — is VoicePilot a separately deployable Savas service already, or still Exotel logic embedded in the LMS? Determines whether §24 wraps endpoints or consumes real published events.</li>
+    <li><b>Tenants beyond CodeBegun</b> — is there a confirmed second tenant (e.g. a real-estate client) for launch, or is CodeBegun the sole tenant initially? Affects how much template work ships in Phase 6 vs later.</li>
+    <li><b>Existing auth source of truth</b> — should platform identity be seeded from the LMS user table, or is a fresh CRM user set acceptable with an SSO bridge? (No code change needed to decide; affects §38 migration.)</li>
+    <li><b>Payments</b> — current Razorpay lives in the LMS; should the new CRM own payment links/references, or continue delegating to the LMS/other product via a PAYMENT capability?</li>
+  </ul>
+</div></section>
+
+<footer><div class="wrap">
+  <b>Savas CRM — Product Architecture.</b> Grounded in the CodeBegun Lead Flow Audit (source of truth). No product code written — architecture spec for approval. Prepared 2026-07-14.<br/>
+  Legend: CURRENT / KEEP / MODIFY / MERGE / REPLACE / REMOVE / NEW. Continues with sections 11–46 above.
+</div></footer>
+</body>
+</html>

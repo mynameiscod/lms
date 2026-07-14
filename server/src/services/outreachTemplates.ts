@@ -38,6 +38,13 @@ const signerName = (sender: string) => {
 const SIGNATURE = (sender: string) =>
   `\n—\n${signerName(sender)}\nFounder — CodeBegun\n${LOCATION}\n📞 ${CONTACT_PHONE}  ·  ✉️ ${CONTACT_EMAIL}  ·  🌐 ${SITE}`;
 
+// Exposed so AI-generated copy can append the same fixed CodeBegun signature.
+export function outreachSignature(sender: string): string { return SIGNATURE(sender); }
+export function outreachSigner(sender: string): { full: string; short: string } {
+  const full = signerName(sender);
+  return { full, short: full === FOUNDER ? FOUNDER_SHORT : full.split(/\s+/).slice(0, 2).join(' ') };
+}
+
 // ── First intro (cold) email ──────────────────────────────────────────────────
 export function coldEmail(p: IPlacementPartner, senderName: string): Draft {
   const fn = firstName(p.contactName);

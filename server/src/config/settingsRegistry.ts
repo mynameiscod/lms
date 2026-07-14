@@ -113,6 +113,7 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'IMAP_HOST', label: 'IMAP Host', group: 'placement', type: 'text', placeholder: 'imap.gmail.com', help: 'IMAP server of the outreach mailbox. Leave blank for Gmail (defaults to imap.gmail.com).', perTenant: true },
   { key: 'IMAP_PORT', label: 'IMAP Port', group: 'placement', type: 'number', placeholder: '993', help: 'Usually 993 (implicit TLS).', perTenant: true },
   { key: 'APOLLO_API_KEY', label: 'Apollo.io API Key (contact enrichment)', group: 'placement', isSecret: true, type: 'password', placeholder: 'apollo api key', help: 'Apollo.io → Settings → Integrations → API. Powers "Add by Company" — enter a company and auto-find HR / decision-maker / CEO contacts to send outreach to. Leave blank to add contacts manually.', perTenant: true },
+  { key: 'PLACEMENT_AI_COPY', label: 'AI-write outreach emails', group: 'placement', type: 'select', options: ['true', 'false'], placeholder: 'true', help: 'When on, intro & follow-up emails are personalised per company by AI (Claude/OpenAI), falling back to the fixed template if AI is unavailable. Set false to always use the hand-written template.', perTenant: true },
 
   // ── AI Interview ─────────────────────────────────────────────────────────────
   { key: 'INTERVIEW_VOICE_PROVIDER', label: 'Interviewer Voice', group: 'interview', type: 'select', options: ['browser', 'elevenlabs'], placeholder: 'browser', help: 'browser = free robotic voice; elevenlabs = natural human voice (needs key below).', perTenant: true },

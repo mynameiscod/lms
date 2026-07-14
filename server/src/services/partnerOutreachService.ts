@@ -4,7 +4,8 @@ import PartnerOutreachMessage, { IPartnerOutreachMessage } from '../models/Partn
 import PartnerInboundMessage from '../models/PartnerInboundMessage';
 import { EmailService } from './emailService';
 import * as settings from './settingsService';
-import { coldEmail, vouchEmail, followupEmail, toHtml } from './outreachTemplates';
+import { vouchEmail } from './outreachTemplates';
+import { generateColdEmail, generateFollowup } from './outreachAIService';
 import { generateOnePager } from './candidateProfilePdf';
 import { createPartnerTask } from './partnerTaskService';
 import PartnerSuppression from '../models/PartnerSuppression';
@@ -44,7 +45,7 @@ export async function startSequence(partner: IPlacementPartner, userId: string):
   });
   if (open) return { ok: false, reason: 'Sequence already in progress' };
 
-  const draft = coldEmail(partner, senderName(tenantId));
+  const draft = await generateColdEmail(partner, senderName(tenantId));
   const missingName = !partner.contactName || !partner.contactName.trim();
 
   const message = await PartnerOutreachMessage.create({
@@ -234,7 +235,7 @@ async function scheduleNextFollowup(partner: IPlacementPartner, currentStep: num
   if (dup) return;
 
   const when = new Date(Date.now() + gapDays * 24 * 60 * 60 * 1000);
-  const draft = followupEmail(partner, nextStep, senderName(tid));
+  const draft = await generateFollowup(partner, nextStep, senderName(tid));
   await PartnerOutreachMessage.create({
     tenantId: partner.tenantId, partnerId: partner._id, companyName: partner.companyName,
     type: 'followup', status: 'queued', requiresApproval: false,

@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>CodeBegun — Lead Management System Audit</title>
+<style>
+  :root{
+    --bg:#f1f5f9; --card:#fff; --ink:#0f172a; --body:#475569; --muted:#64748b;
+    --line:#e2e8f0; --line2:#cbd5e1; --navy:#051D64; --accent:#4f46e5; --teal:#359AAD;
+    --good:#16a34a; --warn:#d97706; --poor:#dc2626; --crit:#7f1d1d; --miss:#94a3b8;
+    --poor-bg:#fee2e2; --warn-bg:#fef3c7; --good-bg:#dcfce7;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --mono:ui-monospace,"Cascadia Code","Source Code Pro",Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--body);font-family:var(--sans);font-size:15px;line-height:1.62;-webkit-font-smoothing:antialiased}
+  h1,h2,h3,h4{color:var(--ink);line-height:1.2;text-wrap:balance;margin:0}
+  a{color:var(--accent)}
+  code{font-family:var(--mono);font-size:.85em;background:#eef2f7;padding:1px 5px;border-radius:4px;color:#334155}
+  .wrap{max-width:1200px;margin:0 auto;padding:0 24px}
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  .topbar{position:sticky;top:0;z-index:60;background:rgba(5,29,100,.96);backdrop-filter:blur(8px);border-bottom:1px solid #0a2a86}
+  .topbar .wrap{display:flex;align-items:center;gap:16px;height:50px}
+  .topbar .brand{color:#fff;font-weight:700;font-size:14.5px;white-space:nowrap}
+  .topbar .brand span{color:#5eb3c7}
+  .topbar nav{display:flex;gap:1px;overflow-x:auto;margin-left:auto}
+  .topbar nav a{color:#c7d2fe;text-decoration:none;font-size:12px;padding:5px 8px;border-radius:5px;white-space:nowrap}
+  .topbar nav a:hover{background:#0a2a86;color:#fff}
+
+  .hero{background:linear-gradient(150deg,#051D64,#0a2a86 60%,#312e81);color:#e2e8f0;padding:52px 0 38px}
+  .hero .eyebrow{color:#93c5fd;font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12px}
+  .hero h1{color:#fff;font-size:38px;margin:10px 0 6px;letter-spacing:-.5px}
+  .hero p.sub{color:#c7d2fe;font-size:16px;max-width:820px;margin:0 0 26px}
+  .hero .meta{display:flex;flex-wrap:wrap;gap:8px 20px;color:#c7d2fe;font-size:13px}
+  .hero .meta b{color:#fff}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-top:26px}
+  .kpi{background:rgba(255,255,255,.05);border:1px solid rgba(148,163,184,.2);border-radius:11px;padding:14px 16px}
+  .kpi .n{font-size:26px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;line-height:1}
+  .kpi .l{color:#93c5fd;font-size:12px;margin-top:5px}
+
+  section{padding:46px 0;border-bottom:1px solid var(--line)}
+  section:nth-of-type(even){background:#fff}
+  .num{color:var(--teal);font-weight:800;font-variant-numeric:tabular-nums}
+  .sec-eyebrow{color:var(--accent);font-weight:700;letter-spacing:.1em;text-transform:uppercase;font-size:11.5px;margin-bottom:7px}
+  h2.sec{font-size:25px;letter-spacing:-.3px;margin-bottom:14px;display:flex;align-items:baseline;gap:10px}
+  h3.sub{font-size:16px;margin:22px 0 8px;color:var(--navy)}
+  .lead{color:var(--muted);max-width:900px;margin:0 0 18px}
+
+  .card{background:var(--card);border:1px solid var(--line);border-radius:11px;padding:18px 20px;margin:12px 0}
+  section:nth-of-type(even) .card{background:#f8fafc}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  @media(max-width:880px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  table{border-collapse:collapse;width:100%;font-size:13px}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;background:#f1f5f9}
+  tbody tr:hover{background:#f8fafc}
+  td .ref{font-family:var(--mono);font-size:11px;color:#64748b;white-space:nowrap}
+  .ok{color:var(--good);font-weight:700}.no{color:var(--poor);font-weight:700}.part{color:var(--warn);font-weight:700}
+  .yes-cell{background:#f0fdf4}.no-cell{background:#fef2f2}
+
+  .flow{background:#0b1220;color:#cbd5e1;border-radius:11px;padding:20px;font-family:var(--mono);font-size:12px;line-height:1.65;overflow-x:auto;white-space:pre;margin:12px 0}
+  .flow b{color:#93c5fd}.flow .g{color:#4ade80}.flow .y{color:#fbbf24}.flow .r{color:#f87171}.flow .m{color:#c4b5fd}.flow .c{color:#67e8f9}
+
+  ul.clean{margin:8px 0;padding-left:20px}
+  ul.clean li{margin:5px 0}
+  .risk{border-left:3px solid var(--poor);background:var(--poor-bg);padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .risk b{color:#991b1b}
+  .warnbox{border-left:3px solid var(--warn);background:var(--warn-bg);padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .good{border-left:3px solid var(--good);background:var(--good-bg);padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .note{border-left:3px solid var(--teal);background:#e0f2fe;padding:11px 15px;border-radius:0 8px 8px 0;margin:9px 0}
+  .pill{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:700;white-space:nowrap}
+  .p-hi{background:#fee2e2;color:#b91c1c}.p-med{background:#fef3c7;color:#a16207}.p-lo{background:#dcfce7;color:#15803d}.p-info{background:#e0e7ff;color:#4338ca}
+  .filetag{font-family:var(--mono);font-size:11px;color:#475569;background:#eef2f7;padding:1px 6px;border-radius:4px}
+  .stage{display:inline-block;background:#fff;border:1px solid var(--line2);border-radius:7px;padding:5px 10px;margin:3px;font-size:12.5px;font-weight:600}
+  .stage.new{border-color:#93c5fd;background:#eff6ff}.stage.eng{border-color:#a5b4fc;background:#eef2ff}.stage.qual{border-color:#c4b5fd;background:#f5f3ff}.stage.neg{border-color:#fbbf24;background:#fffbeb}.stage.conv{border-color:#4ade80;background:#f0fdf4}.stage.lost{border-color:#fca5a5;background:#fef2f2}
+  footer{background:#051D64;color:#93c5fd;padding:30px 0;font-size:13px}
+  footer b{color:#e2e8f0}
+  .toc{columns:2;column-gap:28px}
+  @media(max-width:700px){.toc{columns:1}}
+  .toc a{display:block;padding:4px 0;font-size:14px;text-decoration:none;color:var(--body)}
+  .toc a:hover{color:var(--accent)}
+  .toc a b{color:var(--teal);font-variant-numeric:tabular-nums;display:inline-block;width:26px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="brand">Code<span>Begun</span> · Lead Flow Audit</div>
+    <nav>
+      <a href="#s1">Summary</a><a href="#s2">Architecture</a><a href="#s4">Deps</a>
+      <a href="#s5">Lifecycle</a><a href="#s6">ER</a><a href="#s7">APIs</a><a href="#s8">UI</a>
+      <a href="#s9">Journeys</a><a href="#s10">Rules</a><a href="#s11">Perms</a>
+      <a href="#s12">Automation</a><a href="#s13">Integrations</a><a href="#s14">Sequences</a>
+      <a href="#s15">Perf</a><a href="#s16">Security</a><a href="#s17">Missing</a><a href="#s18">Debt</a><a href="#s20">Unknowns</a>
+    </nav>
+  </div>
+</div>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Read-only System Audit · Documentation Only</div>
+    <h1>Lead Management System</h1>
+    <p class="sub">A complete, code-traced walkthrough of the current CodeBegun CRM / Lead flow — architecture, database, APIs, UI, lifecycle, automations, integrations, business rules and findings. <b style="color:#fff">No redesign, no refactor, no code changes</b> — every claim is referenced to real files and line numbers so a new engineer can understand the system without reading the whole codebase.</p>
+    <div class="meta">
+      <div>📅 <b>2026-07-14</b></div>
+      <div>🗄️ <b>20</b> lead models</div>
+      <div>🛣️ <b>91</b> endpoints</div>
+      <div>🔀 <b>21</b> lifecycle stages</div>
+      <div>🖥️ <b>23</b> screens</div>
+      <div>🔌 <b>5</b> integrations</div>
+      <div>⏱️ <b>5</b> schedulers</div>
+    </div>
+    <div class="kpis">
+      <div class="kpi"><div class="n">20</div><div class="l">Mongoose models</div></div>
+      <div class="kpi"><div class="n">91</div><div class="l">HTTP endpoints</div></div>
+      <div class="kpi"><div class="n">10</div><div class="l">Permission keys</div></div>
+      <div class="kpi"><div class="n">23</div><div class="l">React screens</div></div>
+      <div class="kpi"><div class="n">2,125</div><div class="l">Lines of detail (appendix)</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- 0. TOC -->
+<section id="toc">
+  <div class="wrap">
+    <div class="sec-eyebrow">Contents</div>
+    <h2 class="sec">20 sections</h2>
+    <div class="toc card">
+      <a href="#s1"><b>1</b> Executive Summary</a>
+      <a href="#s2"><b>2</b> System Architecture</a>
+      <a href="#s3"><b>3</b> Folder Structure</a>
+      <a href="#s4"><b>4</b> Module Dependency Graph</a>
+      <a href="#s5"><b>5</b> Lead Lifecycle</a>
+      <a href="#s6"><b>6</b> Database ER Diagram</a>
+      <a href="#s7"><b>7</b> API Documentation</a>
+      <a href="#s8"><b>8</b> UI Flow</a>
+      <a href="#s9"><b>9</b> User Journeys</a>
+      <a href="#s10"><b>10</b> Business Rules</a>
+      <a href="#s11"><b>11</b> Permission Matrix</a>
+      <a href="#s12"><b>12</b> Automation Flow</a>
+      <a href="#s13"><b>13</b> Integration Map</a>
+      <a href="#s14"><b>14</b> Sequence Diagrams</a>
+      <a href="#s15"><b>15</b> Performance Findings</a>
+      <a href="#s16"><b>16</b> Security Findings</a>
+      <a href="#s17"><b>17</b> Missing Features</a>
+      <a href="#s18"><b>18</b> Technical Debt</a>
+      <a href="#s19"><b>19</b> Improvement Opportunities</a>
+      <a href="#s20"><b>20</b> Questions / Unknowns</a>
+    </div>
+    <div class="note">Deep appendix: exhaustive per-model / per-endpoint / per-page tables live in <span class="filetag">docs/audit/lead-flow/01…06-*.md</span> (2,125 lines). This HTML is the navigable master with every diagram + the load-bearing detail.</div>
+  </div>
+</section>
+
+<!-- 1. EXECUTIVE SUMMARY -->
+<section id="s1">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 1</div>
+    <h2 class="sec">Executive Summary</h2>
+    <p class="lead">The Lead / CRM subsystem is the most feature-complete admin module in the platform — a configurable, multi-tenant pipeline covering intake (website, Meta, Google Ads, Google Sheets, manual/CSV), scoring, distribution, a 21-stage pipeline, follow-ups, qualification, seat-reservation/payment, WhatsApp nurture, AI voice calling, and analytics. It is <b>data-driven</b>: stages, sources, scoring, priority, distribution, forms and qualification are all per-tenant config documents, not hard-coded enums.</p>
+    <div class="grid2">
+      <div class="card">
+        <h3 class="sub" style="margin-top:0;color:var(--good)">Strengths</h3>
+        <ul class="clean">
+          <li>Rich, per-tenant configurable pipeline (21 seeded stages, category-based).</li>
+          <li>Multi-channel intake with a single <code>Lead</code> model + embedded activity log.</li>
+          <li>A real data-visibility layer (<span class="filetag">leadScope.ts</span>): ALL / TEAM / OWN.</li>
+          <li>Atomic round-robin counters; manager-approval gate on lost stages.</li>
+          <li>Encrypted Meta/WhatsApp creds (AES-256-CBC in <code>LeadSourceConfig</code>).</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="sub" style="margin-top:0;color:var(--poor)">The 5 things a new engineer must know</h3>
+        <ul class="clean">
+          <li><b>Two independent auto-assignment paths</b> both write <code>assignedTo</code> on create → last-writer-wins race (<span class="filetag">leadController.ts:456 &amp; 468</span>).</li>
+          <li><b>No top-level <code>status</code></b>: status is derived from <code>stageId → LeadStage.category</code>. Transitions are logged in <b>3 places that can diverge</b>.</li>
+          <li><b>Two disconnected conversion paths</b>: seat-reservation creates the Student but never touches the Lead; the lead-side convert targets a <code>"Converted"</code> stage that isn't seeded (silent no-op).</li>
+          <li><b>Multiple unverified / fail-open webhooks</b> (WhatsApp, Exotel, Meta, Google Ads).</li>
+          <li><b>Route gates are role-only</b>; fine permissions are enforced for menu visibility, not the routes.</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">Overall the module is <b>~72–88% complete depending on sub-area</b> (core CRM 88%, config 85%, distribution/scoring ~75%, WhatsApp automation ~50%, ads ~50%). The gaps are hardening (webhook auth, dedup, conversion wiring, tests) — not missing features.</div>
+  </div>
+</section>
+
+<!-- 2. ARCHITECTURE -->
+<section id="s2">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 2</div>
+    <h2 class="sec">System Architecture</h2>
+    <p class="lead">Classic layered Express/Mongoose backend + React/TS SPA. Multi-tenant via <code>tenantId</code> on every document. Auth chain on every protected route: <code>authMiddleware → tenantMiddleware/tenantResolver → roleGuard([perms])</code>, with a lead-specific data-scope layer.</p>
+    <div class="flow">
+<b>┌─────────────── EXTERNAL SOURCES ───────────────┐</b>
+  Website form   Meta Lead Ads   Google Ads   Google Sheet   WhatsApp Cloud   Exotel (voice)
+       │              │              │             │               │              │
+       ▼ (public)     ▼ webhook      ▼ webhook     ▼ poll 5m       ▼ webhook      ▼ webhook
+<b>┌──────────────────────────── EXPRESS API (server/src) ────────────────────────────┐</b>
+  routes/*  ──►  middleware: <span class="c">authMiddleware → tenantMiddleware → roleGuard → leadScope</span>
+     │                                        │
+     ▼                                        ▼
+  controllers/leadController.ts (2145 L)   controllers/{metaLeadAds,googleAds,whatsappWebhook,aiCallWebhook,seatReservation}
+     │                                        │
+     ▼                                        ▼
+  services/{leadScoring, leadDistribution, leadAI, whatsAppDrip, whatsAppWelcome,
+            googleSheetSync, exotel, aiCallQueue}      utils/{leadScope, partnerUnsub}
+     │
+     ▼
+<b>┌──────────── MongoDB (Mongoose) ────────────┐</b>   <b>┌──── Schedulers (in-process setInterval in server.ts) ────┐</b>
+  Lead + 19 config/support models                 followUpCron 5m · slaCron 30m · dailySummary 20:00
+                                                    · googleSheetSync 5m · aiCall BullMQ worker (Redis)
+<b>└─────────────────────────────────────────────┘</b>
+     ▲
+     │  REST /api/v1/*
+<b>┌──────────────── REACT SPA (client/src) ────────────────┐</b>
+  pages/Lead*  (23 screens)  ·  api/  ·  contexts (Auth/Tenant/Features)  ·  Sidebar "Leads" submenu
+    </div>
+    <div class="note">Realtime: Socket.io (in-process, single-instance, <b>no Redis adapter</b>) pushes hot-lead + assignment alerts. Everything except the AI-call queue is in-process — no external queue/worker tier for the core lead flow.</div>
+  </div>
+</section>
+
+<!-- 3. FOLDER STRUCTURE -->
+<section id="s3">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 3</div>
+    <h2 class="sec">Folder Structure (lead-relevant)</h2>
+    <div class="flow">
+server/src/
+  models/            <span class="c">Lead, LeadStage, LeadStageHistory, LeadDisposition, LeadSourceConfig,</span>
+                     <span class="c">LeadScoringConfig, LeadPriorityConfig, LeadDistributionConfig, LeadFormConfig,</span>
+                     <span class="c">LostReasonConfig, QualificationQuestionConfig, FollowUpReminder, SeatReservation,</span>
+                     <span class="c">GoogleSheetIntegration, AdCampaign, WhatsAppConversationState, WhatsAppDripConfig,</span>
+                     <span class="c">AICallConfig, SalesContent, SalesCallRecording</span>   (20 models)
+  routes/            leadRoutes, leadAIRoutes, leadDisposition/Distribution/Priority/Scoring/
+                     SourceConfig/StageHistory/Stage/FormConfig Routes, lostReasonRoutes,
+                     followUpRoutes, seatReservationRoutes, publicLeadRoutes,
+                     metaLeadAdsRoutes, googleAdsRoutes, googleSheetRoutes,
+                     whatsappRoutes, whatsappDripConfigRoutes, aiCallRoutes, salesContent/CallRecordingRoutes
+  controllers/       leadController (2145 L), publicLeadController, seatReservationController,
+                     metaLeadAdsController, googleAdsController, whatsappWebhookController,
+                     aiCallWebhookController, followUpController, + config controllers
+  services/          leadScoringService, leadDistributionService, leadAIService,
+                     whatsAppDripService, whatsAppWelcomeService, googleSheetSyncService,
+                     exotelService, aiCallQueueService, aiCallWorker
+  middleware/        auth, tenantMiddleware, tenantResolver, roleGuard, <b>leadScope</b>
+  jobs/              followUpCron, slaCron  (wired via setInterval in server.ts)
+client/src/
+  pages/             Leads, LeadKanban, LeadDetail, LeadAnalytics, LeadAging, LeadApprovals,
+                     LeadAuditLogs, LeadDistributionSettings, LeadDuplicates, LeadFormSettings,
+                     LeadManagerBoard, LeadMyPerformance, LeadPrioritySettings, LeadScoringSettings,
+                     LeadSources, LeadStages, FollowUpCalendar, SeatReservations, TeamActivity,
+                     QualificationSettings, GoogleSheetIntegration, AICallConfig, SalesContentLibrary
+    </div>
+  </div>
+</section>
+
+<!-- 4. DEPENDENCY GRAPH -->
+<section id="s4">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 4</div>
+    <h2 class="sec">Module Dependency Graph</h2>
+    <div class="flow">
+                         ┌──────────────────► <b>leadScoringService</b> ──► LeadScoringConfig ($inc round-robin)
+                         │                           │ writes assignedTo (<span class="r">race →</span>)
+  <b>leadController</b> ──────────┤                           ▼
+   (createLead hotspot)  ├──────────────────► <b>leadDistributionService</b> ──► LeadDistributionConfig
+                         │   (fire-and-forget)        │ writes assignedTo (<span class="r">race →</span>)
+                         ├──► <b>leadScope</b> (ALL/TEAM/OWN visibility)
+                         ├──► <b>whatsAppWelcomeService</b> ──► WhatsApp Cloud API
+                         ├──► <b>aiCallQueueService</b> ──► BullMQ/Redis ──► aiCallWorker ──► exotelService
+                         ├──► <b>leadAIService</b> ──► OpenAI (gpt-4-turbo-preview / gpt-4o-mini)
+                         ├──► LeadStageHistory + Lead.activities[] + AuditLog  (<span class="y">3 parallel logs</span>)
+                         └──► Socket.io (hot-lead / assignment alerts)
+
+  <b>Intake controllers</b> → leadController-style create:
+     publicLeadController · metaLeadAdsController · googleAdsController
+     whatsappWebhookController · googleSheetSyncService (poll)
+
+  <b>Config controllers</b> (CRUD only): leadStage, leadSourceConfig, leadScoringConfig,
+     leadPriorityConfig, leadDistributionConfig, leadFormConfig, lostReasonConfig,
+     qualificationQuestionConfig, leadDisposition
+    </div>
+    <div class="warnbox"><b>Dead / unwired:</b> <code>adCampaignController</code> (~490 L) has no route; <code>adScraperService</code> (Playwright, 699 L) is imported by nothing; WhatsApp drip-config endpoints exist with no UI. <span class="ref">confirmed by lifecycle + integrations passes</span></div>
+  </div>
+</section>
+
+<!-- 5. LIFECYCLE -->
+<section id="s5">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 5</div>
+    <h2 class="sec">Lead Lifecycle</h2>
+    <p class="lead">Stages are <b>per-tenant <code>LeadStage</code> documents</b>, not an enum. The seeded <code>DEFAULT_STAGES</code> (<span class="filetag">LeadStage.ts:198-231</span>) define 21 stages grouped into 6 categories. The <code>category</code> is what everything treats as "status".</p>
+
+    <div class="card">
+      <div><span class="pill p-info">NEW</span></div>
+      <span class="stage new">New Lead <em>(default)</em></span><span class="stage new">Auto WhatsApp Sent</span><span class="stage new">WhatsApp Replied</span>
+      <div style="margin-top:10px"><span class="pill p-info">ENGAGING</span></div>
+      <span class="stage eng">Priority Evaluated</span><span class="stage eng">Assigned</span><span class="stage eng">First Call Pending</span><span class="stage eng">First Call Attempted</span><span class="stage eng">Connected</span>
+      <div style="margin-top:10px"><span class="pill p-med">QUALIFIED</span></div>
+      <span class="stage qual">Qualified <em>(requiresNote)</em></span><span class="stage qual">Follow-up Scheduled</span><span class="stage qual">Online Meeting Set</span><span class="stage qual">Campus Visit Set</span><span class="stage qual">Demo Completed</span>
+      <div style="margin-top:10px"><span class="pill p-med">NEGOTIATION</span></div>
+      <span class="stage neg">Payment Link Sent</span><span class="stage neg">Seat Reserved</span><span class="stage neg">Demo Student</span>
+      <div style="margin-top:10px"><span class="pill p-lo">CONVERTED</span></div>
+      <span class="stage conv">Enrolled Student <em>(isFinal)</em></span>
+      <div style="margin-top:10px"><span class="pill p-hi">LOST</span> <span style="font-size:12px;color:var(--muted)">(isLostStage · requiresReason)</span></div>
+      <span class="stage lost">No Response</span><span class="stage lost">Not Interested</span><span class="stage lost">Lost to Competitor</span><span class="stage lost">Wrong Number</span>
+    </div>
+
+    <h3 class="sub">Transition mechanics (what is actually enforced)</h3>
+    <div class="flow">
+  New Lead ──(scoring+assign on create)──► Priority Evaluated / Assigned
+      │                                          │
+      ▼ WhatsApp welcome (auto)                  ▼ calls / follow-ups (manual)
+  Auto WhatsApp Sent ──► WhatsApp Replied    Connected ──► Qualified <span class="y">(requiresNote enforced)</span>
+                                                 │
+                                                 ▼
+                            Follow-up / Meeting / Campus Visit / Demo
+                                                 │
+                                                 ▼
+                            Payment Link Sent ──► Seat Reserved ──► <b>Enrolled Student</b> (final)
+                                                 │
+   non-admin → any <span class="r">isLostStage</span> ──► <span class="y">202 PENDING MANAGER APPROVAL</span> (not applied)
+    </div>
+    <div class="warnbox"><b>Declared-but-not-enforced:</b> <code>allowedNextStages</code>, <code>allowedPreviousStages</code>, per-stage <code>triggers</code> and <code>sla</code> exist on <code>LeadStage</code> but are <b>not enforced</b> in transition code. Only the hardcoded <code>"Not Interested"</code> reason check and the <code>isLostStage</code> approval gate are live (<span class="filetag">leadController.ts:648-687</span>).</div>
+    <div class="risk"><b>Conversion no-op:</b> <code>convertToStudent</code> looks up a stage literally named <code>"Converted"</code> (<span class="filetag">leadController.ts:1243</span>) that is <b>not in DEFAULT_STAGES</b> (the real final stage is "Enrolled Student") — so the stage move silently fails while <code>convertedStudentId</code> is still set.</div>
+  </div>
+</section>
+
+<!-- 6. ER -->
+<section id="s6">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 6</div>
+    <h2 class="sec">Database ER Diagram</h2>
+    <p class="lead"><b>Lead</b> is the hub. All 20 models are <code>tenantId</code>-scoped (config models one-per-tenant, unique). <b>No soft-delete</b> and <b>no <code>updatedBy</code></b> anywhere; <code>createdBy → User</code> + <code>timestamps</code> on most transactional models. Dedup key <code>{tenantId, phone}</code> is enforced <b>in app code only — no DB unique index on Lead</b>.</p>
+    <div class="flow">
+                         <b>Tenant</b> (every model ── tenantId ──►)
+                            ▲
+             ┌──────────────┼───────────────────────────────────────────┐
+             │              │                                            │
+  <b>LeadStage</b> ◄──stageId── <b>LEAD</b> ──assignedTo──► <b>User</b>          <b>User</b> ◄──convertedStudentId── (1:1)
+   (21 seeded)  │  ├── campaignId ──────► <b>AdCampaign</b>
+   self-ref     │  ├── activities[] (embedded, 9 types, createdBy→User)
+   next/prev    │  ├── qualificationAnswers{} (answeredBy→User)
+                │  ├── assignment.{assignedTo,assignedBy,previousAssignees[]}→User
+                │  └── pendingApproval.{stageId→LeadStage, requestedBy→User}
+                │
+     ┌──────────┴──────────┬──────────────┬───────────────┬──────────────┐
+     ▼                     ▼              ▼               ▼              ▼
+ <b>LeadStageHistory</b>   <b>FollowUpReminder</b>  <b>SeatReservation</b>  <b>SalesContent</b>   <b>SalesCallRecording</b>
+  leadId→Lead          leadId→Lead     leadId→Lead(opt) shares[].leadId  leadId→Lead
+  stageId→LeadStage    assignedTo→User courseId→Course
+  entered/exitedBy     createdBy→User  batchId→Batch
+                                       studentId→User (enrolled)
+
+ <b>Per-tenant config (unique tenantId):</b> LeadSourceConfig · LeadScoringConfig · LeadPriorityConfig
+   · LeadDistributionConfig(<span class="y">tenantId is String, no ref</span>) · LeadFormConfig · LostReasonConfig
+   · QualificationQuestionConfig · WhatsAppDripConfig · AICallConfig(scoring.assignRoleId→Role)
+ <b>Support:</b> GoogleSheetIntegration(defaultStageId→LeadStage, assignToUserId→User)
+   · WhatsAppConversationState(<span class="y">String tenantId, TTL expiresAt, timestamps:false</span>)
+    </div>
+    <div class="note">Full field-by-field tables (types, enums, indexes, every ER edge with cardinality) are in <span class="filetag">docs/audit/lead-flow/01-database.md</span> (733 lines).</div>
+  </div>
+</section>
+
+<!-- 7. APIs -->
+<section id="s7">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 7</div>
+    <h2 class="sec">API Documentation — <span class="num">91</span> endpoints, 10 areas</h2>
+    <p class="lead">Mounted under <code>/api/v1</code> via <span class="filetag">routes/index.ts:137-206</span>. Below is the area breakdown + the load-bearing handlers. The exhaustive method/path/perm/side-effect table (all 91) is in <span class="filetag">02-apis.md</span> (310 lines).</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Area</th><th>~Endpoints</th><th>Base path</th><th>Typical gate</th></tr></thead>
+        <tbody>
+          <tr><td><b>Core Lead CRUD</b></td><td>~30</td><td><code>/leads</code></td><td>view/create/edit/manage_leads + leadScope</td></tr>
+          <tr><td>Stages &amp; History</td><td>~10</td><td><code>/lead-stages</code>, <code>/lead-stage-history</code></td><td>manage_lead_stages / view_leads</td></tr>
+          <tr><td>Scoring / Priority / Distribution</td><td>~12</td><td><code>/lead-scoring</code>, <code>/lead-priority</code>, <code>/lead-distribution</code></td><td>manage_leads</td></tr>
+          <tr><td>Follow-ups</td><td>~8</td><td><code>/follow-ups</code></td><td>view/edit_leads</td></tr>
+          <tr><td>Seat Reservations</td><td>~9</td><td><code>/seat-reservations</code></td><td>manage_leads / admin</td></tr>
+          <tr><td>Dispositions / Lost reasons</td><td>~8</td><td><code>/lead-dispositions</code>, <code>/lost-reasons</code></td><td>manage_leads</td></tr>
+          <tr><td>Form / Source config</td><td>~7</td><td><code>/lead-form-config</code>, <code>/lead-sources</code></td><td>manage_leads</td></tr>
+          <tr><td>Lead AI</td><td>~4</td><td><code>/lead-ai</code></td><td>mixed (one has none)</td></tr>
+          <tr><td>Public intake</td><td>~3</td><td><code>/public/...</code></td><td class="no">PUBLIC (no auth)</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="sub">The load-bearing handlers</h3>
+    <table>
+      <thead><tr><th>Handler</th><th>Ref</th><th>What it does / side effects</th></tr></thead>
+      <tbody>
+        <tr><td><b>createLead</b></td><td class="ref">leadController.ts:369-527</td><td>Dedupe (409, phone last-10) → stage-history init → campaign link → <b>scoreAndAssignLead</b> (score+priority+eligibility+assign) → <b>autoAssignLead</b> (2nd assign) → WhatsApp welcome → AI-call enqueue → audit → hot-lead/assignment sockets. <span class="no">← the side-effect hotspot</span></td></tr>
+        <tr><td>changeLeadStage</td><td class="ref">:648-687</td><td>"Not Interested" needs reason; non-admin → isLostStage = 202 pending approval; writes LeadStageHistory + activity + drip trigger + Sheet push.</td></tr>
+        <tr><td>approveStage</td><td class="ref">manage_leads</td><td>Applies a pending lost-stage move after manager approval.</td></tr>
+        <tr><td>convertToStudent</td><td class="ref">:1200-1256</td><td>Validates email (:1214-1221), sets <code>convertedStudentId</code>, tries stage <code>"Converted"</code> (<span class="no">no-op</span>).</td></tr>
+        <tr><td>PUT /:leadId (edit)</td><td class="ref">leadController.ts</td><td>Edit-form stage change logs an <b>activity only</b> — <b>no</b> stage-history / drip / Sheet push.</td></tr>
+        <tr><td>import (CSV)</td><td class="ref">Leads/index.tsx:593</td><td>Bulk create — <b>skips</b> dedupe, scoring, and assignment.</td></tr>
+        <tr><td>public website-lead</td><td class="ref">publicLeadController.ts:198-201</td><td>Always creates a <b>HOT</b> lead, no scoring/distribution/AI, IP rate-limited 10/min (in-memory), <code>createdBy = tenant.adminId</code>.</td></tr>
+      </tbody>
+    </table>
+    <div class="warnbox"><b>Gate gaps:</b> 3 authenticated endpoints have <b>no roleGuard</b> — <code>GET /lead-ai/status</code>, <code>GET /lost-reasons/categories</code>, <code>GET /seat-reservations/me</code>. Several <code>manage_leads</code>-only handlers (<code>convert</code>, <code>approve-stage</code>, <code>duplicates</code>, <code>merge</code>, <code>updateLeadFee</code>, <code>markLeadAsLost</code>) match on <b>tenant only</b> and skip the lead data-scope filter.</div>
+  </div>
+</section>
+
+<!-- 8. UI FLOW -->
+<section id="s8">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 8</div>
+    <h2 class="sec">UI Flow — <span class="num">23</span> screens</h2>
+    <p class="lead">Sidebar "Leads" submenu = 17 items (<span class="filetag">Sidebar.tsx:226-242</span>). 7 more routed pages open contextually and aren't in the menu. Full per-page actions/filters/pagination in <span class="filetag">05-ui-flow.md</span> (371 lines).</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Screen</th><th>Route</th><th>Purpose (key actions)</th><th>Gate</th></tr></thead>
+        <tbody>
+          <tr><td>All Leads</td><td><code>/leads</code></td><td>List/Board toggle; filters, search, pagination; <b>CSV import + XLSX export</b>, bulk WhatsApp, quick-update.</td><td>role</td></tr>
+          <tr><td>Lead Kanban</td><td><code>/lead-kanban</code></td><td>Board view (redundant w/ toggle in /leads).</td><td>role</td></tr>
+          <tr><td>Lead Detail</td><td><code>/leads/:id</code></td><td><b>Activity timeline + notes + call recordings hub</b>; stage change, follow-ups, convert.</td><td>role; delete=delete_leads</td></tr>
+          <tr><td>Follow-up Calendar</td><td><code>/follow-ups</code></td><td>Due/overdue reminders; inline ActivityLogModal (dup logging).</td><td>view/edit_leads</td></tr>
+          <tr><td>Lead Analytics</td><td><code>/lead-analytics</code></td><td>Funnel, source, conversion charts.</td><td>view_lead_analytics (menu)</td></tr>
+          <tr><td>Manager Board / Team Activity / My Performance</td><td><code>/lead-manager-board</code>, <code>/team-activity</code>, <code>/lead-my-performance</code></td><td>Team dashboards; Team Activity is the only route with explicit <code>requiredPermissions</code> (<span class="filetag">App.tsx:1335</span>).</td><td>mixed</td></tr>
+          <tr><td>Settings pages</td><td><code>/lead-sources</code>, <code>/lead-stages</code>, <code>/lead-scoring-settings</code>, <code>/lead-priority-settings</code>, <code>/lead-distribution-settings</code>, <code>/lead-form-settings</code>, <code>/qualification-settings</code></td><td>Config CRUD; re-score-all; Meta/Sheet sync lives on Lead Sources.</td><td>manage_leads (menu)</td></tr>
+          <tr><td>Seat Reservations</td><td><code>/seat-reservations</code></td><td>Fee/seat; "Mark as Enrolled" = admin only.</td><td>manage_leads</td></tr>
+          <tr><td>Aging / Approvals / Duplicates / Audit Logs</td><td>various</td><td>Aging buckets; lost-stage approvals; dup merge; system audit trail.</td><td>role</td></tr>
+          <tr><td>Google Sheet / AI Call Config / Sales Content</td><td>various</td><td>Sheet sync setup; AI call settings + attempt log; sales collateral shares.</td><td>manage_leads</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warnbox"><b>Route vs menu gating diverge:</b> nearly all lead routes in <code>App.tsx</code> are gated by <b>role only</b>; the finer permissions are enforced for <b>Sidebar visibility</b>, not the route — a user who knows a URL can often reach a page the menu hides.</div>
+  </div>
+</section>
+
+<!-- 9. USER JOURNEYS -->
+<section id="s9">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 9</div>
+    <h2 class="sec">User Journeys (mapped to real scopes)</h2>
+    <p class="lead">Roles map to data scopes via <span class="filetag">leadScope.ts</span>: <code>manage_leads</code> → <b>ALL</b>, <code>assign_leads</code> → <b>TEAM</b> (self + <code>managerId</code> reports), else <b>OWN</b>.</p>
+    <div class="grid2">
+      <div class="card"><h3 class="sub" style="margin-top:0">👑 Admin / Owner <span class="pill p-info">ALL</span></h3><p style="font-size:13.5px">Configure stages/sources/scoring/priority/distribution/forms/qualification → monitor all leads &amp; team dashboards → approve lost-stage moves → manage seat reservations &amp; conversions → view analytics/audit. Full CRUD incl. delete + merge.</p></div>
+      <div class="card"><h3 class="sub" style="margin-top:0">🧭 Manager / STAFF <span class="pill p-med">TEAM</span></h3><p style="font-size:13.5px">Sees self + direct reports (<code>managerId</code>). Create/edit/assign/convert/export + analytics, but <b>no</b> <code>manage_leads</code>, <code>delete_leads</code>, or <code>manage_lead_stages</code>. Approves? No — lost-stage approval is admin. Works the Manager Board + Team Activity.</p></div>
+      <div class="card"><h3 class="sub" style="margin-top:0">📞 Counsellor / Telecaller <span class="pill p-lo">OWN</span></h3><p style="font-size:13.5px">Custom role / <code>leadDataScope=OWN</code>: sees only assigned leads → calls, logs activities, schedules follow-ups, answers qualification questions, moves stages (non-lost), sends WhatsApp, requests lost-stage (pending approval).</p></div>
+      <div class="card"><h3 class="sub" style="margin-top:0">🎓 Lead → Student (conversion)</h3><p style="font-size:13.5px"><b>Money path:</b> Seat Reservation creates <code>User(STUDENT)</code> + payment via pre-save hook → "enrolled" (<span class="no">never touches the Lead</span>). <b>Lead path:</b> <code>convertToStudent</code> sets <code>convertedStudentId</code> + (broken) stage move. The two are not wired together.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- 10. BUSINESS RULES -->
+<section id="s10">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 10</div>
+    <h2 class="sec">Business Rules</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 class="sub" style="margin-top:0">Duplicate detection</h3>
+        <ul class="clean">
+          <li>Key = <b>phone last-10-digits only</b> (no email dedup).</li>
+          <li>Create-time 409 block <span class="ref">leadController.ts:392-406</span>.</li>
+          <li>Bulk detect/merge (<code>manage_leads</code>) <span class="ref">:1768 / :1797</span>.</li>
+          <li>Configurable via <code>LeadFormConfig.settings.duplicateCheckFields / duplicateAction</code>, but <b>no DB unique index</b> backs it.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="sub" style="margin-top:0">Validation</h3>
+        <ul class="clean">
+          <li>Create requires only <b>name + phone</b> <span class="ref">:373</span>.</li>
+          <li><b>No email/phone format validation</b> at create.</li>
+          <li>Email validity enforced only at convert <span class="ref">:1214-1221</span>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="sub" style="margin-top:0">Scoring (two impls)</h3>
+        <ul class="clean">
+          <li>Create flow: <code>scoreAndAssignLead</code> — sum of matched <code>scoringRule.points</code>; hot/warm thresholds; required-qualification eligibility.</li>
+          <li>Class-based <code>LeadScoringService</code> (priority config, <code>setPriority</code> overrides) — used only by leadPriorityController.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="sub" style="margin-top:0">Distribution (dual-path)</h3>
+        <ul class="clean">
+          <li><code>scoreAndAssignLead</code> = round-robin / rule-based-round-robin over <code>LeadScoringConfig</code> (atomic <code>$inc</code>).</li>
+          <li><code>autoAssignLead</code> = round-robin / weighted-random over <code>LeadDistributionConfig</code> under a daily cap.</li>
+          <li>Both run on create → <b>race</b> (see §15).</li>
+        </ul>
+      </div>
+    </div>
+    <div class="note">Stage-change rules: <code>Not Interested</code> requires a reason; non-admins moving into an <code>isLostStage</code> get a manager-approval gate (202). All other declared stage constraints are not enforced.</div>
+  </div>
+</section>
+
+<!-- 11. PERMISSION MATRIX -->
+<section id="s11">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 11</div>
+    <h2 class="sec">Permission Matrix</h2>
+    <p class="lead"><span class="filetag">roleGuard.ts:107-121, 201-322</span>. <code>roleGuard</code> is <b>any-of</b>; custom roles union with base perms. Data visibility is a separate layer (<code>leadScope</code>).</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Capability (permission)</th><th>SUPER_ADMIN</th><th>TENANT_ADMIN</th><th>STAFF</th><th>INSTRUCTOR</th><th>STUDENT</th></tr></thead>
+        <tbody>
+          <tr><td>View leads (<code>view_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Create (<code>create_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Edit (<code>edit_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Assign (<code>assign_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Convert (<code>convert_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Analytics (<code>view_lead_analytics</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Manage all (<code>manage_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Manage stages (<code>manage_lead_stages</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td>Delete (<code>delete_leads</code>)</td><td class="ok yes-cell">✓</td><td class="ok yes-cell">✓</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td><td class="no no-cell">✗</td></tr>
+          <tr><td><b>Data scope (leadScope)</b></td><td>ALL</td><td>ALL</td><td>TEAM</td><td>—</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note">Counsellor / Telecaller are typically <b>custom roles</b> granted a subset (view/edit/create) with <code>leadDataScope = OWN</code>. STAFF is the built-in "manager" tier: everything except manage/delete/manage-stages.</div>
+  </div>
+</section>
+
+<!-- 12. AUTOMATION -->
+<section id="s12">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 12</div>
+    <h2 class="sec">Automation Flow</h2>
+    <p class="lead">All schedulers are <b>in-process <code>setInterval</code></b> wired in <span class="filetag">server.ts</span> (no external cron/worker tier except the AI-call BullMQ queue on Redis).</p>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Automation</th><th>Schedule</th><th>Scans / triggers</th></tr></thead>
+        <tbody>
+          <tr><td>Follow-up reminders</td><td>every 5 min</td><td>Due <code>FollowUpReminder</code> → notification + socket.</td></tr>
+          <tr><td>SLA breach</td><td>every 30 min</td><td>Leads past stage SLA → <code>slaBreach</code> flag + alert.</td></tr>
+          <tr><td>Daily summary email</td><td>fires at 20:00</td><td>Per-tenant lead summary email.</td></tr>
+          <tr><td>Google Sheets sync</td><td>every 5 min</td><td>Poll public CSV → create leads (dedup by phone).</td></tr>
+          <tr><td>AI-call worker</td><td>BullMQ (Redis)</td><td>Outbound Exotel calls, working-hours aware; <b>only flow with retry</b>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <h3 class="sub">Event-driven (on create/stage-change)</h3>
+    <div class="flow">
+  createLead ──► WhatsApp welcome ──► AI-call enqueue ──► hot-lead socket ──► audit
+  changeLeadStage ──► WhatsApp drip trigger ──► Google-Sheet push-back ──► stage-history + activity
+    </div>
+    <div class="warnbox"><b>WhatsApp nurture is non-compliant/partial:</b> free-form text only (24h window), <b>no approved templates (HSM)</b>, <b>no STOP/opt-out</b>, in-process scheduler. Drip-config endpoints exist with no UI.</div>
+  </div>
+</section>
+
+<!-- 13. INTEGRATION MAP -->
+<section id="s13">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 13</div>
+    <h2 class="sec">Integration Map</h2>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Integration</th><th>Direction</th><th>Verification</th><th>Creates/Updates Lead</th><th>Retry</th></tr></thead>
+        <tbody>
+          <tr><td><b>Meta Lead Ads</b></td><td>Inbound webhook + Graph sync</td><td class="part">HMAC <b>fails-open</b> <span class="ref">metaLeadAdsController.ts:222-235</span></td><td>Yes (webhook + manual /sync)</td><td class="part">Manual /sync only</td></tr>
+          <tr><td><b>Google Ads</b></td><td>Inbound webhook</td><td class="part">Key check <b>fails-open</b> <span class="ref">googleAdsController.ts:76-84</span></td><td>Yes</td><td class="no">None</td></tr>
+          <tr><td><b>WhatsApp Cloud</b></td><td>In + Out</td><td class="no">POST webhook <b>NO signature</b> <span class="ref">whatsappWebhookController.ts:211-223</span></td><td>Yes (inbound msgs)</td><td class="no">None</td></tr>
+          <tr><td><b>Google Sheets</b></td><td>Inbound poll (5m) + push-back</td><td class="part">Public CSV; push-back unsigned <span class="ref">googleSheetSyncService.ts:497</span></td><td>Yes (poll)</td><td class="part">Next poll</td></tr>
+          <tr><td><b>Exotel (AI voice)</b></td><td>Out + status webhook</td><td class="no">Status webhook <b>NO auth</b> <span class="ref">aiCallWebhookController.ts:29-31</span></td><td>Updates (recording/score)</td><td class="ok">Yes (worker + webhook)</td></tr>
+          <tr><td>Email</td><td>Out</td><td>—</td><td class="no">Not used in lead flow</td><td>—</td></tr>
+          <tr><td>SMS</td><td>—</td><td>—</td><td class="no">Not implemented</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="risk"><b>Credentials:</b> Meta/WhatsApp tokens are AES-256-CBC encrypted in <code>LeadSourceConfig</code>, but the key falls back to a hard-coded literal if <code>ENCRYPTION_KEY</code>/<code>JWT_SECRET</code> unset, and <code>encrypt()</code> silently stores plaintext on failure. <b>Exotel creds are plain unencrypted</b> schema strings (<span class="ref">AICallConfig.ts:78-82</span>). Verify tokens default to hard-coded literals (e.g. <code>'codebegun_whatsapp_verify'</code>).</div>
+  </div>
+</section>
+
+<!-- 14. SEQUENCE DIAGRAMS -->
+<section id="s14">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 14</div>
+    <h2 class="sec">Sequence Diagrams</h2>
+    <h3 class="sub">A) Lead creation (the side-effect cascade)</h3>
+    <div class="flow">
+  Client            leadController          leadScoringService      leadDistributionService   External
+    │  POST /leads      │                          │                        │                    │
+    ├──────────────────►│ dedupe phone-last10 (409)│                        │                    │
+    │                   ├─ init LeadStageHistory   │                        │                    │
+    │                   ├─ link campaign           │                        │                    │
+    │                   ├─ await scoreAndAssignLead─► score+priority+assign  │                    │
+    │                   │        (writes assignedTo)◄──── $inc round-robin   │                    │
+    │                   ├─ <span class="r">autoAssignLead (fire&amp;forget)</span> ───────────► writes assignedTo <span class="r">(RACE)</span>│
+    │                   ├─ whatsAppWelcome ─────────────────────────────────────────────────────►│ WhatsApp
+    │                   ├─ aiCallQueue.enqueue ─────────────────────────────────────────────────►│ BullMQ
+    │                   ├─ AuditLog + hot-lead socket                        │                    │
+    │◄──────────────────┤ 201 { lead, assignedTo: <span class="y">may differ from stored</span> }         │                    │
+    </div>
+    <h3 class="sub">B) Meta Lead Ads webhook → Lead</h3>
+    <div class="flow">
+  Meta ──POST /meta-leads/webhook──► metaLeadAdsController
+     │   x-hub-signature-256 (optional!)      │
+     │                                        ├─ <span class="y">if META_APP_SECRET && header present</span> → verify HMAC
+     │                                        │     (<span class="r">JSON.stringify(req.body)</span> — fragile; fails-open if header absent)
+     │                                        ├─ Graph API fetch lead fields
+     │                                        ├─ map → Lead (source=meta, priority hot)
+     │                                        └─ 200 (always; failures dropped, recover via manual /sync)
+    </div>
+    <h3 class="sub">C) Lead → Student (two disconnected paths)</h3>
+    <div class="flow">
+  PATH 1 (money): SeatReservation ──► create User(STUDENT) ──► pre-save payment hook ──► "enrolled"
+                                          └─ <span class="r">never updates the Lead</span>
+  PATH 2 (lead):  convertToStudent ──► set convertedStudentId ──► lookup stage "Converted" <span class="r">(missing → no-op)</span>
+    </div>
+  </div>
+</section>
+
+<!-- 15. PERFORMANCE -->
+<section id="s15">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 15</div>
+    <h2 class="sec">Performance Findings <span style="font-size:13px;color:var(--muted)">(observations only)</span></h2>
+    <ul class="clean">
+      <li><b>Double-assignment race</b> — <code>scoreAndAssignLead</code> (awaited) and <code>autoAssignLead</code> (fire-and-forget) both write <code>assignedTo</code>; round-robin counters double-increment; client-returned assignee may not match stored. <span class="ref">leadController.ts:456 &amp; 468</span></li>
+      <li><b>Distribution daily-cap broken</b> — aggregation compares a <b>String <code>tenantId</code></b> against ObjectId docs, so the cap never matches. <span class="ref">leadDistributionService.ts:57</span></li>
+      <li><b>No DB unique index</b> on <code>Lead</code> for the dedup key — dedupe is app-code only; concurrent creates can slip a duplicate through.</li>
+      <li><b>In-memory rate limiter</b> for public intake (10/min/IP) — lost on restart, not multi-instance-safe. <span class="ref">publicLeadController.ts</span></li>
+      <li><b>Socket.io single-instance</b> (no Redis adapter) — realtime lead alerts don't survive horizontal scale.</li>
+      <li><b>3 parallel transition logs</b> (activities[], LeadStageHistory, AuditLog) — extra writes + drift risk.</li>
+      <li>Large list/board pages fetch broadly; verify pagination + indexes on <code>{tenantId, stageId, assignedTo, createdAt}</code> for scale.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 16. SECURITY -->
+<section id="s16">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 16</div>
+    <h2 class="sec">Security Findings <span style="font-size:13px;color:var(--muted)">(observations only)</span></h2>
+    <div class="risk"><b>Unverified / fail-open webhooks:</b> WhatsApp POST has <b>no signature</b> (<span class="ref">whatsappWebhookController.ts:211-223</span>); Exotel status webhook has <b>no auth</b> (<span class="ref">aiCallWebhookController.ts:29-31</span>); Meta HMAC <b>fails-open</b> + fragile <code>JSON.stringify(req.body)</code> (<span class="ref">metaLeadAdsController.ts:222-235</span>); Google Ads <b>fails-open</b> when key unset (<span class="ref">googleAdsController.ts:76-84</span>). A forged POST can inject/modify leads &amp; trigger outbound sends.</div>
+    <div class="risk"><b>Weak conversion default:</b> student accounts created from leads use a weak default password <code>Welcome@123</code>. <span class="ref">seatReservation / convert flow</span></div>
+    <div class="warnbox"><b>Route gating is role-only</b> — fine permissions enforced only for menu visibility; direct-URL access can reach pages the menu hides. 3 authenticated endpoints have no roleGuard; several <code>manage_leads</code> handlers skip the data-scope filter (tenant-only).</div>
+    <div class="warnbox"><b>Secret fallbacks:</b> encryption key falls back to a hard-coded literal; <code>encrypt()</code> silently stores plaintext on failure; Exotel creds stored plaintext; verify tokens default to literals.</div>
+  </div>
+</section>
+
+<!-- 17. MISSING -->
+<section id="s17">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 17</div>
+    <h2 class="sec">Missing Features</h2>
+    <div class="grid2">
+      <div class="card"><ul class="clean">
+        <li><b>SMS</b> — not implemented at all.</li>
+        <li><b>Email in the lead nurture</b> — only WhatsApp welcome; no email sequences.</li>
+        <li><b>WhatsApp approved templates (HSM)</b> + STOP/opt-out + suppression.</li>
+        <li><b>Calendar integration</b> for meetings/demos (stages exist; no calendar sync surfaced).</li>
+      </ul></div>
+      <div class="card"><ul class="clean">
+        <li><b>Lead↔Student conversion wiring</b> — the two paths are disconnected.</li>
+        <li><b>Enforced stage graph</b> — allowedNext/Prev + SLA + triggers declared, unused.</li>
+        <li><b>Automated tests</b> — none across the lead subsystem.</li>
+        <li><b>Unified activity source</b> — 3 divergent logs today.</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- 18. DEBT -->
+<section id="s18">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 18</div>
+    <h2 class="sec">Technical Debt</h2>
+    <ul class="clean">
+      <li><b>Two scoring implementations</b> (create-flow function + class-based service) and <b>two distribution paths</b> — overlapping, one race.</li>
+      <li><b>Two redundant config models</b> — <code>LeadScoringConfig</code> vs <code>LeadPriorityConfig</code>, each with its own settings page.</li>
+      <li><b>Dead code:</b> <code>adCampaignController</code> (~490 L, unrouted); <code>adScraperService</code> (Playwright, 699 L, imported by nothing); WhatsApp drip-config endpoints with no UI.</li>
+      <li><b>Type inconsistency:</b> <code>LeadDistributionConfig.tenantId</code> &amp; <code>WhatsAppConversationState.tenantId</code> are <b>String</b> (no ref) while the rest are ObjectId → the daily-cap bug.</li>
+      <li><b>Naming mismatch:</b> convert targets stage <code>"Converted"</code>; seeded final is <code>"Enrolled Student"</code>.</li>
+      <li><b>Redundant UI:</b> <code>/lead-kanban</code> duplicates the Board toggle in <code>/leads</code>; activity logging duplicated (Detail + Follow-up modal).</li>
+      <li><b>No <code>updatedBy</code></b>, <b>no soft-delete</b> — hard deletes lose history.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 19. IMPROVEMENT OPPORTUNITIES -->
+<section id="s19">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 19</div>
+    <h2 class="sec">Improvement Opportunities <span style="font-size:13px;color:var(--muted)">(observations, not a redesign)</span></h2>
+    <div class="note">These are neutral observations a future ticket could act on — nothing here has been changed.</div>
+    <ul class="clean">
+      <li>Consolidate the two assignment paths into one to remove the race and make the returned assignee authoritative.</li>
+      <li>Add a DB unique index for the dedup key to make dedupe race-safe; extend dedup to email.</li>
+      <li>Verify all inbound webhooks (fail-closed) and move verify tokens/secrets out of literal fallbacks.</li>
+      <li>Wire the two conversion paths (seat-reservation ↔ Lead) and fix the <code>"Converted"</code> stage lookup.</li>
+      <li>Pick one scoring + one distribution config; retire the redundant model/page.</li>
+      <li>Make schedulers external / add a Redis Socket.io adapter before horizontal scale.</li>
+      <li>Add tests around scoring, distribution, dedupe, stage transitions, and webhook parsing.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- 20. UNKNOWNS -->
+<section id="s20">
+  <div class="wrap">
+    <div class="sec-eyebrow">Section 20</div>
+    <h2 class="sec">Questions / Unknown Areas</h2>
+    <ul class="clean">
+      <li><b>Intended conversion path?</b> Is the seat-reservation "money path" the source of truth and the lead-side convert vestigial — or should both stay and be linked? (Determines how to fix the no-op.)</li>
+      <li><b>Which scoring/distribution config is canonical</b> per your ops today — <code>LeadScoringConfig</code> or <code>LeadDistributionConfig</code>? (Both run on create.)</li>
+      <li><b>Are the ad integrations (AdCampaign/scraper) planned</b> or truly abandoned? (Currently dead code.)</li>
+      <li><b>Counsellor/Telecaller</b> — are these live custom roles in production tenants, or conceptual? (Confirms the OWN-scope journeys.)</li>
+      <li><b>WhatsApp compliance posture</b> — is Meta's HSM-template + opt-out requirement in scope, or is 24h-window free-form acceptable for now?</li>
+      <li>Any <b>external cron</b> or process manager expected to run <code>followUpCron</code>/<code>slaCron</code>, or is in-process <code>setInterval</code> the intended production model?</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <b>CodeBegun — Lead Management System Audit.</b> Read-only, documentation-only. Prepared 2026-07-14. Every claim referenced to real files/lines.<br/>
+    Deep appendix (exhaustive tables): <span class="filetag">docs/audit/lead-flow/01-database.md · 02-apis.md · 03-business-rules-automation.md · 04-integrations.md · 05-ui-flow.md · 06-lifecycle-journey-findings.md</span> (2,125 lines).
+  </div>
+</footer>
+</body>
+</html>

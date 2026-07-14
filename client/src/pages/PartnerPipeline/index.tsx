@@ -538,9 +538,9 @@ function EnrichModal({ onClose, onAdded }: { onClose: () => void; onAdded: () =>
             </div>
             {res.hiringLinks && (
               <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                <a className="pp-btn pp-btn-teal pp-btn-sm" href={res.hiringLinks.linkedinJobs} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>🔎 Openings on LinkedIn</a>
-                <a className="pp-btn pp-btn-ghost pp-btn-sm" href={res.hiringLinks.googleJobs} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>🔎 Google Jobs</a>
-                {res.companyInfo?.linkedinUrl && <a className="pp-btn pp-btn-ghost pp-btn-sm" href={res.companyInfo.linkedinUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>Company LinkedIn</a>}
+                <a className="pp-btn pp-btn-teal pp-btn-sm" href={res.hiringLinks.googleJobs} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>🔎 See current openings</a>
+                <a className="pp-btn pp-btn-ghost pp-btn-sm" href={res.hiringLinks.linkedinJobs} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>Jobs on LinkedIn</a>
+                {res.companyInfo?.linkedinUrl && <a className="pp-btn pp-btn-ghost pp-btn-sm" href={res.companyInfo.linkedinUrl} target="_blank" rel="noreferrer" style={{ textDecoration: 'none' }}>Company page</a>}
               </div>
             )}
           </div>

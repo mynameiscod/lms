@@ -100,11 +100,17 @@ function jobOpeningsOf(org: any): number | undefined {
 }
 
 /** Deep-links to a company's live openings — plain constructed URLs, no API/plan needed. */
-function buildHiringLinks(company: string, domain?: string): HiringLinks {
+function buildHiringLinks(company: string, domain?: string, linkedinUrl?: string): HiringLinks {
   const term = company || domain || '';
+  const page = (linkedinUrl || '').replace(/\/+$/, '');
   return {
-    linkedinJobs: `https://www.linkedin.com/jobs/search/?keywords=${encodeURIComponent(term)}`,
+    // Google Jobs reliably lists a company's current openings.
     googleJobs: `https://www.google.com/search?q=${encodeURIComponent(term + ' jobs')}&ibp=htl;jobs`,
+    // The company's Jobs tab when we know the LinkedIn page; otherwise a company
+    // search (LinkedIn's keyword *job* search matches poorly by company name).
+    linkedinJobs: page
+      ? `${page}/jobs/`
+      : `https://www.linkedin.com/search/results/companies/?keywords=${encodeURIComponent(term)}`,
   };
 }
 
@@ -138,7 +144,7 @@ export async function enrichCompanyContacts(
     logoUrl: org.logo_url || undefined,
     jobOpenings: jobOpeningsOf(org),
   } : (company ? { name: company } : undefined);
-  const hiringLinks = buildHiringLinks(company, domain);
+  const hiringLinks = buildHiringLinks(company, domain, org?.linkedin_url);
 
   const body: Record<string, any> = { person_titles: TARGET_TITLES, person_seniorities: TARGET_SENIORITIES, page: 1, per_page: 10 };
   if (domain) body.q_organization_domains = domain;

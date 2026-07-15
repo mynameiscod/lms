@@ -73,6 +73,7 @@ const AdminAssignmentForm: React.FC = () => {
   const [aiCoding, setAiCoding] = useState({ concept: '', testCaseCount: 5 });
   const [aiCodingLoading, setAiCodingLoading] = useState(false);
   const [aiCodingError, setAiCodingError] = useState('');
+  const [aiCodingLanguage, setAiCodingLanguage] = useState<ProgrammingLanguage | ''>('');
 
   // Rubric
   const [rubric, setRubric] = useState<RubricItem[]>([]);
@@ -494,9 +495,9 @@ const AdminAssignmentForm: React.FC = () => {
   // AI helper for Coding assignments
   const generateAICodingAssignment = async () => {
     if (!title.trim() || !aiCoding.concept.trim()) return;
-    const primaryLang = allowedLanguages[0];
+    const primaryLang = aiCodingLanguage || allowedLanguages[0];
     if (!primaryLang) {
-      setAiCodingError('Please select at least one programming language first.');
+      setAiCodingError('Please select a programming language first.');
       return;
     }
     try {
@@ -513,6 +514,9 @@ const AdminAssignmentForm: React.FC = () => {
       if (data) {
         if (data.description) setDescription(data.description);
         if (data.instructions) setInstructions(data.instructions);
+        if (!allowedLanguages.includes(primaryLang)) {
+          setAllowedLanguages([primaryLang, ...allowedLanguages]);
+        }
         if (data.starterCode) {
           setStarterCode([{ language: primaryLang, code: data.starterCode }]);
         }
@@ -830,10 +834,10 @@ const AdminAssignmentForm: React.FC = () => {
                   ✨ AI Assignment Generator
                 </h4>
                 <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#6366f1' }}>
-                  Fill in the title, select language & difficulty above, then describe the concept below. AI will generate description, instructions, starter code, and test cases.
+                  Fill in the title, pick the language it should generate for, then describe the concept below. AI will generate description, instructions, starter code, and test cases.
                 </p>
                 {aiCodingError && <p style={{ color: '#ef4444', fontSize: '0.88rem', marginBottom: '8px', padding: '8px 12px', background: '#fef2f2', borderRadius: '8px' }}>{aiCodingError}</p>}
-                
+
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <div className="form-group" style={{ flex: 3, minWidth: '220px', marginBottom: 0 }}>
                     <label className="form-label">Concept / Problem Description <span className="text-danger">*</span></label>
@@ -845,6 +849,19 @@ const AdminAssignmentForm: React.FC = () => {
                       rows={3}
                       style={{ resize: 'vertical' }}
                     />
+                  </div>
+                  <div className="form-group" style={{ width: '160px', marginBottom: 0 }}>
+                    <label className="form-label">Language <span className="text-danger">*</span></label>
+                    <select
+                      className="form-control"
+                      value={aiCodingLanguage || allowedLanguages[0] || ''}
+                      onChange={e => setAiCodingLanguage(e.target.value as ProgrammingLanguage)}
+                    >
+                      <option value="" disabled>Select language</option>
+                      {Object.values(ProgrammingLanguage).map(lang => (
+                        <option key={lang} value={lang}>{lang}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group" style={{ width: '120px', marginBottom: 0 }}>
                     <label className="form-label">Test Cases</label>
@@ -861,14 +878,14 @@ const AdminAssignmentForm: React.FC = () => {
                     type="button"
                     className="btn btn-primary"
                     onClick={generateAICodingAssignment}
-                    disabled={aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || allowedLanguages.length === 0}
-                    style={{ 
-                      marginBottom: 0, 
+                    disabled={aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || !(aiCodingLanguage || allowedLanguages[0])}
+                    style={{
+                      marginBottom: 0,
                       background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                       border: 'none',
                       padding: '10px 28px',
                       fontWeight: 600,
-                      opacity: (aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || allowedLanguages.length === 0) ? 0.6 : 1
+                      opacity: (aiCodingLoading || !title.trim() || !aiCoding.concept.trim() || !(aiCodingLanguage || allowedLanguages[0])) ? 0.6 : 1
                     }}
                   >
                     {aiCodingLoading ? '⏳ Generating...' : '✨ Generate Assignment'}
@@ -876,9 +893,6 @@ const AdminAssignmentForm: React.FC = () => {
                 </div>
                 {!title.trim() && (
                   <p style={{ margin: '8px 0 0', fontSize: '12px', color: '#f59e0b' }}>⚠️ Please enter a title first</p>
-                )}
-                {allowedLanguages.length === 0 && (
-                  <p style={{ margin: '4px 0 0', fontSize: '12px', color: '#f59e0b' }}>⚠️ Select at least one language in Coding Settings tab</p>
                 )}
               </div>
             )}

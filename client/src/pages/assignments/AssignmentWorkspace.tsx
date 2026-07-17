@@ -50,6 +50,8 @@ const AssignmentWorkspace: React.FC = () => {
   const [hintError, setHintError] = useState<string | null>(null);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [maxHints, setMaxHints] = useState(3);
+  const [conceptHint, setConceptHint] = useState<string | null>(null);
+  const [conceptHintLoading, setConceptHintLoading] = useState(false);
   
   // UI state
   const [activeTab, setActiveTab] = useState<'instructions' | 'output'>('instructions');
@@ -86,6 +88,7 @@ const AssignmentWorkspace: React.FC = () => {
     setHintsUsed(sub.aiHintsUsed || 0);
     setMaxHints(asgn.maxAiHints || 3);
     setHintsByTestCase({});
+    setConceptHint(null);
     if (asgn.settings?.timeLimitMinutes && sub.startedAt) {
       const started = new Date(sub.startedAt).getTime();
       const limit = asgn.settings.timeLimitMinutes * 60 * 1000;
@@ -290,6 +293,23 @@ const AssignmentWorkspace: React.FC = () => {
       setHintError(err.response?.data?.message || 'Failed to get hint');
     } finally {
       setHintLoadingIndex(null);
+    }
+  };
+
+  const requestConceptHint = async () => {
+    if (!submission) return;
+    try {
+      setConceptHintLoading(true);
+      setHintError(null);
+      const response = await submissionApi.getConceptHint(submission._id, { hintLanguage });
+      const data = response.data.data;
+      setConceptHint(data.hint);
+      setHintsUsed(data.hintsUsed);
+      setMaxHints(data.maxHints);
+    } catch (err: any) {
+      setHintError(err.response?.data?.message || 'Failed to get hint');
+    } finally {
+      setConceptHintLoading(false);
     }
   };
 
@@ -620,7 +640,82 @@ const AssignmentWorkspace: React.FC = () => {
                     dangerouslySetInnerHTML={{ __html: assignment.description }}
                   />
                 </div>
-                
+
+                {/* AI Hint — explain the problem's key concept before writing any code */}
+                {assignment.enableHints && (assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB) && (
+                  <div style={{ marginBottom: '20px', padding: '16px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+                    {hintError && (
+                      <div style={{ marginBottom: '12px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>
+                        {hintError}
+                      </div>
+                    )}
+                    {conceptHint ? (
+                      <div>
+                        <div style={{ fontSize: '12px', fontWeight: 600, color: '#6d28d9', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                          💡 AI Hint — Understanding this problem {hintLanguage === 'te' ? '(తెలుగు)' : '(English)'}
+                        </div>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#4c1d95', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                          {conceptHint}
+                        </p>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                        <div>
+                          <div style={{ fontWeight: 500, marginBottom: '2px', color: '#4c1d95' }}>💡 Not sure what this problem is asking?</div>
+                          <div style={{ fontSize: '13px', color: '#6d28d9' }}>AI will explain the key concept with a simple example — no code, no solution.</div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setHintLanguage('en')}
+                              style={{
+                                padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                                border: hintLanguage === 'en' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                                background: hintLanguage === 'en' ? '#7c3aed' : 'white',
+                                color: hintLanguage === 'en' ? 'white' : '#7c3aed'
+                              }}
+                            >
+                              English
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setHintLanguage('te')}
+                              style={{
+                                padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                                border: hintLanguage === 'te' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                                background: hintLanguage === 'te' ? '#7c3aed' : 'white',
+                                color: hintLanguage === 'te' ? 'white' : '#7c3aed'
+                              }}
+                            >
+                              తెలుగు
+                            </button>
+                          </div>
+                          {hintsUsed >= maxHints ? (
+                            <span style={{ fontSize: '13px', color: '#9ca3af' }}>
+                              No more hints available ({hintsUsed}/{maxHints} used)
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={requestConceptHint}
+                              disabled={conceptHintLoading}
+                              style={{
+                                background: '#7c3aed', color: 'white', border: 'none',
+                                padding: '6px 14px', fontSize: '13px', borderRadius: '6px',
+                                cursor: conceptHintLoading ? 'default' : 'pointer',
+                                opacity: conceptHintLoading ? 0.7 : 1
+                              }}
+                            >
+                              {conceptHintLoading ? '⏳ Thinking...' : `💡 Explain This Problem (${hintsUsed}/${maxHints} used)`}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {assignment.instructions && (
                   <div style={{ marginBottom: '20px' }}>
                     <h3 style={{ marginBottom: '8px' }}>📝 Instructions</h3>

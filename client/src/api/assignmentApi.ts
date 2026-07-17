@@ -477,6 +477,13 @@ export const submissionApi = {
       data
     ),
 
+  // Request an AI hint explaining the problem's key concept (before running anything)
+  getConceptHint: (submissionId: string, data: { hintLanguage: 'en' | 'te' }) =>
+    api.post<ApiResponse<{ hint: string; hintsUsed: number; maxHints: number }>>(
+      `/assignments/submissions/${submissionId}/concept-hint`,
+      data
+    ),
+
   // Submit coding assignment
   submitCoding: (submissionId: string, data: { code: string; language: ProgrammingLanguage }) =>
     api.post<ApiResponse<Submission>>(`/assignments/submissions/${submissionId}/submit-coding`, data),

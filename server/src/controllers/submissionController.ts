@@ -144,7 +144,7 @@ class SubmissionController {
         return res.status(400).json({ success: false, message: 'Missing failing test case details' });
       }
 
-      const result = await assignmentHintService.requestHint({
+      const result = await assignmentHintService.requestTestCaseHint({
         submissionId,
         studentId: userId as any,
         tenant: tenantId as any,
@@ -157,6 +157,36 @@ class SubmissionController {
       res.json({ success: true, data: result });
     } catch (error) {
       console.error('Get AI hint error:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get hint'
+      });
+    }
+  }
+
+  // Request an AI hint explaining the problem's key concept — available before
+  // the student has run anything, from the Instructions view.
+  async getConceptHint(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = req.tenantId;
+      const userId = req.user?.id;
+      const { submissionId } = req.params;
+      const { hintLanguage } = req.body;
+
+      if (!tenantId || !userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      const result = await assignmentHintService.requestConceptHint({
+        submissionId,
+        studentId: userId as any,
+        tenant: tenantId as any,
+        hintLanguage: hintLanguage === 'te' ? 'te' : 'en',
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Get AI concept hint error:', error);
       res.status(400).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to get hint'

@@ -217,6 +217,7 @@ export interface Submission {
   code?: string;
   testResults?: TestCaseResult[];
   aiHintsUsed?: number;
+  aiHintLog?: { at: string; testCaseIndex: number; language: 'en' | 'te'; hintText: string }[];
   mcqAnswers?: MCQAnswer[];
   theoryAnswer?: string;
   score?: number;

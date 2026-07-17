@@ -43,14 +43,15 @@ const AssignmentWorkspace: React.FC = () => {
   // Live HTML preview for `web` assignments
   const [webPreview, setWebPreview] = useState<string | null>(null);
 
-  // AI Hint state
+  // AI Hint state — each hint request APPENDS (students can request up to
+  // maxHints total, and every past hint stays visible / survives a reload).
   const [hintLanguage, setHintLanguage] = useState<'en' | 'te'>('en');
   const [hintLoadingIndex, setHintLoadingIndex] = useState<number | null>(null);
-  const [hintsByTestCase, setHintsByTestCase] = useState<Record<number, string>>({});
+  const [hintsByTestCase, setHintsByTestCase] = useState<Record<number, { text: string; language: 'en' | 'te' }[]>>({});
   const [hintError, setHintError] = useState<string | null>(null);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [maxHints, setMaxHints] = useState(3);
-  const [conceptHint, setConceptHint] = useState<string | null>(null);
+  const [conceptHints, setConceptHints] = useState<{ text: string; language: 'en' | 'te' }[]>([]);
   const [conceptHintLoading, setConceptHintLoading] = useState(false);
   
   // UI state
@@ -87,8 +88,17 @@ const AssignmentWorkspace: React.FC = () => {
     if (sub.testResults) setTestResults(sub.testResults);
     setHintsUsed(sub.aiHintsUsed || 0);
     setMaxHints(asgn.maxAiHints || 3);
-    setHintsByTestCase({});
-    setConceptHint(null);
+    // Restore past AI hints from the submission's hint log — a page reload
+    // should never make previously-fetched hints disappear.
+    const byTestCase: Record<number, { text: string; language: 'en' | 'te' }[]> = {};
+    const concept: { text: string; language: 'en' | 'te' }[] = [];
+    (sub.aiHintLog || []).forEach(entry => {
+      const item = { text: entry.hintText, language: entry.language };
+      if (entry.testCaseIndex === -1) concept.push(item);
+      else (byTestCase[entry.testCaseIndex] ||= []).push(item);
+    });
+    setHintsByTestCase(byTestCase);
+    setConceptHints(concept);
     if (asgn.settings?.timeLimitMinutes && sub.startedAt) {
       const started = new Date(sub.startedAt).getTime();
       const limit = asgn.settings.timeLimitMinutes * 60 * 1000;
@@ -143,6 +153,24 @@ const AssignmentWorkspace: React.FC = () => {
   useEffect(() => {
     loadAssignment();
   }, [loadAssignment]);
+
+  // This page is a fixed-viewport split layout (problem left, editor right),
+  // each with its own internal scroll region. The app shell normally lets the
+  // whole window scroll (for ordinary content pages) — if that happens here
+  // too (e.g. the left panel's content is tall), scrolling drags BOTH panels
+  // together instead of just the one under the cursor. Lock window/body
+  // scroll while this page is mounted so only the two inner panes scroll.
+  useEffect(() => {
+    const { style } = document.body;
+    const prevOverflow = style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    return () => {
+      style.overflow = prevOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, []);
 
   // Timer countdown
   useEffect(() => {
@@ -286,7 +314,10 @@ const AssignmentWorkspace: React.FC = () => {
         hintLanguage
       });
       const data = response.data.data;
-      setHintsByTestCase(prev => ({ ...prev, [index]: data.hint }));
+      setHintsByTestCase(prev => ({
+        ...prev,
+        [index]: [...(prev[index] || []), { text: data.hint, language: hintLanguage }]
+      }));
       setHintsUsed(data.hintsUsed);
       setMaxHints(data.maxHints);
     } catch (err: any) {
@@ -303,7 +334,7 @@ const AssignmentWorkspace: React.FC = () => {
       setHintError(null);
       const response = await submissionApi.getConceptHint(submission._id, { hintLanguage });
       const data = response.data.data;
-      setConceptHint(data.hint);
+      setConceptHints(prev => [...prev, { text: data.hint, language: hintLanguage }]);
       setHintsUsed(data.hintsUsed);
       setMaxHints(data.maxHints);
     } catch (err: any) {
@@ -649,70 +680,73 @@ const AssignmentWorkspace: React.FC = () => {
                         {hintError}
                       </div>
                     )}
-                    {conceptHint ? (
-                      <div>
+                    {conceptHints.length === 0 && (
+                      <div style={{ fontWeight: 500, marginBottom: '2px', color: '#4c1d95' }}>💡 Not sure what this problem is asking?</div>
+                    )}
+                    <div style={{ fontSize: '13px', color: '#6d28d9', marginBottom: conceptHints.length ? '12px' : '10px' }}>
+                      AI will explain the key concept with a simple example — no code, no solution.
+                    </div>
+
+                    {conceptHints.map((h, i) => (
+                      <div key={i} style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: i < conceptHints.length - 1 ? '1px solid #ddd6fe' : 'none' }}>
                         <div style={{ fontSize: '12px', fontWeight: 600, color: '#6d28d9', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                          💡 AI Hint — Understanding this problem {hintLanguage === 'te' ? '(తెలుగు)' : '(English)'}
+                          💡 Hint {i + 1} {h.language === 'te' ? '(తెలుగు)' : '(English)'}
                         </div>
                         <p style={{ margin: 0, fontSize: '14px', color: '#4c1d95', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                          {conceptHint}
+                          {h.text}
                         </p>
                       </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                        <div>
-                          <div style={{ fontWeight: 500, marginBottom: '2px', color: '#4c1d95' }}>💡 Not sure what this problem is asking?</div>
-                          <div style={{ fontSize: '13px', color: '#6d28d9' }}>AI will explain the key concept with a simple example — no code, no solution.</div>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                          <div style={{ display: 'flex', gap: '6px' }}>
-                            <button
-                              type="button"
-                              onClick={() => setHintLanguage('en')}
-                              style={{
-                                padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
-                                border: hintLanguage === 'en' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
-                                background: hintLanguage === 'en' ? '#7c3aed' : 'white',
-                                color: hintLanguage === 'en' ? 'white' : '#7c3aed'
-                              }}
-                            >
-                              English
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setHintLanguage('te')}
-                              style={{
-                                padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
-                                border: hintLanguage === 'te' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
-                                background: hintLanguage === 'te' ? '#7c3aed' : 'white',
-                                color: hintLanguage === 'te' ? 'white' : '#7c3aed'
-                              }}
-                            >
-                              తెలుగు
-                            </button>
-                          </div>
-                          {hintsUsed >= maxHints ? (
-                            <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-                              No more hints available ({hintsUsed}/{maxHints} used)
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={requestConceptHint}
-                              disabled={conceptHintLoading}
-                              style={{
-                                background: '#7c3aed', color: 'white', border: 'none',
-                                padding: '6px 14px', fontSize: '13px', borderRadius: '6px',
-                                cursor: conceptHintLoading ? 'default' : 'pointer',
-                                opacity: conceptHintLoading ? 0.7 : 1
-                              }}
-                            >
-                              {conceptHintLoading ? '⏳ Thinking...' : `💡 Explain This Problem (${hintsUsed}/${maxHints} used)`}
-                            </button>
-                          )}
-                        </div>
+                    ))}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => setHintLanguage('en')}
+                          style={{
+                            padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                            border: hintLanguage === 'en' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                            background: hintLanguage === 'en' ? '#7c3aed' : 'white',
+                            color: hintLanguage === 'en' ? 'white' : '#7c3aed'
+                          }}
+                        >
+                          English
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHintLanguage('te')}
+                          style={{
+                            padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                            border: hintLanguage === 'te' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                            background: hintLanguage === 'te' ? '#7c3aed' : 'white',
+                            color: hintLanguage === 'te' ? 'white' : '#7c3aed'
+                          }}
+                        >
+                          తెలుగు
+                        </button>
                       </div>
-                    )}
+                      {hintsUsed >= maxHints ? (
+                        <span style={{ fontSize: '13px', color: '#9ca3af' }}>
+                          No more hints available ({hintsUsed}/{maxHints} used)
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={requestConceptHint}
+                          disabled={conceptHintLoading}
+                          style={{
+                            background: '#7c3aed', color: 'white', border: 'none',
+                            padding: '6px 14px', fontSize: '13px', borderRadius: '6px',
+                            cursor: conceptHintLoading ? 'default' : 'pointer',
+                            opacity: conceptHintLoading ? 0.7 : 1
+                          }}
+                        >
+                          {conceptHintLoading ? '⏳ Thinking...' : conceptHints.length
+                            ? `💡 Get Another Hint (${hintsUsed}/${maxHints} used)`
+                            : `💡 Explain This Problem (${hintsUsed}/${maxHints} used)`}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
 
@@ -1052,64 +1086,65 @@ const AssignmentWorkspace: React.FC = () => {
                           {/* AI Hint */}
                           {assignment.enableHints && !result.passed && (
                             <div style={{ marginTop: '12px', padding: '12px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
-                              {hintsByTestCase[index] ? (
-                                <div>
+                              {(hintsByTestCase[index] || []).map((h, hi) => (
+                                <div key={hi} style={{ marginBottom: '10px', paddingBottom: '10px', borderBottom: '1px solid #ddd6fe' }}>
                                   <div style={{ fontSize: '12px', fontWeight: 600, color: '#6d28d9', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                    💡 AI Hint {hintLanguage === 'te' ? '(తెలుగు)' : '(English)'}
+                                    💡 Hint {hi + 1} {h.language === 'te' ? '(తెలుగు)' : '(English)'}
                                   </div>
                                   <p style={{ margin: 0, fontSize: '14px', color: '#4c1d95', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
-                                    {hintsByTestCase[index]}
+                                    {h.text}
                                   </p>
                                 </div>
-                              ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
-                                  <div style={{ display: 'flex', gap: '6px' }}>
-                                    <button
-                                      type="button"
-                                      onClick={() => setHintLanguage('en')}
-                                      style={{
-                                        padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
-                                        border: hintLanguage === 'en' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
-                                        background: hintLanguage === 'en' ? '#7c3aed' : 'white',
-                                        color: hintLanguage === 'en' ? 'white' : '#7c3aed'
-                                      }}
-                                    >
-                                      English
-                                    </button>
-                                    <button
-                                      type="button"
-                                      onClick={() => setHintLanguage('te')}
-                                      style={{
-                                        padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
-                                        border: hintLanguage === 'te' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
-                                        background: hintLanguage === 'te' ? '#7c3aed' : 'white',
-                                        color: hintLanguage === 'te' ? 'white' : '#7c3aed'
-                                      }}
-                                    >
-                                      తెలుగు
-                                    </button>
-                                  </div>
-                                  {hintsUsed >= maxHints ? (
-                                    <span style={{ fontSize: '13px', color: '#9ca3af' }}>
-                                      No more hints available for this problem ({hintsUsed}/{maxHints} used)
-                                    </span>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      onClick={() => requestHint(index)}
-                                      disabled={hintLoadingIndex === index}
-                                      style={{
-                                        background: '#7c3aed', color: 'white', border: 'none',
-                                        padding: '6px 14px', fontSize: '13px', borderRadius: '6px',
-                                        cursor: hintLoadingIndex === index ? 'default' : 'pointer',
-                                        opacity: hintLoadingIndex === index ? 0.7 : 1
-                                      }}
-                                    >
-                                      {hintLoadingIndex === index ? '⏳ Thinking...' : `💡 Get AI Hint (${hintsUsed}/${maxHints} used)`}
-                                    </button>
-                                  )}
+                              ))}
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '6px' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => setHintLanguage('en')}
+                                    style={{
+                                      padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                                      border: hintLanguage === 'en' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                                      background: hintLanguage === 'en' ? '#7c3aed' : 'white',
+                                      color: hintLanguage === 'en' ? 'white' : '#7c3aed'
+                                    }}
+                                  >
+                                    English
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setHintLanguage('te')}
+                                    style={{
+                                      padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                                      border: hintLanguage === 'te' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                                      background: hintLanguage === 'te' ? '#7c3aed' : 'white',
+                                      color: hintLanguage === 'te' ? 'white' : '#7c3aed'
+                                    }}
+                                  >
+                                    తెలుగు
+                                  </button>
                                 </div>
-                              )}
+                                {hintsUsed >= maxHints ? (
+                                  <span style={{ fontSize: '13px', color: '#9ca3af' }}>
+                                    No more hints available for this problem ({hintsUsed}/{maxHints} used)
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => requestHint(index)}
+                                    disabled={hintLoadingIndex === index}
+                                    style={{
+                                      background: '#7c3aed', color: 'white', border: 'none',
+                                      padding: '6px 14px', fontSize: '13px', borderRadius: '6px',
+                                      cursor: hintLoadingIndex === index ? 'default' : 'pointer',
+                                      opacity: hintLoadingIndex === index ? 0.7 : 1
+                                    }}
+                                  >
+                                    {hintLoadingIndex === index ? '⏳ Thinking...' : (hintsByTestCase[index] || []).length
+                                      ? `💡 Get Another Hint (${hintsUsed}/${maxHints} used)`
+                                      : `💡 Get AI Hint (${hintsUsed}/${maxHints} used)`}
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           )}
                         </div>

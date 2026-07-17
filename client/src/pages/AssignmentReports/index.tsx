@@ -21,6 +21,8 @@ interface AssignmentStats {
     passRate: number;
     onTimeSubmissions: number;
     lateSubmissions: number;
+    hintUsagePercent?: number;
+    avgHintsUsed?: number;
   };
 }
 
@@ -311,6 +313,7 @@ const AssignmentReports: React.FC = () => {
                 <th>Pass Rate</th>
                 <th>On Time</th>
                 <th>Late</th>
+                <th>💡 AI Hint Usage</th>
               </tr>
             </thead>
             <tbody>
@@ -345,11 +348,20 @@ const AssignmentReports: React.FC = () => {
                   </td>
                   <td className="on-time">{assignment.stats?.onTimeSubmissions || 0}</td>
                   <td className="late">{assignment.stats?.lateSubmissions || 0}</td>
+                  <td>
+                    {assignment.stats?.hintUsagePercent ? (
+                      <span title={`Avg ${assignment.stats.avgHintsUsed ?? 0} hints per student`}>
+                        {assignment.stats.hintUsagePercent}%
+                      </span>
+                    ) : (
+                      <span style={{ color: '#9ca3af' }}>0%</span>
+                    )}
+                  </td>
                 </tr>
               ))}
               {assignmentStats.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="no-data">No assignment data available</td>
+                  <td colSpan={9} className="no-data">No assignment data available</td>
                 </tr>
               )}
             </tbody>

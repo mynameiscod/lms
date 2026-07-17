@@ -42,6 +42,14 @@ const AssignmentWorkspace: React.FC = () => {
   const [runtimeError, setRuntimeError] = useState<string | null>(null);
   // Live HTML preview for `web` assignments
   const [webPreview, setWebPreview] = useState<string | null>(null);
+
+  // AI Hint state
+  const [hintLanguage, setHintLanguage] = useState<'en' | 'te'>('en');
+  const [hintLoadingIndex, setHintLoadingIndex] = useState<number | null>(null);
+  const [hintsByTestCase, setHintsByTestCase] = useState<Record<number, string>>({});
+  const [hintError, setHintError] = useState<string | null>(null);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [maxHints, setMaxHints] = useState(3);
   
   // UI state
   const [activeTab, setActiveTab] = useState<'instructions' | 'output'>('instructions');
@@ -75,6 +83,9 @@ const AssignmentWorkspace: React.FC = () => {
       setMcqAnswers(answers);
     }
     if (sub.testResults) setTestResults(sub.testResults);
+    setHintsUsed(sub.aiHintsUsed || 0);
+    setMaxHints(asgn.maxAiHints || 3);
+    setHintsByTestCase({});
     if (asgn.settings?.timeLimitMinutes && sub.startedAt) {
       const started = new Date(sub.startedAt).getTime();
       const limit = asgn.settings.timeLimitMinutes * 60 * 1000;
@@ -221,6 +232,8 @@ const AssignmentWorkspace: React.FC = () => {
       setConsoleOutput(null);
       setRuntimeError(null);
       setWebPreview(null);
+      setHintsByTestCase({});
+      setHintError(null);
 
       const response = await submissionApi.runCode(submission._id, {
         code,
@@ -248,6 +261,35 @@ const AssignmentWorkspace: React.FC = () => {
       setOutput(`Error: ${err.response?.data?.message || 'Failed to run code'}`);
     } finally {
       setRunning(false);
+    }
+  };
+
+  const requestHint = async (index: number) => {
+    if (!submission) return;
+    const result = testResults[index];
+    if (!result) return;
+
+    try {
+      setHintLoadingIndex(index);
+      setHintError(null);
+      const response = await submissionApi.getHint(submission._id, {
+        code,
+        testCaseIndex: index,
+        fail: {
+          input: result.input || '',
+          expected: result.expectedOutput || '',
+          actual: result.error ? `${result.actualOutput || ''}\n${result.error}`.trim() : (result.actualOutput || '(no output)')
+        },
+        hintLanguage
+      });
+      const data = response.data.data;
+      setHintsByTestCase(prev => ({ ...prev, [index]: data.hint }));
+      setHintsUsed(data.hintsUsed);
+      setMaxHints(data.maxHints);
+    } catch (err: any) {
+      setHintError(err.response?.data?.message || 'Failed to get hint');
+    } finally {
+      setHintLoadingIndex(null);
     }
   };
 
@@ -724,6 +766,11 @@ const AssignmentWorkspace: React.FC = () => {
                   </div>
                 ) : testResults && testResults.length > 0 ? (
                   <div style={{ padding: '16px' }}>
+                    {hintError && (
+                      <div style={{ marginBottom: '16px', padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', color: '#dc2626', fontSize: '13px' }}>
+                        {hintError}
+                      </div>
+                    )}
                     {/* Summary */}
                     <div style={{ 
                       display: 'flex', 
@@ -904,6 +951,70 @@ const AssignmentWorkspace: React.FC = () => {
                               }}>
                                 {result.error}
                               </pre>
+                            </div>
+                          )}
+
+                          {/* AI Hint */}
+                          {assignment.enableHints && !result.passed && (
+                            <div style={{ marginTop: '12px', padding: '12px', background: '#f5f3ff', borderRadius: '8px', border: '1px solid #ddd6fe' }}>
+                              {hintsByTestCase[index] ? (
+                                <div>
+                                  <div style={{ fontSize: '12px', fontWeight: 600, color: '#6d28d9', marginBottom: '6px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    💡 AI Hint {hintLanguage === 'te' ? '(తెలుగు)' : '(English)'}
+                                  </div>
+                                  <p style={{ margin: 0, fontSize: '14px', color: '#4c1d95', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>
+                                    {hintsByTestCase[index]}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px' }}>
+                                  <div style={{ display: 'flex', gap: '6px' }}>
+                                    <button
+                                      type="button"
+                                      onClick={() => setHintLanguage('en')}
+                                      style={{
+                                        padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                                        border: hintLanguage === 'en' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                                        background: hintLanguage === 'en' ? '#7c3aed' : 'white',
+                                        color: hintLanguage === 'en' ? 'white' : '#7c3aed'
+                                      }}
+                                    >
+                                      English
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setHintLanguage('te')}
+                                      style={{
+                                        padding: '4px 10px', fontSize: '12px', borderRadius: '6px', cursor: 'pointer',
+                                        border: hintLanguage === 'te' ? '1px solid #7c3aed' : '1px solid #ddd6fe',
+                                        background: hintLanguage === 'te' ? '#7c3aed' : 'white',
+                                        color: hintLanguage === 'te' ? 'white' : '#7c3aed'
+                                      }}
+                                    >
+                                      తెలుగు
+                                    </button>
+                                  </div>
+                                  {hintsUsed >= maxHints ? (
+                                    <span style={{ fontSize: '13px', color: '#9ca3af' }}>
+                                      No more hints available for this problem ({hintsUsed}/{maxHints} used)
+                                    </span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => requestHint(index)}
+                                      disabled={hintLoadingIndex === index}
+                                      style={{
+                                        background: '#7c3aed', color: 'white', border: 'none',
+                                        padding: '6px 14px', fontSize: '13px', borderRadius: '6px',
+                                        cursor: hintLoadingIndex === index ? 'default' : 'pointer',
+                                        opacity: hintLoadingIndex === index ? 0.7 : 1
+                                      }}
+                                    >
+                                      {hintLoadingIndex === index ? '⏳ Thinking...' : `💡 Get AI Hint (${hintsUsed}/${maxHints} used)`}
+                                    </button>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

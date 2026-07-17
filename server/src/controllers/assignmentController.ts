@@ -635,7 +635,7 @@ class AssignmentController {
 
       const assignmentStats = await Promise.all(assignments.map(async (assignment: any) => {
         try {
-          const submissions = await Submission.find({ 
+          const submissions = await Submission.find({
             assignment: assignment._id,
             status: 'submitted'
           }).lean();
@@ -646,10 +646,22 @@ class AssignmentController {
 
           const now = new Date();
           const dueDate = assignment.dueDate ? new Date(assignment.dueDate) : new Date();
-          
-          const onTimeSubmissions = submissions.filter((s: any) => 
+
+          const onTimeSubmissions = submissions.filter((s: any) =>
             new Date(s.submittedAt || s.createdAt) <= dueDate
           ).length;
+
+          // AI hint usage — across ALL attempts (including still in-progress), not
+          // just finalized submissions, since a student may use hints before submitting.
+          const allAttempts = await Submission.find({ assignment: assignment._id })
+            .select('aiHintsUsed')
+            .lean();
+          const attemptedCount = allAttempts.length;
+          const usedHintCount = allAttempts.filter((s: any) => (s.aiHintsUsed || 0) > 0).length;
+          const hintUsagePercent = attemptedCount > 0 ? Math.round((usedHintCount / attemptedCount) * 100) : 0;
+          const avgHintsUsed = attemptedCount > 0
+            ? Math.round((allAttempts.reduce((sum: number, s: any) => sum + (s.aiHintsUsed || 0), 0) / attemptedCount) * 10) / 10
+            : 0;
 
           return {
             ...assignment,
@@ -661,7 +673,9 @@ class AssignmentController {
               lowestScore: scores.length > 0 ? Math.min(...scores) : 0,
               passRate: submissions.length > 0 ? (scores.filter((s: number) => s >= 60).length / submissions.length) * 100 : 0,
               onTimeSubmissions,
-              lateSubmissions: submissions.length - onTimeSubmissions
+              lateSubmissions: submissions.length - onTimeSubmissions,
+              hintUsagePercent,
+              avgHintsUsed
             }
           };
         } catch (err) {
@@ -676,7 +690,9 @@ class AssignmentController {
               lowestScore: 0,
               passRate: 0,
               onTimeSubmissions: 0,
-              lateSubmissions: 0
+              lateSubmissions: 0,
+              hintUsagePercent: 0,
+              avgHintsUsed: 0
             }
           };
         }

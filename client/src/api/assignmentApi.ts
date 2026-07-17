@@ -151,6 +151,7 @@ export interface Assignment {
   enableMicrophone?: boolean;
   enableHints: boolean;
   hints: string[];
+  maxAiHints: number;
   isInBank: boolean;
   bankCategory?: string;
   createdBy?: { _id: string; name?: string; firstName?: string; lastName?: string; email: string };
@@ -215,6 +216,7 @@ export interface Submission {
   language?: ProgrammingLanguage;
   code?: string;
   testResults?: TestCaseResult[];
+  aiHintsUsed?: number;
   mcqAnswers?: MCQAnswer[];
   theoryAnswer?: string;
   score?: number;
@@ -252,6 +254,7 @@ export interface SubmissionStats {
   lowestScore: number;
   passing: number;
   passRate: number;
+  hintUsagePercent?: number;
 }
 
 // Assignment input type for create/update
@@ -289,6 +292,7 @@ export interface AssignmentInput {
   showSyntaxErrors?: boolean;
   enableHints?: boolean;
   hints?: string[];
+  maxAiHints?: number;
   isInBank?: boolean;
   bankCategory?: string;
 }
@@ -458,6 +462,18 @@ export const submissionApi = {
   runCode: (submissionId: string, data: { code: string; language: ProgrammingLanguage }) =>
     api.post<ApiResponse<{ results: TestResult[]; allPassed: boolean; compilationError?: string; stdout?: string; runtimeError?: string }>>(
       `/assignments/submissions/${submissionId}/run`,
+      data
+    ),
+
+  // Request an AI hint for a failing test case (quota-limited by assignment.maxAiHints)
+  getHint: (submissionId: string, data: {
+    code: string;
+    testCaseIndex: number;
+    fail: { input: string; expected: string; actual: string };
+    hintLanguage: 'en' | 'te';
+  }) =>
+    api.post<ApiResponse<{ hint: string; hintsUsed: number; maxHints: number }>>(
+      `/assignments/submissions/${submissionId}/hint`,
       data
     ),
 

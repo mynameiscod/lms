@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import submissionService from '../services/submissionService';
+import assignmentHintService from '../services/assignmentHintService';
 import { SubmissionStatus } from '../models/Submission';
 
 // Extended Request interface with user and tenant
@@ -124,6 +125,41 @@ class SubmissionController {
       res.status(400).json({
         success: false,
         message: error instanceof Error ? error.message : 'Failed to run code'
+      });
+    }
+  }
+
+  // Request an AI hint for a failing test case (quota-limited by assignment.maxAiHints)
+  async getHint(req: AuthRequest, res: Response) {
+    try {
+      const tenantId = req.tenantId;
+      const userId = req.user?.id;
+      const { submissionId } = req.params;
+      const { code, testCaseIndex, fail, hintLanguage } = req.body;
+
+      if (!tenantId || !userId) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+      if (!fail || typeof fail.expected !== 'string' || typeof fail.actual !== 'string') {
+        return res.status(400).json({ success: false, message: 'Missing failing test case details' });
+      }
+
+      const result = await assignmentHintService.requestHint({
+        submissionId,
+        studentId: userId as any,
+        tenant: tenantId as any,
+        code,
+        testCaseIndex: Number(testCaseIndex) || 0,
+        fail,
+        hintLanguage: hintLanguage === 'te' ? 'te' : 'en',
+      });
+
+      res.json({ success: true, data: result });
+    } catch (error) {
+      console.error('Get AI hint error:', error);
+      res.status(400).json({
+        success: false,
+        message: error instanceof Error ? error.message : 'Failed to get hint'
       });
     }
   }

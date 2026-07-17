@@ -657,6 +657,12 @@ class SubmissionService {
     
     const passing = submissions.filter(s => s.isPassing).length;
 
+    // AI hint usage across ALL attempts (including in-progress), not just finalized ones.
+    const allAttempts = await Submission.find({ assignment: assignmentId, tenant }).select('aiHintsUsed').lean();
+    const attemptedCount = allAttempts.length;
+    const usedHintCount = allAttempts.filter((s: any) => (s.aiHintsUsed || 0) > 0).length;
+    const hintUsagePercent = attemptedCount > 0 ? Math.round((usedHintCount / attemptedCount) * 100) : 0;
+
     return {
       total,
       graded,
@@ -666,7 +672,8 @@ class SubmissionService {
       highestScore,
       lowestScore,
       passing,
-      passRate: total > 0 ? Math.round((passing / total) * 100) : 0
+      passRate: total > 0 ? Math.round((passing / total) * 100) : 0,
+      hintUsagePercent
     };
   }
 

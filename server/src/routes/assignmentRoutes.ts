@@ -62,6 +62,7 @@ router.post('/:assignmentId/start', submissionController.start);
 router.get('/:assignmentId/my-submission', submissionController.getMySubmission);
 router.post('/submissions/:submissionId/save-code', submissionController.saveCode);
 router.post('/submissions/:submissionId/run', submissionController.runCode);
+router.post('/submissions/:submissionId/hint', submissionController.getHint);
 router.post('/submissions/:submissionId/submit-coding', submissionController.submitCoding);
 router.post('/submissions/:submissionId/submit-mcq', submissionController.submitMCQ);
 router.post('/submissions/:submissionId/submit-theory', submissionController.submitTheory);

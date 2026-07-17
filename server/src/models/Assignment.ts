@@ -140,6 +140,7 @@ export interface IAssignment extends Document {
   enablePlagiarismCheck: boolean;
   enableHints: boolean;
   hints: string[];
+  maxAiHints: number; // Max AI hint requests a student may use per attempt on this assignment
   enableCamera: boolean;
   enableMicrophone: boolean;
   
@@ -261,6 +262,7 @@ const AssignmentSchema = new Schema<IAssignment>({
   enablePlagiarismCheck: { type: Boolean, default: false },
   enableHints: { type: Boolean, default: false },
   hints: [{ type: String }],
+  maxAiHints: { type: Number, default: 3, min: 1, max: 10 },
   enableCamera: { type: Boolean, default: false },
   enableMicrophone: { type: Boolean, default: false },
   

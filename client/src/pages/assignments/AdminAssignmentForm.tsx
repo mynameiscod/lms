@@ -103,6 +103,8 @@ const AdminAssignmentForm: React.FC = () => {
   const [enablePlagiarismCheck, setEnablePlagiarismCheck] = useState(false);
   const [enableCamera, setEnableCamera] = useState(false);
   const [enableMicrophone, setEnableMicrophone] = useState(false);
+  const [enableHints, setEnableHints] = useState(false);
+  const [maxAiHints, setMaxAiHints] = useState(3);
 
   // Rich text editor configuration
   const quillModules = useMemo(() => ({
@@ -327,6 +329,8 @@ const AdminAssignmentForm: React.FC = () => {
       setEnablePlagiarismCheck(a.enablePlagiarismCheck ?? false);
       setEnableCamera(a.enableCamera ?? false);
       setEnableMicrophone(a.enableMicrophone ?? false);
+      setEnableHints(a.enableHints ?? false);
+      setMaxAiHints(a.maxAiHints ?? 3);
     } catch (err) {
       setError('Failed to load assignment');
     } finally {
@@ -381,6 +385,8 @@ const AdminAssignmentForm: React.FC = () => {
         enablePlagiarismCheck,
         enableCamera,
         enableMicrophone,
+        enableHints,
+        maxAiHints,
         accessibleTo: isExternalAssignment ? 'everyone' : accessibleTo,
         selectedBatches: (!isExternalAssignment && accessibleTo === 'batch_wise') ? selectedBatches : [],
         selectedStudents: (!isExternalAssignment && accessibleTo === 'individual') ? selectedStudents : [],
@@ -1832,6 +1838,79 @@ const AdminAssignmentForm: React.FC = () => {
                       </span>
                     </label>
                   </div>
+
+                  {/* Enable AI Hints */}
+                  <div style={{ boxSizing: 'border-box',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    padding: '16px',
+                    backgroundColor: enableHints ? '#ede9fe' : '#f8fafc',
+                    borderRadius: '8px',
+                    border: enableHints ? '1px solid #7c3aed' : '1px solid #e2e8f0'
+                  }}>
+                    <div>
+                      <div style={{ fontWeight: 500, marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>💡</span> Enable AI Hints
+                      </div>
+                      <div style={{ fontSize: '13px', color: '#64748b' }}>
+                        Students stuck on a failing test case can request an AI-generated explanation (never the full solution)
+                      </div>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '26px', flexShrink: 0 }}>
+                      <input
+                        type="checkbox"
+                        checked={enableHints}
+                        onChange={(e) => setEnableHints(e.target.checked)}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        cursor: 'pointer',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: enableHints ? '#7c3aed' : '#cbd5e1',
+                        transition: '0.3s',
+                        borderRadius: '26px'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          height: '20px',
+                          width: '20px',
+                          left: enableHints ? '25px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: 'white',
+                          transition: '0.3s',
+                          borderRadius: '50%'
+                        }}></span>
+                      </span>
+                    </label>
+                  </div>
+
+                  {enableHints && (
+                    <div style={{ boxSizing: 'border-box',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '16px',
+                      backgroundColor: '#f8fafc',
+                      borderRadius: '8px',
+                      border: '1px solid #e2e8f0'
+                    }}>
+                      <div>
+                        <div style={{ fontWeight: 500, marginBottom: '4px' }}>Max AI Hints per Student</div>
+                        <div style={{ fontSize: '13px', color: '#64748b' }}>How many hint requests a student may use on this problem (e.g. 3 or 4)</div>
+                      </div>
+                      <input
+                        type="number"
+                        className="form-control"
+                        min={1}
+                        max={10}
+                        value={maxAiHints}
+                        onChange={(e) => setMaxAiHints(Math.min(10, Math.max(1, Number(e.target.value) || 1)))}
+                        style={{ width: '80px', textAlign: 'center' }}
+                      />
+                    </div>
+                  )}
                 </div>
               </>
             )}

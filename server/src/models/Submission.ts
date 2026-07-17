@@ -54,6 +54,13 @@ export interface ICodeSnapshot {
   timestamp: Date;
 }
 
+export interface IAiHintLogEntry {
+  at: Date;
+  testCaseIndex: number;
+  language: 'en' | 'te';
+  hintText: string;
+}
+
 // Main Submission Interface
 export interface ISubmission extends Document {
   _id: Types.ObjectId;
@@ -77,6 +84,10 @@ export interface ISubmission extends Document {
   testCaseResults: ITestCaseResult[];
   compilationError?: string;
   runtimeError?: string;
+
+  // AI Hints (per-attempt usage, capped by Assignment.maxAiHints)
+  aiHintsUsed: number;
+  aiHintLog: IAiHintLogEntry[];
   
   // MCQ Submission
   mcqAnswers: IMCQAnswer[];
@@ -161,6 +172,13 @@ const CodeSnapshotSchema = new Schema<ICodeSnapshot>({
   timestamp: { type: Date, default: Date.now }
 }, { _id: false });
 
+const AiHintLogEntrySchema = new Schema<IAiHintLogEntry>({
+  at: { type: Date, default: Date.now },
+  testCaseIndex: { type: Number, required: true },
+  language: { type: String, enum: ['en', 'te'], default: 'en' },
+  hintText: { type: String, default: '' }
+}, { _id: false });
+
 const SubmissionSchema = new Schema<ISubmission>({
   tenant: { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
   assignment: { type: Schema.Types.ObjectId, ref: 'Assignment', required: true, index: true },
@@ -182,6 +200,10 @@ const SubmissionSchema = new Schema<ISubmission>({
   testCaseResults: [TestCaseResultSchema],
   compilationError: { type: String },
   runtimeError: { type: String },
+
+  // AI Hints
+  aiHintsUsed: { type: Number, default: 0 },
+  aiHintLog: [AiHintLogEntrySchema],
   
   // MCQ Submission
   mcqAnswers: [MCQAnswerSchema],

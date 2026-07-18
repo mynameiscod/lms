@@ -978,9 +978,14 @@
 .workspace-container {
   display: flex;
   flex-direction: column;
-  /* Fill #root (which compensates the global zoom) instead of a fixed 100vh,
-     which the zoom shrinks and leaves dead white space below the workspace. */
-  flex: 1 1 auto;
+  /* Pin to a DEFINITE viewport-bounded height rather than flex-growing inside
+     #root. #root uses `min-height` (not height), so a `flex: 1 1 auto` child
+     with an `auto` basis grows to its own tall content — leaving the inner
+     panels unbounded, so their `overflow: auto` never scrolls and body's
+     overflow:hidden just clips everything below the fold. #root applies
+     `zoom: 0.75`, which shrinks `vh`; divide by 0.75 to fill the real viewport
+     (the same compensation #root itself uses for its min-height). */
+  height: calc(100vh / 0.75);
   min-height: 0;
   background: #1e1e2e;
   overflow: hidden;
@@ -1035,7 +1040,13 @@
 .workspace-layout {
   display: grid;
   grid-template-columns: 1fr 1fr;
+  /* Force the single row to exactly the layout's own (bounded) height.
+     Without this the implicit row is `auto` and grows to its tall content,
+     so the panels overflow and their inner `overflow: auto` never scrolls.
+     `minmax(0, 1fr)` lets each panel shrink below its content and scroll. */
+  grid-template-rows: minmax(0, 1fr);
   flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
@@ -1045,6 +1056,9 @@
   background: #fff;
   border-right: 1px solid #2d2d3d;
   overflow: hidden;
+  /* Grid item: allow it to shrink below content so its inner pane scrolls. */
+  min-height: 0;
+  min-width: 0;
 }
 
 .workspace-problem .tabs {
@@ -1071,6 +1085,9 @@
   flex-direction: column;
   background: #1e1e1e;
   overflow: hidden;
+  /* Grid item: allow it to shrink below content so the editor/pane fits. */
+  min-height: 0;
+  min-width: 0;
 }
 
 .workspace-editor .language-pills {
@@ -1271,15 +1288,9 @@
 @media (max-width: 1024px) {
   .workspace-layout {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
-  }
-  
-  .workspace-problem {
-    max-height: 40vh;
-  }
-  
-  .workspace-editor {
-    min-height: 50vh;
+    /* Stacked: problem sized to its content up to a cap, editor takes the
+       rest. minmax(0, …) keeps both rows able to scroll their own content. */
+    grid-template-rows: minmax(0, 0.9fr) minmax(0, 1.1fr);
   }
 }
 
@@ -1332,17 +1343,6 @@
 }
 
 /* Responsive */
-@media (max-width: 1024px) {
-  .workspace-container {
-    grid-template-columns: 1fr;
-    height: auto;
-  }
-  
-  .workspace-sidebar {
-    order: -1;
-  }
-}
-
 @media (max-width: 768px) {
   .assignment-page {
     padding: 16px;

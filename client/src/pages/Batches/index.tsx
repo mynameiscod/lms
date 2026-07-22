@@ -1,7 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { batchApi, userApi, courseApi, departmentApi } from '../../api';
+import { batchApi, userApi, courseApi, departmentApi, tenantApi } from '../../api';
 import { Alert, Spinner } from '../../components/common';
 import CourseSelect from '../../components/common/CourseSelect';
+import { useAuth } from '../../contexts/AuthContext';
+import {
+  FEATURE_META, FEATURE_MODULE_MAP, GROUP_ORDER, STUDENT_FEATURE_KEYS, StudentFeatureKey
+} from '../../config/studentFeatureCatalog';
 import { Batch, User } from '../../types';
 import './BatchesPage.css';
 
@@ -19,6 +23,7 @@ type Timing = { day: string; startTime: string; endTime: string };
 const fmtDate = (s?: string) => s ? new Date(s).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) : '';
 
 const BatchesPage: React.FC = () => {
+  const { user } = useAuth();
   const [batches, setBatches] = useState<Batch[]>([]);
   const [instructors, setInstructors] = useState<User[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
@@ -26,6 +31,10 @@ const BatchesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Per-batch module control (Batches → Modules)
+  const [modulesBatch, setModulesBatch] = useState<Batch | null>(null);
+  const [tenantModules, setTenantModules] = useState<Record<string, boolean>>({});
 
   const [view, setView] = useState<'list' | 'wizard'>('list');
   const [step, setStep] = useState(0);
@@ -57,8 +66,21 @@ const BatchesPage: React.FC = () => {
       setCourses(c.data || []);
       setDepartments(d.data || []);
       setInstructors((u.data || []).filter((x: User) => ['INSTRUCTOR', 'TENANT_ADMIN', 'SUPER_ADMIN'].includes((x.role || '').toUpperCase())));
+      // Tenant module flags — used to lock batch toggles whose parent module is off tenant-wide.
+      if (user?.tenantId) {
+        try {
+          const t = await tenantApi.getTenant(user.tenantId);
+          setTenantModules(t?.data?.modules || {});
+        } catch { /* non-fatal — modules just won't show as locked */ }
+      }
     } catch (err: any) { setError(err.message || 'Failed to fetch data'); }
     finally { setLoading(false); }
+  };
+
+  // Reflect a saved module change back into the local batch list (no refetch needed).
+  const onModulesSaved = (batchId: string, disabled: string[]) => {
+    setBatches(prev => prev.map(b => b._id === batchId ? { ...b, disabledFeatures: disabled } : b));
+    setSuccess('Batch modules updated');
   };
 
   const calcEnd = (start: string) => start ? new Date(new Date(start).getTime() + 150 * 864e5).toISOString().split('T')[0] : '';
@@ -376,6 +398,7 @@ const BatchesPage: React.FC = () => {
                     </div>
                     <div className="bm-batch-actions">
                       <button className="bm-icon-btn" onClick={() => openEdit(batch)} title="Edit">✏️</button>
+                      <button className="bm-icon-btn" onClick={() => setModulesBatch(batch)} title="Modules for this batch">🧩</button>
                       <button className="bm-icon-btn del" onClick={() => handleDelete(batch)} title="Delete">🗑️</button>
                     </div>
                   </div>
@@ -393,6 +416,12 @@ const BatchesPage: React.FC = () => {
                     <div className="bm-meta-label">Instructor</div>
                     <div className="bm-meta-val">👤 {batch.instructors.length ? batch.instructors.map(x => `${x.firstName} ${x.lastName}`).join(', ') : '—'}</div>
                   </div>
+                  {(batch.disabledFeatures?.length || 0) > 0 && (
+                    <div className="bm-meta">
+                      <div className="bm-meta-label">Modules</div>
+                      <div className="bm-meta-val">🧩 {batch.disabledFeatures!.length} feature{batch.disabledFeatures!.length > 1 ? 's' : ''} hidden for this batch</div>
+                    </div>
+                  )}
                 </div>
               );
             })}
@@ -407,6 +436,119 @@ const BatchesPage: React.FC = () => {
           )}
         </>
       )}
+
+      {modulesBatch && (
+        <BatchModulesModal
+          batch={modulesBatch}
+          tenantModules={tenantModules}
+          onClose={() => setModulesBatch(null)}
+          onSaved={onModulesSaved}
+        />
+      )}
+    </div>
+  );
+};
+
+// ───────────────────── PER-BATCH MODULES MODAL ─────────────────────
+// Toggle which student-features are visible for a single batch. A batch can only
+// turn features OFF; a feature whose tenant module is disabled shows as locked.
+const BatchModulesModal: React.FC<{
+  batch: Batch;
+  tenantModules: Record<string, boolean>;
+  onClose: () => void;
+  onSaved: (batchId: string, disabled: string[]) => void;
+}> = ({ batch, tenantModules, onClose, onSaved }) => {
+  const [disabled, setDisabled] = useState<Set<string>>(new Set(batch.disabledFeatures || []));
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const isTenantLocked = (key: StudentFeatureKey): boolean => {
+    const mod = FEATURE_MODULE_MAP[key];
+    if (!mod) return false;
+    return tenantModules[mod] === false;
+  };
+
+  const toggle = (key: StudentFeatureKey) => {
+    if (isTenantLocked(key)) return;
+    setDisabled(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const save = async () => {
+    setSaving(true); setErr('');
+    try {
+      const list = [...disabled];
+      await batchApi.updateBatchModules(batch._id, list);
+      onSaved(batch._id, list);
+      onClose();
+    } catch (e: any) {
+      setErr(e.message || 'Failed to save');
+      setSaving(false);
+    }
+  };
+
+  const availableCount = STUDENT_FEATURE_KEYS.filter(k => !disabled.has(k) && !isTenantLocked(k)).length;
+
+  return (
+    <div className="bmod-overlay" onClick={onClose}>
+      <div className="bmod" onClick={e => e.stopPropagation()}>
+        <div className="bmod-head">
+          <div>
+            <h2 className="bmod-title">🧩 Modules — {batch.name}</h2>
+            <p className="bmod-sub">Turn features off for this batch only. Students in this batch won't see (or be able to open) anything you hide here. This can only restrict — it never re-enables a feature disabled tenant-wide.</p>
+          </div>
+          <span className="bmod-count">{availableCount} of {STUDENT_FEATURE_KEYS.length} visible</span>
+        </div>
+
+        {err && <div className="bmod-err">{err}</div>}
+
+        <div className="bmod-body">
+          {GROUP_ORDER.map(group => {
+            const items = FEATURE_META.filter(f => f.group === group);
+            if (!items.length) return null;
+            return (
+              <div key={group} className="bmod-group">
+                <div className="bmod-group-title">{group}</div>
+                <div className="bmod-grid">
+                  {items.map(({ key, label, description, icon }) => {
+                    const locked = isTenantLocked(key);
+                    const on = !disabled.has(key) && !locked;
+                    return (
+                      <div key={key} className={`bmod-card ${on ? 'on' : 'off'}${locked ? ' locked' : ''}`}>
+                        <div className="bmod-card-info">
+                          <span className="bmod-ic">{icon}</span>
+                          <div>
+                            <div className="bmod-label">{label}{locked && <span className="bmod-lock">🔒 tenant off</span>}</div>
+                            <div className="bmod-desc">{description}</div>
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          className={`bmod-toggle ${on ? 'on' : ''}`}
+                          disabled={locked}
+                          onClick={() => toggle(key)}
+                          title={locked ? 'Disabled tenant-wide' : on ? 'Visible — click to hide' : 'Hidden — click to show'}
+                        >
+                          <span className="bmod-knob" />
+                          <span className="bmod-state">{locked ? 'Locked' : on ? 'Visible' : 'Hidden'}</span>
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="bmod-foot">
+          <button className="bm-btn" onClick={onClose} disabled={saving}>Cancel</button>
+          <button className="bm-btn primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Modules'}</button>
+        </div>
+      </div>
     </div>
   );
 };

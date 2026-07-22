@@ -25,6 +25,10 @@ export interface IBatch extends Document {
   // calendar events — e.g. a mock-interview day or a one-off event. Functionally these
   // skip a Day just like a holiday; `type` is for display/reporting only.
   specialDays?: { date: string; type: 'holiday' | 'mock_interview' | 'event' | 'off'; label?: string }[];
+  // Per-batch module control: student-feature keys this batch has turned OFF.
+  // A batch can only RESTRICT — it subtracts from what the tenant already allows,
+  // it can never re-enable a tenant-disabled feature. Empty/absent = inherit all.
+  disabledFeatures?: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -124,6 +128,10 @@ const BatchSchema: Schema = new Schema(
           label: { type: String }
         }
       ],
+      default: []
+    },
+    disabledFeatures: {
+      type: [String], // student-feature keys turned off for this batch (see IBatch)
       default: []
     }
   },

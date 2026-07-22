@@ -5,6 +5,7 @@ import fs from 'fs';
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
+import { requireBatchFeature } from '../middleware/batchFeatureGuard';
 import * as ctrl from '../controllers/interviewTemplateController';
 
 const router = Router();
@@ -252,10 +253,12 @@ router.get(
   ctrl.getStudentAssignments
 );
 
-// Self-serve: published templates a student can practice on demand
+// Self-serve: published templates a student can practice on demand.
+// requireBatchFeature blocks students whose batch turned mock interviews off.
 router.get(
   '/student/practice-templates',
   roleGuard(['attempt_interviews']),
+  requireBatchFeature('mockInterviews'),
   ctrl.getPracticeTemplates
 );
 
@@ -269,6 +272,7 @@ router.get(
 router.post(
   '/student/attempts/start',
   roleGuard(['attempt_interviews']),
+  requireBatchFeature('mockInterviews'),
   ctrl.startAttempt
 );
 

@@ -13,6 +13,7 @@ import {
 import { authMiddleware } from '../middleware/auth';
 import { tenantResolver } from '../middleware/tenantResolver';
 import { roleGuard } from '../middleware/roleGuard';
+import { requireBatchFeature } from '../middleware/batchFeatureGuard';
 
 const router = express.Router();
 
@@ -27,9 +28,11 @@ router.post(
   markAttendance
 );
 
-// Get student attendance - Student can view their own, admins can view all
+// Get student attendance - Student can view their own, admins can view all.
+// requireBatchFeature only blocks a STUDENT whose batch disabled attendance.
 router.get(
   '/student/:studentId',
+  requireBatchFeature('attendance'),
   getStudentAttendance
 );
 
@@ -68,6 +71,7 @@ router.post(
 // Get student attendance summary
 router.get(
   '/student/:studentId/summary',
+  requireBatchFeature('attendance'),
   getStudentAttendanceSummary
 );
 

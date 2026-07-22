@@ -119,6 +119,7 @@ export interface Batch {
   isActive: boolean;
   capacity: number;
   enrolledCount: number;
+  disabledFeatures?: string[]; // student-feature keys this batch has turned off
   createdAt: string;
   updatedAt: string;
 }

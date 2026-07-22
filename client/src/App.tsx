@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
+import { BatchModulesProvider } from './contexts/BatchModulesContext';
 import { SocketProvider, useSocket } from './contexts/SocketContext';
 import { Layout } from './components/layout';
 import { Spinner } from './components/common';
@@ -1822,6 +1823,7 @@ const App: React.FC = () => {
       <TenantProvider>
         <StudentFeaturesProvider>
           <TenantModulesProvider>
+            <BatchModulesProvider>
             <SocketProvider>
               <BrowserRouter>
                 <HotLeadToast />
@@ -1829,6 +1831,7 @@ const App: React.FC = () => {
                 <AdminLogGate />
               </BrowserRouter>
             </SocketProvider>
+            </BatchModulesProvider>
           </TenantModulesProvider>
         </StudentFeaturesProvider>
       </TenantProvider>

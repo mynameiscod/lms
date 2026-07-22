@@ -3,6 +3,8 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { useTenantModules, TenantModules } from '../../contexts/TenantModulesContext';
+import { useBatchModules } from '../../contexts/BatchModulesContext';
+import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
 import { APP_VERSION, BUILD_DATE } from '../../version';
 import './Sidebar.css';
 
@@ -37,6 +39,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const { user } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
+  const { isBatchFeatureEnabled } = useBatchModules();
 
   useEffect(() => {
     const tick = () => {
@@ -270,8 +273,14 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       return false;
     }
 
-    // For students, check if the feature is enabled by admin
+    // For students, check if the feature is enabled by admin (tenant level)
     if (user.role === 'STUDENT' && item.featureKey && !isFeatureEnabled(item.featureKey)) {
+      return false;
+    }
+
+    // Per-batch gate: a student's batch can further-restrict (turn OFF) any feature
+    // the tenant allows. Batch can only subtract, never re-enable.
+    if (user.role === 'STUDENT' && item.featureKey && !isBatchFeatureEnabled(item.featureKey as StudentFeatureKey)) {
       return false;
     }
     return true;

@@ -1,8 +1,20 @@
 import { Response } from 'express';
 import { AuthenticatedRequest, ApiResponse } from '../types';
 import { BatchService } from '../services/batchService';
+import Batch from '../models/Batch';
+import User from '../models/User';
 
 const batchService = new BatchService();
+
+// The full set of per-batch controllable student-feature keys. Mirrors the
+// tenant-level studentFeatures set; a batch may turn any of these OFF (never on).
+export const STUDENT_FEATURE_KEYS = [
+  'dashboard', 'myCourse', 'topicHub', 'attendance', 'quizzes', 'assignments',
+  'mockInterviews', 'codingSnippets', 'classHub', 'feeDetails', 'scheduledInterviews',
+  'resumeBuilder', 'learningPlan', 'thinkingLab', 'speakingPractice', 'jobTracker',
+  'aiMentor', 'projectBuilder', 'resourceLibrary', 'codePlayground', 'careerProfile',
+  'aiCommunicationLab', 'liveClasses', 'collegePortal', 'myApplications', 'alumniDirectory'
+];
 
 // Weekly off-days: JS getDay() numbers (0=Sun … 6=Sat). Falls back to Sat+Sun off.
 const sanitizeOffDays = (v: any): number[] => {
@@ -315,6 +327,85 @@ export const addInstructor = async (
       message: error.message,
       error: error.message
     });
+  }
+};
+
+// PATCH /batches/:batchId/modules — set which student-features this batch turns off.
+// Admin only (roleGuard on the route). Only valid keys are stored.
+export const updateBatchModules = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const { batchId } = req.params;
+    const { disabledFeatures } = req.body;
+
+    if (!Array.isArray(disabledFeatures)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid payload',
+        error: 'disabledFeatures must be an array of feature keys'
+      });
+    }
+
+    // Keep only known keys — silently drop anything unrecognised.
+    const clean = [...new Set(
+      disabledFeatures
+        .map((k: any) => String(k))
+        .filter((k: string) => STUDENT_FEATURE_KEYS.includes(k))
+    )];
+
+    const batch = await Batch.findOneAndUpdate(
+      { _id: batchId, tenantId: req.tenantId! },
+      { $set: { disabledFeatures: clean } },
+      { new: true }
+    ).select('name disabledFeatures');
+
+    if (!batch) {
+      return res.status(404).json({
+        success: false,
+        message: 'Batch not found',
+        error: 'Batch does not exist'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Batch modules updated successfully',
+      data: { _id: batch._id, disabledFeatures: (batch as any).disabledFeatures || [] }
+    });
+  } catch (error: any) {
+    res.status(400).json({
+      success: false,
+      message: error.message,
+      error: error.message
+    });
+  }
+};
+
+// GET /batches/my/modules — the disabled-feature set for the *requesting* student's
+// own batch. Fail-open: non-students, students with no batch, or any error → [].
+// The client uses this to hide menu items the student's batch turned off.
+export const getMyBatchModules = async (
+  req: AuthenticatedRequest,
+  res: Response<ApiResponse<any>>
+) => {
+  try {
+    const me = await User.findById(req.user?.id).select('batchId role');
+    const batchId = me?.batchId;
+    if (!batchId) {
+      return res.status(200).json({ success: true, message: 'No batch', data: { disabledFeatures: [] } });
+    }
+
+    const batch = await Batch.findById(batchId).select('disabledFeatures');
+    res.status(200).json({
+      success: true,
+      message: 'Batch modules fetched successfully',
+      data: { disabledFeatures: (batch as any)?.disabledFeatures || [] }
+    });
+  } catch (error: any) {
+    // Fail-open — never let a lookup error hide the whole menu
+    res.status(200).json({ success: true, message: 'Fallback', data: { disabledFeatures: [] } });
   }
 };
 

@@ -929,6 +929,27 @@ export const batchApi = {
     });
     if (!response.ok) throw new Error('Failed to remove instructor');
     return response.json();
+  },
+
+  // Set which student-features a batch turns off (admin)
+  updateBatchModules: async (batchId: string, disabledFeatures: string[]) => {
+    const response = await fetch(`${API_BASE_URL}/batches/${batchId}/modules`, {
+      method: 'PATCH',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ disabledFeatures })
+    });
+    if (!response.ok) throw new Error('Failed to update batch modules');
+    return response.json();
+  },
+
+  // Disabled-feature set for the requesting student's own batch (for menu gating)
+  getMyBatchModules: async () => {
+    const response = await fetch(`${API_BASE_URL}/batches/my/modules`, {
+      method: 'GET',
+      headers: getAuthHeaders()
+    });
+    if (!response.ok) throw new Error('Failed to fetch batch modules');
+    return response.json();
   }
 };
 

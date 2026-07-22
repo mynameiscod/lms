@@ -154,13 +154,24 @@ const AssignmentWorkspace: React.FC = () => {
     loadAssignment();
   }, [loadAssignment]);
 
-  // This page is a fixed-viewport split layout (problem left, editor right),
-  // each with its own internal scroll region. The app shell normally lets the
-  // whole window scroll (for ordinary content pages) — if that happens here
-  // too (e.g. the left panel's content is tall), scrolling drags BOTH panels
-  // together instead of just the one under the cursor. Lock window/body
-  // scroll while this page is mounted so only the two inner panes scroll.
+  // The split editor view (problem left, editor right) is a fixed-viewport
+  // layout where each pane has its own internal scroll region. There the app
+  // shell's normal window scroll is wrong — it would drag BOTH panes together —
+  // so we lock window/body scroll. But the instructions page (and the
+  // loading/error/already-submitted states) are ordinary tall content pages
+  // that MUST scroll normally, otherwise the "Start" button gets pushed below
+  // the fold and becomes unreachable. So only lock scroll while the split
+  // editor is actually on screen.
+  const inSplitEditor =
+    !loading &&
+    !!assignment &&
+    !showInstructionsPage &&
+    !(submission &&
+      (submission.status === SubmissionStatus.SUBMITTED ||
+        submission.status === SubmissionStatus.GRADED));
+
   useEffect(() => {
+    if (!inSplitEditor) return;
     const { style } = document.body;
     const prevOverflow = style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
@@ -170,7 +181,7 @@ const AssignmentWorkspace: React.FC = () => {
       style.overflow = prevOverflow;
       document.documentElement.style.overflow = prevHtmlOverflow;
     };
-  }, []);
+  }, [inSplitEditor]);
 
   // Timer countdown
   useEffect(() => {
@@ -465,71 +476,181 @@ const AssignmentWorkspace: React.FC = () => {
 
   // Show instructions page before starting
   if (showInstructionsPage) {
+    const timeMinutes = assignment.settings?.timeLimitMinutes || assignment.timeLimit || 0;
+    const estimatedTime = timeMinutes
+      ? timeMinutes >= 60
+        ? `${(timeMinutes / 60).toFixed(timeMinutes % 60 === 0 ? 0 : 1)} Hours`
+        : `${timeMinutes} Minutes`
+      : 'Self-paced';
+    const dueLabel = assignment.dueDate
+      ? new Date(assignment.dueDate).toLocaleString('en-IN', {
+          day: 'numeric', month: 'long', year: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        })
+      : 'No deadline';
+    const categoryLabel = assignment.topics?.length
+      ? assignment.topics.slice(0, 2).join(' • ')
+      : (assignment.type ? assignment.type.toUpperCase() : 'General');
+    const maxAttempts = assignment.settings?.maxAttempts || assignment.maxAttempts || 0;
+    const submissionsLabel = maxAttempts > 0 ? `0 / ${maxAttempts} Allowed` : '0 / ∞ Allowed';
+    const typeLabel = (assignment.type || 'task').charAt(0).toUpperCase() + (assignment.type || 'task').slice(1) + ' Task';
+
     return (
-      <div className="assignment-page">
-        <div className="instructions-page">
-          <div className="instructions-header">
-            <button 
-              className="btn btn-secondary"
-              onClick={() => navigate('/assignments')}
-              style={{ marginBottom: '16px' }}
-            >
+      <div className="asgn-detail">
+        {/* Hero */}
+        <div className="asgn-hero">
+          <div className="asgn-hero-inner">
+            <button className="asgn-back" onClick={() => navigate('/assignments')}>
               ← Back to Assignments
             </button>
-            <h1>{assignment.title}</h1>
-            <div className="assignment-meta">
-              <span className="meta-badge">🏆 {assignment.totalPoints} Points</span>
-              <span className="meta-badge">📊 {assignment.difficulty}</span>
-              <span className="meta-badge">📝 {assignment.type}</span>
-              {assignment.settings?.timeLimitMinutes && (
-                <span className="meta-badge">⏱️ {assignment.settings.timeLimitMinutes} Minutes</span>
-              )}
+            <h1 className="asgn-hero-title">{assignment.title}</h1>
+            {assignment.topics?.length > 0 && (
+              <p className="asgn-hero-sub">{assignment.topics.join(' • ')}</p>
+            )}
+            <div className="asgn-hero-badges">
+              <span className="asgn-hero-badge">🏆 {assignment.totalPoints} Points</span>
+              <span className="asgn-hero-badge">📊 {assignment.difficulty} Level</span>
+              <span className="asgn-hero-badge">💻 {typeLabel}</span>
             </div>
           </div>
-          
-          <div className="instructions-content">
-            <div className="instructions-section">
-              <h3>📋 Description</h3>
-              <div 
-                className="description-text"
-                dangerouslySetInnerHTML={{ __html: assignment.description || 'No description provided.' }}
-              />
+        </div>
+
+        {/* Meta cards */}
+        <div className="asgn-meta-row">
+          <div className="asgn-meta-card">
+            <span className="asgn-meta-ico" style={{ background: '#ede9fe', color: '#7c3aed' }}>📅</span>
+            <div>
+              <div className="asgn-meta-label">Due Date</div>
+              <div className="asgn-meta-value">{dueLabel}</div>
             </div>
-            
-            {assignment.instructions && (
-              <div className="instructions-section">
-                <h3>📖 Instructions</h3>
-                <div 
-                  className="instructions-text"
-                  dangerouslySetInnerHTML={{ __html: assignment.instructions }}
+          </div>
+          <div className="asgn-meta-card">
+            <span className="asgn-meta-ico" style={{ background: '#fef3c7', color: '#d97706' }}>⏱️</span>
+            <div>
+              <div className="asgn-meta-label">Estimated Time</div>
+              <div className="asgn-meta-value">{estimatedTime}</div>
+            </div>
+          </div>
+          <div className="asgn-meta-card">
+            <span className="asgn-meta-ico" style={{ background: '#d1fae5', color: '#059669' }}>🏷️</span>
+            <div>
+              <div className="asgn-meta-label">Category</div>
+              <div className="asgn-meta-value">{categoryLabel}</div>
+            </div>
+          </div>
+          <div className="asgn-meta-card">
+            <span className="asgn-meta-ico" style={{ background: '#dbeafe', color: '#2563eb' }}>📄</span>
+            <div>
+              <div className="asgn-meta-label">Submissions</div>
+              <div className="asgn-meta-value">{submissionsLabel}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Body: content + sidebar */}
+        <div className="asgn-body">
+          <div className="asgn-main">
+            <div className="asgn-card">
+              <div className="asgn-title-banner">
+                🛒 {assignment.title}
+              </div>
+
+              <div className="asgn-section" id="asgn-description">
+                <h3 className="asgn-h3">📋 Description</h3>
+                <div
+                  className="rich-content asgn-rich"
+                  dangerouslySetInnerHTML={{ __html: assignment.description || 'No description provided.' }}
                 />
               </div>
-            )}
-            
-            <div className="instructions-section">
-              <h3>⚠️ Important Notes</h3>
-              <ul className="notes-list">
-                <li>Make sure you understand the requirements before starting</li>
-                <li>Your progress will be auto-saved every 30 seconds</li>
-                {assignment.settings?.timeLimitMinutes && (
-                  <li>This assignment has a time limit of {assignment.settings.timeLimitMinutes} minutes</li>
-                )}
-                {assignment.settings?.maxAttempts && assignment.settings.maxAttempts > 0 && (
-                  <li>You have {assignment.settings.maxAttempts} attempt(s) for this assignment</li>
-                )}
-                <li>Click Submit when you're ready to finalize your work</li>
-              </ul>
+
+              {assignment.instructions && (
+                <div className="asgn-section" id="asgn-instructions">
+                  <h3 className="asgn-h3">📖 Instructions</h3>
+                  <div
+                    className="rich-content asgn-rich"
+                    dangerouslySetInnerHTML={{ __html: assignment.instructions }}
+                  />
+                </div>
+              )}
+
+              {(assignment.type === AssignmentType.CODING || assignment.type === AssignmentType.SQL || assignment.type === AssignmentType.WEB)
+                && assignment.testCases.some(tc => !tc.isHidden) && (
+                <div className="asgn-section" id="asgn-samples">
+                  <h3 className="asgn-h3">🧪 Sample Input / Output</h3>
+                  {assignment.testCases.filter(tc => !tc.isHidden).map((tc, index) => (
+                    <div key={index} className="asgn-sample">
+                      <div className="asgn-sample-head">Example {index + 1}{tc.description ? ` — ${tc.description}` : ''}</div>
+                      <div className="asgn-sample-grid">
+                        <div>
+                          <div className="asgn-sample-label">Input</div>
+                          <pre className="asgn-pre">{tc.input || '(no input)'}</pre>
+                        </div>
+                        <div>
+                          <div className="asgn-sample-label">Expected Output</div>
+                          <pre className="asgn-pre">{tc.expectedOutput}</pre>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="asgn-section" id="asgn-guidelines">
+                <h3 className="asgn-h3">⚠️ Important Notes</h3>
+                <ul className="asgn-notes">
+                  <li>Make sure you understand the requirements before starting</li>
+                  <li>Your progress will be auto-saved every 30 seconds</li>
+                  {timeMinutes > 0 && <li>This assignment has a time limit of {timeMinutes} minutes</li>}
+                  {maxAttempts > 0 && <li>You have {maxAttempts} attempt(s) for this assignment</li>}
+                  <li>Click Submit when you're ready to finalize your work</li>
+                </ul>
+              </div>
             </div>
           </div>
-          
-          <div className="instructions-actions">
-            <button 
-              className="btn btn-primary btn-lg"
-              onClick={handleStartAssignment}
-              disabled={starting}
-            >
-              {starting ? '⏳ Starting…' : '▶️ Start Assignment'}
-            </button>
+
+          {/* Sidebar */}
+          <aside className="asgn-side">
+            <div className="asgn-side-card">
+              <div className="asgn-side-title">🔗 Quick Links</div>
+              <a className="asgn-quick" href="#asgn-description">Problem Statement <span>›</span></a>
+              {assignment.instructions && <a className="asgn-quick" href="#asgn-instructions">Instructions <span>›</span></a>}
+              <a className="asgn-quick" href="#asgn-samples">Sample Input / Output <span>›</span></a>
+              <a className="asgn-quick" href="#asgn-guidelines">Guidelines <span>›</span></a>
+            </div>
+
+            <div className="asgn-side-card asgn-tips">
+              <div className="asgn-side-title">💡 Pro Tips</div>
+              <ul className="asgn-tips-list">
+                <li>Use meaningful class and method names</li>
+                <li>Handle edge cases properly</li>
+                <li>Write clean and modular code</li>
+                <li>Follow proper OOP principles</li>
+                <li>Test your code before final submission</li>
+              </ul>
+            </div>
+
+            <div className="asgn-side-card asgn-help">
+              <div className="asgn-side-title">❓ Need Help?</div>
+              <p className="asgn-help-text">Stuck somewhere? Get help from your instructor or peers.</p>
+              <button className="asgn-help-btn" onClick={() => navigate('/assignments')}>Ask a Question</button>
+            </div>
+          </aside>
+        </div>
+
+        {/* Sticky footer */}
+        <div className="asgn-footer">
+          <div className="asgn-footer-inner">
+            <div className="asgn-progress">
+              <span className="asgn-progress-label">Assignment Progress</span>
+              <div className="asgn-progress-bar"><div className="asgn-progress-fill" style={{ width: '0%' }} /></div>
+              <span className="asgn-progress-pct">0%</span>
+            </div>
+            <div className="asgn-footer-actions">
+              <button className="asgn-btn-ghost" onClick={() => navigate('/assignments')}>← Previous</button>
+              <button className="asgn-btn-primary" onClick={handleStartAssignment} disabled={starting}>
+                {starting ? '⏳ Starting…' : 'Start Coding →'}
+              </button>
+            </div>
           </div>
         </div>
       </div>

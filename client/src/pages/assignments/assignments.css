@@ -1910,6 +1910,349 @@
 
 
 /* ============================================================
+   Assignment DETAIL page (pre-start) — mockup redesign
+   Full-width, normally-scrolling page with a sticky action bar.
+   ============================================================ */
+.asgn-detail {
+  min-height: 100vh;
+  background: #f4f6fb;
+  padding-bottom: 96px; /* room for the sticky footer bar */
+}
+
+/* Hero */
+.asgn-hero {
+  background: linear-gradient(120deg, #0a3d73 0%, #0b5cad 55%, #1173d4 100%);
+  padding: 28px 24px 32px;
+  color: #fff;
+}
+.asgn-hero-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+.asgn-back {
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  color: #eaf2fb;
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.asgn-back:hover { background: rgba(255, 255, 255, 0.24); }
+.asgn-hero-title {
+  margin: 18px 0 6px;
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.2;
+}
+.asgn-hero-sub {
+  margin: 0 0 16px;
+  font-size: 15px;
+  color: #cfe1f5;
+}
+.asgn-hero-badges {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.asgn-hero-badge {
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Meta cards */
+.asgn-meta-row {
+  max-width: 1180px;
+  margin: -18px auto 0;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+.asgn-meta-card {
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 6px 18px rgba(16, 24, 40, 0.06);
+}
+.asgn-meta-ico {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+.asgn-meta-label {
+  font-size: 12px;
+  color: #8a94a6;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+.asgn-meta-value {
+  font-size: 15px;
+  color: #1a1a2e;
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* Body layout */
+.asgn-body {
+  max-width: 1180px;
+  margin: 24px auto 0;
+  padding: 0 24px;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 24px;
+  align-items: start;
+}
+.asgn-card {
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 16px;
+  padding: 24px 26px;
+  box-shadow: 0 2px 10px rgba(16, 24, 40, 0.04);
+}
+.asgn-title-banner {
+  background: #eef4fd;
+  border: 1px solid #dbe8fb;
+  color: #0b4a86;
+  font-weight: 700;
+  font-size: 16px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 22px;
+}
+.asgn-section { margin-bottom: 26px; }
+.asgn-section:last-child { margin-bottom: 0; }
+.asgn-h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #eef1f6;
+}
+.asgn-rich {
+  color: #445064;
+  line-height: 1.7;
+  font-size: 15px;
+}
+.asgn-rich pre {
+  background: #f6f8fb;
+  border: 1px solid #e7ecf3;
+  border-radius: 8px;
+  padding: 12px 14px;
+  overflow-x: auto;
+}
+.asgn-notes {
+  margin: 0;
+  padding-left: 20px;
+  color: #445064;
+}
+.asgn-notes li { margin: 8px 0; line-height: 1.6; }
+
+/* Sample I/O */
+.asgn-sample {
+  border: 1px solid #e7ecf3;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.asgn-sample-head {
+  background: #f6f8fb;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 13px;
+  color: #33415c;
+  border-bottom: 1px solid #e7ecf3;
+}
+.asgn-sample-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 14px;
+}
+.asgn-sample-label {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: #8a94a6;
+  margin-bottom: 6px;
+}
+.asgn-pre {
+  background: #f3f4f6;
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 0;
+  font-size: 13px;
+  font-family: 'Fira Code', monospace;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Sidebar */
+.asgn-side { display: flex; flex-direction: column; gap: 18px; }
+.asgn-side-card {
+  background: #fff;
+  border: 1px solid #eef1f6;
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: 0 2px 10px rgba(16, 24, 40, 0.04);
+}
+.asgn-side-title {
+  font-size: 15px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 12px;
+}
+.asgn-quick {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 4px;
+  font-size: 14px;
+  color: #33415c;
+  text-decoration: none;
+  border-bottom: 1px solid #f1f3f8;
+  transition: color 0.15s;
+}
+.asgn-quick:last-child { border-bottom: none; }
+.asgn-quick:hover { color: #1173d4; }
+.asgn-quick span { color: #b6bfce; font-weight: 700; }
+
+.asgn-tips { background: #fffdf5; border-color: #f6ecc9; }
+.asgn-tips-list { margin: 0; padding-left: 4px; list-style: none; }
+.asgn-tips-list li {
+  position: relative;
+  padding-left: 24px;
+  margin: 9px 0;
+  font-size: 13.5px;
+  color: #5a5330;
+  line-height: 1.5;
+}
+.asgn-tips-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #16a34a;
+  font-weight: 800;
+}
+
+.asgn-help { background: #f2f8ff; border-color: #d5e8fb; }
+.asgn-help-text { font-size: 13.5px; color: #4a5a72; margin: 0 0 14px; line-height: 1.5; }
+.asgn-help-btn {
+  width: 100%;
+  background: #fff;
+  border: 1px solid #bcd8f6;
+  color: #1173d4;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.asgn-help-btn:hover { background: #eaf3fd; }
+
+/* Sticky footer action bar */
+.asgn-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #fff;
+  border-top: 1px solid #e7ecf3;
+  box-shadow: 0 -4px 18px rgba(16, 24, 40, 0.07);
+  z-index: 40;
+}
+.asgn-footer-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 14px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+.asgn-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex: 1;
+}
+.asgn-progress-label { font-size: 13px; font-weight: 600; color: #55617a; white-space: nowrap; }
+.asgn-progress-bar {
+  width: 180px;
+  height: 8px;
+  background: #e9edf4;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.asgn-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0b5cad, #1173d4);
+  border-radius: 999px;
+}
+.asgn-progress-pct { font-size: 13px; font-weight: 700; color: #55617a; }
+.asgn-footer-actions { display: flex; align-items: center; gap: 12px; }
+.asgn-btn-ghost {
+  background: #fff;
+  border: 1px solid #d7dde7;
+  color: #33415c;
+  font-weight: 600;
+  padding: 11px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.asgn-btn-ghost:hover { background: #f4f6fb; }
+.asgn-btn-primary {
+  background: linear-gradient(135deg, #0b5cad 0%, #1173d4 100%);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  padding: 11px 26px;
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 6px 16px rgba(17, 115, 212, 0.28);
+  transition: filter 0.15s;
+}
+.asgn-btn-primary:hover { filter: brightness(1.05); }
+.asgn-btn-primary:disabled { opacity: 0.7; cursor: default; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .asgn-meta-row { grid-template-columns: 1fr 1fr; }
+  .asgn-body { grid-template-columns: 1fr; }
+  .asgn-sample-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+  .asgn-meta-row { grid-template-columns: 1fr; }
+  .asgn-hero-title { font-size: 24px; }
+  .asgn-footer-inner { flex-direction: column; align-items: stretch; gap: 12px; }
+  .asgn-progress { justify-content: center; }
+  .asgn-footer-actions { justify-content: space-between; }
+  .asgn-btn-primary, .asgn-btn-ghost { flex: 1; }
+}
+
+
+/* ============================================================
    Assignment list redesign (stat tiles, toolbar, grid, chips)
    ============================================================ */
 .stats-grid-v2 {

@@ -953,6 +953,46 @@ export const batchApi = {
   }
 };
 
+// Weekly Report API (admin)
+export const weeklyReportApi = {
+  getBatches: async () => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/batches`, { headers: getAuthHeaders() });
+    if (!r.ok) throw new Error('Failed to load batches');
+    return r.json();
+  },
+  getSummaries: async (batchId: string, weekStart: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/summaries?batchId=${batchId}&weekStart=${weekStart}`, { headers: getAuthHeaders() });
+    if (!r.ok) throw new Error('Failed to load summaries');
+    return r.json();
+  },
+  getStudentReport: async (studentId: string, weekStart: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/student/${studentId}?weekStart=${weekStart}`, { headers: getAuthHeaders() });
+    if (!r.ok) throw new Error('Failed to load report');
+    return r.json();
+  },
+  getStudentPreview: async (studentId: string, weekStart: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/student/${studentId}/preview?weekStart=${weekStart}`, { headers: getAuthHeaders() });
+    if (!r.ok) throw new Error('Failed to render preview');
+    return r.json();
+  },
+  sendToStudent: async (studentId: string, weekStart: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/send`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ studentId, weekStart }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to send');
+    return data;
+  },
+  sendToBatch: async (batchId: string, weekStart: string) => {
+    const r = await fetch(`${API_BASE_URL}/weekly-reports/send-batch`, {
+      method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({ batchId, weekStart }),
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.message || 'Failed to send');
+    return data;
+  },
+};
+
 // Attendance API
 export const attendanceApi = {
   markAttendance: async (data: {

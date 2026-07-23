@@ -38,6 +38,7 @@ import OAuthCallbackPage from './pages/OAuthCallback';
 import AdminContentPage from './pages/AdminContent';
 import NotFoundPage from './pages/NotFound';
 import StudentReportsPage from './pages/StudentReports';
+import WeeklyReportsPage from './pages/WeeklyReports';
 import AdminStudentProfilesPage from './pages/AdminStudentProfiles';
 import StudentProfileDetail from './pages/AdminStudentProfiles/StudentProfileDetail';
 import DepartmentsPage from './pages/Departments';
@@ -980,6 +981,17 @@ const AppRoutes: React.FC = () => {
           <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
             <Layout>
               <QuizReportsPage />
+            </Layout>
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/weekly-reports"
+        element={
+          <ProtectedRoute requiredRoles={['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR']}>
+            <Layout>
+              <WeeklyReportsPage />
             </Layout>
           </ProtectedRoute>
         }

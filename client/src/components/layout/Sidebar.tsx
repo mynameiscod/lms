@@ -175,6 +175,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
         { label: 'Batch Offerings',    path: '/batch-offerings',     roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-days',  permissions: ['create_courses', 'edit_courses', 'manage_own_courses'] },
       ]
     },
+    { label: 'Weekly Reports', path: '/weekly-reports', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-chart-line', permissions: ['view_reports', 'view_analytics', 'manage_tenant'] },
     { label: 'Student Features', path: '/student-features', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-toggle-on', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'API Logs', path: '/admin/logs', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bug', permissions: ['manage_tenant_settings', 'manage_tenant', 'view_reports'] },
     { label: 'Recording Diagnostics', path: '/admin/recording-diagnostics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clapperboard', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },

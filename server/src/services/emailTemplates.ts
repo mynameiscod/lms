@@ -76,7 +76,7 @@ export function getStudentWelcomeEmailHtml({
                     <tr>
                         <td style="background: linear-gradient(135deg, #0a2a5e 0%, #123f86 55%, #1877c7 100%); padding: 40px 34px;">
                             <div style="font-size: 15px; color: #b9d2f0; font-weight: 600; margin-bottom: 4px;">Welcome to</div>
-                            <div style="font-size: 34px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 10px;">Code<span style="color: #4fd0e6;">Begun</span>!</div>
+                            <div style="font-size: 34px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px; margin-bottom: 10px;">CodeBegun!</div>
                             <div style="font-size: 17px; font-weight: 700; color: #ffffff; margin-bottom: 12px;">Your Future. Our Mission. Let's Begin.</div>
                             <div style="font-size: 14px; color: #d7e6f8; line-height: 1.7; max-width: 440px;">
                                 We're thrilled to have you on board. CodeBegun is your all-in-one platform to learn, practice, build and grow &mdash; anytime, anywhere.
@@ -179,8 +179,8 @@ export function getStudentWelcomeEmailHtml({
                             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td valign="top" style="padding-bottom: 22px;">
-                                        <div style="font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.5px;">CODE<span style="color: #4fd0e6;">BEGUN</span></div>
-                                        <div style="font-size: 11px; color: #8fa6c6; margin-top: 4px;">by Savas Tech Solution Pvt Ltd</div>
+                                        <div style="display: inline-block; background: #ffffff; padding: 9px 14px; border-radius: 10px;"><img src="${logoUrl}" alt="CodeBegun — Software Training &amp; Career Solutions" width="160" style="display: block; height: auto; border: 0;" /></div>
+                                        <div style="font-size: 11px; color: #8fa6c6; margin-top: 8px;">by Savas Tech Solution Pvt Ltd</div>
                                         <div style="font-size: 12px; color: #a9bcd8; line-height: 1.6; margin-top: 10px; max-width: 380px;">Empowering learners with in-demand skills, real-world projects &amp; placement support to build successful careers.</div>
                                     </td>
                                 </tr>

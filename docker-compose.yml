@@ -88,10 +88,13 @@ services:
     volumes:
       - piston_data:/piston/packages
     environment:
-      PISTON_RUN_TIMEOUT: "15000"
-      PISTON_COMPILE_TIMEOUT: "10000"
-      PISTON_RUN_CPU_TIME: "15000"
-      PISTON_COMPILE_CPU_TIME: "10000"
+      # Generous limits: Java compiles inside the run stage and cold javac+JVM
+      # can use ~13-14s CPU just to start, so 15s was too tight and correct code
+      # got SIGKILLed ("Killed"). 30s run / 20s compile gives comfortable headroom.
+      PISTON_RUN_TIMEOUT: "30000"
+      PISTON_COMPILE_TIMEOUT: "20000"
+      PISTON_RUN_CPU_TIME: "30000"
+      PISTON_COMPILE_CPU_TIME: "20000"
     networks:
       - lms-network
     restart: unless-stopped

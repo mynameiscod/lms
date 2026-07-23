@@ -17,7 +17,10 @@ VERSION="$(cat VERSION 2>/dev/null || echo 1.2.0)"
 BUILD_DATE="$(date +%Y-%m-%d)"
 
 echo "==> [1/3] Building image locally (BuildKit, all cores)…"
+# --provenance/--sbom off so `docker save | docker load` yields a plain,
+# single-arch image the VPS Docker can load without OCI manifest-list issues.
 DOCKER_BUILDKIT=1 docker build \
+  --provenance=false --sbom=false \
   --build-arg BUILD_DATE="$BUILD_DATE" \
   --build-arg APP_VERSION="$VERSION" \
   -t lms-server:latest .

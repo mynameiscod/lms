@@ -39,6 +39,40 @@ class DashboardController {
       const tenantObjectId = new Types.ObjectId(tenantId);
       const userObjectId = new Types.ObjectId(userId);
 
+      // Resolve the student's batch and build the SAME access-scoping filters the
+      // student list pages already use (assignments/quizzes/snippets). Without
+      // this the dashboard counted every published item in the tenant, so a
+      // brand-new student in a fresh batch saw all tenant assignments as
+      // "pending" / "upcoming deadlines". Now the dashboard mirrors exactly what
+      // the student is actually assigned (everyone / their batch / individual / legacy).
+      const meForBatch = await User.findById(userObjectId).select('batchId').lean();
+      const studentBatchId = meForBatch?.batchId ? new Types.ObjectId(meForBatch.batchId) : null;
+      const studentBatchStr = studentBatchId ? studentBatchId.toString() : null;
+
+      // Assignments & Quizzes share the accessibleTo model (see assignmentService.getStudentAssignments)
+      const assignmentAccessOr: any[] = [
+        { accessibleTo: 'everyone' },
+        ...(studentBatchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: studentBatchStr }] : []),
+        { accessibleTo: 'individual', selectedStudents: userId },
+        ...(studentBatchStr ? [
+          { accessibleTo: { $exists: false }, batch: studentBatchId },
+          { accessibleTo: { $exists: false }, batch: null }
+        ] : [
+          { accessibleTo: { $exists: false } }
+        ])
+      ];
+      const quizAccessOr: any[] = [
+        { accessibleTo: 'everyone' },
+        ...(studentBatchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: studentBatchStr }] : []),
+        { accessibleTo: 'individual', selectedStudents: userId },
+        { accessibleTo: { $exists: false } } // legacy quizzes with no targeting → everyone
+      ];
+      // Code snippet assessments target by batchIds (empty = everyone) — see codeSnippetController.getStudentAssessments
+      const snippetAccessOr: any[] = [
+        { batchIds: { $size: 0 } },
+        ...(studentBatchStr ? [{ batchIds: studentBatchStr }] : [])
+      ];
+
       // Get student's enrollment (single course)
       const enrollment = await Enrollment.findOne({
         userId: userObjectId,
@@ -85,7 +119,8 @@ class DashboardController {
       const upcomingAssignments = await Assignment.find({
         tenant: tenantObjectId,
         status: 'published',
-        dueDate: { $gte: now }
+        dueDate: { $gte: now },
+        $or: assignmentAccessOr
       })
         .select('title type difficulty dueDate totalPoints')
         .sort({ dueDate: 1 })
@@ -108,9 +143,9 @@ class DashboardController {
       const upcomingQuizzes = await Quiz.find({
         tenantId: tenantObjectId,
         isActive: true,
-        $or: [
-          { endDate: { $gte: now } },
-          { endDate: { $exists: false } }
+        $and: [
+          { $or: [{ endDate: { $gte: now } }, { endDate: { $exists: false } }] },
+          { $or: quizAccessOr }
         ]
       })
         .select('title passingScore timeLimit endDate totalQuestions')
@@ -176,9 +211,9 @@ class DashboardController {
       const upcomingSnippets = await CodeSnippetAssessment.find({
         tenantId: tenantObjectId,
         status: 'published',
-        $or: [
-          { dueDate: { $gte: now } },
-          { dueDate: { $exists: false } }
+        $and: [
+          { $or: [{ dueDate: { $gte: now } }, { dueDate: { $exists: false } }] },
+          { $or: snippetAccessOr }
         ]
       })
         .select('title language totalMarks dueDate')
@@ -228,7 +263,8 @@ class DashboardController {
       // Get quick stats
       const totalAssignments = await Assignment.countDocuments({
         tenant: tenantObjectId,
-        status: 'published'
+        status: 'published',
+        $or: assignmentAccessOr
       });
 
       const completedAssignments = await Submission.countDocuments({
@@ -239,7 +275,8 @@ class DashboardController {
 
       const totalQuizzes = await Quiz.countDocuments({
         tenantId: tenantObjectId,
-        isActive: true
+        isActive: true,
+        $or: quizAccessOr
       });
 
       const completedQuizzes = await QuizAttempt.countDocuments({
@@ -249,7 +286,8 @@ class DashboardController {
 
       const totalSnippets = await CodeSnippetAssessment.countDocuments({
         tenantId: tenantObjectId,
-        status: 'published'
+        status: 'published',
+        $or: snippetAccessOr
       });
 
       const completedSnippets = await CodeSnippetSubmission.countDocuments({

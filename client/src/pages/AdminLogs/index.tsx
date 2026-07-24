@@ -257,6 +257,34 @@ const AdminLogs: React.FC = () => {
 
   const refreshNow = () => { logType === 'activity' ? fetchActivity() : fetchServer(); };
 
+  const renderDetail = (r: LogRow) => (
+    <>
+      <div className="alogs-detail-title">Log Details</div>
+      <div className="alogs-dl">
+        <div className="alogs-dl-row"><span className="k">Status</span><span className="v"><span className={`alogs-badge ${kindClass[r.kind]}`}>{kindLabel[r.kind]}{r.status ? ` · ${r.status}` : ''}</span></span></div>
+        <div className="alogs-dl-row"><span className="k">Time</span><span className="v">{fmtTime(r.ts).date} {fmtTime(r.ts).time}</span></div>
+        {r.method && <div className="alogs-dl-row"><span className="k">Method</span><span className="v">{r.method}</span></div>}
+        {r.endpoint && <div className="alogs-dl-row"><span className="k">Endpoint</span><span className="v">{r.endpoint}</span></div>}
+        {r.user && r.user !== '—' && <div className="alogs-dl-row"><span className="k">User</span><span className="v">{r.user}</span></div>}
+        {r.module && <div className="alogs-dl-row"><span className="k">Module</span><span className="v">{r.module}</span></div>}
+        {r.ms != null && <div className="alogs-dl-row"><span className="k">Response Time</span><span className="v">{r.ms} ms</span></div>}
+        {r.ip && r.ip !== '—' && <div className="alogs-dl-row"><span className="k">IP Address</span><span className="v">{r.ip}</span></div>}
+      </div>
+      {r.detail.error && (
+        <div className="alogs-code"><div className="lbl">Error</div><pre style={{ background: '#450a0a', color: '#fecaca' }}>{String(r.detail.error)}</pre></div>
+      )}
+      {r.detail.request && (
+        <div className="alogs-code"><div className="lbl">Request Payload</div><pre>{JSON.stringify(r.detail.request, null, 2)}</pre></div>
+      )}
+      {r.detail.response && (
+        <div className="alogs-code"><div className="lbl">Response</div><pre>{JSON.stringify(r.detail.response, null, 2)}</pre></div>
+      )}
+      {r.detail.meta && (
+        <div className="alogs-code"><div className="lbl">Meta</div><pre>{JSON.stringify(r.detail.meta, null, 2)}</pre></div>
+      )}
+    </>
+  );
+
   const statCards = [
     { label: 'Total Logs', value: stats.total, sub: 'Total requests', color: '#2563eb', bg: 'linear-gradient(135deg,#eff6ff,#f8fbff)' },
     { label: 'Errors', value: stats.errors, sub: 'Failed requests', color: '#dc2626', bg: 'linear-gradient(135deg,#fef2f2,#fff7f7)' },
@@ -392,20 +420,25 @@ const AdminLogs: React.FC = () => {
                   </td></tr>
                 ) : pageRows.map(r => {
                   const t = fmtTime(r.ts);
+                  const open = selected?.id === r.id;
+                  const toggle = () => setSelected(open ? null : r);
                   return (
-                    <tr key={r.id} className={selected?.id === r.id ? 'sel' : ''} onClick={() => setSelected(r)}>
-                      <td><div className="alogs-time">{t.date}<small>{t.time}</small></div></td>
-                      <td><span className={`alogs-badge ${kindClass[r.kind]}`}>{kindLabel[r.kind]}</span></td>
-                      <td>{r.method ? <span className={`alogs-badge ${methodClass(r.method)}`}>{r.method}</span> : <span className="alogs-ip">—</span>}</td>
-                      <td><div className="alogs-endpoint" title={r.endpoint || r.message}>{r.endpoint || r.message || '—'}</div></td>
-                      <td style={{ fontSize: 12 }}>{r.user || '—'}</td>
-                      <td>{r.module ? <span className="alogs-module">{r.module}</span> : '—'}</td>
-                      <td className={rtClass(r.ms)}>{r.ms != null ? `${r.ms} ms` : '—'}</td>
-                      <td className="alogs-ip">{r.ip || '—'}</td>
-                      <td onClick={e => e.stopPropagation()}>
-                        <button className="alogs-rowbtn" title="View details" onClick={() => setSelected(r)}>👁️</button>
-                      </td>
-                    </tr>
+                    <React.Fragment key={r.id}>
+                      <tr className={open ? 'sel' : ''} onClick={toggle}>
+                        <td><div className="alogs-time">{t.date}<small>{t.time}</small></div></td>
+                        <td><span className={`alogs-badge ${kindClass[r.kind]}`}>{kindLabel[r.kind]}</span></td>
+                        <td>{r.method ? <span className={`alogs-badge ${methodClass(r.method)}`}>{r.method}</span> : <span className="alogs-ip">—</span>}</td>
+                        <td><div className="alogs-endpoint" title={r.endpoint || r.message}>{r.endpoint || r.message || '—'}</div></td>
+                        <td style={{ fontSize: 12 }}>{r.user || '—'}</td>
+                        <td>{r.module ? <span className="alogs-module">{r.module}</span> : '—'}</td>
+                        <td className={rtClass(r.ms)}>{r.ms != null ? `${r.ms} ms` : '—'}</td>
+                        <td className="alogs-ip">{r.ip || '—'}</td>
+                        <td onClick={e => e.stopPropagation()}>
+                          <button className="alogs-rowbtn" title="View details" onClick={toggle}>{open ? '🔽' : '👁️'}</button>
+                        </td>
+                      </tr>
+                      {open && <tr className="alogs-detailrow"><td colSpan={9}>{renderDetail(r)}</td></tr>}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -427,43 +460,6 @@ const AdminLogs: React.FC = () => {
                 </select>
               </span>
             </div>
-          )}
-        </div>
-
-        {/* Log Details */}
-        <div className="alogs-card alogs-detail">
-          <h3>Log Details</h3>
-          {!selected ? (
-            <div className="alogs-detail-empty">
-              <div className="ico">🔎</div>
-              <b>Select a log from the list</b>
-              <span>Click any log entry to see detailed information including request payload, response, headers and more.</span>
-            </div>
-          ) : (
-            <>
-              <div className="alogs-dl">
-                <div className="alogs-dl-row"><span className="k">Status</span><span className="v"><span className={`alogs-badge ${kindClass[selected.kind]}`}>{kindLabel[selected.kind]}{selected.status ? ` · ${selected.status}` : ''}</span></span></div>
-                <div className="alogs-dl-row"><span className="k">Time</span><span className="v">{fmtTime(selected.ts).date} {fmtTime(selected.ts).time}</span></div>
-                {selected.method && <div className="alogs-dl-row"><span className="k">Method</span><span className="v">{selected.method}</span></div>}
-                {selected.endpoint && <div className="alogs-dl-row"><span className="k">Endpoint</span><span className="v">{selected.endpoint}</span></div>}
-                {selected.user && selected.user !== '—' && <div className="alogs-dl-row"><span className="k">User</span><span className="v">{selected.user}</span></div>}
-                {selected.module && <div className="alogs-dl-row"><span className="k">Module</span><span className="v">{selected.module}</span></div>}
-                {selected.ms != null && <div className="alogs-dl-row"><span className="k">Response Time</span><span className="v">{selected.ms} ms</span></div>}
-                {selected.ip && selected.ip !== '—' && <div className="alogs-dl-row"><span className="k">IP Address</span><span className="v">{selected.ip}</span></div>}
-              </div>
-              {selected.detail.error && (
-                <div className="alogs-code"><div className="lbl">Error</div><pre style={{ background: '#450a0a', color: '#fecaca' }}>{String(selected.detail.error)}</pre></div>
-              )}
-              {selected.detail.request && (
-                <div className="alogs-code"><div className="lbl">Request Payload</div><pre>{JSON.stringify(selected.detail.request, null, 2)}</pre></div>
-              )}
-              {selected.detail.response && (
-                <div className="alogs-code"><div className="lbl">Response</div><pre>{JSON.stringify(selected.detail.response, null, 2)}</pre></div>
-              )}
-              {selected.detail.meta && (
-                <div className="alogs-code"><div className="lbl">Meta</div><pre>{JSON.stringify(selected.detail.meta, null, 2)}</pre></div>
-              )}
-            </>
           )}
         </div>
       </div>

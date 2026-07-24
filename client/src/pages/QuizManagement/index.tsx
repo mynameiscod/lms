@@ -352,15 +352,6 @@ const QuizManagementPage: React.FC = () => {
     return Array.from(m.entries());
   }, [quizzes]);
 
-  const tagCoverage = useMemo(() => {
-    let tagged = 0, other = 0, untagged = 0;
-    quizzes.forEach(q => {
-      const t = (q as any).primaryTech;
-      if (!t) untagged++; else if (t === 'other') other++; else tagged++;
-    });
-    return { total: quizzes.length, tagged, other, untagged };
-  }, [quizzes]);
-
   const activeFiltersCount = [techFilter, lessonFilter, search].filter(Boolean).length;
   const clearFilters = () => { setTechFilter(''); setLessonFilter(''); setSearch(''); setGroupBy('none'); };
 
@@ -759,39 +750,6 @@ const QuizManagementPage: React.FC = () => {
                 )}
               </div>
 
-              {/* Sidebar */}
-              <aside className="lib-sidebar">
-                <div className="lib-side-card">
-                  <div className="lib-side-title">⚡ Quick Actions</div>
-                  <button className="lib-side-action" onClick={() => { resetForm(); setShowCreateModal(true); }}><b>Create New Quiz</b><span>Build a quiz from scratch or the bank</span></button>
-                  <button className="lib-side-action" onClick={() => navigate('/batches')}><b>Clone → Assign to Batch</b><span>Reuse a quiz in any batch</span></button>
-                  <button className="lib-side-action" onClick={() => navigate('/quiz-results')}><b>Quiz Results</b><span>View scores and analytics</span></button>
-                </div>
-                <div className="lib-side-card">
-                  <div className="lib-side-title">Tagging Coverage</div>
-                  {(() => {
-                    const total = tagCoverage.total || 1;
-                    const g = Math.round((tagCoverage.tagged / total) * 100);
-                    const o = Math.round((tagCoverage.other / total) * 100);
-                    return (
-                      <div className="lib-donut-row">
-                        <div className="lib-donut" style={{ background: `conic-gradient(#16a34a 0 ${g}%, #d97706 ${g}% ${g + o}%, #ef4444 ${g + o}% 100%)` }}>
-                          <div className="lib-donut-hole"><b>{g}%</b></div>
-                        </div>
-                        <div className="lib-donut-legend">
-                          <div><i style={{ background: '#16a34a' }} /> Tagged <b>{tagCoverage.tagged}</b></div>
-                          <div><i style={{ background: '#d97706' }} /> Marked as Other <b>{tagCoverage.other}</b></div>
-                          <div><i style={{ background: '#ef4444' }} /> Needs Review <b>{tagCoverage.untagged}</b></div>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-                <div className="lib-side-card lib-tips">
-                  <div className="lib-side-title">💡 Tips</div>
-                  <p>Tag each quiz with its Language and Lesson, then use grouping to browse and reuse quizzes fast.</p>
-                </div>
-              </aside>
             </div>
           </>
         );

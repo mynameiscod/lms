@@ -256,14 +256,6 @@ const AdminAssignmentList: React.FC = () => {
     allForMeta.forEach(a => { const c = (a as any).chapter; if (c?._id && c?.title) m.set(c._id, c.title); });
     return [...m.entries()].sort((x, y) => x[1].localeCompare(y[1]));
   }, [allForMeta]);
-  const tagCoverage = React.useMemo(() => {
-    const total = allForMeta.length || 1;
-    const other = techCounts['other'] || 0;
-    let tagged = 0; Object.keys(techCounts).forEach(k => { if (k !== 'other') tagged += techCounts[k]; });
-    const untagged = total - tagged - other;
-    return { total: allForMeta.length, tagged, other, untagged, pct: Math.round((tagged / total) * 100) };
-  }, [allForMeta, techCounts]);
-
   useEffect(() => {
     loadAssignments();
   }, [loadAssignments]);
@@ -1118,39 +1110,6 @@ const AdminAssignmentList: React.FC = () => {
         </>
       )}
       </div>
-
-      <aside className="lib-sidebar">
-        <div className="lib-side-card">
-          <div className="lib-side-title">⚡ Quick Actions</div>
-          <button className="lib-side-action" onClick={() => navigate('/batches')}><b>Clone → Assign to Batch</b><span>Reuse an assignment in any batch</span></button>
-          <button className="lib-side-action" onClick={() => setShowFilters(true)}><b>Bulk Update</b><span>Update topic, lesson or difficulty</span></button>
-          <button className="lib-side-action" onClick={() => navigate('/admin/assignments/reports')}><b>Library Usage Report</b><span>View detailed library analytics</span></button>
-        </div>
-        <div className="lib-side-card">
-          <div className="lib-side-title">Tagging Coverage</div>
-          {(() => {
-            const total = tagCoverage.total || 1;
-            const g = Math.round((tagCoverage.tagged / total) * 100);
-            const o = Math.round((tagCoverage.other / total) * 100);
-            return (
-              <div className="lib-donut-row">
-                <div className="lib-donut" style={{ background: `conic-gradient(#16a34a 0 ${g}%, #d97706 ${g}% ${g + o}%, #ef4444 ${g + o}% 100%)` }}>
-                  <div className="lib-donut-hole"><b>{g}%</b></div>
-                </div>
-                <div className="lib-donut-legend">
-                  <div><i style={{ background: '#16a34a' }} /> Auto-mapped <b>{tagCoverage.tagged}</b></div>
-                  <div><i style={{ background: '#d97706' }} /> Marked as Other <b>{tagCoverage.other}</b></div>
-                  <div><i style={{ background: '#ef4444' }} /> Needs Review <b>{tagCoverage.untagged}</b></div>
-                </div>
-              </div>
-            );
-          })()}
-        </div>
-        <div className="lib-side-card lib-tips">
-          <div className="lib-side-title">💡 Tips</div>
-          <p>Use grouping to quickly browse and manage assignments by Language, Topic or Lesson.</p>
-        </div>
-      </aside>
       </div>
 
       {previewId && <AssignmentPreviewModal assignmentId={previewId} onClose={() => setPreviewId(null)} />}

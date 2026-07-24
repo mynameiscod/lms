@@ -71,7 +71,7 @@
 .lib-muted { color: #cbd5e1; }
 
 /* Two-column layout: main + sidebar */
-.lib-layout { display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start; }
+.lib-layout { display: block; }
 .lib-main { min-width: 0; }
 .lib-sidebar { display: flex; flex-direction: column; gap: 16px; }
 .lib-side-card { background: #fff; border: 1px solid #eef1f6; border-radius: 14px; padding: 16px; box-shadow: 0 1px 3px rgba(16,24,40,.04); }

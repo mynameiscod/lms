@@ -251,6 +251,23 @@ function DayContentRow({ item, onRemove, onChange }: DayContentRowProps) {
       <label className="cb-gating">
         <input type="checkbox" checked={item.isGating} onChange={e => onChange({ ...item, isGating: e.target.checked })} /> Gating
       </label>
+      {(kind === 'assignment' || kind === 'quiz') && (
+        <span className="cb-duegrp" title="Deadline & late policy for this assessment">
+          <span className="cb-due-lbl">Due Day+</span>
+          <input className="cb-num" type="number" min={0} value={item.dueOffsetDays ?? 0}
+            onChange={e => onChange({ ...item, dueOffsetDays: Number(e.target.value) })} title="Due = the day's date + N days" />
+          <select className="cb-slot" value={item.latePolicy || 'grace'}
+            onChange={e => onChange({ ...item, latePolicy: e.target.value as any })} title="Late policy">
+            <option value="grace">Grace</option>
+            <option value="hard_lock">Hard lock</option>
+            <option value="open">Open</option>
+          </select>
+          {(item.latePolicy || 'grace') === 'grace' && (
+            <input className="cb-num" type="number" min={0} value={item.graceDays ?? 2}
+              onChange={e => onChange({ ...item, graceDays: Number(e.target.value) })} title="Grace days" />
+          )}
+        </span>
+      )}
       <button className="cb-icon-btn del" onClick={onRemove} title="Remove">🗑</button>
     </div>
   );

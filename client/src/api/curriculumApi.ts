@@ -71,6 +71,12 @@ export interface DayContentItem {
   points?: number;
   order: number;
   estimatedDuration: number;
+  // Deadline & late policy (assignment/quiz items). Absent → default (grace/2d).
+  dueOffsetDays?: number;
+  dueTime?: string;
+  latePolicy?: 'open' | 'grace' | 'hard_lock';
+  graceDays?: number;
+  penaltyPct?: number;
 }
 
 export interface ActivityBankItem {

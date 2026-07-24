@@ -10,12 +10,12 @@
 client/build
 server/dist
 
-# Environment files  
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+# Environment files — exclude at ALL levels (not just root). client/.env points
+# at http://localhost:5000 for local dev; if it leaks into the Docker build, CRA
+# bakes localhost into the PRODUCTION bundle (a plain `.env` pattern only matches
+# the root, so client/.env was slipping through and breaking prod API calls).
+**/.env
+**/.env.*
 
 # Git and version control
 .git

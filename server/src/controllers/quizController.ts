@@ -8,6 +8,7 @@ import Question from '../models/Question';
 import User from '../models/User';
 import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
+import { checkDeadlineGate } from '../services/assessmentDeliveryService';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -235,6 +236,10 @@ export const startQuizAttempt = async (req: Request, res: Response) => {
     const { quizId } = req.params;
     const studentId = (req as any).userId;
     const tenantId = (req as any).tenantId;
+
+    // Per-batch deadline/late-policy gate (schedule row, else the quiz's baked window).
+    const gate = await checkDeadlineGate(tenantId, studentId, 'quiz', quizId);
+    if (!gate.allowed) return res.status(403).json({ message: gate.reason || 'This quiz is closed.' });
 
     const attempt = await quizService.startQuizAttempt(quizId, studentId, tenantId);
     res.status(201).json(attempt);

@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import submissionService from '../services/submissionService';
 import assignmentHintService from '../services/assignmentHintService';
 import { SubmissionStatus } from '../models/Submission';
+import { checkDeadlineGate } from '../services/assessmentDeliveryService';
 
 // Extended Request interface with user and tenant
 interface AuthRequest extends Request {
@@ -19,6 +20,12 @@ class SubmissionController {
 
       if (!tenantId || !userId) {
         return res.status(401).json({ message: 'Unauthorized' });
+      }
+
+      // Per-batch deadline/late-policy gate (schedule row, else the assignment's baked dates).
+      const gate = await checkDeadlineGate(tenantId, userId, 'assignment', assignmentId);
+      if (!gate.allowed) {
+        return res.status(403).json({ success: false, message: gate.reason || 'This assignment is closed.' });
       }
 
       const submission = await submissionService.startSubmission({

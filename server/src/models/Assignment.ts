@@ -154,6 +154,7 @@ export interface IAssignment extends Document {
   
   // Settings
   maxAttempts: number;
+  comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric'; // how test output is compared
   showTestCaseResults: boolean;
   showExpectedOutput: boolean;
   showSyntaxErrors: boolean;
@@ -277,6 +278,7 @@ const AssignmentSchema = new Schema<IAssignment>({
   
   // Settings
   maxAttempts: { type: Number, default: 3 },
+  comparisonMode: { type: String, enum: ['lenient', 'exact', 'case_insensitive', 'numeric'], default: 'lenient' },
   showTestCaseResults: { type: Boolean, default: true },
   showExpectedOutput: { type: Boolean, default: false },
   showSyntaxErrors: { type: Boolean, default: true },

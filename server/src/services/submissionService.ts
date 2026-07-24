@@ -236,7 +236,8 @@ class SubmissionService {
         input: tc.input,
         expectedOutput: tc.expectedOutput,
         timeLimit: tc.timeLimit || 5000,
-        memoryLimit: assignment.memoryLimit || 256
+        memoryLimit: assignment.memoryLimit || 256,
+        comparisonMode: (assignment as any).comparisonMode || 'lenient'
       });
 
       // If there's a compilation error, capture it and fail all tests
@@ -285,7 +286,8 @@ class SubmissionService {
         input: '',
         expectedOutput: '',
         timeLimit: 5000,
-        memoryLimit: assignment.memoryLimit || 256
+        memoryLimit: assignment.memoryLimit || 256,
+        comparisonMode: (assignment as any).comparisonMode || 'lenient'
       });
       if (plain.compilationError) {
         compilationError = showSyntaxErrors
@@ -343,7 +345,8 @@ class SubmissionService {
         input: tc.input,
         expectedOutput: tc.expectedOutput,
         timeLimit: tc.timeLimit || 5000,
-        memoryLimit: assignment.memoryLimit || 256
+        memoryLimit: assignment.memoryLimit || 256,
+        comparisonMode: (assignment as any).comparisonMode || 'lenient'
       });
 
       if (result.passed) {

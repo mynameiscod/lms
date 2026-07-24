@@ -1174,6 +1174,30 @@ const AssignmentWorkspace: React.FC = () => {
                             </div>
                           </div>
 
+                          {/* Diff hint — where expected vs actual differ */}
+                          {!result.passed && !result.error && (() => {
+                            if (!(result.actualOutput || '').trim()) {
+                              return (
+                                <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', fontSize: '13px', color: '#92400e' }}>
+                                  ⚠️ Your program printed nothing. Make sure you read the input and print the result to the console (e.g. <code>System.out.println(...)</code> / <code>print(...)</code>).
+                                </div>
+                              );
+                            }
+                            if (!(result.expectedOutput || '').trim()) return null;
+                            const exp = (result.expectedOutput || '').replace(/\r\n?/g, '\n').split('\n');
+                            const act = (result.actualOutput || '').replace(/\r\n?/g, '\n').split('\n');
+                            let idx = -1;
+                            const n = Math.max(exp.length, act.length);
+                            for (let i = 0; i < n; i++) { if ((exp[i] ?? '').replace(/\s+$/, '') !== (act[i] ?? '').replace(/\s+$/, '')) { idx = i; break; } }
+                            if (idx < 0) return null;
+                            const chip = { background: '#fff', padding: '1px 6px', borderRadius: '4px', fontFamily: "'Fira Code', monospace" } as React.CSSProperties;
+                            return (
+                              <div style={{ marginTop: '12px', padding: '10px 12px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', fontSize: '13px', color: '#b91c1c', lineHeight: 1.7 }}>
+                                🔍 First difference at <b>line {idx + 1}</b>: expected <span style={chip}>{JSON.stringify(exp[idx] ?? '')}</span> but got <span style={chip}>{JSON.stringify(act[idx] ?? '')}</span>.
+                              </div>
+                            );
+                          })()}
+
                           {/* Error Message */}
                           {result.error && (
                             <div style={{ marginTop: '12px' }}>

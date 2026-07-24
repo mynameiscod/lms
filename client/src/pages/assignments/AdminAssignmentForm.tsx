@@ -102,6 +102,7 @@ const AdminAssignmentForm: React.FC = () => {
   const [showSyntaxErrors, setShowSyntaxErrors] = useState(true);
   const [showTestCaseResults, setShowTestCaseResults] = useState(true);
   const [showExpectedOutput, setShowExpectedOutput] = useState(true);
+  const [comparisonMode, setComparisonMode] = useState<string>('lenient');
   const [enablePlagiarismCheck, setEnablePlagiarismCheck] = useState(false);
   const [enableCamera, setEnableCamera] = useState(false);
   const [enableMicrophone, setEnableMicrophone] = useState(false);
@@ -329,6 +330,7 @@ const AdminAssignmentForm: React.FC = () => {
       setShowSyntaxErrors(a.showSyntaxErrors ?? true);
       setShowTestCaseResults(a.showTestCaseResults ?? true);
       setShowExpectedOutput(a.showExpectedOutput ?? true);
+      setComparisonMode((a as any).comparisonMode || 'lenient');
       setEnablePlagiarismCheck(a.enablePlagiarismCheck ?? false);
       setEnableCamera(a.enableCamera ?? false);
       setEnableMicrophone(a.enableMicrophone ?? false);
@@ -386,6 +388,7 @@ const AdminAssignmentForm: React.FC = () => {
         showSyntaxErrors,
         showTestCaseResults,
         showExpectedOutput,
+        comparisonMode,
         enablePlagiarismCheck,
         enableCamera,
         enableMicrophone,
@@ -1591,6 +1594,17 @@ const AdminAssignmentForm: React.FC = () => {
                 </h4>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {/* Output comparison mode */}
+                  <div style={{ boxSizing: 'border-box', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontWeight: 500, marginBottom: '4px' }}>Output Comparison</div>
+                    <div style={{ fontSize: '13px', color: '#64748b', marginBottom: '10px' }}>How a student's output is matched against the expected output. <b>Lenient</b> ignores extra/leading spacing so correct answers aren't failed on whitespace.</div>
+                    <select className="form-control" value={comparisonMode} onChange={(e) => setComparisonMode(e.target.value)} style={{ maxWidth: 320 }}>
+                      <option value="lenient">Lenient — ignore extra spacing (recommended)</option>
+                      <option value="exact">Exact — every character must match</option>
+                      <option value="case_insensitive">Case-insensitive — ignore spacing &amp; case</option>
+                      <option value="numeric">Numeric — compare numbers (5.0 = 5)</option>
+                    </select>
+                  </div>
                   {/* Show Syntax Errors */}
                   <div style={{ boxSizing: 'border-box', 
                     display: 'flex', 

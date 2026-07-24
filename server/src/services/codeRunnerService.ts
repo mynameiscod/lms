@@ -7,6 +7,7 @@ interface ExecutionInput {
   expectedOutput: string;
   timeLimit: number;  // in ms
   memoryLimit: number; // in MB
+  comparisonMode?: 'lenient' | 'exact' | 'case_insensitive' | 'numeric';
 }
 
 interface ExecutionResult {
@@ -626,11 +627,9 @@ class CodeRunnerService {
       }
 
       const actualOutput = result.run.stdout || '';
-      const normalizedExpected = this.normalizeOutput(expectedOutput);
-      const normalizedActual = this.normalizeOutput(actualOutput);
 
       return {
-        passed: normalizedExpected === normalizedActual,
+        passed: this.compareOutputs(expectedOutput, actualOutput, input.comparisonMode),
         output: actualOutput,
         executionTime: Math.floor(Math.random() * 100) + 10, // Piston doesn't return exact time
         memoryUsed: Math.floor(Math.random() * 30) + 10
@@ -740,14 +739,38 @@ class CodeRunnerService {
   // the student and never meaningful to a problem: line-ending style, trailing
   // whitespace on each line (e.g. a stray space from print(x + " ")), and
   // trailing blank lines. Content and internal spacing are preserved.
-  private normalizeOutput(output: string): string {
-    return output
+  private normalizeOutput(output: string, mode: string = 'lenient'): string {
+    let s = (output || '')
       .replace(/\r\n?/g, '\n')                 // normalize CRLF / CR → LF
       .split('\n')
       .map((line) => line.replace(/[ \t]+$/, '')) // strip trailing spaces/tabs per line
       .join('\n')
       .replace(/\n+$/, '')                      // drop trailing blank lines
-      .trim();                                  // overall leading/trailing whitespace
+      .trim();
+    if (mode === 'exact') return s;
+    // Lenient (default): also trim leading whitespace per line and collapse internal
+    // runs of spaces/tabs — a correct answer shouldn't fail on stray/extra spacing.
+    s = s.split('\n').map((line) => line.trim().replace(/[ \t]+/g, ' ')).join('\n');
+    if (mode === 'case_insensitive') s = s.toLowerCase();
+    return s;
+  }
+
+  // Compare expected vs actual output under the assignment's comparison mode.
+  private compareOutputs(expected: string, actual: string, mode: string = 'lenient'): boolean {
+    const m = mode || 'lenient';
+    if (m === 'numeric') {
+      // Token-wise compare; numbers match within a small tolerance (5.0 == 5).
+      const toks = (s: string) => (s || '').replace(/\r\n?/g, '\n').trim().split(/\s+/).filter(Boolean);
+      const e = toks(expected), a = toks(actual);
+      if (e.length !== a.length) return false;
+      for (let i = 0; i < e.length; i++) {
+        const en = Number(e[i]), an = Number(a[i]);
+        if (!isNaN(en) && !isNaN(an)) { if (Math.abs(en - an) > 1e-6) return false; }
+        else if (e[i] !== a[i]) return false;
+      }
+      return true;
+    }
+    return this.normalizeOutput(expected, m) === this.normalizeOutput(actual, m);
   }
 
   // Get available languages

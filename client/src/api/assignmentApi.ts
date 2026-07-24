@@ -356,6 +356,7 @@ export const assignmentApi = {
     createdBy?: string;
     language?: string;
     primaryTech?: string;
+    topics?: string;
     search?: string;
     isInBank?: boolean;
   }) => api.get<PaginatedResponse<Assignment>>('/assignments', { params }),

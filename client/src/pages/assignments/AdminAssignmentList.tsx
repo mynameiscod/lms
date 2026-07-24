@@ -127,6 +127,8 @@ const AdminAssignmentList: React.FC = () => {
   const [batchFilter, setBatchFilter] = useState<string>('');
   const [languageFilter, setLanguageFilter] = useState<string>('');
   const [techFilter, setTechFilter] = useState<string>('');
+  const [topicFilter, setTopicFilter] = useState<string>('');
+  const [lessonFilter, setLessonFilter] = useState<string>('');
   const [groupBy, setGroupBy] = useState<'none' | 'language' | 'topic' | 'lesson'>('none');
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [createdByFilter, setCreatedByFilter] = useState<string>('');
@@ -136,6 +138,8 @@ const AdminAssignmentList: React.FC = () => {
   const [sortOption, setSortOption] = useState<string>('newest');
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [stats, setStats] = useState<{ totalAssignments: number; publishedAssignments: number; draftAssignments: number; byType?: { _id: string; count: number }[] } | null>(null);
+  // Lightweight full set for the library meta (stat cards, tech chips, topic/lesson options).
+  const [allForMeta, setAllForMeta] = useState<Assignment[]>([]);
 
   // Preview modal
   const [previewId, setPreviewId] = useState<string | null>(null);
@@ -176,6 +180,8 @@ const AdminAssignmentList: React.FC = () => {
         batch: batchFilter || undefined,
         language: languageFilter || undefined,
         primaryTech: techFilter || undefined,
+        topics: topicFilter || undefined,
+        chapter: lessonFilter || undefined,
         createdBy: createdByFilter || undefined,
         sortBy: sort.sortBy,
         sortOrder: sort.sortOrder
@@ -190,7 +196,7 @@ const AdminAssignmentList: React.FC = () => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, techFilter, groupBy, createdByFilter, sortOption]);
+  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, techFilter, topicFilter, lessonFilter, groupBy, createdByFilter, sortOption]);
 
   // Load batches + creators for the filters
   useEffect(() => {
@@ -217,6 +223,41 @@ const AdminAssignmentList: React.FC = () => {
     } catch { /* non-fatal */ }
   }, []);
   useEffect(() => { loadStats(); }, [loadStats]);
+
+  // Full set (unpaginated) for the library meta — refreshed alongside the table.
+  const loadMeta = useCallback(async () => {
+    try {
+      const res = await assignmentApi.list({ limit: 500, page: 1 });
+      setAllForMeta(res.data.data || []);
+    } catch { /* non-fatal */ }
+  }, []);
+  useEffect(() => { loadMeta(); }, [loadMeta]);
+
+  // Derived library meta
+  const inBatchesCount = React.useMemo(() =>
+    allForMeta.filter(a => (a as any).accessibleTo === 'batch_wise' || ((a as any).selectedBatches?.length) || (a as any).batch).length,
+  [allForMeta]);
+  const techCounts = React.useMemo(() => {
+    const m: Record<string, number> = {};
+    allForMeta.forEach(a => { const k = (a as any).primaryTech || 'other'; m[k] = (m[k] || 0) + 1; });
+    return m;
+  }, [allForMeta]);
+  const topicOptions = React.useMemo(() => {
+    const s = new Set<string>(); allForMeta.forEach(a => (a.topics || []).forEach(t => t && s.add(t)));
+    return [...s].sort();
+  }, [allForMeta]);
+  const lessonOptions = React.useMemo(() => {
+    const m = new Map<string, string>();
+    allForMeta.forEach(a => { const c = (a as any).chapter; if (c?._id && c?.title) m.set(c._id, c.title); });
+    return [...m.entries()].sort((x, y) => x[1].localeCompare(y[1]));
+  }, [allForMeta]);
+  const tagCoverage = React.useMemo(() => {
+    const total = allForMeta.length || 1;
+    const other = techCounts['other'] || 0;
+    let tagged = 0; Object.keys(techCounts).forEach(k => { if (k !== 'other') tagged += techCounts[k]; });
+    const untagged = total - tagged - other;
+    return { total: allForMeta.length, tagged, other, untagged, pct: Math.round((tagged / total) * 100) };
+  }, [allForMeta, techCounts]);
 
   useEffect(() => {
     loadAssignments();
@@ -460,11 +501,14 @@ const AdminAssignmentList: React.FC = () => {
         </div>
       )}
 
+      {/* Breadcrumb */}
+      <div className="lib-breadcrumb">LMS <span>›</span> Library <span>›</span> <b>Assignments</b></div>
+
       {/* Header */}
       <div className="page-header">
         <div>
-          <h1>Assignments</h1>
-          <p>Create and manage assignments for your students</p>
+          <h1>Assignments Library</h1>
+          <p>Create, organize and reuse assignments across your courses and batches.</p>
         </div>
         <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
           {/* Template Download Dropdown */}
@@ -757,11 +801,12 @@ const AdminAssignmentList: React.FC = () => {
         const draft = stats?.draftAssignments ?? 0;
         const coding = stats?.byType?.find(x => x._id === 'coding')?.count ?? 0;
         const pct = (n: number) => (t ? Math.round((n / t) * 100 * 10) / 10 : 0);
+        void coding;
         const cards = [
-          { icon: '📋', tint: '#eef2ff', color: '#6366f1', value: t, label: 'Total Assignments', sub: '↗ All time' },
-          { icon: '🚀', tint: '#dcfce7', color: '#16a34a', value: published, label: 'Published', sub: `↗ ${pct(published)}% of total` },
-          { icon: '✏️', tint: '#fef3c7', color: '#d97706', value: draft, label: 'Draft', sub: `${pct(draft)}% of total` },
-          { icon: '💻', tint: '#ede9fe', color: '#7c3aed', value: coding, label: 'Coding Challenges', sub: `↗ ${pct(coding)}% of total` },
+          { icon: '📄', tint: '#eef2ff', color: '#6366f1', value: t, label: 'Total Assignments', sub: 'All time' },
+          { icon: '✅', tint: '#dcfce7', color: '#16a34a', value: published, label: 'Published', sub: 'Ready to use' },
+          { icon: '📝', tint: '#fef3c7', color: '#d97706', value: draft, label: 'Drafts', sub: 'In progress' },
+          { icon: '🎓', tint: '#ede9fe', color: '#7c3aed', value: inBatchesCount, label: 'In Batches', sub: 'Assigned to batches' },
         ];
         return (
           <div className="stats-grid-v2">
@@ -779,25 +824,58 @@ const AdminAssignmentList: React.FC = () => {
         );
       })()}
 
-      {/* Filters */}
-      <div className="filters-card">
-        <div className="filters-card-head">
-          <div className="filters-card-title"><span className="fi-ic">⚙</span> Filters</div>
-          <button className="filters-toggle" onClick={() => setShowFilters(s => !s)}>
-            {showFilters ? 'Hide Filters ▲' : 'Show Filters ▼'}
-          </button>
+      {/* Filter / Group bar */}
+      <div className="lib-filterbar">
+        <div className="lib-fb-top">
+          <div className="lib-groupby">
+            <span className="lib-fb-label">Group By</span>
+            <div className="lib-seg">
+              {([['none', 'None'], ['language', 'Language'], ['topic', 'Topic'], ['lesson', 'Lesson']] as [any, string][]).map(([g, lbl]) => (
+                <button key={g} className={groupBy === g ? 'active' : ''} onClick={() => { setGroupBy(g); setPage(1); }}>{lbl}</button>
+              ))}
+            </div>
+          </div>
+          <div className="lib-fb-field"><label>Language</label>
+            <select value={techFilter} onChange={(e) => { setTechFilter(e.target.value); setPage(1); }}>
+              <option value="">All Languages</option>
+              {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+            </select>
+          </div>
+          <div className="lib-fb-field"><label>Topic</label>
+            <select value={topicFilter} onChange={(e) => { setTopicFilter(e.target.value); setPage(1); }}>
+              <option value="">All Topics</option>
+              {topicOptions.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div className="lib-fb-field"><label>Lesson (Chapter)</label>
+            <select value={lessonFilter} onChange={(e) => { setLessonFilter(e.target.value); setPage(1); }}>
+              <option value="">All Lessons</option>
+              {lessonOptions.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
+            </select>
+          </div>
+          <button className="lib-morefilters" onClick={() => setShowFilters(s => !s)}>▾ More Filters</button>
+        </div>
+        <div className="lib-fb-bottom">
+          <div className="lib-search"><span>🔍</span>
+            <input type="text" placeholder="Search by title or description..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
+          </div>
+          <button className="lib-clear" onClick={clearFilters}>↻ Clear</button>
+          <button className="lib-filters-count">Filters ({[statusFilter, typeFilter, difficultyFilter, batchFilter, techFilter, topicFilter, lessonFilter, createdByFilter].filter(Boolean).length})</button>
+        </div>
+        {/* Tech category chips */}
+        <div className="lib-techchips">
+          {TECH_CATEGORIES.filter(t => techCounts[t.value]).map(t => (
+            <button key={t.value} className={`lib-techchip ${techFilter === t.value ? 'active' : ''}`}
+              onClick={() => { setTechFilter(techFilter === t.value ? '' : t.value); setPage(1); }}
+              style={techFilter === t.value ? { borderColor: t.color, background: '#fff' } : undefined}>
+              <span style={{ color: t.color }}>{t.icon}</span> {t.label}
+              <span className="lib-techchip-count" style={{ background: t.color }}>{techCounts[t.value]}</span>
+            </button>
+          ))}
         </div>
 
         {showFilters && (
-          <>
-            <div className="filters-grid">
-              <div className="filter-field filter-field--search">
-                <label>Search</label>
-                <div className="ff-search">
-                  <span className="ff-search-ic">🔍</span>
-                  <input type="text" placeholder="Search by title or description..." value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} />
-                </div>
-              </div>
+          <div className="lib-morefilters-panel">
               <div className="filter-field">
                 <label>Status</label>
                 <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}>
@@ -837,29 +915,6 @@ const AdminAssignmentList: React.FC = () => {
                 </select>
               </div>
               <div className="filter-field">
-                <label>Language (allowed)</label>
-                <select value={languageFilter} onChange={(e) => { setLanguageFilter(e.target.value); setPage(1); }}>
-                  <option value="">All Languages</option>
-                  {LANGUAGES.map(l => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
-                </select>
-              </div>
-              <div className="filter-field">
-                <label>Tech / Category</label>
-                <select value={techFilter} onChange={(e) => { setTechFilter(e.target.value); setPage(1); }}>
-                  <option value="">All Tech</option>
-                  {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
-                </select>
-              </div>
-              <div className="filter-field">
-                <label>Group by</label>
-                <select value={groupBy} onChange={(e) => { setGroupBy(e.target.value as any); setPage(1); }}>
-                  <option value="none">None (flat table)</option>
-                  <option value="language">Language / Tech</option>
-                  <option value="topic">Topic</option>
-                  <option value="lesson">Lesson (Chapter)</option>
-                </select>
-              </div>
-              <div className="filter-field">
                 <label>Created By</label>
                 <select value={createdByFilter} onChange={(e) => { setCreatedByFilter(e.target.value); setPage(1); }}>
                   <option value="">All Users</option>
@@ -867,32 +922,6 @@ const AdminAssignmentList: React.FC = () => {
                 </select>
               </div>
             </div>
-
-            {hasFilters && (() => {
-              const chips: { label: string; clear: () => void }[] = [];
-              if (search) chips.push({ label: `Search: "${search}"`, clear: () => setSearch('') });
-              if (statusFilter) chips.push({ label: `Status: ${statusFilter}`, clear: () => setStatusFilter('') });
-              if (typeFilter) chips.push({ label: `Type: ${typeFilter}`, clear: () => setTypeFilter('') });
-              if (difficultyFilter) chips.push({ label: `Difficulty: ${difficultyFilter}`, clear: () => setDifficultyFilter('') });
-              if (batchFilter) chips.push({ label: `Batch: ${batches.find(b => b._id === batchFilter)?.name || batchFilter}`, clear: () => setBatchFilter('') });
-              if (languageFilter) chips.push({ label: `Language: ${LANG_LABEL[languageFilter] || languageFilter}`, clear: () => setLanguageFilter('') });
-              if (createdByFilter) chips.push({ label: `Created By: ${creators.find(c => c._id === createdByFilter)?.name || createdByFilter}`, clear: () => setCreatedByFilter('') });
-              return (
-                <div className="active-filters-row">
-                  <span className="af-label">Active Filters:</span>
-                  <div className="af-chips">
-                    {chips.map((c, i) => (
-                      <span className="af-chip" key={i}>{c.label}<button onClick={() => { c.clear(); setPage(1); }}>×</button></span>
-                    ))}
-                  </div>
-                  <div className="af-actions">
-                    <button className="btn-clear-all" onClick={clearFilters}>↺ Clear All</button>
-                    <button className="btn-apply" onClick={() => { setPage(1); loadAssignments(); }}>▽ Apply Filters</button>
-                  </div>
-                </div>
-              );
-            })()}
-          </>
         )}
       </div>
 
@@ -910,7 +939,9 @@ const AdminAssignmentList: React.FC = () => {
         </div>
       )}
 
-      {/* Content */}
+      {/* Content + sidebar */}
+      <div className="lib-layout">
+      <div className="lib-main">
       {loading ? (
         <div className="loading-spinner">
           <div className="spinner"></div>
@@ -955,56 +986,36 @@ const AdminAssignmentList: React.FC = () => {
               <table className="assignments-table">
                 <thead>
                   <tr>
-                    <th>Title</th>
-                    <th>Type</th>
+                    <th>Assignment</th>
+                    <th>Language</th>
+                    <th>Topic</th>
+                    <th>Lesson (Chapter)</th>
                     <th>Difficulty</th>
                     <th>Status</th>
-                    <th>Points</th>
-                    <th>Due Date</th>
-                    <th>Created By</th>
-                    <th>Created On</th>
+                    <th>Updated</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {(() => {
-                    const techChip = (a: Assignment) => {
-                      const d = techDef((a as any).primaryTech);
-                      if (!d) return null;
-                      return <span style={{ display: 'inline-block', marginTop: 3, fontSize: 11, fontWeight: 700, color: '#fff', background: d.color, borderRadius: 20, padding: '1px 8px' }}>{d.icon} {d.label}</span>;
-                    };
                     const renderRow = (assignment: Assignment) => {
-                      const due = dueLabel(assignment.dueDate);
-                      const created = formatDateTime(assignment.createdAt);
+                      const created = formatDateTime(assignment.updatedAt || assignment.createdAt);
+                      const tech = techDef((assignment as any).primaryTech);
+                      const desc = (assignment.description || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
                       return (
                         <tr key={assignment._id}>
                           <td className="title-cell">
-                            <div className="title-cell-inner">
-                              <span className="type-tile" style={{ background: typeTile(assignment.type).bg, color: typeTile(assignment.type).color }}>{typeTile(assignment.type).icon}</span>
-                              <div>
-                                <div className="title-main">{assignment.title}</div>
-                                {assignment.topics.length > 0 && (
-                                  <div className="title-topics">
-                                    {assignment.topics.slice(0, 3).join(', ')}
-                                    {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
-                                  </div>
-                                )}
-                                {techChip(assignment)}
-                              </div>
-                            </div>
+                            <div className="title-main">{assignment.title}</div>
+                            {desc && <div className="title-topics">{desc.slice(0, 72)}{desc.length > 72 ? '…' : ''}</div>}
                           </td>
-                          <td>{getTypeBadge(assignment.type)}</td>
+                          <td>{tech ? <span className="lib-cell-chip" style={{ color: tech.color, background: tech.color + '18' }}>{tech.icon} {tech.label}</span> : <span className="lib-muted">—</span>}</td>
+                          <td>{assignment.topics?.[0] || <span className="lib-muted">—</span>}</td>
+                          <td>{(assignment as any).chapter?.title || <span className="lib-muted">—</span>}</td>
                           <td>{getDifficultyBadge(assignment.difficulty)}</td>
                           <td>{getStatusBadge(assignment.status)}</td>
-                          <td>{assignment.totalPoints}</td>
                           <td>
-                            <div>{formatDate(assignment.dueDate)}</div>
-                            {due && <div className={`due-chip ${due.overdue ? 'overdue' : ''}`}>{due.text}</div>}
-                          </td>
-                          <td>{creatorName(assignment)}</td>
-                          <td>
-                            <div style={{ color: '#334155' }}>{created.date}</div>
-                            <div style={{ fontSize: '12px', color: '#94a3b8' }}>{created.time}</div>
+                            <div style={{ color: '#334155', fontSize: 13 }}>{created.date}</div>
+                            <div style={{ fontSize: 12, color: '#94a3b8' }}>by {creatorName(assignment)}</div>
                           </td>
                           <td className="actions-cell">{actionsFor(assignment)}</td>
                         </tr>
@@ -1033,7 +1044,7 @@ const AdminAssignmentList: React.FC = () => {
                       const isCollapsed = !!collapsedGroups[k];
                       out.push(
                         <tr key={`grp-${k}`} onClick={() => setCollapsedGroups(p => ({ ...p, [k]: !p[k] }))} style={{ cursor: 'pointer', background: '#eef2f7' }}>
-                          <td colSpan={9} style={{ fontWeight: 800, color: '#0b2e63', padding: '10px 14px' }}>
+                          <td colSpan={8} style={{ fontWeight: 800, color: '#0b2e63', padding: '10px 14px' }}>
                             {isCollapsed ? '▸' : '▾'} {labelOf(k)} <span style={{ color: '#94a3b8', fontWeight: 600 }}>({items.length})</span>
                           </td>
                         </tr>
@@ -1101,6 +1112,41 @@ const AdminAssignmentList: React.FC = () => {
           </div>
         </>
       )}
+      </div>
+
+      <aside className="lib-sidebar">
+        <div className="lib-side-card">
+          <div className="lib-side-title">⚡ Quick Actions</div>
+          <button className="lib-side-action" onClick={() => navigate('/batches')}><b>Clone → Assign to Batch</b><span>Reuse an assignment in any batch</span></button>
+          <button className="lib-side-action" onClick={() => setShowFilters(true)}><b>Bulk Update</b><span>Update topic, lesson or difficulty</span></button>
+          <button className="lib-side-action" onClick={() => navigate('/admin/assignments/reports')}><b>Library Usage Report</b><span>View detailed library analytics</span></button>
+        </div>
+        <div className="lib-side-card">
+          <div className="lib-side-title">Tagging Coverage</div>
+          {(() => {
+            const total = tagCoverage.total || 1;
+            const g = Math.round((tagCoverage.tagged / total) * 100);
+            const o = Math.round((tagCoverage.other / total) * 100);
+            return (
+              <div className="lib-donut-row">
+                <div className="lib-donut" style={{ background: `conic-gradient(#16a34a 0 ${g}%, #d97706 ${g}% ${g + o}%, #ef4444 ${g + o}% 100%)` }}>
+                  <div className="lib-donut-hole"><b>{g}%</b></div>
+                </div>
+                <div className="lib-donut-legend">
+                  <div><i style={{ background: '#16a34a' }} /> Auto-mapped <b>{tagCoverage.tagged}</b></div>
+                  <div><i style={{ background: '#d97706' }} /> Marked as Other <b>{tagCoverage.other}</b></div>
+                  <div><i style={{ background: '#ef4444' }} /> Needs Review <b>{tagCoverage.untagged}</b></div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+        <div className="lib-side-card lib-tips">
+          <div className="lib-side-title">💡 Tips</div>
+          <p>Use grouping to quickly browse and manage assignments by Language, Topic or Lesson.</p>
+        </div>
+      </aside>
+      </div>
 
       {previewId && <AssignmentPreviewModal assignmentId={previewId} onClose={() => setPreviewId(null)} />}
     </div>

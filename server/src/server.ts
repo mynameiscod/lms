@@ -13,6 +13,7 @@ import { startSlaCronScheduler } from './jobs/slaCron';
 import { startAICallWorker, stopAICallWorker } from './workers/aiCallWorker';
 import { startArchiveQuizScheduler } from './jobs/archiveQuizCron';
 import { startDueReminderScheduler } from './jobs/dueReminderCron';
+import { startAssessmentMissedSweep } from './jobs/assessmentMissedSweepCron';
 import { startRecordingAlertScheduler } from './jobs/recordingAlertCron';
 import { startSpeakingReminderScheduler } from './jobs/speakingReminderCron';
 import { startInterviewReminderScheduler } from './jobs/interviewReminderCron';
@@ -291,6 +292,7 @@ const startServer = async () => {
 
     // Start quiz auto-archive scheduler
     startArchiveQuizScheduler();
+    startAssessmentMissedSweep();
 
     // Start learning-plan due-date reminder scheduler (in-app, daily)
     startDueReminderScheduler();

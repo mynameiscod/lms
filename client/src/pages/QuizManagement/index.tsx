@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { quizApi, batchApi } from '../../api';
 import { Button, Alert, Spinner } from '../../components/common';
@@ -6,7 +7,66 @@ import QuizWizard from '../../components/QuizWizard/QuizWizard';
 import QuizQuestionLinking from '../../components/QuizQuestionLinking/QuizQuestionLinking';
 import { Quiz, Batch } from '../../types';
 import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
+import '../library-shared.css';
 import './QuizManagementPage.css';
+
+/* ── Row ⋮ actions menu — portaled to <body> with fixed coords so it escapes the
+   table overflow, and measured after render so the last rows flip up / clamp into
+   view instead of being cut off at the viewport bottom. ── */
+type MenuItem = { label: string; icon: string; onClick: () => void; danger?: boolean } | 'sep';
+const RowActions: React.FC<{ items: MenuItem[] }> = ({ items }) => {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: -9999, left: 0 });
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current || !btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const mh = menuRef.current.offsetHeight;
+    const mw = menuRef.current.offsetWidth || 210;
+    const left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+    const spaceBelow = window.innerHeight - r.bottom;
+    let top: number;
+    if (spaceBelow >= mh + 8) top = r.bottom + 4;
+    else if (r.top - 4 - mh >= 8) top = r.top - 4 - mh;
+    else top = Math.max(8, window.innerHeight - mh - 8);
+    setPos({ top, left });
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node;
+      if (wrapRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setOpen(false);
+    };
+    const dismiss = () => setOpen(false);
+    document.addEventListener('mousedown', onDown);
+    window.addEventListener('scroll', dismiss, true);
+    window.addEventListener('resize', dismiss);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      window.removeEventListener('scroll', dismiss, true);
+      window.removeEventListener('resize', dismiss);
+    };
+  }, [open]);
+
+  return (
+    <div className="lib-actions" ref={wrapRef}>
+      <button ref={btnRef} className="lib-actions-btn" onClick={() => setOpen(o => !o)} title="Actions">⋮</button>
+      {open && createPortal(
+        <div ref={menuRef} className="lib-actions-menu" style={{ position: 'fixed', top: pos.top, left: pos.left, maxHeight: '85vh', overflowY: 'auto', zIndex: 3000 }}>
+          {items.map((it, i) => it === 'sep'
+            ? <div key={i} className="lib-actions-sep" />
+            : <button key={i} className={it.danger ? 'danger' : ''} onClick={() => { it.onClick(); setOpen(false); }}>{it.icon} {it.label}</button>)}
+        </div>,
+        document.body
+      )}
+    </div>
+  );
+};
 
 const QuizManagementPage: React.FC = () => {
   const navigate = useNavigate();
@@ -32,10 +92,11 @@ const QuizManagementPage: React.FC = () => {
   const [cloning, setCloning] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
-  // Organize / reuse: tech filter + group-by
+  // Organize / reuse: filters + group-by
   const [techFilter, setTechFilter] = useState('');
+  const [lessonFilter, setLessonFilter] = useState('');
+  const [search, setSearch] = useState('');
   const [groupBy, setGroupBy] = useState<'none' | 'language' | 'lesson'>('none');
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   // Non-attendees modal
   const [nonAttendeesQuiz, setNonAttendeesQuiz] = useState<Quiz | null>(null);
   const [nonAttendeesData, setNonAttendeesData] = useState<any>(null);
@@ -105,7 +166,7 @@ const QuizManagementPage: React.FC = () => {
   const handleCreateQuiz = async (formData: any) => {
     try {
       setError('');
-      
+
       if (editingQuiz) {
         await quizApi.updateQuiz(editingQuiz._id, formData);
         setSuccess('Quiz updated successfully');
@@ -227,8 +288,6 @@ const QuizManagementPage: React.FC = () => {
   const getQuizStatus = (quiz: Quiz): string => {
     try {
       const now = new Date();
-      
-      // Parse start date and time
       const startDateParts = quiz.startDate.split('T')[0].split('-');
       const startTimeParts = quiz.startTime.split(':');
       const startDateTime = new Date(
@@ -239,8 +298,6 @@ const QuizManagementPage: React.FC = () => {
         parseInt(startTimeParts[1]),
         0
       );
-      
-      // Parse end date and time
       const endDateParts = quiz.endDate.split('T')[0].split('-');
       const endTimeParts = quiz.endTime.split(':');
       const endDateTime = new Date(
@@ -251,7 +308,6 @@ const QuizManagementPage: React.FC = () => {
         parseInt(endTimeParts[1]),
         0
       );
-      
       if (now < startDateTime) return 'pending';
       if (now > endDateTime) return 'closed';
       return 'active';
@@ -263,15 +319,50 @@ const QuizManagementPage: React.FC = () => {
   const getQuizStatusLabel = (quiz: Quiz): string => {
     const status = getQuizStatus(quiz);
     switch (status) {
-      case 'pending':
-        return 'Pending';
-      case 'closed':
-        return 'Closed';
+      case 'pending': return 'Pending';
+      case 'closed': return 'Closed';
       case 'active':
-      default:
-        return 'Active';
+      default: return 'Active';
     }
   };
+
+  // ── Derived data for the library view (stats, tech counts, lessons, coverage) ──
+  const stats = useMemo(() => {
+    let active = 0, pending = 0, closed = 0;
+    quizzes.forEach(q => {
+      const s = getQuizStatus(q);
+      if (s === 'active') active++; else if (s === 'pending') pending++; else closed++;
+    });
+    return { total: quizzes.length, active, pending, closed };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [quizzes]);
+
+  const techCounts = useMemo(() => {
+    const m: Record<string, number> = {};
+    quizzes.forEach(q => { const t = (q as any).primaryTech; if (t) m[t] = (m[t] || 0) + 1; });
+    return m;
+  }, [quizzes]);
+
+  const lessonOptions = useMemo(() => {
+    const m = new Map<string, string>();
+    quizzes.forEach(q => {
+      const ch = (q as any).chapterId;
+      if (ch && (ch._id || ch.title)) m.set(String(ch._id || ch.title), ch.title || String(ch._id));
+    });
+    return Array.from(m.entries());
+  }, [quizzes]);
+
+  const tagCoverage = useMemo(() => {
+    let tagged = 0, other = 0, untagged = 0;
+    quizzes.forEach(q => {
+      const t = (q as any).primaryTech;
+      if (!t) untagged++; else if (t === 'other') other++; else tagged++;
+    });
+    return { total: quizzes.length, tagged, other, untagged };
+  }, [quizzes]);
+
+  const activeFiltersCount = [techFilter, lessonFilter, search].filter(Boolean).length;
+  const clearFilters = () => { setTechFilter(''); setLessonFilter(''); setSearch(''); setGroupBy('none'); };
 
   if (loading) return <Spinner fullScreen />;
 
@@ -310,12 +401,23 @@ const QuizManagementPage: React.FC = () => {
     );
   }
 
+  const statCards = [
+    { icon: '📄', tint: '#eef2ff', color: '#6366f1', value: stats.total, label: 'Total Quizzes', sub: 'All time' },
+    { icon: '🟢', tint: '#dcfce7', color: '#16a34a', value: stats.active, label: 'Active Now', sub: 'Open to students' },
+    { icon: '⏳', tint: '#fef3c7', color: '#d97706', value: stats.pending, label: 'Scheduled', sub: 'Not started yet' },
+    { icon: '🔒', tint: '#f1f5f9', color: '#64748b', value: stats.closed, label: 'Closed', sub: 'Window ended' },
+  ];
+
   // Show quiz list
   return (
     <div className="quiz-management-page">
+      {/* Breadcrumb */}
+      <div className="lib-breadcrumb">LMS <span>›</span> Library <span>›</span> <b>Quizzes</b></div>
+
       <div className="page-header">
         <div className="header-text">
           <h2>Quiz Management</h2>
+          <p style={{ color: '#64748b', margin: '4px 0 0', fontSize: 14 }}>Create, organize and reuse quizzes across your courses and batches.</p>
         </div>
         <Button onClick={() => {
           resetForm();
@@ -328,8 +430,22 @@ const QuizManagementPage: React.FC = () => {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
+      {/* Stat cards */}
+      <div className="stats-grid-v2">
+        {statCards.map((c, i) => (
+          <div className="stat-card-v2" key={i}>
+            <div className="stat-icon-tile" style={{ background: c.tint, color: c.color }}>{c.icon}</div>
+            <div className="stat-card-body">
+              <div className="stat-card-label">{c.label}</div>
+              <div className="stat-card-value">{c.value}</div>
+              <div className="stat-card-sub" style={{ color: c.color }}>{c.sub}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Active / Archived tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid #e5e7eb' }}>
+      <div style={{ display: 'flex', gap: 0, marginBottom: 16, borderBottom: '2px solid #e5e7eb' }}>
         <button
           onClick={() => setActiveTab('active')}
           style={{
@@ -498,230 +614,236 @@ const QuizManagementPage: React.FC = () => {
         </div>
       )}
 
-      {/* Quizzes List */}
-      <div className="quizzes-container">
+      {/* ── Active tab ── */}
+      {activeTab === 'active' && (() => {
+        const filtered = quizzes
+          .filter(q => !techFilter || (q as any).primaryTech === techFilter)
+          .filter(q => !lessonFilter || String((q as any).chapterId?._id || (q as any).chapterId?.title || '') === lessonFilter)
+          .filter(q => !search || q.title.toLowerCase().includes(search.toLowerCase()));
+        const sorted = filtered.slice().sort((a, b) =>
+          groupBy === 'language' ? String((a as any).primaryTech || 'zzz').localeCompare(String((b as any).primaryTech || 'zzz'))
+          : groupBy === 'lesson' ? String((a as any).chapterId?.title || 'zzz').localeCompare(String((b as any).chapterId?.title || 'zzz'))
+          : 0);
+        const groupKeyOf = (q: any) => groupBy === 'language' ? (q.primaryTech || '__none') : groupBy === 'lesson' ? (q.chapterId?.title || '__none') : '';
+        const groupLabelOf = (k: string) => k === '__none' ? (groupBy === 'language' ? 'Untagged' : 'No lesson')
+          : groupBy === 'language' ? (techDef(k) ? `${techDef(k)!.icon} ${techDef(k)!.label}` : k) : k;
+        let lastKey: string | null = null;
 
-        {/* ── Active tab ── */}
-        {activeTab === 'active' && (() => {
-          const activeQuizzes = quizzes
-            .filter(q => !techFilter || (q as any).primaryTech === techFilter)
-            .slice()
-            .sort((a, b) =>
-              groupBy === 'language' ? String((a as any).primaryTech || 'zzz').localeCompare(String((b as any).primaryTech || 'zzz'))
-              : groupBy === 'lesson' ? String((a as any).chapterId?.title || 'zzz').localeCompare(String((b as any).chapterId?.title || 'zzz'))
-              : 0);
-          const groupKeyOf = (q: any) => groupBy === 'language' ? (q.primaryTech || '__none') : groupBy === 'lesson' ? (q.chapterId?.title || '__none') : '';
-          const groupLabelOf = (k: string) => k === '__none' ? (groupBy === 'language' ? 'Untagged' : 'No lesson')
-            : groupBy === 'language' ? (techDef(k) ? `${techDef(k)!.icon} ${techDef(k)!.label}` : k) : k;
-          const qmSel: React.CSSProperties = { padding: '8px 10px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, background: '#fff' };
-          let lastKey: string | null = null;
-          return (
+        return (
           <>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 12px' }}>
-              <select value={techFilter} onChange={e => setTechFilter(e.target.value)} style={qmSel}>
-                <option value="">All Tech</option>
-                {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
-              </select>
-              <select value={groupBy} onChange={e => setGroupBy(e.target.value as any)} style={qmSel}>
-                <option value="none">No grouping</option>
-                <option value="language">Group by Language / Tech</option>
-                <option value="lesson">Group by Lesson (Chapter)</option>
-              </select>
-              <span style={{ color: '#94a3b8', fontSize: 13 }}>{activeQuizzes.length} quiz(zes)</span>
+            {/* Filter / Group bar */}
+            <div className="lib-filterbar">
+              <div className="lib-fb-top">
+                <div className="lib-groupby">
+                  <span className="lib-fb-label">Group By</span>
+                  <div className="lib-seg">
+                    {([['none', 'None'], ['language', 'Language'], ['lesson', 'Lesson']] as [any, string][]).map(([g, lbl]) => (
+                      <button key={g} className={groupBy === g ? 'active' : ''} onClick={() => setGroupBy(g)}>{lbl}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="lib-fb-field"><label>Language</label>
+                  <select value={techFilter} onChange={e => setTechFilter(e.target.value)}>
+                    <option value="">All Languages</option>
+                    {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+                  </select>
+                </div>
+                <div className="lib-fb-field"><label>Lesson (Chapter)</label>
+                  <select value={lessonFilter} onChange={e => setLessonFilter(e.target.value)}>
+                    <option value="">All Lessons</option>
+                    {lessonOptions.map(([id, title]) => <option key={id} value={id}>{title}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="lib-fb-bottom">
+                <div className="lib-search"><span>🔍</span>
+                  <input type="text" placeholder="Search by quiz title..." value={search} onChange={e => setSearch(e.target.value)} />
+                </div>
+                <button className="lib-clear" onClick={clearFilters}>↻ Clear</button>
+                <button className="lib-filters-count">Filters ({activeFiltersCount})</button>
+              </div>
+              {/* Tech category chips */}
+              <div className="lib-techchips">
+                {TECH_CATEGORIES.filter(t => techCounts[t.value]).map(t => (
+                  <button key={t.value} className={`lib-techchip ${techFilter === t.value ? 'active' : ''}`}
+                    onClick={() => setTechFilter(techFilter === t.value ? '' : t.value)}
+                    style={techFilter === t.value ? { borderColor: t.color, background: '#fff' } : undefined}>
+                    <span style={{ color: t.color }}>{t.icon}</span> {t.label}
+                    <span className="lib-techchip-count" style={{ background: t.color }}>{techCounts[t.value]}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-            {activeQuizzes.length === 0 ? (
-            <div className="empty-state">
-              <h3>No quizzes {techFilter ? 'match this filter' : 'yet'}</h3>
-              <p>{techFilter ? 'Try a different tech.' : 'Create your first quiz to get started'}</p>
-            </div>
-          ) : (
-            <div className="quizzes-table-wrapper">
-              <table className="quizzes-table">
-                <thead>
-                  <tr>
-                    <th>Quiz Title</th>
-                    <th>Audience</th>
-                    <th>Start Date & Time</th>
-                    <th>End Date & Time</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {activeQuizzes.map(quiz => {
-                    const gk = groupKeyOf(quiz);
-                    const header = groupBy !== 'none' && gk !== lastKey ? (
-                      <tr key={`grp-${gk}`} style={{ background: '#eef2f7' }}>
-                        <td colSpan={6} style={{ fontWeight: 800, color: '#0b2e63', padding: '9px 12px' }}>{groupLabelOf(gk)}</td>
-                      </tr>
-                    ) : null;
-                    lastKey = gk;
-                    const tech = techDef((quiz as any).primaryTech);
+
+            {/* Content + sidebar */}
+            <div className="lib-layout">
+              <div className="lib-main">
+                {sorted.length === 0 ? (
+                  <div className="empty-state">
+                    <h3>No quizzes {activeFiltersCount ? 'match these filters' : 'yet'}</h3>
+                    <p>{activeFiltersCount ? 'Try clearing the filters.' : 'Create your first quiz to get started'}</p>
+                  </div>
+                ) : (
+                  <div className="quizzes-table-wrapper">
+                    <table className="quizzes-table">
+                      <thead>
+                        <tr>
+                          <th>Quiz</th>
+                          <th>Language</th>
+                          <th>Lesson</th>
+                          <th>Schedule</th>
+                          <th>Status</th>
+                          <th style={{ textAlign: 'center' }}>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {sorted.map(quiz => {
+                          const gk = groupKeyOf(quiz);
+                          const header = groupBy !== 'none' && gk !== lastKey ? (
+                            <tr key={`grp-${gk}`} style={{ background: '#eef2f7' }}>
+                              <td colSpan={6} style={{ fontWeight: 800, color: '#0b2e63', padding: '9px 12px' }}>{groupLabelOf(gk)}</td>
+                            </tr>
+                          ) : null;
+                          lastKey = gk;
+                          const tech = techDef((quiz as any).primaryTech);
+                          const audience = getAudienceBadge(quiz);
+                          const status = getQuizStatus(quiz);
+                          const chapterTitle = (quiz as any).chapterId?.title;
+                          const isExternal = !!(quiz as any).isExternalQuiz;
+
+                          const items: MenuItem[] = [
+                            { label: 'Preview quiz', icon: '👁️', onClick: () => navigate(`/quiz/${quiz._id}/take`) },
+                            { label: 'View results', icon: '📊', onClick: () => navigate(`/quiz-results?quizId=${quiz._id}`) },
+                          ];
+                          if (status !== 'closed') {
+                            items.push({ label: 'Edit quiz', icon: '✏️', onClick: () => handleEditQuiz(quiz) });
+                            items.push({ label: 'Link questions', icon: '🔗', onClick: () => handleLinkQuestions(quiz) });
+                          }
+                          items.push({ label: 'Clone for a batch', icon: '📋', onClick: () => handleOpenClone(quiz) });
+                          if (!isExternal) items.push({ label: 'Non-attendees', icon: '👥', onClick: () => openNonAttendees(quiz) });
+                          items.push('sep');
+                          items.push({ label: 'Archive', icon: '📦', onClick: () => handleArchiveQuiz(quiz._id) });
+                          items.push({ label: 'Delete', icon: '🗑️', onClick: () => handleDeleteQuiz(quiz._id), danger: true });
+
+                          return (
+                            <React.Fragment key={quiz._id}>
+                              {header}
+                              <tr className="quiz-row">
+                                <td className="quiz-title">
+                                  <div style={{ fontWeight: 700, color: '#0f172a' }}>{quiz.title}</div>
+                                  <span style={{ display: 'inline-block', marginTop: 4, background: audience.bg, color: audience.color, borderRadius: 20, padding: '2px 9px', fontSize: 11.5, fontWeight: 600 }}>{audience.label}</span>
+                                </td>
+                                <td>
+                                  {tech
+                                    ? <span className="lib-cell-chip" style={{ color: tech.color, background: `${tech.color}18` }}>{tech.icon} {tech.label}</span>
+                                    : <span className="lib-muted">—</span>}
+                                </td>
+                                <td style={{ fontSize: 13, color: chapterTitle ? '#334155' : '#cbd5e1' }}>{chapterTitle || '—'}</td>
+                                <td className="quiz-date" style={{ fontSize: 12.5, color: '#475569' }}>
+                                  <div>{new Date(quiz.startDate).toLocaleDateString()} · {quiz.startTime}</div>
+                                  <div style={{ color: '#94a3b8' }}>→ {new Date(quiz.endDate).toLocaleDateString()} · {quiz.endTime}</div>
+                                </td>
+                                <td className="quiz-status">
+                                  <span className={`status-badge ${status}`}>{getQuizStatusLabel(quiz)}</span>
+                                </td>
+                                <td style={{ textAlign: 'center' }}>
+                                  <RowActions items={items} />
+                                </td>
+                              </tr>
+                            </React.Fragment>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar */}
+              <aside className="lib-sidebar">
+                <div className="lib-side-card">
+                  <div className="lib-side-title">⚡ Quick Actions</div>
+                  <button className="lib-side-action" onClick={() => { resetForm(); setShowCreateModal(true); }}><b>Create New Quiz</b><span>Build a quiz from scratch or the bank</span></button>
+                  <button className="lib-side-action" onClick={() => navigate('/batches')}><b>Clone → Assign to Batch</b><span>Reuse a quiz in any batch</span></button>
+                  <button className="lib-side-action" onClick={() => navigate('/quiz-results')}><b>Quiz Results</b><span>View scores and analytics</span></button>
+                </div>
+                <div className="lib-side-card">
+                  <div className="lib-side-title">Tagging Coverage</div>
+                  {(() => {
+                    const total = tagCoverage.total || 1;
+                    const g = Math.round((tagCoverage.tagged / total) * 100);
+                    const o = Math.round((tagCoverage.other / total) * 100);
                     return (
-                    <React.Fragment key={quiz._id}>
-                    {header}
-                    <tr className="quiz-row">
-                      <td className="quiz-title">{quiz.title}{tech && <span style={{ display: 'inline-block', marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: tech.color, borderRadius: 20, padding: '1px 8px' }}>{tech.icon} {tech.label}</span>}</td>
-                      <td>
-                        {(() => { const b = getAudienceBadge(quiz); return <span style={{ background: b.bg, color: b.color, borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{b.label}</span>; })()}
-                      </td>
-                      <td className="quiz-date">
-                        {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
-                      </td>
-                      <td className="quiz-date">
-                        {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
-                      </td>
-                      <td className="quiz-status">
-                        <span className={`status-badge ${getQuizStatus(quiz)}`}>
-                          {getQuizStatusLabel(quiz)}
-                        </span>
-                      </td>
-                      <td className="quiz-actions-cell">
-                        <div className="action-buttons">
-                          <Button
-                            onClick={() => navigate(`/quiz/${quiz._id}/take`)}
-                            className="btn-action btn-preview"
-                            title="Preview quiz"
-                          >
-                            👁️
-                          </Button>
-                          <Button
-                            onClick={() => navigate(`/quiz-results?quizId=${quiz._id}`)}
-                            className="btn-action btn-results"
-                            title="View quiz results"
-                          >
-                            📊
-                          </Button>
-                          {getQuizStatus(quiz) !== 'closed' && (
-                            <Button
-                              onClick={() => handleEditQuiz(quiz)}
-                              className="btn-action btn-edit"
-                              title="Edit quiz"
-                            >
-                              ✏️
-                            </Button>
-                          )}
-                          {getQuizStatus(quiz) !== 'closed' && (
-                            <Button
-                              onClick={() => handleLinkQuestions(quiz)}
-                              className="btn-action btn-link"
-                              title="Link questions from Question Bank"
-                            >
-                              🔗
-                            </Button>
-                          )}
-                          <Button
-                            onClick={() => handleArchiveQuiz(quiz._id)}
-                            className="btn-action"
-                            title="Archive quiz (hide from students, keep data)"
-                            style={{ opacity: 0.7 }}
-                          >
-                            📦
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteQuiz(quiz._id)}
-                            className="btn-action btn-delete"
-                            title="Delete quiz"
-                          >
-                            🗑️
-                          </Button>
-                          <Button
-                            onClick={() => handleOpenClone(quiz)}
-                            className="btn-action btn-clone"
-                            title="Clone quiz for another batch"
-                          >
-                            📋
-                          </Button>
-                          {!(quiz as any).isExternalQuiz && (
-                            <Button
-                              onClick={() => openNonAttendees(quiz)}
-                              className="btn-action"
-                              title="View & reassign non-attendees"
-                              style={{ background: '#fef3c7', color: '#92400e' }}
-                            >
-                              👥
-                            </Button>
-                          )}
+                      <div className="lib-donut-row">
+                        <div className="lib-donut" style={{ background: `conic-gradient(#16a34a 0 ${g}%, #d97706 ${g}% ${g + o}%, #ef4444 ${g + o}% 100%)` }}>
+                          <div className="lib-donut-hole"><b>{g}%</b></div>
                         </div>
-                      </td>
-                    </tr>
-                    </React.Fragment>
+                        <div className="lib-donut-legend">
+                          <div><i style={{ background: '#16a34a' }} /> Tagged <b>{tagCoverage.tagged}</b></div>
+                          <div><i style={{ background: '#d97706' }} /> Marked as Other <b>{tagCoverage.other}</b></div>
+                          <div><i style={{ background: '#ef4444' }} /> Needs Review <b>{tagCoverage.untagged}</b></div>
+                        </div>
+                      </div>
                     );
-                  })}
-                </tbody>
-              </table>
+                  })()}
+                </div>
+                <div className="lib-side-card lib-tips">
+                  <div className="lib-side-title">💡 Tips</div>
+                  <p>Tag each quiz with its Language and Lesson, then use grouping to browse and reuse quizzes fast.</p>
+                </div>
+              </aside>
             </div>
-          )}
           </>
-          );
-        })()}
+        );
+      })()}
 
-        {/* ── Archived tab ── */}
-        {activeTab === 'archived' && (
-          archivedQuizzes.length === 0 ? (
-            <div className="empty-state">
-              <h3>No archived quizzes</h3>
-              <p>Quizzes archived manually or auto-archived after 7 days will appear here</p>
-            </div>
-          ) : (
-            <div className="quizzes-table-wrapper">
-              <table className="quizzes-table">
-                <thead>
-                  <tr>
-                    <th>Quiz Title</th>
-                    <th>Start Date & Time</th>
-                    <th>End Date & Time</th>
-                    <th>Archived On</th>
-                    <th>Actions</th>
+      {/* ── Archived tab ── */}
+      {activeTab === 'archived' && (
+        archivedQuizzes.length === 0 ? (
+          <div className="empty-state">
+            <h3>No archived quizzes</h3>
+            <p>Quizzes archived manually or auto-archived after 7 days will appear here</p>
+          </div>
+        ) : (
+          <div className="quizzes-table-wrapper">
+            <table className="quizzes-table">
+              <thead>
+                <tr>
+                  <th>Quiz Title</th>
+                  <th>Start Date & Time</th>
+                  <th>End Date & Time</th>
+                  <th>Archived On</th>
+                  <th style={{ textAlign: 'center' }}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {archivedQuizzes.map(quiz => (
+                  <tr key={quiz._id} className="quiz-row" style={{ opacity: 0.75 }}>
+                    <td className="quiz-title">{quiz.title}</td>
+                    <td className="quiz-date">
+                      {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
+                    </td>
+                    <td className="quiz-date">
+                      {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
+                    </td>
+                    <td className="quiz-date" style={{ color: '#9ca3af', fontSize: 13 }}>
+                      {quiz.archivedAt ? new Date(quiz.archivedAt).toLocaleDateString() : '—'}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <RowActions items={[
+                        { label: 'View results', icon: '📊', onClick: () => navigate(`/quiz-results?quizId=${quiz._id}`) },
+                        { label: 'Restore to active', icon: '♻️', onClick: () => handleUnarchiveQuiz(quiz._id) },
+                        'sep',
+                        { label: 'Delete permanently', icon: '🗑️', onClick: () => handleDeleteQuiz(quiz._id), danger: true },
+                      ]} />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {archivedQuizzes.map(quiz => (
-                    <tr key={quiz._id} className="quiz-row" style={{ opacity: 0.75 }}>
-                      <td className="quiz-title">{quiz.title}</td>
-                      <td className="quiz-date">
-                        {new Date(quiz.startDate).toLocaleDateString()} {quiz.startTime}
-                      </td>
-                      <td className="quiz-date">
-                        {new Date(quiz.endDate).toLocaleDateString()} {quiz.endTime}
-                      </td>
-                      <td className="quiz-date" style={{ color: '#9ca3af', fontSize: 13 }}>
-                        {quiz.archivedAt ? new Date(quiz.archivedAt).toLocaleDateString() : '—'}
-                      </td>
-                      <td className="quiz-actions-cell">
-                        <div className="action-buttons">
-                          <Button
-                            onClick={() => navigate(`/quiz-results?quizId=${quiz._id}`)}
-                            className="btn-action btn-results"
-                            title="View quiz results"
-                          >
-                            📊
-                          </Button>
-                          <Button
-                            onClick={() => handleUnarchiveQuiz(quiz._id)}
-                            className="btn-action btn-edit"
-                            title="Restore quiz to active"
-                          >
-                            ♻️
-                          </Button>
-                          <Button
-                            onClick={() => handleDeleteQuiz(quiz._id)}
-                            className="btn-action btn-delete"
-                            title="Delete permanently"
-                          >
-                            🗑️
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )
-        )}
-
-      </div>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
     </div>
   );
 };

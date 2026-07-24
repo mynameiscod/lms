@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
@@ -38,25 +38,30 @@ const ActionsDropdown: React.FC<{
   onDelete: () => void;
 }> = ({ assignment, onEdit, onPreview, onTry, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top?: number; bottom?: number; left: number }>({ left: 0 });
+  const [pos, setPos] = useState<{ top: number; left: number }>({ top: -9999, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
 
-  // Position the menu with fixed coordinates so it escapes the table's overflow:hidden
-  // (which was clipping the last item — Delete). Flip upward when near the viewport bottom.
-  const toggle = () => {
-    if (open) { setOpen(false); return; }
-    const r = btnRef.current?.getBoundingClientRect();
-    if (r) {
-      const MENU_W = 200, MENU_H = 330;
-      const left = Math.max(8, r.right - MENU_W);
-      const spaceBelow = window.innerHeight - r.bottom;
-      if (spaceBelow < MENU_H && r.top > spaceBelow) setPos({ bottom: window.innerHeight - r.top + 4, left });
-      else setPos({ top: r.bottom + 4, left });
-    }
-    setOpen(true);
-  };
+  const toggle = () => setOpen(o => !o);
+
+  // Position the fixed-position menu (portaled to <body>, so it escapes the table's
+  // overflow) AFTER it renders — measuring its real height keeps it fully on-screen:
+  // opens below when there's room, flips above near the viewport bottom, and clamps
+  // so the last rows' menu is never cut off.
+  useLayoutEffect(() => {
+    if (!open || !menuRef.current || !btnRef.current) return;
+    const r = btnRef.current.getBoundingClientRect();
+    const mh = menuRef.current.offsetHeight;
+    const mw = menuRef.current.offsetWidth || 200;
+    const left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+    const spaceBelow = window.innerHeight - r.bottom;
+    let top: number;
+    if (spaceBelow >= mh + 8) top = r.bottom + 4;              // room below
+    else if (r.top - 4 - mh >= 8) top = r.top - 4 - mh;         // flip above
+    else top = Math.max(8, window.innerHeight - mh - 8);        // clamp into view
+    setPos({ top, left });
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -83,7 +88,7 @@ const ActionsDropdown: React.FC<{
         ⋮
       </button>
       {open && createPortal(
-        <div ref={menuRef} className="actions-dropdown-menu" style={{ position: 'fixed', top: pos.top, bottom: pos.bottom, left: pos.left, right: 'auto', maxHeight: '80vh', overflowY: 'auto', zIndex: 3000 }}>
+        <div ref={menuRef} className="actions-dropdown-menu" style={{ position: 'fixed', top: pos.top, left: pos.left, right: 'auto', maxHeight: '85vh', overflowY: 'auto', zIndex: 3000 }}>
           <button onClick={() => { onPreview(); setOpen(false); }}>👁️ Preview</button>
           <button onClick={() => { onTry(); setOpen(false); }}>🧪 Try it (as student)</button>
           <button onClick={() => { onEdit(); setOpen(false); }}>✏️ Edit</button>

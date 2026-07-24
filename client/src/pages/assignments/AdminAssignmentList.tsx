@@ -10,6 +10,7 @@ import {
 } from '../../api/assignmentApi';
 import { batchApi, userApi } from '../../api';
 import AssignmentPreviewModal from '../AssignmentReports/AssignmentPreviewModal';
+import AssignToBatchesModal from '../../components/AssignToBatches/AssignToBatchesModal';
 import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
 import './assignments.css';
 
@@ -35,8 +36,9 @@ const ActionsDropdown: React.FC<{
   onViewSubmissions: () => void;
   onArchive: () => void;
   onClone: () => void;
+  onAssign: () => void;
   onDelete: () => void;
-}> = ({ assignment, onEdit, onPreview, onTry, onPublish, onViewSubmissions, onArchive, onClone, onDelete }) => {
+}> = ({ assignment, onEdit, onPreview, onTry, onPublish, onViewSubmissions, onArchive, onClone, onAssign, onDelete }) => {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number }>({ top: -9999, left: 0 });
   const ref = useRef<HTMLDivElement>(null);
@@ -101,6 +103,7 @@ const ActionsDropdown: React.FC<{
               <button onClick={() => { onArchive(); setOpen(false); }}>📦 Archive</button>
             </>
           )}
+          <button onClick={() => { onAssign(); setOpen(false); }}>📅 Assign to batches</button>
           <button onClick={() => { onClone(); setOpen(false); }}>📋 Clone</button>
           <button className="danger" onClick={() => { onDelete(); setOpen(false); }}>🗑️ Delete</button>
         </div>,
@@ -148,6 +151,7 @@ const AdminAssignmentList: React.FC = () => {
 
   // Preview modal
   const [previewId, setPreviewId] = useState<string | null>(null);
+  const [assignTarget, setAssignTarget] = useState<{ contentId: string; contentTitle: string } | null>(null);
 
   // Pagination
   const [page, setPage] = useState(1);
@@ -465,6 +469,7 @@ const AdminAssignmentList: React.FC = () => {
       onViewSubmissions={() => navigate(`/admin/assignments/${assignment._id}/submissions`)}
       onArchive={() => handleArchive(assignment._id)}
       onClone={() => handleClone(assignment._id)}
+      onAssign={() => setAssignTarget({ contentId: assignment._id, contentTitle: assignment.title })}
       onDelete={() => handleDelete(assignment._id)}
     />
   );
@@ -1113,6 +1118,14 @@ const AdminAssignmentList: React.FC = () => {
       </div>
 
       {previewId && <AssignmentPreviewModal assignmentId={previewId} onClose={() => setPreviewId(null)} />}
+      {assignTarget && (
+        <AssignToBatchesModal
+          contentType="assignment"
+          contentId={assignTarget.contentId}
+          contentTitle={assignTarget.contentTitle}
+          onClose={() => setAssignTarget(null)}
+        />
+      )}
     </div>
   );
 };

@@ -7,6 +7,7 @@ import QuizWizard from '../../components/QuizWizard/QuizWizard';
 import QuizQuestionLinking from '../../components/QuizQuestionLinking/QuizQuestionLinking';
 import { Quiz, Batch } from '../../types';
 import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
+import AssignToBatchesModal from '../../components/AssignToBatches/AssignToBatchesModal';
 import '../library-shared.css';
 import './QuizManagementPage.css';
 
@@ -79,6 +80,7 @@ const QuizManagementPage: React.FC = () => {
   const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null);
   const [linkingQuizId, setLinkingQuizId] = useState<string>('');
   const [linkingQuizTitle, setLinkingQuizTitle] = useState('');
+  const [assignTarget, setAssignTarget] = useState<{ contentId: string; contentTitle: string } | null>(null);
   const [cloningQuiz, setCloningQuiz] = useState<Quiz | null>(null);
   const [cloneForm, setCloneForm] = useState({
     title: '',
@@ -421,6 +423,15 @@ const QuizManagementPage: React.FC = () => {
       {error && <Alert type="error" message={error} onClose={() => setError('')} />}
       {success && <Alert type="success" message={success} onClose={() => setSuccess('')} />}
 
+      {assignTarget && (
+        <AssignToBatchesModal
+          contentType="quiz"
+          contentId={assignTarget.contentId}
+          contentTitle={assignTarget.contentTitle}
+          onClose={() => setAssignTarget(null)}
+        />
+      )}
+
       {/* Stat cards */}
       <div className="stats-grid-v2">
         {statCards.map((c, i) => (
@@ -710,6 +721,7 @@ const QuizManagementPage: React.FC = () => {
                             items.push({ label: 'Edit quiz', icon: '✏️', onClick: () => handleEditQuiz(quiz) });
                             items.push({ label: 'Link questions', icon: '🔗', onClick: () => handleLinkQuestions(quiz) });
                           }
+                          items.push({ label: 'Assign to batches', icon: '📅', onClick: () => setAssignTarget({ contentId: quiz._id, contentTitle: quiz.title }) });
                           items.push({ label: 'Clone for a batch', icon: '📋', onClick: () => handleOpenClone(quiz) });
                           if (!isExternal) items.push({ label: 'Non-attendees', icon: '👥', onClick: () => openNonAttendees(quiz) });
                           items.push('sep');

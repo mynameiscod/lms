@@ -190,6 +190,34 @@ export function getWeeklyReportEmailHtml(d: WeeklyReportData): string {
           </tr></table>
         </td></tr>
 
+        ${d.challenges.totalAssigned > 0 ? `
+        <!-- DAILY CHALLENGES -->
+        <tr><td style="padding:6px 26px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eef1f6; border-radius:14px;"><tr><td style="padding:16px 18px;">
+            <div style="font-size:15px; font-weight:800; color:#0b2e63; margin-bottom:2px;">🎯 Daily Challenges</div>
+            <div style="font-size:12px; color:#8a94a6; margin-bottom:12px;">Scheduled challenges for your batch this week — completed vs missed.</div>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+              ${[
+                { name: '🎙 Communication Lab', c: d.challenges.communication },
+                { name: '🧩 Logical Thinking Lab', c: d.challenges.thinking },
+              ].map(x => `
+              <td width="50%" valign="top" style="padding:6px;">
+                <div style="border:1px solid #eef1f6; border-radius:10px; padding:12px 14px;">
+                  <div style="font-size:13px; font-weight:700; color:#0b2e63; margin-bottom:8px;">${x.name}</div>
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+                    <td style="text-align:center;"><div style="font-size:18px; font-weight:800; color:#0b2e63;">${x.c.assigned}</div><div style="font-size:10px; color:#8a94a6;">Assigned</div></td>
+                    <td style="text-align:center;"><div style="font-size:18px; font-weight:800; color:#059669;">${x.c.completed}</div><div style="font-size:10px; color:#8a94a6;">Completed</div></td>
+                    <td style="text-align:center;"><div style="font-size:18px; font-weight:800; color:${x.c.missed > 0 ? '#dc2626' : '#94a3b8'};">${x.c.missed}</div><div style="font-size:10px; color:#8a94a6;">Missed</div></td>
+                  </tr></table>
+                </div>
+              </td>`).join('')}
+            </tr></table>
+            ${d.challenges.totalMissed > 0
+              ? `<div style="font-size:12px; color:#b45309; background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:8px 12px; margin-top:10px;">⚠️ ${d.challenges.totalMissed} scheduled challenge${d.challenges.totalMissed > 1 ? 's were' : ' was'} missed this week — try to complete them within their window next time.</div>`
+              : `<div style="font-size:12px; color:#047857; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:8px; padding:8px 12px; margin-top:10px;">✅ All scheduled challenges completed on time. Excellent consistency!</div>`}
+          </td></tr></table>
+        </td></tr>` : ''}
+
         <!-- QUOTE -->
         <tr><td style="padding:14px 26px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:linear-gradient(135deg,#0a2a5e,#123f86); border-radius:12px;">

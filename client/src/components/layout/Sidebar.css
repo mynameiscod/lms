@@ -12,8 +12,7 @@
   height: auto;
   width: 260px;
   transition: all 0.3s ease;
-  overflow-y: auto;
-  overflow-x: hidden;
+  overflow: hidden;          /* the aside never scrolls; only .sidebar-nav does */
   display: flex;
   flex-direction: column;
   z-index: 50;
@@ -85,8 +84,14 @@
 
 .sidebar-nav {
   flex: 1;
-  padding: 4px 0;
+  min-height: 0;               /* let the flex child actually shrink + scroll */
+  padding: 4px 0 18px;
   overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  overscroll-behavior: contain;
+  scrollbar-width: none;       /* Firefox */
+  -ms-overflow-style: none;    /* old Edge */
 }
 .sidebar-nav ul { list-style: none; padding: 0; margin: 0; }
 .sidebar-nav li { margin: 0; }
@@ -263,11 +268,11 @@
 .sidebar-user-role { font-size: 11px; color: #8892a8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sidebar-user-arrow { font-size: 11px; color: #94a3b8; flex-shrink: 0; }
 
-/* ---- Scrollbar ---- */
-.sidebar::-webkit-scrollbar { width: 4px; }
-.sidebar::-webkit-scrollbar-track { background: transparent; }
-.sidebar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 2px; }
-.sidebar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+/* ---- Scrollbar: fully hidden on every browser (scroll still works via wheel/trackpad) ---- */
+.sidebar,
+.sidebar-nav { scrollbar-width: none; -ms-overflow-style: none; }
+.sidebar::-webkit-scrollbar,
+.sidebar-nav::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none !important; }
 
 /* ========== RESPONSIVE DESIGN ========== */
 @media (max-width: 768px) {

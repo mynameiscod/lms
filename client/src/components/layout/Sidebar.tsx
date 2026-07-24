@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
 import { useTenantModules, TenantModules } from '../../contexts/TenantModulesContext';
 import { useBatchModules } from '../../contexts/BatchModulesContext';
 import { StudentFeatureKey } from '../../config/studentFeatureCatalog';
-import { APP_VERSION, BUILD_DATE } from '../../version';
 import './Sidebar.css';
 
 interface MenuItem {
@@ -21,7 +20,6 @@ interface MenuItem {
 
 const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = ({ mobileOpen, onMobileClose }) => {
   const [isOpen, setIsOpen] = useState(true);
-  const [currentTime, setCurrentTime] = useState('');
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     attendance: false,
     quizzes: false,
@@ -35,21 +33,10 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     'learning plans': false
   });
   const location = useLocation();
-  const navigate = useNavigate();
   const { user } = useAuth();
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
   const { isBatchFeatureEnabled } = useBatchModules();
-
-  useEffect(() => {
-    const tick = () => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }));
-    };
-    tick();
-    const timer = setInterval(tick, 60000);
-    return () => clearInterval(timer);
-  }, []);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
 
@@ -500,31 +487,6 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           </>
         )}
       </nav>
-
-      {/* User card at bottom — hidden for students (shown top-right navbar already) */}
-      {isOpen && user && !isStudent && (
-        <div className="sidebar-user" onClick={() => navigate('/profile')}>
-          <div className="sidebar-user-avatar">
-            {user.firstName?.[0]?.toUpperCase()}{user.lastName?.[0]?.toUpperCase()}
-          </div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user.firstName} {user.lastName}</span>
-            <span className="sidebar-user-role">{user.batchName || user.role}</span>
-          </div>
-          <i className="fa-solid fa-chevron-right sidebar-user-arrow"></i>
-        </div>
-      )}
-      {/* Time + version footer — staff only (students don't need it) */}
-      {isOpen && !isStudent && (
-        <div style={{ padding: '8px 16px 12px', textAlign: 'center', borderTop: '1px solid #e8ecf3', marginTop: 4 }}>
-          <div style={{ fontSize: 13, color: '#475569', fontWeight: 600, letterSpacing: '0.5px', marginBottom: 4 }}>
-            {currentTime}
-          </div>
-          <div style={{ fontSize: 12, color: '#1e3a8a', fontWeight: 700, letterSpacing: '0.3px' }}>
-            Version {APP_VERSION}{BUILD_DATE ? ` · ${BUILD_DATE}` : ''}
-          </div>
-        </div>
-      )}
     </aside>
   );
 };

@@ -4,6 +4,7 @@ import 'react-quill/dist/quill.snow.css';
 import { Button, Input, Alert } from '../common';
 import { Batch } from '../../types';
 import { courseApi, subjectApi, chapterApi, userApi } from '../../api';
+import { TECH_CATEGORIES } from '../../config/techCategories';
 import './QuizWizard.css';
 
 interface Course {
@@ -27,6 +28,7 @@ interface QuizFormData {
   title: string;
   description: string;
   instructions: string;
+  primaryTech: string;
   courseId: string;
   subjectId: string;
   chapterId: string;
@@ -113,6 +115,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     title: initialData?.title || '',
     description: initialData?.description || '',
     instructions: (initialData as any)?.instructions || '',
+    primaryTech: (initialData as any)?.primaryTech || '',
     courseId: (initialData as any)?.courseId || '',
     subjectId: (initialData as any)?.subjectId || '',
     chapterId: (initialData as any)?.chapterId || '',
@@ -350,6 +353,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       const submitData = {
         ...formData,
         maxAttempts: formData.multipleAttempts ? formData.maxAttempts : null,
+        primaryTech: formData.primaryTech || undefined,
         // Don't send empty strings for optional ObjectId fields
         courseId: formData.courseId || undefined,
         subjectId: formData.subjectId || undefined,
@@ -486,6 +490,21 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                   <option key={chapter._id} value={chapter._id}>
                     {chapter.title}
                   </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label>Primary Language / Tech <span style={{ color: '#94a3b8', fontWeight: 400 }}>(for organizing &amp; reuse)</span></label>
+              <select
+                name="primaryTech"
+                value={formData.primaryTech}
+                onChange={handleInputChange}
+                className="select-input"
+              >
+                <option value="">-- Select --</option>
+                {TECH_CATEGORIES.map((t) => (
+                  <option key={t.value} value={t.value}>{t.icon} {t.label}</option>
                 ))}
               </select>
             </div>

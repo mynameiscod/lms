@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { TechCategory } from './Assignment';
 
 export interface IQuiz extends Document {
   _id: string;
@@ -8,6 +9,7 @@ export interface IQuiz extends Document {
   tenantId: string;
   createdBy: string; // Instructor ID
   archivedAt?: Date; // Set when quiz is archived; null/undefined means active
+  primaryTech?: TechCategory;          // language/tech category for organizing & reuse
   courseId?: mongoose.Types.ObjectId; // Optional course reference
   subjectId?: mongoose.Types.ObjectId; // Optional subject reference
   chapterId?: mongoose.Types.ObjectId; // Optional chapter reference
@@ -60,6 +62,7 @@ const quizSchema = new Schema<IQuiz>(
     instructions: { type: String }, // Instructions shown before quiz starts
     tenantId: { type: String, required: true },
     createdBy: { type: String, required: true },
+    primaryTech: { type: String, enum: Object.values(TechCategory), index: true },
     courseId: { type: Schema.Types.ObjectId, ref: 'Course' },
     subjectId: { type: Schema.Types.ObjectId, ref: 'Subject' },
     chapterId: { type: Schema.Types.ObjectId, ref: 'Chapter' },

@@ -5,6 +5,7 @@ import { Button, Alert, Spinner } from '../../components/common';
 import QuizWizard from '../../components/QuizWizard/QuizWizard';
 import QuizQuestionLinking from '../../components/QuizQuestionLinking/QuizQuestionLinking';
 import { Quiz, Batch } from '../../types';
+import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
 import './QuizManagementPage.css';
 
 const QuizManagementPage: React.FC = () => {
@@ -31,6 +32,10 @@ const QuizManagementPage: React.FC = () => {
   const [cloning, setCloning] = useState(false);
   const [activeTab, setActiveTab] = useState<'active' | 'archived'>('active');
   const [archivedQuizzes, setArchivedQuizzes] = useState<Quiz[]>([]);
+  // Organize / reuse: tech filter + group-by
+  const [techFilter, setTechFilter] = useState('');
+  const [groupBy, setGroupBy] = useState<'none' | 'language' | 'lesson'>('none');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   // Non-attendees modal
   const [nonAttendeesQuiz, setNonAttendeesQuiz] = useState<Quiz | null>(null);
   const [nonAttendeesData, setNonAttendeesData] = useState<any>(null);
@@ -497,11 +502,37 @@ const QuizManagementPage: React.FC = () => {
       <div className="quizzes-container">
 
         {/* ── Active tab ── */}
-        {activeTab === 'active' && (
-          quizzes.length === 0 ? (
+        {activeTab === 'active' && (() => {
+          const activeQuizzes = quizzes
+            .filter(q => !techFilter || (q as any).primaryTech === techFilter)
+            .slice()
+            .sort((a, b) =>
+              groupBy === 'language' ? String((a as any).primaryTech || 'zzz').localeCompare(String((b as any).primaryTech || 'zzz'))
+              : groupBy === 'lesson' ? String((a as any).chapterId?.title || 'zzz').localeCompare(String((b as any).chapterId?.title || 'zzz'))
+              : 0);
+          const groupKeyOf = (q: any) => groupBy === 'language' ? (q.primaryTech || '__none') : groupBy === 'lesson' ? (q.chapterId?.title || '__none') : '';
+          const groupLabelOf = (k: string) => k === '__none' ? (groupBy === 'language' ? 'Untagged' : 'No lesson')
+            : groupBy === 'language' ? (techDef(k) ? `${techDef(k)!.icon} ${techDef(k)!.label}` : k) : k;
+          const qmSel: React.CSSProperties = { padding: '8px 10px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, background: '#fff' };
+          let lastKey: string | null = null;
+          return (
+          <>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', margin: '0 0 12px' }}>
+              <select value={techFilter} onChange={e => setTechFilter(e.target.value)} style={qmSel}>
+                <option value="">All Tech</option>
+                {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+              </select>
+              <select value={groupBy} onChange={e => setGroupBy(e.target.value as any)} style={qmSel}>
+                <option value="none">No grouping</option>
+                <option value="language">Group by Language / Tech</option>
+                <option value="lesson">Group by Lesson (Chapter)</option>
+              </select>
+              <span style={{ color: '#94a3b8', fontSize: 13 }}>{activeQuizzes.length} quiz(zes)</span>
+            </div>
+            {activeQuizzes.length === 0 ? (
             <div className="empty-state">
-              <h3>No quizzes yet</h3>
-              <p>Create your first quiz to get started</p>
+              <h3>No quizzes {techFilter ? 'match this filter' : 'yet'}</h3>
+              <p>{techFilter ? 'Try a different tech.' : 'Create your first quiz to get started'}</p>
             </div>
           ) : (
             <div className="quizzes-table-wrapper">
@@ -517,9 +548,20 @@ const QuizManagementPage: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {quizzes.map(quiz => (
-                    <tr key={quiz._id} className="quiz-row">
-                      <td className="quiz-title">{quiz.title}</td>
+                  {activeQuizzes.map(quiz => {
+                    const gk = groupKeyOf(quiz);
+                    const header = groupBy !== 'none' && gk !== lastKey ? (
+                      <tr key={`grp-${gk}`} style={{ background: '#eef2f7' }}>
+                        <td colSpan={6} style={{ fontWeight: 800, color: '#0b2e63', padding: '9px 12px' }}>{groupLabelOf(gk)}</td>
+                      </tr>
+                    ) : null;
+                    lastKey = gk;
+                    const tech = techDef((quiz as any).primaryTech);
+                    return (
+                    <React.Fragment key={quiz._id}>
+                    {header}
+                    <tr className="quiz-row">
+                      <td className="quiz-title">{quiz.title}{tech && <span style={{ display: 'inline-block', marginLeft: 8, fontSize: 11, fontWeight: 700, color: '#fff', background: tech.color, borderRadius: 20, padding: '1px 8px' }}>{tech.icon} {tech.label}</span>}</td>
                       <td>
                         {(() => { const b = getAudienceBadge(quiz); return <span style={{ background: b.bg, color: b.color, borderRadius: 20, padding: '3px 10px', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>{b.label}</span>; })()}
                       </td>
@@ -603,12 +645,16 @@ const QuizManagementPage: React.FC = () => {
                         </div>
                       </td>
                     </tr>
-                  ))}
+                    </React.Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
-          )
-        )}
+          )}
+          </>
+          );
+        })()}
 
         {/* ── Archived tab ── */}
         {activeTab === 'archived' && (

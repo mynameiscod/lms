@@ -41,8 +41,20 @@ export class QuizService {
     if (filters?.access) {
       query.access = filters.access;
     }
+    if (filters?.primaryTech) query.primaryTech = filters.primaryTech;
+    if (filters?.chapterId) query.chapterId = filters.chapterId;
+    if (filters?.search) {
+      query.$or = [
+        { title: { $regex: filters.search, $options: 'i' } },
+        { description: { $regex: filters.search, $options: 'i' } },
+      ];
+    }
 
-    return Quiz.find(query).sort({ createdAt: -1 });
+    return Quiz.find(query)
+      .populate('chapterId', 'title')
+      .populate('subjectId', 'title')
+      .populate('topicId', 'name title')
+      .sort({ createdAt: -1 });
   }
 
   // Get quiz by ID

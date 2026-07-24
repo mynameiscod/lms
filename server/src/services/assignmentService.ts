@@ -10,7 +10,7 @@ import User from '../models/User';
 import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
 import { createNotifications } from '../notifications/notificationService';
-import { schedulesMapForBatch, policyFromRow } from './assessmentDeliveryService';
+import { studentSchedulesMap, policyFromRow } from './assessmentDeliveryService';
 import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
 
@@ -518,7 +518,7 @@ class AssignmentService {
 
     // Also surface assignments delivered to this batch via an AssessmentSchedule
     // (the reusable path) even if they aren't in selectedBatches on the doc.
-    const schedMap = await schedulesMapForBatch(tenant.toString(), batchIdStr, 'assignment');
+    const schedMap = await studentSchedulesMap(tenant.toString(), studentIdStr, batchIdStr, 'assignment');
     if (schedMap.size) query.$or.push({ _id: { $in: [...schedMap.keys()] } });
 
     const assignments = await Assignment.find(query)

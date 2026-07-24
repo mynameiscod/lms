@@ -52,7 +52,10 @@ export const assessmentScheduleApi = {
     contentId: string;
     contentTitle?: string;
     policy?: Partial<Pick<BatchScheduleInput, 'latePolicy' | 'graceDays' | 'penaltyPct' | 'dueTime'>>;
-    batches: BatchScheduleInput[];
+    batches?: BatchScheduleInput[];
+    students?: string[];      // individual delivery
+    startAt?: string;         // shared window for the students row
+    dueAt?: string;
   }) => {
     const { data } = await api.post('/assessment-schedules/assign', payload);
     return data as { message: string; schedules: AssessmentSchedule[] };

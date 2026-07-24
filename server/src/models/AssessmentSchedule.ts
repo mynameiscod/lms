@@ -24,8 +24,9 @@ export interface IAssessmentSchedule extends Document {
   contentId: mongoose.Types.ObjectId;
   contentTitle: string;
 
-  batchId: mongoose.Types.ObjectId;
+  batchId?: mongoose.Types.ObjectId;      // batch delivery
   batchName?: string;
+  studentIds?: mongoose.Types.ObjectId[]; // individual delivery (batchId absent)
 
   // Window + policy (absolute, resolved for THIS batch)
   startAt?: Date;
@@ -53,8 +54,9 @@ const AssessmentScheduleSchema = new Schema<IAssessmentSchedule>(
     contentId:    { type: Schema.Types.ObjectId, required: true, index: true },
     contentTitle: { type: String, default: '' },
 
-    batchId:      { type: Schema.Types.ObjectId, ref: 'Batch', required: true, index: true },
+    batchId:      { type: Schema.Types.ObjectId, ref: 'Batch', index: true },
     batchName:    { type: String },
+    studentIds:   [{ type: Schema.Types.ObjectId, ref: 'User' }],
 
     startAt:      { type: Date },
     dueAt:        { type: Date },

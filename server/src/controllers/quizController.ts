@@ -8,7 +8,7 @@ import Question from '../models/Question';
 import User from '../models/User';
 import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
-import { checkDeadlineGate, schedulesMapForBatch, policyFromRow } from '../services/assessmentDeliveryService';
+import { checkDeadlineGate, studentSchedulesMap, policyFromRow } from '../services/assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 
 export const createQuiz = async (req: Request, res: Response) => {
@@ -460,7 +460,7 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
 
     // Quizzes delivered to this batch via an AssessmentSchedule (the reusable path).
     const batchIdStr = user.batchId ? user.batchId.toString() : null;
-    const quizSchedMap = await schedulesMapForBatch(tenantId, batchIdStr, 'quiz');
+    const quizSchedMap = await studentSchedulesMap(tenantId, userId, batchIdStr, 'quiz');
 
     // Filter quizzes based on access level and enrollment
     const availableQuizzes = await Promise.all(

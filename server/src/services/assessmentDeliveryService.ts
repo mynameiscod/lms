@@ -133,6 +133,19 @@ export async function resolveForStudent(
     }
   }
 
+  // Individual delivery (specific students, batchId absent).
+  const indiv = await AssessmentSchedule.findOne({
+    tenantId, contentType, contentId, studentIds: studentId, status: 'active',
+  }).lean() as any;
+  if (indiv) {
+    return {
+      dueAt: indiv.dueAt ? new Date(indiv.dueAt) : null,
+      startAt: indiv.startAt ? new Date(indiv.startAt) : null,
+      policy: policyFromRow(indiv),
+      source: 'schedule', scheduleId: String(indiv._id), batchId: batchId || undefined,
+    };
+  }
+
   // Curriculum-day delivery (learning plan).
   const cur = await resolveCurriculumDelivery(tenantId, studentId, contentType, contentId);
   if (cur) return { ...cur, batchId: cur.batchId || batchId || undefined };
@@ -154,6 +167,19 @@ export async function schedulesMapForBatch(
 ): Promise<Map<string, any>> {
   if (!batchId) return new Map();
   const rows = await AssessmentSchedule.find({ tenantId, batchId, contentType, status: 'active' }).lean();
+  return new Map(rows.map((r: any) => [String(r.contentId), r]));
+}
+
+/** Schedules delivered to a student (their batch OR them individually), keyed by contentId. */
+export async function studentSchedulesMap(
+  tenantId: string,
+  studentId: string,
+  batchId: string | null,
+  contentType: ContentType,
+): Promise<Map<string, any>> {
+  const or: any[] = [{ studentIds: studentId }];
+  if (batchId) or.push({ batchId });
+  const rows = await AssessmentSchedule.find({ tenantId, contentType, status: 'active', $or: or }).lean();
   return new Map(rows.map((r: any) => [String(r.contentId), r]));
 }
 

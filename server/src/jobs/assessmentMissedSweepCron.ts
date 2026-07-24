@@ -42,7 +42,9 @@ async function sweepSchedules(now: Date) {
   }).lean();
   for (const s of schedules as any[]) {
     const closeAt = lateUntil(new Date(s.dueAt), policyFromRow(s));
-    const students = await User.find({ batchId: s.batchId, role: 'STUDENT' }).select('_id').lean();
+    const students = s.batchId
+      ? await User.find({ batchId: s.batchId, role: 'STUDENT' }).select('_id').lean()
+      : (Array.isArray(s.studentIds) ? s.studentIds.map((id: any) => ({ _id: id })) : []);
     for (const u of students as any[]) {
       const submitted = await hasSubmitted(s.contentType, s.contentId, u._id);
       const missed = !submitted && closeAt != null && now > closeAt;

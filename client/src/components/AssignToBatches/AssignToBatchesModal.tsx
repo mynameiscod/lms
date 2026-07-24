@@ -35,6 +35,12 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
+  // Delivery mode: whole batches, or specific students.
+  const [mode, setMode] = useState<'batches' | 'students'>('batches');
+  const [students, setStudents] = useState<any[]>([]);
+  const [selStudents, setSelStudents] = useState<Set<string>>(new Set());
+  const [studentSearch, setStudentSearch] = useState('');
+
   // Shared window + policy applied to the batches you assign now.
   const [startDate, setStartDate] = useState('');
   const [dueDate, setDueDate] = useState('');
@@ -57,6 +63,19 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
   };
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [contentId]);
 
+  const loadStudents = async (search: string) => {
+    try {
+      const token = localStorage.getItem('token');
+      const tenantId = localStorage.getItem('tenantId');
+      const res = await fetch(`${process.env.REACT_APP_API_URL || '/api/v1'}/activity/students?search=${encodeURIComponent(search)}`, {
+        headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': tenantId || '' },
+      });
+      const data = await res.json();
+      setStudents(data.data || []);
+    } catch { setStudents([]); }
+  };
+  useEffect(() => { if (mode === 'students') loadStudents(studentSearch); /* eslint-disable-next-line */ }, [mode, studentSearch]);
+
   const assignedIds = useMemo(() => new Set(existing.map(e => String(e.batchId))), [existing]);
   const visibleBatches = useMemo(
     () => batches.filter(b => !search || (b.name || '').toLowerCase().includes(search.toLowerCase())),
@@ -71,19 +90,28 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
   const selectAllVisible = () => setSelected(new Set(visibleBatches.filter(b => !assignedIds.has(String(b._id))).map(b => String(b._id))));
 
   const assign = async () => {
-    if (selected.size === 0) { setMsg('Select at least one batch.'); return; }
+    const target = mode === 'batches' ? selected : selStudents;
+    if (target.size === 0) { setMsg(`Select at least one ${mode === 'batches' ? 'batch' : 'student'}.`); return; }
     setSaving(true); setMsg('');
     try {
       const dueAt = combineDateTime(dueDate, dueTime);
       const startAt = combineDateTime(startDate, '00:00');
-      await assessmentScheduleApi.assign({
-        contentType, contentId, contentTitle,
-        policy: { latePolicy, graceDays, penaltyPct, dueTime },
-        batches: [...selected].map(batchId => ({ batchId, startAt, dueAt })),
-      });
-      setSelected(new Set());
+      const policy = { latePolicy, graceDays, penaltyPct, dueTime };
+      if (mode === 'batches') {
+        await assessmentScheduleApi.assign({
+          contentType, contentId, contentTitle, policy,
+          batches: [...selected].map(batchId => ({ batchId, startAt, dueAt })),
+        });
+        setSelected(new Set());
+      } else {
+        await assessmentScheduleApi.assign({
+          contentType, contentId, contentTitle, policy,
+          students: [...selStudents], startAt, dueAt,
+        });
+        setSelStudents(new Set());
+      }
       await load();
-      setMsg('Assigned. You can fine-tune any batch below.');
+      setMsg('Assigned. You can fine-tune below.');
       onDone?.();
     } catch (e: any) {
       setMsg(e?.response?.data?.message || 'Failed to assign');
@@ -130,35 +158,62 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
           )}
         </div>
 
-        {/* Batch picker */}
-        <div className="a2b-pickhead">
-          <div className="a2b-search"><span>🔍</span><input placeholder="Search batches…" value={search} onChange={e => setSearch(e.target.value)} /></div>
-          <button className="a2b-link" onClick={selectAllVisible}>Select all shown</button>
-          <span className="a2b-count">{selected.size} selected</span>
+        {/* Mode toggle */}
+        <div className="a2b-seg">
+          <button className={mode === 'batches' ? 'active' : ''} onClick={() => setMode('batches')}>📦 Batches</button>
+          <button className={mode === 'students' ? 'active' : ''} onClick={() => setMode('students')}>👤 Specific students</button>
         </div>
 
-        <div className="a2b-list">
-          {loading ? <div className="a2b-empty">Loading…</div> : visibleBatches.length === 0 ? (
-            <div className="a2b-empty">No batches.</div>
-          ) : visibleBatches.map(b => {
-            const id = String(b._id);
-            const already = assignedIds.has(id);
-            return (
-              <label key={id} className={`a2b-row ${already ? 'assigned' : ''}`}>
-                <input type="checkbox" disabled={already} checked={already || selected.has(id)} onChange={() => toggle(id)} />
-                <span className="a2b-bname">{b.name}</span>
-                {already && <span className="a2b-tag">Assigned</span>}
-              </label>
-            );
-          })}
-        </div>
+        {mode === 'batches' ? (
+          <>
+            <div className="a2b-pickhead">
+              <div className="a2b-search"><span>🔍</span><input placeholder="Search batches…" value={search} onChange={e => setSearch(e.target.value)} /></div>
+              <button className="a2b-link" onClick={selectAllVisible}>Select all shown</button>
+              <span className="a2b-count">{selected.size} selected</span>
+            </div>
+            <div className="a2b-list">
+              {loading ? <div className="a2b-empty">Loading…</div> : visibleBatches.length === 0 ? (
+                <div className="a2b-empty">No batches.</div>
+              ) : visibleBatches.map(b => {
+                const id = String(b._id);
+                const already = assignedIds.has(id);
+                return (
+                  <label key={id} className={`a2b-row ${already ? 'assigned' : ''}`}>
+                    <input type="checkbox" disabled={already} checked={already || selected.has(id)} onChange={() => toggle(id)} />
+                    <span className="a2b-bname">{b.name}</span>
+                    {already && <span className="a2b-tag">Assigned</span>}
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="a2b-pickhead">
+              <div className="a2b-search"><span>🔍</span><input placeholder="Search students by name or email…" value={studentSearch} onChange={e => setStudentSearch(e.target.value)} /></div>
+              <span className="a2b-count">{selStudents.size} selected</span>
+            </div>
+            <div className="a2b-list">
+              {students.length === 0 ? <div className="a2b-empty">Type to search students.</div> : students.map(s => {
+                const id = String(s._id);
+                const on = selStudents.has(id);
+                return (
+                  <label key={id} className="a2b-row">
+                    <input type="checkbox" checked={on} onChange={() => setSelStudents(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; })} />
+                    <span className="a2b-bname">{s.firstName} {s.lastName} <span style={{ color: '#94a3b8', fontWeight: 400, fontSize: 12 }}>{s.email}</span></span>
+                  </label>
+                );
+              })}
+            </div>
+          </>
+        )}
 
         {msg && <div className="a2b-msg">{msg}</div>}
 
         <div className="a2b-actions">
           <button className="a2b-btn ghost" onClick={onClose}>Close</button>
-          <button className="a2b-btn primary" onClick={assign} disabled={saving || selected.size === 0}>
-            {saving ? 'Assigning…' : `Assign to ${selected.size} batch(es)`}
+          <button className="a2b-btn primary" onClick={assign} disabled={saving || (mode === 'batches' ? selected.size : selStudents.size) === 0}>
+            {saving ? 'Assigning…' : mode === 'batches' ? `Assign to ${selected.size} batch(es)` : `Assign to ${selStudents.size} student(s)`}
           </button>
         </div>
 

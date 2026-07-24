@@ -47,12 +47,14 @@ export const assignToBatches = async (req: Request, res: Response) => {
   try {
     if (!canManage(req)) return res.status(403).json({ message: 'Not allowed' });
     const tId = tenantId(req);
-    const { contentType, contentId, policy, batches } = req.body || {};
+    const { contentType, contentId, policy, batches, students } = req.body || {};
     if (!['assignment', 'quiz'].includes(contentType) || !contentId) {
       return res.status(400).json({ message: 'contentType (assignment|quiz) and contentId are required' });
     }
-    if (!Array.isArray(batches) || batches.length === 0) {
-      return res.status(400).json({ message: 'At least one batch is required' });
+    const hasBatches = Array.isArray(batches) && batches.length > 0;
+    const hasStudents = Array.isArray(students) && students.length > 0;
+    if (!hasBatches && !hasStudents) {
+      return res.status(400).json({ message: 'Select at least one batch or student' });
     }
     const title = req.body.contentTitle || (await contentTitleOf(contentType, contentId));
 
@@ -65,7 +67,26 @@ export const assignToBatches = async (req: Request, res: Response) => {
     }
 
     const results = [];
-    for (const b of batches) {
+
+    // Individual delivery: one row per content (batchId absent), studentIds accumulated.
+    if (hasStudents) {
+      const p = mergePolicy(DEFAULT_POLICY, policy);
+      const row = await AssessmentSchedule.findOneAndUpdate(
+        { contentType, contentId, batchId: null },
+        { $set: {
+            tenantId: tId, contentType, contentId, contentTitle: title, batchId: null,
+            studentIds: students,
+            startAt: req.body.startAt ? new Date(req.body.startAt) : undefined,
+            dueAt: req.body.dueAt ? new Date(req.body.dueAt) : undefined,
+            latePolicy: p.latePolicy, graceDays: p.graceDays, penaltyPct: p.penaltyPct, dueTime: p.dueTime,
+            source: 'standalone', status: 'active', createdBy: userId(req),
+        } },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
+      results.push(row);
+    }
+
+    for (const b of (hasBatches ? batches : [])) {
       if (!b.batchId) continue;
       const p = mergePolicy(DEFAULT_POLICY, policy, b);
       const row = await AssessmentSchedule.findOneAndUpdate(

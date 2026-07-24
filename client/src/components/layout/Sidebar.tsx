@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useStudentFeatures, StudentFeatures } from '../../contexts/StudentFeaturesContext';
@@ -37,8 +37,25 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
   const { isFeatureEnabled } = useStudentFeatures();
   const { isModuleEnabled } = useTenantModules();
   const { isBatchFeatureEnabled } = useBatchModules();
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
 
   const isActive = (path?: string) => path ? location.pathname === path : false;
+
+  // Keep the active item in view: expand the group that holds the current route,
+  // then scroll the highlighted link into the centre of the (scrollbar-less) nav
+  // so the user always sees where they are and can navigate from there.
+  useEffect(() => {
+    const grp = menuItems.find(m => m.submenu?.some(s => s.path === location.pathname));
+    if (grp) {
+      const key = grp.label.toLowerCase();
+      setExpandedGroups(prev => (prev[key] ? prev : { ...prev, [key]: true }));
+    }
+    const id = window.setTimeout(() => {
+      activeRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 80);
+    return () => window.clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
 
   const toggleGroup = (group: string) => {
     setExpandedGroups(prev => ({
@@ -303,6 +320,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
           <li key={only.path} className={isSubmenu ? 'submenu-item' : ''}>
             <Link
               to={only.path!}
+              ref={isActive(only.path) ? activeRef : undefined}
               className={`sidebar-link ${isActive(only.path) ? 'active' : ''}`}
               onClick={onMobileClose}
             >
@@ -330,6 +348,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
                 <li key={subitem.path}>
                   <Link
                     to={subitem.path!}
+                    ref={isActive(subitem.path) ? activeRef : undefined}
                     className={`sidebar-link submenu-link ${isActive(subitem.path) ? 'active' : ''}`}                    onClick={onMobileClose}                  >
                     {subitem.icon && <span className="submenu-icon"><i className={subitem.icon}></i></span>}
                     <span className="sidebar-label">{subitem.label}</span>
@@ -346,6 +365,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
       <li key={item.path} className={isSubmenu ? 'submenu-item' : ''}>
         <Link
           to={item.path!}
+          ref={isActive(item.path) ? activeRef : undefined}
           className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
           onClick={onMobileClose}
         >

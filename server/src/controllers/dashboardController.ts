@@ -49,29 +49,26 @@ class DashboardController {
       const studentBatchId = meForBatch?.batchId ? new Types.ObjectId(meForBatch.batchId) : null;
       const studentBatchStr = studentBatchId ? studentBatchId.toString() : null;
 
-      // Assignments & Quizzes share the accessibleTo model (see assignmentService.getStudentAssignments)
+      // Mirror the (now-scoped) student list filters exactly — a student sees only
+      // what's explicitly for them. No global/legacy leaks: legacy assignments count
+      // only when their batch matches; legacy quizzes and empty-batchIds snippets are
+      // NOT shown to everyone (see the matching fixes in assignmentService /
+      // quizController / codeSnippetController).
       const assignmentAccessOr: any[] = [
         { accessibleTo: 'everyone' },
-        ...(studentBatchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: studentBatchStr }] : []),
         { accessibleTo: 'individual', selectedStudents: userId },
         ...(studentBatchStr ? [
+          { accessibleTo: 'batch_wise', selectedBatches: studentBatchStr },
           { accessibleTo: { $exists: false }, batch: studentBatchId },
-          { accessibleTo: { $exists: false }, batch: null }
-        ] : [
-          { accessibleTo: { $exists: false } }
-        ])
+        ] : [])
       ];
       const quizAccessOr: any[] = [
         { accessibleTo: 'everyone' },
-        ...(studentBatchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: studentBatchStr }] : []),
         { accessibleTo: 'individual', selectedStudents: userId },
-        { accessibleTo: { $exists: false } } // legacy quizzes with no targeting → everyone
+        ...(studentBatchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: studentBatchStr }] : [])
       ];
-      // Code snippet assessments target by batchIds (empty = everyone) — see codeSnippetController.getStudentAssessments
-      const snippetAccessOr: any[] = [
-        { batchIds: { $size: 0 } },
-        ...(studentBatchStr ? [{ batchIds: studentBatchStr }] : [])
-      ];
+      // Code snippets: only assessments targeted at the student's batch (no batch → none).
+      const snippetAccessOr: any[] = studentBatchStr ? [{ batchIds: studentBatchStr }] : [{ batchIds: { $in: [] } }];
 
       // Get student's enrollment (single course)
       const enrollment = await Enrollment.findOne({

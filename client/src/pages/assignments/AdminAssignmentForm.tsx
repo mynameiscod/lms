@@ -89,8 +89,9 @@ const AdminAssignmentForm: React.FC = () => {
   const [latePenaltyPercent, setLatePenaltyPercent] = useState(10);
   const [publishImmediately, setPublishImmediately] = useState(true);
   
-  // Access Control
-  const [accessibleTo, setAccessibleTo] = useState<'everyone' | 'batch_wise' | 'individual'>('everyone');
+  // Access Control — new content defaults to "library" (batch_wise + no batches =
+  // invisible to students until delivered via Assign to Batches / a Learning Plan day).
+  const [accessibleTo, setAccessibleTo] = useState<'everyone' | 'batch_wise' | 'individual'>('batch_wise');
   const [selectedBatches, setSelectedBatches] = useState<string[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [isExternalAssignment, setIsExternalAssignment] = useState(false);
@@ -987,63 +988,17 @@ const AdminAssignmentForm: React.FC = () => {
 
                 {/* Track A: Internal */}
                 <div onClick={() => setIsExternalAssignment(false)} style={{ border: `2px solid ${!isExternalAssignment ? '#6366f1' : '#e5e7eb'}`, borderRadius: 12, padding: '14px 16px', cursor: 'pointer', background: !isExternalAssignment ? '#f5f3ff' : '#fff' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: !isExternalAssignment ? 14 : 0 }}>
-                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${!isExternalAssignment ? '#6366f1' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${!isExternalAssignment ? '#6366f1' : '#d1d5db'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2 }}>
                       {!isExternalAssignment && <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#6366f1' }} />}
                     </div>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: 14 }}>🎓 Internal Students</div>
-                      <div style={{ fontSize: 12, color: '#6b7280' }}>Assign to your LMS students. They will see it on their dashboard.</div>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>🎓 Reusable assignment (recommended)</div>
+                      <div style={{ fontSize: 12, color: '#6b7280', lineHeight: 1.6 }}>
+                        Save it as reusable content. Then use <b>📅 Assign to Batches</b> (from the ⋮ menu on the Assignments list) to deliver it to any batch — or specific students — each with their own <b>start/due dates &amp; late policy</b>. No cloning. It also works as a Learning Plan day item. Until you assign it, no student sees it.
+                      </div>
                     </div>
                   </div>
-                  {!isExternalAssignment && (
-                    <div style={{ paddingLeft: 28 }}>
-                      <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
-                        {([['everyone','🌍 All Students'],['batch_wise','📦 By Batch'],['individual','👤 Specific Students']] as const).map(([val, lbl]) => (
-                          <button key={val} type="button" onClick={e => { e.stopPropagation(); setAccessibleTo(val); setSelectedBatches([]); setSelectedStudents([]); }}
-                            style={{ border: `1.5px solid ${accessibleTo === val ? '#6366f1' : '#e5e7eb'}`, borderRadius: 20, padding: '4px 12px', background: accessibleTo === val ? '#eef2ff' : '#fff', color: accessibleTo === val ? '#6366f1' : '#6b7280', fontWeight: accessibleTo === val ? 700 : 400, cursor: 'pointer', fontSize: 12 }}>
-                            {lbl}
-                          </button>
-                        ))}
-                      </div>
-
-                      {accessibleTo === 'batch_wise' && (
-                        <div onClick={e => e.stopPropagation()} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 4 }}>
-                          {allBatches.length === 0 ? <span style={{ color: '#9ca3af', fontSize: 13 }}>No batches</span> : allBatches.map((batch: any) => (
-                            <label key={batch._id} style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1.5px solid ${selectedBatches.includes(batch._id) ? '#6366f1' : '#e5e7eb'}`, borderRadius: 8, padding: '5px 10px', cursor: 'pointer', background: selectedBatches.includes(batch._id) ? '#eef2ff' : '#fff', fontSize: 13 }}>
-                              <input type="checkbox" checked={selectedBatches.includes(batch._id)} onChange={() => setSelectedBatches(prev => prev.includes(batch._id) ? prev.filter(id => id !== batch._id) : [...prev, batch._id])} style={{ accentColor: '#6366f1' }} />
-                              {batch.name}
-                            </label>
-                          ))}
-                        </div>
-                      )}
-
-                      {accessibleTo === 'individual' && (
-                        <div onClick={e => e.stopPropagation()}>
-                          <input type="text" className="form-control" placeholder="Search by name or email..." value={studentSearch} onChange={e => setStudentSearch(e.target.value)} style={{ marginBottom: 8, fontSize: 13 }} />
-                          <div style={{ maxHeight: 200, overflowY: 'auto', border: '1px solid #e5e7eb', borderRadius: 8, padding: 4 }}>
-                            {allStudents.length === 0 ? <p style={{ color: '#9ca3af', margin: '12px', textAlign: 'center', fontSize: 13 }}>Loading students...</p> : (() => {
-                              const q = studentSearch.toLowerCase();
-                              const filtered = allStudents.filter((s: any) => {
-                                const name = `${s.firstName||''} ${s.lastName||''}`.toLowerCase();
-                                return !q || name.includes(q) || (s.email||'').toLowerCase().includes(q);
-                              });
-                              return filtered.length === 0 ? <p style={{ color: '#9ca3af', margin: '12px', textAlign: 'center', fontSize: 13 }}>No match</p> : filtered.map((student: any) => {
-                                const isSel = selectedStudents.includes(student._id);
-                                return (
-                                  <label key={student._id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 8px', borderRadius: 6, cursor: 'pointer', background: isSel ? '#eef2ff' : 'transparent' }}>
-                                    <input type="checkbox" checked={isSel} onChange={() => setSelectedStudents(prev => prev.includes(student._id) ? prev.filter(id => id !== student._id) : [...prev, student._id])} style={{ accentColor: '#6366f1' }} />
-                                    <span style={{ fontSize: 13 }}>{student.firstName} {student.lastName} <span style={{ color: '#9ca3af', fontSize: 12 }}>{student.email}</span></span>
-                                  </label>
-                                );
-                              });
-                            })()}
-                          </div>
-                          {selectedStudents.length > 0 && <small style={{ color: '#6366f1', fontSize: 12, marginTop: 4, display: 'block' }}>{selectedStudents.length} student(s) selected</small>}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
 
                 {/* Track B: External */}
@@ -1478,26 +1433,10 @@ const AdminAssignmentForm: React.FC = () => {
             <h3 className="section-title" style={{ marginTop: 0 }}>Assignment Settings</h3>
             <p className="section-description">Configure schedule and submission rules</p>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Start Date</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                />
-                <small className="form-hint">Leave empty to be available immediately</small>
-              </div>
-              <div className="form-group">
-                <label className="form-label">Due Date</label>
-                <input
-                  type="datetime-local"
-                  className="form-control"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                />
-                <small className="form-hint">Leave empty for no deadline</small>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+              <span style={{ fontSize: 18 }}>📅</span>
+              <div style={{ fontSize: 13, color: '#3730a3', lineHeight: 1.6 }}>
+                <b>Start &amp; due dates are set when you assign this.</b> This assignment is reusable content — use <b>Assign to Batches</b> (⋮ menu on the Assignments list) to give each batch its own window &amp; late policy, so the same assignment works for many batches without cloning.
               </div>
             </div>
 

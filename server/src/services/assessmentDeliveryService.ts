@@ -12,7 +12,11 @@ import AssessmentSchedule from '../models/AssessmentSchedule';
 import Assignment from '../models/Assignment';
 import Quiz from '../models/Quiz';
 import User from '../models/User';
-import { DeadlinePolicy, DEFAULT_POLICY, mergePolicy, canSubmit } from './deadlinePolicyService';
+import CurriculumEnrollment from '../models/CurriculumEnrollment';
+import DayPlan from '../models/DayPlan';
+import BatchOffering from '../models/BatchOffering';
+import { DeadlinePolicy, DEFAULT_POLICY, mergePolicy, canSubmit, resolveCurriculumPolicy } from './deadlinePolicyService';
+import { workingDateForDay } from '../utils/planSchedule';
 
 export type ContentType = 'assignment' | 'quiz';
 
@@ -20,9 +24,11 @@ export interface ResolvedDelivery {
   dueAt: Date | null;
   startAt: Date | null;
   policy: DeadlinePolicy;
-  source: 'schedule' | 'baked' | 'none';
+  source: 'schedule' | 'curriculum' | 'baked' | 'none';
   scheduleId?: string;
   batchId?: string;
+  enrollmentId?: string;
+  dayNumber?: number;
 }
 
 /** Combine a Date + 'HH:mm' into an absolute local datetime. */
@@ -67,8 +73,38 @@ function bakedFromQuiz(q: any): ResolvedDelivery {
 }
 
 /**
- * Resolve delivery for a student. Reads the batch schedule first, else the baked
- * dates on the content. Returns a stable shape either way.
+ * Curriculum path: is this content on a learning-plan day for one of the student's
+ * active enrollments? If so, derive the deadline from that batch's offering start +
+ * the day number, under the item's (offering-overridable) policy.
+ */
+export async function resolveCurriculumDelivery(
+  tenantId: string,
+  studentId: string,
+  contentType: ContentType,
+  contentId: string,
+): Promise<ResolvedDelivery | null> {
+  const enrolls = await CurriculumEnrollment.find({ tenantId, studentId, status: 'active' })
+    .select('curriculumId offeringId').lean();
+  for (const en of enrolls as any[]) {
+    const dp = await DayPlan.findOne({ curriculumId: en.curriculumId, 'items.sourceId': contentId }).lean() as any;
+    if (!dp) continue;
+    const item = (dp.items || []).find((it: any) => String(it.sourceId) === String(contentId) && it.kind === contentType);
+    if (!item) continue;
+    const offering = en.offeringId ? await BatchOffering.findById(en.offeringId).lean() as any : null;
+    const { policy, dueAt } = resolveCurriculumPolicy(item, offering, dp.dayNumber);
+    const startAt = offering ? workingDateForDay(offering.startDate, dp.dayNumber, new Set<string>(offering.holidays || [])) : null;
+    return {
+      dueAt, startAt, policy, source: 'curriculum',
+      batchId: offering?.batchId ? String(offering.batchId) : undefined,
+      enrollmentId: String(en._id), dayNumber: dp.dayNumber,
+    };
+  }
+  return null;
+}
+
+/**
+ * Resolve delivery for a student. Priority: batch schedule → curriculum day →
+ * the content's baked dates. Returns a stable shape either way.
  */
 export async function resolveForStudent(
   tenantId: string,
@@ -96,6 +132,10 @@ export async function resolveForStudent(
       };
     }
   }
+
+  // Curriculum-day delivery (learning plan).
+  const cur = await resolveCurriculumDelivery(tenantId, studentId, contentType, contentId);
+  if (cur) return { ...cur, batchId: cur.batchId || batchId || undefined };
 
   // Fallback to the content's baked dates.
   if (contentType === 'assignment') {
@@ -138,9 +178,9 @@ export async function checkDeadlineGate(
   now: Date = new Date(),
 ): Promise<{ allowed: boolean; late: boolean; reason?: string; dueAt: Date | null; policy: DeadlinePolicy }> {
   const d = await resolveForStudent(tenantId, studentId, contentType, contentId);
-  // Enforce ONLY for the new per-batch schedule path. Un-migrated content (baked
-  // dates) keeps its existing enforcement in the respective service — zero change.
-  if (d.source !== 'schedule') {
+  // Enforce for the new delivery paths (per-batch schedule + curriculum day). Baked /
+  // un-migrated content keeps its existing enforcement in-service — zero change.
+  if (d.source !== 'schedule' && d.source !== 'curriculum') {
     return { allowed: true, late: false, dueAt: d.dueAt, policy: d.policy };
   }
   if (d.startAt && now < d.startAt) {

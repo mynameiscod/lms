@@ -20,6 +20,7 @@ import InterviewAssignment from '../models/InterviewAssignment';
 import BatchOffering from '../models/BatchOffering';
 import { effectiveItemsForDay, holidaySet } from './batchOfferingController';
 import { workingDateForDay, planDayForDate, workingDayCount, asLocalDate, istToday } from '../utils/planSchedule';
+import { resolveCurriculumPolicy } from '../services/deadlinePolicyService';
 import * as razorpay from '../services/razorpayService';
 
 const tenantId = (req: Request): string => (req as any).user?.tenantId || '';
@@ -685,6 +686,17 @@ export const getMyTasks = async (req: Request, res: Response) => {
           const kind = it.kind || 'content';
           const sid = it.sourceId ? it.sourceId.toString() : '';
           if (kind !== 'content' && sid) planKeys.add(`${kind}:${sid}`);
+
+          // Assessments (assignment/quiz) get a real policy-derived deadline
+          // (day date + dueOffset, batch-overridable); overdue is then deadline-based,
+          // not pace-based. Other items keep the plain day-date + pace signal.
+          let dueAtIso = dayDate.toISOString();
+          let overdue = day < en.currentDay;
+          if (kind === 'assignment' || kind === 'quiz') {
+            const { dueAt } = resolveCurriculumPolicy(it, offering, day);
+            if (dueAt) { dueAtIso = dueAt.toISOString(); overdue = dueAt.getTime() < Date.now(); }
+          }
+
           tasks.push({
             source: 'plan',
             enrollmentId: en._id,
@@ -693,8 +705,9 @@ export const getMyTasks = async (req: Request, res: Response) => {
             kind,
             title: it.contentTitle,
             contentType: it.contentType,
-            dueAt: dayDate.toISOString(),
-            overdue: day < en.currentDay,
+            dueAt: dueAtIso,
+            latePolicy: (kind === 'assignment' || kind === 'quiz') ? resolveCurriculumPolicy(it, offering, day).policy.latePolicy : undefined,
+            overdue,
             launchPath: kind === 'content' ? `/my-learning/${en._id}/day/${day}` : launchPath(kind, sid),
           });
         }

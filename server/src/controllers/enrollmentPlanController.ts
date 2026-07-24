@@ -598,7 +598,9 @@ async function getAdhocTasks(sId: string, tId: string, planKeys: Set<string>): P
 
   // Quiz
   try {
-    const access: any[] = [{ accessibleTo: 'everyone' }, { access: 'public' }, { accessibleTo: 'individual', selectedStudents: sId }];
+    // NOTE: `access: 'public'` is for shareable quiz LINKS — it must NOT make a quiz
+    // appear in every student's in-app task feed. Only explicit assignment counts.
+    const access: any[] = [{ accessibleTo: 'everyone' }, { accessibleTo: 'individual', selectedStudents: sId }];
     if (batchId) access.push({ accessibleTo: 'batch_wise', selectedBatches: batchId });
     const quizzes = await Quiz.find({ tenantId: tId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null, $or: access }).select('title endDate').lean();
     if (quizzes.length) {

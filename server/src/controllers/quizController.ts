@@ -479,8 +479,9 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
             hasAccess = true;
           }
         } else {
-          // 'everyone' or no accessibleTo set — fall back to access field
-          hasAccess = quiz.access === 'public' || quiz.accessibleTo === 'everyone';
+          // Only explicit 'everyone' grants in-app access. `access: 'public'` is for
+          // shareable links and must NOT surface a quiz to every student's list.
+          hasAccess = quiz.accessibleTo === 'everyone';
         }
 
         // A schedule row for this batch also grants access (reusable delivery).

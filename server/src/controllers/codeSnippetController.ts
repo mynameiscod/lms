@@ -163,13 +163,15 @@ class CodeSnippetController {
       const user = await User.findById(studentId).select('batchId');
       const batchId = user?.batchId?.toString();
 
-      const orConditions: any[] = [{ batchIds: { $size: 0 } }];
-      if (batchId) orConditions.push({ batchIds: batchId });
+      // A snippet must be assigned to the student's batch. Previously an assessment
+      // with NO batches ($size 0) was shown to every student — that leaked unassigned
+      // practice to fresh students. No batch → nothing assigned.
+      if (!batchId) return res.json({ success: true, data: [] });
 
       const assessments = await CodeSnippetAssessment.find({
         tenantId,
         status: 'published',
-        $or: orConditions,
+        batchIds: batchId,
       }).sort({ createdAt: -1 });
 
       const assessmentIds = assessments.map((a) => a._id);

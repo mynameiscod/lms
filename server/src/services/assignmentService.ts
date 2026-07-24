@@ -503,19 +503,17 @@ class AssignmentService {
     }
     const batchIdStr = resolvedBatch ? resolvedBatch.toString() : null;
 
-    // New access-control model: match by accessibleTo field
-    // Legacy records (no accessibleTo field): fall back to old batch logic
+    // Access model: a student sees an assignment only if it's explicitly for them —
+    // 'everyone', their batch, or them individually. Legacy records (no accessibleTo)
+    // count ONLY when their `batch` matches this student's batch; a legacy assignment
+    // with no batch is NOT shown to everyone (that leaked old work to fresh students).
     query.$or = [
       { accessibleTo: 'everyone' },
-      ...(batchIdStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchIdStr }] : []),
       { accessibleTo: 'individual', selectedStudents: studentIdStr },
-      // legacy: has no accessibleTo, batch matches or no batch set
       ...(batchIdStr ? [
+        { accessibleTo: 'batch_wise', selectedBatches: batchIdStr },
         { accessibleTo: { $exists: false }, batch: resolvedBatch },
-        { accessibleTo: { $exists: false }, batch: null }
-      ] : [
-        { accessibleTo: { $exists: false } }
-      ])
+      ] : []),
     ];
 
     // Also surface assignments delivered to this batch via an AssessmentSchedule

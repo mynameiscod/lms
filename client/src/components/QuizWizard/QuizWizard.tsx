@@ -126,7 +126,9 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     totalMarks: initialData?.totalMarks || 100,
     totalTime: initialData?.totalTime || 60,
     access: initialData?.access || 'public',
-    accessibleTo: initialData?.accessibleTo || 'everyone',
+    // New quizzes default to "library": batch_wise + no batches = invisible to students
+    // until delivered via Assign to Batches / a Learning Plan day.
+    accessibleTo: initialData?.accessibleTo || 'batch_wise',
     selectedBatches: initialData?.selectedBatches || [],
     selectedStudents: initialData?.selectedStudents || [],
     passingMarks: initialData?.passingMarks || 50,
@@ -279,30 +281,13 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
           setError('Quiz title is required');
           return false;
         }
-        if (!formData.startDate || !formData.endDate) {
-          setError('Start and end dates are required');
-          return false;
-        }
-        // Validate date format
-        const startDateObj = new Date(formData.startDate);
-        const endDateObj = new Date(formData.endDate);
-        if (isNaN(startDateObj.getTime()) || isNaN(endDateObj.getTime())) {
-          setError('Invalid date format');
-          return false;
-        }
-        // Validate end date is not before start date
-        if (endDateObj < startDateObj) {
-          setError('End date must be after start date');
-          return false;
-        }
-        // Validate time if same day
-        if (formData.startDate === formData.endDate) {
-          const startTime = formData.startTime.split(':');
-          const endTime = formData.endTime.split(':');
-          const startMinutes = parseInt(startTime[0]) * 60 + parseInt(startTime[1]);
-          const endMinutes = parseInt(endTime[0]) * 60 + parseInt(endTime[1]);
-          if (endMinutes <= startMinutes) {
-            setError('End time must be after start time on the same day');
+        // Dates are optional here — real per-batch start/due windows are set in
+        // "Assign to Batches". If both are provided, keep them consistent.
+        if (formData.startDate && formData.endDate) {
+          const startDateObj = new Date(formData.startDate);
+          const endDateObj = new Date(formData.endDate);
+          if (!isNaN(startDateObj.getTime()) && !isNaN(endDateObj.getTime()) && endDateObj < startDateObj) {
+            setError('End date must be after start date');
             return false;
           }
         }
@@ -324,10 +309,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
       case 3:
         return true;
       case 4:
-        if (formData.accessibleTo === 'batch_wise' && formData.selectedBatches.length === 0) {
-          setError('Please select at least one batch');
-          return false;
-        }
+        // Delivery/batch selection moved to "Assign to Batches" — nothing to validate here.
         return true;
       default:
         return true;
@@ -349,9 +331,19 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     
     try {
       setLoading(true);
-      // Clean up data before submitting
+      // Dates are optional in the form (real windows come from Assign to Batches),
+      // but the Quiz model still requires them — default to a wide open window so the
+      // baked path never gates. Access defaults to batch_wise + no batches → invisible
+      // until delivered.
+      const today = new Date();
+      const farEnd = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+      const ymd = (d: Date) => d.toISOString().slice(0, 10);
       const submitData = {
         ...formData,
+        startDate: formData.startDate || ymd(today),
+        endDate: formData.endDate || ymd(farEnd),
+        startTime: formData.startTime || '00:00',
+        endTime: formData.endTime || '23:59',
         maxAttempts: formData.multipleAttempts ? formData.maxAttempts : null,
         primaryTech: formData.primaryTech || undefined,
         // Don't send empty strings for optional ObjectId fields
@@ -390,7 +382,7 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
               {s === 1 && 'Basic Info'}
               {s === 2 && 'Parameters'}
               {s === 3 && 'Settings'}
-              {s === 4 && 'Access'}
+              {s === 4 && 'Delivery'}
             </div>
           </div>
         ))}
@@ -804,12 +796,14 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
                   {!(formData as any).isExternalQuiz && <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#6366f1' }} />}
                 </div>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 15 }}>🎓 Internal Students</div>
-                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>Assign to your LMS students. They will see this quiz on their dashboard and receive an email.</div>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>🎓 Reusable quiz (recommended)</div>
+                  <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2, lineHeight: 1.6 }}>
+                    Save it as reusable content. Then use <b>📅 Assign to Batches</b> (⋮ menu on Quiz Management) to deliver it to any batch — each with its own <b>start/due window &amp; late policy</b>. No cloning; it also works as a Learning Plan day item. Until you assign it, no student sees it.
+                  </div>
                 </div>
               </div>
 
-              {!(formData as any).isExternalQuiz && (
+              {false && !(formData as any).isExternalQuiz && (
                 <div style={{ paddingLeft: 32 }}>
                   {/* Sub-selection */}
                   <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>

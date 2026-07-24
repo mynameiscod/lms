@@ -21,6 +21,11 @@ export interface IOverrideItem {
   points?: number;
   order: number;
   estimatedDuration: number;
+  dueOffsetDays?: number;
+  dueTime?: string;
+  latePolicy?: 'open' | 'grace' | 'hard_lock';
+  graceDays?: number;
+  penaltyPct?: number;
 }
 
 export interface IDayOverride {
@@ -28,6 +33,22 @@ export interface IDayOverride {
   addedItems: IOverrideItem[];
   removedItemIds: string[]; // _id strings of template DayPlan items to hide for this batch
   note?: string;
+}
+
+/**
+ * Per-batch deadline/late-policy override for a template DayPlan item. Target a
+ * whole day (dayNumber) or one item (itemId). Any set field overrides the item's
+ * template default for THIS batch — the admin's lever to soften/harden per cohort.
+ */
+export interface IPolicyOverride {
+  dayNumber?: number;
+  itemId?: string;
+  latePolicy?: 'open' | 'grace' | 'hard_lock';
+  graceDays?: number;
+  penaltyPct?: number;
+  dueOffsetDays?: number;
+  dueTime?: string;
+  dueDateAbsolute?: Date; // escape hatch: pin an exact deadline for this batch
 }
 
 export interface IBatchOffering extends Document {
@@ -39,6 +60,7 @@ export interface IBatchOffering extends Document {
   startDate: Date;
   holidays: string[];            // 'YYYY-MM-DD'
   dayOverrides: IDayOverride[];
+  policyOverrides?: IPolicyOverride[];
   status: 'draft' | 'active' | 'completed' | 'archived';
   createdBy: string;
   createdAt: Date;
@@ -59,6 +81,11 @@ const OverrideItemSchema = new Schema<IOverrideItem>(
     points:            { type: Number, default: 0 },
     order:             { type: Number, default: 0 },
     estimatedDuration: { type: Number, default: 0 },
+    dueOffsetDays:     { type: Number },
+    dueTime:           { type: String },
+    latePolicy:        { type: String, enum: ['open', 'grace', 'hard_lock'] },
+    graceDays:         { type: Number },
+    penaltyPct:        { type: Number },
   },
   { _id: true }
 );
@@ -73,6 +100,20 @@ const DayOverrideSchema = new Schema<IDayOverride>(
   { _id: false }
 );
 
+const PolicyOverrideSchema = new Schema<IPolicyOverride>(
+  {
+    dayNumber:       { type: Number },
+    itemId:          { type: String },
+    latePolicy:      { type: String, enum: ['open', 'grace', 'hard_lock'] },
+    graceDays:       { type: Number },
+    penaltyPct:      { type: Number },
+    dueOffsetDays:   { type: Number },
+    dueTime:         { type: String },
+    dueDateAbsolute: { type: Date },
+  },
+  { _id: false }
+);
+
 const BatchOfferingSchema = new Schema<IBatchOffering>(
   {
     tenantId:        { type: String, required: true, index: true },
@@ -83,6 +124,7 @@ const BatchOfferingSchema = new Schema<IBatchOffering>(
     startDate:       { type: Date, required: true },
     holidays:        [{ type: String }],
     dayOverrides:    [DayOverrideSchema],
+    policyOverrides: [PolicyOverrideSchema],
     status:          { type: String, enum: ['draft', 'active', 'completed', 'archived'], default: 'draft' },
     createdBy:       { type: String, required: true },
   },

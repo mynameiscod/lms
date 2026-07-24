@@ -23,6 +23,14 @@ export interface IDayContentItem {
   points?: number;
   order: number;
   estimatedDuration: number;
+  // Deadline & late policy (template default for this assessment item; a batch's
+  // BatchOffering can override, and a per-student grant can extend). See
+  // services/deadlinePolicyService.ts. Absent → DEFAULT_POLICY.
+  dueOffsetDays?: number;              // due = day's date + this
+  dueTime?: string;                    // 'HH:mm'
+  latePolicy?: 'open' | 'grace' | 'hard_lock';
+  graceDays?: number;
+  penaltyPct?: number;
 }
 
 export interface IDayPlan extends Document {
@@ -55,6 +63,11 @@ const DayContentItemSchema = new Schema<IDayContentItem>(
     points:            { type: Number, default: 0 },
     order:             { type: Number, default: 0 },
     estimatedDuration: { type: Number, default: 0 },
+    dueOffsetDays:     { type: Number },
+    dueTime:           { type: String },
+    latePolicy:        { type: String, enum: ['open', 'grace', 'hard_lock'] },
+    graceDays:         { type: Number },
+    penaltyPct:        { type: Number },
   },
   { _id: true }
 );

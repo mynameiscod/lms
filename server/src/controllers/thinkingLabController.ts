@@ -134,9 +134,11 @@ export const getToday = async (req: Request, res: Response) => {
     }
 
     if (!ch) {
-      const p = (sc ? await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true }) : null)
-        || (await pickProblem(tId(req), uId(req)));
-      if (!p) return res.json({ challenge: null, empty: true, message: 'No problems in the bank yet. Ask your admin to add challenges.' });
+      // Schedule-driven only: a student sees a challenge only when an admin has
+      // scheduled one for their batch today (via Lab Challenge Windows). No random
+      // fallback — a fresh/unscheduled batch sees nothing until the instructor assigns.
+      const p = sc ? await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true }) : null;
+      if (!p) return res.json({ challenge: null, empty: true, message: 'No challenge scheduled yet. Your instructor will assign one for your batch.' });
       ch = await DailyChallenge.create({
         tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
         date: d, seq: 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
@@ -157,15 +159,9 @@ export const nextChallenge = async (req: Request, res: Response) => {
       const p = await ThinkingProblem.findById(last.problemId).lean();
       return res.json({ challenge: challengeView(last, p) }); // still working on current
     }
-    const p = await pickProblem(tId(req), uId(req));
-    if (!p) return res.json({ challenge: null, empty: true });
-    const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
-    const ch = await DailyChallenge.create({
-      tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
-      date: d, seq: (last?.seq || 0) + 1, problemId: p._id, difficulty: p.difficulty, language: p.language, code: p.starterCode || '',
-    });
-    await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
-    res.json({ challenge: challengeView(ch, p) });
+    // Schedule-driven: one admin-assigned challenge per day. Once it's done there is no
+    // random "next" — the student is finished until the next scheduled challenge.
+    res.json({ challenge: null, empty: true, message: "That's today's challenge. Check back when your instructor assigns the next one." });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 

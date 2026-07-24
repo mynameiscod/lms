@@ -62,14 +62,18 @@ export const getToday = async (req: Request, res: Response) => {
     const today = validDate(req.query.date);
 
     const me: any = await User.findById(uId(req)).select('batchId').lean();
-    // A challenge with no batchIds (empty OR field absent) is for all batches.
-    const allBatches = [{ batchIds: { $exists: false } }, { batchIds: { $size: 0 } }];
-    const batchFilter: any = me?.batchId
-      ? { $or: [...allBatches, { batchIds: me.batchId }] }
-      : { $or: allBatches };
-    const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, ...batchFilter })
+    // Admin-controlled: a student only sees challenges explicitly targeted at THEIR
+    // batch (or scheduled for it via Lab Challenge Windows). No "no batchIds = everyone"
+    // fallback — a fresh/unconfigured batch sees nothing until the instructor assigns.
+    if (!me?.batchId) return res.json({ challenge: null, status: 'not_started' });
+    // Admin-scheduled batch challenge (may carry a time window) — IST-based.
+    const now = istParts();
+    const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean();
+
+    const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, batchIds: me.batchId })
       .sort({ sequenceNumber: 1 }).lean();
-    if (!challenges.length) return res.json({ challenge: null, status: 'not_started' });
+    // Nothing targeted at this batch AND nothing scheduled → empty until the admin assigns.
+    if (!challenges.length && !sc) return res.json({ challenge: null, status: 'not_started' });
 
     const streak = await CommunicationStreak.findOne({ tenantId, studentId: uId(req) }).lean();
 
@@ -77,9 +81,6 @@ export const getToday = async (req: Request, res: Response) => {
     const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today })
       .sort({ createdAt: -1 }).lean();
 
-    // Admin-scheduled batch challenge (may carry a time window) — IST-based.
-    const now = istParts();
-    const sc: any = me?.batchId ? await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean() : null;
     const wStatus = windowStatus(sc, now.date, now.hm);
 
     // Window not open yet / already closed without completing → locked.

@@ -40,6 +40,25 @@ export enum ProgrammingLanguage {
   CSS = 'css'
 }
 
+// Primary "language / tech" category for organizing & reusing assignments.
+// Distinct from allowedLanguages (which is "what a student may submit in").
+export enum TechCategory {
+  JAVA = 'java',
+  JAVASCRIPT = 'javascript',
+  TYPESCRIPT = 'typescript',
+  HTML_CSS = 'html_css',
+  REACT = 'react',
+  PYTHON = 'python',
+  SQL = 'sql',
+  CPP = 'cpp',
+  C = 'c',
+  CSHARP = 'csharp',
+  GO = 'go',
+  RUST = 'rust',
+  DSA = 'dsa',
+  OTHER = 'other'
+}
+
 // Interfaces for embedded documents
 export interface ITestCase {
   input: string;
@@ -88,9 +107,10 @@ export interface IAssignment extends Document {
   
   // Classification
   difficulty: DifficultyLevel;
+  primaryTech?: TechCategory;  // language/tech category for organizing & reuse
   topics: string[];
   tags: string[];
-  
+
   // Points & Grading
   totalPoints: number;
   passingPoints: number;
@@ -210,6 +230,7 @@ const AssignmentSchema = new Schema<IAssignment>({
   
   // Classification
   difficulty: { type: String, enum: Object.values(DifficultyLevel), default: DifficultyLevel.MEDIUM },
+  primaryTech: { type: String, enum: Object.values(TechCategory), index: true },
   topics: [{ type: String, trim: true }],
   tags: [{ type: String, trim: true }],
   

@@ -69,9 +69,12 @@ interface ListAssignmentsFilter {
   type?: AssignmentType;
   difficulty?: DifficultyLevel;
   course?: Types.ObjectId;
+  subject?: Types.ObjectId;
+  chapter?: Types.ObjectId;
   batch?: Types.ObjectId;
   createdBy?: Types.ObjectId | string;
   language?: string;
+  primaryTech?: string;
   isInBank?: boolean;
   bankCategory?: string;
   search?: string;
@@ -192,6 +195,9 @@ class AssignmentService {
     if (filter.type) query.type = filter.type;
     if (filter.difficulty) query.difficulty = filter.difficulty;
     if (filter.course) query.course = filter.course;
+    if (filter.subject) query.subject = filter.subject;
+    if (filter.chapter) query.chapter = filter.chapter;
+    if (filter.primaryTech) query.primaryTech = filter.primaryTech;
     if (filter.createdBy) query.createdBy = filter.createdBy;
     if (filter.language) query.allowedLanguages = filter.language; // matches assignments whose allowedLanguages array contains it
     if (filter.isInBank !== undefined) query.isInBank = filter.isInBank;
@@ -228,6 +234,8 @@ class AssignmentService {
     const [assignments, total] = await Promise.all([
       Assignment.find(query)
         .populate('course', 'name')
+        .populate('subject', 'title')
+        .populate('chapter', 'title')
         .populate('batch', 'name')
         .populate('createdBy', 'firstName lastName email')
         .sort(sort)

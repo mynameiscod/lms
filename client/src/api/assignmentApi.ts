@@ -113,6 +113,7 @@ export interface Assignment {
   instructions?: string;
   type: AssignmentType;
   difficulty: DifficultyLevel;
+  primaryTech?: string;
   topics: string[];
   tags: string[];
   totalPoints: number;
@@ -265,6 +266,7 @@ export interface AssignmentInput {
   instructions?: string;
   type: AssignmentType;
   difficulty?: DifficultyLevel;
+  primaryTech?: string;
   topics?: string[];
   tags?: string[];
   totalPoints?: number;
@@ -348,9 +350,12 @@ export const assignmentApi = {
     type?: AssignmentType;
     difficulty?: DifficultyLevel;
     course?: string;
+    subject?: string;
+    chapter?: string;
     batch?: string;
     createdBy?: string;
     language?: string;
+    primaryTech?: string;
     search?: string;
     isInBank?: boolean;
   }) => api.get<PaginatedResponse<Assignment>>('/assignments', { params }),

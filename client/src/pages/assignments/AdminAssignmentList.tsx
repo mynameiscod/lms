@@ -10,6 +10,7 @@ import {
 } from '../../api/assignmentApi';
 import { batchApi, userApi } from '../../api';
 import AssignmentPreviewModal from '../AssignmentReports/AssignmentPreviewModal';
+import { TECH_CATEGORIES, techDef } from '../../config/techCategories';
 import './assignments.css';
 
 // Windowed page numbers with ellipses, e.g. 1 … 4 5 [6] 7 8 … 20
@@ -125,6 +126,9 @@ const AdminAssignmentList: React.FC = () => {
   const [difficultyFilter, setDifficultyFilter] = useState<string>('');
   const [batchFilter, setBatchFilter] = useState<string>('');
   const [languageFilter, setLanguageFilter] = useState<string>('');
+  const [techFilter, setTechFilter] = useState<string>('');
+  const [groupBy, setGroupBy] = useState<'none' | 'language' | 'topic' | 'lesson'>('none');
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
   const [createdByFilter, setCreatedByFilter] = useState<string>('');
   const [batches, setBatches] = useState<{ _id: string; name: string }[]>([]);
   const [creators, setCreators] = useState<{ _id: string; name: string }[]>([]);
@@ -149,25 +153,29 @@ const AdminAssignmentList: React.FC = () => {
     points: { sortBy: 'totalPoints', sortOrder: 'desc', label: 'Highest Points' },
     title: { sortBy: 'title', sortOrder: 'asc', label: 'Title (A–Z)' },
   };
-  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter || createdByFilter);
+  const hasFilters = !!(search || statusFilter || typeFilter || difficultyFilter || batchFilter || languageFilter || techFilter || createdByFilter);
   const clearFilters = () => {
     setSearch(''); setStatusFilter(''); setTypeFilter(''); setDifficultyFilter('');
-    setBatchFilter(''); setLanguageFilter(''); setCreatedByFilter(''); setPage(1);
+    setBatchFilter(''); setLanguageFilter(''); setTechFilter(''); setCreatedByFilter(''); setPage(1);
   };
 
   const loadAssignments = useCallback(async () => {
     try {
       setLoading(true);
       const sort = SORTS[sortOption] || SORTS.newest;
+      // In grouped mode we render all matching items in collapsible sections, so
+      // fetch a large page instead of paginating.
+      const grouped = groupBy !== 'none';
       const response = await assignmentApi.list({
-        page,
-        limit,
+        page: grouped ? 1 : page,
+        limit: grouped ? 500 : limit,
         search: search || undefined,
         status: statusFilter as AssignmentStatus || undefined,
         type: typeFilter as AssignmentType || undefined,
         difficulty: difficultyFilter as DifficultyLevel || undefined,
         batch: batchFilter || undefined,
         language: languageFilter || undefined,
+        primaryTech: techFilter || undefined,
         createdBy: createdByFilter || undefined,
         sortBy: sort.sortBy,
         sortOrder: sort.sortOrder
@@ -182,7 +190,7 @@ const AdminAssignmentList: React.FC = () => {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, createdByFilter, sortOption]);
+  }, [page, limit, search, statusFilter, typeFilter, difficultyFilter, batchFilter, languageFilter, techFilter, groupBy, createdByFilter, sortOption]);
 
   // Load batches + creators for the filters
   useEffect(() => {
@@ -829,10 +837,26 @@ const AdminAssignmentList: React.FC = () => {
                 </select>
               </div>
               <div className="filter-field">
-                <label>Language</label>
+                <label>Language (allowed)</label>
                 <select value={languageFilter} onChange={(e) => { setLanguageFilter(e.target.value); setPage(1); }}>
                   <option value="">All Languages</option>
                   {LANGUAGES.map(l => <option key={l} value={l}>{LANG_LABEL[l]}</option>)}
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Tech / Category</label>
+                <select value={techFilter} onChange={(e) => { setTechFilter(e.target.value); setPage(1); }}>
+                  <option value="">All Tech</option>
+                  {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
+                </select>
+              </div>
+              <div className="filter-field">
+                <label>Group by</label>
+                <select value={groupBy} onChange={(e) => { setGroupBy(e.target.value as any); setPage(1); }}>
+                  <option value="none">None (flat table)</option>
+                  <option value="language">Language / Tech</option>
+                  <option value="topic">Topic</option>
+                  <option value="lesson">Lesson (Chapter)</option>
                 </select>
               </div>
               <div className="filter-field">
@@ -943,42 +967,81 @@ const AdminAssignmentList: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {assignments.map((assignment) => {
-                    const due = dueLabel(assignment.dueDate);
-                    const created = formatDateTime(assignment.createdAt);
-                    return (
-                      <tr key={assignment._id}>
-                        <td className="title-cell">
-                          <div className="title-cell-inner">
-                            <span className="type-tile" style={{ background: typeTile(assignment.type).bg, color: typeTile(assignment.type).color }}>{typeTile(assignment.type).icon}</span>
-                            <div>
-                              <div className="title-main">{assignment.title}</div>
-                              {assignment.topics.length > 0 && (
-                                <div className="title-topics">
-                                  {assignment.topics.slice(0, 3).join(', ')}
-                                  {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
-                                </div>
-                              )}
+                  {(() => {
+                    const techChip = (a: Assignment) => {
+                      const d = techDef((a as any).primaryTech);
+                      if (!d) return null;
+                      return <span style={{ display: 'inline-block', marginTop: 3, fontSize: 11, fontWeight: 700, color: '#fff', background: d.color, borderRadius: 20, padding: '1px 8px' }}>{d.icon} {d.label}</span>;
+                    };
+                    const renderRow = (assignment: Assignment) => {
+                      const due = dueLabel(assignment.dueDate);
+                      const created = formatDateTime(assignment.createdAt);
+                      return (
+                        <tr key={assignment._id}>
+                          <td className="title-cell">
+                            <div className="title-cell-inner">
+                              <span className="type-tile" style={{ background: typeTile(assignment.type).bg, color: typeTile(assignment.type).color }}>{typeTile(assignment.type).icon}</span>
+                              <div>
+                                <div className="title-main">{assignment.title}</div>
+                                {assignment.topics.length > 0 && (
+                                  <div className="title-topics">
+                                    {assignment.topics.slice(0, 3).join(', ')}
+                                    {assignment.topics.length > 3 && ` +${assignment.topics.length - 3} more`}
+                                  </div>
+                                )}
+                                {techChip(assignment)}
+                              </div>
                             </div>
-                          </div>
-                        </td>
-                        <td>{getTypeBadge(assignment.type)}</td>
-                        <td>{getDifficultyBadge(assignment.difficulty)}</td>
-                        <td>{getStatusBadge(assignment.status)}</td>
-                        <td>{assignment.totalPoints}</td>
-                        <td>
-                          <div>{formatDate(assignment.dueDate)}</div>
-                          {due && <div className={`due-chip ${due.overdue ? 'overdue' : ''}`}>{due.text}</div>}
-                        </td>
-                        <td>{creatorName(assignment)}</td>
-                        <td>
-                          <div style={{ color: '#334155' }}>{created.date}</div>
-                          <div style={{ fontSize: '12px', color: '#94a3b8' }}>{created.time}</div>
-                        </td>
-                        <td className="actions-cell">{actionsFor(assignment)}</td>
-                      </tr>
-                    );
-                  })}
+                          </td>
+                          <td>{getTypeBadge(assignment.type)}</td>
+                          <td>{getDifficultyBadge(assignment.difficulty)}</td>
+                          <td>{getStatusBadge(assignment.status)}</td>
+                          <td>{assignment.totalPoints}</td>
+                          <td>
+                            <div>{formatDate(assignment.dueDate)}</div>
+                            {due && <div className={`due-chip ${due.overdue ? 'overdue' : ''}`}>{due.text}</div>}
+                          </td>
+                          <td>{creatorName(assignment)}</td>
+                          <td>
+                            <div style={{ color: '#334155' }}>{created.date}</div>
+                            <div style={{ fontSize: '12px', color: '#94a3b8' }}>{created.time}</div>
+                          </td>
+                          <td className="actions-cell">{actionsFor(assignment)}</td>
+                        </tr>
+                      );
+                    };
+
+                    if (groupBy === 'none') return assignments.map(renderRow);
+
+                    // Grouped mode — collapsible section header rows within the same table.
+                    const keyOf = (a: Assignment): string => {
+                      if (groupBy === 'language') return (a as any).primaryTech || '__none';
+                      if (groupBy === 'topic') return (a.topics && a.topics[0]) || '__none';
+                      return (a as any).chapter?.title || (a as any).chapter?._id || '__none';
+                    };
+                    const labelOf = (k: string): string => {
+                      if (k === '__none') return groupBy === 'language' ? 'Untagged' : groupBy === 'topic' ? 'No topic' : 'No lesson';
+                      if (groupBy === 'language') { const d = techDef(k); return d ? `${d.icon} ${d.label}` : k; }
+                      return k;
+                    };
+                    const groups = new Map<string, Assignment[]>();
+                    assignments.forEach(a => { const k = keyOf(a); if (!groups.has(k)) groups.set(k, []); groups.get(k)!.push(a); });
+                    const keys = [...groups.keys()].sort((a, b) => a === '__none' ? 1 : b === '__none' ? -1 : labelOf(a).localeCompare(labelOf(b)));
+                    const out: React.ReactNode[] = [];
+                    keys.forEach(k => {
+                      const items = groups.get(k)!;
+                      const isCollapsed = !!collapsedGroups[k];
+                      out.push(
+                        <tr key={`grp-${k}`} onClick={() => setCollapsedGroups(p => ({ ...p, [k]: !p[k] }))} style={{ cursor: 'pointer', background: '#eef2f7' }}>
+                          <td colSpan={9} style={{ fontWeight: 800, color: '#0b2e63', padding: '10px 14px' }}>
+                            {isCollapsed ? '▸' : '▾'} {labelOf(k)} <span style={{ color: '#94a3b8', fontWeight: 600 }}>({items.length})</span>
+                          </td>
+                        </tr>
+                      );
+                      if (!isCollapsed) items.forEach(a => out.push(renderRow(a)));
+                    });
+                    return out;
+                  })()}
                 </tbody>
               </table>
             </div>

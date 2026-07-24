@@ -13,6 +13,7 @@ import {
   MCQQuestion
 } from '../../api/assignmentApi';
 import { courseApi, subjectApi, chapterApi, quizApi, batchApi, userApi } from '../../api';
+import { TECH_CATEGORIES } from '../../config/techCategories';
 import CourseSelect from '../../components/common/CourseSelect';
 import './assignments.css';
 
@@ -34,6 +35,7 @@ const AdminAssignmentForm: React.FC = () => {
   const [instructions, setInstructions] = useState('');
   const [type, setType] = useState<AssignmentType>(AssignmentType.CODING);
   const [difficulty, setDifficulty] = useState<DifficultyLevel>(DifficultyLevel.MEDIUM);
+  const [primaryTech, setPrimaryTech] = useState<string>('');
   const [totalPoints, setTotalPoints] = useState(100);
   const [topics, setTopics] = useState<string[]>([]);
   const [topicInput, setTopicInput] = useState('');
@@ -271,6 +273,7 @@ const AdminAssignmentForm: React.FC = () => {
       setInstructions(a.instructions || '');
       setType(a.type);
       setDifficulty(a.difficulty);
+      setPrimaryTech((a as any).primaryTech || '');
       setTotalPoints(a.totalPoints);
       setTopics(a.topics);
 
@@ -355,6 +358,7 @@ const AdminAssignmentForm: React.FC = () => {
         instructions,
         type,
         difficulty,
+        primaryTech: primaryTech || undefined,
         totalPoints,
         topics,
         // Course structure linking
@@ -812,6 +816,18 @@ const AdminAssignmentForm: React.FC = () => {
                   <option value="medium">🔥 Medium</option>
                   <option value="hard">💪 Hard</option>
                   <option value="expert">🏆 Expert</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Primary Language / Tech <span style={{ color: '#94a3b8', fontWeight: 400 }}>(for organizing & reuse)</span></label>
+                <select
+                  className="form-control"
+                  value={primaryTech}
+                  onChange={(e) => setPrimaryTech(e.target.value)}
+                >
+                  <option value="">— Select —</option>
+                  {TECH_CATEGORIES.map(t => <option key={t.value} value={t.value}>{t.icon} {t.label}</option>)}
                 </select>
               </div>
 

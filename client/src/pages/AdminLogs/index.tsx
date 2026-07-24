@@ -25,7 +25,16 @@ function levelBadge(level: Level) {
 }
 
 const AdminLogs: React.FC = () => {
-  const [tab,          setTab]          = useState<'server' | 'client'>('server');
+  const [tab,          setTab]          = useState<'server' | 'client' | 'activity'>('server');
+  // Student Activity tab
+  const [actStudents,  setActStudents]  = useState<any[]>([]);
+  const [actSearch,    setActSearch]    = useState('');
+  const [actStudent,   setActStudent]   = useState<any | null>(null);
+  const [actRows,      setActRows]      = useState<any[]>([]);
+  const [actModule,    setActModule]    = useState('');
+  const [actStatus,    setActStatus]    = useState('');
+  const [actLoading,   setActLoading]   = useState(false);
+  const [expandedAct,  setExpandedAct]  = useState<number | null>(null);
   const [serverLines,  setServerLines]  = useState<ServerLine[]>([]);
   const [rawLines,     setRawLines]     = useState<ServerLine[]>([]);
   const [loading,      setLoading]      = useState(false);
@@ -55,6 +64,35 @@ const AdminLogs: React.FC = () => {
   }, [logType]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  // ── Student Activity ──
+  const authHeaders = () => {
+    const token = localStorage.getItem('token');
+    const tenantId = localStorage.getItem('tenantId');
+    return { Authorization: `Bearer ${token}`, 'X-Tenant-Id': tenantId || '' };
+  };
+  const searchStudents = useCallback(async (s: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/activity/students?search=${encodeURIComponent(s)}`, { headers: authHeaders() });
+      const data = await res.json();
+      setActStudents(data.data || []);
+    } catch { setActStudents([]); }
+  }, []);
+  const fetchActivity = useCallback(async () => {
+    if (!actStudent) { setActRows([]); return; }
+    setActLoading(true);
+    try {
+      const p = new URLSearchParams({ studentId: actStudent._id, limit: '300' });
+      if (actModule) p.append('module', actModule);
+      if (actStatus) p.append('status', actStatus);
+      const res = await fetch(`${API_BASE}/activity?${p.toString()}`, { headers: authHeaders() });
+      const data = await res.json();
+      setActRows(data.data || []);
+    } catch { setActRows([]); }
+    setActLoading(false);
+  }, [actStudent, actModule, actStatus]);
+  useEffect(() => { if (tab === 'activity') searchStudents(actSearch); /* eslint-disable-next-line */ }, [tab]);
+  useEffect(() => { fetchActivity(); }, [fetchActivity]);
 
   // Auto-refresh every 10 seconds
   useEffect(() => {
@@ -124,10 +162,10 @@ const AdminLogs: React.FC = () => {
 
       {/* Tabs */}
       <div className="d-flex gap-2 mb-3">
-        {(['server', 'client'] as const).map(t => (
+        {(['server', 'client', 'activity'] as const).map(t => (
           <button key={t} onClick={() => setTab(t)}
-            className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-outline-secondary'}`}
-            style={{ textTransform: 'capitalize' }}>{t === 'server' ? '🖥 Server Logs' : '🌐 Client Errors'}</button>
+            className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-outline-secondary'}`}>
+            {t === 'server' ? '🖥 Server Logs' : t === 'client' ? '🌐 Client Errors' : '👤 Student Activity'}</button>
         ))}
       </div>
 
@@ -289,6 +327,117 @@ const AdminLogs: React.FC = () => {
             )}
           </div>
         </>
+      )}
+
+      {tab === 'activity' && (
+        <div className="row g-3">
+          {/* Student picker */}
+          <div className="col-12 col-md-4">
+            <div className="card border-0 shadow-sm" style={{ borderRadius: 12 }}>
+              <div className="card-body p-3">
+                <label className="form-label small fw-semibold mb-1">Find student</label>
+                <input className="form-control form-control-sm mb-2" placeholder="name or email…"
+                  value={actSearch}
+                  onChange={e => { setActSearch(e.target.value); searchStudents(e.target.value); }} />
+                <div style={{ maxHeight: 520, overflowY: 'auto' }}>
+                  {actStudents.length === 0 ? (
+                    <div className="text-muted small py-3 text-center">No students</div>
+                  ) : actStudents.map(s => (
+                    <button key={s._id}
+                      onClick={() => setActStudent(s)}
+                      className={`btn btn-sm w-100 text-start mb-1 ${actStudent?._id === s._id ? 'btn-primary' : 'btn-light'}`}
+                      style={{ borderRadius: 8 }}>
+                      <div style={{ fontWeight: 600 }}>{s.firstName} {s.lastName}</div>
+                      <div style={{ fontSize: 11, opacity: 0.8 }}>{s.email}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Timeline */}
+          <div className="col-12 col-md-8">
+            {!actStudent ? (
+              <div className="card border-0 shadow-sm" style={{ borderRadius: 12 }}>
+                <div className="text-center py-5 text-muted">
+                  <div style={{ fontSize: 32, marginBottom: 8 }}>👈</div>
+                  Pick a student to see their recent activity &amp; errors.
+                </div>
+              </div>
+            ) : (
+              <>
+                <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 12 }}>
+                  <div className="card-body p-3 d-flex gap-2 align-items-end flex-wrap">
+                    <div>
+                      <div style={{ fontWeight: 700 }}>{actStudent.firstName} {actStudent.lastName}</div>
+                      <div className="text-muted" style={{ fontSize: 12 }}>{actStudent.email}</div>
+                    </div>
+                    <div className="ms-auto d-flex gap-2">
+                      <select className="form-select form-select-sm" style={{ width: 150 }} value={actModule} onChange={e => setActModule(e.target.value)}>
+                        <option value="">All modules</option>
+                        {['assignment', 'quiz', 'interview', 'lab', 'attendance', 'playground', 'auth', 'client', 'other'].map(m => <option key={m} value={m}>{m}</option>)}
+                      </select>
+                      <select className="form-select form-select-sm" style={{ width: 130 }} value={actStatus} onChange={e => setActStatus(e.target.value)}>
+                        <option value="">All events</option>
+                        <option value="errors">Errors only</option>
+                      </select>
+                      <button className="btn btn-outline-primary btn-sm" onClick={fetchActivity}>↻</button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card border-0 shadow-sm" style={{ borderRadius: 12, overflow: 'hidden' }}>
+                  {actLoading ? (
+                    <div className="text-center py-5 text-muted"><span className="spinner-border spinner-border-sm me-2" />Loading…</div>
+                  ) : actRows.length === 0 ? (
+                    <div className="text-center py-5 text-muted">No recorded activity for this student in the last 90 days.</div>
+                  ) : (
+                    <div style={{ maxHeight: 560, overflowY: 'auto' }}>
+                      <table className="table table-sm mb-0" style={{ fontSize: 12.5 }}>
+                        <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
+                          <tr>
+                            <th style={{ width: 150, color: '#64748b' }}>Time</th>
+                            <th style={{ width: 90, color: '#64748b' }}>Module</th>
+                            <th style={{ color: '#64748b' }}>Action</th>
+                            <th style={{ width: 70, color: '#64748b' }}>Status</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {actRows.map((r, i) => {
+                            const isErr = r.status >= 400;
+                            return (
+                              <React.Fragment key={i}>
+                                <tr style={{ background: isErr ? '#fff8f8' : 'transparent', cursor: r.errorMessage || r.meta ? 'pointer' : 'default' }}
+                                  onClick={() => setExpandedAct(expandedAct === i ? null : i)}>
+                                  <td style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: 11 }}>
+                                    {new Date(r.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })}
+                                  </td>
+                                  <td><span style={{ background: '#eef2f7', color: '#334155', borderRadius: 6, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>{r.module}</span></td>
+                                  <td style={{ color: '#0f172a' }}>{r.source === 'client' ? '🌐 ' : ''}{r.action}{r.errorMessage && <span style={{ color: '#dc2626', marginLeft: 6 }}>— {r.errorMessage.slice(0, 80)}</span>}</td>
+                                  <td><span style={{ fontWeight: 700, fontFamily: 'monospace', color: isErr ? '#dc2626' : '#16a34a' }}>{r.status || '—'}</span></td>
+                                </tr>
+                                {expandedAct === i && (r.errorMessage || r.meta) && (
+                                  <tr>
+                                    <td colSpan={4} style={{ background: '#0f172a', color: '#e2e8f0', fontFamily: 'monospace', fontSize: 11, padding: 12 }}>
+                                      <div>{r.method} {r.route}</div>
+                                      {r.errorMessage && <div style={{ color: '#fca5a5', marginTop: 6 }}>{r.errorMessage}</div>}
+                                      {r.meta && <pre style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap', color: '#94a3b8' }}>{JSON.stringify(r.meta, null, 2)}</pre>}
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </div>
+        </div>
       )}
     </div>
   );

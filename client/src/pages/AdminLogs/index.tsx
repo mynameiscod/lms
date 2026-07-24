@@ -1,444 +1,472 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { getClientErrors, clearClientErrors, ClientError } from '../../utils/errorStore';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { getClientErrors, ClientError } from '../../utils/errorStore';
+import './AdminLogs.css';
 
 const API_BASE = process.env.REACT_APP_API_URL || '/api/v1';
 
-type Level = 'ALL' | 'ERROR' | 'WARN' | 'INFO';
+type Kind = 'ERROR' | 'WARN' | 'SUCCESS' | 'INFO';
+type LogType = 'server' | 'client' | 'activity';
 
-interface ServerLine { raw: string; level: Level; ts: string; msg: string }
+interface LogRow {
+  id: string;
+  ts: string;
+  kind: Kind;
+  method?: string;
+  endpoint?: string;
+  status?: number;
+  ms?: number;
+  ip?: string;
+  user?: string;
+  module?: string;
+  message?: string;
+  detail: Record<string, any>;
+}
 
-function parseServerLine(line: string): ServerLine {
-  const tsMatch  = line.match(/\[(\d{4}-\d{2}-\d{2}T[\d:.Z]+)\]/);
-  const lvlMatch = line.match(/\[(ERROR|WARN|INFO)\]/);
+/* ── parsing helpers ── */
+function parseServer(raw: string) {
+  const tsMatch = raw.match(/\[(\d{4}-\d{2}-\d{2}T[\d:.Z]+)\]/);
+  const lvlMatch = raw.match(/\[(ERROR|WARN|INFO)\]/);
+  const level = (lvlMatch?.[1] as 'ERROR' | 'WARN' | 'INFO') || 'INFO';
+  const after = raw.replace(/^\[.*?\]\s*\[.*?\]\s*/, '');
+  const req = after.match(/^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD)\s+(\S+)\s+→\s+(\d+)\s+\((\d+)ms\)/);
+  let meta: any = null;
+  const brace = after.indexOf('{');
+  if (brace >= 0) { try { meta = JSON.parse(after.slice(brace)); } catch { /* ignore */ } }
   return {
-    raw:   line,
-    ts:    tsMatch?.[1] || '',
-    level: (lvlMatch?.[1] as Level) || 'INFO',
-    msg:   line.replace(/^\[.*?\]\s*\[.*?\]\s*/, ''),
+    ts: tsMatch?.[1] || '',
+    level,
+    method: req?.[1],
+    endpoint: req?.[2],
+    status: req ? Number(req[3]) : undefined,
+    ms: req ? Number(req[4]) : undefined,
+    ip: meta?.ip,
+    tenant: meta?.tenant,
+    message: req ? undefined : after.slice(0, brace >= 0 ? brace : undefined).trim(),
+    meta,
   };
 }
 
-function levelBadge(level: Level) {
-  if (level === 'ERROR') return { bg: '#fef2f2', color: '#dc2626', border: '#fca5a5' };
-  if (level === 'WARN')  return { bg: '#fffbeb', color: '#d97706', border: '#fcd34d' };
-  return { bg: '#f0fdf4', color: '#16a34a', border: '#86efac' };
+function moduleFromPath(p = ''): string {
+  const s = p.toLowerCase();
+  if (s.includes('/auth') || s.includes('/login')) return 'Auth Service';
+  if (s.includes('/student')) return 'Student Service';
+  if (s.includes('/profile') || s.includes('/users')) return 'User Service';
+  if (s.includes('/announcement')) return 'Announcement';
+  if (s.includes('/interview')) return 'Interview';
+  if (s.includes('/quiz')) return 'Quiz';
+  if (s.includes('/assignment')) return 'Assignment';
+  if (s.includes('/attendance')) return 'Attendance';
+  if (s.includes('/communication') || s.includes('/thinking') || s.includes('/lab')) return 'Lab';
+  if (s.includes('/playground')) return 'Playground';
+  if (s.includes('/batch')) return 'Batch';
+  if (s.includes('/curriculum') || s.includes('/lesson')) return 'Curriculum';
+  if (s.includes('/lead') || s.includes('/crm')) return 'CRM';
+  if (s.includes('/enrollment') || s.includes('/plan')) return 'Enrollment';
+  return 'API';
 }
+
+const kindClass: Record<Kind, string> = { ERROR: 'b-error', WARN: 'b-warn', SUCCESS: 'b-success', INFO: 'b-info' };
+const kindLabel: Record<Kind, string> = { ERROR: 'ERROR', WARN: 'WARN', SUCCESS: 'SUCCESS', INFO: 'INFO' };
+function methodClass(m = '') {
+  const k = m.toUpperCase();
+  return k === 'GET' ? 'm-get' : k === 'POST' ? 'm-post' : k === 'PUT' ? 'm-put'
+    : k === 'DELETE' ? 'm-delete' : k === 'PATCH' ? 'm-patch' : 'm-other';
+}
+function rtClass(ms?: number) { return ms == null ? '' : ms < 200 ? 'alogs-rt-fast' : ms < 500 ? 'alogs-rt-mid' : 'alogs-rt-slow'; }
+const fmtTime = (ts: string) => {
+  if (!ts) return { date: '—', time: '' };
+  const d = new Date(ts);
+  return {
+    date: d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    time: d.toLocaleTimeString('en-IN', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+  };
+};
+
+/* Decorative sparkline */
+const Sparkline: React.FC<{ color: string; seed: number[] }> = ({ color, seed }) => {
+  const w = 92, h = 46, max = Math.max(...seed, 1);
+  const pts = seed.map((v, i) => `${(i / (seed.length - 1)) * w},${h - (v / max) * (h - 6) - 3}`).join(' ');
+  return (
+    <svg className="alogs-spark" viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+};
+
+const authHeaders = () => {
+  const token = localStorage.getItem('token');
+  const tenantId = localStorage.getItem('tenantId');
+  return { Authorization: `Bearer ${token}`, 'X-Tenant-Id': tenantId || '' };
+};
 
 const AdminLogs: React.FC = () => {
-  const [tab,          setTab]          = useState<'server' | 'client' | 'activity'>('server');
-  // Student Activity tab
-  const [actStudents,  setActStudents]  = useState<any[]>([]);
-  const [actSearch,    setActSearch]    = useState('');
-  const [actStudent,   setActStudent]   = useState<any | null>(null);
-  const [actRows,      setActRows]      = useState<any[]>([]);
-  const [actModule,    setActModule]    = useState('');
-  const [actStatus,    setActStatus]    = useState('');
-  const [actLoading,   setActLoading]   = useState(false);
-  const [expandedAct,  setExpandedAct]  = useState<number | null>(null);
-  const [serverLines,  setServerLines]  = useState<ServerLine[]>([]);
-  const [rawLines,     setRawLines]     = useState<ServerLine[]>([]);
-  const [loading,      setLoading]      = useState(false);
-  const [logType,      setLogType]      = useState<'errors' | 'all'>('errors');
-  const [levelFilter,  setLevelFilter]  = useState<Level>('ALL');
-  const [search,       setSearch]       = useState('');
-  const [totalLines,   setTotalLines]   = useState(0);
-  const [clientErrors, setClientErrors] = useState<ClientError[]>(getClientErrors());
-  const [clientSearch, setClientSearch] = useState('');
-  const [clientLevel,  setClientLevel]  = useState<'ALL' | '4xx' | '5xx'>('ALL');
-  const [autoRefresh,  setAutoRefresh]  = useState(false);
+  const [logType, setLogType] = useState<LogType>('server');
+  const [loading, setLoading] = useState(false);
+  const [autoRefresh, setAutoRefresh] = useState(false);
+  const [rangePreset, setRangePreset] = useState<'today' | '7d' | '30d' | 'all'>('7d');
 
-  const fetchLogs = useCallback(async () => {
+  // raw datasets
+  const [serverRaw, setServerRaw] = useState<string[]>([]);
+  const [clientErrors] = useState<ClientError[]>(getClientErrors());
+  const [actRows, setActRows] = useState<any[]>([]);
+
+  // filters
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'ALL' | Kind>('ALL');
+  const [methodFilter, setMethodFilter] = useState('');
+  const [moduleFilter, setModuleFilter] = useState('');
+  const [userFilter, setUserFilter] = useState('');
+
+  // table
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [selected, setSelected] = useState<LogRow | null>(null);
+
+  /* ── fetching ── */
+  const fetchServer = useCallback(async () => {
     setLoading(true);
     try {
-      const token    = localStorage.getItem('token');
-      const tenantId = localStorage.getItem('tenantId');
-      const res = await fetch(`${API_BASE}/admin/logs?type=${logType}&lines=500`, {
-        headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': tenantId || '' },
-      });
+      const res = await fetch(`${API_BASE}/admin/logs?type=all&lines=500`, { headers: authHeaders() });
       const data = await res.json();
-      const parsed = (data.lines || []).map(parseServerLine);
-      setRawLines(parsed);
-      setTotalLines(data.total || 0);
-    } catch { }
+      setServerRaw(data.lines || []);
+    } catch { /* ignore */ }
     setLoading(false);
-  }, [logType]);
-
-  useEffect(() => { fetchLogs(); }, [fetchLogs]);
-
-  // ── Student Activity ──
-  const authHeaders = () => {
-    const token = localStorage.getItem('token');
-    const tenantId = localStorage.getItem('tenantId');
-    return { Authorization: `Bearer ${token}`, 'X-Tenant-Id': tenantId || '' };
-  };
-  const searchStudents = useCallback(async (s: string) => {
-    try {
-      const res = await fetch(`${API_BASE}/activity/students?search=${encodeURIComponent(s)}`, { headers: authHeaders() });
-      const data = await res.json();
-      setActStudents(data.data || []);
-    } catch { setActStudents([]); }
   }, []);
+
   const fetchActivity = useCallback(async () => {
-    if (!actStudent) { setActRows([]); return; }
-    setActLoading(true);
+    setLoading(true);
     try {
-      const p = new URLSearchParams({ studentId: actStudent._id, limit: '300' });
-      if (actModule) p.append('module', actModule);
-      if (actStatus) p.append('status', actStatus);
-      const res = await fetch(`${API_BASE}/activity?${p.toString()}`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/activity?limit=300`, { headers: authHeaders() });
       const data = await res.json();
       setActRows(data.data || []);
     } catch { setActRows([]); }
-    setActLoading(false);
-  }, [actStudent, actModule, actStatus]);
-  useEffect(() => { if (tab === 'activity') searchStudents(actSearch); /* eslint-disable-next-line */ }, [tab]);
-  useEffect(() => { fetchActivity(); }, [fetchActivity]);
+    setLoading(false);
+  }, []);
 
-  // Auto-refresh every 10 seconds
+  useEffect(() => { fetchServer(); }, [fetchServer]);
+  useEffect(() => { if (logType === 'activity') fetchActivity(); }, [logType, fetchActivity]);
+
   useEffect(() => {
     if (!autoRefresh) return;
-    const iv = setInterval(fetchLogs, 10_000);
+    const iv = setInterval(() => { logType === 'activity' ? fetchActivity() : fetchServer(); }, 10_000);
     return () => clearInterval(iv);
-  }, [autoRefresh, fetchLogs]);
+  }, [autoRefresh, logType, fetchServer, fetchActivity]);
 
-  // Apply filters
-  useEffect(() => {
-    let filtered = rawLines;
-    if (levelFilter !== 'ALL') filtered = filtered.filter(l => l.level === levelFilter);
-    if (search.trim())         filtered = filtered.filter(l => l.raw.toLowerCase().includes(search.toLowerCase()));
-    setServerLines(filtered);
-  }, [rawLines, levelFilter, search]);
+  // reset paging/selection when the view changes
+  useEffect(() => { setPage(1); setSelected(null); }, [logType, search, statusFilter, methodFilter, moduleFilter, userFilter, rangePreset]);
 
-  const filteredClient = clientErrors.filter(e => {
-    const matchLevel = clientLevel === 'ALL' ? true : clientLevel === '5xx' ? e.status >= 500 : e.status >= 400 && e.status < 500;
-    const matchSearch = !clientSearch.trim() || `${e.url} ${e.message}`.toLowerCase().includes(clientSearch.toLowerCase());
-    return matchLevel && matchSearch;
-  });
+  /* ── map raw → unified rows ── */
+  const allRows: LogRow[] = useMemo(() => {
+    if (logType === 'server') {
+      return serverRaw.map((raw, i) => {
+        const p = parseServer(raw);
+        const kind: Kind = p.level === 'ERROR' ? 'ERROR' : p.level === 'WARN' ? 'WARN'
+          : (p.status != null && p.status < 400) ? 'SUCCESS' : 'INFO';
+        return {
+          id: `s${i}`, ts: p.ts, kind, method: p.method, endpoint: p.endpoint, status: p.status, ms: p.ms,
+          ip: p.ip, user: '—', module: p.endpoint ? moduleFromPath(p.endpoint) : 'System',
+          message: p.message,
+          detail: { method: p.method, endpoint: p.endpoint, status: p.status, responseTime: p.ms, ip: p.ip, tenant: p.tenant, message: p.message, request: p.meta?.reqBody, response: p.meta?.response },
+        };
+      });
+    }
+    if (logType === 'client') {
+      return clientErrors.map((e, i) => {
+        const kind: Kind = e.status >= 500 ? 'ERROR' : e.status >= 400 ? 'WARN' : 'INFO';
+        return {
+          id: `c${i}`, ts: e.ts, kind, method: e.method, endpoint: e.url, status: e.status,
+          ip: '—', user: '—', module: 'Client', message: e.message,
+          detail: { method: e.method, endpoint: e.url, status: e.status, error: e.message },
+        };
+      });
+    }
+    // activity
+    return actRows.map((r, i) => {
+      const kind: Kind = r.status >= 500 ? 'ERROR' : r.status >= 400 ? 'WARN' : 'SUCCESS';
+      const u = r.userId && typeof r.userId === 'object';
+      const user = u ? (`${r.userId.firstName || ''} ${r.userId.lastName || ''}`.trim() || r.userId.email) : (r.userId || '—');
+      return {
+        id: `a${i}`, ts: r.createdAt, kind, method: r.method, endpoint: r.route, status: r.status,
+        ip: r.ip || '—', user: user || '—', module: r.module || 'other',
+        message: r.errorMessage || r.action,
+        detail: { user, email: u ? r.userId.email : undefined, action: r.action, method: r.method, endpoint: r.route, module: r.module, status: r.status, source: r.source, ip: r.ip, error: r.errorMessage, meta: r.meta },
+      };
+    });
+  }, [logType, serverRaw, clientErrors, actRows]);
 
-  const errorCount = rawLines.filter(l => l.level === 'ERROR').length;
-  const warnCount  = rawLines.filter(l => l.level === 'WARN').length;
+  /* ── derived filter option lists ── */
+  const moduleOptions = useMemo(() => Array.from(new Set(allRows.map(r => r.module).filter(Boolean))) as string[], [allRows]);
+  const userOptions = useMemo(() => Array.from(new Set(allRows.map(r => r.user).filter(u => u && u !== '—'))) as string[], [allRows]);
+
+  /* ── date range ── */
+  const rangeBounds = useMemo(() => {
+    if (rangePreset === 'all') return null;
+    const now = new Date();
+    const to = now.getTime();
+    const days = rangePreset === 'today' ? 1 : rangePreset === '7d' ? 7 : 30;
+    const from = new Date(now); from.setDate(now.getDate() - (days - 1)); from.setHours(0, 0, 0, 0);
+    return { from: from.getTime(), to };
+  }, [rangePreset]);
+
+  const rangeLabel = useMemo(() => {
+    if (!rangeBounds) return 'All time';
+    const f = new Date(rangeBounds.from), t = new Date(rangeBounds.to);
+    const o: Intl.DateTimeFormatOptions = { day: '2-digit', month: 'short' };
+    return `${f.toLocaleDateString('en-IN', o)} – ${t.toLocaleDateString('en-IN', { ...o, year: 'numeric' })}`;
+  }, [rangeBounds]);
+
+  /* ── apply filters ── */
+  const filtered = useMemo(() => allRows.filter(r => {
+    if (statusFilter !== 'ALL' && r.kind !== statusFilter) return false;
+    if (methodFilter && (r.method || '').toUpperCase() !== methodFilter) return false;
+    if (moduleFilter && r.module !== moduleFilter) return false;
+    if (userFilter && r.user !== userFilter) return false;
+    if (rangeBounds && r.ts) { const t = new Date(r.ts).getTime(); if (t < rangeBounds.from || t > rangeBounds.to) return false; }
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      const hay = `${r.endpoint || ''} ${r.method || ''} ${r.user || ''} ${r.module || ''} ${r.message || ''} ${r.ip || ''}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  }), [allRows, statusFilter, methodFilter, moduleFilter, userFilter, rangeBounds, search]);
+
+  /* ── stats (over the active log type, before paging) ── */
+  const stats = useMemo(() => {
+    const errors = allRows.filter(r => r.kind === 'ERROR').length;
+    const warnings = allRows.filter(r => r.kind === 'WARN').length;
+    const debug = allRows.filter(r => r.kind === 'INFO' || r.kind === 'SUCCESS').length;
+    return { total: allRows.length, errors, warnings, debug };
+  }, [allRows]);
+
+  /* ── pagination ── */
+  const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+  const pageRows = filtered.slice((page - 1) * perPage, page * perPage);
+  const startIdx = filtered.length === 0 ? 0 : (page - 1) * perPage + 1;
+  const endIdx = Math.min(page * perPage, filtered.length);
+
+  const clearFilters = () => { setSearch(''); setStatusFilter('ALL'); setMethodFilter(''); setModuleFilter(''); setUserFilter(''); setRangePreset('7d'); };
+
+  const exportLogs = () => {
+    const blob = new Blob([JSON.stringify(filtered, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `${logType}-logs-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const refreshNow = () => { logType === 'activity' ? fetchActivity() : fetchServer(); };
+
+  const statCards = [
+    { label: 'Total Logs', value: stats.total, sub: 'Total requests', color: '#2563eb', bg: 'linear-gradient(135deg,#eff6ff,#f8fbff)' },
+    { label: 'Errors', value: stats.errors, sub: 'Failed requests', color: '#dc2626', bg: 'linear-gradient(135deg,#fef2f2,#fff7f7)' },
+    { label: 'Warnings', value: stats.warnings, sub: 'Warnings', color: '#d97706', bg: 'linear-gradient(135deg,#fffbeb,#fffdf5)' },
+    { label: 'Debug Logs', value: stats.debug, sub: 'Debug entries', color: '#7c3aed', bg: 'linear-gradient(135deg,#faf5ff,#fdfbff)' },
+  ];
+  const sparkSeeds = [[3, 5, 4, 7, 6, 9, 8], [2, 6, 4, 8, 5, 9, 7], [4, 3, 6, 5, 8, 6, 9], [3, 7, 5, 8, 6, 9, 7]];
+
+  const seg: [LogType, string, string][] = [
+    ['server', '🖥️', 'Server Logs'], ['client', '🌐', 'Client Logs'], ['activity', '🎓', 'Student Activity Logs'],
+  ];
+  const quickChips: [string, string, 'ALL' | Kind][] = [
+    ['📡', 'Live Logs', 'ALL'], ['⚠️', 'Error Logs', 'ERROR'], ['🔥', 'Warn Logs', 'WARN'], ['🐞', 'Debug Logs', 'INFO'],
+  ];
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1200, width: '100%' }}>
+    <div className="alogs">
+      {/* Breadcrumb */}
+      <div className="alogs-crumb">System <span className="sep">/</span> <b>API Logs</b></div>
 
       {/* Header */}
-      <div className="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+      <div className="alogs-head">
         <div>
-          <h4 className="mb-0 fw-bold">🪲 API Logs</h4>
-          <p className="text-muted mb-0" style={{ fontSize: 13 }}>
-            Monitor server-side errors and client API failures
-          </p>
+          <h1>API Logs</h1>
+          <p>Monitor and track all API requests and system activities in real-time.</p>
         </div>
-        <div className="d-flex gap-2 align-items-center flex-wrap">
-          <div className="form-check form-switch mb-0 me-1">
-            <input className="form-check-input" type="checkbox" id="autoRefresh"
-              checked={autoRefresh} onChange={e => setAutoRefresh(e.target.checked)} />
-            <label className="form-check-label small text-muted" htmlFor="autoRefresh">Auto-refresh 10s</label>
+        <div className="alogs-head-right">
+          <div className="alogs-switch" onClick={() => setAutoRefresh(a => !a)}>
+            Auto Refresh
+            <span className={`alogs-toggle ${autoRefresh ? 'on' : ''}`} />
           </div>
-          <button className="btn btn-outline-primary btn-sm" onClick={fetchLogs} disabled={loading}>
-            {loading ? <span className="spinner-border spinner-border-sm me-1" /> : '↻'} Refresh
-          </button>
+          <div className="alogs-pill">
+            <select value={rangePreset} onChange={e => setRangePreset(e.target.value as any)}>
+              <option value="today">Today</option>
+              <option value="7d">Last 7 days</option>
+              <option value="30d">Last 30 days</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+          <div className="alogs-pill">📅 {rangeLabel}</div>
         </div>
       </div>
 
-      {/* Summary cards */}
-      <div className="row g-3 mb-4">
-        {[
-          { label: 'Total Lines', value: totalLines, color: '#1e40af', bg: '#eff6ff' },
-          { label: 'Errors', value: errorCount, color: '#dc2626', bg: '#fef2f2' },
-          { label: 'Warnings', value: warnCount, color: '#d97706', bg: '#fffbeb' },
-          { label: 'Client Errors', value: clientErrors.length, color: '#7c3aed', bg: '#faf5ff' },
-        ].map(s => (
-          <div key={s.label} className="col-6 col-md-3">
-            <div className="card border-0 shadow-sm h-100" style={{ borderRadius: 12, background: s.bg }}>
-              <div className="card-body py-3">
-                <div style={{ fontWeight: 800, fontSize: 26, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>{s.label}</div>
-              </div>
+      {/* Stat cards */}
+      <div className="alogs-stats">
+        {statCards.map((c, i) => (
+          <div className="alogs-stat" key={c.label} style={{ background: c.bg }}>
+            <div>
+              <div className="alogs-stat-label" style={{ color: c.color }}>{c.label}</div>
+              <div className="alogs-stat-value">{c.value}</div>
+              <div className="alogs-stat-sub">{c.sub}</div>
             </div>
+            <Sparkline color={c.color} seed={sparkSeeds[i]} />
           </div>
         ))}
       </div>
 
-      {/* Tabs */}
-      <div className="d-flex gap-2 mb-3">
-        {(['server', 'client', 'activity'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            className={`btn btn-sm ${tab === t ? 'btn-primary' : 'btn-outline-secondary'}`}>
-            {t === 'server' ? '🖥 Server Logs' : t === 'client' ? '🌐 Client Errors' : '👤 Student Activity'}</button>
-        ))}
+      {/* Log Type + filters */}
+      <div className="alogs-card alogs-filtercard hl">
+        <div className="alogs-fc-label">Log Type</div>
+        <div className="alogs-seg">
+          {seg.map(([t, ico, lbl]) => (
+            <button key={t} className={logType === t ? 'active' : ''} onClick={() => setLogType(t)}>{ico} {lbl}</button>
+          ))}
+        </div>
+        <div className="alogs-filters">
+          <div className="alogs-search">
+            <span>🔍</span>
+            <input placeholder="Search by email, endpoint, method..." value={search} onChange={e => setSearch(e.target.value)} />
+          </div>
+          <select className="alogs-select" value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)}>
+            <option value="ALL">All Status</option>
+            <option value="ERROR">Error</option>
+            <option value="WARN">Warning</option>
+            <option value="SUCCESS">Success</option>
+            <option value="INFO">Info</option>
+          </select>
+          <select className="alogs-select" value={methodFilter} onChange={e => setMethodFilter(e.target.value)}>
+            <option value="">All Methods</option>
+            {['GET', 'POST', 'PUT', 'PATCH', 'DELETE'].map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <select className="alogs-select" value={moduleFilter} onChange={e => setModuleFilter(e.target.value)}>
+            <option value="">All Modules</option>
+            {moduleOptions.map(m => <option key={m} value={m}>{m}</option>)}
+          </select>
+          <select className="alogs-select" value={userFilter} onChange={e => setUserFilter(e.target.value)} disabled={userOptions.length === 0}>
+            <option value="">All Users</option>
+            {userOptions.map(u => <option key={u} value={u}>{u}</option>)}
+          </select>
+          <button className="alogs-ghost" onClick={() => setRangePreset(p => p === 'all' ? '7d' : 'all')}>📅 {rangePreset === 'all' ? 'Set Range' : 'Custom Range'}</button>
+          <button className="alogs-ghost" onClick={clearFilters}>↺ Clear Filters</button>
+        </div>
       </div>
 
-      {tab === 'server' && (
-        <>
-          {/* Server Filters */}
-          <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 12 }}>
-            <div className="card-body p-3">
-              <div className="row g-2 align-items-end">
-                <div className="col-12 col-md-4">
-                  <label className="form-label small fw-semibold mb-1">Search</label>
-                  <input className="form-control form-control-sm" placeholder="endpoint, error message…"
-                    value={search} onChange={e => setSearch(e.target.value)} />
-                </div>
-                <div className="col-6 col-md-3">
-                  <label className="form-label small fw-semibold mb-1">Level</label>
-                  <select className="form-select form-select-sm" value={levelFilter}
-                    onChange={e => setLevelFilter(e.target.value as Level)}>
-                    <option value="ALL">All Levels</option>
-                    <option value="ERROR">Errors only</option>
-                    <option value="WARN">Warnings only</option>
-                    <option value="INFO">Info only</option>
-                  </select>
-                </div>
-                <div className="col-6 col-md-3">
-                  <label className="form-label small fw-semibold mb-1">Log File</label>
-                  <select className="form-select form-select-sm" value={logType}
-                    onChange={e => { setLogType(e.target.value as any); }}>
-                    <option value="errors">Errors + Warnings</option>
-                    <option value="all">All Requests</option>
-                  </select>
-                </div>
-                <div className="col-12 col-md-2 d-flex align-items-end">
-                  <span className="text-muted small">{serverLines.length} / {rawLines.length} lines</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Server Log Table */}
-          <div className="card border-0 shadow-sm" style={{ borderRadius: 12, overflow: 'hidden' }}>
-            {loading ? (
-              <div className="text-center py-5 text-muted">
-                <span className="spinner-border spinner-border-sm me-2" />Loading logs…
-              </div>
-            ) : serverLines.length === 0 ? (
-              <div className="text-center py-5 text-muted">
-                <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
-                No log entries found. Logs are written once APIs are called.
-                <br /><small>File path on VPS: <code>/app/logs/api-errors.log</code></small>
-              </div>
-            ) : (
-              <div style={{ maxHeight: 600, overflowY: 'auto' }}>
-                <table className="table table-sm mb-0" style={{ fontSize: 12, fontFamily: 'monospace' }}>
-                  <thead style={{ background: '#f8fafc', position: 'sticky', top: 0, zIndex: 1 }}>
-                    <tr>
-                      <th style={{ width: 180, color: '#64748b', fontWeight: 600 }}>Time</th>
-                      <th style={{ width: 80, color: '#64748b', fontWeight: 600 }}>Level</th>
-                      <th style={{ color: '#64748b', fontWeight: 600 }}>Message</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {serverLines.map((l, i) => {
-                      const badge = levelBadge(l.level);
-                      return (
-                        <tr key={i} style={{ background: l.level === 'ERROR' ? '#fff8f8' : 'transparent' }}>
-                          <td style={{ color: '#94a3b8', verticalAlign: 'top', paddingTop: 8 }}>
-                            {l.ts ? new Date(l.ts).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false }) : '—'}
-                          </td>
-                          <td style={{ verticalAlign: 'top', paddingTop: 8 }}>
-                            <span style={{ background: badge.bg, color: badge.color, border: `1px solid ${badge.border}`, borderRadius: 4, padding: '1px 6px', fontSize: 10, fontWeight: 700 }}>
-                              {l.level}
-                            </span>
-                          </td>
-                          <td style={{ color: '#0f172a', wordBreak: 'break-all', lineHeight: 1.6, paddingTop: 6 }}>
-                            {l.msg}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {tab === 'client' && (
-        <>
-          {/* Client Filters */}
-          <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 12 }}>
-            <div className="card-body p-3">
-              <div className="row g-2 align-items-end">
-                <div className="col-12 col-md-5">
-                  <label className="form-label small fw-semibold mb-1">Search</label>
-                  <input className="form-control form-control-sm" placeholder="URL or error message…"
-                    value={clientSearch} onChange={e => setClientSearch(e.target.value)} />
-                </div>
-                <div className="col-6 col-md-3">
-                  <label className="form-label small fw-semibold mb-1">Status</label>
-                  <select className="form-select form-select-sm" value={clientLevel}
-                    onChange={e => setClientLevel(e.target.value as any)}>
-                    <option value="ALL">All</option>
-                    <option value="5xx">5xx Server Errors</option>
-                    <option value="4xx">4xx Client Errors</option>
-                  </select>
-                </div>
-                <div className="col-6 col-md-4 d-flex gap-2 align-items-end">
-                  <span className="text-muted small">{filteredClient.length} errors</span>
-                  {clientErrors.length > 0 && (
-                    <button className="btn btn-outline-danger btn-sm ms-auto"
-                      onClick={() => { clearClientErrors(); setClientErrors([]); }}>
-                      Clear All
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="card border-0 shadow-sm" style={{ borderRadius: 12, overflow: 'hidden' }}>
-            {filteredClient.length === 0 ? (
-              <div className="text-center py-5 text-muted">
-                <div style={{ fontSize: 32, marginBottom: 8 }}>✅</div>
-                No client-side API errors recorded in this session.
-              </div>
-            ) : (
-              <div style={{ maxHeight: 600, overflowY: 'auto' }}>
-                <table className="table table-sm mb-0" style={{ fontSize: 12 }}>
-                  <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
-                    <tr>
-                      <th style={{ color: '#64748b', fontWeight: 600, width: 180 }}>Time</th>
-                      <th style={{ color: '#64748b', fontWeight: 600, width: 70 }}>Status</th>
-                      <th style={{ color: '#64748b', fontWeight: 600, width: 70 }}>Method</th>
-                      <th style={{ color: '#64748b', fontWeight: 600 }}>URL</th>
-                      <th style={{ color: '#64748b', fontWeight: 600 }}>Error</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredClient.map((e, i) => (
-                      <tr key={i} style={{ background: e.status >= 500 ? '#fff8f8' : 'transparent' }}>
-                        <td style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: 11 }}>
-                          {new Date(e.ts).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })}
-                        </td>
-                        <td>
-                          <span style={{ fontWeight: 700, color: e.status >= 500 ? '#dc2626' : '#d97706', fontFamily: 'monospace' }}>
-                            {e.status}
-                          </span>
-                        </td>
-                        <td style={{ color: '#475569', fontFamily: 'monospace', fontSize: 11 }}>{e.method}</td>
-                        <td style={{ color: '#1e40af', fontFamily: 'monospace', fontSize: 11, wordBreak: 'break-all' }}>{e.url}</td>
-                        <td style={{ color: '#ef4444', fontSize: 11 }}>{e.message}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {tab === 'activity' && (
-        <div className="row g-3">
-          {/* Student picker */}
-          <div className="col-12 col-md-4">
-            <div className="card border-0 shadow-sm" style={{ borderRadius: 12 }}>
-              <div className="card-body p-3">
-                <label className="form-label small fw-semibold mb-1">Find student</label>
-                <input className="form-control form-control-sm mb-2" placeholder="name or email…"
-                  value={actSearch}
-                  onChange={e => { setActSearch(e.target.value); searchStudents(e.target.value); }} />
-                <div style={{ maxHeight: 520, overflowY: 'auto' }}>
-                  {actStudents.length === 0 ? (
-                    <div className="text-muted small py-3 text-center">No students</div>
-                  ) : actStudents.map(s => (
-                    <button key={s._id}
-                      onClick={() => setActStudent(s)}
-                      className={`btn btn-sm w-100 text-start mb-1 ${actStudent?._id === s._id ? 'btn-primary' : 'btn-light'}`}
-                      style={{ borderRadius: 8 }}>
-                      <div style={{ fontWeight: 600 }}>{s.firstName} {s.lastName}</div>
-                      <div style={{ fontSize: 11, opacity: 0.8 }}>{s.email}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Timeline */}
-          <div className="col-12 col-md-8">
-            {!actStudent ? (
-              <div className="card border-0 shadow-sm" style={{ borderRadius: 12 }}>
-                <div className="text-center py-5 text-muted">
-                  <div style={{ fontSize: 32, marginBottom: 8 }}>👈</div>
-                  Pick a student to see their recent activity &amp; errors.
-                </div>
-              </div>
-            ) : (
-              <>
-                <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 12 }}>
-                  <div className="card-body p-3 d-flex gap-2 align-items-end flex-wrap">
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{actStudent.firstName} {actStudent.lastName}</div>
-                      <div className="text-muted" style={{ fontSize: 12 }}>{actStudent.email}</div>
-                    </div>
-                    <div className="ms-auto d-flex gap-2">
-                      <select className="form-select form-select-sm" style={{ width: 150 }} value={actModule} onChange={e => setActModule(e.target.value)}>
-                        <option value="">All modules</option>
-                        {['assignment', 'quiz', 'interview', 'lab', 'attendance', 'playground', 'auth', 'client', 'other'].map(m => <option key={m} value={m}>{m}</option>)}
-                      </select>
-                      <select className="form-select form-select-sm" style={{ width: 130 }} value={actStatus} onChange={e => setActStatus(e.target.value)}>
-                        <option value="">All events</option>
-                        <option value="errors">Errors only</option>
-                      </select>
-                      <button className="btn btn-outline-primary btn-sm" onClick={fetchActivity}>↻</button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="card border-0 shadow-sm" style={{ borderRadius: 12, overflow: 'hidden' }}>
-                  {actLoading ? (
-                    <div className="text-center py-5 text-muted"><span className="spinner-border spinner-border-sm me-2" />Loading…</div>
-                  ) : actRows.length === 0 ? (
-                    <div className="text-center py-5 text-muted">No recorded activity for this student in the last 90 days.</div>
-                  ) : (
-                    <div style={{ maxHeight: 560, overflowY: 'auto' }}>
-                      <table className="table table-sm mb-0" style={{ fontSize: 12.5 }}>
-                        <thead style={{ background: '#f8fafc', position: 'sticky', top: 0 }}>
-                          <tr>
-                            <th style={{ width: 150, color: '#64748b' }}>Time</th>
-                            <th style={{ width: 90, color: '#64748b' }}>Module</th>
-                            <th style={{ color: '#64748b' }}>Action</th>
-                            <th style={{ width: 70, color: '#64748b' }}>Status</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {actRows.map((r, i) => {
-                            const isErr = r.status >= 400;
-                            return (
-                              <React.Fragment key={i}>
-                                <tr style={{ background: isErr ? '#fff8f8' : 'transparent', cursor: r.errorMessage || r.meta ? 'pointer' : 'default' }}
-                                  onClick={() => setExpandedAct(expandedAct === i ? null : i)}>
-                                  <td style={{ color: '#94a3b8', fontFamily: 'monospace', fontSize: 11 }}>
-                                    {new Date(r.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', hour12: false })}
-                                  </td>
-                                  <td><span style={{ background: '#eef2f7', color: '#334155', borderRadius: 6, padding: '1px 7px', fontSize: 11, fontWeight: 600 }}>{r.module}</span></td>
-                                  <td style={{ color: '#0f172a' }}>{r.source === 'client' ? '🌐 ' : ''}{r.action}{r.errorMessage && <span style={{ color: '#dc2626', marginLeft: 6 }}>— {r.errorMessage.slice(0, 80)}</span>}</td>
-                                  <td><span style={{ fontWeight: 700, fontFamily: 'monospace', color: isErr ? '#dc2626' : '#16a34a' }}>{r.status || '—'}</span></td>
-                                </tr>
-                                {expandedAct === i && (r.errorMessage || r.meta) && (
-                                  <tr>
-                                    <td colSpan={4} style={{ background: '#0f172a', color: '#e2e8f0', fontFamily: 'monospace', fontSize: 11, padding: 12 }}>
-                                      <div>{r.method} {r.route}</div>
-                                      {r.errorMessage && <div style={{ color: '#fca5a5', marginTop: 6 }}>{r.errorMessage}</div>}
-                                      {r.meta && <pre style={{ margin: '6px 0 0', whiteSpace: 'pre-wrap', color: '#94a3b8' }}>{JSON.stringify(r.meta, null, 2)}</pre>}
-                                    </td>
-                                  </tr>
-                                )}
-                              </React.Fragment>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
+      {/* Action bar */}
+      <div className="alogs-actionbar">
+        <div className="alogs-actiongrp">
+          {quickChips.map(([ico, lbl, k]) => (
+            <button key={lbl} className={`alogs-chip ${statusFilter === k ? (k === 'ERROR' ? 'active b-error' : k === 'WARN' ? 'active b-warn' : k === 'INFO' ? 'active b-info' : 'solid-indigo') : ''}`}
+              style={statusFilter === k && k === 'ERROR' ? { background: '#dc2626' } : statusFilter === k && k === 'WARN' ? { background: '#d97706' } : statusFilter === k && k === 'INFO' ? { background: '#2563eb' } : undefined}
+              onClick={() => setStatusFilter(k)}>{ico} {lbl}</button>
+          ))}
         </div>
-      )}
+        <div className="alogs-actiongrp">
+          <button className="alogs-chip" onClick={exportLogs}>⬇️ Export Logs</button>
+          <button className="alogs-chip" onClick={refreshNow} disabled={loading}>{loading ? '⏳' : '⚙️'} Refresh</button>
+          <button className={`alogs-chip ${autoRefresh ? 'solid-indigo' : ''}`} onClick={() => setAutoRefresh(a => !a)}>📈 Request Monitor</button>
+        </div>
+      </div>
+
+      {/* Body: table + details */}
+      <div className="alogs-body">
+        <div className="alogs-card alogs-main">
+          <div className="alogs-main-head">
+            <h3>{logType === 'server' ? 'Live Logs' : logType === 'client' ? 'Client Errors' : 'Student Activity'}</h3>
+            <span className="alogs-live">Showing {filtered.length === 0 ? 'no' : `${startIdx}–${endIdx} of ${filtered.length}`} logs</span>
+          </div>
+          <div className="alogs-tablewrap">
+            <table className="alogs-table">
+              <thead>
+                <tr>
+                  <th>Time</th><th>Status</th><th>Method</th><th>Endpoint / URL</th>
+                  <th>User</th><th>Module</th><th>Response</th><th>IP Address</th><th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.length === 0 ? (
+                  <tr><td colSpan={9}>
+                    <div className="alogs-empty">
+                      <div className="ico">{loading ? '⏳' : '📭'}</div>
+                      {loading ? 'Loading logs…' : 'No log entries match the current filters.'}
+                    </div>
+                  </td></tr>
+                ) : pageRows.map(r => {
+                  const t = fmtTime(r.ts);
+                  return (
+                    <tr key={r.id} className={selected?.id === r.id ? 'sel' : ''} onClick={() => setSelected(r)}>
+                      <td><div className="alogs-time">{t.date}<small>{t.time}</small></div></td>
+                      <td><span className={`alogs-badge ${kindClass[r.kind]}`}>{kindLabel[r.kind]}</span></td>
+                      <td>{r.method ? <span className={`alogs-badge ${methodClass(r.method)}`}>{r.method}</span> : <span className="alogs-ip">—</span>}</td>
+                      <td><div className="alogs-endpoint" title={r.endpoint || r.message}>{r.endpoint || r.message || '—'}</div></td>
+                      <td style={{ fontSize: 12 }}>{r.user || '—'}</td>
+                      <td>{r.module ? <span className="alogs-module">{r.module}</span> : '—'}</td>
+                      <td className={rtClass(r.ms)}>{r.ms != null ? `${r.ms} ms` : '—'}</td>
+                      <td className="alogs-ip">{r.ip || '—'}</td>
+                      <td onClick={e => e.stopPropagation()}>
+                        <button className="alogs-rowbtn" title="View details" onClick={() => setSelected(r)}>👁️</button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {filtered.length > 0 && (
+            <div className="alogs-tablefoot">
+              <span className="muted">Showing {startIdx} to {endIdx} of {filtered.length} results</span>
+              <div className="alogs-pager">
+                <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))}>‹</button>
+                {Array.from({ length: totalPages }).slice(0, 6).map((_, i) => (
+                  <button key={i} className={page === i + 1 ? 'active' : ''} onClick={() => setPage(i + 1)}>{i + 1}</button>
+                ))}
+                <button disabled={page >= totalPages} onClick={() => setPage(p => Math.min(totalPages, p + 1))}>›</button>
+              </div>
+              <span className="muted">Rows per page
+                <select className="alogs-select" style={{ minWidth: 64, marginLeft: 8, padding: '5px 8px' }} value={perPage} onChange={e => { setPerPage(Number(e.target.value)); setPage(1); }}>
+                  {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
+                </select>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {/* Log Details */}
+        <div className="alogs-card alogs-detail">
+          <h3>Log Details</h3>
+          {!selected ? (
+            <div className="alogs-detail-empty">
+              <div className="ico">🔎</div>
+              <b>Select a log from the list</b>
+              <span>Click any log entry to see detailed information including request payload, response, headers and more.</span>
+            </div>
+          ) : (
+            <>
+              <div className="alogs-dl">
+                <div className="alogs-dl-row"><span className="k">Status</span><span className="v"><span className={`alogs-badge ${kindClass[selected.kind]}`}>{kindLabel[selected.kind]}{selected.status ? ` · ${selected.status}` : ''}</span></span></div>
+                <div className="alogs-dl-row"><span className="k">Time</span><span className="v">{fmtTime(selected.ts).date} {fmtTime(selected.ts).time}</span></div>
+                {selected.method && <div className="alogs-dl-row"><span className="k">Method</span><span className="v">{selected.method}</span></div>}
+                {selected.endpoint && <div className="alogs-dl-row"><span className="k">Endpoint</span><span className="v">{selected.endpoint}</span></div>}
+                {selected.user && selected.user !== '—' && <div className="alogs-dl-row"><span className="k">User</span><span className="v">{selected.user}</span></div>}
+                {selected.module && <div className="alogs-dl-row"><span className="k">Module</span><span className="v">{selected.module}</span></div>}
+                {selected.ms != null && <div className="alogs-dl-row"><span className="k">Response Time</span><span className="v">{selected.ms} ms</span></div>}
+                {selected.ip && selected.ip !== '—' && <div className="alogs-dl-row"><span className="k">IP Address</span><span className="v">{selected.ip}</span></div>}
+              </div>
+              {selected.detail.error && (
+                <div className="alogs-code"><div className="lbl">Error</div><pre style={{ background: '#450a0a', color: '#fecaca' }}>{String(selected.detail.error)}</pre></div>
+              )}
+              {selected.detail.request && (
+                <div className="alogs-code"><div className="lbl">Request Payload</div><pre>{JSON.stringify(selected.detail.request, null, 2)}</pre></div>
+              )}
+              {selected.detail.response && (
+                <div className="alogs-code"><div className="lbl">Response</div><pre>{JSON.stringify(selected.detail.response, null, 2)}</pre></div>
+              )}
+              {selected.detail.meta && (
+                <div className="alogs-code"><div className="lbl">Meta</div><pre>{JSON.stringify(selected.detail.meta, null, 2)}</pre></div>
+              )}
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

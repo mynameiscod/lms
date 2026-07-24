@@ -69,7 +69,11 @@ router.get('/', authMiddleware, tenantResolver, adminOnly, async (req: Authentic
       if (from) q.createdAt.$gte = new Date(String(from));
       if (to) { const t = new Date(String(to)); t.setHours(23, 59, 59, 999); q.createdAt.$lte = t; }
     }
-    const rows = await StudentActivityLog.find(q).sort({ createdAt: -1 }).limit(limit).lean();
+    const rows = await StudentActivityLog.find(q)
+      .populate('userId', 'firstName lastName email')
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .lean();
     res.json({ success: true, data: rows });
   } catch (err: any) { res.status(500).json({ success: false, message: err.message }); }
 });

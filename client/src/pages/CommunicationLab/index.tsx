@@ -350,7 +350,17 @@ const CommunicationLab: React.FC = () => {
       ) : !today ? (
         <div style={{ color: '#9ca3af', padding: 40, textAlign: 'center' }}>Loading today’s challenge…</div>
       ) : !today.challenge ? (
-        <div style={{ ...card, padding: 40, textAlign: 'center', color: '#9ca3af' }}>No challenge available yet. Please check back later.</div>
+        <div style={{ ...card, padding: 40, textAlign: 'center' }}>
+          {today.locked && today.window ? (
+            <>
+              <div style={{ fontSize: 32, marginBottom: 8 }}>{today.window.status === 'upcoming' ? '⏳' : '🔒'}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: '#0b2e63', marginBottom: 4 }}>{today.message || 'This challenge is not open right now.'}</div>
+              <div style={{ fontSize: 13, color: '#6b7280' }}>Available window: {today.window.startTime || '00:00'} – {today.window.endTime || '23:59'} IST</div>
+            </>
+          ) : (
+            <div style={{ color: '#9ca3af' }}>{today.message || 'No challenge available yet. Please check back later.'}</div>
+          )}
+        </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) 300px', gap: 20, alignItems: 'start' }} className="cl-daily">
           <div style={{ ...card, padding: 22 }}>

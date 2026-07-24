@@ -15,6 +15,8 @@ export interface CommChallenge {
 export interface CommToday {
   date: string; status: string; challenge: CommChallenge | null;
   currentStreak: number; longestStreak: number; lastScore: number | null; todaysAttemptId: string | null;
+  locked?: boolean; message?: string;
+  window?: { date: string; startTime: string | null; endTime: string | null; status: string } | null;
 }
 export interface CommProfile {
   fullName?: string; currentCity?: string; nativePlace?: string; degree?: string; specialization?: string; college?: string;
@@ -70,6 +72,9 @@ export const communicationApi = {
   updateChallenge: async (id: string, patch: any): Promise<CommChallenge> => (await axios.patch(`${BASE}/admin/challenges/${id}`, patch, { headers: authHeader() })).data.challenge,
   deleteChallenge: async (id: string) => { await axios.delete(`${BASE}/admin/challenges/${id}`, { headers: authHeader() }); },
   reorderChallenges: async (order: string[]) => { await axios.post(`${BASE}/admin/challenges/reorder`, { order }, { headers: authHeader() }); },
+  listSchedule: async (batchId?: string): Promise<{ schedule: any[] }> => (await axios.get(`${BASE}/admin/schedule${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
+  scheduleChallenge: async (data: { batchId: string; date: string; challengeId: string; startTime?: string; endTime?: string }): Promise<{ id: string }> => (await axios.post(`${BASE}/admin/schedule`, data, { headers: authHeader() })).data,
+  deleteSchedule: async (id: string): Promise<{ deleted: number }> => (await axios.delete(`${BASE}/admin/schedule/${id}`, { headers: authHeader() })).data,
   adminDashboard: async (date: string): Promise<any> => (await axios.get(`${BASE}/admin/dashboard?date=${date}`, { headers: authHeader() })).data,
   adminStudents: async (batchId?: string): Promise<{ students: any[] }> => (await axios.get(`${BASE}/admin/students${batchId ? `?batchId=${batchId}` : ''}`, { headers: authHeader() })).data,
   adminStudentDetail: async (studentId: string): Promise<any> => (await axios.get(`${BASE}/admin/students/${studentId}`, { headers: authHeader() })).data,

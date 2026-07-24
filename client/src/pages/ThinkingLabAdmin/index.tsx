@@ -26,7 +26,7 @@ const ThinkingLabAdmin: React.FC = () => {
   const [bulk, setBulk] = useState<{ category: string; difficulty: string; count: number }[]>([]);
   const [bulkBusy, setBulkBusy] = useState(false);
 
-  const [sched, setSched] = useState({ batchId: '', date: '', problemId: '' });
+  const [sched, setSched] = useState({ batchId: '', date: '', problemId: '', startTime: '', endTime: '' });
   const [schedList, setSchedList] = useState<any[]>([]);
 
   const loadProblems = async () => {
@@ -67,7 +67,8 @@ const ThinkingLabAdmin: React.FC = () => {
 
   const saveSchedule = async () => {
     if (!sched.batchId || !sched.date || !sched.problemId) { setMsg('Pick batch, date and problem to schedule'); return; }
-    try { await thinkingLabApi.scheduleChallenge(sched); setMsg('✅ Scheduled.'); setSched({ batchId: '', date: '', problemId: '' }); loadSchedule(); }
+    if (sched.startTime && sched.endTime && sched.endTime <= sched.startTime) { setMsg('End time must be after start time.'); return; }
+    try { await thinkingLabApi.scheduleChallenge(sched); setMsg('✅ Scheduled.'); setSched({ batchId: '', date: '', problemId: '', startTime: '', endTime: '' }); loadSchedule(); }
     catch (e: any) { setMsg(e?.response?.data?.message || 'Failed to schedule.'); }
   };
   const removeSchedule = async (id: string) => { await thinkingLabApi.deleteSchedule(id); loadSchedule(); };
@@ -122,13 +123,16 @@ const ThinkingLabAdmin: React.FC = () => {
           <label style={{ flex: 1, minWidth: 160 }}><span style={lbl}>Batch</span><select style={inp} value={sched.batchId} onChange={e => setSched({ ...sched, batchId: e.target.value })}><option value="">Select…</option>{batches.map(b => <option key={b._id} value={b._id}>{b.name}</option>)}</select></label>
           <label style={{ minWidth: 150 }}><span style={lbl}>Date</span><input style={inp} type="date" value={sched.date} onChange={e => setSched({ ...sched, date: e.target.value })} /></label>
           <label style={{ flex: 2, minWidth: 200 }}><span style={lbl}>Problem</span><select style={inp} value={sched.problemId} onChange={e => setSched({ ...sched, problemId: e.target.value })}><option value="">Select…</option>{problems.map(p => <option key={p.id} value={p.id}>{p.title} · {p.difficulty}</option>)}</select></label>
+          <label style={{ minWidth: 120 }}><span style={lbl}>Opens (IST)</span><input style={inp} type="time" value={sched.startTime} onChange={e => setSched({ ...sched, startTime: e.target.value })} /></label>
+          <label style={{ minWidth: 120 }}><span style={lbl}>Closes (IST)</span><input style={inp} type="time" value={sched.endTime} onChange={e => setSched({ ...sched, endTime: e.target.value })} /></label>
           <button onClick={saveSchedule} style={{ background: BLUE, color: '#fff', border: 'none', borderRadius: 9, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>Schedule</button>
         </div>
+        <div style={{ fontSize: 12, color: SUB, marginTop: 6 }}>Leave times empty for all-day availability. With a window set, students can only attempt between Opens and Closes (IST); missed ones will show in the weekly report.</div>
         {schedList.length > 0 && (
           <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
             {schedList.map(s => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#475569', background: '#f8fafc', borderRadius: 8, padding: '6px 10px' }}>
-                <b>{s.date}</b><span>· {batches.find(b => b._id === s.batchId)?.name || 'Batch'}</span><span>· {s.problem?.title || '—'}</span>
+                <b>{s.date}</b><span>· {batches.find(b => b._id === s.batchId)?.name || 'Batch'}</span><span>· {s.problem?.title || '—'}</span>{(s.startTime || s.endTime) && <span style={{ color: '#7c3aed', fontWeight: 700 }}>· 🕐 {s.startTime || '00:00'}–{s.endTime || '23:59'} IST</span>}
                 <button onClick={() => removeSchedule(s.id)} style={{ marginLeft: 'auto', border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer' }}>Remove</button>
               </div>
             ))}

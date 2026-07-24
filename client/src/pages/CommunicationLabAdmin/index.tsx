@@ -50,7 +50,20 @@ const CommunicationLabAdmin: React.FC = () => {
 
   useEffect(() => { if (tab === 'dashboard') communicationApi.adminDashboard(todayStr()).then(setDash).catch(() => {}); }, [tab]);
   const loadChallenges = useCallback(() => communicationApi.listChallenges().then(setChallenges).catch(() => {}), []);
-  useEffect(() => { if (tab === 'challenges') loadChallenges(); }, [tab, loadChallenges]);
+  // Per-batch scheduling with availability window
+  const [sched, setSched] = useState({ batchId: '', date: '', challengeId: '', startTime: '', endTime: '' });
+  const [schedList, setSchedList] = useState<any[]>([]);
+  const [schedMsg, setSchedMsg] = useState('');
+  const loadSchedule = useCallback(() => communicationApi.listSchedule().then((r) => setSchedList(r.schedule || [])).catch(() => {}), []);
+  const saveSchedule = async () => {
+    if (!sched.batchId || !sched.date || !sched.challengeId) { setSchedMsg('Pick batch, date and challenge.'); return; }
+    if (sched.startTime && sched.endTime && sched.endTime <= sched.startTime) { setSchedMsg('End time must be after start time.'); return; }
+    try { await communicationApi.scheduleChallenge(sched); setSchedMsg('✅ Scheduled.'); setSched({ batchId: '', date: '', challengeId: '', startTime: '', endTime: '' }); loadSchedule(); }
+    catch (e: any) { setSchedMsg(e?.response?.data?.message || 'Failed to schedule.'); }
+  };
+  const removeSchedule = async (id: string) => { await communicationApi.deleteSchedule(id); loadSchedule(); };
+  const schedInp: React.CSSProperties = { padding: '8px 10px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, background: '#fff', color: '#0f172a' };
+  useEffect(() => { if (tab === 'challenges') { loadChallenges(); loadSchedule(); } }, [tab, loadChallenges, loadSchedule]);
   const loadStudents = useCallback(() => communicationApi.adminStudents(batchFilter || undefined).then((r) => setStudents(r.students)).catch(() => {}), [batchFilter]);
   useEffect(() => { if (tab === 'students') loadStudents(); }, [tab, loadStudents]);
 
@@ -110,6 +123,35 @@ const CommunicationLabAdmin: React.FC = () => {
 
       {tab === 'challenges' && (
         <div>
+          {/* Per-batch schedule with availability window */}
+          <div style={{ ...card, padding: 16, marginBottom: 14 }}>
+            <div style={{ fontSize: 14, fontWeight: 800, color: '#0b2e63', marginBottom: 10 }}>📅 Schedule a challenge for a batch (with time window)</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+              <label style={{ flex: 1, minWidth: 150, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: '#475569' }}>Batch
+                <select value={sched.batchId} onChange={(e) => setSched({ ...sched, batchId: e.target.value })} style={schedInp}><option value="">Select…</option>{batches.map((b) => <option key={b._id} value={b._id}>{b.name}</option>)}</select></label>
+              <label style={{ minWidth: 140, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: '#475569' }}>Date
+                <input type="date" value={sched.date} onChange={(e) => setSched({ ...sched, date: e.target.value })} style={schedInp} /></label>
+              <label style={{ flex: 2, minWidth: 180, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: '#475569' }}>Challenge
+                <select value={sched.challengeId} onChange={(e) => setSched({ ...sched, challengeId: e.target.value })} style={schedInp}><option value="">Select…</option>{challenges.map((c) => <option key={c._id} value={c._id}>{c.title}</option>)}</select></label>
+              <label style={{ minWidth: 110, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: '#475569' }}>Opens (IST)
+                <input type="time" value={sched.startTime} onChange={(e) => setSched({ ...sched, startTime: e.target.value })} style={schedInp} /></label>
+              <label style={{ minWidth: 110, display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, fontWeight: 600, color: '#475569' }}>Closes (IST)
+                <input type="time" value={sched.endTime} onChange={(e) => setSched({ ...sched, endTime: e.target.value })} style={schedInp} /></label>
+              <button onClick={saveSchedule} style={{ background: '#1a5490', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 18px', fontWeight: 700, fontSize: 13.5, cursor: 'pointer' }}>Schedule</button>
+            </div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Leave times empty for all-day. With a window, students can only record between Opens and Closes (IST); missed ones show in the weekly report. {schedMsg && <b style={{ color: schedMsg.startsWith('✅') ? '#059669' : '#dc2626' }}>{schedMsg}</b>}</div>
+            {schedList.length > 0 && (
+              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {schedList.map((s) => (
+                  <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12.5, color: '#475569', background: '#f8fafc', borderRadius: 8, padding: '6px 10px', flexWrap: 'wrap' }}>
+                    <b>{s.date}</b><span>· {batches.find((b) => b._id === s.batchId)?.name || 'Batch'}</span><span>· {s.challenge?.title || '—'}</span>
+                    {(s.startTime || s.endTime) && <span style={{ color: '#7c3aed', fontWeight: 700 }}>· 🕐 {s.startTime || '00:00'}–{s.endTime || '23:59'} IST</span>}
+                    <button onClick={() => removeSchedule(s.id)} style={{ marginLeft: 'auto', border: 'none', background: 'none', color: '#dc2626', cursor: 'pointer' }}>Remove</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
             <button onClick={() => setEditing('new')} style={btn('#1a5490')}>+ New Challenge</button>
           </div>

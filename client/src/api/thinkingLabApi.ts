@@ -79,7 +79,7 @@ export const thinkingLabApi = {
   createProblem: async (data: any): Promise<{ id: string }> => (await axios.post(`${BASE}/admin/problems`, data, h())).data,
   updateProblem: async (id: string, data: any): Promise<{ id: string }> => (await axios.put(`${BASE}/admin/problems/${id}`, data, h())).data,
   listSchedule: async (batchId?: string): Promise<{ schedule: any[] }> => (await axios.get(`${BASE}/admin/schedule`, { ...h(), params: batchId ? { batchId } : {} })).data,
-  scheduleChallenge: async (data: { batchId: string; date: string; problemId: string }): Promise<{ id: string }> => (await axios.post(`${BASE}/admin/schedule`, data, h())).data,
+  scheduleChallenge: async (data: { batchId: string; date: string; problemId: string; startTime?: string; endTime?: string }): Promise<{ id: string }> => (await axios.post(`${BASE}/admin/schedule`, data, h())).data,
   deleteSchedule: async (id: string): Promise<{ deleted: number }> => (await axios.delete(`${BASE}/admin/schedule/${id}`, h())).data,
 };
 

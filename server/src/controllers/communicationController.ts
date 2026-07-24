@@ -4,6 +4,7 @@ import fs from 'fs';
 import mongoose from 'mongoose';
 import CommunicationProfile from '../models/CommunicationProfile';
 import CommunicationChallenge from '../models/CommunicationChallenge';
+import CommunicationSchedule from '../models/CommunicationSchedule';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import CommunicationStreak from '../models/CommunicationStreak';
 import User from '../models/User';
@@ -33,6 +34,26 @@ function ymdMinus(dateStr: string, n: number): string {
 const arr = (v: any) => (Array.isArray(v) ? v : typeof v === 'string' && v ? v.split(',').map((s) => s.trim()).filter(Boolean) : []);
 const cleanup = (p?: string) => { if (p) fs.promises.unlink(p).catch(() => {}); };
 
+// ── Scheduled-window helpers (IST) — windows are OPT-IN per (batch, date) ─────
+// IST parts computed from a UTC-shifted date so it's tz-independent of the server.
+const istParts = () => {
+  const ist = new Date(Date.now() + 5.5 * 3600 * 1000);
+  return {
+    date: `${ist.getUTCFullYear()}-${String(ist.getUTCMonth() + 1).padStart(2, '0')}-${String(ist.getUTCDate()).padStart(2, '0')}`,
+    hm: `${String(ist.getUTCHours()).padStart(2, '0')}:${String(ist.getUTCMinutes()).padStart(2, '0')}`,
+  };
+};
+const windowStatus = (sc: any, todayStr: string, nowHM: string): 'upcoming' | 'open' | 'closed' | null => {
+  if (!sc || (!sc.startTime && !sc.endTime)) return null;
+  if (sc.date > todayStr) return 'upcoming';
+  if (sc.date < todayStr) return 'closed';
+  if (sc.startTime && nowHM < sc.startTime) return 'upcoming';
+  if (sc.endTime && nowHM > sc.endTime) return 'closed';
+  return 'open';
+};
+const windowView = (sc: any, status: string | null) =>
+  sc && (sc.startTime || sc.endTime) ? { date: sc.date, startTime: sc.startTime || null, endTime: sc.endTime || null, status } : undefined;
+
 // ── Today's challenge (rotates per student's progress) ────────────────────────
 export const getToday = async (req: Request, res: Response) => {
   try {
@@ -56,12 +77,33 @@ export const getToday = async (req: Request, res: Response) => {
     const todaysAttempt = await CommunicationAttempt.findOne({ tenantId, studentId: uId(req), practiceDate: today })
       .sort({ createdAt: -1 }).lean();
 
+    // Admin-scheduled batch challenge (may carry a time window) — IST-based.
+    const now = istParts();
+    const sc: any = me?.batchId ? await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean() : null;
+    const wStatus = windowStatus(sc, now.date, now.hm);
+
+    // Window not open yet / already closed without completing → locked.
+    if (!todaysAttempt && (wStatus === 'upcoming' || wStatus === 'closed')) {
+      return res.json({
+        challenge: null, locked: true, status: 'not_started', window: windowView(sc, wStatus),
+        message: wStatus === 'upcoming'
+          ? `Today's challenge opens at ${sc.startTime} (IST).`
+          : `Today's challenge window (closed ${sc.endTime} IST) has ended.`,
+        currentStreak: streak?.currentStreak || 0,
+      });
+    }
+
     let challenge: any;
     let status = 'not_started';
     if (todaysAttempt) {
       challenge = challenges.find((c) => String(c._id) === String(todaysAttempt.challengeId)) || challenges[0];
       status = todaysAttempt.status === 'completed' ? 'completed'
         : todaysAttempt.status === 'failed' ? 'not_started' : 'evaluating';
+    } else if (sc) {
+      // Scheduled challenge overrides rotation for this batch/day.
+      challenge = challenges.find((c) => String(c._id) === String(sc.challengeId))
+        || await CommunicationChallenge.findOne({ _id: sc.challengeId, tenantId, active: true }).lean()
+        || challenges[((streak?.totalCompletedDays || 0)) % challenges.length];
     } else {
       const idx = ((streak?.totalCompletedDays || 0)) % challenges.length;
       challenge = challenges[idx];
@@ -84,6 +126,7 @@ export const getToday = async (req: Request, res: Response) => {
       longestStreak: streak?.longestStreak || 0,
       lastScore: (lastCompleted as any)?.evaluation?.overallScore ?? null,
       todaysAttemptId: todaysAttempt ? String(todaysAttempt._id) : null,
+      window: windowView(sc, wStatus),
     });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
@@ -128,6 +171,16 @@ export const submit = async (req: Request, res: Response) => {
 
     const challenge = await CommunicationChallenge.findOne({ _id: challengeId, tenantId }).lean();
     if (!challenge) { cleanup(file.path); return res.status(404).json({ message: 'Challenge not found' }); }
+
+    // Enforce the scheduled availability window (opt-in: only if a window is set for this batch+date).
+    const meForWindow: any = await User.findById(uId(req)).select('batchId').lean();
+    if (meForWindow?.batchId) {
+      const now = istParts();
+      const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: meForWindow.batchId, date: now.date }).lean();
+      const w = windowStatus(sc, now.date, now.hm);
+      if (w === 'upcoming') { cleanup(file.path); return res.status(403).json({ message: `This challenge opens at ${sc.startTime} (IST).` }); }
+      if (w === 'closed') { cleanup(file.path); return res.status(403).json({ message: `This challenge's window closed at ${sc.endTime} (IST). Submissions are no longer accepted.` }); }
+    }
 
     // Enforce max attempts per challenge per day
     const priorCount = await CommunicationAttempt.countDocuments({ tenantId, studentId: uId(req), challengeId, practiceDate });
@@ -503,5 +556,45 @@ export const getInstructorFeedback = async (req: Request, res: Response) => {
   try {
     const fb = await CommunicationInstructorFeedback.findOne({ tenantId: tId(req), attemptId: req.params.id }).lean();
     res.json({ feedback: fb || null });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+// ── Admin: per-batch scheduling with an availability window ───────────────────
+export const listCommSchedule = async (req: Request, res: Response) => {
+  try {
+    const filter: any = { tenantId: tId(req) };
+    if (req.query.batchId) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
+    const rows = await CommunicationSchedule.find(filter).sort({ date: -1 }).limit(200)
+      .populate('challengeId', 'title challengeType').lean();
+    res.json({ schedule: rows.map((s: any) => ({
+      id: String(s._id), batchId: String(s.batchId), date: s.date,
+      startTime: s.startTime || null, endTime: s.endTime || null,
+      challenge: s.challengeId ? { id: String(s.challengeId._id), title: s.challengeId.title } : null,
+    })) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+export const scheduleCommChallenge = async (req: Request, res: Response) => {
+  try {
+    const { batchId, date, challengeId, startTime, endTime } = req.body || {};
+    if (!batchId || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !challengeId) return res.status(400).json({ message: 'batchId, date (YYYY-MM-DD) and challengeId are required.' });
+    const hm = /^\d{2}:\d{2}$/;
+    if ((startTime && !hm.test(String(startTime))) || (endTime && !hm.test(String(endTime)))) return res.status(400).json({ message: 'startTime/endTime must be HH:MM.' });
+    if (startTime && endTime && String(endTime) <= String(startTime)) return res.status(400).json({ message: 'End time must be after start time.' });
+    const ch = await CommunicationChallenge.findOne({ _id: challengeId, tenantId: tId(req) }).select('_id').lean();
+    if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    const doc = await CommunicationSchedule.findOneAndUpdate(
+      { tenantId: tId(req), batchId, date },
+      { $set: { challengeId, startTime: startTime || undefined, endTime: endTime || undefined, createdBy: uId(req) } },
+      { new: true, upsert: true }
+    );
+    res.status(201).json({ id: String(doc._id) });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+};
+
+export const deleteCommSchedule = async (req: Request, res: Response) => {
+  try {
+    const r = await CommunicationSchedule.deleteOne({ _id: req.params.id, tenantId: tId(req) });
+    res.json({ deleted: r.deletedCount || 0 });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };

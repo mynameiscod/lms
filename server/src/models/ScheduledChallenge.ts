@@ -7,6 +7,8 @@ export interface IScheduledChallenge extends Document {
   batchId: mongoose.Types.ObjectId;
   date: string;                // 'YYYY-MM-DD' (IST)
   problemId: mongoose.Types.ObjectId;
+  startTime?: string;          // 'HH:MM' (IST) — window opens; empty = open all day
+  endTime?: string;            // 'HH:MM' (IST) — window closes; empty = open all day
   createdBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
@@ -18,6 +20,8 @@ const ScheduledChallengeSchema = new Schema<IScheduledChallenge>(
     batchId:   { type: Schema.Types.ObjectId, ref: 'Batch', required: true },
     date:      { type: String, required: true },
     problemId: { type: Schema.Types.ObjectId, ref: 'ThinkingProblem', required: true },
+    startTime: { type: String },   // 'HH:MM' IST
+    endTime:   { type: String },   // 'HH:MM' IST
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
   },
   { timestamps: true }

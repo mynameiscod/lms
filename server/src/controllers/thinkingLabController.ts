@@ -29,6 +29,25 @@ const tId = (req: Request) => (req as any).tenantId as string;
 const uId = (req: Request) => (req as any).user?.id as string;
 const today = () => ymd(istToday());
 
+// Current IST time-of-day as 'HH:MM' (IST = UTC+5:30). Comparable lexicographically.
+const istNowHM = (): string => {
+  const ist = new Date(Date.now() + 5.5 * 3600 * 1000);
+  return `${String(ist.getUTCHours()).padStart(2, '0')}:${String(ist.getUTCMinutes()).padStart(2, '0')}`;
+};
+
+// Availability status for a scheduled challenge's window. null = no window (free/all-day).
+// Windows are OPT-IN: only a ScheduledChallenge that has startTime/endTime is gated.
+const windowStatus = (sc: any, todayStr: string, nowHM: string): 'upcoming' | 'open' | 'closed' | null => {
+  if (!sc || (!sc.startTime && !sc.endTime)) return null;
+  if (sc.date > todayStr) return 'upcoming';
+  if (sc.date < todayStr) return 'closed';
+  if (sc.startTime && nowHM < sc.startTime) return 'upcoming';
+  if (sc.endTime && nowHM > sc.endTime) return 'closed';
+  return 'open';
+};
+const windowView = (sc: any, status: string | null) =>
+  sc && (sc.startTime || sc.endTime) ? { date: sc.date, startTime: sc.startTime || null, endTime: sc.endTime || null, status } : undefined;
+
 const challengeView = (ch: any, p: any) => ({
   challengeId: String(ch._id),
   date: ch.date, seq: ch.seq, status: ch.status, difficulty: ch.difficulty,
@@ -96,11 +115,27 @@ async function scheduledProblem(tenantId: string, batchId: any, dateStr: string)
 export const getToday = async (req: Request, res: Response) => {
   try {
     const d = today();
+    const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
+    // Admin-scheduled batch challenge (may carry a time window) takes priority.
+    const sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
+    const wStatus = windowStatus(sc, d, istNowHM());
+
     let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });
+
+    // Window not open yet — don't start the challenge until it opens.
+    if (wStatus === 'upcoming' && (!ch || !['submitted', 'solved'].includes(ch.status))) {
+      return res.json({ challenge: null, locked: true, window: windowView(sc, 'upcoming'),
+        message: `Today's challenge opens at ${sc.startTime} (IST).` });
+    }
+    // Window closed and the student never completed it — locked/missed.
+    if (wStatus === 'closed' && (!ch || !['submitted', 'solved'].includes(ch.status))) {
+      return res.json({ challenge: null, locked: true, window: windowView(sc, 'closed'),
+        message: `Today's challenge window (closed ${sc.endTime} IST) has ended.` });
+    }
+
     if (!ch) {
-      const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
-      // Admin-scheduled batch challenge takes priority over the adaptive pick.
-      const p = (await scheduledProblem(tId(req), u?.batchId, d)) || (await pickProblem(tId(req), uId(req)));
+      const p = (sc ? await ThinkingProblem.findOne({ _id: sc.problemId, tenantId: tId(req), active: true }) : null)
+        || (await pickProblem(tId(req), uId(req)));
       if (!p) return res.json({ challenge: null, empty: true, message: 'No problems in the bank yet. Ask your admin to add challenges.' });
       ch = await DailyChallenge.create({
         tenantId: tId(req), studentId: uId(req), studentName: [u?.firstName, u?.lastName].filter(Boolean).join(' '), batchId: u?.batchId,
@@ -109,7 +144,7 @@ export const getToday = async (req: Request, res: Response) => {
       await ThinkingProblem.updateOne({ _id: p._id }, { $inc: { timesAssigned: 1 } });
     }
     const p = await ThinkingProblem.findById(ch.problemId).lean();
-    res.json({ challenge: challengeView(ch, p) });
+    res.json({ challenge: challengeView(ch, p), window: windowView(sc, wStatus) });
   } catch (err: any) { res.status(500).json({ message: err.message || 'Failed to load today\'s challenge' }); }
 };
 
@@ -189,6 +224,13 @@ export const submit = async (req: Request, res: Response) => {
   try {
     const ch: any = await DailyChallenge.findOne({ _id: req.params.id, tenantId: tId(req), studentId: uId(req) });
     if (!ch) return res.status(404).json({ message: 'Challenge not found' });
+    // Enforce the scheduled availability window (opt-in: only if a window is set for this batch+date).
+    if (ch.batchId) {
+      const sc: any = await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: ch.batchId, date: ch.date }).lean();
+      const w = windowStatus(sc, today(), istNowHM());
+      if (w === 'upcoming') return res.status(403).json({ message: `This challenge opens at ${sc.startTime} (IST).` });
+      if (w === 'closed') return res.status(403).json({ message: `This challenge's window closed at ${sc.endTime} (IST). Submissions are no longer accepted.` });
+    }
     if (!ch.editorUnlocked) return res.status(403).json({ message: 'Explain your approach first to unlock the editor.' });
     const code = String(req.body?.code || ch.code || '');
     if (!code.trim()) return res.status(400).json({ message: 'Write some code before submitting.' });
@@ -576,19 +618,22 @@ export const listSchedule = async (req: Request, res: Response) => {
     const filter: any = { tenantId: tId(req) };
     if (req.query.batchId) filter.batchId = new mongoose.Types.ObjectId(String(req.query.batchId));
     const rows = await ScheduledChallenge.find(filter).sort({ date: -1 }).limit(200).populate('problemId', 'title category difficulty').lean();
-    res.json({ schedule: rows.map((s: any) => ({ id: String(s._id), batchId: String(s.batchId), date: s.date, problem: s.problemId ? { id: String(s.problemId._id), title: s.problemId.title, category: s.problemId.category, difficulty: s.problemId.difficulty } : null })) });
+    res.json({ schedule: rows.map((s: any) => ({ id: String(s._id), batchId: String(s.batchId), date: s.date, startTime: s.startTime || null, endTime: s.endTime || null, problem: s.problemId ? { id: String(s.problemId._id), title: s.problemId.title, category: s.problemId.category, difficulty: s.problemId.difficulty } : null })) });
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 };
 
 export const scheduleChallenge = async (req: Request, res: Response) => {
   try {
-    const { batchId, date, problemId } = req.body || {};
+    const { batchId, date, problemId, startTime, endTime } = req.body || {};
     if (!batchId || !/^\d{4}-\d{2}-\d{2}$/.test(String(date)) || !problemId) return res.status(400).json({ message: 'batchId, date (YYYY-MM-DD) and problemId are required.' });
+    const hm = /^\d{2}:\d{2}$/;
+    if ((startTime && !hm.test(String(startTime))) || (endTime && !hm.test(String(endTime)))) return res.status(400).json({ message: 'startTime/endTime must be HH:MM.' });
+    if (startTime && endTime && String(endTime) <= String(startTime)) return res.status(400).json({ message: 'End time must be after start time.' });
     const prob = await ThinkingProblem.findOne({ _id: problemId, tenantId: tId(req) }).select('_id').lean();
     if (!prob) return res.status(404).json({ message: 'Problem not found' });
     const doc = await ScheduledChallenge.findOneAndUpdate(
       { tenantId: tId(req), batchId, date },
-      { $set: { problemId, createdBy: uId(req) } },
+      { $set: { problemId, startTime: startTime || undefined, endTime: endTime || undefined, createdBy: uId(req) } },
       { new: true, upsert: true }
     );
     res.status(201).json({ id: String(doc._id) });

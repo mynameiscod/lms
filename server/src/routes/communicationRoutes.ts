@@ -32,6 +32,9 @@ router.post('/admin/challenges', ADMIN, ctrl.createChallenge);
 router.post('/admin/challenges/reorder', ADMIN, ctrl.reorderChallenges);
 router.patch('/admin/challenges/:id', ADMIN, ctrl.updateChallenge);
 router.delete('/admin/challenges/:id', ADMIN, ctrl.deleteChallenge);
+router.get('/admin/schedule', ADMIN, ctrl.listCommSchedule);
+router.post('/admin/schedule', ADMIN, ctrl.scheduleCommChallenge);
+router.delete('/admin/schedule/:id', ADMIN, ctrl.deleteCommSchedule);
 
 // Student
 router.get('/today', ctrl.getToday);

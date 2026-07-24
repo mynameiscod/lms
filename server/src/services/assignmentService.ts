@@ -10,6 +10,8 @@ import User from '../models/User';
 import Chapter from '../models/Chapter';
 import { EmailService } from './emailService';
 import { createNotifications } from '../notifications/notificationService';
+import { schedulesMapForBatch, policyFromRow } from './assessmentDeliveryService';
+import { computeStatus, DEFAULT_POLICY } from './deadlinePolicyService';
 import { Types } from 'mongoose';
 
 const emailService = new EmailService();
@@ -516,6 +518,11 @@ class AssignmentService {
       ])
     ];
 
+    // Also surface assignments delivered to this batch via an AssessmentSchedule
+    // (the reusable path) even if they aren't in selectedBatches on the doc.
+    const schedMap = await schedulesMapForBatch(tenant.toString(), batchIdStr, 'assignment');
+    if (schedMap.size) query.$or.push({ _id: { $in: [...schedMap.keys()] } });
+
     const assignments = await Assignment.find(query)
       .select('title description type difficulty totalPoints dueDate startDate topics')
       .sort({ dueDate: 1 });
@@ -529,8 +536,24 @@ class AssignmentService {
           tenant
         }).sort({ attemptNumber: -1 });
 
+        // Resolve the deadline + status: schedule row for this batch wins, else baked dueDate.
+        const row = schedMap.get(String(assignment._id));
+        const dueAt = row?.dueAt ? new Date(row.dueAt) : (assignment.dueDate ? new Date(assignment.dueDate) : null);
+        const policy = row ? policyFromRow(row) : DEFAULT_POLICY;
+        const deadlineStatus = computeStatus({
+          policy, dueAt,
+          submission: submission ? { status: submission.status, submittedAt: submission.submittedAt as any, graded: submission.status === SubmissionStatus.GRADED } : null,
+        });
+
         return {
           ...assignment.toObject(),
+          delivery: {
+            dueAt,
+            startAt: row?.startAt ? new Date(row.startAt) : (assignment.startDate || null),
+            source: row ? 'schedule' : 'baked',
+            latePolicy: policy.latePolicy,
+            status: deadlineStatus,
+          },
           submission: submission ? {
             status: submission.status,
             attemptNumber: submission.attemptNumber,

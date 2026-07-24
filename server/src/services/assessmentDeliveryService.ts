@@ -106,6 +106,25 @@ export async function resolveForStudent(
   return { ...bakedFromQuiz(q), batchId: batchId || undefined };
 }
 
+/** All active schedule rows for a batch+type, keyed by contentId (one query for a whole list). */
+export async function schedulesMapForBatch(
+  tenantId: string,
+  batchId: string | null,
+  contentType: ContentType,
+): Promise<Map<string, any>> {
+  if (!batchId) return new Map();
+  const rows = await AssessmentSchedule.find({ tenantId, batchId, contentType, status: 'active' }).lean();
+  return new Map(rows.map((r: any) => [String(r.contentId), r]));
+}
+
+/** Policy for a schedule row. */
+export function policyFromRow(row: any): DeadlinePolicy {
+  return mergePolicy(DEFAULT_POLICY, {
+    latePolicy: row?.latePolicy, graceDays: row?.graceDays,
+    penaltyPct: row?.penaltyPct, dueTime: row?.dueTime,
+  });
+}
+
 /**
  * Enforcement gate for start/submit endpoints. Blocks if the assessment isn't open
  * yet, or the deadline (under hard_lock / expired grace) has passed. `late` flags a

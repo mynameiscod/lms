@@ -8,7 +8,8 @@ import Question from '../models/Question';
 import User from '../models/User';
 import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
-import { checkDeadlineGate } from '../services/assessmentDeliveryService';
+import { checkDeadlineGate, schedulesMapForBatch, policyFromRow } from '../services/assessmentDeliveryService';
+import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -457,6 +458,10 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
     // Get all quizzes for the tenant — exclude external/token-only and archived quizzes
     const allQuizzes = await Quiz.find({ tenantId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null });
 
+    // Quizzes delivered to this batch via an AssessmentSchedule (the reusable path).
+    const batchIdStr = user.batchId ? user.batchId.toString() : null;
+    const quizSchedMap = await schedulesMapForBatch(tenantId, batchIdStr, 'quiz');
+
     // Filter quizzes based on access level and enrollment
     const availableQuizzes = await Promise.all(
       allQuizzes.map(async (quiz) => {
@@ -477,6 +482,9 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
           // 'everyone' or no accessibleTo set — fall back to access field
           hasAccess = quiz.access === 'public' || quiz.accessibleTo === 'everyone';
         }
+
+        // A schedule row for this batch also grants access (reusable delivery).
+        if (!hasAccess && quizSchedMap.has(String(quiz._id))) hasAccess = true;
 
         if (!hasAccess) {
           return null;
@@ -513,6 +521,20 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
         quizData.lastAttemptMarks = latestAttempt?.obtainedMarks || 0;
         quizData.lastAttemptPassed = latestAttempt ? (latestAttempt.obtainedMarks || 0) >= quiz.passingMarks : false;
         quizData.hasInProgressAttempt = inProgressAttempts.length > 0 && now <= endTime;
+
+        // Resolve the deadline + status: schedule row for this batch wins, else the
+        // quiz's baked end window (hard_lock, matching legacy behavior).
+        const row = quizSchedMap.get(String(quiz._id));
+        const dueAt = row?.dueAt ? new Date(row.dueAt) : endTime;
+        const policy = row ? policyFromRow(row) : mergePolicy(DEFAULT_POLICY, { latePolicy: 'hard_lock' });
+        const sub = hasAttempted ? { status: 'submitted', submittedAt: (latestAttempt as any)?.submittedAt || (latestAttempt as any)?.createdAt } : null;
+        quizData.delivery = {
+          dueAt,
+          startAt: row?.startAt ? new Date(row.startAt) : null,
+          source: row ? 'schedule' : 'baked',
+          latePolicy: policy.latePolicy,
+          status: computeStatus({ policy, dueAt, submission: sub }),
+        };
 
         return quizData;
       })

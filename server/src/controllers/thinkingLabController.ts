@@ -118,6 +118,13 @@ export const getToday = async (req: Request, res: Response) => {
     const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
     // Admin-scheduled batch challenge (may carry a time window) takes priority.
     const sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
+
+    // Schedule-driven only: with no scheduled challenge for this batch today, show nothing —
+    // this also hides stale challenges left over from the old random fallback.
+    if (!sc) {
+      return res.json({ challenge: null, empty: true, message: 'No challenge scheduled yet. Your instructor will assign one for your batch.' });
+    }
+
     const wStatus = windowStatus(sc, d, istNowHM());
 
     let ch: any = await DailyChallenge.findOne({ tenantId: tId(req), studentId: uId(req), date: d }).sort({ seq: -1 });

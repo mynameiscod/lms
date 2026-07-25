@@ -58,8 +58,9 @@ export const assignToBatches = async (req: Request, res: Response) => {
     }
     const title = req.body.contentTitle || (await contentTitleOf(contentType, contentId));
 
-    // Denormalize batch names for the ones we weren't given.
-    const missingNameIds = batches.filter((b: any) => b.batchId && !b.batchName).map((b: any) => b.batchId);
+    // Denormalize batch names for the ones we weren't given. (batches may be absent
+    // when assigning to specific students only.)
+    const missingNameIds = (hasBatches ? batches : []).filter((b: any) => b.batchId && !b.batchName).map((b: any) => b.batchId);
     const nameMap: Record<string, string> = {};
     if (missingNameIds.length) {
       const found = await Batch.find({ _id: { $in: missingNameIds } }).select('name').lean();

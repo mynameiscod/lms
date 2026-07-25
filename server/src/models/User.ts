@@ -16,6 +16,19 @@ export interface IUser extends Document {
   dashboardWidgets?: string[];
   isActive: boolean;
   profileComplete: boolean;
+  // Career Passport membership (separate product; drives the /passport experience).
+  // Absent/inactive = a normal LMS student, unaffected.
+  passport?: {
+    active: boolean;
+    product?: string;          // e.g. 'career_passport'
+    activatedAt?: Date;
+    expiresAt?: Date;
+    onboarded?: boolean;
+    degree?: string;
+    yearOfStudy?: string;
+    careerGoal?: string;
+    pathway?: string;
+  };
   phone?: string;
   avatar?: string;
   bio?: string;
@@ -109,6 +122,17 @@ const UserSchema: Schema = new Schema(
     profileComplete: {
       type: Boolean,
       default: false
+    },
+    passport: {
+      active:      { type: Boolean, default: false },
+      product:     { type: String },
+      activatedAt: { type: Date },
+      expiresAt:   { type: Date },
+      onboarded:   { type: Boolean, default: false },
+      degree:      { type: String },
+      yearOfStudy: { type: String },
+      careerGoal:  { type: String },
+      pathway:     { type: String },
     },
     phone: {
       type: String,

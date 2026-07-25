@@ -62,6 +62,10 @@ import PlatformSettings from './pages/PlatformSettings';
 import MyLeave from './pages/MyLeave';
 import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
+import PassportAdminConfig from './pages/Passport/AdminConfig';
+import PassportAdminStudents from './pages/Passport/AdminStudents';
+import PassportPlaceholder from './pages/Passport/Placeholder';
+import MissionControl from './pages/Passport/MissionControl';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
 import AIMentor from './pages/AIMentor';
@@ -345,6 +349,27 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* ── Career Passport (separate product) ── */}
+      <Route path="/admin/passport/config" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/students" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/pathways" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Pathways" step="Step 3" /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/assessment" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Assessment" step="Step 3" /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/missions" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Missions" step="Step 5" /></Layout></ProtectedRoute>
+      } />
+      {/* Student Mission Control — deliberately NOT the LMS Layout (separate experience) */}
+      <Route path="/passport" element={
+        <ProtectedRoute><MissionControl /></ProtectedRoute>
+      } />
 
       <Route
         path="/interview-questions/:chapterId"

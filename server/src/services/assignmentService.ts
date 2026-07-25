@@ -489,11 +489,6 @@ class AssignmentService {
     studentId: Types.ObjectId,
     batch?: Types.ObjectId
   ): Promise<any[]> {
-    const query: any = {
-      tenant,
-      status: AssignmentStatus.PUBLISHED
-    };
-
     const studentIdStr = studentId.toString();
 
     // Resolve the student's batch: prefer explicit param, fall back to User.batchId
@@ -506,9 +501,8 @@ class AssignmentService {
 
     // Access model: a student sees an assignment only if it's explicitly for them —
     // 'everyone', their batch, or them individually. Legacy records (no accessibleTo)
-    // count ONLY when their `batch` matches this student's batch; a legacy assignment
-    // with no batch is NOT shown to everyone (that leaked old work to fresh students).
-    query.$or = [
+    // count ONLY when their `batch` matches this student's batch.
+    const accessOr: any[] = [
       { accessibleTo: 'everyone' },
       { accessibleTo: 'individual', selectedStudents: studentIdStr },
       ...(batchIdStr ? [
@@ -517,10 +511,20 @@ class AssignmentService {
       ] : []),
     ];
 
-    // Also surface assignments delivered to this batch via an AssessmentSchedule
-    // (the reusable path) even if they aren't in selectedBatches on the doc.
+    // Assignments delivered to this student via an AssessmentSchedule (batch OR specific
+    // students). This is a deliberate "deliver now" decision, so a scheduled assignment
+    // is visible regardless of its draft/published status or accessibleTo. Everything
+    // else must be PUBLISHED and access-matched.
     const schedMap = await studentSchedulesMap(tenant.toString(), studentIdStr, batchIdStr, 'assignment');
-    if (schedMap.size) query.$or.push({ _id: { $in: [...schedMap.keys()] } });
+    const scheduledIds = [...schedMap.keys()];
+
+    const query: any = {
+      tenant,
+      $or: [
+        ...(scheduledIds.length ? [{ _id: { $in: scheduledIds } }] : []),
+        { status: AssignmentStatus.PUBLISHED, $or: accessOr },
+      ],
+    };
 
     const assignments = await Assignment.find(query)
       .select('title description type difficulty totalPoints dueDate startDate topics')

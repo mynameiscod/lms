@@ -4,6 +4,7 @@ import User from '../models/User';
 import Batch from '../models/Batch';
 import Tenant from '../models/Tenant';
 import { EmailService } from '../services/emailService';
+import { applyFeePayment } from '../services/feePaymentService';
 
 const emailService = new EmailService();
 
@@ -443,29 +444,17 @@ export async function recordPayment(req: AuthRequest, res: Response) {
     const tenantId = req.tenantId!;
     const userId = req.user?.id;
     const { studentId } = req.params;
-    const { amount, paymentMethod, transactionId, remarks, paymentDate, totalAmount } = req.body;
+    const { amount, paymentMethod, transactionId, remarks, paymentDate, totalAmount, installmentId } = req.body;
     const amt = Number(amount);
     if (!amt || amt <= 0) return res.status(400).json({ success: false, message: 'Valid amount is required' });
 
-    const student = await User.findOne({ _id: studentId, tenantId }).select('batchId').lean() as any;
-    if (!student) return res.status(404).json({ success: false, message: 'Student not found' });
-
-    let fee = await Fee.findOne({ studentId, tenantId });
-    if (!fee) {
-      fee = new Fee({ studentId, tenantId, batchId: student.batchId, totalAmount: Number(totalAmount) || amt, paidAmount: 0 });
-    } else if (totalAmount !== undefined && totalAmount !== null) {
-      fee.totalAmount = Number(totalAmount);
-    }
-    fee.payments.push({
-      amount: amt,
-      paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
-      paymentMethod: paymentMethod || 'cash',
-      transactionId,
-      remarks,
-      receivedBy: userId as any,
+    // Shared with online (Razorpay) reconcile — one source of truth for applying a fee payment.
+    const { fee } = await applyFeePayment({
+      tenantId, studentId, amount: amt, paymentMethod: paymentMethod || 'cash',
+      transactionId, remarks, installmentId,
+      paymentDate: paymentDate ? new Date(paymentDate) : undefined,
+      totalAmount, receivedBy: userId as any,
     });
-    fee.paidAmount = sumPayments(fee.payments);
-    await fee.save();
     res.json({ success: true, data: fee, message: 'Payment recorded' });
   } catch (err: any) {
     res.status(500).json({ success: false, message: err.message || 'Failed to record payment' });

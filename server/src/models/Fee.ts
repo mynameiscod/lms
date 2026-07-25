@@ -23,12 +23,15 @@ export interface IFee extends Document {
     paidDate?: Date;
   }>;
   payments: Array<{
+    _id?: mongoose.Types.ObjectId;
     amount: number;
     paymentDate: Date;
-    paymentMethod: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'other';
+    paymentMethod: 'cash' | 'card' | 'upi' | 'bank_transfer' | 'razorpay' | 'other';
     transactionId?: string;
     remarks?: string;
     receivedBy: mongoose.Types.ObjectId;
+    paymentRef?: mongoose.Types.ObjectId;
+    refundedAmount?: number;
   }>;
   status: 'pending' | 'partial' | 'paid' | 'overdue';
   createdAt: Date;
@@ -102,14 +105,17 @@ const FeeSchema = new Schema<IFee>(
     payments: [{
       amount: { type: Number, required: true },
       paymentDate: { type: Date, default: Date.now },
-      paymentMethod: { 
-        type: String, 
-        enum: ['cash', 'card', 'upi', 'bank_transfer', 'other'],
+      paymentMethod: {
+        type: String,
+        enum: ['cash', 'card', 'upi', 'bank_transfer', 'razorpay', 'other'],
         default: 'cash'
       },
       transactionId: String,
       remarks: String,
-      receivedBy: { type: Schema.Types.ObjectId, ref: 'User' }
+      receivedBy: { type: Schema.Types.ObjectId, ref: 'User' },
+      // Set for online (Razorpay) payments so refunds can reverse the exact entry.
+      paymentRef: { type: Schema.Types.ObjectId, ref: 'Payment' },
+      refundedAmount: { type: Number, default: 0 },
     }],
     status: {
       type: String,

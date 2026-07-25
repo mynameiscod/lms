@@ -3,6 +3,7 @@ import { seatReservationApi } from '../../api';
 import { feeApi } from '../../api/feeApi';
 import { useStudentFeatures } from '../../contexts/StudentFeaturesContext';
 import FeeDetails from '../../components/profile/FeeDetails';
+import PayFeesCard from './PayFeesCard';
 import './StudentFeeDetails.css';
 
 interface PaymentEntry {
@@ -146,6 +147,8 @@ const StudentFeeDetailsPage: React.FC = () => {
 
       {notice && <div className="sfd-notice">{notice}</div>}
       {error && <div className="sfd-error">{error}</div>}
+
+      <PayFeesCard />
 
       {loading ? (
         <div className="sfd-loading">Loading fee details...</div>

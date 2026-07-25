@@ -12,4 +12,8 @@ router.get('/config', ctrl.getPaymentConfig);
 router.post('/order', ctrl.createOrder);
 router.post('/verify', ctrl.verifyPayment);
 
+// P1 — online fee collection
+router.get('/fee-info', ctrl.getFeePaymentInfo);
+router.post('/fee-order', ctrl.createFeeOrder);
+
 export default router;

@@ -96,6 +96,7 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'RAZORPAY_KEY_SECRET', label: 'Razorpay Key Secret', group: 'integrations', isSecret: true, type: 'password', placeholder: 'razorpay key secret', help: 'The secret paired with the Key ID above. Signs orders and verifies payments.', perTenant: true },
   { key: 'RAZORPAY_WEBHOOK_SECRET', label: 'Razorpay Webhook Secret', group: 'integrations', isSecret: true, type: 'password', help: 'Optional. Set the same value in Razorpay → Settings → Webhooks for the payment.captured webhook (server-side unlock fallback).', perTenant: true },
   { key: 'LEARNING_PLAN_PRICE_INR', label: 'Learning Plan Price (₹)', group: 'integrations', type: 'number', placeholder: '4999', help: 'Amount charged to unlock the full personalized plan. Leave blank to default to ₹4,999.', perTenant: true },
+  { key: 'FEE_PAYMENT_MODE', label: 'Fee Payment Mode (online)', group: 'integrations', type: 'select', options: ['full', 'installments', 'partial'], help: 'How much a student can pay online per transaction: full = whole outstanding due; installments = one installment at a time; partial = any amount up to the due.', perTenant: true },
 
   // ── Placement Outreach ───────────────────────────────────────────────────────
   { key: 'PARTNER_OUTREACH_DAILY_CAP', label: 'Daily Send Cap', group: 'placement', type: 'number', placeholder: '25', help: 'Max cold/follow-up outreach emails sent per day (per tenant). Protects sender reputation.', perTenant: true },

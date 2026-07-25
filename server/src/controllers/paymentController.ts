@@ -2,8 +2,11 @@ import { Request, Response } from 'express';
 import { AuthenticatedRequest } from '../types';
 import Payment from '../models/Payment';
 import User from '../models/User';
+import Fee from '../models/Fee';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import * as razorpay from '../services/razorpayService';
+import * as settings from '../services/settingsService';
+import { applyFeePayment } from '../services/feePaymentService';
 import { unlockCandidatePlans } from '../services/assessmentEnrollmentService';
 
 /**
@@ -124,8 +127,8 @@ export const verifyPayment = async (req: AuthenticatedRequest, res: Response) =>
       return res.status(400).json({ success: false, message: 'Payment verification failed' });
     }
 
-    const unlocked = await markPaidAndUnlock(payment, razorpay_payment_id, razorpay_signature);
-    res.json({ success: true, message: 'Payment successful — your full plan is unlocked!', data: { unlocked } });
+    const result = await settlePayment(payment, razorpay_payment_id, razorpay_signature);
+    res.json({ success: true, message: 'Payment successful!', data: result });
   } catch (e: any) {
     console.error('[payment] verifyPayment failed:', e);
     res.status(500).json({ success: false, message: e.message || 'Verification failed' });
@@ -161,7 +164,7 @@ export const webhook = async (req: Request, res: Response) => {
     const evType = String(event?.event || '');
     if (evType === 'payment.captured' || evType === 'order.paid') {
       const paymentId = event?.payload?.payment?.entity?.id || payment.paymentId;
-      await markPaidAndUnlock(payment, paymentId, undefined);
+      await settlePayment(payment, paymentId, undefined);
     }
     res.status(200).json({ success: true });
   } catch (e: any) {
@@ -170,15 +173,130 @@ export const webhook = async (req: Request, res: Response) => {
   }
 };
 
-/** Mark a payment paid (idempotent) and unlock the student's preview plan(s). */
-async function markPaidAndUnlock(payment: any, paymentId?: string, signature?: string): Promise<number> {
-  if (payment.status === 'paid') return payment.unlockedPlans || 0;
-  const unlocked = await unlockCandidatePlans(String(payment.tenantId), String(payment.studentId));
-  payment.status = 'paid';
-  if (paymentId) payment.paymentId = paymentId;
-  if (signature) payment.signature = signature;
-  payment.unlockedPlans = unlocked;
-  payment.paidAt = new Date();
-  await payment.save();
-  return unlocked;
+/** Fee payment availability + payable amounts for the student's Fee Details page. */
+export const getFeePaymentInfo = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = String(req.user?.id || '');
+    if (!tenantId || !studentId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    const fee: any = await Fee.findOne({ tenantId, studentId }).lean();
+    res.json({ success: true, data: {
+      available: razorpay.isConfigured(tenantId),
+      mode: settings.getStr('FEE_PAYMENT_MODE', 'full', tenantId),
+      currency: 'INR',
+      fee: fee ? {
+        feeId: String(fee._id),
+        totalAmount: fee.totalAmount || 0,
+        paidAmount: fee.paidAmount || 0,
+        dueAmount: fee.dueAmount || 0,
+        status: fee.status,
+        installments: (fee.installments || []).map((i: any) => ({ id: String(i._id), label: i.label, amount: i.amount, dueDate: i.dueDate, status: i.status })),
+      } : null,
+    }});
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message || 'Failed to load fee payment info' });
+  }
+};
+
+/** Create a Razorpay order for a fee / installment. The amount is ALWAYS validated
+ *  server-side against the Fee + FEE_PAYMENT_MODE — never trust the client amount. */
+export const createFeeOrder = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = String(req.user?.id || '');
+    if (!tenantId || !studentId) return res.status(401).json({ success: false, message: 'Unauthorized' });
+    if (!razorpay.isConfigured(tenantId)) return res.status(503).json({ success: false, message: 'Online payment is not available yet.' });
+
+    const { feeId, installmentId } = req.body || {};
+    const fee: any = feeId
+      ? await Fee.findOne({ _id: feeId, tenantId, studentId })
+      : await Fee.findOne({ tenantId, studentId });
+    if (!fee) return res.status(404).json({ success: false, message: 'No fee record found' });
+
+    const outstanding = Math.max(0, fee.dueAmount || 0);
+    const mode = settings.getStr('FEE_PAYMENT_MODE', 'full', tenantId);
+
+    let payable = 0; let instId: string | undefined; let purpose: 'fee' | 'fee_installment' = 'fee';
+    if (installmentId) {
+      const inst = (fee.installments || []).find((i: any) => String(i._id) === String(installmentId));
+      if (!inst) return res.status(404).json({ success: false, message: 'Installment not found' });
+      if (inst.status === 'paid') return res.status(409).json({ success: false, message: 'That installment is already paid' });
+      payable = inst.amount; instId = installmentId; purpose = 'fee_installment';
+    } else if (mode === 'installments') {
+      const next = (fee.installments || []).find((i: any) => i.status !== 'paid');
+      if (!next) return res.status(400).json({ success: false, message: 'No pending installment to pay' });
+      payable = next.amount; instId = String(next._id); purpose = 'fee_installment';
+    } else if (mode === 'partial') {
+      payable = Number((req.body || {}).amount);
+      if (!payable || payable <= 0) return res.status(400).json({ success: false, message: 'Enter an amount to pay' });
+      if (payable > outstanding) return res.status(400).json({ success: false, message: `Amount exceeds the outstanding due (₹${outstanding})` });
+    } else {
+      payable = outstanding;
+    }
+    if (payable <= 0) return res.status(400).json({ success: false, message: 'Nothing is due right now.' });
+
+    const user = await User.findById(studentId).select('firstName lastName email phone').lean<any>();
+    const order = await razorpay.createOrder(tenantId, Math.round(payable), `fee_${studentId.slice(-6)}_${Date.now().toString().slice(-8)}`, {
+      purpose, studentId, feeId: String(fee._id), ...(instId ? { installmentId: instId } : {}),
+    });
+
+    await Payment.create({
+      tenantId, studentId, purpose,
+      target: { refModel: 'Fee', refId: fee._id },
+      feeId: fee._id, installmentId: instId,
+      provider: 'razorpay', orderId: order.id, amount: order.amount, currency: order.currency,
+      status: 'created', notes: { payableInr: payable, mode },
+    });
+
+    res.json({ success: true, data: {
+      orderId: order.id, amount: order.amount, currency: order.currency, keyId: order.keyId,
+      payableInr: payable, name: 'CodeBegun', description: instId ? 'Fee installment' : 'Course fee',
+      prefill: { name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '', email: user?.email || '', contact: user?.phone || '' },
+    }});
+  } catch (e: any) {
+    console.error('[payment] createFeeOrder failed:', e);
+    res.status(500).json({ success: false, message: e.message || 'Failed to start fee payment' });
+  }
+};
+
+/**
+ * Settle a payment exactly once, then run its purpose-specific side effect.
+ * The created→paid transition is an ATOMIC claim so a racing verify + webhook
+ * can't both apply the payment. On a side-effect failure the claim is released
+ * (status back to 'created') so a retry can re-run it (side effects are idempotent).
+ */
+async function settlePayment(payment: any, paymentId?: string, signature?: string): Promise<any> {
+  const claimed = await Payment.findOneAndUpdate(
+    { _id: payment._id, status: 'created' },
+    { $set: { status: 'paid', paidAt: new Date(), ...(paymentId ? { paymentId } : {}), ...(signature ? { signature } : {}) } },
+    { new: true }
+  );
+  if (!claimed) {
+    const cur = await Payment.findById(payment._id).lean<any>();
+    return { alreadyPaid: true, unlockedPlans: cur?.unlockedPlans };
+  }
+  try {
+    if (claimed.purpose === 'learning_plan_unlock') {
+      const unlocked = await unlockCandidatePlans(String(claimed.tenantId), String(claimed.studentId));
+      await Payment.updateOne({ _id: claimed._id }, { $set: { unlockedPlans: unlocked } });
+      return { unlocked };
+    }
+    if (claimed.purpose === 'fee' || claimed.purpose === 'fee_installment') {
+      await applyFeePayment({
+        tenantId: String(claimed.tenantId), studentId: String(claimed.studentId),
+        amount: (claimed.amount || 0) / 100,   // paise → rupees
+        paymentMethod: 'razorpay',
+        feeId: claimed.feeId ? String(claimed.feeId) : undefined,
+        installmentId: claimed.installmentId,
+        transactionId: paymentId || claimed.paymentId,
+        paymentRef: claimed._id as any,
+      });
+      return { feeApplied: true };
+    }
+    return {};
+  } catch (e) {
+    // Release the claim so the webhook/verify retry can re-apply (idempotently).
+    await Payment.updateOne({ _id: claimed._id }, { $set: { status: 'created' } });
+    throw e;
+  }
 }

@@ -70,12 +70,14 @@ export const assignToBatches = async (req: Request, res: Response) => {
     const results = [];
 
     // Individual delivery: one row per content (batchId absent), studentIds accumulated.
+    // NOTE: filter fields (contentType/contentId/batchId) must NOT also appear in $set —
+    // during an upsert-insert MongoDB treats that as a path conflict and errors.
     if (hasStudents) {
       const p = mergePolicy(DEFAULT_POLICY, policy);
       const row = await AssessmentSchedule.findOneAndUpdate(
         { contentType, contentId, batchId: null },
         { $set: {
-            tenantId: tId, contentType, contentId, contentTitle: title, batchId: null,
+            tenantId: tId, contentTitle: title,
             studentIds: students,
             startAt: req.body.startAt ? new Date(req.body.startAt) : undefined,
             dueAt: req.body.dueAt ? new Date(req.body.dueAt) : undefined,
@@ -95,8 +97,7 @@ export const assignToBatches = async (req: Request, res: Response) => {
         {
           $set: {
             tenantId: tId,
-            contentType, contentId, contentTitle: title,
-            batchId: b.batchId,
+            contentTitle: title,
             batchName: b.batchName || nameMap[String(b.batchId)] || undefined,
             startAt: b.startAt ? new Date(b.startAt) : undefined,
             dueAt: b.dueAt ? new Date(b.dueAt) : undefined,
@@ -112,7 +113,8 @@ export const assignToBatches = async (req: Request, res: Response) => {
     }
     res.json({ message: `Assigned to ${results.length} batch(es)`, schedules: results });
   } catch (err) {
-    res.status(500).json({ message: 'Failed to assign', error: String(err) });
+    console.error('[assessment-schedules/assign] failed:', err);
+    res.status(500).json({ message: 'Failed to assign', error: String((err as any)?.message || err) });
   }
 };
 

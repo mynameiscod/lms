@@ -501,51 +501,10 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
               </select>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>Start Date *</label>
-                <input
-                  type="date"
-                  name="startDate"
-                  value={formData.startDate}
-                  onChange={handleInputChange}
-                  className="date-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>End Date *</label>
-                <input
-                  type="date"
-                  name="endDate"
-                  value={formData.endDate}
-                  onChange={handleInputChange}
-                  className="date-input"
-                />
-              </div>
-            </div>
-
-            <div className="form-row">
-              <div className="form-group">
-                <label>Start Time</label>
-                <input
-                  type="time"
-                  name="startTime"
-                  value={formData.startTime}
-                  onChange={handleInputChange}
-                  className="time-input"
-                />
-              </div>
-
-              <div className="form-group">
-                <label>End Time</label>
-                <input
-                  type="time"
-                  name="endTime"
-                  value={formData.endTime}
-                  onChange={handleInputChange}
-                  className="time-input"
-                />
+            <div style={{ display: 'flex', gap: 10, alignItems: 'flex-start', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 10, padding: '12px 14px', marginTop: 8 }}>
+              <span style={{ fontSize: 18 }}>📅</span>
+              <div style={{ fontSize: 13, color: '#3730a3', lineHeight: 1.6 }}>
+                <b>No dates here — this quiz is reusable content.</b> Set each batch's start/due window &amp; late policy in <b>Assign to Batches</b> (⋮ menu on Quiz Management), so the same quiz works for many batches without cloning.
               </div>
             </div>
           </div>

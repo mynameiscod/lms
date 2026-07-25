@@ -1,4 +1,5 @@
 import Quiz, { IQuiz } from '../models/Quiz';
+import AssessmentSchedule from '../models/AssessmentSchedule';
 import Question from '../models/Question';
 import QuizAttempt from '../models/QuizAttempt';
 import QuizSubmission from '../models/QuizSubmission';
@@ -83,12 +84,23 @@ export class QuizService {
   // Check if student can access quiz
   async canStudentAccessQuiz(quizId: string, studentId: string): Promise<boolean> {
     const quiz = await Quiz.findById(quizId);
-    if (!quiz || quiz.access === 'private') return false;
+    if (!quiz) return false;
+
+    const student = await User.findById(studentId).select('batchId').lean() as any;
+
+    // Delivered to this student via an AssessmentSchedule (the reusable Assign-to-Batches
+    // path — batch OR specific students)? That grants access regardless of accessibleTo.
+    const or: any[] = [{ studentIds: studentId }];
+    if (student?.batchId) or.push({ batchId: student.batchId });
+    if (await AssessmentSchedule.exists({ contentType: 'quiz', contentId: quizId, status: 'active', $or: or })) {
+      return true;
+    }
+
+    if (quiz.access === 'private') return false;
 
     if (quiz.accessibleTo === 'everyone') {
       return true;
     } else if (quiz.accessibleTo === 'batch_wise') {
-      const student = await User.findById(studentId);
       if (!student) return false;
       return quiz.selectedBatches?.includes(student.batchId?.toString() || '') || false;
     } else if (quiz.accessibleTo === 'individual') {

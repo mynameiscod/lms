@@ -262,8 +262,9 @@ class AssignmentService {
     const validationErrors: string[] = [];
     
     if (!assignment.title) validationErrors.push('Title is required');
-    if (!assignment.dueDate) validationErrors.push('Due date is required');
-    
+    // Due date is NOT required to publish — assignments are reusable content; the
+    // start/due window is set per batch via Assign to Batches (or a Learning Plan day).
+
     if (assignment.type === AssignmentType.CODING) {
       if (!assignment.allowedLanguages?.length) validationErrors.push('At least one programming language is required');
       if (!assignment.testCases?.length) validationErrors.push('At least one test case is required');

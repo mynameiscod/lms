@@ -67,6 +67,16 @@ export async function createOrder(
   return { id: order.id, amount: Number(order.amount), currency: order.currency, keyId: cfg.keyId };
 }
 
+/** Refund a captured payment (full or partial). amountInr in rupees; omit for full. */
+export async function refundPayment(tenantId: string, paymentId: string, amountInr?: number): Promise<{ id: string; amount: number; status: string }> {
+  const cfg = getConfig(tenantId);
+  if (!cfg) throw new Error('Razorpay is not configured.');
+  const opts: any = {};
+  if (amountInr && amountInr > 0) opts.amount = Math.round(amountInr * 100); // paise
+  const rf: any = await (client(cfg).payments as any).refund(paymentId, opts);
+  return { id: rf.id, amount: Number(rf.amount), status: rf.status };
+}
+
 /**
  * Verify the checkout handler signature: HMAC_SHA256(orderId | paymentId) with
  * the key secret must equal the signature Razorpay returned in the browser.

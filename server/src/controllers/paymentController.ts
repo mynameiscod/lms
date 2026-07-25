@@ -6,7 +6,7 @@ import Fee from '../models/Fee';
 import CurriculumEnrollment from '../models/CurriculumEnrollment';
 import * as razorpay from '../services/razorpayService';
 import * as settings from '../services/settingsService';
-import { applyFeePayment } from '../services/feePaymentService';
+import { applyFeePayment, reverseFeePayment } from '../services/feePaymentService';
 import { unlockCandidatePlans } from '../services/assessmentEnrollmentService';
 
 /**
@@ -170,6 +170,62 @@ export const webhook = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[payment] webhook failed:', e);
     res.status(200).json({ success: true }); // 200 so Razorpay doesn't hammer retries on our bugs
+  }
+};
+
+const isAdmin = (req: AuthenticatedRequest) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(String((req.user as any)?.role));
+
+/** Admin: transactions ledger / reconciliation. */
+export const listTransactions = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ success: false, message: 'Not allowed' });
+    const tenantId = tenantOf(req);
+    const filter: any = { tenantId };
+    if (req.query.status) filter.status = req.query.status;
+    if (req.query.purpose) filter.purpose = req.query.purpose;
+    if (req.query.studentId) filter.studentId = req.query.studentId;
+    const rows = await Payment.find(filter)
+      .populate('studentId', 'firstName lastName email')
+      .sort({ createdAt: -1 }).limit(500).lean();
+    res.json({ success: true, data: rows });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message || 'Failed to load transactions' });
+  }
+};
+
+/** Admin: refund a paid payment (full or partial) and reverse the fee credit. */
+export const refundPayment = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ success: false, message: 'Not allowed' });
+    const tenantId = tenantOf(req);
+    const payment: any = await Payment.findOne({ _id: req.params.id, tenantId });
+    if (!payment) return res.status(404).json({ success: false, message: 'Payment not found' });
+    if (payment.status !== 'paid') return res.status(400).json({ success: false, message: 'Only a paid payment can be refunded' });
+    if (!payment.paymentId) return res.status(400).json({ success: false, message: 'No gateway payment id to refund' });
+
+    const paidInr = (payment.amount || 0) / 100;
+    const amountInr = req.body?.amount ? Number(req.body.amount) : paidInr;
+    if (!amountInr || amountInr <= 0 || amountInr > paidInr) {
+      return res.status(400).json({ success: false, message: `Refund must be between ₹1 and ₹${paidInr}` });
+    }
+    const full = amountInr >= paidInr;
+
+    const rf = await razorpay.refundPayment(tenantId, payment.paymentId, full ? undefined : amountInr);
+
+    if ((payment.purpose === 'fee' || payment.purpose === 'fee_installment') && payment.feeId) {
+      await reverseFeePayment({
+        tenantId, feeId: String(payment.feeId), paymentRef: payment._id,
+        amount: amountInr, installmentId: full ? payment.installmentId : undefined,
+      });
+    }
+
+    payment.status = 'refunded';
+    payment.refund = { refundId: rf.id, amount: amountInr, at: new Date(), by: req.user?.id as any, reason: req.body?.reason };
+    await payment.save();
+    res.json({ success: true, message: 'Refund initiated', data: { refundId: rf.id, amount: amountInr } });
+  } catch (e: any) {
+    console.error('[payment] refund failed:', e);
+    res.status(500).json({ success: false, message: e.message || 'Refund failed' });
   }
 };
 

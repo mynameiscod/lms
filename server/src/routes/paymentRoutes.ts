@@ -16,4 +16,8 @@ router.post('/verify', ctrl.verifyPayment);
 router.get('/fee-info', ctrl.getFeePaymentInfo);
 router.post('/fee-order', ctrl.createFeeOrder);
 
+// Admin — reconciliation + refunds
+router.get('/transactions', ctrl.listTransactions);
+router.post('/:id/refund', ctrl.refundPayment);
+
 export default router;

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
+import BattleChrome from './BattleChrome';
 import './battles.css';
 import '../QuizTaking/QuizRunner.css';
 
@@ -111,12 +112,12 @@ const BattleExam: React.FC = () => {
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
   // ── Render ──
-  if (phase === 'loading') return <div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your exam…</div></div>;
+  if (phase === 'loading') return <BattleChrome><div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your exam…</div></div></BattleChrome>;
 
   if (phase === 'error') return (
-    <div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center' }}>
+    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 40 }}>⛔</div><div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>{errMsg}</div>
-    </div></div></div>
+    </div></div></div></BattleChrome>
   );
 
   if (phase === 'countdown') {
@@ -130,6 +131,7 @@ const BattleExam: React.FC = () => {
     const tail = parts.slice(Math.max(1, parts.length - 2)).join(' ');
     const cells: [string, number][] = [['DAYS', days], ['HRS', h], ['MIN', m], ['SEC', s]];
     return (
+      <BattleChrome>
       <div className="cd-page">
         <div className="cd-deco l">🏆</div>
         <div className="cd-deco r">📋</div>
@@ -153,27 +155,28 @@ const BattleExam: React.FC = () => {
           <div className="cd-note"><span className="dot" /> Keep this page open — it unlocks automatically at the start time.</div>
         </div>
       </div>
+      </BattleChrome>
     );
   }
 
   if (phase === 'ready') return (
-    <div className="bt-page"><div className="bt-wrap" style={{ marginTop: 50 }}><div className="bt-card" style={{ textAlign: 'center' }}>
+    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 50 }}><div className="bt-card" style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 40 }}>🚀</div>
       <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>{exam.quiz.title}</div>
       <div className="bt-muted">{questions.length} questions · {exam.quiz.timeLimit} min · {exam.quiz.totalMarks} marks</div>
       <div className="bt-ok" style={{ marginTop: 14, textAlign: 'left' }}>One attempt · single device · {exam.quiz.enableCamera ? 'camera-proctored · ' : ''}the clock stops at the battle end time. All the best!</div>
       <button className="bt-btn" onClick={beginExam}>Start exam →</button>
-    </div></div></div>
+    </div></div></div></BattleChrome>
   );
 
   if (phase === 'result') return (
-    <div className="bt-page"><div className="bt-wrap" style={{ marginTop: 50 }}><div className="bt-card" style={{ textAlign: 'center' }}>
+    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 50 }}><div className="bt-card" style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 44 }}>{result.passed ? '🏆' : '✅'}</div>
       <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>Submitted!</div>
       <div style={{ fontSize: 40, fontWeight: 800, color: '#1d4ed8', margin: '8px 0' }}>{result.score}<span style={{ fontSize: 20, color: '#94a3b8' }}>/{result.totalMarks}</span></div>
       <div className="bt-muted">{result.percentage}% · You ranked <b>#{result.rank}</b></div>
       <button className="bt-btn" onClick={() => nav(`/battles/${result.slug}/leaderboard?tenant=${result.tenantSlug || 'codebegun'}`)}>View leaderboard 🏆</button>
-    </div></div></div>
+    </div></div></div></BattleChrome>
   );
 
   // exam

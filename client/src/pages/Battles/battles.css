@@ -1,4 +1,4 @@
-.bt-page { min-height: 100vh; background: #eef2f7; }
+.bt-page { min-height: calc(100vh - 66px); background: #eef2f7; }
 .bt-page * { box-sizing: border-box; }
 .bt-hero { background: linear-gradient(120deg,#0a1a4f,#12276e 55%,#1d4ed8); color: #fff; padding: 40px 20px 34px; }
 .bt-hero-in { max-width: 860px; margin: 0 auto; }
@@ -32,7 +32,7 @@
 .bt-medal { font-size: 16px; }
 
 /* ── Countdown hero (matches marketing site) ── */
-.cd-page { min-height: 100vh; background: radial-gradient(1200px 620px at 50% -12%, #1b3a86 0%, #0c1c56 42%, #060e30 100%); color: #fff; display: flex; align-items: center; justify-content: center; padding: 48px 20px; position: relative; overflow: hidden; }
+.cd-page { min-height: calc(100vh - 66px); background: radial-gradient(1200px 620px at 50% -12%, #1b3a86 0%, #0c1c56 42%, #060e30 100%); color: #fff; display: flex; align-items: center; justify-content: center; padding: 48px 20px; position: relative; overflow: hidden; }
 .cd-in { max-width: 860px; width: 100%; text-align: center; position: relative; z-index: 2; }
 .cd-eyebrow { color: #37d0c0; letter-spacing: 4px; font-size: 12.5px; font-weight: 800; }
 .cd-title { font-size: 46px; font-weight: 900; margin: 16px 0 12px; line-height: 1.08; letter-spacing: -.5px; }

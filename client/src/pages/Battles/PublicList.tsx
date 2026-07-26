@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
+import BattleChrome from './BattleChrome';
 import './battles.css';
 
 /** Public list of open Tech Battles for a tenant. */
@@ -14,6 +15,7 @@ const BattleList: React.FC = () => {
   useEffect(() => { (async () => { try { const r = await battlePublicApi.list(tenant); setBattles(r.battles || []); } catch { /* */ } setLoading(false); })(); }, [tenant]);
 
   return (
+    <BattleChrome>
     <div className="bt-page">
       <div className="bt-hero"><div className="bt-hero-in"><span className="bt-eyebrow">⚔️ CODEBEGUN TECH BATTLES</span><h1>Compete. Win. Get noticed.</h1><p>Public coding & aptitude battles — anyone can join.</p></div></div>
       <div className="bt-wrap" style={{ maxWidth: 760 }}>
@@ -33,6 +35,7 @@ const BattleList: React.FC = () => {
             </div>}
       </div>
     </div>
+    </BattleChrome>
   );
 };
 

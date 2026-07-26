@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
+import BattleChrome from './BattleChrome';
 import './battles.css';
 
 /** Public leaderboard for a battle (optionally filter by college). */
@@ -24,6 +25,7 @@ const BattleLeaderboard: React.FC = () => {
   const medal = (p: number) => p === 1 ? '🥇' : p === 2 ? '🥈' : p === 3 ? '🥉' : '';
 
   return (
+    <BattleChrome>
     <div className="bt-page">
       <div className="bt-hero"><div className="bt-hero-in"><span className="bt-eyebrow">🏆 LEADERBOARD</span><h1>{data?.title || 'Tech Battle'}</h1>{data?.prize && <p>Prize: {data.prize}</p>}</div></div>
       <div className="bt-wrap" style={{ maxWidth: 720 }}>
@@ -55,6 +57,7 @@ const BattleLeaderboard: React.FC = () => {
         </div>
       </div>
     </div>
+    </BattleChrome>
   );
 };
 

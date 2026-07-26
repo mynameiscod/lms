@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
+import BattleChrome from './BattleChrome';
 import './battles.css';
 
 /** Public Tech Battle landing + self-serve registration (OTP). No login. */
@@ -69,19 +70,20 @@ const BattleLanding: React.FC = () => {
     setBusy(false);
   };
 
-  if (loading) return <div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading…</div></div>;
+  if (loading) return <BattleChrome><div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading…</div></div></BattleChrome>;
   if (data && data.active === false) return (
-    <div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center' }}>
+    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center' }}>
       <div style={{ fontSize: 40 }}>⚔️</div>
       <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>No battle open right now</div>
       <div className="bt-muted">The next CodeBegun Tech Battle will be announced soon. Check back!</div>
-    </div></div></div>
+    </div></div></div></BattleChrome>
   );
-  if (!battle) return <div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>{err || 'Battle not found.'}</div></div>;
+  if (!battle) return <BattleChrome><div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>{err || 'Battle not found.'}</div></div></BattleChrome>;
 
   const started = now >= startMs;
 
   return (
+    <BattleChrome>
     <div className="bt-page">
       <div className="bt-hero">
         <div className="bt-hero-in">
@@ -173,6 +175,7 @@ const BattleLanding: React.FC = () => {
         </div>
       </div>
     </div>
+    </BattleChrome>
   );
 };
 

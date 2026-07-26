@@ -11,6 +11,7 @@ import Assignment, {
 } from '../models/Assignment';
 import assignmentService from './assignmentService';
 import codeRunnerService from './codeRunnerService';
+import { resolveForStudent } from './assessmentDeliveryService';
 import { Types } from 'mongoose';
 import crypto from 'crypto';
 
@@ -54,14 +55,21 @@ class SubmissionService {
       throw new Error('Assignment not found');
     }
 
-    // Check if assignment is published and available
-    if (assignmentDoc.status !== 'published') {
-      throw new Error('Assignment is not available');
-    }
-
-    // Check start date
-    if (assignmentDoc.startDate && new Date() < assignmentDoc.startDate) {
-      throw new Error('Assignment has not started yet');
+    // When the assignment is delivered via a schedule (per-batch or individual) or a
+    // curriculum day, that delivery governs availability — and the controller's
+    // checkDeadlineGate already enforced its window. In that case the assignment's OWN
+    // baked publish-status / start-date must NOT block (a reusable library item can be a
+    // draft, and its baked startDate is irrelevant). Only enforce the baked window for
+    // un-scheduled (legacy/standalone) assignments.
+    const delivery = await resolveForStudent(String(tenant), String(student), 'assignment', String(assignment));
+    const scheduleGoverned = delivery.source === 'schedule' || delivery.source === 'curriculum';
+    if (!scheduleGoverned) {
+      if (assignmentDoc.status !== 'published') {
+        throw new Error('Assignment is not available');
+      }
+      if (assignmentDoc.startDate && new Date() < assignmentDoc.startDate) {
+        throw new Error('Assignment has not started yet');
+      }
     }
 
     // Check for existing submission (any status) - return it if exists

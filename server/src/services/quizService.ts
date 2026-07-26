@@ -5,6 +5,7 @@ import QuizAttempt from '../models/QuizAttempt';
 import QuizSubmission from '../models/QuizSubmission';
 import Batch from '../models/Batch';
 import User from '../models/User';
+import { resolveForStudent } from './assessmentDeliveryService';
 import crypto from 'crypto';
 
 export class QuizService {
@@ -214,9 +215,17 @@ export class QuizService {
       const canAccess = await this.canStudentAccessQuiz(quizId, studentId);
       if (!canAccess) throw new Error('You do not have access to this quiz');
 
-      const availabilityCheck = await this.isQuizAvailable(quizId);
-      if (!availabilityCheck.available) {
-        throw new Error(availabilityCheck.reason || 'Quiz is not available at this time');
+      // Availability window: when the quiz is delivered via a schedule (per-batch or
+      // individual) or a curriculum day, that window governs — and the controller's
+      // checkDeadlineGate already enforced it. Only fall back to the quiz's OWN baked
+      // start/end window for un-scheduled (legacy/standalone) quizzes; otherwise a
+      // stale baked endDate would wrongly block an assigned, still-open quiz.
+      const delivery = await resolveForStudent(tenantId, studentId, 'quiz', quizId);
+      if (delivery.source !== 'schedule' && delivery.source !== 'curriculum') {
+        const availabilityCheck = await this.isQuizAvailable(quizId);
+        if (!availabilityCheck.available) {
+          throw new Error(availabilityCheck.reason || 'Quiz is not available at this time');
+        }
       }
 
       // Check attempt count

@@ -48,6 +48,7 @@ export interface ITechBattle extends Document {
   proofNote?: string;                     // instructions shown on the form, e.g. "Upload your college ID"
 
   proctoring: { camera: boolean; tabSwitch: boolean };
+  leaderboardPublished: boolean;   // public leaderboard hidden until admin publishes
   status: BattleStatus;
   createdBy?: string;
   createdAt: Date;
@@ -92,6 +93,7 @@ const TechBattleSchema = new Schema<ITechBattle>({
   proofNote:  { type: String },
 
   proctoring: { camera: { type: Boolean, default: true }, tabSwitch: { type: Boolean, default: true } },
+  leaderboardPublished: { type: Boolean, default: false },
   status:     { type: String, enum: ['draft', 'live', 'closed'], default: 'draft', index: true },
   createdBy:  { type: String },
 }, { timestamps: true });

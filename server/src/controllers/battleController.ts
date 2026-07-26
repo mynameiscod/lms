@@ -326,8 +326,11 @@ export const getPublicLeaderboard = async (req: Request, res: Response) => {
     if (!tenantId) return res.status(404).json({ message: 'Organization not found' });
     const b = await TechBattle.findOne({ tenantId, slug: req.params.slug }).lean() as any;
     if (!b) return res.status(404).json({ message: 'Battle not found' });
+    if (!b.leaderboardPublished) {
+      return res.json({ success: true, published: false, title: b.title, prize: b.prize, leaderboard: [] });
+    }
     const rows = await battle.getBattleLeaderboard(String(b._id), { door: req.query.door as string, college: req.query.college as string, limit: 100 });
-    res.json({ success: true, title: b.title, prize: b.prize, endAt: b.endAt, leaderboard: rows });
+    res.json({ success: true, published: true, title: b.title, prize: b.prize, endAt: b.endAt, leaderboard: rows });
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
@@ -401,7 +404,7 @@ export const getBattle = async (req: Request, res: Response) => {
 export const updateBattle = async (req: Request, res: Response) => {
   try {
     if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
-    const allowed = ['title', 'quizId', 'bannerUrl', 'description', 'prize', 'rules', 'registerOpensAt', 'registerClosesAt', 'startAt', 'endAt', 'joinCutoffMins', 'visibility', 'doors', 'registrationFields', 'registrationMode', 'proofNote', 'proctoring', 'status'];
+    const allowed = ['title', 'quizId', 'bannerUrl', 'description', 'prize', 'rules', 'registerOpensAt', 'registerClosesAt', 'startAt', 'endAt', 'joinCutoffMins', 'visibility', 'doors', 'registrationFields', 'registrationMode', 'proofNote', 'proctoring', 'leaderboardPublished', 'status'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     if (Array.isArray($set.doors)) {

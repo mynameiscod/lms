@@ -39,6 +39,7 @@ const BattleLeaderboard: React.FC = () => {
             </div>
           )}
           {loading ? <div style={{ padding: 30, textAlign: 'center', color: '#64748b' }}>Loading…</div>
+            : (data && data.published === false) ? <div style={{ padding: '36px 20px', textAlign: 'center' }}><div style={{ fontSize: 40 }}>🔒</div><div style={{ fontSize: 17, fontWeight: 800, color: '#0f172a', margin: '8px 0 4px' }}>Results are being finalized</div><div style={{ color: '#94a3b8', fontSize: 14 }}>The leaderboard will be published soon. Check back later!</div></div>
             : rows.length === 0 ? <div style={{ padding: 20, textAlign: 'center', color: '#94a3b8' }}>No submissions yet.</div>
             : <table className="bt-lb">
                 <thead><tr><th>#</th><th>Name</th><th>College</th><th>Score</th><th>Time</th></tr></thead>

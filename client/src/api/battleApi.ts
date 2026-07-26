@@ -14,6 +14,7 @@ export interface TechBattle {
   registerOpensAt?: string; registerClosesAt?: string; startAt: string; endAt: string; joinCutoffMins?: number;
   visibility?: 'public' | 'private'; doors?: BattleDoor[]; registrationFields?: BattleField[];
   proctoring?: { camera: boolean; tabSwitch: boolean }; status?: 'draft' | 'live' | 'closed';
+  leaderboardPublished?: boolean;
   registrations?: number; submissions?: number;
 }
 

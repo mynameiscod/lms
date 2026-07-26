@@ -91,6 +91,9 @@ const BattleDetail: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={async () => { const b = await battleAdminApi.update(String(id), { leaderboardPublished: !battle.leaderboardPublished } as any); setBattle(b); setToast(b.leaderboardPublished ? '🏆 Leaderboard published (public)' : 'Leaderboard hidden'); setTimeout(() => setToast(''), 3000); }} style={{ ...ghost, ...(battle.leaderboardPublished ? { color: '#15803d', borderColor: '#bbf7d0' } : {}) }}>
+            {battle.leaderboardPublished ? '🏆 Published' : '🏆 Publish leaderboard'}
+          </button>
           <button onClick={() => setShowRemind(true)} style={{ ...ghost, color: '#15803d', borderColor: '#bbf7d0' }}>💬 Send reminder</button>
           <button onClick={openEdit} style={ghost}>✏️ Edit</button>
           {battle.status !== 'live' && <button onClick={() => setStatus('live')} style={ghost}>Go live</button>}

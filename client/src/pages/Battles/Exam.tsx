@@ -89,6 +89,17 @@ const BattleExam: React.FC = () => {
     return () => clearInterval(h);
   }, [phase, token, sid]);
 
+  // Block the browser Back button + warn on refresh/close while the exam is running.
+  useEffect(() => {
+    if (phase !== 'exam') return;
+    window.history.pushState(null, '', window.location.href);
+    const onPop = () => { window.history.pushState(null, '', window.location.href); };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ''; return ''; };
+    window.addEventListener('popstate', onPop);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('beforeunload', onBeforeUnload); };
+  }, [phase]);
+
   // cleanup camera
   useEffect(() => () => { streamRef.current?.getTracks().forEach(t => t.stop()); }, []);
 
@@ -170,12 +181,13 @@ const BattleExam: React.FC = () => {
   );
 
   if (phase === 'result') return (
-    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 50 }}><div className="bt-card" style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 44 }}>{result.passed ? '🏆' : '✅'}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#0f172a' }}>Submitted!</div>
-      <div style={{ fontSize: 40, fontWeight: 800, color: '#1d4ed8', margin: '8px 0' }}>{result.score}<span style={{ fontSize: 20, color: '#94a3b8' }}>/{result.totalMarks}</span></div>
-      <div className="bt-muted">{result.percentage}% · You ranked <b>#{result.rank}</b></div>
-      <button className="bt-btn" onClick={() => nav(`/battles/${result.slug}/leaderboard?tenant=${result.tenantSlug || 'codebegun'}`)}>View leaderboard 🏆</button>
+    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center', padding: '34px 26px' }}>
+      <div style={{ fontSize: 56 }}>🎉</div>
+      <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '8px 0 6px' }}>Congratulations!</div>
+      <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.6, maxWidth: 420, margin: '0 auto' }}>
+        You’ve successfully completed the CodeBegun Tech Battle. Our team will review the results and <b>connect with you with further details</b>. Thank you for participating! 🚀
+      </p>
+      <div className="bt-muted" style={{ marginTop: 16 }}>You can close this window now.</div>
     </div></div></div></BattleChrome>
   );
 
@@ -184,7 +196,10 @@ const BattleExam: React.FC = () => {
   return (
     <div className="qr-page">
       <div className="qr-topbar">
-        <div className="qr-brand"><div><div className="qr-brand-name">CODEBEGUN</div><div className="qr-brand-tag">Tech Battle</div></div></div>
+        <div className="qr-brand">
+          <img src="/assets/logo.png" alt="CodeBegun" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <div><div className="qr-brand-name">CODEBEGUN</div><div className="qr-brand-tag">Tech Battle</div></div>
+        </div>
         <div className="qr-brand-sep" />
         <div className="qr-title"><h1>{exam.quiz.title}</h1><div className="qr-meta">Question {idx + 1} of {questions.length}</div></div>
         <div className="qr-top-right">

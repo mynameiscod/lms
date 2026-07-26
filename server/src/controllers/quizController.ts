@@ -400,6 +400,86 @@ export const getStudentAttemptResults = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Admin/instructor view of ANY student's attempt — the same per-question breakdown as
+ * getStudentAttemptResults but WITHOUT the ownership check and ALWAYS revealing the
+ * correct answer (admins must see right/wrong regardless of student-facing quiz settings).
+ * Tenant-scoped. Guarded by roleGuard(['view_reports']) at the route.
+ */
+export const getAttemptResultsForAdmin = async (req: Request, res: Response) => {
+  try {
+    const { attemptId } = req.params;
+    const tenantId = (req as any).tenantId;
+
+    const attempt = await QuizAttempt.findById(attemptId);
+    if (!attempt) return res.status(404).json({ message: 'Attempt not found' });
+    if (tenantId && String(attempt.tenantId) !== String(tenantId)) {
+      return res.status(403).json({ message: 'Not allowed' });
+    }
+
+    const quiz = await Quiz.findById(attempt.quizId);
+    const student = await User.findById(attempt.studentId);
+    const submissions = await QuizSubmission.find({ quizAttemptId: attemptId }).sort({ questionNo: 1 });
+    const questions = await Question.find({ _id: { $in: submissions.map(s => s.questionId) } });
+    const questionMap = new Map(questions.map(q => [q._id.toString(), q]));
+
+    const attemptResult = {
+      attemptId: attempt._id,
+      quizTitle: quiz?.title || 'Quiz',
+      studentName: student ? `${student.firstName} ${student.lastName}`.trim() : 'Student',
+      studentEmail: student?.email || '',
+      score: attempt.obtainedMarks || 0,
+      totalMarks: attempt.totalMarks,
+      percentage: attempt.percentage || 0,
+      passed: attempt.passed || false,
+      timeSpent: attempt.timeSpent || 0,
+      questionsAnswered: attempt.questionsAnswered || 0,
+      totalQuestions: quiz?.totalQuestions || submissions.length,
+      submittedAt: attempt.submittedAt || attempt.createdAt,
+    };
+
+    const answers = submissions.map(sub => {
+      const question: any = questionMap.get(sub.questionId);
+      let correctAnswerText = '';
+      if (question) {
+        const opts: any[] = question.options || [];
+        const correctOpts = opts.filter((o: any) => typeof o === 'object' && o.isCorrect);
+        if (correctOpts.length) {
+          correctAnswerText = correctOpts.map((o: any) => o.text).filter(Boolean).join(', ');
+        } else if (question.correctAnswers && question.correctAnswers.length) {
+          correctAnswerText = question.correctAnswers.map((ans: string) => {
+            const idx = parseInt(ans);
+            if (!isNaN(idx) && opts[idx] !== undefined) {
+              const opt = opts[idx];
+              return typeof opt === 'string' ? opt : (opt?.text || ans);
+            }
+            return ans;
+          }).filter(Boolean).join(', ');
+        } else if (question.correctAnswerText) {
+          correctAnswerText = question.correctAnswerText;
+        }
+      }
+      return {
+        questionNo: sub.questionNo,
+        questionText: question?.question || '',
+        questionType: sub.questionType || question?.type || '',
+        isCorrect: !!sub.isCorrect,
+        selectedAnswer: Array.isArray(sub.studentAnswer)
+          ? sub.studentAnswer.join(', ')
+          : (sub.studentAnswer?.toString() || 'Not answered'),
+        correctAnswer: correctAnswerText,
+        marksAwarded: sub.marksAwarded || 0,
+        maxMarks: question?.marks || 0,
+        explanation: question?.explanation || '',
+      };
+    });
+
+    res.json({ attempt: attemptResult, answers });
+  } catch (error: any) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getLatestStudentAttempt = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;

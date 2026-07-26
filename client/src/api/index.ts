@@ -1219,6 +1219,13 @@ export const quizApi = {
     });
   },
 
+  // Admin/instructor: any student's attempt breakdown (right/wrong + correct answers).
+  getAdminAttemptResults: async (attemptId: string) => {
+    return authenticatedFetch(`${API_BASE_URL}/quizzes/attempt/${attemptId}/admin-results`, {
+      method: 'GET'
+    });
+  },
+
   getNonAttendees: async (quizId: string) => {
     return authenticatedFetch(`${API_BASE_URL}/quizzes/${quizId}/non-attendees`, { method: 'GET' });
   },

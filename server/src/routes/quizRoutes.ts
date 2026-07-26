@@ -94,6 +94,8 @@ router.post('/:quizId/attempt/:attemptId/recording', recordingUpload.single('rec
 
 router.get('/attempt/:attemptId/results', quizController.getQuizResults);
 router.get('/attempt/:attemptId/student-results', quizController.getStudentAttemptResults);
+// Admin/instructor: any student's attempt breakdown (right/wrong + correct answers).
+router.get('/attempt/:attemptId/admin-results', roleGuard(['view_reports']), quizController.getAttemptResultsForAdmin);
 
 // Question Routes
 router.post(

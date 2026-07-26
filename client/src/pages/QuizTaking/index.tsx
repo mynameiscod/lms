@@ -4,6 +4,7 @@ import { quizApi } from '../../api';
 import { Alert, Spinner, Button, Modal } from '../../components/common';
 import { Quiz, Question, QuizAttempt } from '../../types';
 import './QuizTakingPage.css';
+import './QuizRunner.css';
 
 const QuizTakingPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -22,6 +23,8 @@ const QuizTakingPage: React.FC = () => {
   const [showSubmitConfirmModal, setShowSubmitConfirmModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
+  const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
+  const [paused, setPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
   const preventCopyPasteRef = useRef((e: Event) => e.preventDefault());
@@ -274,6 +277,27 @@ const QuizTakingPage: React.FC = () => {
     setCurrentQuestionIndex(index);
   };
 
+  const toggleReview = (questionId: string) => {
+    setMarkedForReview(prev => {
+      const n = new Set(prev);
+      n.has(questionId) ? n.delete(questionId) : n.add(questionId);
+      return n;
+    });
+  };
+
+  const handleClearResponse = (questionId: string) => {
+    setAnswers(prev => { const n = new Map(prev); n.delete(questionId); return n; });
+  };
+
+  // Jump to the next question marked for review after the current one (wraps around).
+  const goToReview = () => {
+    if (markedForReview.size === 0) return;
+    for (let i = 1; i <= questions.length; i++) {
+      const idx = (currentQuestionIndex + i) % questions.length;
+      if (markedForReview.has(questions[idx]._id)) { setCurrentQuestionIndex(idx); return; }
+    }
+  };
+
   const handleSubmitQuiz = useCallback(async () => {
     try {
       if (!attempt || !quiz) return;
@@ -361,8 +385,8 @@ const QuizTakingPage: React.FC = () => {
   }, [handleSubmitQuiz]);
 
   useEffect(() => {
-    // Only run timer when quiz has started (not on instruction page)
-    if (showInstructions || timeLeft <= 0 || !quiz) return;
+    // Only run timer when quiz has started (not on instruction page) and not paused
+    if (showInstructions || paused || timeLeft <= 0 || !quiz) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -377,7 +401,7 @@ const QuizTakingPage: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [showInstructions, timeLeft, quiz, handleSubmitQuiz]);
+  }, [showInstructions, paused, timeLeft, quiz, handleSubmitQuiz]);
 
   if (loading) return <Spinner fullScreen />;
   
@@ -509,238 +533,232 @@ const QuizTakingPage: React.FC = () => {
   if (!attempt) return <Spinner fullScreen />;
 
   const currentQuestion = questions[currentQuestionIndex];
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
   const timeWarning = timeLeft < 300; // Less than 5 minutes
   const timeCritical = timeLeft < 60; // Less than 1 minute
+  const answeredCount = answers.size;
+  const pctAnswered = questions.length ? Math.round((answeredCount / questions.length) * 100) : 0;
+  const typeLabel = (t?: string) => t === 'mcq_single' ? 'MCQ - Single Choice'
+    : t === 'mcq_multiple' ? 'MCQ - Multiple Choice'
+    : t === 'short_answer' ? 'Short Answer'
+    : t === 'coding' ? 'Coding' : 'Question';
+  const nowStr = `${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })} ${new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}`;
+  const isReviewed = currentQuestion ? markedForReview.has(currentQuestion._id) : false;
+  const isLast = currentQuestionIndex >= questions.length - 1;
+
+  const renderOptions = () => {
+    if (!currentQuestion) return null;
+    if (currentQuestion.type === 'mcq_single' || currentQuestion.type === 'mcq_multiple') {
+      return (
+        <div className="qr-options">
+          {currentQuestion.options?.map((option, index) => {
+            const optionText = getOptionText(option);
+            const cur = answers.get(currentQuestion._id);
+            const selected = currentQuestion.type === 'mcq_single'
+              ? cur === optionText
+              : Array.isArray(cur) && cur.includes(optionText);
+            return (
+              <label key={index} className={`qr-opt${selected ? ' sel' : ''}`}>
+                <input
+                  type={currentQuestion.type === 'mcq_single' ? 'radio' : 'checkbox'}
+                  name={`question-${currentQuestion._id}`}
+                  value={optionText}
+                  checked={selected}
+                  onChange={(e) => {
+                    if (currentQuestion.type === 'mcq_single') {
+                      handleAnswerChange(currentQuestion._id, e.target.value);
+                    } else {
+                      const currentAnswers = Array.isArray(cur) ? cur : [];
+                      if (e.target.checked) handleAnswerChange(currentQuestion._id, [...currentAnswers, optionText]);
+                      else handleAnswerChange(currentQuestion._id, currentAnswers.filter((a: string) => a !== optionText));
+                    }
+                  }}
+                />
+                <span className="qr-opt-letter">{String.fromCharCode(65 + index)}</span>
+                <span className="qr-opt-text">{optionText}</span>
+              </label>
+            );
+          })}
+        </div>
+      );
+    }
+    if (currentQuestion.type === 'short_answer') {
+      return (
+        <textarea className="qr-textarea" rows={7} placeholder="Type your answer here…"
+          value={answers.get(currentQuestion._id) || ''}
+          onChange={(e) => handleAnswerChange(currentQuestion._id, e.target.value)} />
+      );
+    }
+    if (currentQuestion.type === 'coding') {
+      return (
+        <textarea className="qr-code" rows={12} spellCheck={false} placeholder="Write your code here…"
+          value={answers.get(currentQuestion._id) || ''}
+          onChange={(e) => handleAnswerChange(currentQuestion._id, e.target.value)} />
+      );
+    }
+    return null;
+  };
 
   return (
-    <div ref={fullScreenRef} className={`quiz-taking-page${!quiz.canCopyPaste ? ' no-copy-paste' : ''}`}>
-      {/* Camera Proctoring Preview */}
-      {quiz.enableCamera && !showInstructions && (
-        <div className="proctoring-preview">
-          <video
-            ref={videoRef}
-            autoPlay
-            muted
-            playsInline
-            className="proctoring-video"
-          />
-          <div className="proctoring-label">🔴 Proctored</div>
+    <div ref={fullScreenRef} className={`qr-page${!quiz.canCopyPaste ? ' no-copy-paste' : ''}`}>
+      {/* Pause overlay */}
+      {paused && (
+        <div className="qr-pause-overlay">
+          <div>
+            <h2>⏸ Quiz Paused</h2>
+            <p>Your timer is paused. Resume when you're ready.</p>
+            <button onClick={() => setPaused(false)}>▶ Resume Quiz</button>
+          </div>
         </div>
       )}
 
-      {/* Microphone indicator (no camera) */}
-      {quiz.enableMicrophone && !quiz.enableCamera && !showInstructions && (
-        <div className="proctoring-mic-indicator">
-          <span>🎙️ Mic Active</span>
-        </div>
-      )}
-
-      {/* Media Error */}
       {mediaError && <Alert type="warning" message={mediaError} onClose={() => setMediaError('')} />}
 
       {/* Tab Switch Warning Modal */}
-      <Modal
-        isOpen={showTabWarnModal}
-        onClose={() => setShowTabWarnModal(false)}
-        title="⚠️ Warning: Tab Switch Detected"
-        maxWidth="500px"
-      >
+      <Modal isOpen={showTabWarnModal} onClose={() => setShowTabWarnModal(false)} title="⚠️ Warning: Tab Switch Detected" maxWidth="500px">
         <div className="warning-content">
           <p>You've switched tabs {tabSwitchCount} time(s).{quiz?.warningCount ? ` You have ${Math.max(0, quiz.warningCount - tabSwitchCount)} warning(s) remaining before auto-submission.` : ' Repeated tab switching may result in termination of the quiz.'}</p>
           <p>Please focus on the quiz window to continue.</p>
-          <Button onClick={() => setShowTabWarnModal(false)} className="btn-primary btn-block">
-            Continue Quiz
-          </Button>
+          <Button onClick={() => setShowTabWarnModal(false)} className="btn-primary btn-block">Continue Quiz</Button>
         </div>
       </Modal>
 
       {/* Submit Confirmation Modal */}
-      <Modal
-        isOpen={showSubmitConfirmModal}
-        onClose={() => setShowSubmitConfirmModal(false)}
-        title="Submit Quiz?"
-        maxWidth="500px"
-      >
+      <Modal isOpen={showSubmitConfirmModal} onClose={() => setShowSubmitConfirmModal(false)} title="Submit Quiz?" maxWidth="500px">
         <div className="confirm-content">
-          <p>
-            You have answered {Array.from(answers.keys()).length} out of {questions.length} questions.
-          </p>
+          <p>You have answered {answeredCount} out of {questions.length} questions.{markedForReview.size ? ` ${markedForReview.size} marked for review.` : ''}</p>
           <p>Are you sure you want to submit the quiz? You cannot change your answers after submission.</p>
           {error && <p style={{ color: '#dc2626', fontSize: 13, fontWeight: 600 }}>{error}</p>}
           <div className="button-group">
-            <Button onClick={() => setShowSubmitConfirmModal(false)} disabled={submitting}>
-              Continue Quiz
-            </Button>
-            <Button onClick={handleSubmitQuiz} className="btn-danger" disabled={submitting}>
-              {submitting ? 'Submitting…' : 'Submit Quiz'}
-            </Button>
+            <Button onClick={() => setShowSubmitConfirmModal(false)} disabled={submitting}>Continue Quiz</Button>
+            <Button onClick={handleSubmitQuiz} className="btn-danger" disabled={submitting}>{submitting ? 'Submitting…' : 'Submit Quiz'}</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Header */}
-      <div className={`quiz-header ${timeWarning ? 'warning' : ''} ${timeCritical ? 'critical' : ''}`}>
-        <div className="quiz-header-logo">
-          <img src="/assets/logo.png" alt="Codebegun" />
-        </div>
-
-        <div className="quiz-title">
-          <h1>{quiz.title}</h1>
-          <p className="question-count">
-            Question {currentQuestionIndex + 1} of {questions.length}
-            {' '}•{' '}
-            {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
-            {' '}
-            {new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-        </div>
-
-        <div className="quiz-timer">
-          <div className={`timer ${timeCritical ? 'critical' : timeWarning ? 'warning' : ''}`}>
-            ⏱️ {formatTime(timeLeft)}
+      {/* ── Top bar ── */}
+      <div className="qr-topbar">
+        <div className="qr-brand">
+          <img src="/assets/logo.png" alt="CodeBegun" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          <div>
+            <div className="qr-brand-name">CODEBEGUN</div>
+            <div className="qr-brand-tag">Code Your Career</div>
           </div>
-          {timeCritical && <p className="timer-warning">Hurry up!</p>}
-          {timeWarning && !timeCritical && <p className="timer-warning">Less than 5 minutes left</p>}
+        </div>
+        <div className="qr-brand-sep" />
+        <div className="qr-title">
+          <h1>{quiz.title}</h1>
+          <div className="qr-meta">Question {currentQuestionIndex + 1} of {questions.length} • {nowStr}</div>
+        </div>
+        <div className="qr-top-right">
+          <span className="qr-type-pill">{typeLabel(currentQuestion?.type)}</span>
+          <div className={`qr-timer ${timeCritical ? 'crit' : timeWarning ? 'warn' : ''}`}>
+            <div className="qr-timer-label">Time Left</div>
+            <div className="qr-timer-val">🕐 {formatTime(timeLeft)}</div>
+          </div>
+          <button className="qr-pause" onClick={() => setPaused(true)} title="Pause">⏸<span>Pause</span></button>
         </div>
       </div>
 
-      <div className="quiz-container">
-        {/* Left Sidebar - Question Navigator */}
-        <div className="question-navigator">
-          <h3>Questions</h3>
-          <div className="progress-bar">
-            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+      <div className="qr-body">
+        {/* ── LEFT: Question Navigator ── */}
+        <div className="qr-left">
+          <div className="qr-card qr-navcard">
+            <div className="qr-panel-title">🧭 Question Navigator</div>
+            <div className="qr-legend">
+              <div className="qr-legend-item"><span className="qr-dot answered" />Answered</div>
+              <div className="qr-legend-item"><span className="qr-dot current" />Current</div>
+              <div className="qr-legend-item"><span className="qr-dot unanswered" />Unanswered</div>
+              <div className="qr-legend-item"><span className="qr-dot review" />Review Later</div>
+            </div>
+            <div className="qr-grid">
+              {questions.map((q, index) => {
+                const answered = answers.has(q._id);
+                const review = markedForReview.has(q._id);
+                const current = index === currentQuestionIndex;
+                return (
+                  <button key={q._id} onClick={() => handleJumpToQuestion(index)}
+                    className={`qr-num${answered ? ' answered' : ''}${review ? ' review' : ''}${current ? ' current' : ''}`}>
+                    {index + 1}
+                  </button>
+                );
+              })}
+            </div>
+            <button className="qr-reviewbtn" onClick={goToReview} disabled={markedForReview.size === 0}>
+              🔖 Review Later ({markedForReview.size})
+            </button>
           </div>
 
-          <div className="questions-list">
-            {questions.map((_, index) => (
-              <button
-                key={index}
-                className={`question-btn ${index === currentQuestionIndex ? 'active' : ''} ${answers.has(questions[index]._id) ? 'answered' : ''}`}
-                onClick={() => handleJumpToQuestion(index)}
-              >
-                {index + 1}
-              </button>
-            ))}
-          </div>
-
-          <h4 className="status-title">Status</h4>
-          <div className="status-group">
-            <div className="status-item">
-              <span className="status-dot answered"></span>
-              <span>Answered: {answers.size}</span>
+          <div className="qr-card qr-progresscard">
+            <div className="qr-panel-title" style={{ marginBottom: 10 }}>Quiz Progress</div>
+            <div className="qr-progress-top">
+              <span className="qr-pct">{pctAnswered}% <small>Completed</small></span>
+              <span className="qr-frac">{answeredCount} / {questions.length} Answered</span>
             </div>
-            <div className="status-item">
-              <span className="status-dot unanswered"></span>
-              <span>Unanswered: {questions.length - answers.size}</span>
-            </div>
+            <div className="qr-progress-track"><div className="qr-progress-fill" style={{ width: `${pctAnswered}%` }} /></div>
           </div>
         </div>
 
-        {/* Main Content - Question */}
-        <div className="question-content">
-          {error && <Alert type="error" message={error} onClose={() => setError('')} />}
+        {/* ── CENTER: Question ── */}
+        <div className="qr-center">
+          {/* Mobile-only progress + meta chips */}
+          <div className="qr-mprogress">
+            <div className="qr-mprow"><span className="qr-qn">Question {currentQuestionIndex + 1} of {questions.length}</span><span>{pctAnswered}% Completed</span></div>
+            <div className="qr-progress-track"><div className="qr-progress-fill" style={{ width: `${pctAnswered}%` }} /></div>
+          </div>
+          <div className="qr-mchips">
+            <div className="qr-mchip">{typeLabel(currentQuestion?.type)}</div>
+            <div className="qr-mchip">Marks<b>{(currentQuestion as any)?.marks ?? (currentQuestion as any)?.points ?? 1}</b></div>
+            <div className="qr-mchip">Negative<b>{quiz.negativeMarking ? 'Yes' : 'No'}</b></div>
+          </div>
+
+          {error && <div style={{ marginBottom: 12 }}><Alert type="error" message={error} onClose={() => setError('')} /></div>}
 
           {currentQuestion && (
-            <div className="question-card">
-              <div className="question-header">
-                <h2>{currentQuestion.questionText}</h2>
-                <span className={`question-type ${currentQuestion.type}`}>
-                  {currentQuestion.type.replace('_', ' ').toUpperCase()}
-                </span>
+            <div className="qr-card qr-qcard">
+              <div className="qr-qhead">
+                <div className="qr-qnum">{currentQuestionIndex + 1}</div>
+                <div className="qr-qtext">{currentQuestion.questionText}</div>
+                <button className={`qr-mark${isReviewed ? ' on' : ''}`} onClick={() => toggleReview(currentQuestion._id)}>
+                  {isReviewed ? '🔖 Marked' : '🔖 Mark for Review'}
+                </button>
               </div>
-
-              <div className="question-body">
-                {currentQuestion.type === 'mcq_single' || currentQuestion.type === 'mcq_multiple' ? (
-                  <div className="mcq-options">
-                    {currentQuestion.options?.map((option, index) => {
-                      const optionText = getOptionText(option);
-                      return (
-                        <label key={index} className="option-label">
-                          <input
-                            type={currentQuestion.type === 'mcq_single' ? 'radio' : 'checkbox'}
-                            name={`question-${currentQuestion._id}`}
-                            value={optionText}
-                            checked={
-                              currentQuestion.type === 'mcq_single'
-                                ? answers.get(currentQuestion._id) === optionText
-                                : Array.isArray(answers.get(currentQuestion._id)) && answers.get(currentQuestion._id).includes(optionText)
-                            }
-                            onChange={(e) => {
-                              if (currentQuestion.type === 'mcq_single') {
-                                handleAnswerChange(currentQuestion._id, e.target.value);
-                              } else {
-                                const currentAnswers = Array.isArray(answers.get(currentQuestion._id)) ? answers.get(currentQuestion._id) : [];
-                                if (e.target.checked) {
-                                  handleAnswerChange(currentQuestion._id, [...currentAnswers, optionText]);
-                                } else {
-                                  handleAnswerChange(currentQuestion._id, currentAnswers.filter((a: string) => a !== optionText));
-                                }
-                              }
-                            }}
-                          />
-                          <span className="option-text">{optionText}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                ) : currentQuestion.type === 'short_answer' ? (
-                  <textarea
-                    className="short-answer-input"
-                    value={answers.get(currentQuestion._id) || ''}
-                    onChange={(e) => handleAnswerChange(currentQuestion._id, e.target.value)}
-                    placeholder="Type your answer here..."
-                    rows={8}
-                  />
-                ) : currentQuestion.type === 'coding' ? (
-                  <div className="coding-area">
-                    <div className="coding-header">
-                      <label>
-                        Language:
-                        <select className="language-select">
-                          <option>JavaScript</option>
-                          <option>Python</option>
-                          <option>Java</option>
-                          <option>C++</option>
-                        </select>
-                      </label>
-                    </div>
-                    <textarea
-                      className="code-input"
-                      value={answers.get(currentQuestion._id) || ''}
-                      onChange={(e) => handleAnswerChange(currentQuestion._id, e.target.value)}
-                      placeholder="Write your code here..."
-                      rows={12}
-                      spellCheck="false"
-                    />
-                  </div>
-                ) : null}
-              </div>
-
-              {/* Explanation is intentionally hidden during quiz — shown only in results */}
+              {renderOptions()}
             </div>
           )}
 
-          {/* Navigation Buttons */}
-          <div className="question-navigation">
-            <Button
-              onClick={handlePreviousQuestion}
-              disabled={currentQuestionIndex === 0}
-              className="btn-secondary"
-            >
-              ← Previous
-            </Button>
-
-            {currentQuestionIndex < questions.length - 1 ? (
-              <Button onClick={handleNextQuestion} className="btn-secondary">
-                Next →
-              </Button>
+          <div className="qr-actions">
+            <button className="qr-btn ghost" onClick={handlePreviousQuestion} disabled={currentQuestionIndex === 0}>← Previous Question</button>
+            <button className="qr-btn clear" onClick={() => currentQuestion && handleClearResponse(currentQuestion._id)}>🗑 Clear Response</button>
+            {isLast ? (
+              <button className="qr-btn submit" onClick={() => setShowSubmitConfirmModal(true)}>✅ Submit Quiz</button>
             ) : (
-              <Button onClick={() => setShowSubmitConfirmModal(true)} className="btn-primary btn-lg">
-                ✅ Submit Quiz
-              </Button>
+              <button className="qr-btn primary" onClick={handleNextQuestion}>Next Question →</button>
             )}
+          </div>
+        </div>
+
+        {/* ── RIGHT: Proctoring + Instructions ── */}
+        <div className="qr-right">
+          <div className="qr-card qr-proctor">
+            <div className="qr-proctor-head">
+              <span className="qr-p-title">🛡️ AI Proctoring</span>
+              <span className="qr-badge-active">Active</span>
+            </div>
+            {quiz.enableCamera ? (
+              <video ref={videoRef} autoPlay muted playsInline className="qr-proctor-video" />
+            ) : (
+              <div className="qr-proctor-noc">{quiz.enableMicrophone ? '🎙️ Microphone monitoring active' : 'Session is being monitored'}</div>
+            )}
+            <div className="qr-proctor-status">You are being monitored</div>
+            <div className="qr-proctor-note">Please stay focused and avoid switching tabs or windows.</div>
+          </div>
+
+          <div className="qr-card qr-instr">
+            <div className="qr-instr-title">ℹ️ Quiz Instructions</div>
+            <div className="qr-instr-item"><span className="qr-instr-ic">📋</span>{questions.length} Questions</div>
+            <div className="qr-instr-item"><span className="qr-instr-ic">🔘</span>{typeLabel(currentQuestion?.type)}</div>
+            <div className="qr-instr-item"><span className="qr-instr-ic">✏️</span>{quiz.totalMarks} Marks</div>
+            <div className="qr-instr-item"><span className="qr-instr-ic">{quiz.negativeMarking ? '➖' : '✖️'}</span>{quiz.negativeMarking ? `Negative Marking (${quiz.negativeMarkingValue || 0})` : 'No Negative Marking'}</div>
           </div>
         </div>
       </div>

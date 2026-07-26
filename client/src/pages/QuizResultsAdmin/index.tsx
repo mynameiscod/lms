@@ -41,6 +41,24 @@ const QuizResultsAdminPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // Per-student answer-breakdown modal
+  const [detailFor, setDetailFor] = useState<AttemptRecord | null>(null);
+  const [detail, setDetail] = useState<any>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailErr, setDetailErr] = useState('');
+
+  const openDetail = async (attempt: AttemptRecord) => {
+    setDetailFor(attempt); setDetail(null); setDetailErr(''); setDetailLoading(true);
+    try {
+      const res = await quizApi.getAdminAttemptResults(attempt._id);
+      setDetail(res.data || res);
+    } catch (err: any) {
+      setDetailErr(err?.message || 'Failed to load answer breakdown');
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
   const formatTime = (seconds: number): string => {
     if (!seconds) return '—';
     const mins = Math.floor(seconds / 60);
@@ -190,9 +208,9 @@ const QuizResultsAdminPage: React.FC = () => {
                     </td>
                     <td>
                       <Button
-                        onClick={() => navigate(`/quiz/${quizId}/results/${attempt._id}`)}
+                        onClick={() => openDetail(attempt)}
                         className="btn-action btn-sm"
-                        title="View detailed results"
+                        title="View this student's answers (right/wrong)"
                       >
                         👁️
                       </Button>
@@ -204,6 +222,64 @@ const QuizResultsAdminPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Per-student answer breakdown modal */}
+      {detailFor && (
+        <div className="qra-overlay" onClick={() => setDetailFor(null)}>
+          <div className="qra-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="qra-modal-head">
+              <div>
+                <div className="qra-modal-title">{detailFor.studentName}</div>
+                <div className="qra-modal-sub">{detailFor.studentEmail}</div>
+              </div>
+              <button className="qra-close" onClick={() => setDetailFor(null)}>×</button>
+            </div>
+
+            {detailLoading ? (
+              <div className="qra-modal-body" style={{ textAlign: 'center', padding: 40 }}><Spinner /></div>
+            ) : detailErr ? (
+              <div className="qra-modal-body"><Alert type="error" message={detailErr} /></div>
+            ) : detail ? (
+              <div className="qra-modal-body">
+                {/* Score summary */}
+                <div className="qra-summary">
+                  <div className="qra-sum-item"><span>Score</span><b>{detail.attempt.score}/{detail.attempt.totalMarks}</b></div>
+                  <div className="qra-sum-item"><span>Percentage</span><b>{Math.round(detail.attempt.percentage || 0)}%</b></div>
+                  <div className="qra-sum-item"><span>Result</span><b className={detail.attempt.passed ? 'qra-pass' : 'qra-fail'}>{detail.attempt.passed ? 'Passed' : 'Failed'}</b></div>
+                  <div className="qra-sum-item"><span>Correct</span><b>{detail.answers.filter((a: any) => a.isCorrect).length}/{detail.answers.length}</b></div>
+                </div>
+
+                {/* Per-question breakdown */}
+                <div className="qra-qlist">
+                  {detail.answers.map((a: any, i: number) => (
+                    <div key={i} className={`qra-q ${a.isCorrect ? 'ok' : 'bad'}`}>
+                      <div className="qra-q-head">
+                        <span className="qra-q-no">Q{a.questionNo || i + 1}</span>
+                        <span className={`qra-q-badge ${a.isCorrect ? 'ok' : 'bad'}`}>{a.isCorrect ? '✓ Correct' : '✗ Wrong'}</span>
+                        <span className="qra-q-marks">{a.marksAwarded}/{a.maxMarks} marks</span>
+                      </div>
+                      {a.questionText && <div className="qra-q-text">{a.questionText}</div>}
+                      <div className="qra-ans">
+                        <div className="qra-ans-row">
+                          <span className="qra-ans-label">Student's answer</span>
+                          <span className={`qra-ans-val ${a.isCorrect ? 'ok' : 'bad'}`}>{a.selectedAnswer || 'Not answered'}</span>
+                        </div>
+                        {!a.isCorrect && a.correctAnswer && (
+                          <div className="qra-ans-row">
+                            <span className="qra-ans-label">Correct answer</span>
+                            <span className="qra-ans-val ok">{a.correctAnswer}</span>
+                          </div>
+                        )}
+                      </div>
+                      {a.explanation && <div className="qra-q-expl">💡 {a.explanation}</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -27,6 +27,16 @@ function doorOf(b: any, code?: string) {
   return (b.doors || []).find((d: any) => d.code === c) || (b.doors || [])[0] || { code: 'public', label: 'Public', type: 'public' };
 }
 
+/** The battle a permanent marketing page should show right now: the live public battle
+ *  currently accepting registrations (soonest start); else the next upcoming one. */
+async function findCurrentBattle(tenantId: string) {
+  const now = new Date();
+  const battles = await TechBattle.find({ tenantId, status: 'live', visibility: 'public', endAt: { $gt: now } })
+    .sort({ startAt: 1 }).lean() as any[];
+  const regOpen = battles.filter(b => (!b.registerOpensAt || now >= new Date(b.registerOpensAt)) && (!b.registerClosesAt || now <= new Date(b.registerClosesAt)));
+  return regOpen[0] || battles[0] || null;
+}
+
 // ─────────────────────────── PUBLIC ───────────────────────────
 
 /** GET /public/:tenantSlug/battles — list live public battles. */
@@ -47,8 +57,12 @@ export const getPublicBattle = async (req: Request, res: Response) => {
   try {
     const tenantId = await tenantIdFromSlug(req.params.tenantSlug);
     if (!tenantId) return res.status(404).json({ message: 'Organization not found' });
-    const b = await TechBattle.findOne({ tenantId, slug: req.params.slug }).lean() as any;
-    if (!b || b.status === 'draft') return res.status(404).json({ message: 'Battle not found' });
+    // 'current' resolves to this week's active battle so a permanent marketing page never
+    // needs editing — admin just creates next week's battle and the page follows.
+    const b = req.params.slug === 'current'
+      ? await findCurrentBattle(tenantId)
+      : await TechBattle.findOne({ tenantId, slug: req.params.slug }).lean() as any;
+    if (!b || b.status === 'draft') return res.json({ success: true, active: false, message: 'No active battle right now.' });
     const door = doorOf(b, req.query.door as string);
     const now = new Date();
     const registerOpen = (!b.registerOpensAt || now >= new Date(b.registerOpensAt)) &&

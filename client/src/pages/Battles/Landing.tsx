@@ -49,7 +49,7 @@ const BattleLanding: React.FC = () => {
     try {
       const extra: Record<string, any> = {};
       (battle.fields || []).forEach((f: any) => { extra[f.key] = form[f.key] || ''; });
-      const res = await battlePublicApi.register(tenant, String(slug), { ...form, doorCode, ...extra });
+      const res = await battlePublicApi.register(tenant, battle.slug, { ...form, doorCode, ...extra });
       setToken(res.token);
       if (res.otp?.devCode) setDevCode(res.otp.devCode);
       setStep('otp');
@@ -68,6 +68,13 @@ const BattleLanding: React.FC = () => {
   };
 
   if (loading) return <div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading…</div></div>;
+  if (data && data.active === false) return (
+    <div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center' }}>
+      <div style={{ fontSize: 40 }}>⚔️</div>
+      <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>No battle open right now</div>
+      <div className="bt-muted">The next CodeBegun Tech Battle will be announced soon. Check back!</div>
+    </div></div></div>
+  );
   if (!battle) return <div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>{err || 'Battle not found.'}</div></div>;
 
   const started = now >= startMs;
@@ -120,7 +127,7 @@ const BattleLanding: React.FC = () => {
               ))}
               {err && <div className="bt-err">{err}</div>}
               <button className="bt-btn" disabled={busy || !battle.registerOpen || !form.name || !form.mobile || !form.email} onClick={register}>{busy ? 'Sending OTP…' : 'Register & get OTP'}</button>
-              <div style={{ textAlign: 'center', marginTop: 12 }}><button onClick={() => nav(`/battles/${slug}/leaderboard?tenant=${tenant}`)} style={{ background: 'none', border: 'none', color: '#1d4ed8', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>View leaderboard →</button></div>
+              <div style={{ textAlign: 'center', marginTop: 12 }}><button onClick={() => nav(`/battles/${battle.slug}/leaderboard?tenant=${tenant}`)} style={{ background: 'none', border: 'none', color: '#1d4ed8', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>View leaderboard →</button></div>
             </>
           )}
 

@@ -75,6 +75,7 @@ import thinkingLabRoutes from './thinkingLabRoutes';
 import batchOfferingRoutes from './batchOfferingRoutes';
 import assessmentScheduleRoutes from './assessmentScheduleRoutes';
 import passportRoutes from './passportRoutes';
+import publicPassportRoutes from './publicPassportRoutes';
 import conceptLessonRoutes from './conceptLessonRoutes';
 import interactiveLessonRoutes from './interactiveLessonRoutes';
 import adminLogsRoute from './adminLogsRoute';
@@ -105,6 +106,7 @@ import '../notifications/notificationService';
 const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
+router.use('/public/passport', publicPassportRoutes); // Career Passport signup (specific, before generic /public)
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount

@@ -38,4 +38,25 @@ export const passportApi = {
   },
 };
 
+// ── Public funnel (no auth) ──
+const PUB = (process.env.REACT_APP_API_URL || '/api/v1') + '/public/passport';
+export const passportPublicApi = {
+  getConfig: async (tenant: string) => {
+    const { data } = await axios.get(`${PUB}/config`, { params: { tenant } });
+    return data as { success: boolean; enabled: boolean; onboardingFields: OnboardingField[]; priceInr: number; tenantId: string };
+  },
+  signup: async (body: { tenant: string; name: string; mobile: string; email: string; fields: Record<string, any> }) => {
+    const { data } = await axios.post(`${PUB}/signup`, body);
+    return data as { success: boolean; token: string; otp: { sent: boolean; channel: string; devCode?: string; throttledSeconds?: number } };
+  },
+  verify: async (token: string, code: string) => {
+    const { data } = await axios.post(`${PUB}/verify`, { token, code });
+    return data as { success: boolean; token: string; tenantId: string; user: any };
+  },
+  resend: async (token: string) => {
+    const { data } = await axios.post(`${PUB}/resend`, { token });
+    return data as { success: boolean; otp: any };
+  },
+};
+
 export default passportApi;

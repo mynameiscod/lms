@@ -66,6 +66,7 @@ import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
 import PassportPlaceholder from './pages/Passport/Placeholder';
 import MissionControl from './pages/Passport/MissionControl';
+import PassportJoin from './pages/Passport/Join';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
 import AIMentor from './pages/AIMentor';
@@ -304,6 +305,7 @@ const AppRoutes: React.FC = () => {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/passport/join" element={<PassportJoin />} />
       <Route path="/create-organization" element={<CreateOrganizationPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />

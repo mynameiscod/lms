@@ -75,6 +75,13 @@ export const assessmentScheduleApi = {
     const { data } = await api.delete(`/assessment-schedules/${id}`);
     return data;
   },
+
+  // Students to pick from for individual delivery. Uses the same authed axios instance
+  // as the rest of this modal (proven to work) rather than a bare fetch.
+  searchStudents: async (search: string) => {
+    const { data } = await api.get('/activity/students', { params: { search } });
+    return (data.data || []) as { _id: string; firstName?: string; lastName?: string; email?: string; batchId?: string }[];
+  },
 };
 
 export default assessmentScheduleApi;

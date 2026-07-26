@@ -40,6 +40,8 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
   const [students, setStudents] = useState<any[]>([]);
   const [selStudents, setSelStudents] = useState<Set<string>>(new Set());
   const [studentSearch, setStudentSearch] = useState('');
+  const [loadingStudents, setLoadingStudents] = useState(false);
+  const [studentErr, setStudentErr] = useState('');
 
   // Shared window + policy applied to the batches you assign now.
   const [startDate, setStartDate] = useState('');
@@ -64,17 +66,25 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
   useEffect(() => { load(); /* eslint-disable-next-line */ }, [contentId]);
 
   const loadStudents = async (search: string) => {
+    setLoadingStudents(true); setStudentErr('');
     try {
-      const token = localStorage.getItem('token');
-      const tenantId = localStorage.getItem('tenantId');
-      const res = await fetch(`${process.env.REACT_APP_API_URL || '/api/v1'}/activity/students?search=${encodeURIComponent(search)}`, {
-        headers: { Authorization: `Bearer ${token}`, 'X-Tenant-Id': tenantId || '' },
-      });
-      const data = await res.json();
-      setStudents(data.data || []);
-    } catch { setStudents([]); }
+      const rows = await assessmentScheduleApi.searchStudents(search);
+      setStudents(rows);
+      if (rows.length === 0) setStudentErr(search ? 'No students match your search.' : 'No students found for this tenant.');
+    } catch (e: any) {
+      setStudents([]);
+      setStudentErr(e?.response?.data?.message || `Couldn't load students (${e?.response?.status || 'network error'}).`);
+    } finally {
+      setLoadingStudents(false);
+    }
   };
-  useEffect(() => { if (mode === 'students') loadStudents(studentSearch); /* eslint-disable-next-line */ }, [mode, studentSearch]);
+  // Preload the list as soon as "Specific students" is opened, then debounce on typing.
+  useEffect(() => {
+    if (mode !== 'students') return;
+    const t = setTimeout(() => loadStudents(studentSearch), studentSearch ? 250 : 0);
+    return () => clearTimeout(t);
+    /* eslint-disable-next-line */
+  }, [mode, studentSearch]);
 
   const assignedIds = useMemo(() => new Set(existing.map(e => String(e.batchId))), [existing]);
   const visibleBatches = useMemo(
@@ -194,7 +204,11 @@ const AssignToBatchesModal: React.FC<Props> = ({ contentType, contentId, content
               <span className="a2b-count">{selStudents.size} selected</span>
             </div>
             <div className="a2b-list">
-              {students.length === 0 ? <div className="a2b-empty">Type to search students.</div> : students.map(s => {
+              {loadingStudents ? (
+                <div className="a2b-empty">Loading students…</div>
+              ) : students.length === 0 ? (
+                <div className="a2b-empty">{studentErr || 'Type to search students.'}</div>
+              ) : students.map(s => {
                 const id = String(s._id);
                 const on = selStudents.has(id);
                 return (

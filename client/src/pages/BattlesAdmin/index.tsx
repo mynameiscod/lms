@@ -13,7 +13,7 @@ const BattlesAdmin: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
-  const [f, setF] = useState<any>({ title: '', quizId: '', prize: '', description: '', startAt: '', endAt: '', registerClosesAt: '', joinCutoffMins: 15, status: 'live' });
+  const [f, setF] = useState<any>({ title: '', quizId: '', prize: '', description: '', startAt: '', endAt: '', registerClosesAt: '', joinCutoffMins: 15, status: 'live', registrationMode: 'approval', proofNote: '' });
 
   const load = async () => {
     setLoading(true);
@@ -29,6 +29,7 @@ const BattlesAdmin: React.FC = () => {
         title: f.title, quizId: f.quizId, prize: f.prize, description: f.description,
         startAt: toIso(f.startAt)!, endAt: toIso(f.endAt)!, registerClosesAt: toIso(f.registerClosesAt),
         joinCutoffMins: Number(f.joinCutoffMins), status: f.status,
+        registrationMode: f.registrationMode, proofNote: f.proofNote,
       } as any);
       setShowCreate(false);
       nav(`/admin/battles/${b._id}`);
@@ -91,6 +92,15 @@ const BattlesAdmin: React.FC = () => {
               <div><label style={lbl}>Registration closes</label><input style={input} type="datetime-local" value={f.registerClosesAt} onChange={e => set('registerClosesAt', e.target.value)} /></div>
               <div><label style={lbl}>Late-join cutoff (min)</label><input style={input} type="number" value={f.joinCutoffMins} onChange={e => set('joinCutoffMins', e.target.value)} /></div>
             </div>
+            <label style={lbl}>Registration mode</label>
+            <select style={input} value={f.registrationMode} onChange={e => set('registrationMode', e.target.value)}>
+              <option value="approval">Approval — collect proofs, admin approves, then link is emailed</option>
+              <option value="auto">Auto — self-serve OTP, link issued instantly (no approval)</option>
+            </select>
+            {f.registrationMode === 'approval' && (
+              <><label style={lbl}>Proof instructions (shown on the form)</label>
+              <input style={input} value={f.proofNote} onChange={e => set('proofNote', e.target.value)} placeholder="Upload your college ID card" /></>
+            )}
             <label style={lbl}>Prize</label>
             <input style={input} value={f.prize} onChange={e => set('prize', e.target.value)} placeholder="₹5,000 + certificate" />
             <label style={lbl}>Short description</label>

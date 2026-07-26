@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { battleAdminApi } from '../../api/battleApi';
+import { battleAdminApi, fileOrigin } from '../../api/battleApi';
 
 type Tab = 'links' | 'registrations' | 'leaderboard';
 
@@ -49,6 +49,9 @@ const BattleDetail: React.FC = () => {
     setBattle(b);
   };
   const setStatus = async (status: string) => { const b = await battleAdminApi.update(String(id), { status } as any); setBattle(b); };
+  const reloadRegs = () => battleAdminApi.registrations(String(id), filter).then(setRegs).catch(() => {});
+  const approve = async (regId: string) => { await battleAdminApi.approve(String(id), regId); reloadRegs(); };
+  const reject = async (regId: string) => { const reason = window.prompt('Reason for rejection (optional):') || ''; await battleAdminApi.reject(String(id), regId, reason); reloadRegs(); };
 
   if (!battle) return <div style={{ padding: 30, color: '#64748b' }}>Loading…</div>;
 
@@ -103,30 +106,48 @@ const BattleDetail: React.FC = () => {
 
       {tab === 'registrations' && (
         <div style={card}>
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-            <select style={{ ...input, maxWidth: 200 }} value={filter.door} onChange={e => setFilter({ ...filter, door: e.target.value })}>
+          {battle.registrationMode === 'approval' && (
+            <div style={{ background: '#eff6ff', border: '1px solid #dbeafe', borderRadius: 10, padding: '9px 13px', fontSize: 13, color: '#1e40af', marginBottom: 12 }}>
+              🔎 Approval mode — review each registrant's proof, then <b>Approve</b> to auto-email their exam link.
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
+            {battle.registrationMode === 'approval' && (
+              <select style={{ ...input, maxWidth: 170 }} value={filter.review || ''} onChange={e => setFilter({ ...filter, review: e.target.value })}>
+                <option value="">All reviews</option><option value="pending">⏳ Pending</option><option value="approved">✓ Approved</option><option value="rejected">✕ Rejected</option>
+              </select>
+            )}
+            <select style={{ ...input, maxWidth: 180 }} value={filter.door} onChange={e => setFilter({ ...filter, door: e.target.value })}>
               <option value="">All doors</option>{(battle.doors || []).map((d: any) => <option key={d.code} value={d.code}>{d.label}</option>)}
-            </select>
-            <select style={{ ...input, maxWidth: 160 }} value={filter.status} onChange={e => setFilter({ ...filter, status: e.target.value })}>
-              <option value="">All statuses</option><option value="registered">Registered</option><option value="submitted">Submitted</option>
             </select>
             <span style={{ marginLeft: 'auto', color: '#64748b', fontSize: 13, alignSelf: 'center' }}>{regs.length} shown</span>
           </div>
           <div style={{ overflowX: 'auto' }}>
             <table style={table}>
-              <thead><tr>{['Name', 'Mobile', 'Email', 'College', 'Door', 'Status', 'Score', 'Rank'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
+              <thead><tr>{['Name', 'Mobile', 'Email', 'College', 'Door', 'Proof', 'Review', 'Score', 'Action'].map(h => <th key={h} style={th}>{h}</th>)}</tr></thead>
               <tbody>
-                {regs.map(r => (
-                  <tr key={r._id}>
-                    <td style={td}>{r.name}{!r.verified && <span style={{ color: '#f59e0b', fontSize: 11 }}> (unverified)</span>}</td>
-                    <td style={td}>{r.mobile}</td><td style={td}>{r.email}</td><td style={td}>{r.college || '—'}</td>
-                    <td style={td}>{r.doorLabel}</td>
-                    <td style={td}><span style={{ fontSize: 11, fontWeight: 700, color: r.status === 'submitted' ? '#15803d' : '#64748b' }}>{r.status}</span></td>
-                    <td style={td}>{r.score != null ? `${r.score}/${r.totalMarks}` : '—'}</td>
-                    <td style={td}>{r.rank ? `#${r.rank}` : '—'}</td>
-                  </tr>
-                ))}
-                {regs.length === 0 && <tr><td style={td} colSpan={8}>No registrations.</td></tr>}
+                {regs.map(r => {
+                  const rc = r.reviewStatus === 'approved' ? '#15803d' : r.reviewStatus === 'rejected' ? '#b91c1c' : '#b45309';
+                  return (
+                    <tr key={r._id}>
+                      <td style={td}>{r.name}</td>
+                      <td style={td}>{r.mobile}</td><td style={td}>{r.email}</td><td style={td}>{r.college || '—'}</td>
+                      <td style={td}>{r.doorLabel}</td>
+                      <td style={td}>{(r.uploadedFiles || []).length ? (r.uploadedFiles).map((f: any, i: number) => <a key={i} href={`${fileOrigin()}${f.filePath}`} target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', marginRight: 6 }}>📎{i + 1}</a>) : '—'}</td>
+                      <td style={td}><span style={{ fontSize: 11, fontWeight: 800, color: rc }}>{(r.reviewStatus || 'pending').toUpperCase()}</span></td>
+                      <td style={td}>{r.score != null ? `${r.score}/${r.totalMarks}${r.rank ? ` · #${r.rank}` : ''}` : '—'}</td>
+                      <td style={td}>
+                        {r.reviewStatus === 'pending' ? (
+                          <span style={{ display: 'flex', gap: 6 }}>
+                            <button onClick={() => approve(r._id)} style={{ ...ghost, color: '#15803d', borderColor: '#bbf7d0', padding: '5px 10px' }}>✓ Approve</button>
+                            <button onClick={() => reject(r._id)} style={{ ...ghost, color: '#b91c1c', borderColor: '#fecaca', padding: '5px 10px' }}>✕</button>
+                          </span>
+                        ) : r.reviewStatus === 'approved' ? <button onClick={() => approve(r._id)} style={{ ...ghost, padding: '5px 10px' }}>Resend link</button> : <span style={{ color: '#94a3b8', fontSize: 12 }}>{r.rejectionReason || 'rejected'}</span>}
+                      </td>
+                    </tr>
+                  );
+                })}
+                {regs.length === 0 && <tr><td style={td} colSpan={9}>No registrations.</td></tr>}
               </tbody>
             </table>
           </div>

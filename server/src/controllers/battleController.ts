@@ -73,6 +73,7 @@ export const getPublicBattle = async (req: Request, res: Response) => {
         title: b.title, slug: b.slug, bannerUrl: b.bannerUrl, description: b.description, prize: b.prize, rules: b.rules,
         startAt: b.startAt, endAt: b.endAt, registerOpen, tenantSlug: req.params.tenantSlug,
         fields: b.registrationFields || [],
+        registrationMode: b.registrationMode || 'approval', proofNote: b.proofNote || '',
       },
       door: { code: door.code, label: door.label, type: door.type, needsAccessCode: !!door.accessCode, emailDomain: door.emailDomain || null },
     });
@@ -104,22 +105,37 @@ export const registerForBattle = async (req: Request, res: Response) => {
       return res.status(403).json({ message: `Only @${door.emailDomain} emails can register here.` });
     }
 
+    // Proof uploads (approval mode)
+    const files = ((req as any).files as any[]) || [];
+    const uploadedFiles = files.map(f => ({ fieldName: f.fieldname, filePath: `/uploads/registrations/${f.filename}`, mimeType: f.mimetype, originalName: f.originalname }));
+
+    const approvalMode = b.registrationMode === 'approval';
     const mob = String(mobile).replace(/[^\d]/g, '');
     let reg = await BattleRegistration.findOne({ battleId: b._id, mobile: mob });
-    if (reg && reg.verified) {
-      // Already registered — just re-send their link/OTP, don't duplicate.
+
+    // Already fully in? (approved in approval mode, or verified in auto mode)
+    if (reg && ((approvalMode && reg.reviewStatus === 'approved') || (!approvalMode && reg.verified))) {
+      if (approvalMode) return res.json({ success: true, alreadyRegistered: true, message: 'You are already approved — check your email for the exam link.' });
       const r = await otp.sendOtp(tenantId, reg.examToken, mob);
       return res.json({ success: true, token: reg.examToken, alreadyRegistered: true, otp: r, message: 'You are already registered — verify to view your link.' });
     }
+
     if (!reg) {
       reg = new BattleRegistration({
         tenantId, battleId: b._id, battleSlug: b.slug, doorCode: door.code, doorLabel: door.label,
         name: String(name).trim(), mobile: mob, email: String(email).toLowerCase().trim(),
-        college: college || (door.type === 'college' ? door.label : ''), extra,
+        college: college || (door.type === 'college' ? door.label : ''), extra, uploadedFiles,
         examToken: crypto.randomBytes(16).toString('hex'),
         ipAddress: req.ip, userAgent: req.headers['user-agent'] || '',
       });
       await reg.save();
+    } else if (uploadedFiles.length) {
+      reg.uploadedFiles = uploadedFiles; await reg.save();
+    }
+
+    if (approvalMode) {
+      // No OTP, no link yet — admin reviews the proofs and approves, then the link is sent.
+      return res.status(201).json({ success: true, pending: true, message: "Registration received! We'll review your details and email your exam link once approved." });
     }
     const r = await otp.sendOtp(tenantId, reg.examToken, mob);
     res.status(201).json({ success: true, token: reg.examToken, otp: r, message: 'OTP sent. Verify to confirm your spot.' });
@@ -167,11 +183,17 @@ export const getBattleExam = async (req: Request, res: Response) => {
   try {
     const reg = await BattleRegistration.findOne({ examToken: req.params.token });
     if (!reg) return res.status(404).json({ message: 'Invalid exam link.', code: 'NOT_FOUND' });
-    if (!reg.verified) return res.status(403).json({ message: 'Please verify your registration first.', code: 'NOT_VERIFIED' });
     if (reg.submittedAt) return res.status(403).json({ message: 'You have already submitted this exam.', code: 'ALREADY_SUBMITTED' });
 
     const b = await TechBattle.findById(reg.battleId).lean() as any;
     if (!b) return res.status(404).json({ message: 'Battle not found', code: 'NOT_FOUND' });
+    // Access gate: approval mode needs admin approval; auto mode needs OTP verification.
+    if (b.registrationMode === 'approval') {
+      if (reg.reviewStatus === 'rejected') return res.status(403).json({ code: 'REJECTED', message: reg.rejectionReason || 'Your registration was not approved.' });
+      if (reg.reviewStatus !== 'approved') return res.status(403).json({ code: 'NOT_APPROVED', message: 'Your registration is awaiting approval. You will be emailed once approved.' });
+    } else if (!reg.verified) {
+      return res.status(403).json({ message: 'Please verify your registration first.', code: 'NOT_VERIFIED' });
+    }
     const now = new Date();
     if (now < new Date(b.startAt)) return res.status(403).json({ code: 'NOT_YET', message: 'The exam has not started yet.', startAt: b.startAt, title: b.title });
     if (now > new Date(b.endAt)) return res.status(403).json({ code: 'ENDED', message: 'This exam has ended.' });
@@ -353,6 +375,7 @@ export const createBattle = async (req: Request, res: Response) => {
       bannerUrl: body.bannerUrl, description: body.description, prize: body.prize, rules: body.rules,
       registerOpensAt: body.registerOpensAt, registerClosesAt: body.registerClosesAt,
       startAt: body.startAt, endAt: body.endAt, joinCutoffMins: body.joinCutoffMins ?? 15,
+      registrationMode: body.registrationMode || 'approval', proofNote: body.proofNote,
       visibility: body.visibility || 'public', doors, registrationFields: body.registrationFields || [],
       proctoring: body.proctoring || { camera: true, tabSwitch: true },
       status: body.status || 'live', createdBy: String((req as any).user?.id || ''),
@@ -371,7 +394,7 @@ export const getBattle = async (req: Request, res: Response) => {
 export const updateBattle = async (req: Request, res: Response) => {
   try {
     if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
-    const allowed = ['title', 'quizId', 'bannerUrl', 'description', 'prize', 'rules', 'registerOpensAt', 'registerClosesAt', 'startAt', 'endAt', 'joinCutoffMins', 'visibility', 'doors', 'registrationFields', 'proctoring', 'status'];
+    const allowed = ['title', 'quizId', 'bannerUrl', 'description', 'prize', 'rules', 'registerOpensAt', 'registerClosesAt', 'startAt', 'endAt', 'joinCutoffMins', 'visibility', 'doors', 'registrationFields', 'registrationMode', 'proofNote', 'proctoring', 'status'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
     if (Array.isArray($set.doors)) {
@@ -390,9 +413,38 @@ export const getRegistrations = async (req: Request, res: Response) => {
   if (req.query.door) q.doorCode = req.query.door;
   if (req.query.college) q.college = req.query.college;
   if (req.query.status) q.status = req.query.status;
-  const rows = await BattleRegistration.find(q).sort({ score: -1, timeSpentSec: 1, createdAt: -1 })
-    .select('name mobile email college doorLabel verified status score totalMarks percentage timeSpentSec rank submittedAt createdAt').limit(2000).lean();
+  if (req.query.review) q.reviewStatus = req.query.review;
+  const rows = await BattleRegistration.find(q).sort({ reviewStatus: 1, createdAt: -1 })
+    .select('name mobile email college doorLabel verified reviewStatus rejectionReason uploadedFiles status score totalMarks percentage timeSpentSec rank submittedAt createdAt extra').limit(2000).lean();
   res.json({ registrations: rows });
+};
+
+/** Admin: approve a registration → mark approved + email the exam link. */
+export const approveRegistration = async (req: Request, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
+    const reg = await BattleRegistration.findOne({ _id: req.params.regId, battleId: req.params.id, tenantId: tenantOf(req) });
+    if (!reg) return res.status(404).json({ message: 'Registration not found' });
+    reg.reviewStatus = 'approved'; reg.approvedAt = new Date(); reg.approvedBy = String((req as any).user?.id || '');
+    await reg.save();
+    const b = await TechBattle.findById(reg.battleId).lean() as any;
+    const url = examUrl(reg.tenantId, reg.examToken);
+    if (b) sendConfirmEmail(reg, b, url).catch(() => {});
+    res.json({ success: true, message: 'Approved — exam link emailed.', examUrl: url });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
+};
+
+/** Admin: reject a registration (+ reason). */
+export const rejectRegistration = async (req: Request, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
+    const reg = await BattleRegistration.findOneAndUpdate(
+      { _id: req.params.regId, battleId: req.params.id, tenantId: tenantOf(req) },
+      { $set: { reviewStatus: 'rejected', rejectionReason: req.body?.reason || '' } }, { new: true }
+    );
+    if (!reg) return res.status(404).json({ message: 'Registration not found' });
+    res.json({ success: true, message: 'Rejected.' });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
 export const adminLeaderboard = async (req: Request, res: Response) => {

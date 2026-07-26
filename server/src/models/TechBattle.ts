@@ -44,6 +44,9 @@ export interface ITechBattle extends Document {
   doors: IBattleDoor[];
   registrationFields: IBattleField[];  // extra fields beyond name/mobile/email/college
 
+  registrationMode: 'auto' | 'approval'; // auto = OTP self-serve; approval = admin verifies proofs, then link is sent
+  proofNote?: string;                     // instructions shown on the form, e.g. "Upload your college ID"
+
   proctoring: { camera: boolean; tabSwitch: boolean };
   status: BattleStatus;
   createdBy?: string;
@@ -84,6 +87,9 @@ const TechBattleSchema = new Schema<ITechBattle>({
   visibility: { type: String, enum: ['public', 'private'], default: 'public' },
   doors:      { type: [DoorSchema], default: [{ code: 'public', label: 'Public', type: 'public' }] },
   registrationFields: { type: [FieldSchema], default: [] },
+
+  registrationMode: { type: String, enum: ['auto', 'approval'], default: 'approval' },
+  proofNote:  { type: String },
 
   proctoring: { camera: { type: Boolean, default: true }, tabSwitch: { type: Boolean, default: true } },
   status:     { type: String, enum: ['draft', 'live', 'closed'], default: 'draft', index: true },

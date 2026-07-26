@@ -13,8 +13,9 @@ const BattleLanding: React.FC = () => {
 
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState<'form' | 'otp' | 'done'>('form');
+  const [step, setStep] = useState<'form' | 'otp' | 'done' | 'pending'>('form');
   const [form, setForm] = useState<Record<string, string>>({ name: '', mobile: '', email: '', college: '', accessCode: '' });
+  const [files, setFiles] = useState<File[]>([]);
   const [token, setToken] = useState('');
   const [code, setCode] = useState('');
   const [devCode, setDevCode] = useState('');
@@ -49,7 +50,8 @@ const BattleLanding: React.FC = () => {
     try {
       const extra: Record<string, any> = {};
       (battle.fields || []).forEach((f: any) => { extra[f.key] = form[f.key] || ''; });
-      const res = await battlePublicApi.register(tenant, battle.slug, { ...form, doorCode, ...extra });
+      const res = await battlePublicApi.register(tenant, battle.slug, { ...form, doorCode, ...extra }, files);
+      if (res.pending) { setStep('pending'); return; }        // approval mode → wait for admin
       setToken(res.token);
       if (res.otp?.devCode) setDevCode(res.otp.devCode);
       setStep('otp');
@@ -117,6 +119,13 @@ const BattleLanding: React.FC = () => {
               {door?.type === 'public' && (<><label className="bt-label">College (optional)</label><input className="bt-input" value={form.college} onChange={e => set('college', e.target.value)} placeholder="Your college" /></>)}
               {door?.needsAccessCode && (<><label className="bt-label">Access code *</label><input className="bt-input" value={form.accessCode} onChange={e => set('accessCode', e.target.value)} placeholder="Code from your college" /></>)}
               {door?.emailDomain && <div className="bt-muted" style={{ marginTop: 8 }}>Only <b>@{door.emailDomain}</b> emails can register here.</div>}
+              {battle.registrationMode === 'approval' && (
+                <>
+                  <label className="bt-label">Upload proof {battle.proofNote ? `— ${battle.proofNote}` : '(college ID / screenshot)'}</label>
+                  <input className="bt-input" type="file" multiple accept="image/*,.pdf" onChange={e => setFiles(Array.from(e.target.files || []))} />
+                  {files.length > 0 && <div className="bt-muted" style={{ marginTop: 4 }}>{files.length} file(s) selected</div>}
+                </>
+              )}
               {(battle.fields || []).map((f: any) => (
                 <div key={f.key}>
                   <label className="bt-label">{f.label}{f.required ? ' *' : ''}</label>
@@ -126,7 +135,9 @@ const BattleLanding: React.FC = () => {
                 </div>
               ))}
               {err && <div className="bt-err">{err}</div>}
-              <button className="bt-btn" disabled={busy || !battle.registerOpen || !form.name || !form.mobile || !form.email} onClick={register}>{busy ? 'Sending OTP…' : 'Register & get OTP'}</button>
+              <button className="bt-btn" disabled={busy || !battle.registerOpen || !form.name || !form.mobile || !form.email} onClick={register}>
+                {busy ? 'Submitting…' : battle.registrationMode === 'approval' ? 'Submit registration' : 'Register & get OTP'}
+              </button>
               <div style={{ textAlign: 'center', marginTop: 12 }}><button onClick={() => nav(`/battles/${battle.slug}/leaderboard?tenant=${tenant}`)} style={{ background: 'none', border: 'none', color: '#1d4ed8', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>View leaderboard →</button></div>
             </>
           )}
@@ -140,6 +151,14 @@ const BattleLanding: React.FC = () => {
               <button className="bt-btn" disabled={busy || code.length < 4} onClick={verify}>{busy ? 'Verifying…' : 'Verify & confirm spot'}</button>
               <div style={{ textAlign: 'center', marginTop: 12 }}><button onClick={async () => { const r = await battlePublicApi.resend(token); if (r.otp?.devCode) setDevCode(r.otp.devCode); }} style={{ background: 'none', border: 'none', color: '#1d4ed8', fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>Resend OTP</button></div>
             </>
+          )}
+
+          {step === 'pending' && (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 40 }}>📩</div>
+              <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>Registration received!</div>
+              <div className="bt-ok">Our team will review your details{files.length ? ' and proof' : ''}. Once approved, we'll <b>email your exam link</b> — it unlocks at <b>{new Date(battle.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} IST</b>. Keep an eye on your inbox!</div>
+            </div>
           )}
 
           {step === 'done' && (

@@ -14,6 +14,8 @@ router.post('/', ctrl.createBattle);
 router.get('/:id', ctrl.getBattle);
 router.put('/:id', ctrl.updateBattle);
 router.get('/:id/registrations', ctrl.getRegistrations);
+router.post('/:id/registrations/:regId/approve', ctrl.approveRegistration);
+router.post('/:id/registrations/:regId/reject', ctrl.rejectRegistration);
 router.get('/:id/leaderboard', ctrl.adminLeaderboard);
 router.get('/:id/export', ctrl.exportRegistrations);
 

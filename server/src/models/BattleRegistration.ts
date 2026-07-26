@@ -26,7 +26,12 @@ export interface IBattleRegistration extends Document {
   college?: string;
   extra?: Record<string, any>;   // custom registration fields
 
-  verified: boolean;             // OTP passed
+  verified: boolean;             // OTP passed (auto mode)
+  reviewStatus: 'pending' | 'approved' | 'rejected';  // approval mode
+  approvedAt?: Date;
+  approvedBy?: string;
+  rejectionReason?: string;
+  uploadedFiles?: { fieldName: string; filePath: string; mimeType: string; originalName: string }[];
   examToken: string;             // unique link credential
   status: RegStatus;
 
@@ -65,6 +70,11 @@ const BattleRegistrationSchema = new Schema<IBattleRegistration>({
   extra:  { type: Schema.Types.Mixed, default: {} },
 
   verified:  { type: Boolean, default: false },
+  reviewStatus: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
+  approvedAt:  { type: Date },
+  approvedBy:  { type: String },
+  rejectionReason: { type: String },
+  uploadedFiles: [{ fieldName: String, filePath: String, mimeType: String, originalName: String }],
   examToken: { type: String, required: true, unique: true, index: true },
   status:    { type: String, enum: ['registered', 'started', 'submitted', 'no_show'], default: 'registered', index: true },
 

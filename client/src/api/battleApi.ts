@@ -25,15 +25,25 @@ export const battleAdminApi = {
   get: async (id: string): Promise<{ battle: TechBattle; publicBase: string }> => (await axios.get(`${API}/battles/${id}`, { headers: auth() })).data,
   update: async (id: string, patch: Partial<TechBattle>): Promise<TechBattle> => (await axios.put(`${API}/battles/${id}`, patch, { headers: auth() })).data.battle,
   registrations: async (id: string, params: any = {}): Promise<any[]> => (await axios.get(`${API}/battles/${id}/registrations`, { headers: auth(), params })).data.registrations,
+  approve: async (id: string, regId: string) => (await axios.post(`${API}/battles/${id}/registrations/${regId}/approve`, {}, { headers: auth() })).data,
+  reject: async (id: string, regId: string, reason: string) => (await axios.post(`${API}/battles/${id}/registrations/${regId}/reject`, { reason }, { headers: auth() })).data,
   leaderboard: async (id: string, params: any = {}): Promise<any[]> => (await axios.get(`${API}/battles/${id}/leaderboard`, { headers: auth(), params })).data.leaderboard,
   exportUrl: (id: string) => `${API}/battles/${id}/export`,
 };
+
+// Absolute origin for viewing uploaded proof files (served at /uploads).
+export const fileOrigin = () => (process.env.REACT_APP_API_URL || '/api/v1').replace(/\/api\/v1\/?$/, '') || window.location.origin;
 
 // ── Public (no auth) ──
 export const battlePublicApi = {
   list: async (tenant: string) => (await axios.get(`${API}/public/${tenant}/battles`)).data,
   get: async (tenant: string, slug: string, door?: string) => (await axios.get(`${API}/public/${tenant}/battles/${slug}`, { params: { door } })).data,
-  register: async (tenant: string, slug: string, body: any) => (await axios.post(`${API}/public/${tenant}/battles/${slug}/register`, body)).data,
+  register: async (tenant: string, slug: string, body: any, files?: File[]) => {
+    const fd = new FormData();
+    Object.entries(body || {}).forEach(([k, v]) => fd.append(k, v as any));
+    (files || []).forEach((f, i) => fd.append(`proof_${i}`, f));
+    return (await axios.post(`${API}/public/${tenant}/battles/${slug}/register`, fd)).data;
+  },
   verify: async (token: string, code: string) => (await axios.post(`${API}/public/battles/verify`, { token, code })).data,
   resend: async (token: string) => (await axios.post(`${API}/public/battles/resend`, { token })).data,
   leaderboard: async (tenant: string, slug: string, params: any = {}) => (await axios.get(`${API}/public/${tenant}/battles/${slug}/leaderboard`, { params })).data,

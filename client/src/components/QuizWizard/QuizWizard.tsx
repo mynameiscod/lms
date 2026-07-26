@@ -331,19 +331,19 @@ const QuizWizard: React.FC<QuizWizardProps> = ({
     
     try {
       setLoading(true);
-      // Dates are optional in the form (real windows come from Assign to Batches),
-      // but the Quiz model still requires them — default to a wide open window so the
-      // baked path never gates. Access defaults to batch_wise + no batches → invisible
-      // until delivered.
+      // A quiz is reusable library content — its own window is vestigial (real per-batch
+      // windows come from Assign to Batches). Force a permanently-open baked window so the
+      // library item is always active/editable and never auto-closes. Access defaults to
+      // batch_wise + no batches → invisible until delivered.
       const today = new Date();
-      const farEnd = new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+      const farEnd = new Date(today.getFullYear() + 10, today.getMonth(), today.getDate());
       const ymd = (d: Date) => d.toISOString().slice(0, 10);
       const submitData = {
         ...formData,
-        startDate: formData.startDate || ymd(today),
-        endDate: formData.endDate || ymd(farEnd),
-        startTime: formData.startTime || '00:00',
-        endTime: formData.endTime || '23:59',
+        startDate: ymd(today),
+        endDate: ymd(farEnd),
+        startTime: '00:00',
+        endTime: '23:59',
         maxAttempts: formData.multipleAttempts ? formData.maxAttempts : null,
         primaryTech: formData.primaryTech || undefined,
         // Don't send empty strings for optional ObjectId fields

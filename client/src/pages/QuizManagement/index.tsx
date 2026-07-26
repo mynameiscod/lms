@@ -287,36 +287,10 @@ const QuizManagementPage: React.FC = () => {
     return { label: '🌍 All Students', color: '#059669', bg: '#ecfdf5' };
   };
 
-  const getQuizStatus = (quiz: Quiz): string => {
-    try {
-      const now = new Date();
-      const startDateParts = quiz.startDate.split('T')[0].split('-');
-      const startTimeParts = quiz.startTime.split(':');
-      const startDateTime = new Date(
-        parseInt(startDateParts[0]),
-        parseInt(startDateParts[1]) - 1,
-        parseInt(startDateParts[2]),
-        parseInt(startTimeParts[0]),
-        parseInt(startTimeParts[1]),
-        0
-      );
-      const endDateParts = quiz.endDate.split('T')[0].split('-');
-      const endTimeParts = quiz.endTime.split(':');
-      const endDateTime = new Date(
-        parseInt(endDateParts[0]),
-        parseInt(endDateParts[1]) - 1,
-        parseInt(endDateParts[2]),
-        parseInt(endTimeParts[0]),
-        parseInt(endTimeParts[1]),
-        0
-      );
-      if (now < startDateTime) return 'pending';
-      if (now > endDateTime) return 'closed';
-      return 'active';
-    } catch (err) {
-      return 'active';
-    }
-  };
+  // A quiz here is REUSABLE LIBRARY CONTENT — it is always active and editable.
+  // The real open/close window is per-batch, set in "Assign to Batches" (the schedule);
+  // once a batch's due passes it closes for THOSE students, not for the library item.
+  const getQuizStatus = (_quiz: Quiz): string => 'active';
 
   const getQuizStatusLabel = (quiz: Quiz): string => {
     const status = getQuizStatus(quiz);

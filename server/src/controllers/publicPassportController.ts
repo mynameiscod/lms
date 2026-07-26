@@ -29,7 +29,8 @@ async function ensureConfig(tenantId: string) {
 }
 
 function passportEnabled(tenantId: string, cfg: any): boolean {
-  return settings.getStr('PASSPORT_ENABLED', 'false', tenantId) === 'true' && !!cfg?.enabled;
+  const hardOff = settings.getStr('PASSPORT_ENABLED', 'true', tenantId) === 'false';
+  return !hardOff && !!cfg?.enabled;
 }
 
 /** GET /public/passport/config?tenant= — onboarding fields + price for the signup page. */

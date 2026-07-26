@@ -8,10 +8,11 @@ const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 const role = (req: Request): string => String((req as any).user?.role || '');
 const isAdmin = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'].includes(role(req));
 
-/** Master on/off: the tenant config flag AND the platform PASSPORT_ENABLED setting. */
+/** Master switch = the Passport Config "Enable" toggle (read fresh). PASSPORT_ENABLED is
+ *  only an OPTIONAL platform hard-kill — set it to 'false' to force Passport off globally. */
 function passportEnabled(tenantId: string, cfg?: any): boolean {
-  const platform = settings.getStr('PASSPORT_ENABLED', 'false', tenantId) === 'true';
-  return platform && !!(cfg?.enabled ?? false);
+  const hardOff = settings.getStr('PASSPORT_ENABLED', 'true', tenantId) === 'false';
+  return !hardOff && !!(cfg?.enabled ?? false);
 }
 
 async function ensureConfig(tenantId: string) {
@@ -32,7 +33,7 @@ export const getConfig = async (req: Request, res: Response) => {
     if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const cfg = await ensureConfig(tenantId);
-    res.json({ config: cfg, platformEnabled: settings.getStr('PASSPORT_ENABLED', 'false', tenantId) === 'true' });
+    res.json({ config: cfg, platformEnabled: settings.getStr('PASSPORT_ENABLED', 'true', tenantId) !== 'false' });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load config' });
   }

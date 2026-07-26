@@ -106,6 +106,30 @@ async function sendWhatsAppOtp(phone: string, code: string, message: string, cre
   return waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } });
 }
 
+/** Normalize a phone to WhatsApp's `to` format (digits, default India country code). */
+function normalizeTo(phone: string): string {
+  let to = String(phone || '').replace(/[^0-9+]/g, '').replace(/^\+/, '');
+  if (to.length === 10) to = '91' + to;
+  return to;
+}
+
+/**
+ * Send a free-form WhatsApp TEXT message to a phone for a tenant (reuses the OTP rail's
+ * credential resolution). NOTE: free-form text only delivers inside the 24h customer-
+ * service window or to opted-in recipients; cold proactive delivery needs an approved
+ * template. Returns true if the API accepted the send.
+ */
+export async function sendWhatsAppText(tenantId: string, phone: string, message: string): Promise<boolean> {
+  const to = normalizeTo(phone);
+  if (!to) return false;
+  const candidates = await getWhatsAppCredentialCandidates(tenantId);
+  for (const creds of candidates) {
+    const ok = await waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } });
+    if (ok) return true;
+  }
+  return false;
+}
+
 export interface OtpSendResult {
   sent: boolean;
   channel: 'whatsapp' | 'none';

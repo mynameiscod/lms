@@ -436,8 +436,14 @@ export const approveRegistration = async (req: Request, res: Response) => {
     await reg.save();
     const b = await TechBattle.findById(reg.battleId).lean() as any;
     const url = examUrl(reg.tenantId, reg.examToken);
-    if (b) sendConfirmEmail(reg, b, url).catch(() => {});
-    res.json({ success: true, message: 'Approved — exam link emailed.', examUrl: url });
+    if (b) {
+      // Send the link over BOTH channels at once — email + WhatsApp.
+      sendConfirmEmail(reg, b, url).catch(() => {});
+      const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const waMsg = `🎉 You're approved for *${b.title}*!\n\nYour exam opens on ${when} IST. Start here (unlocks at the start time):\n${url}\n\nOne attempt · single device. All the best! — CodeBegun`;
+      otp.sendWhatsAppText(reg.tenantId, reg.whatsapp || reg.mobile, waMsg).catch(() => {});
+    }
+    res.json({ success: true, message: 'Approved — exam link sent via email + WhatsApp.', examUrl: url });
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
@@ -471,6 +477,50 @@ export const exportRegistrations = async (req: Request, res: Response) => {
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="battle-${req.params.id}-registrations.csv"`);
   res.send(csv);
+};
+
+/** POST /battles/:id/broadcast — send a custom reminder to registrants (WhatsApp / email / both). */
+export const broadcastBattle = async (req: Request, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
+    const tenantId = tenantOf(req);
+    const { message, channel = 'whatsapp', review = 'approved', includeLink } = req.body || {};
+    if (!message || !String(message).trim()) return res.status(400).json({ message: 'Message is required' });
+
+    const b = await TechBattle.findOne({ _id: req.params.id, tenantId }).lean() as any;
+    if (!b) return res.status(404).json({ message: 'Battle not found' });
+
+    const q: any = { battleId: req.params.id, tenantId };
+    if (review === 'approved') q.reviewStatus = 'approved';
+    else if (review === 'pending') q.reviewStatus = 'pending';
+    // 'all' → everyone who registered
+    const regs = await BattleRegistration.find(q).select('name email mobile whatsapp examToken').limit(5000).lean();
+
+    let wa = 0, em = 0;
+    for (const r of regs as any[]) {
+      const link = includeLink ? `\n${examUrl(tenantId, r.examToken)}` : '';
+      const body = `${String(message).replace(/\{name\}/g, r.name || '')}${link}`;
+      if (channel === 'whatsapp' || channel === 'both') {
+        const ok = await otp.sendWhatsAppText(tenantId, r.whatsapp || r.mobile, body); if (ok) wa++;
+      }
+      if (channel === 'email' || channel === 'both') {
+        const ok = await emailService.sendGenericEmail(r.email, `${b.title} — update`, `<div style="font-family:Arial,sans-serif">${body.replace(/\n/g, '<br>')}</div>`); if (ok) em++;
+      }
+    }
+    res.json({ success: true, recipients: regs.length, whatsappSent: wa, emailSent: em, message: `Sent to ${regs.length} registrant(s).` });
+  } catch (e: any) { logger.error('broadcastBattle failed', { error: e.message }); res.status(500).json({ message: e.message }); }
+};
+
+/** DELETE /battles/:id — delete a battle and its registrations. */
+export const deleteBattle = async (req: Request, res: Response) => {
+  try {
+    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
+    const tenantId = tenantOf(req);
+    const b = await TechBattle.findOneAndDelete({ _id: req.params.id, tenantId });
+    if (!b) return res.status(404).json({ message: 'Battle not found' });
+    await BattleRegistration.deleteMany({ battleId: req.params.id, tenantId });
+    res.json({ success: true, message: 'Battle and its registrations deleted.' });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
 /** GET /battles/available-quizzes — quizzes to pick from (reuse). */

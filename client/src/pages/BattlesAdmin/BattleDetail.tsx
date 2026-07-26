@@ -49,7 +49,31 @@ const BattleDetail: React.FC = () => {
     setBattle(b);
   };
   const setStatus = async (status: string) => { const b = await battleAdminApi.update(String(id), { status } as any); setBattle(b); };
+  const toLocal = (iso?: string) => { if (!iso) return ''; const d = new Date(iso); const p = (n: number) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
+  const toIso = (local: string) => (local ? new Date(local).toISOString() : undefined);
+  const openEdit = () => { setEf({ title: battle.title, prize: battle.prize || '', description: battle.description || '', startAt: toLocal(battle.startAt), endAt: toLocal(battle.endAt), registerClosesAt: toLocal(battle.registerClosesAt), joinCutoffMins: battle.joinCutoffMins ?? 15, registrationMode: battle.registrationMode || 'approval', proofNote: battle.proofNote || '', status: battle.status }); setShowEdit(true); };
+  const saveEdit = async () => {
+    setBusy(true);
+    try {
+      const b = await battleAdminApi.update(String(id), { title: ef.title, prize: ef.prize, description: ef.description, startAt: toIso(ef.startAt), endAt: toIso(ef.endAt), registerClosesAt: toIso(ef.registerClosesAt), joinCutoffMins: Number(ef.joinCutoffMins), registrationMode: ef.registrationMode, proofNote: ef.proofNote, status: ef.status } as any);
+      setBattle(b); setShowEdit(false); setToast('Saved ✓'); setTimeout(() => setToast(''), 2000);
+    } catch (e: any) { setToast(e?.response?.data?.message || 'Save failed'); }
+    setBusy(false);
+  };
+  const del = async () => { if (!window.confirm('Delete this battle AND all its registrations? This cannot be undone.')) return; await battleAdminApi.remove(String(id)); nav('/admin/battles'); };
+  const sendReminder = async () => {
+    setBusy(true);
+    try { const r = await battleAdminApi.broadcast(String(id), rm); setToast(`Sent to ${r.recipients} (WA ${r.whatsappSent}, Email ${r.emailSent})`); setShowRemind(false); setTimeout(() => setToast(''), 3500); }
+    catch (e: any) { setToast(e?.response?.data?.message || 'Send failed'); }
+    setBusy(false);
+  };
   const [detail, setDetail] = useState<any>(null);
+  const [showEdit, setShowEdit] = useState(false);
+  const [ef, setEf] = useState<any>({});
+  const [showRemind, setShowRemind] = useState(false);
+  const [rm, setRm] = useState<any>({ message: '', channel: 'whatsapp', review: 'approved', includeLink: false });
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState('');
   const reloadRegs = () => battleAdminApi.registrations(String(id), filter).then(setRegs).catch(() => {});
   const approve = async (regId: string) => { await battleAdminApi.approve(String(id), regId); setDetail(null); reloadRegs(); };
   const reject = async (regId: string) => { const reason = window.prompt('Reason for rejection (optional):') || ''; await battleAdminApi.reject(String(id), regId, reason); setDetail(null); reloadRegs(); };
@@ -66,12 +90,16 @@ const BattleDetail: React.FC = () => {
             {new Date(battle.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })} → {new Date(battle.endAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {battle.status.toUpperCase()}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={() => setShowRemind(true)} style={{ ...ghost, color: '#15803d', borderColor: '#bbf7d0' }}>💬 Send reminder</button>
+          <button onClick={openEdit} style={ghost}>✏️ Edit</button>
           {battle.status !== 'live' && <button onClick={() => setStatus('live')} style={ghost}>Go live</button>}
           {battle.status !== 'closed' && <button onClick={() => setStatus('closed')} style={ghost}>Close</button>}
-          <a href={battleAdminApi.exportUrl(String(id))} style={{ ...ghost, textDecoration: 'none' }}>⬇ Export CSV</a>
+          <a href={battleAdminApi.exportUrl(String(id))} style={{ ...ghost, textDecoration: 'none' }}>⬇ CSV</a>
+          <button onClick={del} style={{ ...ghost, color: '#b91c1c', borderColor: '#fecaca' }}>🗑 Delete</button>
         </div>
       </div>
+      {toast && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 8, padding: '8px 14px', fontSize: 13.5, marginBottom: 12 }}>{toast}</div>}
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
         {(['links', 'registrations', 'leaderboard'] as Tab[]).map(t => (
@@ -169,6 +197,50 @@ const BattleDetail: React.FC = () => {
         </div>
       )}
 
+      {/* Edit battle modal */}
+      {showEdit && (
+        <div style={ovl} onClick={() => setShowEdit(false)}>
+          <div style={dmodal} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Edit battle</div><button onClick={() => setShowEdit(false)} style={{ background: 'none', border: 'none', fontSize: 24, color: '#94a3b8', cursor: 'pointer' }}>×</button></div>
+            <label style={efl}>Title</label><input style={efi} value={ef.title} onChange={e => setEf({ ...ef, title: e.target.value })} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><label style={efl}>Exam starts</label><input style={efi} type="datetime-local" value={ef.startAt} onChange={e => setEf({ ...ef, startAt: e.target.value })} /></div>
+              <div><label style={efl}>Exam ends</label><input style={efi} type="datetime-local" value={ef.endAt} onChange={e => setEf({ ...ef, endAt: e.target.value })} /></div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><label style={efl}>Registration closes</label><input style={efi} type="datetime-local" value={ef.registerClosesAt} onChange={e => setEf({ ...ef, registerClosesAt: e.target.value })} /></div>
+              <div><label style={efl}>Late-join cutoff (min)</label><input style={efi} type="number" value={ef.joinCutoffMins} onChange={e => setEf({ ...ef, joinCutoffMins: e.target.value })} /></div>
+            </div>
+            <label style={efl}>Prize</label><input style={efi} value={ef.prize} onChange={e => setEf({ ...ef, prize: e.target.value })} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><label style={efl}>Mode</label><select style={efi} value={ef.registrationMode} onChange={e => setEf({ ...ef, registrationMode: e.target.value })}><option value="approval">Approval</option><option value="auto">Auto (OTP)</option></select></div>
+              <div><label style={efl}>Status</label><select style={efi} value={ef.status} onChange={e => setEf({ ...ef, status: e.target.value })}><option value="live">Live</option><option value="draft">Draft</option><option value="closed">Closed</option></select></div>
+            </div>
+            {ef.registrationMode === 'approval' && <><label style={efl}>Proof instructions</label><input style={efi} value={ef.proofNote} onChange={e => setEf({ ...ef, proofNote: e.target.value })} /></>}
+            <button style={{ ...primary, width: '100%', marginTop: 16, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={saveEdit}>{busy ? 'Saving…' : 'Save changes'}</button>
+          </div>
+        </div>
+      )}
+
+      {/* Send reminder modal */}
+      {showRemind && (
+        <div style={ovl} onClick={() => setShowRemind(false)}>
+          <div style={dmodal} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>💬 Send reminder</div><button onClick={() => setShowRemind(false)} style={{ background: 'none', border: 'none', fontSize: 24, color: '#94a3b8', cursor: 'pointer' }}>×</button></div>
+            <div style={{ fontSize: 12.5, color: '#94a3b8', marginBottom: 8 }}>Use <code>{'{name}'}</code> to personalize. Tick "include exam link" to append each person's link.</div>
+            <label style={efl}>Message</label>
+            <textarea style={{ ...efi, minHeight: 110, resize: 'vertical' }} value={rm.message} onChange={e => setRm({ ...rm, message: e.target.value })} placeholder={'Hi {name}, your CodeBegun Tech Battle starts tonight at 7 PM. Be ready! 🚀'} />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div><label style={efl}>Channel</label><select style={efi} value={rm.channel} onChange={e => setRm({ ...rm, channel: e.target.value })}><option value="whatsapp">WhatsApp</option><option value="email">Email</option><option value="both">Both</option></select></div>
+              <div><label style={efl}>Audience</label><select style={efi} value={rm.review} onChange={e => setRm({ ...rm, review: e.target.value })}><option value="approved">Approved only</option><option value="pending">Pending only</option><option value="all">Everyone registered</option></select></div>
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: '#475569', marginTop: 10 }}><input type="checkbox" checked={rm.includeLink} onChange={e => setRm({ ...rm, includeLink: e.target.checked })} /> Include each person's exam link</label>
+            <button style={{ ...primary, width: '100%', marginTop: 16, opacity: (busy || !rm.message.trim()) ? 0.6 : 1 }} disabled={busy || !rm.message.trim()} onClick={sendReminder}>{busy ? 'Sending…' : 'Send now'}</button>
+            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 8 }}>Note: WhatsApp free-form text delivers to recipients who messaged your number or opted in; cold delivery needs an approved WhatsApp template.</div>
+          </div>
+        </div>
+      )}
+
       {/* Registration review modal — every field + document previews */}
       {detail && (
         <div style={ovl} onClick={() => setDetail(null)}>
@@ -237,6 +309,8 @@ const ovl: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgb
 const dmodal: React.CSSProperties = { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 620, padding: 24, boxShadow: '0 24px 70px rgba(0,0,0,.3)' };
 const sec: React.CSSProperties = { fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: .4, margin: '18px 0 8px' };
 const kvGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 };
+const efl: React.CSSProperties = { display: 'block', fontSize: 12, fontWeight: 700, color: '#475569', margin: '12px 0 5px' };
+const efi: React.CSSProperties = { width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '9px 12px', fontSize: 14, color: '#0f172a', boxSizing: 'border-box', fontFamily: 'inherit' };
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: '16px 18px' };
 const primary: React.CSSProperties = { background: 'linear-gradient(90deg,#1d4ed8,#4f46e5)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' };

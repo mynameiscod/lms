@@ -24,6 +24,8 @@ export const battleAdminApi = {
   create: async (body: Partial<TechBattle>): Promise<TechBattle> => (await axios.post(`${API}/battles`, body, { headers: auth() })).data.battle,
   get: async (id: string): Promise<{ battle: TechBattle; publicBase: string }> => (await axios.get(`${API}/battles/${id}`, { headers: auth() })).data,
   update: async (id: string, patch: Partial<TechBattle>): Promise<TechBattle> => (await axios.put(`${API}/battles/${id}`, patch, { headers: auth() })).data.battle,
+  remove: async (id: string) => (await axios.delete(`${API}/battles/${id}`, { headers: auth() })).data,
+  broadcast: async (id: string, body: { message: string; channel: string; review: string; includeLink: boolean }) => (await axios.post(`${API}/battles/${id}/broadcast`, body, { headers: auth() })).data,
   registrations: async (id: string, params: any = {}): Promise<any[]> => (await axios.get(`${API}/battles/${id}/registrations`, { headers: auth(), params })).data.registrations,
   approve: async (id: string, regId: string) => (await axios.post(`${API}/battles/${id}/registrations/${regId}/approve`, {}, { headers: auth() })).data,
   reject: async (id: string, regId: string, reason: string) => (await axios.post(`${API}/battles/${id}/registrations/${regId}/reject`, { reason }, { headers: auth() })).data,

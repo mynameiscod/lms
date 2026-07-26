@@ -13,6 +13,8 @@ router.get('/', ctrl.listBattles);
 router.post('/', ctrl.createBattle);
 router.get('/:id', ctrl.getBattle);
 router.put('/:id', ctrl.updateBattle);
+router.delete('/:id', ctrl.deleteBattle);
+router.post('/:id/broadcast', ctrl.broadcastBattle);
 router.get('/:id/registrations', ctrl.getRegistrations);
 router.post('/:id/registrations/:regId/approve', ctrl.approveRegistration);
 router.post('/:id/registrations/:regId/reject', ctrl.rejectRegistration);

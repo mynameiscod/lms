@@ -63,7 +63,7 @@ const BattleDetail: React.FC = () => {
   const del = async () => { if (!window.confirm('Delete this battle AND all its registrations? This cannot be undone.')) return; await battleAdminApi.remove(String(id)); nav('/admin/battles'); };
   const sendReminder = async () => {
     setBusy(true);
-    try { const r = await battleAdminApi.broadcast(String(id), rm); setToast(`Sent to ${r.recipients} (WA ${r.whatsappSent}, Email ${r.emailSent})`); setShowRemind(false); setTimeout(() => setToast(''), 3500); }
+    try { const r: any = await battleAdminApi.broadcast(String(id), rm); setToast(r?.message || 'Sent'); setShowRemind(false); setTimeout(() => setToast(''), 6000); }
     catch (e: any) { setToast(e?.response?.data?.message || 'Send failed'); }
     setBusy(false);
   };
@@ -75,7 +75,7 @@ const BattleDetail: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   const reloadRegs = () => battleAdminApi.registrations(String(id), filter).then(setRegs).catch(() => {});
-  const approve = async (regId: string) => { await battleAdminApi.approve(String(id), regId); setDetail(null); reloadRegs(); };
+  const approve = async (regId: string) => { const r: any = await battleAdminApi.approve(String(id), regId); setToast(r?.message || 'Approved'); setTimeout(() => setToast(''), 5000); setDetail(null); reloadRegs(); };
   const reject = async (regId: string) => { const reason = window.prompt('Reason for rejection (optional):') || ''; await battleAdminApi.reject(String(id), regId, reason); setDetail(null); reloadRegs(); };
 
   if (!battle) return <div style={{ padding: 30, color: '#64748b' }}>Loading…</div>;

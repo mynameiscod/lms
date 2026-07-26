@@ -436,14 +436,18 @@ export const approveRegistration = async (req: Request, res: Response) => {
     await reg.save();
     const b = await TechBattle.findById(reg.battleId).lean() as any;
     const url = examUrl(reg.tenantId, reg.examToken);
+    let wa: { ok: boolean; error?: string } = { ok: false };
     if (b) {
-      // Send the link over BOTH channels at once — email + WhatsApp.
+      // Send the link over BOTH channels — email (always) + WhatsApp (needs template for cold users).
       sendConfirmEmail(reg, b, url).catch(() => {});
       const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-      const waMsg = `🎉 You're approved for *${b.title}*!\n\nYour exam opens on ${when} IST. Start here (unlocks at the start time):\n${url}\n\nOne attempt · single device. All the best! — CodeBegun`;
-      otp.sendWhatsAppText(reg.tenantId, reg.whatsapp || reg.mobile, waMsg).catch(() => {});
+      const waMsg = `You're approved for ${b.title}! Your exam opens on ${when} IST. Start here (unlocks at start): ${url} — one attempt, single device. — CodeBegun`;
+      wa = await otp.sendWhatsAppText(reg.tenantId, reg.whatsapp || reg.mobile, waMsg);
     }
-    res.json({ success: true, message: 'Approved — exam link sent via email + WhatsApp.', examUrl: url });
+    res.json({
+      success: true, examUrl: url, whatsapp: wa,
+      message: wa.ok ? 'Approved — exam link sent via email + WhatsApp.' : `Approved — link emailed. WhatsApp not sent: ${wa.error || 'unknown'}`,
+    });
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
@@ -496,18 +500,21 @@ export const broadcastBattle = async (req: Request, res: Response) => {
     // 'all' → everyone who registered
     const regs = await BattleRegistration.find(q).select('name email mobile whatsapp examToken').limit(5000).lean();
 
-    let wa = 0, em = 0;
+    let wa = 0, em = 0; let waError: string | undefined;
     for (const r of regs as any[]) {
-      const link = includeLink ? `\n${examUrl(tenantId, r.examToken)}` : '';
+      const link = includeLink ? ` ${examUrl(tenantId, r.examToken)}` : '';
       const body = `${String(message).replace(/\{name\}/g, r.name || '')}${link}`;
       if (channel === 'whatsapp' || channel === 'both') {
-        const ok = await otp.sendWhatsAppText(tenantId, r.whatsapp || r.mobile, body); if (ok) wa++;
+        const res2 = await otp.sendWhatsAppText(tenantId, r.whatsapp || r.mobile, body); if (res2.ok) wa++; else waError = waError || res2.error;
       }
       if (channel === 'email' || channel === 'both') {
         const ok = await emailService.sendGenericEmail(r.email, `${b.title} — update`, `<div style="font-family:Arial,sans-serif">${body.replace(/\n/g, '<br>')}</div>`); if (ok) em++;
       }
     }
-    res.json({ success: true, recipients: regs.length, whatsappSent: wa, emailSent: em, message: `Sent to ${regs.length} registrant(s).` });
+    res.json({
+      success: true, recipients: regs.length, whatsappSent: wa, emailSent: em, whatsappError: waError,
+      message: `Sent to ${regs.length}. WhatsApp ${wa}${em || channel !== 'whatsapp' ? `, Email ${em}` : ''}.${waError ? ` — WhatsApp issue: ${waError}` : ''}`,
+    });
   } catch (e: any) { logger.error('broadcastBattle failed', { error: e.message }); res.status(500).json({ message: e.message }); }
 };
 

@@ -64,7 +64,7 @@ const otpTemplate = () => process.env.WHATSAPP_OTP_TEMPLATE || '';
 const otpTemplateLang = () => process.env.WHATSAPP_OTP_TEMPLATE_LANG || 'en';
 const otpTemplateHasButton = () => String(process.env.WHATSAPP_OTP_TEMPLATE_BUTTON || 'true') !== 'false';
 
-async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<boolean> {
+async function waPost(creds: { phoneNumberId: string; accessToken: string }, payload: any): Promise<{ ok: boolean; error?: string }> {
   try {
     const res = await fetch(`https://graph.facebook.com/v18.0/${creds.phoneNumberId}/messages`, {
       method: 'POST',
@@ -73,12 +73,16 @@ async function waPost(creds: { phoneNumberId: string; accessToken: string }, pay
     });
     if (!res.ok) {
       const err = await res.text().catch(() => '');
-      console.warn('[assessment-otp] WhatsApp send failed', res.status, err.slice(0, 300));
+      console.warn('[whatsapp] send failed', res.status, err.slice(0, 400));
+      // Extract Meta's human message if present.
+      let msg = err.slice(0, 200);
+      try { msg = JSON.parse(err)?.error?.message || msg; } catch { /* keep raw */ }
+      return { ok: false, error: msg };
     }
-    return res.ok;
+    return { ok: true };
   } catch (e: any) {
-    console.warn('[assessment-otp] WhatsApp send error', e?.message);
-    return false;
+    console.warn('[whatsapp] send error', e?.message);
+    return { ok: false, error: e?.message || 'network error' };
   }
 }
 
@@ -95,15 +99,15 @@ async function sendWhatsAppOtp(phone: string, code: string, message: string, cre
     if (otpTemplateHasButton()) {
       components.push({ type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] });
     }
-    const ok = await waPost(creds, {
+    const r = await waPost(creds, {
       messaging_product: 'whatsapp', to, type: 'template',
       template: { name: otpTemplate(), language: { code: otpTemplateLang() }, components },
     });
-    if (ok) return true;
+    if (r.ok) return true;
   }
 
   // Fallback: plain text — only delivers if the user messaged us in the last 24h
-  return waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } });
+  return (await waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } })).ok;
 }
 
 /** Normalize a phone to WhatsApp's `to` format (digits, default India country code). */
@@ -113,21 +117,40 @@ function normalizeTo(phone: string): string {
   return to;
 }
 
+// Generic notification template — required to reach recipients OUTSIDE the 24h session
+// window (i.e. every battle registrant). Create + approve a template in Meta Business
+// Manager with a single body variable {{1}} and set its name here (via Platform Settings
+// or env). Without it, sends fall back to plain text, which Meta rejects for cold users.
+const notifyTemplate = () => process.env.WHATSAPP_NOTIFY_TEMPLATE || '';
+const notifyTemplateLang = () => process.env.WHATSAPP_NOTIFY_TEMPLATE_LANG || 'en';
+
 /**
- * Send a free-form WhatsApp TEXT message to a phone for a tenant (reuses the OTP rail's
- * credential resolution). NOTE: free-form text only delivers inside the 24h customer-
- * service window or to opted-in recipients; cold proactive delivery needs an approved
- * template. Returns true if the API accepted the send.
+ * Send a WhatsApp message to a phone for a tenant. If a notification template is
+ * configured (WHATSAPP_NOTIFY_TEMPLATE) it sends via template with the message as the
+ * single body variable — this DELIVERS to cold recipients. Otherwise it falls back to
+ * free-form text (only delivers inside the 24h window / to opted-in users).
+ * Returns { ok, error? } with Meta's error message on failure.
  */
-export async function sendWhatsAppText(tenantId: string, phone: string, message: string): Promise<boolean> {
+export async function sendWhatsAppText(tenantId: string, phone: string, message: string): Promise<{ ok: boolean; error?: string }> {
   const to = normalizeTo(phone);
-  if (!to) return false;
+  if (!to) return { ok: false, error: 'invalid phone' };
   const candidates = await getWhatsAppCredentialCandidates(tenantId);
+  if (!candidates.length) return { ok: false, error: 'WhatsApp is not configured for this tenant (set it in Platform Settings).' };
+
+  const tpl = notifyTemplate();
+  // Template body variables reject newlines/tabs and >4 consecutive spaces — sanitize.
+  const oneLine = String(message).replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
+
+  let lastError: string | undefined;
   for (const creds of candidates) {
-    const ok = await waPost(creds, { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } });
-    if (ok) return true;
+    const payload = tpl
+      ? { messaging_product: 'whatsapp', to, type: 'template', template: { name: tpl, language: { code: notifyTemplateLang() }, components: [{ type: 'body', parameters: [{ type: 'text', text: oneLine }] }] } }
+      : { messaging_product: 'whatsapp', to, type: 'text', text: { body: message } };
+    const r = await waPost(creds, payload);
+    if (r.ok) return { ok: true };
+    lastError = r.error;
   }
-  return false;
+  return { ok: false, error: lastError || 'send failed' };
 }
 
 export interface OtpSendResult {

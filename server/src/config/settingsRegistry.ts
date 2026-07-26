@@ -84,6 +84,8 @@ export const SETTING_DEFS: SettingDef[] = [
   { key: 'WHATSAPP_VERIFY_TOKEN', label: 'WhatsApp Webhook Verify Token', group: 'messaging', type: 'text', placeholder: 'codebegun_whatsapp_verify' },
   { key: 'WHATSAPP_OTP_TEMPLATE', label: 'WhatsApp OTP Template Name', group: 'messaging', type: 'text' },
   { key: 'WHATSAPP_OTP_TEMPLATE_LANG', label: 'OTP Template Language', group: 'messaging', type: 'text', placeholder: 'en' },
+  { key: 'WHATSAPP_NOTIFY_TEMPLATE', label: 'WhatsApp Notify Template Name', group: 'messaging', type: 'text', help: 'Approved template with ONE body variable {{1}}. Required to send Tech Battle links/reminders on WhatsApp to people who have not messaged you (Meta rejects plain text to cold users).' },
+  { key: 'WHATSAPP_NOTIFY_TEMPLATE_LANG', label: 'Notify Template Language', group: 'messaging', type: 'text', placeholder: 'en' },
   { key: 'META_APP_SECRET', label: 'Meta App Secret', group: 'messaging', isSecret: true, type: 'password', help: 'Used to verify Meta Lead Ads webhook signatures.' },
   { key: 'META_LEAD_VERIFY_TOKEN', label: 'Meta Lead Webhook Verify Token', group: 'messaging', type: 'text' },
   { key: 'PAGE_ACCESS_TOKEN', label: 'Meta Page Access Token', group: 'messaging', isSecret: true, type: 'password' },

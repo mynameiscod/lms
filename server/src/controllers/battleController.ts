@@ -85,8 +85,11 @@ export const registerForBattle = async (req: Request, res: Response) => {
   try {
     const tenantId = await tenantIdFromSlug(req.params.tenantSlug);
     if (!tenantId) return res.status(404).json({ message: 'Organization not found' });
-    const b = await TechBattle.findOne({ tenantId, slug: req.params.slug }) as any;
-    if (!b || b.status !== 'live') return res.status(404).json({ message: 'Battle not available' });
+    // 'current' resolves to this week's live battle → the website can hardcode ONE URL forever.
+    const b: any = req.params.slug === 'current'
+      ? await findCurrentBattle(tenantId)
+      : await TechBattle.findOne({ tenantId, slug: req.params.slug }).lean();
+    if (!b || b.status !== 'live') return res.status(404).json({ message: 'No battle is open for registration right now.' });
 
     const now = new Date();
     if (b.registerOpensAt && now < new Date(b.registerOpensAt)) return res.status(403).json({ message: 'Registration has not opened yet.' });

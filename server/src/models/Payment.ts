@@ -11,7 +11,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 // 'fee_installment' are P1. certificate | item | subscription are reserved for later phases.
 export type PaymentPurpose =
   | 'learning_plan_unlock' | 'fee' | 'fee_installment'
-  | 'certificate' | 'item' | 'subscription';
+  | 'certificate' | 'item' | 'subscription' | 'passport_membership';
 
 export interface IPayment extends Document {
   tenantId: mongoose.Types.ObjectId;
@@ -44,7 +44,7 @@ const PaymentSchema = new Schema<IPayment>(
     tenantId:     { type: Schema.Types.ObjectId, ref: 'Tenant', required: true, index: true },
     studentId:    { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     enrollmentId: { type: Schema.Types.ObjectId, ref: 'CurriculumEnrollment' },
-    purpose:      { type: String, enum: ['learning_plan_unlock', 'fee', 'fee_installment', 'certificate', 'item', 'subscription'], default: 'learning_plan_unlock' },
+    purpose:      { type: String, enum: ['learning_plan_unlock', 'fee', 'fee_installment', 'certificate', 'item', 'subscription', 'passport_membership'], default: 'learning_plan_unlock' },
     target:       { refModel: { type: String }, refId: { type: Schema.Types.ObjectId } },
     feeId:        { type: Schema.Types.ObjectId, ref: 'Fee', index: true },
     installmentId:{ type: String },

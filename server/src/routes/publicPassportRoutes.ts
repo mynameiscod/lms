@@ -5,6 +5,7 @@ import * as ctrl from '../controllers/publicPassportController';
 const router = express.Router();
 
 router.get('/config',  ctrl.getPublicConfig);
+router.get('/card/:slug', ctrl.getCard);
 router.post('/signup', ctrl.signup);
 router.post('/verify', ctrl.verify);
 router.post('/resend', ctrl.resend);

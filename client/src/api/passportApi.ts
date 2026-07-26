@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { loadRazorpay } from './paymentApi';
 
 const BASE = (process.env.REACT_APP_API_URL || '/api/v1') + '/passport';
 const auth = () => {
@@ -64,7 +65,61 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/assessment/reset`, {}, { headers: auth() });
     return data;
   },
+
+  // Missions
+  getToday: async (): Promise<TodayMissions> => {
+    const { data } = await axios.get(`${BASE}/missions/today`, { headers: auth() });
+    return data;
+  },
+  completeMission: async (key: string): Promise<{ ok: boolean; xp: number; streak: number; longestStreak: number; allDone: boolean }> => {
+    const { data } = await axios.post(`${BASE}/missions/complete`, { key }, { headers: auth() });
+    return data;
+  },
+
+  // Membership checkout (₹499). Opens Razorpay and resolves true on successful activation.
+  membershipCheckout: async (): Promise<{ ok: boolean; message?: string }> => {
+    const ready = await loadRazorpay();
+    if (!ready) return { ok: false, message: 'Could not load the payment window. Check your connection.' };
+    let order: any;
+    try {
+      const { data } = await axios.post(`${BASE}/membership/order`, {}, { headers: auth() });
+      order = data;
+    } catch (e: any) {
+      return { ok: false, message: e?.response?.data?.message || 'Could not start payment.' };
+    }
+    return new Promise((resolve) => {
+      const rzp = new (window as any).Razorpay({
+        key: order.keyId, amount: order.amount, currency: order.currency,
+        name: order.name, description: order.description, order_id: order.orderId,
+        prefill: order.prefill, theme: { color: '#6650d8' },
+        handler: async (resp: any) => {
+          try {
+            await axios.post(`${BASE}/membership/verify`, {
+              razorpay_order_id: resp.razorpay_order_id,
+              razorpay_payment_id: resp.razorpay_payment_id,
+              razorpay_signature: resp.razorpay_signature,
+            }, { headers: auth() });
+            resolve({ ok: true });
+          } catch (e: any) { resolve({ ok: false, message: e?.response?.data?.message || 'Verification failed.' }); }
+        },
+        modal: { ondismiss: () => resolve({ ok: false, message: 'Payment cancelled.' }) },
+      });
+      rzp.on('payment.failed', (r: any) => resolve({ ok: false, message: r?.error?.description || 'Payment failed.' }));
+      rzp.open();
+    });
+  },
 };
+
+export interface TodayMissions {
+  locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;
+  day?: number; streak?: number; longestStreak?: number; xp?: number; allDone?: boolean;
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; done: boolean }[];
+}
+
+export interface PassportCard {
+  name: string; careerScore: number | null; level: string | null;
+  pathway: string | null; careerGoal: string | null; memberSince: string | null;
+}
 
 export interface AssessQuestion { id: string; category: string; text: string; options: string[]; }
 export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; }
@@ -96,6 +151,10 @@ export const passportPublicApi = {
   resend: async (token: string) => {
     const { data } = await axios.post(`${PUB}/resend`, { token });
     return data as { success: boolean; otp: any };
+  },
+  getCard: async (slug: string) => {
+    const { data } = await axios.get(`${PUB}/card/${encodeURIComponent(slug)}`);
+    return data as { success: boolean; card: PassportCard };
   },
 };
 

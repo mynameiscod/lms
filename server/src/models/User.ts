@@ -28,6 +28,9 @@ export interface IUser extends Document {
     yearOfStudy?: string;
     careerGoal?: string;
     pathway?: string;
+    careerScore?: number;      // cached from latest assessment (for card/Mission Control)
+    level?: string;
+    shareSlug?: string;        // public shareable Career Passport card slug
   };
   phone?: string;
   avatar?: string;
@@ -133,6 +136,9 @@ const UserSchema: Schema = new Schema(
       yearOfStudy: { type: String },
       careerGoal:  { type: String },
       pathway:     { type: String },
+      careerScore: { type: Number },
+      level:       { type: String },
+      shareSlug:   { type: String, index: true },
     },
     phone: {
       type: String,

@@ -51,6 +51,31 @@ export const getPublicConfig = async (req: Request, res: Response) => {
   }
 };
 
+/** GET /public/passport/card/:slug — the shareable, read-only Career Passport card. */
+export const getCard = async (req: Request, res: Response) => {
+  try {
+    const slug = String(req.params.slug || '').trim();
+    if (!slug) return res.status(400).json({ success: false, message: 'Missing slug' });
+    const user = await User.findOne({ 'passport.shareSlug': slug }).select('firstName lastName passport').lean() as any;
+    if (!user || !user.passport?.active) return res.status(404).json({ success: false, message: 'Passport not found' });
+
+    const p = user.passport;
+    res.json({
+      success: true,
+      card: {
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'CodeBegun Learner',
+        careerScore: p.careerScore ?? null,
+        level: p.level || null,
+        pathway: p.pathway || null,
+        careerGoal: p.careerGoal || null,
+        memberSince: p.activatedAt || null,
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message || 'Failed to load card' });
+  }
+};
+
 /** POST /public/passport/signup — create the account (unverified) and send OTP. */
 export const signup = async (req: Request, res: Response) => {
   try {

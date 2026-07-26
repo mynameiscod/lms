@@ -8,6 +8,7 @@ import * as razorpay from '../services/razorpayService';
 import * as settings from '../services/settingsService';
 import { applyFeePayment, reverseFeePayment } from '../services/feePaymentService';
 import { unlockCandidatePlans } from '../services/assessmentEnrollmentService';
+import { activateMembership } from '../services/passportActivationService';
 
 /**
  * paymentController — Razorpay self-serve unlock of a candidate's full
@@ -321,7 +322,7 @@ export const createFeeOrder = async (req: AuthenticatedRequest, res: Response) =
  * can't both apply the payment. On a side-effect failure the claim is released
  * (status back to 'created') so a retry can re-run it (side effects are idempotent).
  */
-async function settlePayment(payment: any, paymentId?: string, signature?: string): Promise<any> {
+export async function settlePayment(payment: any, paymentId?: string, signature?: string): Promise<any> {
   const claimed = await Payment.findOneAndUpdate(
     { _id: payment._id, status: 'created' },
     { $set: { status: 'paid', paidAt: new Date(), ...(paymentId ? { paymentId } : {}), ...(signature ? { signature } : {}) } },
@@ -348,6 +349,10 @@ async function settlePayment(payment: any, paymentId?: string, signature?: strin
         paymentRef: claimed._id as any,
       });
       return { feeApplied: true };
+    }
+    if (claimed.purpose === 'passport_membership') {
+      const { expiresAt } = await activateMembership(String(claimed.tenantId), String(claimed.studentId));
+      return { membershipActivated: true, expiresAt };
     }
     return {};
   } catch (e) {

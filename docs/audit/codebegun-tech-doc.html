@@ -157,7 +157,7 @@
       <div>⏱️ <b>13</b> cron jobs</div>
       <div>🖥️ <b>129</b> pages</div>
       <div>🔌 <b>23</b> integrations</div>
-      <div>🧩 <b>70</b> modules audited</div>
+      <div>🧩 <b>76</b> modules audited</div>
     </div>
     <div class="kpis">
       <div class="kpi"><div class="n warn">71%</div><div class="l">Overall completion</div></div>
@@ -185,6 +185,7 @@
           <li><b>AI Communication Lab (90%)</b> and <b>Enrollment / AI day-wise Learning Plan (85%)</b> — production-grade signature features.</li>
           <li><b>Skill Assessment Funnel (82%)</b> — end-to-end candidate→student→lead pipeline at ~₹0.10/candidate.</li>
           <li><b>Lead Management (88%)</b> — mature CRM core with configurable pipeline.</li>
+          <li><b>Career Passport (avg 76%)</b> — new separate consumer product: public funnel → free deterministic Career Readiness Assessment → ₹499 membership on the shared Razorpay rail → personalized daily missions + shareable card. Zero impact on the core LMS.</li>
         </ul>
       </div>
       <div class="card">
@@ -211,8 +212,8 @@
 <section id="domains">
   <div class="wrap">
     <div class="sec-eyebrow">Phase 6 · Domain Scorecard</div>
-    <h2 class="sec">Nine domains, 70 modules</h2>
-    <p class="sec-lead">Domain averages of module-level completion. Interviews and CareerPilot lead; Assessments is dragged down by an orphaned Exam model; Placement/Platform by weak automation.</p>
+    <h2 class="sec">Ten domains, 76 modules</h2>
+    <p class="sec-lead">Domain averages of module-level completion. Interviews, CareerPilot and the new Career Passport lead; Assessments is dragged down by an orphaned Exam model; Placement/Platform by weak automation.</p>
     <div class="domains" id="domainCards"></div>
   </div>
 </section>
@@ -480,6 +481,13 @@ Organic           <span class="g">Funnel (82%)</span>        (STUDENT)      <spa
 
 <script>
 const MODULES = [
+  // Career Passport (separate consumer product on the LMS rail)
+  {n:"Passport — Foundation & Config",d:"Career Passport",o:80,p:"P1",i:"High",s:"Per-tenant PassportConfig (entitlements/price/onboarding), admin config+students, kill-switch",f:"passport-foundation"},
+  {n:"Passport — Public Funnel (Join+OTP)",d:"Career Passport",o:82,p:"P1",i:"High",s:"Branded /passport/join, mandatory Name/Mobile/Email, WhatsApp OTP, auto-login",f:"passport-funnel"},
+  {n:"Passport — Career Readiness Assessment",d:"Career Passport",o:80,p:"P1",i:"High",s:"Deterministic scored MCQ bank (no per-user AI): Career Score, categories, level, pathway, 7-day preview; admin editor",f:"passport-assessment"},
+  {n:"Passport — ₹499 Membership Activation",d:"Career Passport",o:78,p:"P1",i:"High",s:"Razorpay order/verify on the shared Payment rail (purpose=passport_membership), idempotent activation + webhook fallback",f:"passport-membership"},
+  {n:"Passport — Daily Missions & Streak",d:"Career Passport",o:70,p:"P2",i:"High",s:"Deterministic per-day missions from weak areas + pathway, XP + streak; gated by entitlement. Missions are generated, not yet linked to real content completion",f:"passport-missions"},
+  {n:"Passport — Shareable Career Card",d:"Career Passport",o:68,p:"P2",i:"Medium",s:"Public read-only /passport/card/:slug (score/level/pathway); v1 — no badges/verification yet",f:"passport-card"},
   // Identity & Access
   {n:"Authentication",d:"Identity & Access",o:72,p:"P1",i:"High",s:"Functional core; no rate-limit/lockout, secret fallbacks",f:"authentication"},
   {n:"User Management",d:"Identity & Access",o:74,p:"P1",i:"High",s:"Feature-rich; cross-tenant access on :userId, no audit",f:"user-management"},

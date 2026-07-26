@@ -44,8 +44,12 @@ export const submitAssessment = async (req: Request, res: Response) => {
 
     const attempt = await PassportAttempt.create({ tenantId, studentId, answers, ...result });
 
-    // Persist the recommended pathway on the student for later personalization.
-    if (user) await User.updateOne({ _id: studentId }, { $set: { 'passport.pathway': result.pathway } });
+    // Cache pathway + score + level on the student for personalization and the card.
+    if (user) await User.updateOne({ _id: studentId }, { $set: {
+      'passport.pathway': result.pathway,
+      'passport.careerScore': result.careerScore,
+      'passport.level': result.level,
+    } });
 
     res.json({ result: publicResult(attempt) });
   } catch (e: any) { console.error('[passport] submit failed:', e); res.status(500).json({ message: e.message || 'Failed to submit' }); }

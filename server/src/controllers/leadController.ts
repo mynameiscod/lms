@@ -609,7 +609,7 @@ export const updateLead = async (req: AuthenticatedRequest, res: Response<ApiRes
       await Lead.findByIdAndUpdate(leadId, {
         $push: {
           activities: {
-            type: 'stage_change',
+            type: 'status_change', // must match the LeadActivity enum — 'stage_change' is invalid and poisons later lead.save()
             description: `Stage changed from "${oldStageDoc?.name || 'Unknown'}" to "${newStageDoc?.name || 'Unknown'}" by ${actorName}`,
             createdBy: req.user!.id,
             createdAt: new Date(),

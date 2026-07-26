@@ -127,6 +127,18 @@ const Assessment: React.FC = () => {
 
 // ── Result ──
 const ResultView: React.FC<{ result: AssessResult; onRetake: () => void; onHome: () => void }> = ({ result, onRetake, onHome }) => {
+  const [paying, setPaying] = useState(false);
+  const [payMsg, setPayMsg] = useState('');
+  const [unlocked, setUnlocked] = useState(false);
+
+  const unlock = async () => {
+    setPaying(true); setPayMsg('');
+    const res = await passportApi.membershipCheckout();
+    setPaying(false);
+    if (res.ok) { setUnlocked(true); setPayMsg(''); }
+    else setPayMsg(res.message || 'Payment did not complete.');
+  };
+
   const scoreColor = result.careerScore >= 75 ? '#14a89c' : result.careerScore >= 45 ? '#6650d8' : '#f59e0b';
   const circumference = 2 * Math.PI * 52;
   const dash = useMemo(() => (result.careerScore / 100) * circumference, [result.careerScore, circumference]);
@@ -200,14 +212,30 @@ const ResultView: React.FC<{ result: AssessResult; onRetake: () => void; onHome:
 
         {/* CTA */}
         <div style={{ ...card, marginTop: 14, background: 'linear-gradient(120deg,#1e1b4b,#0f766e)', color: '#fff', textAlign: 'center' }}>
-          <div style={{ fontSize: 19, fontWeight: 800 }}>Unlock your full 90-day journey</div>
-          <p style={{ opacity: 0.85, fontSize: 13.5, maxWidth: 460, margin: '8px auto 16px' }}>
-            Daily missions, verified practice, mock interviews, resume &amp; the shareable Career Passport — personalized to your score.
-          </p>
-          <button onClick={onHome} style={{ background: '#fff', color: '#1e1b4b', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-            Continue to Mission Control
-          </button>
-          <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>Membership unlock coming next — your score is saved.</div>
+          {unlocked ? (
+            <>
+              <div style={{ fontSize: 40 }}>🎉</div>
+              <div style={{ fontSize: 19, fontWeight: 800 }}>You’re in! Membership activated.</div>
+              <p style={{ opacity: 0.85, fontSize: 13.5, margin: '8px auto 16px' }}>Your personalized daily missions are ready.</p>
+              <button onClick={onHome} style={{ background: '#fff', color: '#1e1b4b', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+                Go to Mission Control →
+              </button>
+            </>
+          ) : (
+            <>
+              <div style={{ fontSize: 19, fontWeight: 800 }}>Unlock your full 90-day journey</div>
+              <p style={{ opacity: 0.85, fontSize: 13.5, maxWidth: 460, margin: '8px auto 16px' }}>
+                Daily missions, verified practice, mock interviews, resume &amp; the shareable Career Passport — personalized to your score.
+              </p>
+              <button onClick={unlock} disabled={paying} style={{ background: '#fff', color: '#1e1b4b', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 800, fontSize: 15, cursor: paying ? 'default' : 'pointer', opacity: paying ? 0.6 : 1 }}>
+                {paying ? 'Opening payment…' : 'Unlock my journey'}
+              </button>
+              {payMsg && <div style={{ marginTop: 12, fontSize: 13, background: 'rgba(255,255,255,.12)', borderRadius: 8, padding: '8px 12px' }}>{payMsg}</div>}
+              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>
+                <button onClick={onHome} style={{ background: 'none', border: 'none', color: '#c7d2fe', fontSize: 12.5, cursor: 'pointer' }}>Maybe later — go to Mission Control →</button>
+              </div>
+            </>
+          )}
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>

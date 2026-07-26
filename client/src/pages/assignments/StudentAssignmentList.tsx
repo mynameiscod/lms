@@ -57,16 +57,26 @@ const StudentAssignmentList: React.FC = () => {
 
   const getSubmissionStatus = (a: StudentAssignment) => a.submission?.status || 'not_started';
 
+  // The per-student schedule-resolved lifecycle wins when the assignment was delivered
+  // via AssessmentSchedule; otherwise fall back to the raw submission status + baked date.
+  const effStatus = (a: StudentAssignment): string => a.delivery?.status || getSubmissionStatus(a);
+  const dueOf = (a: StudentAssignment): string | null | undefined => a.delivery?.dueAt ?? a.dueDate;
+  const DONE = ['submitted', 'graded', 'late'];
+  const isDone = (a: StudentAssignment) => DONE.includes(effStatus(a));
+
   const isOverdue = (a: StudentAssignment) => {
-    if (!a.dueDate) return false;
-    const status = getSubmissionStatus(a);
-    if (status === 'submitted' || status === 'graded') return false;
-    return new Date(a.dueDate) < new Date();
+    const st = effStatus(a);
+    if (DONE.includes(st)) return false;
+    if (a.delivery) return st === 'overdue' || st === 'missed';
+    const due = dueOf(a);
+    if (!due) return false;
+    return new Date(due) < new Date();
   };
 
   const formatDue = (a: StudentAssignment) => {
-    if (!a.dueDate) return { text: 'No deadline', overdue: false };
-    const date = new Date(a.dueDate);
+    const due = dueOf(a);
+    if (!due) return { text: 'No deadline', overdue: false };
+    const date = new Date(due);
     const now = new Date();
     const diffDays = Math.ceil((date.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     if (isOverdue(a)) return { text: `Overdue by ${Math.abs(diffDays)} days`, overdue: true };
@@ -104,36 +114,38 @@ const StudentAssignmentList: React.FC = () => {
   };
 
   const statusBadge = (a: StudentAssignment) => {
-    const status = getSubmissionStatus(a);
+    const status = effStatus(a);
     const map: Record<string, { cls: string; label: string; icon: string }> = {
       not_started: { cls: 'notstarted', label: 'Not Started', icon: '⏸' },
       in_progress: { cls: 'inprogress', label: 'In Progress', icon: '🔄' },
       submitted:   { cls: 'review',     label: 'In Review',   icon: '👀' },
       graded:      { cls: 'graded',     label: 'Completed',   icon: '✅' },
       late:        { cls: 'late',       label: 'Late',        icon: '⚠' },
+      overdue:     { cls: 'late',       label: 'Overdue',     icon: '⏰' },
+      missed:      { cls: 'late',       label: 'Missed',      icon: '⛔' },
     };
     return map[status] || map.not_started;
   };
 
   const actionLabel = (a: StudentAssignment) => {
-    const status = getSubmissionStatus(a);
+    const status = effStatus(a);
     if (status === 'graded') return { label: 'Results', icon: '📊' };
     if (status === 'in_progress') return { label: 'Continue', icon: '▶' };
     if (status === 'submitted') return { label: 'View', icon: '👁' };
-    if (status === 'late') return { label: 'Submit', icon: '📤' };
+    if (status === 'late' || status === 'overdue') return { label: 'Submit', icon: '📤' };
+    if (status === 'missed') return { label: 'Closed', icon: '🔒' };
     return { label: 'Start', icon: '🚀' };
   };
 
   const handleOpen = (a: StudentAssignment) => {
-    if (getSubmissionStatus(a) === 'graded') navigate(`/assignments/${a._id}/result`);
+    if (effStatus(a) === 'graded') navigate(`/assignments/${a._id}/result`);
     else navigate(`/assignments/${a._id}/workspace`);
   };
 
   // ── Filtering ──
   const matchesTab = (a: StudentAssignment) => {
-    const status = getSubmissionStatus(a);
-    if (tab === 'pending') return ['not_started', 'in_progress'].includes(status);
-    if (tab === 'completed') return status === 'graded';
+    if (tab === 'pending') return ['not_started', 'in_progress'].includes(effStatus(a));
+    if (tab === 'completed') return isDone(a);
     if (tab === 'overdue') return isOverdue(a);
     return true;
   };
@@ -141,9 +153,8 @@ const StudentAssignmentList: React.FC = () => {
   const filtered = assignments.filter(a => {
     if (typeFilter && a.type !== typeFilter) return false;
     if (statusFilter) {
-      const status = getSubmissionStatus(a);
-      if (statusFilter === 'pending' && (status === 'submitted' || status === 'graded')) return false;
-      if (statusFilter === 'completed' && status !== 'graded') return false;
+      if (statusFilter === 'pending' && !['not_started', 'in_progress'].includes(effStatus(a))) return false;
+      if (statusFilter === 'completed' && !isDone(a)) return false;
       if (statusFilter === 'overdue' && !isOverdue(a)) return false;
     }
     if (search) {
@@ -160,8 +171,8 @@ const StudentAssignmentList: React.FC = () => {
 
   // ── Stats ──
   const total = assignments.length;
-  const completed = assignments.filter(a => getSubmissionStatus(a) === 'graded').length;
-  const pending = assignments.filter(a => ['not_started', 'in_progress'].includes(getSubmissionStatus(a))).length;
+  const completed = assignments.filter(a => isDone(a)).length;
+  const pending = assignments.filter(a => ['not_started', 'in_progress'].includes(effStatus(a))).length;
   const overdue = assignments.filter(a => isOverdue(a)).length;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
 

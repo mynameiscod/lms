@@ -247,6 +247,15 @@ export interface Quiz {
   lastAttemptMarks?: number;
   lastAttemptPassed?: boolean;
   attemptCount?: number;
+  // Per-student schedule-resolved delivery (set when assigned via AssessmentSchedule).
+  // When source==='schedule' this is the authoritative window/status, NOT the baked dates.
+  delivery?: {
+    dueAt?: string | null;
+    startAt?: string | null;
+    source: 'schedule' | 'baked';
+    latePolicy?: 'open' | 'grace' | 'hard_lock';
+    status?: 'not_started' | 'in_progress' | 'submitted' | 'graded' | 'late' | 'overdue' | 'missed';
+  };
   createdAt: string;
   updatedAt: string;
 }

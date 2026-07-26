@@ -18,7 +18,7 @@ const QuizzesPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
-  const [filterTab, setFilterTab] = useState<'available' | 'completed' | 'pending'>('completed');
+  const [filterTab, setFilterTab] = useState<'available' | 'completed' | 'pending'>('available');
 
   const loadQuizzes = async () => {
     try {
@@ -35,23 +35,32 @@ const QuizzesPage: React.FC = () => {
   const startOf = (q: Quiz) => new Date(`${q.startDate.split('T')[0]}T${q.startTime}`);
   const endOf = (q: Quiz) => new Date(`${q.endDate.split('T')[0]}T${q.endTime}`);
 
+  // Prefer the schedule-resolved delivery window (set when the quiz is assigned via
+  // AssessmentSchedule) over the quiz's baked dates. For a schedule delivery, a missing
+  // startAt = open immediately, and a missing dueAt = open-ended (never auto-closes).
+  const onSchedule = (q: Quiz) => q.delivery?.source === 'schedule';
+  const winStart = (q: Quiz): Date | null =>
+    onSchedule(q) ? (q.delivery!.startAt ? new Date(q.delivery!.startAt) : null) : startOf(q);
+  const winDue = (q: Quiz): Date | null =>
+    onSchedule(q) ? (q.delivery!.dueAt ? new Date(q.delivery!.dueAt) : null) : endOf(q);
+  const beforeStart = (q: Quiz) => { const s = winStart(q); return !!(s && new Date() < s); };
+  const afterDue = (q: Quiz) => { const d = winDue(q); return !!(d && new Date() > d); };
+  const isQuizAlive = (q: Quiz): boolean => !beforeStart(q) && !afterDue(q);
+
   const filterQuizzes = useCallback(() => {
     const filtered = quizzes.filter(quiz => {
       if ((!quiz.totalQuestions || quiz.totalQuestions === 0) && !quiz.isAttempted) return false;
       const matchesSearch = quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (quiz.description || '').toLowerCase().includes(searchQuery.toLowerCase());
-      const now = new Date();
-      const startTime = startOf(quiz);
-      const endTime = endOf(quiz);
       let statusMatch = true;
       if (filterTab === 'available') {
         const canRetake = quiz.multipleAttempts && quiz.maxAttempts && (quiz.attemptCount || 0) < quiz.maxAttempts;
-        statusMatch = now >= startTime && now <= endTime && (!quiz.isAttempted || !!canRetake);
+        statusMatch = !beforeStart(quiz) && !afterDue(quiz) && (!quiz.isAttempted || !!canRetake);
       } else if (filterTab === 'completed') {
         const allAttemptsUsed = quiz.multipleAttempts && quiz.maxAttempts && (quiz.attemptCount || 0) >= quiz.maxAttempts;
-        statusMatch = !!(quiz.isAttempted || now > endTime || allAttemptsUsed);
+        statusMatch = !!(quiz.isAttempted || afterDue(quiz) || allAttemptsUsed);
       } else if (filterTab === 'pending') {
-        statusMatch = now < startTime;
+        statusMatch = beforeStart(quiz);
       }
       return matchesSearch && statusMatch;
     });
@@ -61,15 +70,9 @@ const QuizzesPage: React.FC = () => {
   useEffect(() => { loadQuizzes(); }, []);
   useEffect(() => { filterQuizzes(); }, [filterQuizzes]);
 
-  const isQuizAlive = (quiz: Quiz): boolean => {
-    const now = new Date();
-    return now >= startOf(quiz) && now <= endOf(quiz);
-  };
-
   const getQuizStatus = (quiz: Quiz): 'pending' | 'live' | 'closed' => {
-    const now = new Date();
-    if (now < startOf(quiz)) return 'pending';
-    if (now > endOf(quiz)) return 'closed';
+    if (beforeStart(quiz)) return 'pending';
+    if (afterDue(quiz)) return 'closed';
     return 'live';
   };
 
@@ -90,14 +93,13 @@ const QuizzesPage: React.FC = () => {
   };
 
   // ── Stats & tab counts ──────────────────────────────────────────────────────
-  const now = new Date();
   const withQ = (q: Quiz) => (q.totalQuestions || 0) > 0 || q.isAttempted;
   const isCompleted = (q: Quiz) => {
     const allUsed = q.multipleAttempts && q.maxAttempts && (q.attemptCount || 0) >= q.maxAttempts;
-    return !!(q.isAttempted || now > endOf(q) || allUsed);
+    return !!(q.isAttempted || afterDue(q) || allUsed);
   };
   const availableCount = quizzes.filter(q => (q.totalQuestions || 0) > 0 && isQuizAlive(q) && !q.isAttempted).length;
-  const pendingCount = quizzes.filter(q => (q.totalQuestions || 0) > 0 && now < startOf(q)).length;
+  const pendingCount = quizzes.filter(q => (q.totalQuestions || 0) > 0 && beforeStart(q)).length;
   const completedCount = quizzes.filter(q => (q.totalQuestions || 0) > 0 && isCompleted(q)).length;
   const totalCount = quizzes.filter(withQ).length;
   const attemptedQ = quizzes.filter(q => q.isAttempted && (q.totalMarks || 0) > 0);
@@ -190,7 +192,13 @@ const QuizzesPage: React.FC = () => {
                       <span className={`mq-badge ${status === 'live' ? 'live' : status === 'pending' ? 'pending' : 'closed'}`}>
                         {attempted ? 'Completed' : status === 'live' ? 'Live' : status === 'pending' ? 'Upcoming' : 'Closed'}
                       </span>
-                      <div className="mq-date">📅 {new Date(attempted ? endOf(quiz) : startOf(quiz)).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
+                      {(() => {
+                        const due = winDue(quiz); const start = winStart(quiz);
+                        const shown = beforeStart(quiz) ? start : (due || start);
+                        if (!shown) return <div className="mq-date">📅 No deadline</div>;
+                        const label = beforeStart(quiz) ? 'Opens' : 'Due';
+                        return <div className="mq-date">📅 {label} {shown.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>;
+                      })()}
                     </td>
                     <td data-label="Total Marks" className="mq-center">{quiz.totalMarks}</td>
                     <td data-label="Your Score">

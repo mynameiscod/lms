@@ -121,6 +121,15 @@ export interface Assignment {
   status: AssignmentStatus;
   startDate?: string;
   dueDate?: string;
+  // Per-student schedule-resolved delivery (set when assigned via AssessmentSchedule).
+  // When source==='schedule' this window/status is authoritative, NOT the baked dueDate.
+  delivery?: {
+    dueAt?: string | null;
+    startAt?: string | null;
+    source: 'schedule' | 'baked';
+    latePolicy?: 'open' | 'grace' | 'hard_lock';
+    status?: 'not_started' | 'in_progress' | 'submitted' | 'graded' | 'late' | 'overdue' | 'missed';
+  };
   lateSubmissionDeadline?: string;
   lateSubmissionPenalty: number;
   course?: { _id: string; name: string } | string;

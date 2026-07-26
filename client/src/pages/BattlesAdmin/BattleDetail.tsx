@@ -49,9 +49,10 @@ const BattleDetail: React.FC = () => {
     setBattle(b);
   };
   const setStatus = async (status: string) => { const b = await battleAdminApi.update(String(id), { status } as any); setBattle(b); };
+  const [detail, setDetail] = useState<any>(null);
   const reloadRegs = () => battleAdminApi.registrations(String(id), filter).then(setRegs).catch(() => {});
-  const approve = async (regId: string) => { await battleAdminApi.approve(String(id), regId); reloadRegs(); };
-  const reject = async (regId: string) => { const reason = window.prompt('Reason for rejection (optional):') || ''; await battleAdminApi.reject(String(id), regId, reason); reloadRegs(); };
+  const approve = async (regId: string) => { await battleAdminApi.approve(String(id), regId); setDetail(null); reloadRegs(); };
+  const reject = async (regId: string) => { const reason = window.prompt('Reason for rejection (optional):') || ''; await battleAdminApi.reject(String(id), regId, reason); setDetail(null); reloadRegs(); };
 
   if (!battle) return <div style={{ padding: 30, color: '#64748b' }}>Loading…</div>;
 
@@ -130,7 +131,7 @@ const BattleDetail: React.FC = () => {
                   const rc = r.reviewStatus === 'approved' ? '#15803d' : r.reviewStatus === 'rejected' ? '#b91c1c' : '#b45309';
                   return (
                     <tr key={r._id}>
-                      <td style={td}>{r.name}</td>
+                      <td style={td}><button onClick={() => setDetail(r)} style={{ background: 'none', border: 'none', color: '#1d4ed8', fontWeight: 700, cursor: 'pointer', padding: 0, textAlign: 'left' }}>{r.name}</button></td>
                       <td style={td}>{r.mobile}</td><td style={td}>{r.email}</td><td style={td}>{r.college || '—'}</td>
                       <td style={td}>{r.doorLabel}</td>
                       <td style={td}>{(r.uploadedFiles || []).length ? (r.uploadedFiles).map((f: any, i: number) => <a key={i} href={`${fileOrigin()}${f.filePath}`} target="_blank" rel="noreferrer" style={{ color: '#1d4ed8', marginRight: 6 }}>📎{i + 1}</a>) : '—'}</td>
@@ -167,9 +168,75 @@ const BattleDetail: React.FC = () => {
           </table>
         </div>
       )}
+
+      {/* Registration review modal — every field + document previews */}
+      {detail && (
+        <div style={ovl} onClick={() => setDetail(null)}>
+          <div style={dmodal} onClick={e => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <div style={{ fontSize: 19, fontWeight: 800, color: '#0f172a' }}>{detail.name}</div>
+                <div style={{ fontSize: 12.5, color: '#94a3b8' }}>{detail.doorLabel} · <b style={{ color: detail.reviewStatus === 'approved' ? '#15803d' : detail.reviewStatus === 'rejected' ? '#b91c1c' : '#b45309' }}>{(detail.reviewStatus || 'pending').toUpperCase()}</b></div>
+              </div>
+              <button onClick={() => setDetail(null)} style={{ background: 'none', border: 'none', fontSize: 24, color: '#94a3b8', cursor: 'pointer' }}>×</button>
+            </div>
+
+            <div style={sec}>Contact</div>
+            <div style={kvGrid}>
+              <KV k="Email" v={detail.email} /><KV k="Mobile" v={detail.mobile} /><KV k="WhatsApp" v={detail.whatsapp || '—'} />
+            </div>
+            <div style={sec}>Academic</div>
+            <div style={kvGrid}>
+              <KV k="College" v={detail.college || '—'} /><KV k="City" v={detail.city || '—'} />
+              {['qualification', 'branch', 'address', 'dob', 'gender'].map(k => detail.extra?.[k] != null && <KV key={k} k={k} v={String(detail.extra[k])} />)}
+            </div>
+            {detail.extra && Object.keys(detail.extra).filter(k => !['qualification', 'branch', 'address', 'dob', 'gender'].includes(k)).length > 0 && (
+              <>
+                <div style={sec}>Other answers</div>
+                <div style={kvGrid}>
+                  {Object.entries(detail.extra).filter(([k]) => !['qualification', 'branch', 'address', 'dob', 'gender'].includes(k)).map(([k, v]) => <KV key={k} k={k} v={String(v)} />)}
+                </div>
+              </>
+            )}
+
+            <div style={sec}>Documents</div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              {(detail.uploadedFiles || []).length === 0 && <span style={{ color: '#94a3b8', fontSize: 13 }}>No documents uploaded.</span>}
+              {(detail.uploadedFiles || []).map((f: any, i: number) => {
+                const url = `${fileOrigin()}${f.filePath}`;
+                const img = /\.(png|jpe?g|webp|gif)$/i.test(f.filePath);
+                return (
+                  <a key={i} href={url} target="_blank" rel="noreferrer" style={{ display: 'block', textDecoration: 'none', color: '#1d4ed8' }}>
+                    {img ? <img src={url} alt={f.fieldName} style={{ width: 150, height: 110, objectFit: 'cover', borderRadius: 8, border: '1px solid #e2e8f0' }} />
+                         : <div style={{ width: 150, height: 110, borderRadius: 8, border: '1px solid #e2e8f0', display: 'grid', placeItems: 'center', background: '#f8fafc' }}>📄 {f.fieldName}</div>}
+                    <div style={{ fontSize: 11.5, marginTop: 3, textAlign: 'center' }}>{f.fieldName}</div>
+                  </a>
+                );
+              })}
+            </div>
+
+            {detail.reviewStatus === 'pending' ? (
+              <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
+                <button onClick={() => approve(detail._id)} style={{ ...primary, background: 'linear-gradient(90deg,#16a34a,#15803d)' }}>✓ Approve & email link</button>
+                <button onClick={() => reject(detail._id)} style={{ ...ghost, color: '#b91c1c', borderColor: '#fecaca' }}>✕ Reject</button>
+              </div>
+            ) : detail.reviewStatus === 'approved' ? (
+              <div style={{ marginTop: 18 }}><button onClick={() => approve(detail._id)} style={ghost}>Resend link</button> <span style={{ color: '#15803d', fontSize: 13, marginLeft: 8 }}>Approved — link emailed.</span></div>
+            ) : <div style={{ marginTop: 18, color: '#b91c1c', fontSize: 13 }}>Rejected{detail.rejectionReason ? `: ${detail.rejectionReason}` : ''}</div>}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const KV: React.FC<{ k: string; v: string }> = ({ k, v }) => (
+  <div><div style={{ fontSize: 11, color: '#94a3b8', fontWeight: 700, textTransform: 'capitalize' }}>{k.replace(/_/g, ' ')}</div><div style={{ fontSize: 13.5, color: '#0f172a' }}>{v}</div></div>
+);
+const ovl: React.CSSProperties = { position: 'fixed', inset: 0, background: 'rgba(15,23,42,.55)', zIndex: 2000, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '36px 16px', overflowY: 'auto' };
+const dmodal: React.CSSProperties = { background: '#fff', borderRadius: 16, width: '100%', maxWidth: 620, padding: 24, boxShadow: '0 24px 70px rgba(0,0,0,.3)' };
+const sec: React.CSSProperties = { fontSize: 12, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: .4, margin: '18px 0 8px' };
+const kvGrid: React.CSSProperties = { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 };
 
 const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: '16px 18px' };
 const primary: React.CSSProperties = { background: 'linear-gradient(90deg,#1d4ed8,#4f46e5)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' };

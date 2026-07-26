@@ -12,10 +12,10 @@ const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, uploadDir),
   filename: (_req, file, cb) => cb(null, `battle_${Date.now()}_${Math.random().toString(36).slice(2)}${path.extname(file.originalname)}`),
 });
-const upload = multer({ storage, limits: { fileSize: 8 * 1024 * 1024 } });
+const upload = multer({ storage, limits: { fileSize: 25 * 1024 * 1024 } });
 const multipart = (req: Request, res: Response, next: NextFunction) => {
   upload.any()(req, res, (err: any) => {
-    if (err instanceof MulterError) return res.status(413).json({ message: 'File too large (max 8MB).' });
+    if (err instanceof MulterError) return res.status(413).json({ message: 'File too large (max 25MB per file).' });
     if (err) return res.status(400).json({ message: 'Upload failed.' });
     next();
   });

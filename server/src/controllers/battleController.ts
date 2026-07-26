@@ -97,8 +97,11 @@ export const registerForBattle = async (req: Request, res: Response) => {
       return res.status(403).json({ message: 'Registration is closed for this battle.' });
     }
 
-    const { name, mobile, email, college, accessCode, doorCode, ...extra } = req.body || {};
-    if (!name || !mobile || !email) return res.status(400).json({ message: 'Name, mobile and email are required.' });
+    // Accept the website's field names; keep every other field in `extra` (dob, gender,
+    // qualification, branch, address, source, Q&A, consent…). `phone` is an alias for mobile.
+    const { name, email, college, city, accessCode, doorCode, mobile: mobileField, phone, whatsapp, ...extra } = req.body || {};
+    const mobileRaw = mobileField || phone;
+    if (!name || !mobileRaw || !email) return res.status(400).json({ message: 'Name, mobile and email are required.' });
 
     const door = doorOf(b, doorCode);
     if (door.accessCode && String(accessCode || '').trim() !== door.accessCode) {
@@ -113,7 +116,8 @@ export const registerForBattle = async (req: Request, res: Response) => {
     const uploadedFiles = files.map(f => ({ fieldName: f.fieldname, filePath: `/uploads/registrations/${f.filename}`, mimeType: f.mimetype, originalName: f.originalname }));
 
     const approvalMode = b.registrationMode === 'approval';
-    const mob = String(mobile).replace(/[^\d]/g, '');
+    const mob = String(mobileRaw).replace(/[^\d]/g, '');
+    const wa = String(whatsapp || mobileRaw).replace(/[^\d]/g, '');
     let reg = await BattleRegistration.findOne({ battleId: b._id, mobile: mob });
 
     // Already fully in? (approved in approval mode, or verified in auto mode)
@@ -126,8 +130,8 @@ export const registerForBattle = async (req: Request, res: Response) => {
     if (!reg) {
       reg = new BattleRegistration({
         tenantId, battleId: b._id, battleSlug: b.slug, doorCode: door.code, doorLabel: door.label,
-        name: String(name).trim(), mobile: mob, email: String(email).toLowerCase().trim(),
-        college: college || (door.type === 'college' ? door.label : ''), extra, uploadedFiles,
+        name: String(name).trim(), mobile: mob, whatsapp: wa, email: String(email).toLowerCase().trim(),
+        college: college || (door.type === 'college' ? door.label : ''), city, extra, uploadedFiles,
         examToken: crypto.randomBytes(16).toString('hex'),
         ipAddress: req.ip, userAgent: req.headers['user-agent'] || '',
       });
@@ -418,7 +422,7 @@ export const getRegistrations = async (req: Request, res: Response) => {
   if (req.query.status) q.status = req.query.status;
   if (req.query.review) q.reviewStatus = req.query.review;
   const rows = await BattleRegistration.find(q).sort({ reviewStatus: 1, createdAt: -1 })
-    .select('name mobile email college doorLabel verified reviewStatus rejectionReason uploadedFiles status score totalMarks percentage timeSpentSec rank submittedAt createdAt extra').limit(2000).lean();
+    .select('name mobile whatsapp email college city doorLabel verified reviewStatus rejectionReason uploadedFiles status score totalMarks percentage timeSpentSec rank submittedAt createdAt extra').limit(2000).lean();
   res.json({ registrations: rows });
 };
 

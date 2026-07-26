@@ -22,9 +22,11 @@ export interface IBattleRegistration extends Document {
 
   name: string;
   mobile: string;
+  whatsapp?: string;
   email: string;
   college?: string;
-  extra?: Record<string, any>;   // custom registration fields
+  city?: string;
+  extra?: Record<string, any>;   // all other custom registration fields (dob, gender, branch, Q&A…)
 
   verified: boolean;             // OTP passed (auto mode)
   reviewStatus: 'pending' | 'approved' | 'rejected';  // approval mode
@@ -65,8 +67,10 @@ const BattleRegistrationSchema = new Schema<IBattleRegistration>({
 
   name:   { type: String, required: true },
   mobile: { type: String, required: true },
+  whatsapp:{ type: String },
   email:  { type: String, required: true, lowercase: true, trim: true },
   college:{ type: String },
+  city:   { type: String },
   extra:  { type: Schema.Types.Mixed, default: {} },
 
   verified:  { type: Boolean, default: false },

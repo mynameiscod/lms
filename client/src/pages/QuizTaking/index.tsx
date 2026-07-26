@@ -24,7 +24,6 @@ const QuizTakingPage: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
   const [markedForReview, setMarkedForReview] = useState<Set<string>>(new Set());
-  const [paused, setPaused] = useState(false);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fullScreenRef = useRef<HTMLDivElement>(null);
   const preventCopyPasteRef = useRef((e: Event) => e.preventDefault());
@@ -385,8 +384,8 @@ const QuizTakingPage: React.FC = () => {
   }, [handleSubmitQuiz]);
 
   useEffect(() => {
-    // Only run timer when quiz has started (not on instruction page) and not paused
-    if (showInstructions || paused || timeLeft <= 0 || !quiz) return;
+    // Only run timer when quiz has started (not on instruction page)
+    if (showInstructions || timeLeft <= 0 || !quiz) return;
 
     timerRef.current = setInterval(() => {
       setTimeLeft(prev => {
@@ -401,7 +400,7 @@ const QuizTakingPage: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [showInstructions, paused, timeLeft, quiz, handleSubmitQuiz]);
+  }, [showInstructions, timeLeft, quiz, handleSubmitQuiz]);
 
   if (loading) return <Spinner fullScreen />;
   
@@ -600,17 +599,6 @@ const QuizTakingPage: React.FC = () => {
 
   return (
     <div ref={fullScreenRef} className={`qr-page${!quiz.canCopyPaste ? ' no-copy-paste' : ''}`}>
-      {/* Pause overlay */}
-      {paused && (
-        <div className="qr-pause-overlay">
-          <div>
-            <h2>⏸ Quiz Paused</h2>
-            <p>Your timer is paused. Resume when you're ready.</p>
-            <button onClick={() => setPaused(false)}>▶ Resume Quiz</button>
-          </div>
-        </div>
-      )}
-
       {mediaError && <Alert type="warning" message={mediaError} onClose={() => setMediaError('')} />}
 
       {/* Tab Switch Warning Modal */}
@@ -655,7 +643,6 @@ const QuizTakingPage: React.FC = () => {
             <div className="qr-timer-label">Time Left</div>
             <div className="qr-timer-val">🕐 {formatTime(timeLeft)}</div>
           </div>
-          <button className="qr-pause" onClick={() => setPaused(true)} title="Pause">⏸<span>Pause</span></button>
         </div>
       </div>
 

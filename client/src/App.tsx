@@ -66,6 +66,8 @@ import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
 import PassportPlaceholder from './pages/Passport/Placeholder';
 import MissionControl from './pages/Passport/MissionControl';
+import PassportAssessmentPage from './pages/Passport/Assessment';
+import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportJoin from './pages/Passport/Join';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
@@ -363,7 +365,7 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Pathways" step="Step 3" /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Assessment" step="Step 3" /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/missions" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Missions" step="Step 5" /></Layout></ProtectedRoute>
@@ -371,6 +373,9 @@ const AppRoutes: React.FC = () => {
       {/* Student Mission Control — deliberately NOT the LMS Layout (separate experience) */}
       <Route path="/passport" element={
         <ProtectedRoute><MissionControl /></ProtectedRoute>
+      } />
+      <Route path="/passport/assessment" element={
+        <ProtectedRoute><PassportAssessmentPage /></ProtectedRoute>
       } />
 
       <Route

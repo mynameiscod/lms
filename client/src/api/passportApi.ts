@@ -36,7 +36,47 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me`, { headers: auth() });
     return data;
   },
+
+  // Assessment — student
+  getAssessment: async (): Promise<{ title: string; questions: AssessQuestion[] }> => {
+    const { data } = await axios.get(`${BASE}/assessment`, { headers: auth() });
+    return data;
+  },
+  submitAssessment: async (answers: { questionId: string; chosen: number }[]): Promise<{ result: AssessResult }> => {
+    const { data } = await axios.post(`${BASE}/assessment/submit`, { answers }, { headers: auth() });
+    return data;
+  },
+  getResult: async (): Promise<{ result: AssessResult | null }> => {
+    const { data } = await axios.get(`${BASE}/assessment/result`, { headers: auth() });
+    return data;
+  },
+
+  // Assessment — admin
+  getAssessmentAdmin: async (): Promise<{ assessment: AssessmentBank }> => {
+    const { data } = await axios.get(`${BASE}/assessment/admin`, { headers: auth() });
+    return data;
+  },
+  saveAssessment: async (patch: { title?: string; questions?: AssessQuestionFull[] }): Promise<{ assessment: AssessmentBank }> => {
+    const { data } = await axios.put(`${BASE}/assessment/admin`, patch, { headers: auth() });
+    return data;
+  },
+  resetAssessment: async (): Promise<{ assessment: AssessmentBank }> => {
+    const { data } = await axios.post(`${BASE}/assessment/reset`, {}, { headers: auth() });
+    return data;
+  },
 };
+
+export interface AssessQuestion { id: string; category: string; text: string; options: string[]; }
+export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; }
+export interface AssessmentBank { _id?: string; tenantId: string; title: string; questions: AssessQuestionFull[]; }
+export interface CategoryScore { key: string; label: string; score: number; }
+export interface AssessResult {
+  careerScore: number; level: string; levelKey: string;
+  categoryScores: CategoryScore[]; strengths: string[]; weaknesses: string[];
+  pathway: string; pathwayLabel: string;
+  weekPreview: { day: number; title: string; detail: string }[];
+  takenAt?: string;
+}
 
 // ── Public funnel (no auth) ──
 const PUB = (process.env.REACT_APP_API_URL || '/api/v1') + '/public/passport';

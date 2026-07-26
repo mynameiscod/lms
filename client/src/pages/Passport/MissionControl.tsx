@@ -1,20 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import passportApi from '../../api/passportApi';
+import { useNavigate } from 'react-router-dom';
+import passportApi, { AssessResult } from '../../api/passportApi';
 
 /**
  * Mission Control — the Passport student's home ("Today"). Completely separate from
- * the normal LMS student dashboard. Step 1 = shell; the real missions/score/roadmap
- * land in later steps. If the student isn't an active Passport member, we prompt.
+ * the normal LMS student dashboard. Shows the Career Score once the assessment is taken;
+ * the "Start free assessment" CTA opens the deterministic Career Readiness Assessment.
+ * Personalized daily missions land in a later step.
  */
 const MissionControl: React.FC = () => {
+  const nav = useNavigate();
   const [status, setStatus] = useState<any>(null);
+  const [result, setResult] = useState<AssessResult | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => { (async () => { try { setStatus(await passportApi.me()); } catch { /* ignore */ } setLoading(false); })(); }, []);
+  useEffect(() => {
+    (async () => {
+      try {
+        const [s, r] = await Promise.all([passportApi.me().catch(() => null), passportApi.getResult().catch(() => ({ result: null }))]);
+        setStatus(s); setResult(r?.result || null);
+      } catch { /* ignore */ }
+      setLoading(false);
+    })();
+  }, []);
 
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading your Career Passport…</div>;
 
-  const active = status?.active;
+  const hasScore = !!result;
 
   return (
     <div style={{ minHeight: '100%', background: 'linear-gradient(180deg,#f5f3ff,#f6f7f9)', padding: '28px 24px' }}>
@@ -25,37 +37,44 @@ const MissionControl: React.FC = () => {
         </div>
         <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 22px' }}>Your CodeBegun Career Passport — one place that tells you what to do next.</p>
 
-        {!active ? (
+        {!hasScore ? (
           <div style={{ background: '#fff', border: '1px solid #e0e7ff', borderRadius: 16, padding: '28px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 40, marginBottom: 8 }}>🚀</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Activate your Career Passport</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Discover your Career Score</div>
             <p style={{ color: '#64748b', fontSize: 14, maxWidth: 480, margin: '8px auto 16px' }}>
               Take the free Career Readiness Assessment, get your Career Score, and unlock your personalized 90-day journey.
             </p>
-            <button style={{ background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 26px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
+            <button onClick={() => nav('/passport/assessment')} style={{ background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 26px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
               Start free assessment
             </button>
-            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>(Assessment & activation land in the next steps.)</div>
+            <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>Takes about 5 minutes · No payment needed.</div>
           </div>
         ) : (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: 14, marginBottom: 18 }}>
               {[
-                { label: 'Career Score', value: '—', hint: 'Take the assessment' },
-                { label: 'Level', value: '—', hint: '' },
-                { label: 'Streak', value: '0d', hint: '' },
-                { label: 'Today', value: '—', hint: 'Missions coming soon' },
+                { label: 'Career Score', value: String(result!.careerScore), hint: result!.level },
+                { label: 'Pathway', value: '', hint: result!.pathwayLabel, big: result!.pathwayLabel },
+                { label: 'Streak', value: '0d', hint: 'Start today' },
+                { label: 'Top strength', value: '', hint: '', big: result!.strengths[0] || '—' },
               ].map(c => (
                 <div key={c.label} style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: '16px 18px' }}>
                   <div style={{ fontSize: 12.5, color: '#64748b', fontWeight: 600 }}>{c.label}</div>
-                  <div style={{ fontSize: 26, fontWeight: 800, color: '#0f172a' }}>{c.value}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8' }}>{c.hint}</div>
+                  <div style={{ fontSize: (c as any).big ? 17 : 26, fontWeight: 800, color: '#0f172a', lineHeight: 1.2, marginTop: 2 }}>{(c as any).big || c.value}</div>
+                  {c.hint && <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{c.hint}</div>}
                 </div>
               ))}
             </div>
+
+            <div style={{ display: 'flex', gap: 12, marginBottom: 18, flexWrap: 'wrap' }}>
+              <button onClick={() => nav('/passport/assessment')} style={{ background: '#fff', border: '1px solid #e0e7ff', borderRadius: 10, padding: '10px 18px', fontWeight: 700, fontSize: 13.5, color: '#6650d8', cursor: 'pointer' }}>
+                📊 View my full result
+              </button>
+            </div>
+
             <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: '22px 24px' }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a', marginBottom: 6 }}>Today’s Missions</div>
-              <div style={{ color: '#94a3b8', fontSize: 14 }}>Your personalized daily missions appear here once the assessment + roadmap are live (next steps).</div>
+              <div style={{ color: '#94a3b8', fontSize: 14 }}>Your personalized daily missions unlock with membership — coming in the next step. Your assessment result is saved.</div>
             </div>
           </>
         )}

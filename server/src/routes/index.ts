@@ -38,6 +38,8 @@ import salesContentRoutes from './salesContentRoutes';
 import leadAIRoutes from './leadAIRoutes';
 import lostReasonRoutes from './lostReasonRoutes';
 import publicLeadRoutes from './publicLeadRoutes';
+import battleRoutes from './battleRoutes';
+import publicBattleRoutes from './publicBattleRoutes';
 import metaLeadAdsRoutes from './metaLeadAdsRoutes';
 import googleSheetRoutes from './googleSheetRoutes';
 import leadScoringRoutes from './leadScoringRoutes';
@@ -111,7 +113,9 @@ router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
+router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
 router.use('/public', publicLeadRoutes);
+router.use('/battles', battleRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);

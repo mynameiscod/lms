@@ -70,6 +70,12 @@ import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
 import PassportJoin from './pages/Passport/Join';
+import BattleList from './pages/Battles/PublicList';
+import BattleLanding from './pages/Battles/Landing';
+import BattleExam from './pages/Battles/Exam';
+import BattleLeaderboard from './pages/Battles/Leaderboard';
+import BattlesAdmin from './pages/BattlesAdmin';
+import BattleDetail from './pages/BattlesAdmin/BattleDetail';
 import ProjectBuilder from './pages/ProjectBuilder';
 import JobTracker from './pages/JobTracker';
 import AIMentor from './pages/AIMentor';
@@ -310,6 +316,11 @@ const AppRoutes: React.FC = () => {
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/passport/join" element={<PassportJoin />} />
       <Route path="/passport/card/:slug" element={<PassportCard />} />
+      {/* ── Public Tech Battles (no auth) ── */}
+      <Route path="/battles" element={<BattleList />} />
+      <Route path="/battles/exam/:token" element={<BattleExam />} />
+      <Route path="/battles/:slug/leaderboard" element={<BattleLeaderboard />} />
+      <Route path="/battles/:slug" element={<BattleLanding />} />
       <Route path="/create-organization" element={<CreateOrganizationPage />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
@@ -355,6 +366,14 @@ const AppRoutes: React.FC = () => {
           </ProtectedRoute>
         }
       />
+
+      {/* ── Tech Battles (admin) ── */}
+      <Route path="/admin/battles" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><BattlesAdmin /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/battles/:id" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><BattleDetail /></Layout></ProtectedRoute>
+      } />
 
       {/* ── Career Passport (separate product) ── */}
       <Route path="/admin/passport/config" element={

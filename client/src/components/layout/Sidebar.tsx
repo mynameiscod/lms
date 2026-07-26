@@ -185,6 +185,8 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'Recording Diagnostics', path: '/admin/recording-diagnostics', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-clapperboard', permissions: ['manage_tenant_users', 'manage_tenant', 'create_courses', 'edit_courses', 'manage_own_courses'] },
     { label: 'Tenant Management', path: '/super-admin/tenants', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-building', permissions: ['manage_tenants'] },
     { label: 'Platform Settings', path: '/admin/platform-settings', roles: ['SUPER_ADMIN'], icon: 'fa-solid fa-key', permissions: ['manage_tenants'] },
+    // ── Tech Battles (public competitions) ──
+    { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['create_quiz', 'edit_quiz', 'view_reports'] },
     // ── Career Passport (separate product) ──
     { label: 'Passport Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-sliders', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Passport Students', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['manage_tenant_settings', 'manage_tenant', 'manage_tenant_users'] },
@@ -398,6 +400,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'CRM & GROWTH',            labels: ['Leads', 'Placement Partnership'] },
     { title: 'COLLEGE',                 labels: ['College'] },
     { title: 'BILLING',                 labels: ['Fees'] },
+    { title: '⚔️ TECH BATTLES',         labels: ['Tech Battles'] },
     { title: '🎫 CAREER PASSPORT',      labels: ['Passport Config', 'Passport Students', 'Passport Pathways', 'Passport Assessment', 'Passport Missions'] },
     { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];

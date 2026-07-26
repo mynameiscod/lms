@@ -121,16 +121,38 @@ const BattleExam: React.FC = () => {
 
   if (phase === 'countdown') {
     const d = Math.max(0, startAt - now);
+    const pad = (n: number) => String(n).padStart(2, '0');
     const days = Math.floor(d / 86400000), h = Math.floor((d % 86400000) / 3600000), m = Math.floor((d % 3600000) / 60000), s = Math.floor((d % 60000) / 1000);
+    const title = exam?.title || 'CodeBegun Weekly Tech Battle';
+    // Highlight the last two words in gold, like the marketing hero.
+    const parts = title.trim().split(' ');
+    const head = parts.slice(0, Math.max(1, parts.length - 2)).join(' ');
+    const tail = parts.slice(Math.max(1, parts.length - 2)).join(' ');
+    const cells: [string, number][] = [['DAYS', days], ['HRS', h], ['MIN', m], ['SEC', s]];
     return (
-      <div className="bt-page"><div className="bt-hero"><div className="bt-hero-in" style={{ textAlign: 'center' }}>
-        <span className="bt-eyebrow">⏳ EXAM STARTS SOON</span>
-        <h1>{exam?.title || 'Tech Battle'}</h1>
-        <div className="bt-count" style={{ justifyContent: 'center' }}>
-          <div><b>{days}</b><span>DAYS</span></div><div><b>{h}</b><span>HRS</span></div><div><b>{m}</b><span>MIN</span></div><div><b>{s}</b><span>SEC</span></div>
+      <div className="cd-page">
+        <div className="cd-deco l">🏆</div>
+        <div className="cd-deco r">📋</div>
+        <div className="cd-in">
+          <div className="cd-eyebrow">⚔️ EXAM STARTS SOON ⚔️</div>
+          <h1 className="cd-title">{head} <span className="g">{tail}</span></h1>
+          <p className="cd-sub">Test your skills. Beat the clock. Climb the leaderboard.<br />One battle. <b>Endless opportunities.</b></p>
+          <div className="cd-timer">
+            {cells.map(([label, val], i) => (
+              <React.Fragment key={label}>
+                {i > 0 && <span className="cd-colon">:</span>}
+                <div className="cd-box"><div className="ic">{label === 'DAYS' ? '📅' : '⏱️'}</div><b>{pad(val)}</b><span>{label}</span></div>
+              </React.Fragment>
+            ))}
+          </div>
+          <div className="cd-pills">
+            <div className="cd-pill">🏆 Win Exciting Cash Prizes</div>
+            <div className="cd-pill">🥇 Get Recognized</div>
+            <div className="cd-pill">🚀 Boost Your Career</div>
+          </div>
+          <div className="cd-note"><span className="dot" /> Keep this page open — it unlocks automatically at the start time.</div>
         </div>
-        <p style={{ marginTop: 14 }}>Keep this page open — it unlocks automatically.</p>
-      </div></div></div>
+      </div>
     );
   }
 

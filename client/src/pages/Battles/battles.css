@@ -30,3 +30,32 @@
 .bt-lb .pos { font-weight: 800; color: #1d4ed8; }
 .bt-lb tr.me { background: #eff4ff; }
 .bt-medal { font-size: 16px; }
+
+/* ── Countdown hero (matches marketing site) ── */
+.cd-page { min-height: 100vh; background: radial-gradient(1200px 620px at 50% -12%, #1b3a86 0%, #0c1c56 42%, #060e30 100%); color: #fff; display: flex; align-items: center; justify-content: center; padding: 48px 20px; position: relative; overflow: hidden; }
+.cd-in { max-width: 860px; width: 100%; text-align: center; position: relative; z-index: 2; }
+.cd-eyebrow { color: #37d0c0; letter-spacing: 4px; font-size: 12.5px; font-weight: 800; }
+.cd-title { font-size: 46px; font-weight: 900; margin: 16px 0 12px; line-height: 1.08; letter-spacing: -.5px; }
+.cd-title .g { color: #f5b301; }
+.cd-sub { color: #aebbe0; font-size: 16px; line-height: 1.65; margin: 0 auto 32px; max-width: 520px; }
+.cd-sub b { color: #37d0c0; font-weight: 700; }
+.cd-timer { display: flex; gap: 12px; justify-content: center; align-items: center; margin-bottom: 28px; }
+.cd-box { background: rgba(255,255,255,.035); border: 1.5px solid rgba(55,208,192,.4); border-radius: 16px; width: 104px; padding: 20px 0; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+.cd-box .ic { color: #37d0c0; font-size: 15px; }
+.cd-box b { display: block; font-size: 46px; font-weight: 900; line-height: 1.05; font-variant-numeric: tabular-nums; }
+.cd-box span { font-size: 10.5px; letter-spacing: 2px; color: #8fa0cc; font-weight: 700; }
+.cd-colon { font-size: 30px; color: #3a4a7d; font-weight: 800; }
+.cd-pills { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-bottom: 24px; }
+.cd-pill { border: 1px solid rgba(255,255,255,.16); border-radius: 11px; padding: 10px 18px; font-size: 13.5px; font-weight: 600; color: #dbe6ff; background: rgba(255,255,255,.03); }
+.cd-note { color: #8fa0cc; font-size: 13px; display: inline-flex; align-items: center; gap: 8px; }
+.cd-note .dot { width: 6px; height: 6px; border-radius: 50%; background: #37d0c0; box-shadow: 0 0 0 4px rgba(55,208,192,.18); }
+.cd-deco { position: absolute; opacity: .10; z-index: 1; user-select: none; pointer-events: none; }
+.cd-deco.l { left: 3%; bottom: 8%; font-size: 190px; transform: rotate(-8deg); }
+.cd-deco.r { right: 3%; top: 16%; font-size: 160px; transform: rotate(8deg); }
+@media (max-width: 680px) {
+  .cd-title { font-size: 30px; }
+  .cd-box { width: 70px; padding: 14px 0; }
+  .cd-box b { font-size: 32px; }
+  .cd-colon { font-size: 22px; }
+  .cd-deco { display: none; }
+}

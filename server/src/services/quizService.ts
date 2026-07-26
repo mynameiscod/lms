@@ -8,6 +8,45 @@ import User from '../models/User';
 import { resolveForStudent } from './assessmentDeliveryService';
 import crypto from 'crypto';
 
+/**
+ * Resolve the correct option text(s) for an MCQ question, honoring BOTH ways a question
+ * can store correctness:
+ *   1. option-level `isCorrect: true` flags (how the builder / question bank stores it), and
+ *   2. a `correctAnswers` array of option indices OR option text (legacy / CSV imports).
+ * Grading previously used only (2), so questions that carried correctness ONLY as (1) were
+ * marked wrong even when the student picked the right option. Returns trimmed, sorted texts.
+ */
+export function resolveCorrectAnswerTexts(question: any): string[] {
+  const opts: any[] = Array.isArray(question?.options) ? question.options : [];
+
+  // 1. Option-level isCorrect flags.
+  let texts = opts
+    .filter((o: any) => o && typeof o === 'object' && o.isCorrect)
+    .map((o: any) => String(o.text || '').trim())
+    .filter((t: string) => t !== '');
+
+  // 2. Fall back to the correctAnswers array (index or text).
+  if (texts.length === 0 && Array.isArray(question?.correctAnswers) && question.correctAnswers.length > 0) {
+    texts = question.correctAnswers
+      .map((ans: any) => {
+        if (ans === null || ans === undefined || ans === '') return '';
+        const ansStr = String(ans).trim();
+        if (!isNaN(Number(ansStr))) {
+          const index = parseInt(ansStr);
+          if (index >= 0 && opts.length > index) {
+            const option = opts[index];
+            return String((typeof option === 'string' ? option : (option?.text || '')) || '').trim();
+          }
+          return '';
+        }
+        return ansStr; // already option text
+      })
+      .filter((a: string) => a !== '');
+  }
+
+  return texts.sort();
+}
+
 export class QuizService {
   // Create a new quiz
   async createQuiz(quizData: Partial<IQuiz>, tenantId: string): Promise<IQuiz> {
@@ -357,33 +396,10 @@ export class QuizService {
           .filter(o => o !== '')
           .sort();
         
-        // Convert correctAnswers indices/text to actual option text
-        let correctAnswerTexts: string[] = [];
-        if (question.correctAnswers && question.correctAnswers.length > 0) {
-          correctAnswerTexts = question.correctAnswers
-            .map(ans => {
-              if (!ans) return '';
-              
-              // If it's a number or numeric string (index), convert to option text
-              const ansStr = String(ans).trim();
-              if (!isNaN(Number(ansStr))) {
-                const index = parseInt(ansStr);
-                // Access the option directly from the array
-                if (Array.isArray(question.options) && question.options.length > index && index >= 0) {
-                  const option = question.options[index];
-                  // Option could be a string or an object with text property
-                  const optionText = typeof option === 'string' ? option : (option?.text || '');
-                  return String(optionText || '').trim();
-                }
-                return '';
-              }
-              // Otherwise it's already the option text
-              return ansStr;
-            })
-            .filter(a => a !== '')
-            .sort();
-        }
-        
+        // Resolve the correct option text(s) — honoring BOTH representations a question
+        // may use (option-level isCorrect flags OR a correctAnswers array of indices/text).
+        const correctAnswerTexts = resolveCorrectAnswerTexts(question);
+
         // Only mark as correct if both have values and they match
         // Empty arrays should NOT match (student didn't select anything or system couldn't resolve correct answer)
         isCorrect = normalizedSelected.length > 0 && 
@@ -463,6 +479,78 @@ export class QuizService {
     attempt.shareToken = crypto.randomUUID();
 
     return attempt.save();
+  }
+
+  /**
+   * Re-grade every submitted attempt of a quiz using the current (fixed) MCQ grading —
+   * repairs attempts that were stored wrong when a question's correctness was only on
+   * option-level isCorrect flags. Recomputes each MCQ submission's isCorrect/marksAwarded
+   * and the attempt's obtainedMarks / correct count / percentage / passed. Safe & idempotent.
+   */
+  async regradeQuiz(quizId: string): Promise<{ attempts: number; submissionsUpdated: number; attemptsChanged: number }> {
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) throw new Error('Quiz not found');
+
+    const attempts = await QuizAttempt.find({ quizId, status: 'submitted' });
+    let submissionsUpdated = 0;
+    let attemptsChanged = 0;
+
+    for (const attempt of attempts) {
+      const subs = await QuizSubmission.find({ quizAttemptId: String(attempt._id) });
+      if (!subs.length) continue;
+
+      const qDocs = await Question.find({ _id: { $in: subs.map(s => s.questionId) } });
+      const qById = new Map<string, any>(qDocs.map((q: any) => [String(q._id), q]));
+
+      let obtainedMarks = 0;
+      let correctCount = 0;
+      let changed = false;
+
+      for (const sub of subs) {
+        const question = qById.get(String(sub.questionId));
+        if (!question) { obtainedMarks += sub.marksAwarded || 0; continue; }
+
+        if (question.type === 'mcq_single' || question.type === 'mcq_multiple') {
+          const selected = (Array.isArray(sub.selectedOptions) ? sub.selectedOptions : [])
+            .map((o: any) => String(o || '').trim()).filter((o: string) => o !== '').sort();
+          const correctTexts = resolveCorrectAnswerTexts(question);
+          const isCorrect = selected.length > 0 && correctTexts.length > 0 &&
+            JSON.stringify(selected) === JSON.stringify(correctTexts);
+          let marks = 0;
+          if (isCorrect) marks = question.marks;
+          else if (selected.length > 0 && quiz.negativeMarking && quiz.negativeMarkingValue) marks = -(quiz.negativeMarkingValue);
+
+          if (sub.isCorrect !== isCorrect || sub.marksAwarded !== marks) {
+            sub.isCorrect = isCorrect;
+            sub.marksAwarded = marks;
+            await sub.save();
+            submissionsUpdated++;
+            changed = true;
+          }
+          if (isCorrect) correctCount++;
+          obtainedMarks += marks;
+        } else {
+          // Non-MCQ (short answer / coding) grades are left untouched.
+          obtainedMarks += sub.marksAwarded || 0;
+          if (sub.isCorrect) correctCount++;
+        }
+      }
+
+      const percentage = quiz.totalMarks ? (obtainedMarks / quiz.totalMarks) * 100 : 0;
+      const passed = quiz.passingMarks ? obtainedMarks >= quiz.passingMarks
+        : (quiz.passPercentage ? percentage >= quiz.passPercentage : false);
+
+      if (attempt.obtainedMarks !== obtainedMarks || attempt.percentage !== percentage || attempt.passed !== passed) {
+        attempt.obtainedMarks = obtainedMarks;
+        attempt.percentage = percentage;
+        attempt.passed = passed;
+        await attempt.save();
+        changed = true;
+      }
+      if (changed) attemptsChanged++;
+    }
+
+    return { attempts: attempts.length, submissionsUpdated, attemptsChanged };
   }
 
   // Get quiz results

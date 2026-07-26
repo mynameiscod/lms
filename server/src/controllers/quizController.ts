@@ -480,6 +480,17 @@ export const getAttemptResultsForAdmin = async (req: Request, res: Response) => 
   }
 };
 
+/** Admin/instructor: re-grade all submitted attempts of a quiz with the current MCQ logic. */
+export const regradeQuiz = async (req: Request, res: Response) => {
+  try {
+    const { quizId } = req.params;
+    const result = await quizService.regradeQuiz(quizId);
+    res.json({ success: true, message: `Re-graded ${result.attempts} attempt(s); ${result.attemptsChanged} changed, ${result.submissionsUpdated} answers corrected.`, ...result });
+  } catch (error: any) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getLatestStudentAttempt = async (req: Request, res: Response) => {
   try {
     const { quizId } = req.params;

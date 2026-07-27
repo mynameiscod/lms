@@ -37,6 +37,10 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/me`, { headers: auth() });
     return data;
   },
+  setPassword: async (password: string): Promise<{ success: boolean }> => {
+    const { data } = await axios.post(`${BASE}/set-password`, { password }, { headers: auth() });
+    return data;
+  },
 
   // Assessment — student
   getAssessment: async (): Promise<{ title: string; questions: AssessQuestion[] }> => {
@@ -159,6 +163,15 @@ export const passportPublicApi = {
   resend: async (token: string) => {
     const { data } = await axios.post(`${PUB}/resend`, { token });
     return data as { success: boolean; otp: any };
+  },
+  // Returning-member login (password — free) and OTP-login start (then reuse verify()).
+  loginPassword: async (tenant: string, identifier: string, password: string) => {
+    const { data } = await axios.post(`${PUB}/login-password`, { tenant, identifier, password });
+    return data as { success: boolean; token: string; tenantId: string; user: any };
+  },
+  loginOtp: async (tenant: string, mobile: string) => {
+    const { data } = await axios.post(`${PUB}/login-otp`, { tenant, mobile });
+    return data as { success: boolean; token: string; otp: { sent: boolean; channel: string; devCode?: string; throttledSeconds?: number } };
   },
   getCard: async (slug: string) => {
     const { data } = await axios.get(`${PUB}/card/${encodeURIComponent(slug)}`);

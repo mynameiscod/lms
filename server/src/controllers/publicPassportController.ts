@@ -128,7 +128,19 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
-/** POST /public/passport/verify — verify OTP and issue a login token. */
+/** Issue the standard Passport login payload (JWT + user) for a resolved user. */
+function issueLogin(res: Response, user: any) {
+  const secret = (process.env.JWT_SECRET || 'secret-key') as string;
+  const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
+  return res.json({
+    success: true,
+    token: jwtToken,
+    tenantId: String(user.tenantId),
+    user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
+  });
+}
+
+/** POST /public/passport/verify — verify OTP and issue a login token (signup + OTP login). */
 export const verify = async (req: Request, res: Response) => {
   try {
     const { token, code } = req.body || {};
@@ -139,17 +151,53 @@ export const verify = async (req: Request, res: Response) => {
     }
     const user: any = await User.findById(token);
     if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
-
-    const secret = (process.env.JWT_SECRET || 'secret-key') as string;
-    const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
-    res.json({
-      success: true,
-      token: jwtToken,
-      tenantId: String(user.tenantId),
-      user: { id: String(user._id), email: user.email, firstName: user.firstName, lastName: user.lastName, role: user.role },
-    });
+    return issueLogin(res, user);
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Verification failed' });
+  }
+};
+
+/** POST /public/passport/login-password — returning member logs in with email/mobile + password. */
+export const loginPassword = async (req: Request, res: Response) => {
+  try {
+    const { tenant, identifier, password } = req.body || {};
+    const tenantId = await resolveTenantId(tenant);
+    if (!tenantId) return res.status(400).json({ success: false, message: 'Unknown tenant' });
+    if (!identifier || !password) return res.status(400).json({ success: false, message: 'Enter your email/mobile and password.' });
+
+    const id = String(identifier).trim();
+    const query: any = id.includes('@')
+      ? { tenantId, email: id.toLowerCase() }
+      : { tenantId, phone: normalizePhone(id) };
+    const user: any = await User.findOne(query);
+    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No Career Passport found for that email/mobile.' });
+    if (!user.passport.passwordSet) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
+
+    const ok = await user.comparePassword(String(password));
+    if (!ok) return res.status(401).json({ success: false, message: 'Incorrect password.' });
+    return issueLogin(res, user);
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message || 'Login failed' });
+  }
+};
+
+/** POST /public/passport/login-otp — returning member requests a WhatsApp OTP by mobile. */
+export const loginOtpStart = async (req: Request, res: Response) => {
+  try {
+    const { tenant, mobile } = req.body || {};
+    const tenantId = await resolveTenantId(tenant);
+    if (!tenantId) return res.status(400).json({ success: false, message: 'Unknown tenant' });
+    const phone = normalizePhone(mobile);
+    if (!phone) return res.status(400).json({ success: false, message: 'Enter your registered mobile number.' });
+
+    const user: any = await User.findOne({ tenantId, phone });
+    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No Career Passport found for that mobile number.' });
+
+    const otp = await sendOtp(tenantId, String(user._id), phone);
+    // token = userId so the existing /verify endpoint completes the OTP login.
+    res.json({ success: true, token: String(user._id), otp: { sent: otp.sent, channel: otp.channel, devCode: otp.devCode, throttledSeconds: otp.throttledSeconds } });
+  } catch (e: any) {
+    res.status(500).json({ success: false, message: e.message || 'Could not send code' });
   }
 };
 

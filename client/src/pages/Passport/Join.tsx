@@ -205,7 +205,7 @@ const PassportJoin: React.FC = () => {
                 {msg && <div className="cp-err">{msg}</div>}
                 <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My Career Passport →'}</button>
                 <div className="cp-secure">🛡️ Your data is safe and secure with us</div>
-                <div className="cp-login">Already have an account? <a href="/login">Login here</a></div>
+                <div className="cp-login">Already have an account? <a href={`/passport/login?tenant=${tenant}`}>Login here</a></div>
               </>
             )}
           </div>

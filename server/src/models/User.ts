@@ -31,6 +31,7 @@ export interface IUser extends Document {
     careerScore?: number;      // cached from latest assessment (for card/Mission Control)
     level?: string;
     shareSlug?: string;        // public shareable Career Passport card slug
+    passwordSet?: boolean;     // member chose their own password (vs the signup placeholder)
   };
   phone?: string;
   avatar?: string;
@@ -139,6 +140,7 @@ const UserSchema: Schema = new Schema(
       careerScore: { type: Number },
       level:       { type: String },
       shareSlug:   { type: String, index: true },
+      passwordSet: { type: Boolean, default: false },
     },
     phone: {
       type: String,

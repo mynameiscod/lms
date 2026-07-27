@@ -70,6 +70,7 @@ import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
 import PassportJoin from './pages/Passport/Join';
+import PassportLogin from './pages/Passport/Login';
 import BattleList from './pages/Battles/PublicList';
 import BattleLanding from './pages/Battles/Landing';
 import BattleExam from './pages/Battles/Exam';
@@ -315,6 +316,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/passport/join" element={<PassportJoin />} />
+      <Route path="/passport/login" element={<PassportLogin />} />
       <Route path="/passport/card/:slug" element={<PassportCard />} />
       {/* ── Public Tech Battles (no auth) ── */}
       <Route path="/battles" element={<BattleList />} />

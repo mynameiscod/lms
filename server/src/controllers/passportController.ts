@@ -65,7 +65,7 @@ export const getMyStatus = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const cfg = await PassportConfig.findOne({ tenantId }).lean();
-    const user = await User.findById(userIdOf(req)).select('passport firstName lastName').lean() as any;
+    const user = await User.findById(userIdOf(req)).select('passport firstName lastName email').lean() as any;
     const active = membershipActive(user?.passport);
     res.json({
       enabled: passportEnabled(tenantId, cfg),
@@ -79,9 +79,28 @@ export const getMyStatus = async (req: Request, res: Response) => {
       paymentAvailable: razorpay.isConfigured(tenantId),
       expiresAt: user?.passport?.expiresAt || null,
       shareSlug: user?.passport?.shareSlug || null,
+      passwordSet: !!user?.passport?.passwordSet,
+      email: user?.email || null,
     });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load status' });
+  }
+};
+
+/** Member sets/changes their own password so they can log in without WhatsApp OTP next time. */
+export const setPassword = async (req: Request, res: Response) => {
+  try {
+    const password = String((req.body || {}).password || '');
+    if (password.length < 6) return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    const user: any = await User.findById(userIdOf(req));
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+    user.password = password; // hashed by the pre-save hook
+    if (!user.passport) user.passport = {} as any;
+    user.passport.passwordSet = true;
+    await user.save();
+    res.json({ success: true });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Failed to set password' });
   }
 };
 

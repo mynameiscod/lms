@@ -16,6 +16,7 @@ router.post('/convert',  ctrl.convertStudent);
 
 // Student
 router.get('/me',        ctrl.getMyStatus);
+router.post('/set-password', ctrl.setPassword);
 
 // Membership activation (₹499, reuses the Razorpay rail)
 router.post('/membership/order',  ctrl.createMembershipOrder);

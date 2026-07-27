@@ -78,7 +78,16 @@ const PassportJoin: React.FC = () => {
       const r = await passportPublicApi.verify(token, code);
       localStorage.setItem('token', r.token);
       localStorage.setItem('tenantId', r.tenantId);
-      // Full page load so the auth context re-initializes from the new token — a
+      // AuthContext only hydrates `user` when BOTH `user` and `token` are in
+      // localStorage — persist the user (mapped to `_id`/`tenantId` the way the
+      // context expects) or isAuthenticated stays false and /passport bounces to /login.
+      if (r.user) {
+        localStorage.setItem('user', JSON.stringify({
+          _id: r.user.id, tenantId: r.tenantId,
+          email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
+        }));
+      }
+      // Full page load so the auth context re-initializes from the stored token/user — a
       // client-side nav would hit the protected route before the context knows we're
       // logged in and bounce to /login.
       window.location.href = '/passport';

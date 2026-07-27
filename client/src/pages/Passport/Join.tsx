@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
+import PublicChrome from '../../components/PublicChrome';
+import './careerpilot.css';
 
-const wrap: React.CSSProperties = { minHeight: '100vh', background: 'linear-gradient(135deg,#6650d8,#14a89c)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 };
-const card: React.CSSProperties = { background: '#fff', borderRadius: 18, boxShadow: '0 24px 60px rgba(0,0,0,.25)', width: '100%', maxWidth: 460, padding: '30px 32px' };
-const label: React.CSSProperties = { fontSize: 12.5, fontWeight: 700, color: '#475569', display: 'block', marginBottom: 5 };
-const input: React.CSSProperties = { width: '100%', padding: '11px 12px', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 14, marginBottom: 14 };
-const btn: React.CSSProperties = { width: '100%', background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 11, padding: '13px', fontWeight: 800, fontSize: 15, cursor: 'pointer' };
+const FEATURES: [string, string][] = [
+  ['🎯', 'Career Readiness Assessment'], ['🗺️', 'Personalized Roadmap'], ['📋', 'Daily Missions & Challenges'],
+  ['🤖', 'AI Mock Interviews'], ['📄', 'Resume Builder'], ['🎫', 'Career Passport'],
+];
+const STATS: [string, string][] = [['12,000+', 'Students'], ['500+', 'Colleges'], ['98%', 'Satisfaction'], ['45', 'Career Paths']];
+const ICON: Record<string, string> = { name: '👤', mobile: '📞', email: '✉️' };
 
 const PassportJoin: React.FC = () => {
   const nav = useNavigate();
@@ -63,58 +66,95 @@ const PassportJoin: React.FC = () => {
     try { const r = await passportPublicApi.resend(token); setDevCode(r.otp?.devCode || ''); setMsg(r.otp?.sent ? 'New code sent.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Code resent.')); } catch { /* ignore */ }
   };
 
-  return (
-    <div style={wrap}>
-      <div style={card}>
-        <div style={{ textAlign: 'center', marginBottom: 18 }}>
-          <div style={{ fontSize: 30 }}>🎫</div>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: '4px 0 2px' }}>CodeBegun Career Passport</h1>
-          <p style={{ fontSize: 13.5, color: '#64748b', margin: 0 }}>Your college-to-career system. Start with a free Career Readiness check.</p>
+  // OTP verification step
+  if (enabled && step === 'otp') return (
+    <PublicChrome>
+      <div className="cp-page"><div style={{ maxWidth: 460, margin: '0 auto', background: '#fff', borderRadius: 18, boxShadow: '0 20px 50px rgba(15,23,42,.1)', padding: 30, textAlign: 'center' }}>
+        <div className="cp-ric">🔐</div>
+        <div className="cp-ftitle">Verify your number</div>
+        <div className="cp-fsub">{msg || 'Enter the code we sent you.'}</div>
+        <input className="cp-otp" value={code} maxLength={6} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" inputMode="numeric" />
+        {devCode && <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 8 }}>Dev code: <b>{devCode}</b></div>}
+        <button className="cp-submit" disabled={busy || code.length < 4} onClick={verify}>{busy ? 'Verifying…' : 'Verify & continue →'}</button>
+        <div style={{ marginTop: 14, fontSize: 13 }}>
+          <button onClick={resend} style={{ background: 'none', border: 'none', color: '#4f46e5', fontWeight: 700, cursor: 'pointer' }}>Resend code</button>
+          <span style={{ color: '#cbd5e1' }}> · </span>
+          <button onClick={() => { setStep('form'); setMsg(''); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>Edit details</button>
         </div>
+      </div></div>
+    </PublicChrome>
+  );
 
-        {!enabled ? (
-          <div style={{ textAlign: 'center', color: '#dc2626', fontSize: 14, padding: 20 }}>{msg || 'Not available yet.'}</div>
-        ) : step === 'form' ? (
-          <>
-            <span style={label}>Full Name *</span>
-            <input style={input} value={form.name || ''} onChange={e => set('name', e.target.value)} placeholder="Your name" />
-            <span style={label}>Mobile *</span>
-            <input style={input} value={form.mobile || ''} onChange={e => set('mobile', e.target.value)} placeholder="10-digit mobile" inputMode="numeric" />
-            <span style={label}>Email *</span>
-            <input style={input} value={form.email || ''} onChange={e => set('email', e.target.value)} placeholder="you@email.com" type="email" />
-            {extra.map(f => (
-              <div key={f.key}>
-                <span style={label}>{f.label}{f.required ? ' *' : ''}</span>
-                {f.type === 'select' ? (
-                  <select style={input} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}>
-                    <option value="">Select…</option>
-                    {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
-                  </select>
-                ) : (
-                  <input style={input} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} type={f.type === 'number' ? 'number' : 'text'} />
-                )}
-              </div>
-            ))}
-            {msg && <div style={{ fontSize: 13, color: '#dc2626', marginBottom: 10 }}>{msg}</div>}
-            <button style={{ ...btn, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={submit}>{busy ? 'Please wait…' : 'Create my Career Passport'}</button>
-            <p style={{ fontSize: 12, color: '#94a3b8', textAlign: 'center', marginTop: 12 }}>Free to start · Membership ₹{priceInr}/year unlocks the full journey.</p>
-          </>
-        ) : (
-          <>
-            <p style={{ fontSize: 13.5, color: '#475569', textAlign: 'center', marginBottom: 14 }}>{msg || 'Enter the verification code.'}</p>
-            <span style={label}>Verification code</span>
-            <input style={{ ...input, textAlign: 'center', letterSpacing: 6, fontSize: 20, fontWeight: 700 }} value={code} onChange={e => setCode(e.target.value)} placeholder="••••" inputMode="numeric" />
-            {devCode && <div style={{ fontSize: 12, color: '#7c3aed', textAlign: 'center', marginBottom: 10 }}>Dev code: <b>{devCode}</b></div>}
-            <button style={{ ...btn, opacity: busy ? 0.6 : 1 }} disabled={busy} onClick={verify}>{busy ? 'Verifying…' : 'Verify & continue'}</button>
-            <div style={{ textAlign: 'center', marginTop: 12 }}>
-              <button onClick={resend} style={{ background: 'none', border: 'none', color: '#4f46e5', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>Resend code</button>
-              <span style={{ color: '#cbd5e1' }}> · </span>
-              <button onClick={() => { setStep('form'); setMsg(''); }} style={{ background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer' }}>Edit details</button>
+  return (
+    <PublicChrome>
+      <div className="cp-page">
+        <div className="cp-card">
+          {/* Left hero */}
+          <div className="cp-left">
+            <div className="cp-brand">
+              <span className="mark">🧭</span>
+              <div><b>CareerPilot</b><small>Powered by <a href="https://www.codebegun.com">CodeBegun</a></small></div>
             </div>
-          </>
-        )}
+            <span className="cp-badge">🎁 Founding Membership at <b>₹{priceInr} for 12 Months</b></span>
+            <h1 className="cp-h1">Your Personal Guide from College to <span className="t">Career Success</span></h1>
+            <p className="cp-sub">Assess your skills, get a personalized roadmap, complete daily missions and build your Career Passport.</p>
+            <div className="cp-feats">
+              {FEATURES.map(([ic, label]) => (
+                <div className="cp-feat" key={label}><div className="fi">{ic}</div><b>{label}</b></div>
+              ))}
+            </div>
+            <div className="cp-testi">
+              <div className="av">🧑‍🎓</div>
+              <div>
+                <div className="stars">★★★★★</div>
+                <q>CareerPilot showed me what to do every day. From confused to placement-ready in 90 days!</q>
+                <div className="nm">Rahul Verma</div><div className="rl">B.Tech CSE, 4th Year</div>
+              </div>
+            </div>
+            <div className="cp-stats">
+              {STATS.map(([b, s]) => <div className="st" key={s}><b>{b}</b><span>{s}</span></div>)}
+            </div>
+          </div>
+
+          {/* Right form */}
+          <div className="cp-right">
+            <div className="cp-ric">🪪</div>
+            <div className="cp-ftitle">Create Your Career Passport</div>
+            <div className="cp-fsub">Start your career transformation journey today</div>
+
+            {!enabled ? (
+              <div className="cp-err" style={{ textAlign: 'center' }}>{msg || 'Career Passport is not available right now.'}</div>
+            ) : (
+              <>
+                <label className="cp-label">Full Name *</label>
+                <div className="cp-field"><input className="cp-input" value={form.name || ''} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /><span className="ic">{ICON.name}</span></div>
+                <label className="cp-label">Mobile Number *</label>
+                <div className="cp-field"><input className="cp-input" value={form.mobile || ''} onChange={e => set('mobile', e.target.value)} placeholder="Enter 10-digit mobile number" inputMode="numeric" /><span className="ic">{ICON.mobile}</span></div>
+                <label className="cp-label">Email Address *</label>
+                <div className="cp-field"><input className="cp-input" type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} placeholder="Enter your email address" /><span className="ic">{ICON.email}</span></div>
+
+                {extra.map(f => (
+                  <div key={f.key}>
+                    <label className="cp-label">{f.label}{f.required ? ' *' : ''}</label>
+                    <div className="cp-field">
+                      {f.type === 'select'
+                        ? <select className="cp-select" value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}><option value="">Select…</option>{(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}</select>
+                        : <input className="cp-input" value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} type={f.type === 'number' ? 'number' : 'text'} placeholder={`Enter ${f.label.toLowerCase()}`} />}
+                      <span className="ic">▾</span>
+                    </div>
+                  </div>
+                ))}
+
+                {msg && <div className="cp-err">{msg}</div>}
+                <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My Career Passport →'}</button>
+                <div className="cp-secure">🛡️ Your data is safe and secure with us</div>
+                <div className="cp-login">Already have an account? <a href="/login">Login here</a></div>
+              </>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
+    </PublicChrome>
   );
 };
 

@@ -1,0 +1,56 @@
+/* CareerPilot (Career Passport) public join landing — two-column hero + form. */
+.cp-page { padding: 30px 18px 50px; }
+.cp-card { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 24px; box-shadow: 0 24px 60px rgba(15,23,42,.12); overflow: hidden; display: grid; grid-template-columns: 1.35fr 1fr; }
+/* left hero */
+.cp-left { background: radial-gradient(900px 500px at 15% 0%, #3a2a8f 0%, #241a63 45%, #171048 100%); color: #fff; padding: 34px 36px; position: relative; }
+.cp-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+.cp-brand .mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; font-size: 16px; }
+.cp-brand b { font-size: 17px; font-weight: 800; }
+.cp-brand small { display: block; font-size: 10.5px; color: #b7b0e6; }
+.cp-brand small a { color: #37d0c0; text-decoration: none; }
+.cp-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 20px; padding: 7px 14px; font-size: 12.5px; font-weight: 700; }
+.cp-badge b { color: #f5b301; }
+.cp-h1 { font-size: 38px; font-weight: 900; line-height: 1.12; margin: 16px 0 10px; }
+.cp-h1 .t { color: #37d0c0; }
+.cp-sub { color: #c3bdec; font-size: 14.5px; line-height: 1.6; max-width: 400px; }
+.cp-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 12px; margin: 22px 0; }
+.cp-feat { }
+.cp-feat .fi { width: 34px; height: 34px; border-radius: 9px; background: rgba(124,108,240,.25); display: grid; place-items: center; font-size: 16px; margin-bottom: 7px; }
+.cp-feat b { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: block; }
+.cp-testi { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 15px; display: flex; gap: 12px; margin-top: 8px; }
+.cp-testi .av { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+.cp-testi .stars { color: #f5b301; font-size: 13px; }
+.cp-testi q { display: block; font-size: 13px; color: #e5e2f7; margin: 4px 0 6px; line-height: 1.5; }
+.cp-testi .nm { font-size: 12.5px; font-weight: 700; color: #37d0c0; }
+.cp-testi .rl { font-size: 11px; color: #a99fe0; }
+.cp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; margin-top: 18px; }
+.cp-stats .st b { font-size: 18px; font-weight: 800; display: block; }
+.cp-stats .st span { font-size: 11px; color: #b7b0e6; }
+/* right form */
+.cp-right { padding: 34px 34px; }
+.cp-ric { width: 52px; height: 52px; border-radius: 14px; background: #f2f0ff; display: grid; place-items: center; font-size: 24px; margin: 0 auto 10px; }
+.cp-ftitle { font-size: 23px; font-weight: 800; color: #0f172a; text-align: center; }
+.cp-fsub { font-size: 13.5px; color: #64748b; text-align: center; margin: 4px 0 20px; }
+.cp-label { font-size: 12.5px; font-weight: 700; color: #334155; display: block; margin: 12px 0 5px; }
+.cp-field { position: relative; }
+.cp-field .ic { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; pointer-events: none; }
+.cp-input, .cp-select { width: 100%; padding: 12px 40px 12px 13px; border: 1.5px solid #e2e8f0; border-radius: 11px; font-size: 14px; color: #0f172a; background: #fff; }
+.cp-input:focus, .cp-select:focus { outline: none; border-color: #7c6cf0; }
+.cp-select { appearance: none; }
+.cp-submit { width: 100%; margin-top: 20px; background: linear-gradient(90deg,#6650d8,#4f46e5); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cp-submit:disabled { opacity: .6; cursor: default; }
+.cp-secure { text-align: center; font-size: 12px; color: #16a34a; margin-top: 12px; }
+.cp-login { text-align: center; font-size: 13px; color: #64748b; margin-top: 16px; border-top: 1px solid #eef1f6; padding-top: 14px; }
+.cp-login a { color: #4f46e5; font-weight: 700; text-decoration: none; }
+.cp-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 9px; padding: 9px 12px; font-size: 13px; margin-top: 12px; }
+.cp-otp { width: 100%; text-align: center; letter-spacing: 8px; font-size: 22px; font-weight: 800; padding: 13px; border: 1.5px solid #e2e8f0; border-radius: 11px; }
+@media (max-width: 940px) {
+  .cp-card { grid-template-columns: 1fr; }
+  .cp-h1 { font-size: 30px; }
+  .cp-feats { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 560px) {
+  .cp-feats { grid-template-columns: repeat(2, 1fr); }
+  .cp-stats { grid-template-columns: repeat(2, 1fr); }
+  .cp-left, .cp-right { padding: 24px 20px; }
+}

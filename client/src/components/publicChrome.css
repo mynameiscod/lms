@@ -1,0 +1,50 @@
+/* Shared public header + footer for ALL outside/public pages (matches codebegun.com). */
+.pc-shell { min-height: 100vh; display: flex; flex-direction: column; background: #f4f6fb; }
+.pc-shell * { box-sizing: border-box; }
+.pc-main { flex: 1; }
+
+/* Announcement bar */
+.pc-annc { background: #0b1f56; color: #dbe6ff; font-size: 13.5px; text-align: center; padding: 9px 40px; position: relative; }
+.pc-annc b { color: #37d0c0; }
+.pc-annc .apply { display: inline-block; background: #37d0c0; color: #06283d; font-weight: 800; border-radius: 20px; padding: 3px 14px; margin-left: 8px; text-decoration: none; font-size: 12.5px; }
+.pc-annc .x { position: absolute; right: 16px; top: 50%; transform: translateY(-50%); background: none; border: none; color: #9fb3e6; font-size: 16px; cursor: pointer; }
+
+/* Header */
+.pc-header { background: #fff; border-bottom: 1px solid #e9edf4; position: sticky; top: 0; z-index: 60; }
+.pc-header-in { max-width: 1240px; margin: 0 auto; padding: 12px 22px; display: flex; align-items: center; gap: 24px; }
+.pc-logo img { height: 40px; width: auto; display: block; }
+.pc-nav { display: flex; gap: 24px; margin-left: 6px; }
+.pc-nav a { color: #0b1f56; font-size: 14.5px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.pc-nav a:hover { color: #1d4ed8; }
+.pc-nav a .caret { font-size: 9px; color: #94a3b8; margin-left: 3px; }
+.pc-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+.pc-theme { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #475569; }
+.pc-apply { background: #0b1f56; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 10px; white-space: nowrap; }
+.pc-apply:hover { background: #12276e; }
+
+/* Footer */
+.pc-footer { background: #0a1730; color: #cdd6ea; }
+.pc-footer-in { max-width: 1240px; margin: 0 auto; padding: 46px 22px 24px; display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr 1.3fr; gap: 30px; }
+.pc-fbrand .logobox { display: inline-block; background: #fff; border-radius: 10px; padding: 10px 14px; }
+.pc-fbrand .logobox img { height: 46px; }
+.pc-fbrand .tag { font-size: 13.5px; color: #c9d3ec; margin: 16px 0 8px; line-height: 1.5; }
+.pc-fbrand .own { font-size: 12.5px; color: #8494b8; line-height: 1.6; max-width: 260px; }
+.pc-social { display: flex; gap: 10px; margin-top: 16px; }
+.pc-social a { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,.08); display: grid; place-items: center; color: #cdd6ea; text-decoration: none; font-size: 14px; }
+.pc-social a:hover { background: rgba(255,255,255,.16); }
+.pc-fcol h4 { color: #37d0c0; font-size: 12.5px; letter-spacing: 1px; font-weight: 800; margin: 0 0 15px; }
+.pc-fcol a, .pc-fcol .line { display: block; color: #b6c1dc; font-size: 14px; text-decoration: none; margin-bottom: 12px; line-height: 1.4; }
+.pc-fcol a:hover { color: #fff; }
+.pc-fbottom { border-top: 1px solid rgba(255,255,255,.08); }
+.pc-fbottom-in { max-width: 1240px; margin: 0 auto; padding: 16px 22px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; font-size: 12.5px; color: #8494b8; }
+.pc-fbottom-in .links a { color: #8494b8; text-decoration: none; margin-left: 18px; }
+.pc-fbottom-in .links a:hover { color: #fff; }
+@media (max-width: 1000px) {
+  .pc-nav { display: none; }
+  .pc-footer-in { grid-template-columns: 1fr 1fr; gap: 26px; }
+}
+@media (max-width: 560px) {
+  .pc-footer-in { grid-template-columns: 1fr; }
+  .pc-fbottom-in { flex-direction: column; }
+  .pc-fbottom-in .links a { margin: 0 14px 0 0; }
+}

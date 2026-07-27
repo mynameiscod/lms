@@ -1,19 +1,52 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessResult, TodayMissions } from '../../api/passportApi';
+import { useAuth } from '../../contexts/AuthContext';
+import './missionControl.css';
 
 /**
- * Mission Control — the Passport student's home ("Today"). Completely separate from the
- * normal LMS dashboard. Free: shows the Career Score + a ₹499 unlock CTA. Member: shows
- * today's personalized missions, streak/XP, and the shareable Career Passport link.
+ * Mission Control — the Passport student's home. Pre-assessment it shows the CareerPilot
+ * "Your Career Journey Starts with Clarity" landing (free Career Readiness Assessment CTA
+ * + Career Score panel). Once a member it shows today's personalized missions & streak.
  */
 const CAT_ICON: Record<string, string> = {
   career_clarity: '🎯', aptitude: '🔢', logical_reasoning: '🧩',
   technical: '💻', communication: '🗣️', employability: '💼',
 };
 
+const CHECKS: [string, string][] = [
+  ['Know Your Current Level', 'Get your Career Score and see how career-ready you are.'],
+  ['Identify Your Strengths & Gaps', "Discover what you're good at and what needs improvement."],
+  ['Get Your Personalized Roadmap', 'Receive a 90-day plan tailored to your goals and academic year.'],
+  ['Start Taking Daily Action', 'Unlock daily missions, practice, and expert guidance.'],
+];
+
+const CATS: { ic: string; bg: string; title: string; desc: string }[] = [
+  { ic: '📊', bg: '#e7f8f0', title: 'Skills', desc: 'Evaluate your technical skills' },
+  { ic: '✖️', bg: '#fff2e3', title: 'Aptitude', desc: 'Test your logical & numerical ability' },
+  { ic: '💬', bg: '#eef0ff', title: 'Communication', desc: 'Assess your communication readiness' },
+  { ic: '💼', bg: '#e6f2ff', title: 'Employability', desc: 'Check your job readiness factors' },
+];
+
+const WHY: { ic: string; bg: string; title: string; desc: string }[] = [
+  { ic: '🎯', bg: '#e7f8f0', title: 'Right Career Direction', desc: 'Understand which career path suits you best based on your strengths and interests.' },
+  { ic: '📈', bg: '#fff2e3', title: 'Personalized Roadmap', desc: 'Get a customized 90-day roadmap based on your academic year and goals.' },
+  { ic: '⭐', bg: '#efeaff', title: 'Improve Faster', desc: 'Focus on the right skills and activities that will make the biggest impact.' },
+  { ic: '🏆', bg: '#e6f2ff', title: 'Stand Out', desc: 'Build a strong profile and become the kind of candidate employers value.' },
+  { ic: '📈', bg: '#fdeaea', title: 'Track Your Growth', desc: 'See your progress over time and celebrate every improvement.' },
+];
+
+const COLLEGES: [string, string, string][] = [
+  ['🎓', 'VIT', 'Vellore Institute of Technology'],
+  ['🎓', 'SRM', 'Institute of Science & Technology'],
+  ['🎓', 'GITAM', '(Deemed to be University)'],
+  ['🎓', 'Andhra University', 'Andhra University'],
+  ['🏛️', '200+ More Colleges', 'Across AP & Telangana'],
+];
+
 const MissionControl: React.FC = () => {
   const nav = useNavigate();
+  const { user, logout } = useAuth();
   const [status, setStatus] = useState<any>(null);
   const [result, setResult] = useState<AssessResult | null>(null);
   const [today, setToday] = useState<TodayMissions | null>(null);
@@ -21,6 +54,8 @@ const MissionControl: React.FC = () => {
   const [paying, setPaying] = useState(false);
   const [payMsg, setPayMsg] = useState('');
   const [copied, setCopied] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const whyRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
     try {
@@ -60,110 +95,188 @@ const MissionControl: React.FC = () => {
     catch { window.prompt('Copy your Career Passport link:', url); }
   };
 
-  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: '#64748b' }}>Loading your Career Passport…</div>;
+  const firstName = user?.firstName || (status?.name || '').split(' ')[0] || 'there';
+  const initial = (firstName[0] || 'C').toUpperCase();
+
+  const Topbar = (
+    <div className="mc-topbar">
+      <div className="mc-brand">
+        <span className="mark">🧭</span>
+        <div className="bt"><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div>
+      </div>
+      <div className="mc-top-right">
+        <button className="mc-how" onClick={() => whyRef.current?.scrollIntoView({ behavior: 'smooth' })}>
+          <span className="pl">▶</span><span className="t">How it works</span>
+        </button>
+        <div className="mc-user">
+          <button className="mc-user-btn" onClick={() => setMenuOpen(o => !o)}>
+            <span className="av">{initial}</span>
+            <span className="who"><small>Welcome back,</small><b>{firstName}</b></span>
+            <span className="cr">▼</span>
+          </button>
+          {menuOpen && (
+            <div className="mc-menu">
+              <button onClick={() => nav('/passport/assessment')}>My assessment result</button>
+              {status?.active && status?.shareSlug && <button onClick={share}>{copied ? 'Link copied!' : 'Share my Passport'}</button>}
+              <button onClick={() => logout()}>Log out</button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your Career Passport…</div>;
 
   const active = !!status?.active;
   const hasScore = !!result;
   const price = status?.priceInr ?? 499;
+  const scoreNum = hasScore ? result!.careerScore : 0;
 
-  return (
-    <div style={{ minHeight: '100%', background: 'linear-gradient(180deg,#f5f3ff,#f6f7f9)', padding: '28px 24px' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 6 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span style={{ fontSize: 26 }}>🎫</span>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: '#0f172a', margin: 0 }}>Mission Control</h1>
+  // ── Member: today's missions ──
+  if (active) {
+    return (
+      <div className="mc-shell">
+        {Topbar}
+        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '10px 26px 0' }}>
+          {hasScore && (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginBottom: 18 }}>
+              <Stat label="Career Score" big={String(result!.careerScore)} hint={result!.level} />
+              <Stat label="Pathway" big={result!.pathwayLabel} />
+              <Stat label="Streak" big={`${today?.streak ?? 0}d`} hint="Keep it alive" />
+              <Stat label="XP" big={String(today?.xp ?? 0)} hint="Earned" />
+            </div>
+          )}
+
+          <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: '22px 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>Today’s Missions{today?.day ? ` · Day ${today.day}` : ''}</div>
+              {today?.allDone && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#14a89c', background: '#e7f8f5', padding: '4px 10px', borderRadius: 99 }}>✓ All done — see you tomorrow!</span>}
+            </div>
+
+            {today?.needsAssessment ? (
+              <div style={{ color: '#64748b', fontSize: 14 }}>Take the <button onClick={() => nav('/passport/assessment')} style={linkBtn}>Career Readiness Assessment</button> first to personalize your missions.</div>
+            ) : !today?.missions?.length ? (
+              <div style={{ color: '#94a3b8', fontSize: 14 }}>No missions for today. Check back tomorrow.</div>
+            ) : (
+              <div style={{ display: 'grid', gap: 10 }}>
+                {today.missions.map(m => (
+                  <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', border: '1px solid #eef1f6', borderRadius: 12, background: m.done ? '#f6fbf9' : '#fff' }}>
+                    <button onClick={() => !m.done && toggleMission(m.key)} disabled={m.done}
+                      style={{ width: 24, height: 24, borderRadius: 7, border: m.done ? 'none' : '2px solid #cbd5e1', background: m.done ? '#14a89c' : '#fff', color: '#fff', cursor: m.done ? 'default' : 'pointer', flexShrink: 0, fontWeight: 800 }}>
+                      {m.done ? '✓' : ''}
+                    </button>
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a', textDecoration: m.done ? 'line-through' : 'none', opacity: m.done ? 0.6 : 1 }}>{CAT_ICON[m.category] || '•'} {m.title}</div>
+                      <div style={{ fontSize: 12.5, color: '#64748b' }}>{m.detail}</div>
+                    </div>
+                    {m.link && !m.done && <button onClick={() => nav(m.link!)} style={{ ...linkBtn, whiteSpace: 'nowrap' }}>Open →</button>}
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#6650d8', background: '#f4f2ff', padding: '3px 8px', borderRadius: 99 }}>+{m.xp}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-          {active && status?.shareSlug && (
-            <button onClick={share} style={{ background: '#fff', border: '1px solid #e0e7ff', borderRadius: 10, padding: '9px 16px', fontWeight: 700, fontSize: 13, color: '#6650d8', cursor: 'pointer' }}>
-              {copied ? '✓ Link copied' : '🔗 Share my Passport'}
-            </button>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginTop: 14 }}>
+            <QuickCard title="📊 My assessment result" onClick={() => nav('/passport/assessment')} sub="Score, breakdown & pathway" />
+            <QuickCard title="🎫 My Career Passport" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Free / pre-assessment: CareerPilot "Clarity" landing ──
+  return (
+    <div className="mc-shell">
+      {Topbar}
+
+      <div className="mc-hero">
+        {/* Left */}
+        <div className="mc-left">
+          <span className="mc-chip">🚀 Mission Control</span>
+          <h1 className="mc-h1">Your Career Journey <span className="b">Starts with Clarity</span></h1>
+          <p className="mc-lead">Take the free Career Readiness Assessment to know where you stand today and get a personalized roadmap to achieve your dream career.</p>
+
+          <div className="mc-checks">
+            {CHECKS.map(([t, d]) => (
+              <div className="mc-check" key={t}><span className="ck">✓</span><div><b>{t}</b><span>{d}</span></div></div>
+            ))}
+          </div>
+
+          {!hasScore ? (
+            <>
+              <button className="mc-cta" onClick={() => nav('/passport/assessment')}>Start Free Assessment →</button>
+              <div className="mc-cta-note">Takes about 5 minutes • No payment needed</div>
+            </>
+          ) : (
+            <>
+              <button className="mc-cta" onClick={() => nav('/passport/assessment')}>View My Result & Roadmap →</button>
+              {status?.paymentAvailable === false ? (
+                <div className="mc-cta-note">You scored {scoreNum}/100 — contact your mentor to unlock your 90-day journey.</div>
+              ) : (
+                <>
+                  <div><button className="mc-unlock" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock Full Journey — ₹${price}`}</button></div>
+                  <div className="mc-cta-note">You scored {scoreNum}/100 — unlock daily missions, mock interviews & your Career Passport.</div>
+                </>
+              )}
+              {payMsg && <div className="mc-paymsg">{payMsg}</div>}
+            </>
           )}
         </div>
-        <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 22px' }}>Your CodeBegun Career Passport — one place that tells you what to do next.</p>
 
-        {/* ── Score / stats row ── */}
-        {hasScore && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginBottom: 18 }}>
-            <Stat label="Career Score" big={String(result!.careerScore)} hint={result!.level} />
-            <Stat label="Pathway" big={result!.pathwayLabel} />
-            <Stat label="Streak" big={`${active ? (today?.streak ?? 0) : 0}d`} hint={active ? 'Keep it alive' : 'Unlock to start'} />
-            <Stat label="XP" big={active ? String(today?.xp ?? 0) : '—'} hint={active ? 'Earned' : 'Unlock to earn'} />
-          </div>
-        )}
-
-        {/* ── Not a member yet ── */}
-        {!active && (
-          !hasScore ? (
-            <div style={cardCta}>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>🚀</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>Discover your Career Score</div>
-              <p style={{ color: '#64748b', fontSize: 14, maxWidth: 480, margin: '8px auto 16px' }}>
-                Take the free Career Readiness Assessment, get your Career Score, and unlock your personalized 90-day journey.
-              </p>
-              <button onClick={() => nav('/passport/assessment')} style={btnPrimary}>Start free assessment</button>
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 10 }}>Takes about 5 minutes · No payment needed.</div>
+        {/* Right — score panel */}
+        <div className="mc-right">
+          <div className="mc-scorewrap">
+            <div className="mc-score-head">
+              <h3>🔑 Your Career Score can open new doors</h3>
+              <p>Thousands of students have discovered their path.<br />Now it’s your turn!</p>
             </div>
-          ) : (
-            <div style={{ ...cardCta, background: 'linear-gradient(120deg,#1e1b4b,#0f766e)', color: '#fff', border: 'none' }}>
-              <div style={{ fontSize: 19, fontWeight: 800 }}>Unlock your full 90-day journey</div>
-              <p style={{ opacity: 0.85, fontSize: 13.5, maxWidth: 480, margin: '8px auto 16px' }}>
-                Daily missions, verified practice, mock interviews, resume &amp; the shareable Career Passport — personalized to your score.
-              </p>
-              {status?.paymentAvailable === false ? (
-                <div style={{ fontSize: 13.5, opacity: 0.9 }}>Online payment isn’t enabled yet — please contact your mentor to activate.</div>
-              ) : (
-                <button onClick={unlock} disabled={paying} style={{ ...btnLight, opacity: paying ? 0.6 : 1 }}>
-                  {paying ? 'Opening payment…' : `Unlock for ₹${price}`}
-                </button>
-              )}
-              {payMsg && <div style={{ marginTop: 12, fontSize: 13, background: 'rgba(255,255,255,.12)', borderRadius: 8, padding: '8px 12px' }}>{payMsg}</div>}
-              <div style={{ marginTop: 10 }}>
-                <button onClick={() => nav('/passport/assessment')} style={{ background: 'none', border: 'none', color: '#c7d2fe', fontSize: 12.5, cursor: 'pointer' }}>View my full result →</button>
-              </div>
-            </div>
-          )
-        )}
-
-        {/* ── Member: today's missions ── */}
-        {active && (
-          <>
-            <div style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: '22px 24px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#0f172a' }}>Today’s Missions{today?.day ? ` · Day ${today.day}` : ''}</div>
-                {today?.allDone && <span style={{ fontSize: 12.5, fontWeight: 800, color: '#14a89c', background: '#e7f8f5', padding: '4px 10px', borderRadius: 99 }}>✓ All done — see you tomorrow!</span>}
-              </div>
-
-              {today?.needsAssessment ? (
-                <div style={{ color: '#64748b', fontSize: 14 }}>Take the <button onClick={() => nav('/passport/assessment')} style={linkBtn}>Career Readiness Assessment</button> first to personalize your missions.</div>
-              ) : !today?.missions?.length ? (
-                <div style={{ color: '#94a3b8', fontSize: 14 }}>No missions for today. Check back tomorrow.</div>
-              ) : (
-                <div style={{ display: 'grid', gap: 10 }}>
-                  {today.missions.map(m => (
-                    <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', border: '1px solid #eef1f6', borderRadius: 12, background: m.done ? '#f6fbf9' : '#fff' }}>
-                      <button onClick={() => !m.done && toggleMission(m.key)} disabled={m.done}
-                        style={{ width: 24, height: 24, borderRadius: 7, border: m.done ? 'none' : '2px solid #cbd5e1', background: m.done ? '#14a89c' : '#fff', color: '#fff', cursor: m.done ? 'default' : 'pointer', flexShrink: 0, fontWeight: 800 }}>
-                        {m.done ? '✓' : ''}
-                      </button>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0f172a', textDecoration: m.done ? 'line-through' : 'none', opacity: m.done ? 0.6 : 1 }}>{CAT_ICON[m.category] || '•'} {m.title}</div>
-                        <div style={{ fontSize: 12.5, color: '#64748b' }}>{m.detail}</div>
-                      </div>
-                      {m.link && !m.done && <button onClick={() => nav(m.link!)} style={{ ...linkBtn, whiteSpace: 'nowrap' }}>Open →</button>}
-                      <span style={{ fontSize: 12, fontWeight: 800, color: '#6650d8', background: '#f4f2ff', padding: '3px 8px', borderRadius: 99 }}>+{m.xp}</span>
-                    </div>
-                  ))}
+            <div className="mc-score-card">
+              <div className="mc-score-top">
+                <div>
+                  <div className="lbl">Career Readiness Score</div>
+                  <div className="num">{scoreNum}<small> / 100</small></div>
                 </div>
-              )}
+                <div className="mc-rocket">🚀</div>
+              </div>
+              <div className="mc-bar"><i style={{ width: `${Math.max(scoreNum, 4)}%` }} /></div>
+              <div className="mc-cats">
+                {CATS.map(c => (
+                  <div className="mc-cat" key={c.title}>
+                    <span className="ic" style={{ background: c.bg }}>{c.ic}</span>
+                    <div><b>{c.title}</b><span>{c.desc}</span></div>
+                  </div>
+                ))}
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginTop: 14 }}>
-              <QuickCard title="📊 My assessment result" onClick={() => nav('/passport/assessment')} sub="Score, breakdown & pathway" />
-              <QuickCard title="🎫 My Career Passport" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
+      {/* Why take */}
+      <div className="mc-why" ref={whyRef}>
+        <h2>Why take the Career Readiness Assessment?</h2>
+        <div className="mc-why-grid">
+          {WHY.map(w => (
+            <div className="mc-why-card" key={w.title}>
+              <div className="ic" style={{ background: w.bg }}>{w.ic}</div>
+              <b>{w.title}</b><span>{w.desc}</span>
             </div>
-          </>
-        )}
+          ))}
+        </div>
+      </div>
+
+      {/* Colleges */}
+      <div className="mc-colleges">
+        <span className="cl-label">Trusted by Students from</span>
+        {COLLEGES.map(([ic, nm, sub]) => (
+          <div className="mc-college" key={nm}>
+            <span className="badge">{ic}</span>
+            <div className="nm"><b>{nm}</b><span>{sub}</span></div>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -184,9 +297,6 @@ const QuickCard: React.FC<{ title: string; sub: string; onClick: () => void }> =
   </button>
 );
 
-const cardCta: React.CSSProperties = { background: '#fff', border: '1px solid #e0e7ff', borderRadius: 16, padding: '28px 24px', textAlign: 'center' };
-const btnPrimary: React.CSSProperties = { background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 26px', fontWeight: 800, fontSize: 15, cursor: 'pointer' };
-const btnLight: React.CSSProperties = { background: '#fff', color: '#1e1b4b', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 800, fontSize: 15, cursor: 'pointer' };
 const linkBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#6650d8', fontWeight: 700, fontSize: 13, cursor: 'pointer', padding: 0 };
 
 export default MissionControl;

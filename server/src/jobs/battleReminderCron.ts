@@ -45,7 +45,7 @@ export async function fireBattleReminders(): Promise<number> {
       battleId: b._id, verified: true, status: { $ne: 'submitted' }, [flag]: { $ne: true },
     }).select('name email examToken tenantId').limit(2000);
 
-    const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+    const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
     for (const r of regs) {
       try {
         const html = reminderHtml(r.name, b.title, when, examUrl(r.tenantId, r.examToken), kind);

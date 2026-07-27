@@ -335,7 +335,7 @@ export const getPublicLeaderboard = async (req: Request, res: Response) => {
 };
 
 async function sendConfirmEmail(reg: any, b: any, url: string) {
-  const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+  const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
   const html = `
     <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto">
       <h2 style="color:#1d4ed8">You're registered for ${b.title} 🎉</h2>
@@ -443,7 +443,7 @@ export const approveRegistration = async (req: Request, res: Response) => {
     if (b) {
       // Send the link over BOTH channels — email (always) + WhatsApp (needs template for cold users).
       sendConfirmEmail(reg, b, url).catch(() => {});
-      const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+      const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
       const waMsg = `You're approved for ${b.title}! Your exam opens on ${when} IST. Start here (unlocks at start): ${url} — one attempt, single device. — CodeBegun`;
       wa = await otp.sendWhatsAppText(reg.tenantId, reg.whatsapp || reg.mobile, waMsg);
     }

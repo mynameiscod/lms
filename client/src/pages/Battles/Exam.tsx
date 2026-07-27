@@ -30,6 +30,9 @@ const BattleExam: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const submittedRef = useRef(false);
+  const [tabCount, setTabCount] = useState(0);
+  const [showTabWarn, setShowTabWarn] = useState(false);
+  const submitRef = useRef<() => void>(() => {});
 
   const load = useCallback(async () => {
     try {
@@ -100,6 +103,26 @@ const BattleExam: React.FC = () => {
     return () => { window.removeEventListener('popstate', onPop); window.removeEventListener('beforeunload', onBeforeUnload); };
   }, [phase]);
 
+  // Tab-switch / window-blur proctoring: count switches, warn, auto-submit after the limit.
+  useEffect(() => {
+    if (phase !== 'exam' || !exam?.quiz?.tabSwitchWarnings) return;
+    const warnMax = exam.quiz.warningCount ?? 3;
+    let last = 0;
+    const bump = () => {
+      const t = Date.now(); if (t - last < 800) return; last = t;   // debounce double-fires
+      setTabCount(prev => {
+        const n = prev + 1;
+        if (n >= warnMax) { submitRef.current(); }
+        else { setShowTabWarn(true); }
+        return n;
+      });
+    };
+    const onVis = () => { if (document.hidden) bump(); };
+    document.addEventListener('visibilitychange', onVis);
+    window.addEventListener('blur', bump);
+    return () => { document.removeEventListener('visibilitychange', onVis); window.removeEventListener('blur', bump); };
+  }, [phase, exam]);
+
   // cleanup camera
   useEffect(() => () => { streamRef.current?.getTracks().forEach(t => t.stop()); }, []);
 
@@ -119,6 +142,7 @@ const BattleExam: React.FC = () => {
       setResult(r); setPhase('result');
     } catch (e: any) { submittedRef.current = false; setErrMsg(e?.response?.data?.message || 'Submit failed.'); setPhase('error'); }
   };
+  submitRef.current = submit;
 
   const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
@@ -193,8 +217,22 @@ const BattleExam: React.FC = () => {
 
   // exam
   const timeCrit = left < 60;
+  const warnMax = exam?.quiz?.warningCount ?? 3;
   return (
     <div className="qr-page">
+      {showTabWarn && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,18,40,.75)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 16, maxWidth: 440, padding: '28px 26px', textAlign: 'center', boxShadow: '0 24px 70px rgba(0,0,0,.35)' }}>
+            <div style={{ fontSize: 40 }}>⚠️</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: '#b91c1c', margin: '6px 0' }}>Tab switch detected</div>
+            <p style={{ color: '#475569', fontSize: 14.5, lineHeight: 1.55 }}>
+              Leaving the exam tab is not allowed. Warning <b>{tabCount}</b> of <b>{warnMax}</b>.
+              {tabCount >= warnMax - 1 ? ' One more switch will auto-submit your exam.' : ' Please stay on this page.'}
+            </p>
+            <button onClick={() => setShowTabWarn(false)} style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 26px', fontWeight: 800, fontSize: 15, cursor: 'pointer', marginTop: 8 }}>Continue exam</button>
+          </div>
+        </div>
+      )}
       <div className="qr-topbar">
         <div className="qr-brand">
           <img src="/assets/logo.png" alt="CodeBegun" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />

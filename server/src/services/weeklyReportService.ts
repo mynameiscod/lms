@@ -6,6 +6,8 @@ import Quiz from '../models/Quiz';
 import Submission, { SubmissionStatus } from '../models/Submission';
 import Assignment from '../models/Assignment';
 import InterviewAttempt from '../models/InterviewAttempt';
+import ScheduledInterview from '../models/ScheduledInterview';
+import InterviewScheduleFeedback from '../models/InterviewScheduleFeedback';
 import CommunicationSchedule from '../models/CommunicationSchedule';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import ScheduledChallenge from '../models/ScheduledChallenge';
@@ -141,8 +143,12 @@ export class WeeklyReportService {
   private async assignments(studentId: string, tenantId: string, batchId: string, start: Date, end: Date) {
     const subs = await Submission.find({ student: studentId, tenant: tenantId, submittedAt: { $gte: start, $lte: end } })
       .populate('assignment', 'totalPoints dueDate');
-    const submitted = subs.filter(s => s.status !== SubmissionStatus.NOT_STARTED).length;
-    const pending = subs.filter(s => s.status === SubmissionStatus.IN_PROGRESS || s.status === SubmissionStatus.SUBMITTED).length;
+    // Count DISTINCT assignments submitted (a student can have multiple attempts per assignment).
+    const submittedIds = new Set(
+      subs.filter(s => s.status !== SubmissionStatus.NOT_STARTED)
+        .map(s => String((s.assignment as any)?._id || s.assignment))
+    );
+    const submitted = submittedIds.size;
     // "Scored" = has an actual score (auto-graded coding/MCQ set finalScore on submit; theory only
     // after a mentor grades it). Average over SCORED — not just status==='graded' — so auto-graded
     // coding/MCQ count, and un-graded theory shows as "awaiting grading" instead of a misleading 0%.
@@ -169,28 +175,47 @@ export class WeeklyReportService {
       ],
     });
 
-    return { assigned: Math.max(assigned, submitted), submitted, avgScore, scoredCount: scored.length, awaitingGrading, pending, timeLabel: fmtDuration(timeSec) };
+    const finalAssigned = Math.max(assigned, submitted);
+    const pending = Math.max(0, finalAssigned - submitted); // assignments not yet submitted
+    return { assigned: finalAssigned, submitted, avgScore, scoredCount: scored.length, awaitingGrading, pending, timeLabel: fmtDuration(timeSec) };
   }
 
   private async interviews(studentId: string, tenantId: string, start: Date, end: Date) {
-    const attempts = await InterviewAttempt.find({
+    const labelMap: Record<string, string> = { communication: 'Communication', technical: 'Technical', hr: 'HR / Behavioural', behavioral: 'Behavioral', coding: 'Coding' };
+
+    // AI virtual interviews — count anything actually TAKEN this week (not only evaluated/published,
+    // which left most attempts uncounted).
+    const aiAttempts = await InterviewAttempt.find({
       studentId, tenantId,
-      status: { $in: ['evaluated', 'published'] },
+      status: { $in: ['submitted', 'under_review', 'evaluated', 'published'] },
       submittedAt: { $gte: start, $lte: end },
     });
-    const taken = attempts.length;
-    const avgScore = taken ? Math.round(attempts.reduce((s, a) => s + (a.overallPercentage || 0), 0) / taken) : 0;
 
-    // Aggregate section percentages by sectionType across the week's attempts
-    const buckets: Record<string, number[]> = {};
-    attempts.forEach(a => (a.sectionAttempts || []).forEach((sec: any) => {
-      if (typeof sec.percentage === 'number') (buckets[sec.sectionType] ||= []).push(sec.percentage);
+    // Scheduled / manual MOCK interviews the student attended this week (with feedback). These live
+    // in ScheduledInterview + InterviewScheduleFeedback — previously ignored, so mocks showed 0.
+    const scheduled = await ScheduledInterview.find({ tenantId, date: { $gte: start, $lte: end }, students: studentId as any }).select('_id').lean();
+    const schedIds = scheduled.map((s: any) => s._id);
+    const feedbacks: any[] = schedIds.length
+      ? await InterviewScheduleFeedback.find({ tenantId, studentId, interviewId: { $in: schedIds }, attendanceStatus: 'present' }).lean()
+      : [];
+
+    const taken = aiAttempts.length + feedbacks.length;
+
+    // Normalize every score to a 0–100 percentage. AI: overallPercentage. Manual: overallScore is /10.
+    const pcts: number[] = [];
+    aiAttempts.forEach(a => { if (typeof a.overallPercentage === 'number') pcts.push(a.overallPercentage); });
+    feedbacks.forEach(f => { if (typeof f.overallScore === 'number') pcts.push(Math.round(f.overallScore * 10)); });
+    const avgScore = pcts.length ? Math.round(pcts.reduce((s, v) => s + v, 0) / pcts.length) : 0;
+
+    // Per-criterion breakdown (rating /5). Manual criteria are /10; AI sections are %.
+    const buckets: Record<string, { label: string; arr: number[] }> = {};
+    feedbacks.forEach(f => (f.criteriaRatings || []).forEach((c: any) => {
+      if (typeof c.score === 'number' && c.key !== 'remarks') (buckets[c.key] ||= { label: c.label || labelMap[c.key] || c.key, arr: [] }).arr.push(c.score / 2);
     }));
-    const labelMap: Record<string, string> = { communication: 'Communication', technical: 'Technical', hr: 'HR / Behavioural' };
-    const breakdown = Object.entries(buckets).map(([type, arr]) => ({
-      label: labelMap[type] || type,
-      rating: Math.round((arr.reduce((s, v) => s + v, 0) / arr.length) / 20 * 10) / 10, // % → /5, 1 decimal
+    aiAttempts.forEach(a => (a.sectionAttempts || []).forEach((sec: any) => {
+      if (typeof sec.percentage === 'number') (buckets[sec.sectionType] ||= { label: labelMap[sec.sectionType] || sec.sectionType, arr: [] }).arr.push(sec.percentage / 20);
     }));
+    const breakdown = Object.entries(buckets).map(([, v]) => ({ label: v.label, rating: Math.round((v.arr.reduce((s, x) => s + x, 0) / v.arr.length) * 10) / 10 }));
 
     return { taken, avgScore, avgRating: Math.round((avgScore / 20) * 10) / 10, breakdown };
   }

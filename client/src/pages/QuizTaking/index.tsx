@@ -5,6 +5,7 @@ import { Alert, Spinner, Button, Modal } from '../../components/common';
 import { Quiz, Question, QuizAttempt } from '../../types';
 import './QuizTakingPage.css';
 import './QuizRunner.css';
+import QuestionText from '../../components/QuestionText';
 
 const QuizTakingPage: React.FC = () => {
   const { quizId } = useParams<{ quizId: string }>();
@@ -704,7 +705,7 @@ const QuizTakingPage: React.FC = () => {
             <div className="qr-card qr-qcard">
               <div className="qr-qhead">
                 <div className="qr-qnum">{currentQuestionIndex + 1}</div>
-                <div className="qr-qtext">{currentQuestion.questionText}</div>
+                <div className="qr-qtext"><QuestionText text={currentQuestion.questionText} /></div>
                 <button className={`qr-mark${isReviewed ? ' on' : ''}`} onClick={() => toggleReview(currentQuestion._id)}>
                   {isReviewed ? '🔖 Marked' : '🔖 Mark for Review'}
                 </button>

@@ -100,7 +100,7 @@ import assessmentCandidatesRoutes from './assessmentCandidatesRoutes';
 import systemSettingsRoutes from './systemSettingsRoutes';
 import concernRoutes from './concernRoutes';
 import paymentRoutes from './paymentRoutes';
-import { webhook as paymentWebhook } from '../controllers/paymentController';
+import { webhook as paymentWebhook, paymentReturn } from '../controllers/paymentController';
 import { partnerUnsubscribe } from '../controllers/partnerPublicController';
 // Boot notification listeners
 import '../notifications/notificationService';
@@ -120,6 +120,7 @@ router.use('/certificates', certificateRoutes);
 router.use('/ai-usage', aiUsageRoutes);
 router.use('/meta-leads', metaLeadAdsRoutes);
 router.post('/payments/webhook', paymentWebhook); // Razorpay webhook (public, signature-verified) — before the authed /payments mount
+router.all('/payments/return', paymentReturn);    // Razorpay redirect-mode return URL (public) — settles + bounces to app
 router.post('/hms/webhook', hmsWebhook); // 100ms webhook (public) — recording ready, peer join/leave
 
 router.use('/auth', authRoutes);

@@ -91,11 +91,18 @@ export const passportApi = {
     } catch (e: any) {
       return { ok: false, message: e?.response?.data?.message || 'Could not start payment.' };
     }
+    // Absolute return URL for redirect-mode checkout (mobile / incognito / popup-blocked,
+    // where the in-page handler can't fire). Razorpay redirects here after payment; our
+    // server settles and bounces back to /passport.
+    const apiRoot = process.env.REACT_APP_API_URL || '/api/v1';
+    const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
+    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/passport')}`;
     return new Promise((resolve) => {
       const rzp = new (window as any).Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,
         name: order.name, description: order.description, order_id: order.orderId,
         prefill: order.prefill, theme: { color: '#6650d8' },
+        callback_url: callbackUrl, redirect: true,
         handler: async (resp: any) => {
           try {
             await axios.post(`${BASE}/membership/verify`, {

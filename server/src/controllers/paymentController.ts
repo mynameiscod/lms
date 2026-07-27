@@ -174,6 +174,35 @@ export const webhook = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Public return URL for Razorpay REDIRECT-mode checkout. When the hosted checkout
+ * finishes (esp. on mobile / incognito / popup-blocked where the in-page modal
+ * handler can't fire), Razorpay redirects the browser here with the payment fields.
+ * We settle idempotently (the webhook also does) and bounce the user back into the app.
+ */
+export const paymentReturn = async (req: Request, res: Response) => {
+  const src: any = { ...(req.query || {}), ...(req.body || {}) };
+  const orderId = String(src.razorpay_order_id || '');
+  const paymentId = String(src.razorpay_payment_id || '');
+  const signature = String(src.razorpay_signature || '');
+  // Only same-origin app paths are allowed as the return target.
+  let to = String(src.to || '/passport');
+  if (!to.startsWith('/')) to = '/passport';
+
+  try {
+    if (orderId) {
+      const payment = await Payment.findOne({ orderId });
+      if (payment && paymentId && signature) {
+        const ok = razorpay.verifyPaymentSignature(String(payment.tenantId), orderId, paymentId, signature);
+        if (ok && payment.status !== 'paid') await settlePayment(payment, paymentId, signature);
+      }
+    }
+  } catch (e: any) {
+    console.error('[payment] return settle failed:', e?.message); // still redirect; webhook covers activation
+  }
+  return res.redirect(302, to);
+};
+
 const isAdmin = (req: AuthenticatedRequest) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF', 'INSTRUCTOR'].includes(String((req.user as any)?.role));
 
 /** Admin: transactions ledger / reconciliation. */

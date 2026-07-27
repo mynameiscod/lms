@@ -20,6 +20,7 @@ const BattleExam: React.FC = () => {
 
   const [phase, setPhase] = useState<Phase>('loading');
   const [errMsg, setErrMsg] = useState('');
+  const [errCode, setErrCode] = useState('');
   const [exam, setExam] = useState<any>(null);
   const [startAt, setStartAt] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -44,7 +45,7 @@ const BattleExam: React.FC = () => {
     } catch (e: any) {
       const code = e?.response?.data?.code;
       if (code === 'NOT_YET') { setStartAt(new Date(e.response.data.startAt).getTime()); setExam({ title: e.response.data.title }); setPhase('countdown'); }
-      else { setErrMsg(e?.response?.data?.message || 'Could not load the exam.'); setPhase('error'); }
+      else { setErrCode(code || ''); setErrMsg(e?.response?.data?.message || 'Could not load the exam.'); setPhase('error'); }
     }
   }, [token, sid]);
 
@@ -150,11 +151,52 @@ const BattleExam: React.FC = () => {
   // ── Render ──
   if (phase === 'loading') return <BattleChrome><div className="bt-page"><div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your exam…</div></div></BattleChrome>;
 
-  if (phase === 'error') return (
-    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 40 }}>⛔</div><div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a', margin: '8px 0' }}>{errMsg}</div>
-    </div></div></div></BattleChrome>
-  );
+  if (phase === 'error') {
+    const LIST = '/battles';
+    // Already submitted → "Thank You" screen.
+    if (errCode === 'ALREADY_SUBMITTED') return (
+      <BattleChrome><div className="bt-panel">
+        <div className="bt-hero-card">
+          <div className="bt-icon-circle bt-icon-green">✓</div>
+          <h1>Thank You!</h1>
+          <div className="sub">You have already submitted this exam.</div>
+          <p>Your response has been recorded successfully. We appreciate your participation in the CodeBegun Tech Battle.</p>
+          <div className="bt-features" style={{ gridTemplateColumns: 'repeat(3,1fr)' }}>
+            <div className="bt-feature"><div className="fi">🛡️</div><b>Submission Confirmed</b><span>Your exam has been submitted successfully</span></div>
+            <div className="bt-feature"><div className="fi">📄</div><b>Results Coming Soon</b><span>Results will be announced as per the schedule</span></div>
+            <div className="bt-feature"><div className="fi">🏆</div><b>Keep Participating</b><span>Stay tuned for more exciting challenges</span></div>
+          </div>
+          <a className="bt-cta" href={LIST}>Explore More Challenges →</a>
+          <div><a className="bt-link" href="https://www.codebegun.com">Back to Home</a></div>
+        </div>
+        <div className="bt-keep">
+          <span style={{ fontSize: 44 }}>🏆</span>
+          <div className="txt"><h3>Your journey doesn’t stop here!</h3><p>Keep learning, keep improving and participate in more challenges to win exciting prizes and recognition.</p></div>
+          <div className="acts"><a className="bt-outline" href={LIST}>📅 View Upcoming Challenges</a></div>
+        </div>
+      </div></BattleChrome>
+    );
+    // Open on another device → red block.
+    if (errCode === 'ANOTHER_DEVICE') return (
+      <BattleChrome><div className="bt-panel">
+        <div className="bt-hero-card">
+          <div className="bt-icon-circle bt-icon-red">⛔</div>
+          <h1 style={{ fontSize: 22 }}>This exam is open on another device</h1>
+          <p>Please close it there first, then reopen this link. Only one active session is allowed per attempt.</p>
+        </div>
+      </div></BattleChrome>
+    );
+    // Generic (rejected / ended / join closed / not verified / network).
+    return (
+      <BattleChrome><div className="bt-panel">
+        <div className="bt-hero-card">
+          <div className="bt-icon-circle bt-icon-blue">ℹ️</div>
+          <h1 style={{ fontSize: 22 }}>{errMsg}</h1>
+          <a className="bt-cta" style={{ marginTop: 16 }} href={LIST}>Explore More Challenges →</a>
+        </div>
+      </div></BattleChrome>
+    );
+  }
 
   if (phase === 'countdown') {
     const d = Math.max(0, startAt - now);
@@ -196,25 +238,73 @@ const BattleExam: React.FC = () => {
   }
 
   if (phase === 'ready') return (
-    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 50 }}><div className="bt-card" style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 40 }}>🚀</div>
-      <div style={{ fontSize: 20, fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>{exam.quiz.title}</div>
-      <div className="bt-muted">{questions.length} questions · {exam.quiz.timeLimit} min · {exam.quiz.totalMarks} marks</div>
-      <div className="bt-ok" style={{ marginTop: 14, textAlign: 'left' }}>One attempt · single device · {exam.quiz.enableCamera ? 'camera-proctored · ' : ''}the clock stops at the battle end time. All the best!</div>
-      <button className="bt-btn" onClick={beginExam}>Start exam →</button>
-    </div></div></div></BattleChrome>
+    <BattleChrome><div className="bt-panel">
+      <div className="bt-hero-card">
+        <div className="bt-icon-circle bt-icon-blue">🚀</div>
+        <div className="sub" style={{ letterSpacing: 1, fontSize: 12.5, textTransform: 'uppercase' }}>Exam is ready!</div>
+        <h1 style={{ fontSize: 26 }}>{exam.quiz.title}</h1>
+        <div className="bt-chips2">
+          <span className="bt-chip2"><span className="ci">📄</span>{questions.length} Questions</span>
+          <span className="bt-chip2"><span className="ci">⏱️</span>{exam.quiz.timeLimit} Minutes</span>
+          <span className="bt-chip2"><span className="ci">🏆</span>One Attempt</span>
+        </div>
+        <div className="bt-note green"><b>One attempt · Single device{exam.quiz.enableCamera ? ' · Camera-proctored' : ''}</b><br />The clock stops at the battle end time. All the best!</div>
+        <div className="bt-note blue"><b>Make sure you are in a quiet place with a stable internet connection.</b><br />Stay on this tab — switching away is tracked and can auto-submit your exam.</div>
+        <button className="bt-cta grad" style={{ width: '100%', justifyContent: 'center', marginTop: 6, fontSize: 16 }} onClick={beginExam}>Start Exam →</button>
+        <div className="bt-muted" style={{ marginTop: 10 }}>🔒 You will be unable to pause or go back once you start.</div>
+      </div>
+    </div></BattleChrome>
   );
 
-  if (phase === 'result') return (
-    <BattleChrome><div className="bt-page"><div className="bt-wrap" style={{ marginTop: 60 }}><div className="bt-card" style={{ textAlign: 'center', padding: '34px 26px' }}>
-      <div style={{ fontSize: 56 }}>🎉</div>
-      <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '8px 0 6px' }}>Congratulations!</div>
-      <p style={{ color: '#475569', fontSize: 15, lineHeight: 1.6, maxWidth: 420, margin: '0 auto' }}>
-        You’ve successfully completed the CodeBegun Tech Battle. Our team will review the results and <b>connect with you with further details</b>. Thank you for participating! 🚀
-      </p>
-      <div className="bt-muted" style={{ marginTop: 16 }}>You can close this window now.</div>
-    </div></div></div></BattleChrome>
-  );
+  if (phase === 'result') {
+    const LIST = '/battles';
+    const SITE = 'https://www.codebegun.com';
+    const socials = [
+      { ic: '💼', name: 'LinkedIn', note: 'Career tips, industry insights & opportunities', url: 'https://linkedin.com/company/codebegun', cta: 'Follow' },
+      { ic: '📷', name: 'Instagram', note: 'Updates, reels & behind-the-scenes', url: 'https://instagram.com/codebegun', cta: 'Follow' },
+      { ic: '▶️', name: 'YouTube', note: 'Coding tutorials, event highlights & more', url: 'https://youtube.com/@codebegun', cta: 'Subscribe' },
+      { ic: '𝕏', name: 'X (Twitter)', note: 'Latest updates, quick announcements', url: 'https://x.com/codebegun', cta: 'Follow' },
+      { ic: '📘', name: 'Facebook', note: 'Community stories and event updates', url: 'https://facebook.com/codebegun', cta: 'Follow' },
+    ];
+    return (
+      <BattleChrome><div className="bt-panel" style={{ maxWidth: 820 }}>
+        <div className="bt-hero-card">
+          <div className="em">🏆</div>
+          <h1>Congratulations! 🎉</h1>
+          <p style={{ fontWeight: 700, color: '#0f172a' }}>You’ve successfully completed the</p>
+          <div className="sub">CodeBegun Weekly Tech Battle 🚀</div>
+          <p>Your performance matters! Our team will review your results and connect with you with <b>further details</b>.</p>
+          <div className="bt-features">
+            <div className="bt-feature"><div className="fi">📄</div><b>Results Announced</b><span>Every Week</span></div>
+            <div className="bt-feature"><div className="fi">🏆</div><b>Top Performers</b><span>Win Exciting Prizes</span></div>
+            <div className="bt-feature"><div className="fi">📈</div><b>Grow Your Skills</b><span>Every Challenge</span></div>
+            <div className="bt-feature"><div className="fi">⭐</div><b>Stand Out</b><span>Get Recognized</span></div>
+          </div>
+          <a className="bt-cta" href={LIST}>Explore More Challenges →</a>
+        </div>
+
+        <div className="bt-social-sec">
+          <div className="sub" style={{ fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>Stay connected</div>
+          <h2>Follow Us on All Social Media Channels</h2>
+          <div className="lead">Stay inspired, never miss an update, and be the first to know about new challenges, prizes, and opportunities.</div>
+          <div className="bt-social-grid">
+            {socials.map(s => (
+              <div key={s.name} className="bt-social-card">
+                <div className="si">{s.ic}</div><b>{s.name}</b><small>{s.note}</small>
+                <a href={s.url} target="_blank" rel="noreferrer">{s.cta} ↗</a>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bt-keep">
+          <span style={{ fontSize: 44 }}>📣</span>
+          <div className="txt"><h3>Keep Learning. Keep Winning.</h3><p>The journey doesn’t end here. Keep participating, keep improving, and unlock endless opportunities with CodeBegun.</p></div>
+          <div className="acts"><a className="bt-cta" href={LIST}>View Upcoming Challenges</a><a className="bt-outline" href={`${SITE}`}>Explore Programs</a></div>
+        </div>
+      </div></BattleChrome>
+    );
+  }
 
   // exam
   const timeCrit = left < 60;

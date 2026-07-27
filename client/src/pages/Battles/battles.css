@@ -59,3 +59,53 @@
   .cd-colon { font-size: 22px; }
   .cd-deco { display: none; }
 }
+
+/* ── Exam result / ready / error screens ── */
+.bt-panel { max-width: 720px; margin: 40px auto; padding: 0 16px; }
+.bt-hero-card { background: #fff; border: 1px solid #eef1f6; border-radius: 20px; box-shadow: 0 20px 55px rgba(15,23,42,.08); padding: 40px 34px; text-align: center; position: relative; overflow: hidden; }
+.bt-hero-card .em { font-size: 60px; line-height: 1; }
+.bt-hero-card h1 { font-size: 30px; font-weight: 900; color: #0b2e63; margin: 14px 0 8px; }
+.bt-hero-card .sub { color: #1d4ed8; font-weight: 800; font-size: 17px; margin-bottom: 10px; }
+.bt-hero-card p { color: #475569; font-size: 14.5px; line-height: 1.65; max-width: 460px; margin: 0 auto; }
+.bt-icon-circle { width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center; margin: 0 auto 6px; font-size: 34px; }
+.bt-icon-green { background: #16a34a; color: #fff; box-shadow: 0 10px 26px rgba(22,163,74,.35); }
+.bt-icon-blue { background: #eef4ff; color: #1d4ed8; border: 1px solid #dbe6ff; }
+.bt-icon-red { background: #fee2e2; color: #dc2626; }
+.bt-features { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 22px 0; }
+.bt-feature { background: #f8fafc; border: 1px solid #eef1f6; border-radius: 12px; padding: 14px 10px; }
+.bt-feature .fi { font-size: 20px; }
+.bt-feature b { display: block; font-size: 12.5px; color: #0f172a; margin-top: 6px; }
+.bt-feature span { font-size: 11px; color: #94a3b8; }
+.bt-cta { display: inline-flex; align-items: center; gap: 8px; background: #12276e; color: #fff; border: none; border-radius: 11px; padding: 13px 26px; font-weight: 800; font-size: 15px; cursor: pointer; text-decoration: none; }
+.bt-cta:hover { background: #0f2a5c; }
+.bt-cta.grad { background: linear-gradient(90deg,#1d4ed8,#4f46e5); }
+.bt-link { display: inline-block; margin-top: 12px; color: #1d4ed8; font-weight: 700; font-size: 13.5px; text-decoration: none; }
+/* social */
+.bt-social-sec { text-align: center; margin-top: 30px; }
+.bt-social-sec h2 { font-size: 22px; font-weight: 800; color: #0b2e63; margin: 6px 0; }
+.bt-social-sec .lead { color: #64748b; font-size: 14px; margin-bottom: 18px; }
+.bt-social-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+.bt-social-card { background: #fff; border: 1px solid #eef1f6; border-radius: 14px; padding: 16px 10px; text-align: center; }
+.bt-social-card .si { font-size: 24px; }
+.bt-social-card b { display: block; font-size: 13px; color: #0f172a; margin: 8px 0 2px; }
+.bt-social-card small { font-size: 10.5px; color: #94a3b8; display: block; min-height: 26px; }
+.bt-social-card a { display: inline-block; margin-top: 8px; color: #1d4ed8; font-weight: 700; font-size: 12px; text-decoration: none; border: 1px solid #dbe6ff; border-radius: 8px; padding: 5px 12px; }
+.bt-keep { display: flex; align-items: center; gap: 18px; background: linear-gradient(120deg,#eff4ff,#f5f3ff); border: 1px solid #e0e7ff; border-radius: 16px; padding: 22px; margin-top: 26px; flex-wrap: wrap; }
+.bt-keep .txt { flex: 1; min-width: 220px; }
+.bt-keep h3 { font-size: 18px; font-weight: 800; color: #0b2e63; margin: 0 0 4px; }
+.bt-keep p { color: #475569; font-size: 13.5px; margin: 0; }
+.bt-keep .acts { display: flex; gap: 10px; flex-wrap: wrap; }
+.bt-outline { background: #fff; border: 1.5px solid #c7d2fe; color: #1d4ed8; border-radius: 10px; padding: 11px 18px; font-weight: 700; font-size: 13.5px; cursor: pointer; text-decoration: none; }
+/* ready chips */
+.bt-chips2 { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin: 16px 0; }
+.bt-chip2 { display: inline-flex; align-items: center; gap: 7px; font-size: 13.5px; color: #334155; font-weight: 600; }
+.bt-chip2 .ci { font-size: 16px; }
+.bt-note { border-radius: 12px; padding: 14px 16px; text-align: left; margin: 12px 0; font-size: 13.5px; }
+.bt-note.green { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.bt-note.blue { background: #eff6ff; border: 1px solid #dbeafe; color: #1e40af; }
+.bt-note b { color: inherit; }
+@media (max-width: 640px) {
+  .bt-features, .bt-social-grid { grid-template-columns: repeat(2, 1fr); }
+  .bt-hero-card { padding: 30px 20px; }
+  .bt-hero-card h1 { font-size: 24px; }
+}

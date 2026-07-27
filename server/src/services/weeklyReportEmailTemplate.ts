@@ -136,7 +136,7 @@ export function getWeeklyReportEmailHtml(d: WeeklyReportData): string {
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;"><tr>
                   ${statCell(String(d.assignments.assigned).padStart(2, '0'), 'Assigned', '#059669')}
                   ${statCell(String(d.assignments.submitted).padStart(2, '0'), 'Submitted', '#059669')}
-                  ${statCell(`${d.assignments.avgScore}%`, 'Avg Score', '#059669')}
+                  ${statCell(d.assignments.scoredCount > 0 ? `${d.assignments.avgScore}%` : (d.assignments.submitted > 0 ? 'Pending' : '—'), d.assignments.scoredCount > 0 ? 'Avg Score' : (d.assignments.submitted > 0 ? 'Grading' : 'Avg Score'), '#059669')}
                 </tr></table>
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
                   <td width="50%">${miniRow('Pending', String(d.assignments.pending).padStart(2, '0'))}</td>

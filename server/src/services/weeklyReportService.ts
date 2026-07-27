@@ -17,7 +17,7 @@ export interface WeeklyReportData {
   period: { startISO: string; endISO: string; label: string; generatedAtISO: string };
   overall: { score: number; grade: string; label: string; message: string; hasData: boolean };
   quizzes: { assigned: number; attempted: number; avgScore: number; topScore: number; timeLabel: string };
-  assignments: { assigned: number; submitted: number; avgScore: number; pending: number; timeLabel: string };
+  assignments: { assigned: number; submitted: number; avgScore: number; scoredCount: number; awaitingGrading: number; pending: number; timeLabel: string };
   attendance: { percentage: number; present: number; absent: number; late: number; leave: number; totalClasses: number };
   interview: { taken: number; avgRating: number; avgScore: number; breakdown: { label: string; rating: number }[] };
   challenges: {
@@ -122,7 +122,7 @@ export class WeeklyReportService {
       : (a.totalMarks ? Math.round(((a.obtainedMarks || 0) / a.totalMarks) * 100) : 0);
     const avgScore = done.length ? Math.round(done.reduce((s, a) => s + pct(a), 0) / done.length) : 0;
     const topScore = done.length ? Math.max(...done.map(pct)) : 0;
-    const timeSec = done.reduce((s, a) => s + (a.timeSpent || 0), 0);
+    const timeSec = done.reduce((s, a) => s + Math.min(a.timeSpent || 0, 4 * 3600), 0); // cap 4h/attempt
 
     // "Assigned" = quizzes accessible to this student whose window overlapped the week
     const assigned = await Quiz.countDocuments({
@@ -143,14 +143,22 @@ export class WeeklyReportService {
       .populate('assignment', 'totalPoints dueDate');
     const submitted = subs.filter(s => s.status !== SubmissionStatus.NOT_STARTED).length;
     const pending = subs.filter(s => s.status === SubmissionStatus.IN_PROGRESS || s.status === SubmissionStatus.SUBMITTED).length;
-    const graded = subs.filter(s => s.status === SubmissionStatus.GRADED);
+    // "Scored" = has an actual score (auto-graded coding/MCQ set finalScore on submit; theory only
+    // after a mentor grades it). Average over SCORED — not just status==='graded' — so auto-graded
+    // coding/MCQ count, and un-graded theory shows as "awaiting grading" instead of a misleading 0%.
+    const hasScore = (s: any) => s.finalScore !== undefined && s.finalScore !== null;
+    const scored = subs.filter(hasScore);
     const pct = (s: any) => {
-      if (typeof s.percentage === 'number' && s.percentage > 0) return s.percentage;
+      if (typeof s.percentage === 'number') return s.percentage;
       const total = (s.assignment as any)?.totalPoints || 0;
       return total ? Math.round(((s.finalScore ?? s.totalScore ?? 0) / total) * 100) : 0;
     };
-    const avgScore = graded.length ? Math.round(graded.reduce((sum, s) => sum + pct(s), 0) / graded.length) : 0;
-    const timeSec = subs.reduce((sum, s) => sum + ((s as any).timeSpent || 0), 0);
+    const avgScore = scored.length ? Math.round(scored.reduce((sum, s) => sum + pct(s), 0) / scored.length) : 0;
+    const awaitingGrading = Math.max(0, submitted - scored.length);
+    // Cap each submission's time — it's wall-clock (open→submit), so leaving one open for days
+    // inflates it to 100+ hours. Cap at 4h/submission for a sane weekly total.
+    const CAP = 4 * 3600;
+    const timeSec = subs.reduce((sum, s) => sum + Math.min((s as any).timeSpent || 0, CAP), 0);
 
     const assigned = await Assignment.countDocuments({
       tenant: tenantId,
@@ -161,7 +169,7 @@ export class WeeklyReportService {
       ],
     });
 
-    return { assigned: Math.max(assigned, submitted), submitted, avgScore, pending, timeLabel: fmtDuration(timeSec) };
+    return { assigned: Math.max(assigned, submitted), submitted, avgScore, scoredCount: scored.length, awaitingGrading, pending, timeLabel: fmtDuration(timeSec) };
   }
 
   private async interviews(studentId: string, tenantId: string, start: Date, end: Date) {
@@ -243,14 +251,19 @@ export class WeeklyReportService {
       this.challenges(sid, tenantId, batchId, start, end),
     ]);
 
-    // Weighted overall score across sections that actually have data this week
-    const parts: number[] = [];
-    if (quizzes.attempted > 0) parts.push(quizzes.avgScore);
-    if (assignments.submitted > 0) parts.push(assignments.avgScore);
-    if (attendance.totalClasses > 0) parts.push(attendance.percentage);
-    if (interview.taken > 0) parts.push(interview.avgScore);
-    const hasData = parts.length > 0;
-    const score = hasData ? Math.round(parts.reduce((s, v) => s + v, 0) / parts.length) : 0;
+    // Completion-aware weighted overall score. A section that was ASSIGNED but not done drags
+    // the score down (performance × completion), so skipping all assignments can't still read
+    // "Excellent". Weights: Quizzes 30 / Assignments 30 / Attendance 20 / Interview 20, normalized
+    // over the sections that applied this week.
+    const clamp = (n: number) => Math.max(0, Math.min(100, n));
+    const comps: { v: number; w: number }[] = [];
+    if (quizzes.assigned > 0) comps.push({ v: clamp(quizzes.avgScore * (quizzes.attempted / quizzes.assigned)), w: 30 });
+    if (assignments.assigned > 0) comps.push({ v: clamp(assignments.avgScore * (assignments.submitted / assignments.assigned)), w: 30 });
+    if (attendance.totalClasses > 0) comps.push({ v: attendance.percentage, w: 20 });
+    if (interview.taken > 0) comps.push({ v: interview.avgScore, w: 20 });
+    const hasData = comps.length > 0;
+    const totW = comps.reduce((s, c) => s + c.w, 0);
+    const score = hasData ? Math.round(comps.reduce((s, c) => s + c.v * c.w, 0) / totW) : 0;
     const { label: perfLabel, message } = labelFor(score);
 
     return {

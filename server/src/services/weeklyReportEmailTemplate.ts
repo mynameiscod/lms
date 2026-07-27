@@ -169,6 +169,7 @@ export function getWeeklyReportEmailHtml(d: WeeklyReportData): string {
             <td width="50%" valign="top" style="padding:6px;">
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #eef1f6; border-radius:14px;"><tr><td style="padding:16px;">
                 <div style="font-size:15px; font-weight:800; color:#0b2e63;"><span style="color:#ea7317;">🎤</span> Mock Interview</div>
+                ${d.interview.taken > 0 ? `
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:10px;"><tr>
                   <td width="42%" valign="top">
                     <div style="font-size:11px; color:#8a94a6;">Interviews Taken</div>
@@ -181,10 +182,23 @@ export function getWeeklyReportEmailHtml(d: WeeklyReportData): string {
                     ${d.interview.breakdown.length
                       ? `<div style="font-size:11px; color:#8a94a6; margin-bottom:4px;">Performance Breakdown</div>
                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${d.interview.breakdown.map(b => bar(b.label, b.rating)).join('')}</table>`
-                      : `<div style="font-size:12px; color:#9ca3af; padding-top:18px;">No mock interviews this week.</div>`}
+                      : `<div style="font-size:12px; color:#9ca3af; padding-top:18px;">Feedback recorded.</div>`}
                   </td>
                 </tr></table>
-                ${detailBtn('View Interview Details', `${BASE}/my-interviews`, '#ea7317')}
+                ${d.interview.remarks ? `<div style="margin-top:10px; background:#fff7ed; border:1px solid #fed7aa; border-radius:8px; padding:9px 12px; font-size:12.5px; color:#9a3412;">💬 <b>Mentor feedback:</b> ${String(d.interview.remarks).replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>` : ''}`
+                : d.interview.absent > 0 ? `
+                <div style="margin-top:12px; background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:14px; text-align:center;">
+                  <div style="font-size:22px;">🚫</div>
+                  <div style="font-size:14px; font-weight:800; color:#b91c1c; margin-top:4px;">Marked Absent</div>
+                  <div style="font-size:12px; color:#7f1d1d; margin-top:3px;">You were scheduled for a mock interview but didn't attend. Don't miss the next one!</div>
+                </div>`
+                : d.interview.scheduled > 0 ? `
+                <div style="margin-top:12px; background:#eff6ff; border:1px solid #dbeafe; border-radius:10px; padding:14px; text-align:center;">
+                  <div style="font-size:22px;">🗓️</div>
+                  <div style="font-size:13.5px; font-weight:700; color:#1e40af; margin-top:4px;">Mock interview scheduled</div>
+                  <div style="font-size:12px; color:#3b5bdb; margin-top:3px;">Your mentor's feedback will appear here once submitted.</div>
+                </div>`
+                : `<div style="font-size:12px; color:#9ca3af; padding:24px 0; text-align:center;">No mock interviews this week.</div>`}
               </td></tr></table>
             </td>
           </tr></table>

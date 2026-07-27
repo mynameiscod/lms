@@ -21,7 +21,7 @@ export interface WeeklyReportData {
   quizzes: { assigned: number; attempted: number; avgScore: number; topScore: number; timeLabel: string };
   assignments: { assigned: number; submitted: number; avgScore: number; scoredCount: number; awaitingGrading: number; pending: number; timeLabel: string };
   attendance: { percentage: number; present: number; absent: number; late: number; leave: number; totalClasses: number };
-  interview: { taken: number; avgRating: number; avgScore: number; breakdown: { label: string; rating: number }[] };
+  interview: { taken: number; avgRating: number; avgScore: number; scheduled: number; absent: number; remarks: string; breakdown: { label: string; rating: number }[] };
   challenges: {
     communication: { assigned: number; completed: number; missed: number };
     thinking: { assigned: number; completed: number; missed: number };
@@ -191,13 +191,15 @@ export class WeeklyReportService {
       submittedAt: { $gte: start, $lte: end },
     });
 
-    // Scheduled / manual MOCK interviews the student attended this week (with feedback). These live
-    // in ScheduledInterview + InterviewScheduleFeedback — previously ignored, so mocks showed 0.
-    const scheduled = await ScheduledInterview.find({ tenantId, date: { $gte: start, $lte: end }, students: studentId as any }).select('_id').lean();
-    const schedIds = scheduled.map((s: any) => s._id);
-    const feedbacks: any[] = schedIds.length
-      ? await InterviewScheduleFeedback.find({ tenantId, studentId, interviewId: { $in: schedIds }, attendanceStatus: 'present' }).lean()
+    // Scheduled / manual MOCK interviews for the student this week. Include ALL feedbacks
+    // (present AND absent) so we can show attendance — previously absent showed as "none".
+    const scheduledList = await ScheduledInterview.find({ tenantId, date: { $gte: start, $lte: end }, students: studentId as any }).select('_id').lean();
+    const schedIds = scheduledList.map((s: any) => s._id);
+    const allFbs: any[] = schedIds.length
+      ? await InterviewScheduleFeedback.find({ tenantId, studentId, interviewId: { $in: schedIds } }).lean()
       : [];
+    const feedbacks = allFbs.filter(f => f.attendanceStatus !== 'absent');   // attended
+    const absent = allFbs.filter(f => f.attendanceStatus === 'absent').length;
 
     const taken = aiAttempts.length + feedbacks.length;
 
@@ -217,7 +219,12 @@ export class WeeklyReportService {
     }));
     const breakdown = Object.entries(buckets).map(([, v]) => ({ label: v.label, rating: Math.round((v.arr.reduce((s, x) => s + x, 0) / v.arr.length) * 10) / 10 }));
 
-    return { taken, avgScore, avgRating: Math.round((avgScore / 20) * 10) / 10, breakdown };
+    // Mentor's overall remark/comment from the latest attended feedback (shown inline).
+    const remarks = feedbacks
+      .flatMap(f => [f.overallComment, ...(f.criteriaRatings || []).filter((c: any) => c.key === 'remarks').map((c: any) => c.comment)])
+      .filter((s: any) => s && String(s).trim())[0] || '';
+
+    return { taken, avgScore, avgRating: Math.round((avgScore / 20) * 10) / 10, scheduled: scheduledList.length, absent, remarks: String(remarks).slice(0, 240), breakdown };
   }
 
   // Daily-lab challenges: assigned (admin-scheduled for the batch) vs completed vs missed.

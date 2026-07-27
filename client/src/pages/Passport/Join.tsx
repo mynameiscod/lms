@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
 import PublicChrome from '../../components/PublicChrome';
@@ -13,7 +13,6 @@ const STATS: [string, string][] = [['12,000+', 'Students'], ['500+', 'Colleges']
 const ICON: Record<string, string> = { name: '👤', mobile: '📞', email: '✉️' };
 
 const PassportJoin: React.FC = () => {
-  const nav = useNavigate();
   const [params] = useSearchParams();
   const tenant = params.get('tenant') || 'codebegun';
 
@@ -79,7 +78,10 @@ const PassportJoin: React.FC = () => {
       const r = await passportPublicApi.verify(token, code);
       localStorage.setItem('token', r.token);
       localStorage.setItem('tenantId', r.tenantId);
-      nav('/passport');
+      // Full page load so the auth context re-initializes from the new token — a
+      // client-side nav would hit the protected route before the context knows we're
+      // logged in and bounce to /login.
+      window.location.href = '/passport';
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Verification failed'); }
     setBusy(false);
   };

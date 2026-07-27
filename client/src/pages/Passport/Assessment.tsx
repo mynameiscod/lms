@@ -211,6 +211,18 @@ const ResultView: React.FC<{
 
   useEffect(() => { passportApi.me().then(setStatus).catch(() => {}); }, []);
 
+  // A payment can complete in a redirected tab (checkout callback never fires here). When the
+  // user returns to this tab, re-check membership; if now active, show the unlocked state.
+  useEffect(() => {
+    const recheck = async () => {
+      if (unlocked) return;
+      try { const me = await passportApi.me(); setStatus(me); if (me?.active) setUnlocked(true); } catch { /* ignore */ }
+    };
+    window.addEventListener('focus', recheck);
+    document.addEventListener('visibilitychange', recheck);
+    return () => { window.removeEventListener('focus', recheck); document.removeEventListener('visibilitychange', recheck); };
+  }, [unlocked]);
+
   const unlock = async () => {
     setPaying(true); setPayMsg('');
     const res = await passportApi.membershipCheckout();

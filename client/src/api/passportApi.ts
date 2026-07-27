@@ -102,7 +102,15 @@ export const passportApi = {
             resolve({ ok: true });
           } catch (e: any) { resolve({ ok: false, message: e?.response?.data?.message || 'Verification failed.' }); }
         },
-        modal: { ondismiss: () => resolve({ ok: false, message: 'Payment cancelled.' }) },
+        // The payment can complete in a redirected tab, so the handler above never fires
+        // in this window. On dismiss, re-check server state (the webhook may have already
+        // activated the membership) before treating it as a cancellation.
+        modal: {
+          ondismiss: async () => {
+            try { const me = await passportApi.me(); if (me?.active) return resolve({ ok: true }); } catch { /* ignore */ }
+            resolve({ ok: false, message: 'Payment cancelled.' });
+          },
+        },
       });
       rzp.on('payment.failed', (r: any) => resolve({ ok: false, message: r?.error?.description || 'Payment failed.' }));
       rzp.open();

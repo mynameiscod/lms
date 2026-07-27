@@ -71,6 +71,15 @@ const MissionControl: React.FC = () => {
 
   useEffect(() => { load(); }, [load]);
 
+  // If a payment completed in a redirected tab (checkout callback never fired here),
+  // re-check membership when the user returns to this tab so the unlocked state shows.
+  useEffect(() => {
+    const onFocus = () => { if (!status?.active) load(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onFocus);
+    return () => { window.removeEventListener('focus', onFocus); document.removeEventListener('visibilitychange', onFocus); };
+  }, [status?.active, load]);
+
   const unlock = async () => {
     setPaying(true); setPayMsg('');
     const res = await passportApi.membershipCheckout();

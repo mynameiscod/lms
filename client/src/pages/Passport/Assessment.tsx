@@ -1,20 +1,44 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessQuestion, AssessResult } from '../../api/passportApi';
+import { useAuth } from '../../contexts/AuthContext';
+import './assessment.css';
 
 /**
- * Career Readiness Assessment — the free deterministic entry point. Student answers the
- * MCQ bank one at a time; on submit we score server-side and show the Career Score,
- * category breakdown, strengths/gaps, recommended pathway, and a 7-day preview + ₹499 CTA.
- * Separate from the LMS layout (part of the Passport experience).
+ * Career Readiness Assessment — the free deterministic entry point (CareerPilot).
+ * Student answers the MCQ bank one at a time; on submit we score server-side and show the
+ * Career Score, category breakdown, strengths/gaps, recommended pathway, 7-day preview + ₹499 CTA.
  */
 const CAT_ICON: Record<string, string> = {
   career_clarity: '🎯', aptitude: '🔢', logical_reasoning: '🧩',
   technical: '💻', communication: '🗣️', employability: '💼',
 };
+const CAT_LABEL: Record<string, string> = {
+  career_clarity: 'Career Clarity', aptitude: 'Aptitude', logical_reasoning: 'Logical Reasoning',
+  technical: 'Technical Foundation', communication: 'Communication', employability: 'Employability',
+};
+const CAT_HELP: Record<string, string> = {
+  career_clarity: 'This helps us understand your career clarity and planning stage.',
+  aptitude: 'This helps us gauge your logical and numerical ability.',
+  logical_reasoning: 'This helps us understand your problem-solving approach.',
+  technical: 'This helps us assess your technical foundation.',
+  communication: 'This helps us understand your communication readiness.',
+  employability: 'This helps us gauge your job-readiness.',
+};
+const prettyCat = (k: string) => CAT_LABEL[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+const SIDE_FEATS: { ic: string; bg: string; title: string; desc: string }[] = [
+  { ic: '🎯', bg: '#e7f8f0', title: 'Discover Your Path', desc: 'Find the career roles that match your strengths and interests.' },
+  { ic: '📈', bg: '#e6f2ff', title: 'Know Your Score', desc: 'Get your Career Readiness Score across key areas.' },
+  { ic: '🗺️', bg: '#fff2e3', title: 'Personalized Roadmap', desc: 'Receive a 90-day plan tailored to your academic year and goals.' },
+  { ic: '⚡', bg: '#efeaff', title: 'Take Daily Action', desc: 'Unlock daily missions, resources, and expert guidance.' },
+];
+
+const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 const Assessment: React.FC = () => {
   const nav = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState<AssessQuestion[]>([]);
   const [answers, setAnswers] = useState<Record<string, number>>({});
@@ -23,6 +47,10 @@ const Assessment: React.FC = () => {
   const [result, setResult] = useState<AssessResult | null>(null);
   const [retake, setRetake] = useState(false);
   const [error, setError] = useState('');
+  const [secsLeft, setSecsLeft] = useState(600); // 10:00 soft timer
+
+  const firstName = user?.firstName || 'there';
+  const initial = (firstName[0] || 'C').toUpperCase();
 
   useEffect(() => {
     (async () => {
@@ -36,8 +64,16 @@ const Assessment: React.FC = () => {
     })();
   }, []);
 
+  // Soft countdown while taking the assessment.
+  const taking = !loading && (!result || retake);
+  useEffect(() => {
+    if (!taking) return;
+    const t = setInterval(() => setSecsLeft(s => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [taking]);
+
   const startFresh = async () => {
-    setLoading(true); setResult(null); setRetake(true); setAnswers({}); setIdx(0);
+    setLoading(true); setResult(null); setRetake(true); setAnswers({}); setIdx(0); setSecsLeft(600);
     try { const a = await passportApi.getAssessment(); setQuestions(a.questions); } catch { /* */ }
     setLoading(false);
   };
@@ -45,7 +81,7 @@ const Assessment: React.FC = () => {
   const total = questions.length;
   const answeredCount = Object.keys(answers).length;
   const current = questions[idx];
-  const progress = total ? Math.round((answeredCount / total) * 100) : 0;
+  const progress = total ? Math.round(((idx + 1) / total) * 100) : 0;
   const canSubmit = answeredCount === total && total > 0;
 
   const submit = async () => {
@@ -58,78 +94,122 @@ const Assessment: React.FC = () => {
     setSubmitting(false);
   };
 
-  if (loading) return <Shell><div style={{ textAlign: 'center', color: '#64748b', padding: 60 }}>Loading…</div></Shell>;
+  const Top = (progressUI: React.ReactNode) => (
+    <div className="pf-top"><div className="pf-top-in">
+      <div className="pf-brand"><span className="mark">🧭</span><div className="bt"><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div></div>
+      <button className="pf-back" onClick={() => nav('/passport')}>← Mission Control</button>
+      {progressUI}
+    </div></div>
+  );
 
-  if (result && !retake) return <ResultView result={result} onRetake={startFresh} onHome={() => nav('/passport')} />;
+  if (loading) return <div className="pf-shell">{Top(<div className="pf-spacer" />)}<div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>Loading…</div></div>;
+
+  if (result && !retake) return <ResultView result={result} firstName={firstName} initial={initial} onRetake={startFresh} onHome={() => nav('/passport')} topBrand={Top} />;
 
   return (
-    <Shell>
-      <div style={{ maxWidth: 720, margin: '0 auto' }}>
-        <button onClick={() => nav('/passport')} style={backBtn}>← Mission Control</button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, margin: '10px 0 4px' }}>
-          <span style={{ fontSize: 24 }}>🧭</span>
-          <h1 style={{ fontSize: 22, fontWeight: 800, color: '#0f172a', margin: 0 }}>Career Readiness Assessment</h1>
-        </div>
-        <p style={{ color: '#64748b', fontSize: 13.5, margin: '0 0 16px' }}>Answer honestly — there are no wrong answers on the self-rating ones. Takes about 5 minutes.</p>
-
-        {/* progress */}
-        <div style={{ height: 8, background: '#e9edf5', borderRadius: 99, overflow: 'hidden', marginBottom: 18 }}>
-          <div style={{ width: `${progress}%`, height: '100%', background: 'linear-gradient(90deg,#6650d8,#14a89c)', transition: 'width .25s' }} />
-        </div>
-
-        {error && <div style={errBox}>{error}</div>}
-
-        {current && (
-          <div style={card}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', color: '#94a3b8', fontSize: 12.5, fontWeight: 600, marginBottom: 8 }}>
-              <span>{CAT_ICON[current.category] || '•'} {current.category.replace(/_/g, ' ')}</span>
-              <span>Question {idx + 1} of {total}</span>
-            </div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#0f172a', marginBottom: 16 }}>{current.text}</div>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {current.options.map((opt, i) => {
-                const chosen = answers[current.id] === i;
-                return (
-                  <button key={i} onClick={() => setAnswers(a => ({ ...a, [current.id]: i }))}
-                    style={{
-                      textAlign: 'left', padding: '13px 16px', borderRadius: 11, fontSize: 14.5, cursor: 'pointer',
-                      border: chosen ? '2px solid #6650d8' : '1px solid #e2e8f0',
-                      background: chosen ? '#f4f2ff' : '#fff', color: '#0f172a', fontWeight: chosen ? 700 : 500,
-                    }}>
-                    <span style={{ display: 'inline-block', width: 22, height: 22, borderRadius: 99, marginRight: 10, textAlign: 'center', lineHeight: '22px', fontSize: 12, fontWeight: 700, color: chosen ? '#fff' : '#94a3b8', background: chosen ? '#6650d8' : '#eef1f6' }}>{String.fromCharCode(65 + i)}</span>
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
+    <div className="pf-shell">
+      {Top(
+        <>
+          <div className="pf-progress">
+            <div className="col"><div className="lbl">Assessment Progress</div><div className="track"><i style={{ width: `${progress}%` }} /></div></div>
+            <div className="pct">{progress}%</div>
           </div>
-        )}
+          <div className={`pf-timer${secsLeft <= 60 ? ' low' : ''}`}><span className="ic">⏱️</span><div><b>{fmt(secsLeft)}</b><small>Time Left</small></div></div>
+          <div className="pf-user"><span className="av">{initial}</span><div className="who"><b>Hi, {firstName}</b><small>Keep going!</small></div></div>
+        </>
+      )}
 
-        {/* nav */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 18 }}>
-          <button disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))}
-            style={{ ...navBtn, opacity: idx === 0 ? 0.4 : 1, cursor: idx === 0 ? 'default' : 'pointer' }}>← Back</button>
-          {idx < total - 1 ? (
-            <button disabled={answers[current?.id] === undefined} onClick={() => setIdx(i => i + 1)}
-              style={{ ...navBtnPrimary, opacity: answers[current?.id] === undefined ? 0.5 : 1 }}>Next →</button>
-          ) : (
-            <button disabled={!canSubmit || submitting} onClick={submit}
-              style={{ ...navBtnPrimary, opacity: (!canSubmit || submitting) ? 0.5 : 1 }}>
-              {submitting ? 'Scoring…' : 'See my Career Score'}
-            </button>
+      <div className="as-wrap">
+        {/* Left sidebar */}
+        <aside className="as-side">
+          <h2>Your Career <span className="b">Journey Starts Here</span></h2>
+          <div className="rule" />
+          <div className="intro">This assessment will help us understand your strengths, interests, and skills to create your personalized career roadmap.</div>
+          <div className="as-feats">
+            {SIDE_FEATS.map(f => (
+              <div className="as-feat" key={f.title}><span className="ic" style={{ background: f.bg }}>{f.ic}</span><div><b>{f.title}</b><span>{f.desc}</span></div></div>
+            ))}
+          </div>
+          <div className="as-safe">
+            <span className="sh">🛡️</span>
+            <div><b>Your Data is Safe</b><span>We never share your answers with anyone. Your privacy is 100% protected.</span></div>
+            <span className="lock">🔒</span>
+          </div>
+        </aside>
+
+        {/* Main */}
+        <main className="as-main">
+          <div className="as-banner">
+            <span className="bic">✨</span>
+            <div><b>Answer honestly. There are no wrong answers.</b><span>We just want to understand you better.</span></div>
+            <span className="bimg">🎯</span>
+          </div>
+
+          {error && <div className="as-err">{error}</div>}
+
+          {current && (
+            <div className="as-card">
+              <div className="as-qhead">
+                <span className="as-cat">{CAT_ICON[current.category] || '•'} {prettyCat(current.category)}</span>
+                <span className="as-qnum">Question {idx + 1} of {total}</span>
+              </div>
+              <h2 className="as-q">{current.text}</h2>
+              <p className="as-qsub">{CAT_HELP[current.category] || 'Choose the option that best describes you.'}</p>
+              <div className="as-opts">
+                {current.options.map((opt, i) => {
+                  const sel = answers[current.id] === i;
+                  const [head, ...restp] = String(opt).split(/\s[—–-]\s|:\s/);
+                  const sub = restp.join(' ').trim();
+                  return (
+                    <button key={i} className={`as-opt${sel ? ' sel' : ''}`} onClick={() => setAnswers(a => ({ ...a, [current.id]: i }))}>
+                      <span className="radio" />
+                      <span className="ltr">{String.fromCharCode(65 + i)}</span>
+                      <span className="otxt"><b>{head}</b>{sub && <span>{sub}</span>}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="as-nav">
+                <button className="as-btn-back" disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))}>← Back</button>
+                {idx < total - 1 ? (
+                  <button className="as-btn-next" disabled={answers[current.id] === undefined} onClick={() => setIdx(i => i + 1)}>Next →</button>
+                ) : (
+                  <button className="as-btn-next" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? 'Scoring…' : 'See my Career Score →'}</button>
+                )}
+              </div>
+              {!canSubmit && idx === total - 1 && <div style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Answer all {total} questions to submit ({answeredCount}/{total}).</div>}
+            </div>
           )}
-        </div>
-        {!canSubmit && idx === total - 1 && <div style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Answer all {total} questions to submit ({answeredCount}/{total}).</div>}
+
+          <div className="as-tip">
+            <span className="ic">⭐</span>
+            <div><b>Tip: There are no right or wrong answers.</b><span>Be honest so we can give you the best guidance.</span></div>
+          </div>
+        </main>
       </div>
-    </Shell>
+    </div>
   );
 };
 
 // ── Result ──
-const ResultView: React.FC<{ result: AssessResult; onRetake: () => void; onHome: () => void }> = ({ result, onRetake, onHome }) => {
+const BANDS = (score: number): { tag: string; color: string } => {
+  if (score >= 85) return { tag: 'Excellent', color: '#16a34a' };
+  if (score >= 60) return { tag: 'Good Progress', color: '#0ea5a3' };
+  if (score >= 40) return { tag: 'Keep Improving', color: '#f59e0b' };
+  return { tag: 'Keep Exploring', color: '#8b5cf6' };
+};
+
+const ResultView: React.FC<{
+  result: AssessResult; firstName: string; initial: string;
+  onRetake: () => void; onHome: () => void; topBrand: (ui: React.ReactNode) => React.ReactNode;
+}> = ({ result, firstName, initial, onRetake, onHome, topBrand }) => {
   const [paying, setPaying] = useState(false);
   const [payMsg, setPayMsg] = useState('');
   const [unlocked, setUnlocked] = useState(false);
+  const [status, setStatus] = useState<any>(null);
+  const printRef = useRef(false);
+
+  useEffect(() => { passportApi.me().then(setStatus).catch(() => {}); }, []);
 
   const unlock = async () => {
     setPaying(true); setPayMsg('');
@@ -139,123 +219,163 @@ const ResultView: React.FC<{ result: AssessResult; onRetake: () => void; onHome:
     else setPayMsg(res.message || 'Payment did not complete.');
   };
 
-  const scoreColor = result.careerScore >= 75 ? '#14a89c' : result.careerScore >= 45 ? '#6650d8' : '#f59e0b';
-  const circumference = 2 * Math.PI * 52;
-  const dash = useMemo(() => (result.careerScore / 100) * circumference, [result.careerScore, circumference]);
+  const price = status?.priceInr ?? 499;
+  const paymentOff = status?.paymentAvailable === false;
+  const score = result.careerScore;
+  const scoreBand = BANDS(score);
+  const circumference = 2 * Math.PI * 62;
+  const dash = useMemo(() => (score / 100) * circumference, [score, circumference]);
+  const encourage = score >= 75 ? "You're on a strong track. Stay consistent and you'll go far!"
+    : score >= 45 ? "You're on the right track. With the right plan and consistent effort, you can achieve great things!"
+    : "Great first step — a focused plan will move your score up fast.";
 
   return (
-    <Shell>
-      <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button onClick={onHome} style={backBtn}>← Mission Control</button>
-        <div style={{ ...card, textAlign: 'center', marginTop: 10 }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase' }}>Your Career Score</div>
-          <div style={{ position: 'relative', width: 140, height: 140, margin: '12px auto 6px' }}>
-            <svg width="140" height="140">
-              <circle cx="70" cy="70" r="52" fill="none" stroke="#eef1f6" strokeWidth="12" />
-              <circle cx="70" cy="70" r="52" fill="none" stroke={scoreColor} strokeWidth="12" strokeLinecap="round"
-                strokeDasharray={`${dash} ${circumference}`} transform="rotate(-90 70 70)" />
-            </svg>
-            <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <div style={{ fontSize: 38, fontWeight: 800, color: '#0f172a', lineHeight: 1 }}>{result.careerScore}</div>
-              <div style={{ fontSize: 12, color: '#94a3b8' }}>/ 100</div>
+    <div className="pf-shell">
+      {topBrand(
+        <>
+          <div className="pf-spacer" />
+          <button className="pf-report" onClick={() => { if (printRef.current) return; printRef.current = true; window.print(); setTimeout(() => (printRef.current = false), 800); }}>⬇ Download Report</button>
+          <div className="pf-user"><span className="av">{initial}</span><div className="who"><b>Hi, {firstName}</b></div></div>
+        </>
+      )}
+
+      <div className="rs-wrap">
+        <div className="rs-hi">
+          <h1>Great start, {firstName}! 🎉</h1>
+          <p>You've just discovered your Career Score. This is the first step towards your dream career.</p>
+        </div>
+
+        {/* Score summary */}
+        <div className="rs-card">
+          <div className="rs-score">
+            <div>
+              <div className="lbl">Your Career Score</div>
+              <div className="big">{score}<small> /100</small></div>
+              <span className="rs-badge" style={{ background: scoreBand.color + '1a', color: scoreBand.color }}>{result.level} ✓</span>
+              <div className="enc">{encourage}</div>
+            </div>
+            <div className="rs-gauge">
+              <svg width="150" height="150">
+                <circle cx="75" cy="75" r="62" fill="none" stroke="#eef1f6" strokeWidth="13" />
+                <circle cx="75" cy="75" r="62" fill="none" stroke="#6650d8" strokeWidth="13" strokeLinecap="round" strokeDasharray={`${dash} ${circumference}`} transform="rotate(-90 75 75)" />
+              </svg>
+              <div className="ctr"><b>{score}</b><span>/ 100</span></div>
+            </div>
+            <div className="rs-path">
+              <div className="k">Recommended pathway</div>
+              <div className="sub">Your best-fit direction</div>
+              <span className="chip">🚀 {result.pathwayLabel}</span>
             </div>
           </div>
-          <div style={{ display: 'inline-block', background: scoreColor + '1a', color: scoreColor, fontWeight: 800, fontSize: 14, padding: '5px 14px', borderRadius: 99 }}>{result.level}</div>
-          <div style={{ marginTop: 10, fontSize: 14, color: '#475569' }}>Recommended pathway: <b style={{ color: '#0f172a' }}>{result.pathwayLabel}</b></div>
         </div>
 
-        {/* category breakdown */}
-        <div style={{ ...card, marginTop: 14 }}>
-          <div style={sectionTitle}>Category breakdown</div>
-          <div style={{ display: 'grid', gap: 12, marginTop: 10 }}>
-            {result.categoryScores.map(c => (
-              <div key={c.key}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5, marginBottom: 4 }}>
-                  <span style={{ color: '#334155', fontWeight: 600 }}>{CAT_ICON[c.key] || '•'} {c.label}</span>
-                  <span style={{ color: '#0f172a', fontWeight: 700 }}>{c.score}%</span>
-                </div>
-                <div style={{ height: 7, background: '#eef1f6', borderRadius: 99, overflow: 'hidden' }}>
-                  <div style={{ width: `${c.score}%`, height: '100%', background: c.score >= 60 ? '#14a89c' : c.score >= 35 ? '#6650d8' : '#f59e0b' }} />
-                </div>
+        {/* Category breakdown */}
+        <div className="rs-card">
+          <div className="rs-sec-h">Category Breakdown <span className="hint">This shows your current strength in key areas</span></div>
+          {result.categoryScores.map(c => {
+            const b = BANDS(c.score);
+            return (
+              <div className="rs-cat" key={c.key}>
+                <div className="nm">{CAT_ICON[c.key] || '•'} {c.label}</div>
+                <div className="track"><i style={{ width: `${c.score}%`, background: b.color }} /></div>
+                <div className="pct">{c.score}%</div>
+                <div className="tag" style={{ color: b.color }}>{b.tag}</div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
 
-        {/* strengths / gaps */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 14, marginTop: 14 }}>
-          <div style={{ ...card }}>
-            <div style={{ ...sectionTitle, color: '#14a89c' }}>💪 Your strengths</div>
-            <ul style={listStyle}>{result.strengths.map((s, i) => <li key={i}>{s}</li>)}</ul>
+        {/* Strengths / focus */}
+        <div className="rs-two">
+          <div className="rs-card">
+            <div className="rs-sec-h">Your Top Strengths 💪</div>
+            <div className="rs-list">
+              {result.strengths.map((s, i) => (
+                <div className="rs-li" key={i}><span className="ic" style={{ background: '#e7f8f0' }}>✓</span><div><b>{s}</b></div></div>
+              ))}
+            </div>
           </div>
-          <div style={{ ...card }}>
-            <div style={{ ...sectionTitle, color: '#f59e0b' }}>🎯 Focus areas</div>
-            <ul style={listStyle}>{result.weaknesses.map((s, i) => <li key={i}>{s}</li>)}</ul>
+          <div className="rs-card">
+            <div className="rs-sec-h">Focus Areas 🎯</div>
+            <div className="rs-list">
+              {result.weaknesses.map((s, i) => (
+                <div className="rs-li" key={i}><span className="ic" style={{ background: '#fff2e3' }}>!</span><div><b>{s}</b></div></div>
+              ))}
+            </div>
           </div>
         </div>
 
         {/* 7-day preview */}
-        <div style={{ ...card, marginTop: 14 }}>
-          <div style={sectionTitle}>Your first 7 days (preview)</div>
-          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-            {result.weekPreview.map(d => (
-              <div key={d.day} style={{ display: 'flex', gap: 12, alignItems: 'flex-start', padding: '9px 12px', background: '#f8fafc', borderRadius: 10 }}>
-                <div style={{ minWidth: 30, height: 30, borderRadius: 8, background: '#ede9fe', color: '#6650d8', fontWeight: 800, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{d.day}</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{d.title}</div>
-                  <div style={{ fontSize: 12.5, color: '#64748b' }}>{d.detail}</div>
-                </div>
+        <div className="rs-card">
+          <div className="rs-sec-h">Your First 7 Days (Preview) <span className="hint">Small steps today, big change tomorrow</span></div>
+          <div className="rs-days">
+            {result.weekPreview.map((d, i) => (
+              <div className={`rs-day${i === 0 ? ' on' : ''}`} key={d.day}>
+                <div className="circ">{d.day}</div>
+                <b>{d.title}</b>
+                <span>{d.detail}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* CTA */}
-        <div style={{ ...card, marginTop: 14, background: 'linear-gradient(120deg,#1e1b4b,#0f766e)', color: '#fff', textAlign: 'center' }}>
-          {unlocked ? (
-            <>
-              <div style={{ fontSize: 40 }}>🎉</div>
-              <div style={{ fontSize: 19, fontWeight: 800 }}>You’re in! Membership activated.</div>
-              <p style={{ opacity: 0.85, fontSize: 13.5, margin: '8px auto 16px' }}>Your personalized daily missions are ready.</p>
-              <button onClick={onHome} style={{ background: '#fff', color: '#1e1b4b', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>
-                Go to Mission Control →
-              </button>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize: 19, fontWeight: 800 }}>Unlock your full 90-day journey</div>
-              <p style={{ opacity: 0.85, fontSize: 13.5, maxWidth: 460, margin: '8px auto 16px' }}>
-                Daily missions, verified practice, mock interviews, resume &amp; the shareable Career Passport — personalized to your score.
-              </p>
-              <button onClick={unlock} disabled={paying} style={{ background: '#fff', color: '#1e1b4b', border: 'none', borderRadius: 10, padding: '12px 28px', fontWeight: 800, fontSize: 15, cursor: paying ? 'default' : 'pointer', opacity: paying ? 0.6 : 1 }}>
-                {paying ? 'Opening payment…' : 'Unlock my journey'}
-              </button>
-              {payMsg && <div style={{ marginTop: 12, fontSize: 13, background: 'rgba(255,255,255,.12)', borderRadius: 8, padding: '8px 12px' }}>{payMsg}</div>}
-              <div style={{ fontSize: 12, opacity: 0.7, marginTop: 10 }}>
-                <button onClick={onHome} style={{ background: 'none', border: 'none', color: '#c7d2fe', fontSize: 12.5, cursor: 'pointer' }}>Maybe later — go to Mission Control →</button>
+        {/* Unlock */}
+        {unlocked ? (
+          <div className="rs-done">
+            <div className="em">🎉</div>
+            <h3>You're in! Membership activated.</h3>
+            <p>Your personalized daily missions are ready.</p>
+            <button onClick={onHome}>Go to Mission Control →</button>
+          </div>
+        ) : (
+          <div className="rs-unlock">
+            <div className="rs-unlock-l">
+              <h3>Unlock your full 90-day <span className="y">career transformation!</span></h3>
+              <div className="rs-uf">
+                <div><span className="ck">✓</span> Personalized 90-day roadmap</div>
+                <div><span className="ck">✓</span> Daily missions &amp; practice</div>
+                <div><span className="ck">✓</span> AI-powered feedback</div>
+                <div><span className="ck">✓</span> Track progress &amp; improve</div>
+                <div><span className="ck">✓</span> Certificates &amp; Career Passport</div>
               </div>
-            </>
-          )}
+            </div>
+            <div className="rs-unlock-r">
+              <span className="rs-offer">LIMITED TIME OFFER</span>
+              <span className="rs-save">Save 66%<br />Limited Seats!</span>
+              <div className="t">CareerPilot Founding Membership</div>
+              <div className="price">₹{price}<small> /year</small></div>
+              <div className="oneline">One-time payment · 12 months access</div>
+              <div className="rs-plan">
+                <div><span className="ck">✓</span> Full 90-day journey</div>
+                <div><span className="ck">✓</span> A career coach</div>
+                <div><span className="ck">✓</span> AI assessments &amp; practice</div>
+                <div><span className="ck">✓</span> Career Passport &amp; certificates</div>
+                <div><span className="ck">✓</span> Priority support</div>
+              </div>
+              {paymentOff ? (
+                <div style={{ fontSize: 13, color: '#475569', textAlign: 'center' }}>Online payment isn't enabled yet — please contact your mentor to activate.</div>
+              ) : (
+                <button className="rs-unlock-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : 'Unlock My Journey →'}</button>
+              )}
+              {payMsg && <div style={{ marginTop: 12, fontSize: 13, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 8, padding: '8px 12px' }}>{payMsg}</div>}
+              <div className="rs-guarantee">🔒 30-day money-back guarantee</div>
+            </div>
+          </div>
+        )}
+
+        <div className="rs-trust">🔒 100% secure · Your data is safe with us · Trusted by 12,000+ students across 200+ colleges</div>
+
+        <div className="rs-colleges">
+          <span className="lb">Trusted by students from</span>
+          {[['🎓', 'VIT', 'Vellore Institute of Technology'], ['🎓', 'SRM', 'Institute of Science & Technology'], ['🎓', 'GITAM', '(Deemed to be University)'], ['🎓', 'Andhra University', 'Andhra University'], ['🏛️', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
+            <div className="rs-col" key={nm}><span className="bd">{ic}</span><div><b>{nm}</b><span>{sub}</span></div></div>
+          ))}
         </div>
 
-        <div style={{ textAlign: 'center', marginTop: 16 }}>
-          <button onClick={onRetake} style={{ background: 'none', border: 'none', color: '#6650d8', fontWeight: 600, fontSize: 13, cursor: 'pointer' }}>↻ Retake assessment</button>
-        </div>
+        <div className="rs-retake"><button onClick={onRetake}>↻ Retake assessment</button></div>
       </div>
-    </Shell>
+    </div>
   );
 };
-
-const Shell: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg,#f5f3ff,#f6f7f9)', padding: '28px 20px' }}>{children}</div>
-);
-
-const card: React.CSSProperties = { background: '#fff', border: '1px solid #eef1f6', borderRadius: 16, padding: '20px 22px' };
-const sectionTitle: React.CSSProperties = { fontSize: 14, fontWeight: 800, color: '#0f172a' };
-const listStyle: React.CSSProperties = { margin: '8px 0 0', paddingLeft: 18, color: '#334155', fontSize: 14, lineHeight: 1.8 };
-const backBtn: React.CSSProperties = { background: 'none', border: 'none', color: '#6650d8', fontWeight: 600, fontSize: 13, cursor: 'pointer', padding: 0 };
-const navBtn: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 10, padding: '11px 20px', fontWeight: 700, fontSize: 14, color: '#475569' };
-const navBtnPrimary: React.CSSProperties = { background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer' };
-const errBox: React.CSSProperties = { background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 10, padding: '10px 14px', fontSize: 13.5, marginBottom: 14 };
 
 export default Assessment;

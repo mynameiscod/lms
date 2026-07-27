@@ -187,6 +187,55 @@ const MissionControl: React.FC = () => {
     );
   }
 
+  // ── Scored, not yet a member: stats + unlock hero ──
+  if (hasScore) {
+    return (
+      <div className="mc-shell">
+        {Topbar}
+        <div className="mc-scored">
+          <div className="mc-hd">
+            <h1>🚀 Mission <span className="b">Control</span></h1>
+            <p>Your CodeBegun Career Passport — one place that tells you what to do next.</p>
+          </div>
+
+          <div className="mc-stats">
+            <div className="mc-stat"><span className="ic" style={{ background: '#e7f8f0' }}>📈</span><div><div className="lbl">Career Score</div><div className="val">{result!.careerScore}</div><div className="hint">{result!.level}</div></div></div>
+            <div className="mc-stat"><span className="ic" style={{ background: '#efeaff' }}>🚩</span><div><div className="lbl">Pathway</div><div className="val" style={{ fontSize: 16 }}>{result!.pathwayLabel}</div></div></div>
+            <div className="mc-stat"><span className="ic" style={{ background: '#fff2e3' }}>🔥</span><div><div className="lbl">Streak</div><div className="val">0d</div><div className="hint">Unlock to start</div></div></div>
+            <div className="mc-stat"><span className="ic" style={{ background: '#e6f2ff' }}>⭐</span><div><div className="lbl">XP</div><div className="val">—</div><div className="hint">Unlock to earn</div></div></div>
+          </div>
+
+          <div className="mc-unlock-hero">
+            <h2>Unlock your full <span className="y">90-day</span> journey</h2>
+            <div className="mc-uh-feats">
+              <div><span className="ck">✓</span> Daily missions</div>
+              <div><span className="ck">✓</span> Verified practice</div>
+              <div><span className="ck">✓</span> Mock interviews</div>
+              <div><span className="ck">✓</span> Shareable Career Passport</div>
+              <div><span className="ck">✓</span> Personalized for your score</div>
+            </div>
+            {status?.paymentAvailable === false ? (
+              <p className="mc-uh-note">Online payment isn’t enabled yet — please <a href="#contact" onClick={e => e.preventDefault()}>contact your mentor</a> to activate.</p>
+            ) : null}
+            {status?.paymentAvailable === false ? (
+              <button className="mc-uh-btn" onClick={() => nav('/passport/assessment')}>🔓 Unlock My 90-Day Career Passport</button>
+            ) : (
+              <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock My 90-Day Career Passport — ₹${price}`}</button>
+            )}
+            {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
+            <button className="mc-uh-link" onClick={() => nav('/passport/assessment')}>View my full result →</button>
+          </div>
+
+          <div className="mc-features">
+            {[['🎯', '#efeaff', 'Personalized Roadmap', 'Based on your goals'], ['🤝', '#e7f8f0', 'Industry Mentorship', 'Learn from experts'], ['🧠', '#fff2e3', 'AI-Powered Insights', 'Smart recommendations'], ['💻', '#e6f2ff', 'Real-world Projects', 'Build & showcase'], ['💼', '#fdeaea', 'Placement Support', 'Interview to offer']].map(([ic, bg, t, d]) => (
+              <div className="mc-feat2" key={t}><div className="ic" style={{ background: bg }}>{ic}</div><b>{t}</b><span>{d}</span></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // ── Free / pre-assessment: CareerPilot "Clarity" landing ──
   return (
     <div className="mc-shell">

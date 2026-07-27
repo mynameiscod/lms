@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
@@ -27,6 +27,8 @@ const PassportJoin: React.FC = () => {
   const [devCode, setDevCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  const [resendIn, setResendIn] = useState(25);
+  const boxRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -34,6 +36,26 @@ const PassportJoin: React.FC = () => {
       catch { setEnabled(false); setMsg('Career Passport is not available right now.'); }
     })();
   }, [tenant]);
+
+  // Resend countdown while on the OTP step.
+  useEffect(() => {
+    if (step !== 'otp') return;
+    setResendIn(25);
+    const t = setInterval(() => setResendIn(s => (s > 0 ? s - 1 : 0)), 1000);
+    return () => clearInterval(t);
+  }, [step, token]);
+
+  const setDigit = (i: number, v: string) => {
+    const d = v.replace(/\D/g, '').slice(-1);
+    const arr = (code + '      ').slice(0, 6).split('');
+    arr[i] = d || ' ';
+    const next = arr.join('').replace(/\s+$/, '');
+    setCode(next.replace(/\s/g, ''));
+    if (d && i < 5) boxRefs.current[i + 1]?.focus();
+  };
+  const onBoxKey = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Backspace' && !code[i] && i > 0) boxRefs.current[i - 1]?.focus();
+  };
 
   const set = (k: string, v: any) => setForm(p => ({ ...p, [k]: v }));
   const extra = fieldsDef.filter(f => !['name', 'mobile', 'email'].includes(f.key));
@@ -63,26 +85,50 @@ const PassportJoin: React.FC = () => {
   };
 
   const resend = async () => {
+    setResendIn(25);
     try { const r = await passportPublicApi.resend(token); setDevCode(r.otp?.devCode || ''); setMsg(r.otp?.sent ? 'New code sent.' : (r.otp?.devCode ? `Dev code: ${r.otp.devCode}` : 'Code resent.')); } catch { /* ignore */ }
   };
 
-  // OTP verification step
+  // OTP verification step — full-screen branded gradient (matches CareerPilot mockup).
   if (enabled && step === 'otp') return (
-    <PublicChrome>
-      <div className="cp-page"><div style={{ maxWidth: 460, margin: '0 auto', background: '#fff', borderRadius: 18, boxShadow: '0 20px 50px rgba(15,23,42,.1)', padding: 30, textAlign: 'center' }}>
-        <div className="cp-ric">🔐</div>
-        <div className="cp-ftitle">Verify your number</div>
-        <div className="cp-fsub">{msg || 'Enter the code we sent you.'}</div>
-        <input className="cp-otp" value={code} maxLength={6} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="••••••" inputMode="numeric" />
-        {devCode && <div style={{ fontSize: 12, color: '#7c3aed', marginTop: 8 }}>Dev code: <b>{devCode}</b></div>}
-        <button className="cp-submit" disabled={busy || code.length < 4} onClick={verify}>{busy ? 'Verifying…' : 'Verify & continue →'}</button>
-        <div style={{ marginTop: 14, fontSize: 13 }}>
-          <button onClick={resend} style={{ background: 'none', border: 'none', color: '#4f46e5', fontWeight: 700, cursor: 'pointer' }}>Resend code</button>
-          <span style={{ color: '#cbd5e1' }}> · </span>
-          <button onClick={() => { setStep('form'); setMsg(''); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }}>Edit details</button>
+    <div className="otp-page">
+      <div className="otp-top">
+        <div className="otp-brand"><span className="mk">🧭</span><div><b>CareerPilot</b><small>Powered by CodeBegun</small></div></div>
+        <button className="otp-change" onClick={() => { setStep('form'); setMsg(''); setCode(''); }}>← Change Number</button>
+      </div>
+
+      <div className="otp-mid">
+        <div className="otp-card">
+          <div className="otp-wa">🟢</div>
+          <h1>Verify Your Number</h1>
+          <div className="lead">We've sent a 6-digit verification code to your WhatsApp number</div>
+          <div className="otp-num">+91 {form.mobile || '—'}<button onClick={() => { setStep('form'); setMsg(''); setCode(''); }}>✏️ Change</button></div>
+          <div className="otp-hint">Enter the 6-digit code below</div>
+          <div className="otp-boxes">
+            {[0, 1, 2, 3, 4, 5].map(i => (
+              <input key={i} ref={el => (boxRefs.current[i] = el)} className="otp-box" inputMode="numeric" maxLength={1}
+                value={code[i] || ''} onChange={e => setDigit(i, e.target.value)} onKeyDown={e => onBoxKey(i, e)}
+                onFocus={e => e.target.select()} />
+            ))}
+          </div>
+          <div className="otp-resend">
+            Didn't receive the code?{' '}
+            {resendIn > 0
+              ? <>Resend code in <b>00:{String(resendIn).padStart(2, '0')}</b></>
+              : <a onClick={resend}>Resend code</a>}
+          </div>
+          {devCode && <div style={{ fontSize: 12, color: '#7c3aed', marginBottom: 10 }}>Dev code: <b>{devCode}</b></div>}
+          {msg && !msg.startsWith('We sent') && <div className="cp-err" style={{ marginBottom: 12 }}>{msg}</div>}
+          <button className="otp-verify" disabled={busy || code.length < 6} onClick={verify}>{busy ? 'Verifying…' : 'Verify & Continue →'}</button>
         </div>
-      </div></div>
-    </PublicChrome>
+      </div>
+
+      <div className="otp-banner">
+        <span className="sh">🛡️</span>
+        <div><b>Your account is protected</b><p>We never share your number with anyone.</p></div>
+        <span className="lock">🔒</span>
+      </div>
+    </div>
   );
 
   return (

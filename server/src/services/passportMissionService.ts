@@ -60,11 +60,19 @@ function focusOrder(attempt: AttemptLite): string[] {
   return [...attempt.categoryScores].sort((a, b) => a.score - b.score).map(c => c.key);
 }
 
-/** The 3 categories day N targets: two weakest + one rotating. Exported so the roadmap agrees. */
+/**
+ * The 3 categories day N targets: the two weakest, plus one rotating.
+ *
+ * The rotating slot rotates over the categories AFTER the first two. Rotating over the
+ * whole list (the original behaviour) made slot 2 land on slot 0's category every
+ * `order.length` days — day 1, 7, 13… — so a third of all days served the same category
+ * twice. Exported so the roadmap and the daily missions agree.
+ */
 export function categoriesForDay(attempt: AttemptLite, day: number): string[] {
   const order = focusOrder(attempt);
-  if (!order.length) return [];
-  return [order[0], order[1] || order[0], order[(day - 1) % order.length]];
+  if (order.length <= 2) return order.slice(0, 2);
+  const rest = order.slice(2);
+  return [order[0], order[1], rest[(day - 1) % rest.length]];
 }
 
 export function missionsForDay(attempt: AttemptLite, day: number, pools: PoolMap = poolMapOf()): Mission[] {
@@ -72,10 +80,22 @@ export function missionsForDay(attempt: AttemptLite, day: number, pools: PoolMap
   if (!cats.length) return [];
   const h = hash(day);
 
+  // Belt-and-braces against repeats: even when two slots share a category (possible
+  // when a tenant has fewer than 3 categories), never serve the same title twice in a
+  // day. The `slot * 7` stride alone collided whenever pool.length divided 14.
+  const usedTitles = new Set<string>();
+
   return cats.map((cat, slot) => {
     const pool = pools[cat] || pools.career_clarity || [];
     if (!pool.length) return null;
-    const pick = pool[(h + slot * 7 + day) % pool.length];
+
+    let idx = (h + slot * 7 + day) % pool.length;
+    for (let tries = 0; tries < pool.length && usedTitles.has(pool[idx].title); tries++) {
+      idx = (idx + 1) % pool.length;
+    }
+    const pick = pool[idx];
+    usedTitles.add(pick.title);
+
     return {
       key: `d${day}-s${slot}`,
       title: pick.title,

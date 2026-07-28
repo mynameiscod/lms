@@ -15,6 +15,9 @@ export interface IPassportProgress extends Document {
   lastCompletedDate?: string;      // 'YYYY-MM-DD' (tenant-local-ish, UTC date)
   xp: number;
   completed: { day: number; key: string; at: Date }[];
+  /** Practice Lab attempts. `solvedProblems` makes the XP award idempotent per problem. */
+  practice: { problemId: string; kind: string; passed: boolean; score: number; total: number; xp: number; at: Date }[];
+  solvedProblems: string[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -29,6 +32,12 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
     lastCompletedDate: { type: String },
     xp:        { type: Number, default: 0 },
     completed: [{ day: Number, key: String, at: { type: Date, default: Date.now } }],
+    practice: [{
+      problemId: String, kind: String, passed: Boolean,
+      score: Number, total: Number, xp: Number,
+      at: { type: Date, default: Date.now },
+    }],
+    solvedProblems: [{ type: String }],
   },
   { timestamps: true }
 );

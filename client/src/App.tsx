@@ -64,8 +64,14 @@ import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
 import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
-import PassportPlaceholder from './pages/Passport/Placeholder';
+import PassportAdminPathways from './pages/Passport/AdminPathways';
+import PassportAdminMissions from './pages/Passport/AdminMissions';
 import MissionControl from './pages/Passport/MissionControl';
+import PassportRoadmap from './pages/Passport/Roadmap';
+import PassportPractice from './pages/Passport/Practice';
+import PassportPracticeItem from './pages/Passport/PracticeItem';
+import PassportInterview from './pages/Passport/Interview';
+import PassportResumeCenter from './pages/Passport/ResumeCenter';
 import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
@@ -385,20 +391,35 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathways" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Pathways" step="Step 3" /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/missions" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportPlaceholder title="Passport Missions" step="Step 5" /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
       } />
-      {/* Student Mission Control — deliberately NOT the LMS Layout (separate experience) */}
+      {/* Student Passport surfaces — deliberately NOT the LMS Layout (separate product) */}
       <Route path="/passport" element={
         <ProtectedRoute><MissionControl /></ProtectedRoute>
       } />
       <Route path="/passport/assessment" element={
         <ProtectedRoute><PassportAssessmentPage /></ProtectedRoute>
+      } />
+      <Route path="/passport/roadmap" element={
+        <ProtectedRoute><PassportRoadmap /></ProtectedRoute>
+      } />
+      <Route path="/passport/practice" element={
+        <ProtectedRoute><PassportPractice /></ProtectedRoute>
+      } />
+      <Route path="/passport/practice/:id" element={
+        <ProtectedRoute><PassportPracticeItem /></ProtectedRoute>
+      } />
+      <Route path="/passport/interview" element={
+        <ProtectedRoute><PassportInterview /></ProtectedRoute>
+      } />
+      <Route path="/passport/resume" element={
+        <ProtectedRoute><PassportResumeCenter /></ProtectedRoute>
       } />
 
       <Route

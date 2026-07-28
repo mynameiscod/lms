@@ -2,7 +2,9 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessResult, TodayMissions } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { MEMBER_NAV } from './PassportShell';
 import './missionControl.css';
+import './member.css';
 
 /**
  * Mission Control — the Passport student's home. Pre-assessment it shows the CareerPilot
@@ -162,7 +164,15 @@ const MissionControl: React.FC = () => {
     return (
       <div className="mc-shell">
         {Topbar}
-        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '10px 26px 0' }}>
+        {/* Member nav — every paid surface lives under /passport, never in the LMS. */}
+        <nav className="pm-nav" style={{ maxWidth: 1040 }}>
+          {MEMBER_NAV.map(n => (
+            <button key={n.path} className={`pm-nav-item${n.path === '/passport' ? ' on' : ''}`} onClick={() => nav(n.path)}>
+              <span>{n.icon}</span>{n.label}
+            </button>
+          ))}
+        </nav>
+        <div style={{ maxWidth: 1040, margin: '0 auto', padding: '16px 26px 0' }}>
           {status && status.passwordSet === false && (
             <div style={{ background: 'linear-gradient(90deg,#eef0ff,#e7f8f5)', border: '1px solid #dcd7fb', borderRadius: 14, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <span style={{ fontSize: 22 }}>🔒</span>
@@ -223,6 +233,10 @@ const MissionControl: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginTop: 14 }}>
+            <QuickCard title="🗺️ My 90-day roadmap" onClick={() => nav('/passport/roadmap')} sub="Every week, every day, planned" />
+            <QuickCard title="💻 Practice Lab" onClick={() => nav('/passport/practice')} sub="Code that actually runs" />
+            <QuickCard title="🎙️ Mock interview" onClick={() => nav('/passport/interview')} sub="AI interviewer + scored feedback" />
+            <QuickCard title="📄 Resume Center" onClick={() => nav('/passport/resume')} sub="Build it, score it, fix it" />
             <QuickCard title="📊 My assessment result" onClick={() => nav('/passport/assessment')} sub="Score, breakdown & pathway" />
             <QuickCard title="🎫 My Career Passport" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
           </div>
@@ -267,6 +281,7 @@ const MissionControl: React.FC = () => {
               <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock My 90-Day Career Passport — ₹${price}`}</button>
             )}
             {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
+            <button className="mc-uh-link" onClick={() => nav('/passport/roadmap')}>See what's in the 90 days →</button>
             <button className="mc-uh-link" onClick={() => nav('/passport/assessment')}>View my full result →</button>
           </div>
 

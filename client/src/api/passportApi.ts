@@ -80,6 +80,84 @@ export const passportApi = {
     return data;
   },
 
+  // ── Roadmap (full 90-day journey; free users get the 7-day preview) ──
+  getRoadmap: async (): Promise<RoadmapResponse> => {
+    const { data } = await axios.get(`${BASE}/roadmap`, { headers: auth() });
+    return data;
+  },
+
+  // ── Practice Lab ──
+  listPractice: async (params: { kind?: string; category?: string } = {}): Promise<PracticeListResponse> => {
+    const { data } = await axios.get(`${BASE}/practice`, { headers: auth(), params });
+    return data;
+  },
+  getPractice: async (id: string): Promise<{ problem: PracticeProblem; solved: boolean }> => {
+    const { data } = await axios.get(`${BASE}/practice/${encodeURIComponent(id)}`, { headers: auth() });
+    return data;
+  },
+  runPractice: async (id: string, code: string, language: string): Promise<RunOutcome> => {
+    const { data } = await axios.post(`${BASE}/practice/${encodeURIComponent(id)}/run`, { code, language }, { headers: auth() });
+    return data;
+  },
+  submitPractice: async (id: string, body: { code?: string; language?: string; answers?: number[] }): Promise<SubmitOutcome> => {
+    const { data } = await axios.post(`${BASE}/practice/${encodeURIComponent(id)}/submit`, body, { headers: auth() });
+    return data;
+  },
+
+  // ── Mock interviews ──
+  listInterviews: async (): Promise<{ locked?: boolean; priceInr?: number; aiAvailable?: boolean; sessions?: InterviewSession[]; openSessionId?: string | null }> => {
+    const { data } = await axios.get(`${BASE}/interview`, { headers: auth() });
+    return data;
+  },
+  startInterview: async (): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
+    const { data } = await axios.post(`${BASE}/interview/start`, {}, { headers: auth() });
+    return data;
+  },
+  interviewTurn: async (id: string, answer: string): Promise<{ say: string; kind: string; endInterview: boolean; session: InterviewSession }> => {
+    const { data } = await axios.post(`${BASE}/interview/${id}/turn`, { answer }, { headers: auth() });
+    return data;
+  },
+  finishInterview: async (id: string): Promise<{ session: InterviewSession; scored?: boolean }> => {
+    const { data } = await axios.post(`${BASE}/interview/${id}/finish`, {}, { headers: auth() });
+    return data;
+  },
+
+  // ── Resume Center ──
+  getResume: async (): Promise<{ resume: { sections: ResumeSections; score: ResumeScore | null; scoredAt?: string; version: number } }> => {
+    const { data } = await axios.get(`${BASE}/resume`, { headers: auth() });
+    return data;
+  },
+  saveResume: async (sections: ResumeSections): Promise<{ resume: { sections: ResumeSections; score: ResumeScore | null } }> => {
+    const { data } = await axios.put(`${BASE}/resume`, { sections }, { headers: auth() });
+    return data;
+  },
+  scoreResume: async (): Promise<{ score: ResumeScore; xpAwarded: number; atsReady: boolean; goodScore: number }> => {
+    const { data } = await axios.post(`${BASE}/resume/score`, {}, { headers: auth() });
+    return data;
+  },
+  improveResume: async (): Promise<{ sections: ResumeSections }> => {
+    const { data } = await axios.post(`${BASE}/resume/improve`, {}, { headers: auth() });
+    return data;
+  },
+
+  // ── Admin content (Pathways + Mission pools) ──
+  getContent: async (): Promise<{ content: PassportContentDoc; categories: { key: string; label: string; weight: number }[] }> => {
+    const { data } = await axios.get(`${BASE}/content`, { headers: auth() });
+    return data;
+  },
+  saveContent: async (patch: Partial<PassportContentDoc>): Promise<{ content: PassportContentDoc }> => {
+    const { data } = await axios.put(`${BASE}/content`, patch, { headers: auth() });
+    return data;
+  },
+  resetContent: async (what: 'all' | 'pathways' | 'missions'): Promise<{ content: PassportContentDoc }> => {
+    const { data } = await axios.post(`${BASE}/content/reset`, { what }, { headers: auth() });
+    return data;
+  },
+  previewContent: async (body: Partial<PassportContentDoc> & { pathway?: string }): Promise<ContentPreview> => {
+    const { data } = await axios.post(`${BASE}/content/preview`, body, { headers: auth() });
+    return data;
+  },
+
   // Membership checkout (₹499). Opens Razorpay and resolves true on successful activation.
   membershipCheckout: async (): Promise<{ ok: boolean; message?: string }> => {
     const ready = await loadRazorpay();
@@ -128,6 +206,83 @@ export const passportApi = {
     });
   },
 };
+
+// ── Roadmap ──
+export interface RoadmapDay { day: number; date?: string; categories: string[]; titles: string[]; xp: number; done?: boolean; isToday?: boolean; isPast?: boolean; }
+export interface RoadmapWeek { week: number; theme: string; fromDay: number; toDay: number; focusLabels: string[]; goal: string; days: RoadmapDay[]; completedDays: number; }
+export interface RoadmapPhase { key: string; label: string; blurb: string; fromDay: number; toDay: number; weeks: RoadmapWeek[]; }
+export interface Roadmap {
+  totalDays: number; pathway: string; pathwayLabel: string; pathwayDescription: string;
+  currentDay: number; startDate?: string; endDate?: string; phases: RoadmapPhase[];
+  totalXp: number; earnedXp: number; completedDays: number; locked?: boolean; previewDays?: number;
+}
+export interface RoadmapResponse {
+  needsAssessment?: boolean; roadmap?: Roadmap; entitled?: boolean;
+  priceInr?: number; careerScore?: number; level?: string;
+}
+
+// ── Practice ──
+export interface PracticeListItem { id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; category: string; difficulty: string; xp: number; count: number; }
+export interface PracticeListResponse { locked?: boolean; priceInr?: number; problems: PracticeListItem[]; solved: string[]; xp?: number; streak?: number; }
+export interface PracticeProblem {
+  id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; category: string;
+  difficulty: string; xp: number; prompt: string;
+  languages?: string[]; starter?: Record<string, string>; schemaNote?: string;
+  sampleTests: { input: string; expected: string }[]; testCount: number;
+  questions: { q: string; options: string[] }[];
+}
+export interface RunOutcome {
+  results: { index: number; hidden: boolean; passed: boolean; input: string; expected: string; got: string; error?: string }[];
+  passedCount: number; total: number; allPassed: boolean; compilationError?: string;
+}
+export interface SubmitOutcome extends Partial<RunOutcome> {
+  passed: boolean; xpAwarded: number; xp: number; streak: number; longestStreak: number; alreadySolved?: boolean;
+  review?: { index: number; q: string; options: string[]; chosen: number; answer: number; correct: boolean; explain?: string }[];
+  correct?: number; total?: number;
+}
+
+// ── Mock interview ──
+export interface InterviewTurn { role: 'interviewer' | 'candidate'; text: string; at?: string; }
+export interface InterviewSession {
+  id: string; role: string; areas: string[]; interviewerName: string;
+  maxQuestions: number; askedCount: number; status: 'in_progress' | 'completed' | 'abandoned';
+  transcript: InterviewTurn[];
+  evaluation?: {
+    overallScore: number; readinessLevel: string; summary: string;
+    strengths: string[]; improvements: string[]; recommendedPracticeAreas: string[];
+    areaScores: { title: string; percentage: number; feedback: string }[];
+  } | null;
+  xpAwarded: number; startedAt: string; completedAt?: string;
+}
+
+// ── Resume ──
+export interface ResumeSections {
+  contact: { name: string; title?: string; email: string; phone: string; linkedin?: string; github?: string; portfolio?: string; location?: string };
+  summary: string;
+  experience: { company: string; role: string; from: string; to: string; current: boolean; bullets: string[] }[];
+  education: { degree: string; college: string; university?: string; year?: string; cgpa?: string }[];
+  skills: { category: string; items: string[] }[];
+  projects: { name: string; tech: string[]; description: string; link?: string }[];
+  certifications: { name: string; issuer: string; year?: string }[];
+}
+export interface ResumeScore {
+  total: number;
+  breakdown: { contact: number; summary: number; experience: number; education: number; skills: number; projects: number; ats: number };
+  suggestions: { section: string; issue: string; fix: string }[];
+  atsWarnings: string[]; keywordsFound: string[]; keywordsMissing: string[];
+}
+
+// ── Admin content ──
+export interface MissionPoolItem { title: string; detail: string; type: string; xp: number; link?: string; }
+export interface MissionPool { category: string; items: MissionPoolItem[]; }
+export interface PassportPathway { key: string; label: string; description: string; focus: string[]; weekThemes: string[]; }
+export interface PassportContentDoc { _id?: string; tenantId?: string; pathways: PassportPathway[]; missionPools: MissionPool[]; journeyDays: number; }
+export interface ContentPreview {
+  sampleFromRealStudent: boolean;
+  days: { day: number; missions: { key: string; title: string; detail: string; category: string; xp: number; link?: string }[] }[];
+  weeks: { week: number; theme: string; goal: string; focusLabels: string[] }[];
+  totalXp: number; totalDaysGenerated: number;
+}
 
 export interface TodayMissions {
   locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;

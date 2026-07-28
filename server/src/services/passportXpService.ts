@@ -20,8 +20,20 @@ export async function getOrCreateProgress(
  * is idempotent per calendar day, so practice + missions on the same day don't
  * double-count.
  */
-export function addXp(progress: IPassportProgress, amount: number, bumpStreak = true, now = new Date()) {
-  progress.xp += Math.max(0, amount || 0);
+export function addXp(
+  progress: IPassportProgress,
+  amount: number,
+  bumpStreak = true,
+  now = new Date(),
+  source = 'other',
+) {
+  const gain = Math.max(0, amount || 0);
+  progress.xp += gain;
+  if (gain > 0) {
+    if (!progress.xpLog) progress.xpLog = [] as any;
+    progress.xpLog.push({ at: now, amount: gain, source });
+    if (progress.xpLog.length > 400) progress.xpLog = progress.xpLog.slice(-400);
+  }
   if (!bumpStreak) return;
   const today = ymd(now);
   if (progress.lastCompletedDate !== today) {

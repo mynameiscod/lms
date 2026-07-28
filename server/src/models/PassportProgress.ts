@@ -18,6 +18,9 @@ export interface IPassportProgress extends Document {
   /** Practice Lab attempts. `solvedProblems` makes the XP award idempotent per problem. */
   practice: { problemId: string; kind: string; passed: boolean; score: number; total: number; xp: number; at: Date }[];
   solvedProblems: string[];
+  /** Every XP award, so the activity chart and daily goal are exact rather than inferred.
+   *  Trimmed to the most recent 400 events — the dashboard only ever reads ~30 days. */
+  xpLog: { at: Date; amount: number; source: string }[];
   createdAt: Date;
   updatedAt: Date;
 }
@@ -38,6 +41,7 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
       at: { type: Date, default: Date.now },
     }],
     solvedProblems: [{ type: String }],
+    xpLog: [{ at: { type: Date, default: Date.now }, amount: Number, source: String }],
   },
   { timestamps: true }
 );

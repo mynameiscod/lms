@@ -80,6 +80,12 @@ export const passportApi = {
     return data;
   },
 
+  // ── Gamified member dashboard (one call for the whole home screen) ──
+  getDashboard: async (): Promise<DashboardData> => {
+    const { data } = await axios.get(`${BASE}/dashboard`, { headers: auth() });
+    return data;
+  },
+
   // ── Roadmap (full 90-day journey; free users get the 7-day preview) ──
   getRoadmap: async (): Promise<RoadmapResponse> => {
     const { data } = await axios.get(`${BASE}/roadmap`, { headers: auth() });
@@ -206,6 +212,47 @@ export const passportApi = {
     });
   },
 };
+
+// ── Gamified dashboard ──
+export interface LevelInfo {
+  level: number; title: string; xp: number;
+  xpIntoLevel: number; xpForThisLevel: number; xpToNextLevel: number;
+  nextLevel: number; nextTitle: string; progressPct: number;
+}
+export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
+export interface DashboardData {
+  active: boolean;
+  hasAssessment: boolean;
+  priceInr?: number;
+  name?: string;
+  firstName?: string;
+  level?: LevelInfo;
+  coderScore?: { score: number; parts: { label: string; earned: number; max: number }[] };
+  percentileAhead?: number | null;
+  skills?: { key: string; label: string; score: number }[];
+  careerScore?: number | null;
+  careerLevel?: string | null;
+  pathwayLabel?: string;
+  stats?: {
+    solved: number; solvedToday: number; totalProblems: number;
+    accuracy: { pct: number; attempts: number } | null;
+    streak: number; longestStreak: number; xp: number;
+    day: number; totalDays: number; completedDays: number;
+    interviews: number; bestInterview: number | null; resumeScore: number | null;
+  };
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; done: boolean }[];
+  allDone?: boolean;
+  dailyGoal?: { earned: number; target: number; pct: number; met: boolean };
+  streakWeek?: { date: string; letter: string; active: boolean; isToday: boolean }[];
+  activity?: { date: string; xp: number; label: string }[];
+  badges?: Badge[];
+  journey?: { key: string; label: string; fromDay: number; toDay: number; done: boolean; current: boolean }[];
+  leaderboard?: { rank: number; name: string; xp: number; me: boolean }[];
+  contests?: { id: string; title: string; prize: string | null; startAt: string; slug: string | null }[];
+  shareSlug?: string | null;
+  passwordSet?: boolean;
+  entitled?: Record<string, boolean>;
+}
 
 // ── Roadmap ──
 export interface RoadmapDay { day: number; date?: string; categories: string[]; titles: string[]; xp: number; done?: boolean; isToday?: boolean; isPast?: boolean; }

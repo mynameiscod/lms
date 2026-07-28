@@ -9,6 +9,7 @@ import * as practice from '../controllers/passportPracticeController';
 import * as interview from '../controllers/passportInterviewController';
 import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
+import * as dashboard from '../controllers/passportDashboardController';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -32,6 +33,9 @@ router.post('/set-password', ctrl.setPassword);
 // Membership activation (₹499, reuses the Razorpay rail)
 router.post('/membership/order',  ctrl.createMembershipOrder);
 router.post('/membership/verify', ctrl.verifyMembership);
+
+// Gamified member dashboard — one call for the whole home screen
+router.get('/dashboard', dashboard.getDashboard);
 
 // Daily missions (gated behind the daily_missions entitlement)
 router.get('/missions/today',      missions.getToday);

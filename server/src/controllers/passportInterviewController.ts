@@ -177,7 +177,7 @@ export const finish = async (req: Request, res: Response) => {
 
     if (!session.xpAwarded) {
       const progress = await getOrCreateProgress(tenantId, studentId);
-      addXp(progress, INTERVIEW_XP, true);
+      addXp(progress, INTERVIEW_XP, true, new Date(), 'interview');
       await progress.save();
       session.xpAwarded = INTERVIEW_XP;
     }

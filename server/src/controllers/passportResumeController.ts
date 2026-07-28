@@ -97,7 +97,7 @@ export const score = async (req: Request, res: Response) => {
     let xpAwarded = 0;
     if (firstScore) {
       const progress = await getOrCreateProgress(tenantId, studentId);
-      addXp(progress, SCORE_XP, true);
+      addXp(progress, SCORE_XP, true, new Date(), 'resume');
       await progress.save();
       xpAwarded = SCORE_XP;
     }

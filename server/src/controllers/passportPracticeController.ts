@@ -117,7 +117,7 @@ export const submit = async (req: Request, res: Response) => {
     const firstSolve = passed && !(progress.solvedProblems || []).includes(problem.id);
     if (firstSolve) {
       progress.solvedProblems.push(problem.id);
-      addXp(progress, problem.xp, true);
+      addXp(progress, problem.xp, true, new Date(), 'practice');
     }
     progress.practice.push({
       problemId: problem.id, kind: problem.kind, passed,

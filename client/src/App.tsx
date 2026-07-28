@@ -66,7 +66,7 @@ import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
-import MissionControl from './pages/Passport/MissionControl';
+import PassportHome from './pages/Passport/PassportHome';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportPractice from './pages/Passport/Practice';
 import PassportPracticeItem from './pages/Passport/PracticeItem';
@@ -401,7 +401,7 @@ const AppRoutes: React.FC = () => {
       } />
       {/* Student Passport surfaces — deliberately NOT the LMS Layout (separate product) */}
       <Route path="/passport" element={
-        <ProtectedRoute><MissionControl /></ProtectedRoute>
+        <ProtectedRoute><PassportHome /></ProtectedRoute>
       } />
       <Route path="/passport/assessment" element={
         <ProtectedRoute><PassportAssessmentPage /></ProtectedRoute>

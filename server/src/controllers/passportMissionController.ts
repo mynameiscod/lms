@@ -4,7 +4,8 @@ import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
 import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
-import { missionsForDay, dayNumber, ymd, ensureContent, poolMapOf } from '../services/passportMissionService';
+import { missionsForDay, dayNumber, ensureContent, poolMapOf } from '../services/passportMissionService';
+import { addXp } from '../services/passportXpService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -74,16 +75,8 @@ export const completeMission = async (req: Request, res: Response) => {
     const already = progress.completed.some(c => c.day === day && c.key === key);
     if (!already) {
       progress.completed.push({ day, key, at: now });
-      progress.xp += valid.xp || 10;
-
-      // Streak: increment once per new active day.
-      const today = ymd(now);
-      if (progress.lastCompletedDate !== today) {
-        const yesterday = ymd(new Date(now.getTime() - 86400000));
-        progress.streak = progress.lastCompletedDate === yesterday ? progress.streak + 1 : 1;
-        progress.longestStreak = Math.max(progress.longestStreak, progress.streak);
-        progress.lastCompletedDate = today;
-      }
+      // addXp also writes the XP event log and bumps the streak once per calendar day.
+      addXp(progress, valid.xp || 10, true, now, 'mission');
       await progress.save();
     }
 

@@ -4,26 +4,45 @@
 .gd { min-height: 100vh; background: #f4f5fa; display: flex; }
 .gd * { box-sizing: border-box; }
 
-/* ── Sidebar ── */
-.gd-side { width: 232px; flex-shrink: 0; background: #fff; border-right: 1px solid #ecedf5; display: flex; flex-direction: column; padding: 18px 14px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-.gd-logo { display: flex; align-items: center; gap: 10px; padding: 0 6px 18px; }
-.gd-logo .mk { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; color: #fff; font-size: 17px; font-weight: 900; }
-.gd-logo b { font-size: 17px; font-weight: 900; color: #0f172a; display: block; line-height: 1.1; }
+/* ── Sidebar ──
+   Only the NAV scrolls. The logo, daily-goal card and profile card are pinned, so
+   they can never be clipped. (Putting overflow-y on the whole rail scrolled the lot
+   and cut the goal card in half once the nav grew past the viewport.) */
+.gd-side { width: 248px; flex-shrink: 0; background: #fff; border-right: 1px solid #ecedf5; display: flex; flex-direction: column; padding: 18px 12px 14px; position: sticky; top: 0; height: 100vh; overflow: hidden; }
+.gd-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 16px; flex-shrink: 0; }
+.gd-logo .mk { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: -.5px; flex-shrink: 0; }
+.gd-logo b { font-size: 16.5px; font-weight: 900; color: #0f172a; display: block; line-height: 1.15; }
 .gd-logo b .p { color: #6d4bd8; }
 .gd-logo small { font-size: 10px; color: #a3aab8; }
 
-.gd-nav { display: flex; flex-direction: column; gap: 2px; }
-.gd-nav-btn { display: flex; align-items: center; gap: 11px; width: 100%; background: none; border: none; border-radius: 11px; padding: 11px 13px; font-size: 13.5px; font-weight: 600; color: #5b6478; cursor: pointer; text-align: left; transition: background .13s, color .13s; }
-.gd-nav-btn:hover { background: #f5f6fb; color: #0f172a; }
-.gd-nav-btn.on { background: linear-gradient(90deg,#6d4bd8,#7f5ce0); color: #fff; font-weight: 800; box-shadow: 0 8px 18px rgba(109,75,216,.28); }
-.gd-nav-btn .ic { width: 18px; text-align: center; font-size: 14px; }
-.gd-nav-btn .cr { margin-left: auto; font-size: 9px; opacity: .6; }
-.gd-sub { display: flex; flex-direction: column; gap: 1px; padding: 2px 0 6px 30px; }
-.gd-sub button { background: none; border: none; text-align: left; padding: 7px 10px; border-radius: 8px; font-size: 12.5px; color: #7b8496; cursor: pointer; font-weight: 600; }
-.gd-sub button:hover { background: #f5f6fb; color: #0f172a; }
-.gd-sub button.on { color: #6d4bd8; font-weight: 800; }
+/* Scroll region: flex child needs min-height:0 or it refuses to shrink */
+.gd-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding-right: 3px; }
+.gd-nav::-webkit-scrollbar { width: 5px; }
+.gd-nav::-webkit-scrollbar-thumb { background: #e4e6ef; border-radius: 99px; }
+.gd-nav::-webkit-scrollbar-thumb:hover { background: #cfd3e2; }
+.gd-nav { scrollbar-width: thin; scrollbar-color: #e4e6ef transparent; }
 
-.gd-goal { margin-top: 16px; border: 1px solid #ecedf5; border-radius: 14px; padding: 14px; }
+.gd-nav-label { font-size: 10px; font-weight: 800; letter-spacing: .9px; text-transform: uppercase; color: #b3b9c6; padding: 14px 12px 5px; }
+.gd-nav-label:first-child { padding-top: 2px; }
+
+.gd-nav-btn { display: flex; align-items: center; gap: 11px; width: 100%; background: none; border: none; border-radius: 10px; padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: #5b6478; cursor: pointer; text-align: left; transition: background .13s, color .13s; }
+.gd-nav-btn:hover { background: #f5f6fb; color: #0f172a; }
+.gd-nav-btn.on { background: linear-gradient(90deg,#6d4bd8,#7f5ce0); color: #fff; font-weight: 800; box-shadow: 0 6px 16px rgba(109,75,216,.26); }
+.gd-nav-btn .ic { width: 19px; height: 19px; flex-shrink: 0; display: grid; place-items: center; color: #9aa2b1; }
+.gd-nav-btn:hover .ic { color: #6d4bd8; }
+.gd-nav-btn.on .ic { color: #fff; }
+.gd-nav-btn .ic svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round; display: block; }
+.gd-nav-btn .lbl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-nav-btn .cr { flex-shrink: 0; width: 14px; height: 14px; display: grid; place-items: center; opacity: .55; transition: transform .16s; }
+.gd-nav-btn .cr svg { width: 11px; height: 11px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.gd-nav-btn .cr.open { transform: rotate(180deg); }
+
+.gd-sub { display: flex; flex-direction: column; gap: 1px; margin: 2px 0 4px 22px; padding-left: 12px; border-left: 1.5px solid #eef0f7; }
+.gd-sub button { background: none; border: none; text-align: left; padding: 7px 11px; border-radius: 8px; font-size: 12.5px; color: #7b8496; cursor: pointer; font-weight: 600; }
+.gd-sub button:hover { background: #f5f6fb; color: #0f172a; }
+.gd-sub button.on { color: #6d4bd8; font-weight: 800; background: #f4f2ff; }
+
+.gd-goal { flex-shrink: 0; margin-top: 12px; border: 1px solid #ecedf5; border-radius: 14px; padding: 14px; }
 .gd-goal .hd { display: flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 800; color: #0f172a; }
 .gd-goal .big { font-size: 17px; font-weight: 900; color: #0f172a; margin: 8px 0 6px; }
 .gd-goal .big small { font-size: 12px; color: #a3aab8; font-weight: 700; }
@@ -32,7 +51,7 @@
 .gd-goal .note { font-size: 11.5px; color: #8b93a4; line-height: 1.45; margin-top: 8px; }
 .gd-goal .cta { width: 100%; margin-top: 10px; background: #6d4bd8; color: #fff; border: none; border-radius: 9px; padding: 8px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
 
-.gd-me { margin-top: auto; padding-top: 16px; }
+.gd-me { flex-shrink: 0; padding-top: 12px; }
 .gd-me-card { border: 1px solid #ecedf5; border-radius: 14px; padding: 14px; }
 .gd-me-top { display: flex; align-items: center; gap: 11px; }
 .gd-me-top .av { width: 42px; height: 42px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 16px; flex-shrink: 0; }
@@ -131,8 +150,9 @@
 .gd-milestone { display: flex; align-items: center; gap: 12px; background: #fafbfe; border: 1px solid #f0f1f7; border-radius: 13px; padding: 13px 15px; margin-top: 14px; }
 .gd-milestone .t { flex: 1; }
 .gd-milestone .t small { font-size: 11px; color: #a3aab8; font-weight: 700; display: block; }
-.gd-milestone .t b { font-size: 14px; font-weight: 800; color: #0f172a; }
-.gd-milestone .t span { font-size: 11.5px; color: #8b93a4; }
+/* b and span must be block or they run together ("7-day streak6 days to go") */
+.gd-milestone .t b { display: block; font-size: 14px; font-weight: 800; color: #0f172a; margin-top: 2px; }
+.gd-milestone .t span { display: block; font-size: 11.5px; color: #8b93a4; margin-top: 1px; }
 
 /* Next level */
 .gd-next { display: flex; align-items: center; gap: 16px; }
@@ -205,12 +225,14 @@
 /* Mobile: sidebar collapses to a top strip */
 @media (max-width: 860px) {
   .gd { flex-direction: column; }
-  .gd-side { width: 100%; height: auto; position: static; flex-direction: column; border-right: none; border-bottom: 1px solid #ecedf5; }
-  .gd-nav { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
-  .gd-nav-btn { white-space: nowrap; }
-  .gd-nav-btn .cr { display: none; }
-  .gd-sub { display: none; }
-  .gd-goal, .gd-me { display: none; }
+  /* The rail becomes a top strip: undo the vertical scroll container so the
+     horizontal nav row isn't clipped by the desktop overflow rules. */
+  .gd-side { width: 100%; height: auto; position: static; overflow: visible; flex-direction: column; border-right: none; border-bottom: 1px solid #ecedf5; padding: 14px 14px 10px; }
+  .gd-nav { flex: none; min-height: 0; flex-direction: row; overflow-x: auto; overflow-y: visible; gap: 6px; padding: 0 0 4px; }
+  .gd-nav-btn { white-space: nowrap; width: auto; }
+  .gd-nav-btn .lbl { overflow: visible; }
+  .gd-nav-btn .cr, .gd-nav-label, .gd-sub, .gd-goal, .gd-me { display: none; }
   .gd-main { padding: 18px 16px 32px; }
   .gd-hello h1 { font-size: 24px; }
+  .gd-top-pills { gap: 8px; }
 }

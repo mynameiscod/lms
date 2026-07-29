@@ -628,11 +628,18 @@ class CodeRunnerService {
 
       const actualOutput = result.run.stdout || '';
 
+      // Report REAL figures when this Piston build provides them, and 0 when it
+      // doesn't, so callers can hide the metric. These used to be Math.random(),
+      // which meant every "Execution Time / Memory Used" the students saw was
+      // fabricated. `memory` is bytes; wall/cpu_time are milliseconds.
+      const wall = Number(result.run.wall_time ?? result.run.cpu_time ?? 0);
+      const memBytes = Number(result.run.memory ?? 0);
+
       return {
         passed: this.compareOutputs(expectedOutput, actualOutput, input.comparisonMode),
         output: actualOutput,
-        executionTime: Math.floor(Math.random() * 100) + 10, // Piston doesn't return exact time
-        memoryUsed: Math.floor(Math.random() * 30) + 10
+        executionTime: Number.isFinite(wall) && wall > 0 ? Math.round(wall) : 0,
+        memoryUsed: Number.isFinite(memBytes) && memBytes > 0 ? Math.round((memBytes / (1024 * 1024)) * 10) / 10 : 0,
       };
 
     } catch (error) {

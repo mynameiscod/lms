@@ -15,21 +15,51 @@ export type PracticeKind = 'coding' | 'sql' | 'mcq';
 export interface PracticeTest { input: string; expected: string; hidden?: boolean }
 export interface PracticeMcq { q: string; options: string[]; answer: number; explain?: string }
 
+export interface SchemaColumn { column: string; type: string }
+export interface SchemaTable { table: string; columns: SchemaColumn[] }
+
 export interface PracticeProblem {
   id: string;
   kind: PracticeKind;
   title: string;
+  subtitle?: string;                      // one-line "what you'll learn"
   category: string;                       // PASSPORT_CATEGORIES key
   difficulty: 'easy' | 'medium' | 'hard';
   xp: number;
+  estimatedMinutes?: number;
   prompt: string;
+  learningGoals?: string[];               // concepts this problem drills
+  tip?: string;                           // always-visible nudge
+  hints?: string[];                       // progressive, revealed on request
   languages?: ProgrammingLanguage[];      // coding only
   starter?: Partial<Record<ProgrammingLanguage, string>>;
   tests?: PracticeTest[];
   setupSql?: string;                      // sql only — prepended before the student's query
-  schemaNote?: string;                    // sql only — shown to the student
+  schemaNote?: string;                    // sql only — plain-text fallback
+  schema?: SchemaTable[];                 // sql only — rendered as a column/type table
   questions?: PracticeMcq[];              // mcq only
 }
+
+/** The fixtures the SQL problems query, as data so the UI can render a schema table. */
+const STUDENTS_SCHEMA: SchemaTable = {
+  table: 'students',
+  columns: [
+    { column: 'id', type: 'INTEGER' },
+    { column: 'name', type: 'TEXT' },
+    { column: 'branch', type: 'TEXT' },
+    { column: 'cgpa', type: 'REAL' },
+    { column: 'city', type: 'TEXT' },
+  ],
+};
+
+const PLACEMENTS_SCHEMA: SchemaTable = {
+  table: 'placements',
+  columns: [
+    { column: 'student_id', type: 'INTEGER' },
+    { column: 'company', type: 'TEXT' },
+    { column: 'package_lpa', type: 'REAL' },
+  ],
+};
 
 const PY = ProgrammingLanguage.PYTHON;
 const JS = ProgrammingLanguage.JAVASCRIPT;
@@ -46,8 +76,16 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   // ── Coding ───────────────────────────────────────────────────────────────────
   {
     id: 'c-even-odd', kind: 'coding', title: 'Even or Odd', category: 'technical',
-    difficulty: 'easy', xp: 20,
+    subtitle: 'Your first program: read input, branch, print.',
+    difficulty: 'easy', xp: 20, estimatedMinutes: 3,
     prompt: 'Read a single integer N from input. Print `Even` if it is even, otherwise print `Odd`.',
+    learningGoals: ['Reading from stdin', 'The modulo operator', 'if / else'],
+    tip: 'A number is even when n % 2 equals 0.',
+    hints: [
+      'Read the whole line and convert it to an integer first.',
+      'Use % 2 to get the remainder after dividing by two.',
+      'Print exactly Even or Odd — capitalisation is compared.',
+    ],
     languages: CODE_LANGS, starter: starterFor('Print Even or Odd'),
     tests: [
       { input: '4', expected: 'Even' },
@@ -58,8 +96,16 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-largest3', kind: 'coding', title: 'Largest of Three', category: 'technical',
-    difficulty: 'easy', xp: 20,
+    subtitle: 'Compare several values and pick the biggest.',
+    difficulty: 'easy', xp: 20, estimatedMinutes: 4,
     prompt: 'Read three integers separated by spaces on one line. Print the largest one.',
+    learningGoals: ['Splitting a line of input', 'Comparisons', 'Built-in max'],
+    tip: 'Most languages have a max() that accepts several arguments at once.',
+    hints: [
+      'Split the line on spaces to get three separate pieces.',
+      'Convert each piece to an integer before comparing them.',
+      'max(a, b, c) does the whole job in a single call.',
+    ],
     languages: CODE_LANGS, starter: starterFor('Print the largest of the three numbers'),
     tests: [
       { input: '3 9 5', expected: '9' },
@@ -69,8 +115,16 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-reverse-string', kind: 'coding', title: 'Reverse a String', category: 'technical',
-    difficulty: 'easy', xp: 25,
+    subtitle: 'Treat a string as a sequence you can walk backwards.',
+    difficulty: 'easy', xp: 25, estimatedMinutes: 4,
     prompt: 'Read a single word from input and print it reversed.',
+    learningGoals: ['String indexing', 'Slicing and reversal', 'Printing a result'],
+    tip: 'Many languages reverse a string in one expression — look for slicing or a reverse helper.',
+    hints: [
+      'A string can be treated as a list of characters.',
+      'In Python, s[::-1] reverses it in one step.',
+      'In Java, use new StringBuilder(s).reverse().toString().',
+    ],
     languages: CODE_LANGS, starter: starterFor('Print the reversed string'),
     tests: [
       { input: 'hello', expected: 'olleh' },
@@ -80,8 +134,16 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-sum-n', kind: 'coding', title: 'Sum of First N Numbers', category: 'technical',
-    difficulty: 'easy', xp: 25,
+    subtitle: 'Loop over a range and accumulate a running total.',
+    difficulty: 'easy', xp: 25, estimatedMinutes: 4,
     prompt: 'Read an integer N. Print the sum 1 + 2 + … + N.',
+    learningGoals: ['for loops', 'Accumulator variables', 'Inclusive range bounds'],
+    tip: 'There is also a closed formula: n * (n + 1) / 2 — try the loop first, then the formula.',
+    hints: [
+      'Start a total at 0 before the loop.',
+      'Loop i from 1 to N inclusive, adding i to the total each time.',
+      'Watch the upper bound — N itself must be included.',
+    ],
     languages: CODE_LANGS, starter: starterFor('Print the sum from 1 to N'),
     tests: [
       { input: '5', expected: '15' },
@@ -92,8 +154,16 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-count-vowels', kind: 'coding', title: 'Count the Vowels', category: 'technical',
-    difficulty: 'easy', xp: 25,
+    subtitle: 'Scan a string and count the characters that match.',
+    difficulty: 'easy', xp: 25, estimatedMinutes: 5,
     prompt: 'Read a lowercase word and print how many vowels (a, e, i, o, u) it contains.',
+    learningGoals: ['Iterating over a string', 'Membership tests', 'Counters'],
+    tip: 'Test membership against the set of vowels rather than writing five separate comparisons.',
+    hints: [
+      'Set a counter to 0, then loop over each character.',
+      'Check whether the character is one of a, e, i, o, u.',
+      'Print the counter at the end, not the word.',
+    ],
     languages: CODE_LANGS, starter: starterFor('Print the vowel count'),
     tests: [
       { input: 'education', expected: '5' },
@@ -103,8 +173,16 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-palindrome', kind: 'coding', title: 'Palindrome Check', category: 'logical_reasoning',
-    difficulty: 'medium', xp: 30,
+    subtitle: 'Compare a sequence against its own reverse.',
+    difficulty: 'medium', xp: 30, estimatedMinutes: 5,
     prompt: 'Read a single word. Print `Yes` if it reads the same forwards and backwards, otherwise `No`.',
+    learningGoals: ['String reversal', 'Equality testing', 'Turning a boolean into output'],
+    tip: 'Reverse the word into a second variable and compare the two — if equal, it is a palindrome.',
+    hints: [
+      'Reverse the input and store it separately.',
+      'Compare the original and the reversed string with ==.',
+      'Print exactly Yes or No, not true or false.',
+    ],
     languages: CODE_LANGS, starter: starterFor('Print Yes or No'),
     tests: [
       { input: 'madam', expected: 'Yes' },
@@ -114,6 +192,15 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-fizzbuzz', kind: 'coding', title: 'FizzBuzz', category: 'technical',
+    subtitle: 'The classic warm-up: loops plus ordered conditionals.',
+    learningGoals: ['Loops', 'Multiple conditions', 'Order of checks matters'],
+    tip: 'Check divisibility by 15 FIRST, or the FizzBuzz case can never fire.',
+    hints: [
+      'Loop i from 1 to N inclusive.',
+      'Test i % 15 == 0 before testing 3 or 5 separately.',
+      'If none match, print the number itself.',
+    ],
+    estimatedMinutes: 6,
     difficulty: 'medium', xp: 30,
     prompt: 'Read an integer N. For every number from 1 to N print, on its own line: `Fizz` if divisible by 3, `Buzz` if divisible by 5, `FizzBuzz` if divisible by both, otherwise the number itself.',
     languages: CODE_LANGS, starter: starterFor('Print the FizzBuzz sequence up to N'),
@@ -124,6 +211,15 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   },
   {
     id: 'c-second-largest', kind: 'coding', title: 'Second Largest', category: 'logical_reasoning',
+    subtitle: 'Track a runner-up while handling duplicate values.',
+    learningGoals: ['Deduplication', 'Sorting', 'Edge cases with repeated values'],
+    tip: 'Distinct matters: in [9, 9, 5] the second largest is 5, not 9.',
+    hints: [
+      'Read N first, then read the N numbers from the second line.',
+      'Remove duplicates before you sort.',
+      'Sort descending and take the element at index 1.',
+    ],
+    estimatedMinutes: 8,
     difficulty: 'medium', xp: 35,
     prompt: 'The first line has N. The second line has N integers separated by spaces. Print the second largest DISTINCT value.',
     languages: CODE_LANGS, starter: starterFor('Print the second largest distinct number'),
@@ -137,33 +233,69 @@ export const PRACTICE_BANK: PracticeProblem[] = [
   // ── SQL ──────────────────────────────────────────────────────────────────────
   {
     id: 's-select-all', kind: 'sql', title: 'Your First SELECT', category: 'technical',
-    difficulty: 'easy', xp: 20,
+    subtitle: 'Learn to retrieve data from a SQL table.',
+    difficulty: 'easy', xp: 20, estimatedMinutes: 3,
     prompt: 'Select the `name` of every student in the `students` table, ordered by name (A→Z).',
+    learningGoals: ['SELECT', 'ORDER BY', 'Alphabetical sorting'],
+    tip: 'Use ORDER BY name to sort results alphabetically.',
+    hints: [
+      'Start with SELECT <column> FROM <table>;',
+      'The column you want is name, and the table is students.',
+      'Add ORDER BY name at the end to sort A to Z.',
+    ],
     schemaNote: 'students(id INTEGER, name TEXT, branch TEXT, cgpa REAL, city TEXT)',
+    schema: [STUDENTS_SCHEMA],
     setupSql: STUDENTS_SETUP(),
     tests: [{ input: '', expected: 'Anita\nDeepak\nKiran\nMeera\nRahul\nSneha' }],
   },
   {
     id: 's-where', kind: 'sql', title: 'Filter with WHERE', category: 'technical',
-    difficulty: 'easy', xp: 25,
+    subtitle: 'Narrow results down to the rows you actually want.',
+    difficulty: 'easy', xp: 25, estimatedMinutes: 4,
     prompt: 'Select the `name` of students whose `cgpa` is greater than 8.0, ordered by name (A→Z).',
+    learningGoals: ['WHERE', 'Comparison operators', 'WHERE with ORDER BY'],
+    tip: 'WHERE filters rows before they are returned; ORDER BY then sorts whatever survives.',
+    hints: [
+      'Add a WHERE clause after FROM students.',
+      'The condition compares the cgpa column against 8.0.',
+      'Greater-than is >, so the clause reads: WHERE cgpa > 8.0',
+    ],
     schemaNote: 'students(id INTEGER, name TEXT, branch TEXT, cgpa REAL, city TEXT)',
+    schema: [STUDENTS_SCHEMA],
     setupSql: STUDENTS_SETUP(),
     tests: [{ input: '', expected: 'Anita\nMeera\nSneha' }],
   },
   {
     id: 's-count-group', kind: 'sql', title: 'COUNT with GROUP BY', category: 'technical',
-    difficulty: 'medium', xp: 30,
+    subtitle: 'Summarise many rows into one row per group.',
+    difficulty: 'medium', xp: 30, estimatedMinutes: 6,
     prompt: 'For each `branch`, print the branch and how many students are in it, as `branch|count`, ordered by branch (A→Z).',
+    learningGoals: ['GROUP BY', 'COUNT()', 'Aggregating and sorting together'],
+    tip: 'Every non-aggregated column in your SELECT must also appear in GROUP BY.',
+    hints: [
+      'Select two things: the branch, and a count of rows in each branch.',
+      'COUNT(*) counts the rows inside each group.',
+      'SELECT branch, COUNT(*) FROM students GROUP BY branch ORDER BY branch;',
+    ],
     schemaNote: 'students(id INTEGER, name TEXT, branch TEXT, cgpa REAL, city TEXT)',
+    schema: [STUDENTS_SCHEMA],
     setupSql: STUDENTS_SETUP(),
     tests: [{ input: '', expected: 'CSE|3\nECE|2\nMECH|1' }],
   },
   {
     id: 's-join', kind: 'sql', title: 'Join Two Tables', category: 'technical',
-    difficulty: 'medium', xp: 35,
+    subtitle: 'Pull related rows from two tables into one result.',
+    difficulty: 'medium', xp: 35, estimatedMinutes: 8,
     prompt: 'Print `name|company` for every student who has a placement record, ordered by name (A→Z).',
+    learningGoals: ['INNER JOIN', 'Join keys', 'Selecting across tables'],
+    tip: 'An INNER JOIN keeps only rows matching in BOTH tables, so students with no placement drop out.',
+    hints: [
+      'The tables link on students.id = placements.student_id.',
+      'Use: FROM students JOIN placements ON students.id = placements.student_id',
+      'Then select the name and company columns, and ORDER BY the name.',
+    ],
     schemaNote: 'students(id, name, branch, cgpa, city) · placements(student_id, company, package_lpa)',
+    schema: [STUDENTS_SCHEMA, PLACEMENTS_SCHEMA],
     setupSql: `${STUDENTS_SETUP()}
 CREATE TABLE placements (student_id INTEGER, company TEXT, package_lpa REAL);
 INSERT INTO placements VALUES (1,'Infosys',4.5),(3,'TCS',3.6),(5,'Zoho',6.5);
@@ -261,10 +393,12 @@ INSERT INTO students VALUES
 /** Public (student-safe) shape — hidden tests and MCQ answers stripped. */
 export function toPublic(p: PracticeProblem) {
   return {
-    id: p.id, kind: p.kind, title: p.title, category: p.category,
-    difficulty: p.difficulty, xp: p.xp, prompt: p.prompt,
+    id: p.id, kind: p.kind, title: p.title, subtitle: p.subtitle, category: p.category,
+    difficulty: p.difficulty, xp: p.xp, estimatedMinutes: p.estimatedMinutes,
+    prompt: p.prompt, learningGoals: p.learningGoals || [], tip: p.tip,
+    hints: p.hints || [],
     languages: p.languages, starter: p.starter,
-    schemaNote: p.schemaNote,
+    schemaNote: p.schemaNote, schema: p.schema || [],
     sampleTests: (p.tests || []).filter(t => !t.hidden).map(t => ({ input: t.input, expected: t.expected })),
     testCount: (p.tests || []).length,
     questions: (p.questions || []).map(q => ({ q: q.q, options: q.options })),
@@ -292,6 +426,10 @@ export interface RunOutcome {
   total: number;
   allPassed: boolean;
   compilationError?: string;
+  /** Real figures from Piston when its build reports them; 0 means "unknown", and
+   *  the UI hides the metric rather than showing a fabricated number. */
+  executionMs: number;
+  memoryMb: number;
 }
 
 /**
@@ -307,6 +445,7 @@ export async function runProblem(
   const tests = (problem.tests || []).filter(t => (visibleOnly ? !t.hidden : true));
   const results: RunOutcome['results'] = [];
   let compilationError: string | undefined;
+  let executionMs = 0, memoryMb = 0;   // slowest/heaviest test, when Piston reports them
 
   for (let i = 0; i < tests.length; i++) {
     const t = tests[i];
@@ -325,6 +464,8 @@ export async function runProblem(
     });
 
     if (r.compilationError && !compilationError) compilationError = r.compilationError;
+    executionMs = Math.max(executionMs, r.executionTime || 0);
+    memoryMb = Math.max(memoryMb, r.memoryUsed || 0);
     results.push({
       index: i, hidden: !!t.hidden, passed: r.passed,
       input: t.hidden ? '(hidden)' : t.input,
@@ -340,7 +481,7 @@ export async function runProblem(
   return {
     results, passedCount, total: tests.length,
     allPassed: tests.length > 0 && passedCount === tests.length,
-    compilationError,
+    compilationError, executionMs, memoryMb,
   };
 }
 

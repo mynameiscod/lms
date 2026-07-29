@@ -277,16 +277,20 @@ export interface RoadmapResponse {
 // ── Practice ──
 export interface PracticeListItem { id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; category: string; difficulty: string; xp: number; count: number; }
 export interface PracticeListResponse { locked?: boolean; priceInr?: number; problems: PracticeListItem[]; solved: string[]; xp?: number; streak?: number; }
+export interface SchemaTable { table: string; columns: { column: string; type: string }[] }
 export interface PracticeProblem {
-  id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; category: string;
-  difficulty: string; xp: number; prompt: string;
-  languages?: string[]; starter?: Record<string, string>; schemaNote?: string;
+  id: string; kind: 'coding' | 'sql' | 'mcq'; title: string; subtitle?: string; category: string;
+  difficulty: string; xp: number; estimatedMinutes?: number; prompt: string;
+  learningGoals: string[]; tip?: string; hints: string[];
+  languages?: string[]; starter?: Record<string, string>;
+  schemaNote?: string; schema: SchemaTable[];
   sampleTests: { input: string; expected: string }[]; testCount: number;
   questions: { q: string; options: string[] }[];
 }
 export interface RunOutcome {
   results: { index: number; hidden: boolean; passed: boolean; input: string; expected: string; got: string; error?: string }[];
   passedCount: number; total: number; allPassed: boolean; compilationError?: string;
+  executionMs?: number; memoryMb?: number;
 }
 export interface SubmitOutcome extends Partial<RunOutcome> {
   passed: boolean; xpAwarded: number; xp: number; streak: number; longestStreak: number; alreadySolved?: boolean;

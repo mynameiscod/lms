@@ -180,30 +180,34 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const hasActivity = (d.activity || []).some(a => a.xp > 0);
 
   return (
-    <MemberShell data={d}>
-        <div className="gd-top">
-          <div className="gd-hello">
-            <h1>Hey {firstName}! 👋</h1>
-            <p>{st.day <= st.totalDays ? `Day ${st.day} of your ${st.totalDays}-day journey. Keep going.` : 'Journey complete — keep the streak alive.'}</p>
-          </div>
-          <div className="gd-top-pills">
-            <div className="gd-pill">
-              <span className="em">🔥</span>
-              <div><b>{st.streak}</b><span>Day Streak</span></div>
-            </div>
-            <div className="gd-pill level">
-              <span className="hex">🎖️</span>
-              <div>
-                <b>Level {lv.level}</b><span>{lv.title}</span>
-                <div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div>
-              </div>
-            </div>
-            <div className="gd-pill">
-              <span className="em">⚡</span>
-              <div><b>{lv.xpToNextLevel.toLocaleString()} XP</b><span>to level {lv.nextLevel}</span></div>
-            </div>
-          </div>
+    <MemberShell
+      data={d}
+      header={
+        <div className="gd-hello">
+          <h1>Hey {firstName}! 👋</h1>
+          <p>{st.day <= st.totalDays ? `Let's code, solve problems and level up your skills.` : 'Journey complete — keep the streak alive.'}</p>
         </div>
+      }
+      headerPills={
+        <>
+          <div className="gd-pill">
+            <span className="em">🔥</span>
+            <div><b>{st.streak}</b><span>Day Streak</span></div>
+          </div>
+          <div className="gd-pill level">
+            <span className="hex">🎖️</span>
+            <div>
+              <b>Level {lv.level}</b><span>{lv.title}</span>
+              <div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div>
+            </div>
+          </div>
+          <div className="gd-pill">
+            <span className="em">⚡</span>
+            <div><b>{lv.xpToNextLevel.toLocaleString()} XP</b><span>to next level</span></div>
+          </div>
+        </>
+      }
+    >
 
         {/* Coder score · skill radar · coding stats */}
         <div className="gd-grid gd-3">
@@ -378,23 +382,22 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <div className="gd-week">
                 {(d.streakWeek || []).map(w => (
                   <div key={w.date}>
-                    <div className={`d${w.active ? ' on' : ''}`}>🔥</div>
+                    <div className={`dot${w.active ? ' on' : ''}`}>{w.active ? '🔥' : ''}</div>
                     <div className={`l${w.isToday ? ' today' : ''}`}>{w.letter}</div>
                   </div>
                 ))}
               </div>
               <div className="gd-milestone">
                 <div className="t">
-                  <small>NEXT MILESTONE</small>
-                  <b>{st.streak < 7 ? '7' : st.streak < 21 ? '21' : st.streak < 30 ? '30' : '100'}-day streak</b>
+                  <b>{st.streak < 7 ? '7' : st.streak < 21 ? '21' : st.streak < 30 ? '30' : '100'} day streak</b>
                   <span>
                     {(() => {
                       const togo = (st.streak < 7 ? 7 : st.streak < 21 ? 21 : st.streak < 30 ? 30 : 100) - st.streak;
-                      return `${togo} ${togo === 1 ? 'day' : 'days'} to go`;
+                      return `Keep it up! ${togo} ${togo === 1 ? 'day' : 'days'} to go`;
                     })()}
                   </span>
                 </div>
-                <span style={{ fontSize: 26 }}>🎖️</span>
+                <span style={{ fontSize: 26 }}>🎁</span>
               </div>
             </div>
 
@@ -437,12 +440,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           </div>
 
           <div className="gd-card">
-            <div className="gd-card-hd">
+            <div className="gd-card-hd" id="badges">
               <h2>Badge Collection</h2>
-              <span className="gd-timer">{(d.badges || []).filter(b => b.earned).length} / {(d.badges || []).length}</span>
+              <button className="lnk" onClick={() => nav('/passport/roadmap')}>View all →</button>
             </div>
             <div className="gd-badges">
-              {(d.badges || []).slice(0, 10).map((b: Badge) => (
+              {(d.badges || []).slice(0, 5).map((b: Badge) => (
                 <div className={`gd-badge${b.earned ? '' : ' locked'}`} key={b.key} title={b.hint}>
                   <div className="hex" style={{ background: `${b.color}1f` }}>{b.earned ? b.icon : '🔒'}</div>
                   <b>{b.label}</b>
@@ -467,21 +470,28 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             </div>
             {!d.contests?.length ? (
               <div className="gd-chart-empty">No contests scheduled right now.<br />Tech Battles are announced here when they open.</div>
-            ) : d.contests.map(c => (
-              <div className="gd-contest" key={c.id}>
-                <span className="tr">🏆</span>
-                <div className="info">
-                  <b>{c.title}</b>
-                  <span>📅 {new Date(c.startAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</span>
-                  {c.prize && <span>Prize: {c.prize}</span>}
-                </div>
-                <button className="go" onClick={() => nav(c.slug ? `/battles/${c.slug}` : '/battles')}>Register</button>
+            ) : (
+              <div className="gd-contest-grid">
+                {d.contests.slice(0, 2).map((c, i) => (
+                  <div className="gd-contest" key={c.id}>
+                    <span className="tr">🏆</span>
+                    <div className="info">
+                      <b>{c.title}{i === 0 && <em className="feat">FEATURED</em>}</b>
+                      <span>📅 {new Date(c.startAt).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}</span>
+                      {c.prize && <><span className="pp">Prize Pool</span><b className="prize">{c.prize}</b></>}
+                    </div>
+                    <button className="go" onClick={() => nav(c.slug ? `/battles/${c.slug}` : '/battles')}>Register Now</button>
+                  </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
 
           <div className="gd-card">
-            <div className="gd-card-hd"><h2>Leaderboard</h2></div>
+            <div className="gd-card-hd" id="leaderboard">
+              <h2>Leaderboard</h2>
+              {(d.leaderboard?.length ?? 0) > 0 && <span className="gd-timer">{st.cohortSize} members</span>}
+            </div>
             {!d.leaderboard?.length ? (
               <div className="gd-chart-empty">You're the first member here — the board fills as others join.</div>
             ) : d.leaderboard.map(r => (
@@ -503,9 +513,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           </div>
           <div className="gd-steps">
             {(d.journey || []).map((p, i) => (
-              <div className={`gd-step${p.done ? ' done' : p.current ? ' current' : ''}`} key={p.key}>
-                <div className="dot">{p.done ? '✓' : i + 1}</div>
-                <div className="cap">{p.label.replace(/^Phase \d+ · /, '')}<br /><span style={{ fontSize: 10.5, color: '#a3aab8' }}>Day {p.fromDay}–{p.toDay}</span></div>
+              <div className={`gd-step${p.done ? ' done' : p.current ? ' current' : ' locked'}`} key={p.key}>
+                <div className="dot">{p.done ? '✓' : p.current ? i + 1 : '🔒'}</div>
+                <div className="cap">
+                  {p.label.replace(/^Phase \d+ · /, '')}
+                  <span className="st">{p.done ? 'Completed' : p.current ? 'In Progress' : 'Locked'}</span>
+                </div>
               </div>
             ))}
           </div>

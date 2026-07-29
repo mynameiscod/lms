@@ -37,6 +37,8 @@ const ICONS: Record<string, React.ReactNode> = {
   logout:    <><path d="M14.5 16.5 19 12l-4.5-4.5" /><path d="M19 12H9" /><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" /></>,
   chevron:   <><path d="m6 9 6 6 6-6" /></>,
   menu:      <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+  board:     <><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z" /></>,
+  medal:     <><circle cx="12" cy="15" r="6" /><path d="M8.5 9.5 6 2.5h12L15.5 9.5" /><path d="m12 12.8 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2L8.8 15l2.2-.3z" /></>,
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -47,9 +49,13 @@ interface Props {
   children: React.ReactNode;
   /** Pass when the page already has dashboard data, to avoid a duplicate fetch. */
   data?: DashboardData | null;
+  /** Left side of the shared top row (e.g. the dashboard's "Hey Sai! 👋"). */
+  header?: React.ReactNode;
+  /** Sits between the header and the user menu (e.g. streak / level / XP pills). */
+  headerPills?: React.ReactNode;
 }
 
-const MemberShell: React.FC<Props> = ({ children, data }) => {
+const MemberShell: React.FC<Props> = ({ children, data, header, headerPills }) => {
   const nav = useNavigate();
   const loc = useLocation();
   const { user, logout } = useAuth();
@@ -57,6 +63,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const [practiceOpen, setPracticeOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
 
   const d = data ?? own;
 
@@ -126,21 +133,18 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             </div>
           )}
 
-          <div className="gd-nav-label">My Journey</div>
-          {navBtn('90-Day Roadmap', 'roadmap', '/passport/roadmap')}
-          {navBtn('Mock Interview', 'interview', '/passport/interview')}
-          {navBtn('Resume Center', 'resume', '/passport/resume')}
-          {navBtn('My Assessment', 'chart', '/passport/assessment')}
-
-          <div className="gd-nav-label">Account</div>
           {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
-          <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}>
-            <span className="ic"><Icon name="card" /></span>
-            <span className="lbl">{copied ? 'Link copied!' : 'My Passport Card'}</span>
+          {navBtn('Learning Path', 'roadmap', '/passport/roadmap')}
+          {navBtn('Mock Interview', 'interview', '/passport/interview')}
+          {navBtn('Resume Builder', 'resume', '/passport/resume')}
+          {navBtn('Performance', 'chart', '/passport/assessment')}
+
+          <div className="gd-nav-label">Leaderboard</div>
+          <button className="gd-nav-btn" onClick={() => nav('/passport#leaderboard')}>
+            <span className="ic"><Icon name="board" /></span><span className="lbl">Leaderboards</span>
           </button>
-          <button className="gd-nav-btn" onClick={() => logout()}>
-            <span className="ic"><Icon name="logout" /></span>
-            <span className="lbl">Log out</span>
+          <button className="gd-nav-btn" onClick={() => nav('/passport#badges')}>
+            <span className="ic"><Icon name="medal" /></span><span className="lbl">Achievements</span>
           </button>
         </nav>
 
@@ -156,29 +160,45 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           </div>
         )}
 
-        {st && lv && (
-          <div className="gd-me">
-            <div className="gd-me-card">
-              <div className="gd-me-top">
-                <span className="av">{initial}</span>
-                <div>
-                  <b>{d?.name || firstName}</b>
-                  <span>Level {lv.level}</span>
-                  <div className="gd-me-tag">{lv.title}</div>
-                </div>
-              </div>
-              <div className="gd-me-stats">
-                <div><b>{st.xp.toLocaleString()}</b><span>XP</span></div>
-                <div><b>{st.streak}</b><span>Day Streak</span></div>
-                <div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div>
-              </div>
-              <button className="gd-me-btn" onClick={() => nav('/passport/roadmap')}>View My Journey</button>
-            </div>
-          </div>
-        )}
       </aside>
 
-      <main className="gd-main">{children}</main>
+      <main className="gd-main">
+        {/* Shared top row: page header, page pills, then the user menu on the right.
+            The profile lives here now rather than in a card at the foot of the rail. */}
+        <div className="gd-topbar">
+          <div className="gd-topbar-l">{header}</div>
+          <div className="gd-topbar-r">
+            {headerPills}
+            <div className="gd-user">
+              <button className="gd-user-btn" onClick={() => setUserOpen(o => !o)}>
+                <span className="av">{initial}</span>
+                <span className="nm">{d?.name || firstName}</span>
+                <span className="cr"><Icon name="chevron" /></span>
+              </button>
+              {userOpen && (
+                <div className="gd-user-menu" onMouseLeave={() => setUserOpen(false)}>
+                  <div className="hd">
+                    <b>{d?.name || firstName}</b>
+                    {lv && <span>Level {lv.level} · {lv.title}</span>}
+                  </div>
+                  {st && (
+                    <div className="stats">
+                      <div><b>{st.xp.toLocaleString()}</b><span>XP</span></div>
+                      <div><b>{st.streak}</b><span>Streak</span></div>
+                      <div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div>
+                    </div>
+                  )}
+                  <button onClick={() => { setUserOpen(false); nav('/passport/assessment'); }}>My assessment result</button>
+                  <button onClick={() => { setUserOpen(false); nav('/passport/roadmap'); }}>My journey</button>
+                  <button onClick={share} disabled={!d?.shareSlug}>{copied ? 'Link copied!' : 'Share my Passport card'}</button>
+                  <button className="out" onClick={() => logout()}>Log out</button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+        {children}
+      </main>
     </div>
   );
 };

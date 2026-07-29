@@ -15,6 +15,11 @@
 /dist
 **/build/
 **/dist/
+*.tsbuildinfo
+
+# One-off local debug/investigation scripts (never part of a release)
+server/tmp-*.js
+scripts/tmp-*.js
 
 # Environment variables
 .env

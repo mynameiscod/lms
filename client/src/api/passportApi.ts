@@ -239,7 +239,13 @@ export interface DashboardData {
     streak: number; longestStreak: number; xp: number;
     day: number; totalDays: number; completedDays: number;
     interviews: number; bestInterview: number | null; resumeScore: number | null;
+    cohortRank: number | null; cohortSize: number;
   };
+  weekly?: {
+    submissions: number; solved: number; totalAttempts: number;
+    accuracyPct: number | null; accuracyDelta: number | null;
+  };
+  recentActivity?: { label: string; icon: string; color: string; xp: number; ago: string }[];
   missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; done: boolean }[];
   allDone?: boolean;
   dailyGoal?: { earned: number; target: number; pct: number; met: boolean };

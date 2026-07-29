@@ -204,6 +204,67 @@ export function badges(input: {
   ];
 }
 
+// ── Recent activity feed ─────────────────────────────────────────────────────
+const SOURCE_META: Record<string, { label: string; icon: string; color: string }> = {
+  mission:   { label: 'Completed a daily mission', icon: '✓', color: '#16a34a' },
+  practice:  { label: 'Solved a practice problem', icon: '</>', color: '#6d4bd8' },
+  interview: { label: 'Finished a mock interview', icon: '🎙', color: '#0891b2' },
+  resume:    { label: 'Scored your resume',        icon: '📄', color: '#0f766e' },
+  other:     { label: 'Earned XP',                 icon: '★', color: '#f59e0b' },
+};
+
+/** Human "3 days ago" without pulling in a date library. */
+function agoLabel(then: Date, now: Date): string {
+  const mins = Math.max(0, Math.round((now.getTime() - new Date(then).getTime()) / 60000));
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.round(hrs / 24);
+  if (days === 1) return 'yesterday';
+  if (days < 30) return `${days} days ago`;
+  const months = Math.round(days / 30);
+  return months === 1 ? 'a month ago' : `${months} months ago`;
+}
+
+/** The newest XP events, newest first — drives the activity feed. */
+export function recentActivity(progress: IPassportProgress, limit = 6, now = new Date()) {
+  return [...(progress.xpLog || [])]
+    .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+    .slice(0, limit)
+    .map(e => {
+      const meta = SOURCE_META[e.source] || SOURCE_META.other;
+      return { label: meta.label, icon: meta.icon, color: meta.color, xp: e.amount, ago: agoLabel(e.at, now) };
+    });
+}
+
+// ── This-week counters (for the "↑ N this week" deltas) ──────────────────────
+export function weeklyStats(progress: IPassportProgress, now = new Date()) {
+  const weekAgo = now.getTime() - 7 * 86400000;
+  const twoWeeksAgo = now.getTime() - 14 * 86400000;
+  const at = (p: any) => new Date(p.at).getTime();
+
+  const all = progress.practice || [];
+  const thisWeek = all.filter(p => at(p) >= weekAgo);
+  const lastWeek = all.filter(p => at(p) >= twoWeeksAgo && at(p) < weekAgo);
+
+  const pct = (rows: typeof all) =>
+    rows.length ? Math.round((rows.filter(r => r.passed).length / rows.length) * 100) : null;
+
+  const nowPct = pct(thisWeek);
+  const prevPct = pct(lastWeek);
+
+  return {
+    submissions: thisWeek.length,
+    solved: thisWeek.filter(p => p.xp > 0).length,
+    totalAttempts: all.length,
+    accuracyPct: nowPct,
+    // Only a real delta when BOTH weeks have attempts — otherwise null, and the UI
+    // says nothing rather than implying improvement we can't evidence.
+    accuracyDelta: nowPct !== null && prevPct !== null ? nowPct - prevPct : null,
+  };
+}
+
 /** Percentile among peers by XP: "you are ahead of N% of members". */
 export function percentileAhead(myXp: number, allXp: number[]): number | null {
   const others = allXp.filter(x => typeof x === 'number');

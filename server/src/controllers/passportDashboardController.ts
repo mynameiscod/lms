@@ -143,7 +143,11 @@ export const getDashboard = async (req: Request, res: Response) => {
         interviews: interviews.length,
         bestInterview,
         resumeScore: resume?.score?.total ?? null,
+        cohortRank: ranked.find(r => r.me)?.rank ?? null,
+        cohortSize: ranked.length,
       },
+      weekly: g.weeklyStats(progress, now),
+      recentActivity: g.recentActivity(progress, 6, now),
 
       missions,
       allDone: missions.length > 0 && missions.every(m => m.done),

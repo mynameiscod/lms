@@ -90,7 +90,9 @@
 .gd-grid { display: grid; gap: 16px; }
 .gd-2 { grid-template-columns: 1.05fr 1fr; }
 .gd-2b { grid-template-columns: 1.35fr 1fr; }
-@media (max-width: 1080px) { .gd-2, .gd-2b { grid-template-columns: 1fr; } }
+.gd-3 { grid-template-columns: 1.25fr 1.1fr 0.78fr; }
+@media (max-width: 1380px) { .gd-3 { grid-template-columns: 1fr 1fr; } .gd-3 > :last-child { grid-column: 1 / -1; } }
+@media (max-width: 1080px) { .gd-2, .gd-2b, .gd-3 { grid-template-columns: 1fr; } .gd-3 > :last-child { grid-column: auto; } }
 
 .gd-card { background: #fff; border: 1px solid #ecedf5; border-radius: 18px; padding: 22px; box-shadow: 0 2px 12px rgba(15,23,42,.03); }
 .gd-card-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
@@ -98,22 +100,43 @@
 .gd-card-hd .lnk { background: none; border: none; font-size: 12.5px; font-weight: 800; color: #6d4bd8; cursor: pointer; }
 .gd-help { width: 16px; height: 16px; border-radius: 50%; background: #f1f2f8; color: #a3aab8; font-size: 10px; display: inline-grid; place-items: center; cursor: help; font-weight: 800; }
 
+/* Your Coding Stats — vertical list beside the score/radar */
+.gd-statlist { display: grid; gap: 2px; }
+.gd-statrow { display: flex; align-items: center; gap: 11px; padding: 10px 2px; }
+.gd-statrow + .gd-statrow { border-top: 1px solid #f4f5fa; }
+.gd-statrow .ic { width: 28px; height: 28px; border-radius: 9px; display: grid; place-items: center; font-size: 13px; font-weight: 900; flex-shrink: 0; }
+.gd-statrow .t { flex: 1; font-size: 13px; color: #5b6478; font-weight: 600; }
+.gd-statrow .v { font-size: 15px; font-weight: 900; color: #0f172a; white-space: nowrap; }
+.gd-statrow .v small { font-size: 11.5px; color: #a3aab8; font-weight: 700; }
+
+/* Activity feed */
+.gd-feed { display: grid; gap: 2px; }
+.gd-feed-row { display: flex; align-items: center; gap: 11px; padding: 10px 2px; }
+.gd-feed-row + .gd-feed-row { border-top: 1px solid #f4f5fa; }
+.gd-feed-row .ic { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 12px; font-weight: 900; flex-shrink: 0; }
+.gd-feed-row .t { flex: 1; font-size: 13px; color: #29313f; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-feed-row .xp { font-size: 12px; font-weight: 900; color: #16a34a; white-space: nowrap; }
+.gd-feed-row .ago { font-size: 11px; color: #a3aab8; white-space: nowrap; width: 74px; text-align: right; }
+.gd-feed-chart { margin-top: 12px; padding-top: 10px; border-top: 1px solid #f4f5fa; }
+
 /* Coder score */
 .gd-score { display: flex; align-items: center; gap: 26px; flex-wrap: wrap; }
+.gd-parts-hd { font-size: 10.5px; font-weight: 800; letter-spacing: .7px; text-transform: uppercase; color: #b3b9c6; margin: 16px 0 8px; }
 .gd-ring { position: relative; flex-shrink: 0; }
 .gd-ring .mid { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; }
 .gd-ring .mid b { font-size: 40px; font-weight: 900; color: #0f172a; line-height: 1; display: block; }
 .gd-ring .mid span { font-size: 13px; color: #a3aab8; font-weight: 700; }
-.gd-score-side { flex: 1; min-width: 170px; }
+.gd-score-side { flex: 1; min-width: 190px; }
 .gd-tag { display: inline-flex; align-items: center; gap: 6px; background: #e7f8ef; color: #15803d; border-radius: 8px; padding: 5px 12px; font-size: 12.5px; font-weight: 800; }
 .gd-score-side p { font-size: 14px; color: #5b6478; line-height: 1.6; margin: 12px 0 0; }
 .gd-score-side p b { color: #0f172a; }
 .gd-parts { margin-top: 14px; display: grid; gap: 7px; }
 .gd-part { display: flex; align-items: center; gap: 9px; font-size: 11.5px; }
 .gd-part .t { flex: 1; color: #7b8496; font-weight: 600; }
-.gd-part .b { width: 64px; height: 5px; border-radius: 99px; background: #eef0f7; overflow: hidden; }
-.gd-part .b i { display: block; height: 100%; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
-.gd-part .v { width: 52px; text-align: right; color: #5b6478; font-weight: 800; }
+.gd-part .b { flex: 1; min-width: 54px; height: 6px; border-radius: 99px; background: #eef0f7; overflow: hidden; }
+.gd-part .b i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
+.gd-part .v { width: 36px; text-align: right; color: #5b6478; font-weight: 800; }
+.gd-part .t { flex: 0 0 138px; }
 .gd-rank { display: inline-flex; align-items: center; gap: 8px; background: #f1eeff; color: #6d4bd8; border-radius: 10px; padding: 7px 13px; font-size: 12.5px; font-weight: 800; margin-top: 14px; }
 
 /* Radar */

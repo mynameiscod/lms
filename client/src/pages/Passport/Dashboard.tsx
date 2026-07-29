@@ -205,14 +205,14 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           </div>
         </div>
 
-        {/* Coder score + skill radar */}
-        <div className="gd-grid gd-2">
+        {/* Coder score · skill radar · coding stats */}
+        <div className="gd-grid gd-3">
           <div className="gd-card">
             <div className="gd-card-hd">
               <h2>Coder Score <span className="gd-help" title="A 0–1000 composite of your assessment, practice, missions, interviews and resume. The breakdown below shows exactly where it comes from.">?</span></h2>
             </div>
             <div className="gd-score">
-              <Ring value={d.coderScore!.score} max={1000} />
+              <Ring value={d.coderScore!.score} max={1000} size={168} />
               <div className="gd-score-side">
                 <span className="gd-tag">{d.coderScore!.score >= 750 ? 'Excellent ⭐' : d.coderScore!.score >= 500 ? 'On track 👍' : 'Just getting started 🌱'}</span>
                 <p>
@@ -220,18 +220,22 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                     ? <>You are ahead of <b>{d.percentileAhead}%</b> of CareerPilot members.</>
                     : <>Rankings appear once more members join your cohort.</>}
                 </p>
+                <div className="gd-parts-hd">Where your score comes from</div>
                 <div className="gd-parts">
-                  {d.coderScore!.parts.map(p => (
-                    <div className="gd-part" key={p.label}>
-                      <span className="t">{p.label}</span>
-                      <span className="b"><i style={{ width: `${Math.round((p.earned / p.max) * 100)}%` }} /></span>
-                      <span className="v">{p.earned}/{p.max}</span>
-                    </div>
-                  ))}
+                  {d.coderScore!.parts.map(p => {
+                    const pct = Math.round((p.earned / p.max) * 100);
+                    return (
+                      <div className="gd-part" key={p.label}>
+                        <span className="t">{p.label}</span>
+                        <span className="b"><i style={{ width: `${pct}%` }} /></span>
+                        <span className="v">{pct}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
-                {!!d.leaderboard?.find(r => r.me) && (
-                  <div className="gd-rank">🏆 Rank #{d.leaderboard.find(r => r.me)!.rank} in your cohort</div>
-                )}
+                <div className="gd-rank">
+                  ⭐ Earn {lv.xpToNextLevel.toLocaleString()} XP to reach Level {lv.nextLevel}
+                </div>
               </div>
             </div>
           </div>
@@ -239,9 +243,47 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           <div className="gd-card">
             <div className="gd-card-hd">
               <h2>Skill Meter <span className="gd-help" title="Your six Career Readiness Assessment categories. Retake the assessment to move these.">?</span></h2>
-              <button className="lnk" onClick={() => nav('/passport/roadmap')}>Improve Skills →</button>
+              <button className="lnk" onClick={() => nav('/passport/assessment')}>View full report →</button>
             </div>
             <div className="gd-radar-wrap"><Radar skills={d.skills || []} /></div>
+          </div>
+
+          {/* Your Coding Stats — every row from stored data; no rating/global rank,
+              because Passport has neither and inventing them would be a lie. */}
+          <div className="gd-card">
+            <div className="gd-card-hd"><h2>Your Coding Stats</h2></div>
+            <div className="gd-statlist">
+              <div className="gd-statrow">
+                <span className="ic" style={{ background: '#f1eeff', color: '#6d4bd8' }}>◎</span>
+                <span className="t">Problems Solved</span>
+                <span className="v">{st.solved}<small> / {st.totalProblems}</small></span>
+              </div>
+              <div className="gd-statrow">
+                <span className="ic" style={{ background: '#e6f2ff', color: '#0369a1' }}>↻</span>
+                <span className="t">Total Attempts</span>
+                <span className="v">{d.weekly?.totalAttempts ?? 0}</span>
+              </div>
+              <div className="gd-statrow">
+                <span className="ic" style={{ background: '#e7f8ef', color: '#16a34a' }}>◉</span>
+                <span className="t">Accuracy</span>
+                <span className="v">{st.accuracy ? `${st.accuracy.pct}%` : '—'}</span>
+              </div>
+              <div className="gd-statrow">
+                <span className="ic" style={{ background: '#fff3e0', color: '#b45309' }}>✦</span>
+                <span className="t">Missions Done</span>
+                <span className="v">{st.completedDays}<small> / {st.totalDays}</small></span>
+              </div>
+              <div className="gd-statrow">
+                <span className="ic" style={{ background: '#fdeaea', color: '#b91c1c' }}>▲</span>
+                <span className="t">Cohort Rank</span>
+                <span className="v">{st.cohortRank ? `#${st.cohortRank}` : '—'}<small>{st.cohortSize > 1 ? ` of ${st.cohortSize}` : ''}</small></span>
+              </div>
+              <div className="gd-statrow">
+                <span className="ic" style={{ background: '#eef0f7', color: '#475569' }}>◷</span>
+                <span className="t">Journey Day</span>
+                <span className="v">{st.day}<small> / {st.totalDays}</small></span>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -258,12 +300,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             </div>
           </div>
           <div className="gd-tile">
-            <span className="ic" style={{ background: '#fff3e0' }}>🎙️</span>
+            <span className="ic" style={{ background: '#fff3e0' }}>📤</span>
             <div>
-              <div className="lbl">Mock Interviews</div>
-              <div className="val">{st.interviews}</div>
-              <div className="sub" style={{ color: '#6d4bd8' }}>
-                {st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted'}
+              <div className="lbl">Weekly Submissions</div>
+              <div className="val">{d.weekly?.submissions ?? 0}</div>
+              <div className="sub" style={{ color: (d.weekly?.solved ?? 0) > 0 ? '#16a34a' : '#a3aab8' }}>
+                {(d.weekly?.solved ?? 0) > 0 ? `▲ ${d.weekly!.solved} solved this week` : 'None this week'}
               </div>
             </div>
           </div>
@@ -272,8 +314,11 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <div>
               <div className="lbl">Practice Accuracy</div>
               <div className="val">{st.accuracy ? `${st.accuracy.pct}%` : '—'}</div>
-              <div className="sub" style={{ color: '#a3aab8' }}>
-                {st.accuracy ? `over ${st.accuracy.attempts} attempts` : 'Solve one to see this'}
+              {/* A delta needs BOTH weeks to have attempts, else we say nothing */}
+              <div className="sub" style={{ color: (d.weekly?.accuracyDelta ?? 0) > 0 ? '#16a34a' : (d.weekly?.accuracyDelta ?? 0) < 0 ? '#b91c1c' : '#a3aab8' }}>
+                {d.weekly?.accuracyDelta != null
+                  ? `${d.weekly.accuracyDelta > 0 ? '▲' : d.weekly.accuracyDelta < 0 ? '▼' : '—'} ${Math.abs(d.weekly.accuracyDelta)}% vs last week`
+                  : st.accuracy ? `over ${st.accuracy.attempts} attempts` : 'Solve one to see this'}
               </div>
             </div>
           </div>
@@ -369,11 +414,26 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
 
         {/* Activity + badges */}
         <div className="gd-grid gd-2b" style={{ marginTop: 16 }}>
+          {/* Activity feed from the XP event log, with the 7-day trend underneath */}
           <div className="gd-card">
             <div className="gd-card-hd"><h2>Recent Activity</h2><span className="gd-timer">Last 7 days</span></div>
-            {hasActivity
-              ? <AreaChart points={d.activity || []} />
-              : <div className="gd-chart-empty">No XP earned in the last 7 days yet.<br />Complete a mission or solve a problem and this fills in.</div>}
+            {!d.recentActivity?.length ? (
+              <div className="gd-chart-empty">Nothing yet.<br />Complete a mission or solve a problem and it appears here.</div>
+            ) : (
+              <>
+                <div className="gd-feed">
+                  {d.recentActivity.map((a, i) => (
+                    <div className="gd-feed-row" key={i}>
+                      <span className="ic" style={{ background: `${a.color}1f`, color: a.color }}>{a.icon}</span>
+                      <span className="t">{a.label}</span>
+                      <span className="xp">+{a.xp} XP</span>
+                      <span className="ago">{a.ago}</span>
+                    </div>
+                  ))}
+                </div>
+                {hasActivity && <div className="gd-feed-chart"><AreaChart points={d.activity || []} /></div>}
+              </>
+            )}
           </div>
 
           <div className="gd-card">

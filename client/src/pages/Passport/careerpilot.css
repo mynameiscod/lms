@@ -1,47 +1,51 @@
-/* CareerPilot (Career Passport) public join landing — two-column hero + form. */
-.cp-page { padding: 30px 18px 50px; }
-.cp-card { max-width: 1200px; margin: 0 auto; background: #fff; border-radius: 24px; box-shadow: 0 24px 60px rgba(15,23,42,.12); overflow: hidden; display: grid; grid-template-columns: 1.35fr 1fr; }
+/* CareerPilot (Career Passport) public join landing — two-column hero + form.
+   Palette is CodeBegun's, taken from publicChrome.css: navy #0b1f56 / #0a1730 with
+   the teal #37d0c0 accent, so the page matches the site header it sits under. */
+.cp-page { padding: 26px 24px 50px; }
+.cp-card { max-width: 1560px; margin: 0 auto; background: #fff; border-radius: 24px; box-shadow: 0 24px 60px rgba(11,31,86,.14); overflow: hidden; display: grid; grid-template-columns: 1.3fr 1fr; }
+@media (min-width: 1700px) { .cp-card { max-width: 1720px; } }
 /* left hero */
-.cp-left { background: radial-gradient(900px 500px at 15% 0%, #3a2a8f 0%, #241a63 45%, #171048 100%); color: #fff; padding: 34px 36px; position: relative; }
-.cp-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
-.cp-brand .mark { width: 34px; height: 34px; border-radius: 9px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; font-size: 16px; }
+.cp-left { background: radial-gradient(1100px 620px at 12% 0%, #16307a 0%, #0b1f56 48%, #0a1730 100%); color: #fff; padding: 38px 42px; position: relative; }
+.cp-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+.cp-brand .logo { display: inline-flex; background: #fff; border-radius: 10px; padding: 7px 12px; line-height: 0; }
+.cp-brand .logo img { height: 30px; width: auto; display: block; }
 .cp-brand b { font-size: 17px; font-weight: 800; }
-.cp-brand small { display: block; font-size: 10.5px; color: #b7b0e6; }
+.cp-brand small { display: block; font-size: 10.5px; color: #9fb3e6; }
 .cp-brand small a { color: #37d0c0; text-decoration: none; }
 .cp-badge { display: inline-flex; align-items: center; gap: 7px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); border-radius: 20px; padding: 7px 14px; font-size: 12.5px; font-weight: 700; }
 .cp-badge b { color: #f5b301; }
 .cp-h1 { font-size: 38px; font-weight: 900; line-height: 1.12; margin: 16px 0 10px; }
 .cp-h1 .t { color: #37d0c0; }
-.cp-sub { color: #c3bdec; font-size: 14.5px; line-height: 1.6; max-width: 400px; }
+.cp-sub { color: #c9d6f2; font-size: 14.5px; line-height: 1.6; max-width: 400px; }
 .cp-feats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px 12px; margin: 22px 0; }
 .cp-feat { }
-.cp-feat .fi { width: 34px; height: 34px; border-radius: 9px; background: rgba(124,108,240,.25); display: grid; place-items: center; font-size: 16px; margin-bottom: 7px; }
+.cp-feat .fi { width: 34px; height: 34px; border-radius: 9px; background: rgba(55,208,192,.22); display: grid; place-items: center; font-size: 16px; margin-bottom: 7px; }
 .cp-feat b { font-size: 12.5px; font-weight: 700; line-height: 1.3; display: block; }
 .cp-testi { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 15px; display: flex; gap: 12px; margin-top: 8px; }
-.cp-testi .av { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
+.cp-testi .av { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#16307a,#37d0c0); display: grid; place-items: center; font-size: 18px; flex-shrink: 0; }
 .cp-testi .stars { color: #f5b301; font-size: 13px; }
-.cp-testi q { display: block; font-size: 13px; color: #e5e2f7; margin: 4px 0 6px; line-height: 1.5; }
+.cp-testi q { display: block; font-size: 13px; color: #dbe6ff; margin: 4px 0 6px; line-height: 1.5; }
 .cp-testi .nm { font-size: 12.5px; font-weight: 700; color: #37d0c0; }
-.cp-testi .rl { font-size: 11px; color: #a99fe0; }
+.cp-testi .rl { font-size: 11px; color: #8fa6d8; }
 .cp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 14px; margin-top: 18px; }
 .cp-stats .st b { font-size: 18px; font-weight: 800; display: block; }
-.cp-stats .st span { font-size: 11px; color: #b7b0e6; }
+.cp-stats .st span { font-size: 11px; color: #9fb3e6; }
 /* right form */
 .cp-right { padding: 34px 34px; }
-.cp-ric { width: 52px; height: 52px; border-radius: 14px; background: #f2f0ff; display: grid; place-items: center; font-size: 24px; margin: 0 auto 10px; }
+.cp-ric { width: 52px; height: 52px; border-radius: 14px; background: #e8f0ff; display: grid; place-items: center; font-size: 24px; margin: 0 auto 10px; }
 .cp-ftitle { font-size: 23px; font-weight: 800; color: #0f172a; text-align: center; }
 .cp-fsub { font-size: 13.5px; color: #64748b; text-align: center; margin: 4px 0 20px; }
 .cp-label { font-size: 12.5px; font-weight: 700; color: #334155; display: block; margin: 12px 0 5px; }
 .cp-field { position: relative; }
 .cp-field .ic { position: absolute; right: 13px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 15px; pointer-events: none; }
 .cp-input, .cp-select { width: 100%; padding: 12px 40px 12px 13px; border: 1.5px solid #e2e8f0; border-radius: 11px; font-size: 14px; color: #0f172a; background: #fff; }
-.cp-input:focus, .cp-select:focus { outline: none; border-color: #7c6cf0; }
+.cp-input:focus, .cp-select:focus { outline: none; border-color: #16307a; }
 .cp-select { appearance: none; }
-.cp-submit { width: 100%; margin-top: 20px; background: linear-gradient(90deg,#6650d8,#4f46e5); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.cp-submit { width: 100%; margin-top: 20px; background: linear-gradient(90deg,#0b1f56,#16307a); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .cp-submit:disabled { opacity: .6; cursor: default; }
 .cp-secure { text-align: center; font-size: 12px; color: #16a34a; margin-top: 12px; }
 .cp-login { text-align: center; font-size: 13px; color: #64748b; margin-top: 16px; border-top: 1px solid #eef1f6; padding-top: 14px; }
-.cp-login a { color: #4f46e5; font-weight: 700; text-decoration: none; }
+.cp-login a { color: #0b1f56; font-weight: 700; text-decoration: none; }
 .cp-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 9px; padding: 9px 12px; font-size: 13px; margin-top: 12px; }
 .cp-otp { width: 100%; text-align: center; letter-spacing: 8px; font-size: 22px; font-weight: 800; padding: 13px; border: 1.5px solid #e2e8f0; border-radius: 11px; }
 @media (max-width: 940px) {
@@ -56,7 +60,7 @@
 }
 
 /* ── OTP verification screen (full gradient) ── */
-.otp-page { min-height: 100vh; background: linear-gradient(135deg,#5b3fd6 0%,#3f6fd0 45%,#1fb89a 100%); display: flex; flex-direction: column; padding: 24px; }
+.otp-page { min-height: 100vh; background: linear-gradient(135deg,#0b1f56 0%,#16307a 48%,#37d0c0 100%); display: flex; flex-direction: column; padding: 24px; }
 .otp-top { display: flex; align-items: center; justify-content: space-between; max-width: 1100px; width: 100%; margin: 0 auto; }
 .otp-brand { display: flex; align-items: center; gap: 10px; color: #fff; }
 .otp-brand .mk { width: 34px; height: 34px; border-radius: 9px; background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 16px; }
@@ -74,11 +78,11 @@
 .otp-hint { font-size: 12.5px; color: #94a3b8; margin: 12px 0 8px; }
 .otp-boxes { display: flex; gap: 10px; justify-content: center; margin-bottom: 16px; }
 .otp-box { width: 48px; height: 56px; border: 1.5px solid #e2e8f0; border-radius: 12px; text-align: center; font-size: 24px; font-weight: 800; color: #0f172a; }
-.otp-box:focus { outline: none; border-color: #6650d8; box-shadow: 0 0 0 3px rgba(102,80,216,.15); }
+.otp-box:focus { outline: none; border-color: #16307a; box-shadow: 0 0 0 3px rgba(11,31,86,.14); }
 .otp-resend { font-size: 13px; color: #64748b; margin-bottom: 16px; }
-.otp-resend a { color: #6650d8; font-weight: 700; text-decoration: none; cursor: pointer; }
+.otp-resend a { color: #0b1f56; font-weight: 700; text-decoration: none; cursor: pointer; }
 .otp-resend a.disabled { color: #94a3b8; cursor: default; }
-.otp-verify { width: 100%; background: linear-gradient(90deg,#6650d8,#1fb89a); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; cursor: pointer; }
+.otp-verify { width: 100%; background: linear-gradient(90deg,#0b1f56,#37d0c0); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; cursor: pointer; }
 .otp-verify:disabled { opacity: .6; cursor: default; }
 .otp-banner { max-width: 1100px; width: 100%; margin: 20px auto 0; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 16px; padding: 16px 20px; display: flex; align-items: center; gap: 14px; color: #fff; }
 .otp-banner .sh { width: 40px; height: 40px; border-radius: 10px; background: rgba(255,255,255,.14); display: grid; place-items: center; font-size: 18px; }

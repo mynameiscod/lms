@@ -149,8 +149,12 @@ const PassportJoin: React.FC = () => {
           {/* Left hero */}
           <div className="cp-left">
             <div className="cp-brand">
-              <span className="mark">🧭</span>
-              <div><b>CareerPilot</b><small>Powered by <a href="https://www.codebegun.com">CodeBegun</a></small></div>
+              {/* The real CodeBegun mark, same asset the public header uses. */}
+              <a className="logo" href="https://www.codebegun.com" aria-label="CodeBegun">
+                <img src="/assets/logo.png" alt="CodeBegun"
+                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+              </a>
+              <div><b>CareerPilot</b><small>by CodeBegun</small></div>
             </div>
             <span className="cp-badge">🎁 Founding Membership at <b>₹{priceInr} for 12 Months</b></span>
             <h1 className="cp-h1">Your Personal Guide from College to <span className="t">Career Success</span></h1>

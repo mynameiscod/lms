@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessQuestion, AssessResult } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
+import MemberShell from './MemberShell';
 import './assessment.css';
 
 /**
@@ -209,7 +210,14 @@ const ResultView: React.FC<{
   const [status, setStatus] = useState<any>(null);
   const printRef = useRef(false);
 
-  useEffect(() => { passportApi.me().then(setStatus).catch(() => {}); }, []);
+  // Seed `unlocked` from the server, not just from a payment made in THIS session —
+  // otherwise a member who paid days ago is pitched the ₹499 upgrade all over again.
+  useEffect(() => {
+    passportApi.me().then(me => {
+      setStatus(me);
+      if (me?.active) setUnlocked(true);
+    }).catch(() => {});
+  }, []);
 
   // A payment can complete in a redirected tab (checkout callback never fires here). When the
   // user returns to this tab, re-check membership; if now active, show the unlocked state.
@@ -233,6 +241,7 @@ const ResultView: React.FC<{
 
   const price = status?.priceInr ?? 499;
   const paymentOff = status?.paymentAvailable === false;
+  const isMember = !!status?.active;
   const score = result.careerScore;
   const scoreBand = BANDS(score);
   const circumference = 2 * Math.PI * 62;
@@ -241,16 +250,7 @@ const ResultView: React.FC<{
     : score >= 45 ? "You're on the right track. With the right plan and consistent effort, you can achieve great things!"
     : "Great first step — a focused plan will move your score up fast.";
 
-  return (
-    <div className="pf-shell">
-      {topBrand(
-        <>
-          <div className="pf-spacer" />
-          <button className="pf-report" onClick={() => { if (printRef.current) return; printRef.current = true; window.print(); setTimeout(() => (printRef.current = false), 800); }}>⬇ Download Report</button>
-          <div className="pf-user"><span className="av">{initial}</span><div className="who"><b>Hi, {firstName}</b></div></div>
-        </>
-      )}
-
+  const body = (
       <div className="rs-wrap">
         <div className="rs-hi">
           <h1>Great start, {firstName}! 🎉</h1>
@@ -331,8 +331,15 @@ const ResultView: React.FC<{
           </div>
         </div>
 
-        {/* Unlock */}
-        {unlocked ? (
+        {/* Unlock — never pitched to someone who has already paid */}
+        {isMember ? (
+          <div className="rs-done">
+            <div className="em">🎫</div>
+            <h3>You're a CareerPilot member.</h3>
+            <p>This is your latest result. Your roadmap, Practice Lab, mock interviews and Resume Center are all unlocked.</p>
+            <button onClick={onHome}>Go to Coding Home →</button>
+          </div>
+        ) : unlocked ? (
           <div className="rs-done">
             <div className="em">🎉</div>
             <h3>You're in! Membership activated.</h3>
@@ -375,17 +382,38 @@ const ResultView: React.FC<{
           </div>
         )}
 
-        <div className="rs-trust">🔒 100% secure · Your data is safe with us · Trusted by 12,000+ students across 200+ colleges</div>
-
-        <div className="rs-colleges">
-          <span className="lb">Trusted by students from</span>
-          {[['🎓', 'VIT', 'Vellore Institute of Technology'], ['🎓', 'SRM', 'Institute of Science & Technology'], ['🎓', 'GITAM', '(Deemed to be University)'], ['🎓', 'Andhra University', 'Andhra University'], ['🏛️', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
-            <div className="rs-col" key={nm}><span className="bd">{ic}</span><div><b>{nm}</b><span>{sub}</span></div></div>
-          ))}
-        </div>
+        {/* Conversion furniture — pointless once someone has bought */}
+        {!isMember && (
+          <>
+            <div className="rs-trust">🔒 100% secure · Your data is safe with us · Trusted by 12,000+ students across 200+ colleges</div>
+            <div className="rs-colleges">
+              <span className="lb">Trusted by students from</span>
+              {[['🎓', 'VIT', 'Vellore Institute of Technology'], ['🎓', 'SRM', 'Institute of Science & Technology'], ['🎓', 'GITAM', '(Deemed to be University)'], ['🎓', 'Andhra University', 'Andhra University'], ['🏛️', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
+                <div className="rs-col" key={nm}><span className="bd">{ic}</span><div><b>{nm}</b><span>{sub}</span></div></div>
+              ))}
+            </div>
+          </>
+        )}
 
         <div className="rs-retake"><button onClick={onRetake}>↻ Retake assessment</button></div>
       </div>
+  );
+
+  // A paying member gets the rail on this screen like every other member page. A free
+  // candidate keeps the standalone marketing chrome — the rail's destinations are all
+  // locked to them, so it would be a menu of dead ends.
+  if (isMember) return <MemberShell>{body}</MemberShell>;
+
+  return (
+    <div className="pf-shell">
+      {topBrand(
+        <>
+          <div className="pf-spacer" />
+          <button className="pf-report" onClick={() => { if (printRef.current) return; printRef.current = true; window.print(); setTimeout(() => (printRef.current = false), 800); }}>⬇ Download Report</button>
+          <div className="pf-user"><span className="av">{initial}</span><div className="who"><b>Hi, {firstName}</b></div></div>
+        </>
+      )}
+      {body}
     </div>
   );
 };

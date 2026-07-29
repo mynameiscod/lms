@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { DashboardData, Badge } from '../../api/passportApi';
-import MemberShell from './MemberShell';
 import './dashboard.css';
 
 /**
@@ -103,37 +102,6 @@ const AreaChart: React.FC<{ points: { label: string; xp: number }[] }> = ({ poin
   );
 };
 
-// ── Sidebar nav (only routes that exist) ────────────────────────────────────
-const PRACTICE_SUB: { label: string; to: string }[] = [
-  { label: 'All Problems', to: '/passport/practice' },
-  { label: 'Coding', to: '/passport/practice?kind=coding' },
-  { label: 'SQL', to: '/passport/practice?kind=sql' },
-  { label: 'Aptitude & MCQ', to: '/passport/practice?kind=mcq' },
-];
-
-/**
- * Inline stroke icons for the rail. Emoji were inconsistent across platforms — they
- * rendered at different weights and baselines, which is what made the menu look
- * unfinished. These share one grid, weight and colour, and inherit currentColor so
- * the active state just works.
- */
-const ICONS: Record<string, React.ReactNode> = {
-  home:      <><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></>,
-  practice:  <><path d="M8 3v5.5L4 18a2 2 0 0 0 1.8 3h12.4A2 2 0 0 0 20 18l-4-9.5V3" /><path d="M7 3h10" /><path d="M6.5 14h11" /></>,
-  roadmap:   <><path d="M9 4 3.5 6.2v14L9 18l6 2.5 5.5-2.2v-14L15 6.5 9 4z" /><path d="M9 4v14M15 6.5v14" /></>,
-  interview: <><rect x="9" y="2.5" width="6" height="11" rx="3" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0" /><path d="M12 17.5V21M8.5 21h7" /></>,
-  resume:    <><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z" /><path d="M14 3v5h5" /><path d="M9 13h6M9 17h4" /></>,
-  chart:     <><path d="M3 3v18h18" /><path d="M7 15v-4M12 15V7M17 15v-6" /></>,
-  card:      <><rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="M2.5 10h19" /><path d="M6.5 14.5h4" /></>,
-  trophy:    <><path d="M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11" /><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11" /><path d="M12 14v4M8.5 20h7" /></>,
-  logout:    <><path d="M14.5 16.5 19 12l-4.5-4.5" /><path d="M19 12H9" /><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" /></>,
-  chevron:   <><path d="m6 9 6 6 6-6" /></>,
-};
-
-const Icon: React.FC<{ name: string }> = ({ name }) => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">{ICONS[name]}</svg>
-);
-
 const CAT_ICON: Record<string, string> = {
   career_clarity: '🎯', aptitude: '🔢', logical_reasoning: '🧩',
   technical: '💻', communication: '🗣️', employability: '💼',
@@ -180,34 +148,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const hasActivity = (d.activity || []).some(a => a.xp > 0);
 
   return (
-    <MemberShell
-      data={d}
-      header={
-        <div className="gd-hello">
-          <h1>Hey {firstName}! 👋</h1>
-          <p>{st.day <= st.totalDays ? `Let's code, solve problems and level up your skills.` : 'Journey complete — keep the streak alive.'}</p>
-        </div>
-      }
-      headerPills={
-        <>
-          <div className="gd-pill">
-            <span className="em">🔥</span>
-            <div><b>{st.streak}</b><span>Day Streak</span></div>
-          </div>
-          <div className="gd-pill level">
-            <span className="hex">🎖️</span>
-            <div>
-              <b>Level {lv.level}</b><span>{lv.title}</span>
-              <div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div>
-            </div>
-          </div>
-          <div className="gd-pill">
-            <span className="em">⚡</span>
-            <div><b>{lv.xpToNextLevel.toLocaleString()} XP</b><span>to next level</span></div>
-          </div>
-        </>
-      }
-    >
+    <>
 
         {/* Coder score · skill radar · coding stats */}
         <div className="gd-grid gd-3">
@@ -527,7 +468,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <small>Placement<br />Ready!</small>
           </div>
         </div>
-    </MemberShell>
+    </>
   );
 };
 

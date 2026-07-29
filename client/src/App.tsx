@@ -67,6 +67,7 @@ import PassportAdminStudents from './pages/Passport/AdminStudents';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
+import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportPractice from './pages/Passport/Practice';
 import PassportPracticeItem from './pages/Passport/PracticeItem';
@@ -400,27 +401,17 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
       } />
       {/* Student Passport surfaces — deliberately NOT the LMS Layout (separate product) */}
-      <Route path="/passport" element={
-        <ProtectedRoute><PassportHome /></ProtectedRoute>
-      } />
-      <Route path="/passport/assessment" element={
-        <ProtectedRoute><PassportAssessmentPage /></ProtectedRoute>
-      } />
-      <Route path="/passport/roadmap" element={
-        <ProtectedRoute><PassportRoadmap /></ProtectedRoute>
-      } />
-      <Route path="/passport/practice" element={
-        <ProtectedRoute><PassportPractice /></ProtectedRoute>
-      } />
-      <Route path="/passport/practice/:id" element={
-        <ProtectedRoute><PassportPracticeItem /></ProtectedRoute>
-      } />
-      <Route path="/passport/interview" element={
-        <ProtectedRoute><PassportInterview /></ProtectedRoute>
-      } />
-      <Route path="/passport/resume" element={
-        <ProtectedRoute><PassportResumeCenter /></ProtectedRoute>
-      } />
+      {/* Layout route: MemberShell mounts ONCE here and only <Outlet/> swaps, so the
+          sidebar no longer remounts (and re-fetches) on every nav click. */}
+      <Route element={<ProtectedRoute><PassportMemberLayout /></ProtectedRoute>}>
+        <Route path="/passport" element={<PassportHome />} />
+        <Route path="/passport/assessment" element={<PassportAssessmentPage />} />
+        <Route path="/passport/roadmap" element={<PassportRoadmap />} />
+        <Route path="/passport/practice" element={<PassportPractice />} />
+        <Route path="/passport/practice/:id" element={<PassportPracticeItem />} />
+        <Route path="/passport/interview" element={<PassportInterview />} />
+        <Route path="/passport/resume" element={<PassportResumeCenter />} />
+      </Route>
 
       <Route
         path="/interview-questions/:chapterId"

@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
 import passportApi, { PracticeProblem, PracticeListItem, RunOutcome, SubmitOutcome } from '../../api/passportApi';
-import MemberShell from './MemberShell';
 import './practice.css';
 
 const LANG_LABEL: Record<string, string> = { python: 'Python', javascript: 'JavaScript', java: 'Java', sql: 'SQL' };
@@ -112,8 +111,8 @@ const PracticeItem: React.FC = () => {
     setOutcome(null); setResult(null);
   };
 
-  if (loading) return <MemberShell><div className="pm-loading">Loading problem…</div></MemberShell>;
-  if (!problem) return <MemberShell><div className="pm-empty">{err || 'Problem not found.'}</div></MemberShell>;
+  if (loading) return <div className="pm-loading">Loading problem…</div>;
+  if (!problem) return <div className="pm-empty">{err || 'Problem not found.'}</div>;
 
   const rows = outcome?.results || result?.results || [];
   const shown = outcome || result;
@@ -124,7 +123,7 @@ const PracticeItem: React.FC = () => {
   // ── MCQ variant ──
   if (problem.kind === 'mcq') {
     return (
-      <MemberShell>
+      <>
         <div className="pl-bar">
           <button className="pl-back" onClick={() => nav('/passport/practice')}>← Back to Practice Lab</button>
           <div className="pl-nextprev">
@@ -185,13 +184,13 @@ const PracticeItem: React.FC = () => {
             </>
           )}
         </div>
-      </MemberShell>
+      </>
     );
   }
 
   // ── Coding / SQL workspace ──
   return (
-    <MemberShell>
+    <>
       <div className="pl-bar">
         <button className="pl-back" onClick={() => nav('/passport/practice')}>← Back to Practice Lab</button>
         <div className="pl-meta">
@@ -391,7 +390,7 @@ const PracticeItem: React.FC = () => {
           )}
         </div>
       </div>
-    </MemberShell>
+    </>
   );
 };
 

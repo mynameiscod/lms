@@ -1,5 +1,4 @@
 import React from 'react';
-import MemberShell from './MemberShell';
 import './member.css';
 
 /**
@@ -30,10 +29,10 @@ interface Props {
 }
 
 const PassportShell: React.FC<Props> = ({ children, meta }) => (
-  <MemberShell>
+  <>
     {meta && <div className="pm-metabar">{meta}</div>}
     {children}
-  </MemberShell>
+  </>
 );
 
 /** Shown wherever a paid surface is reached without an active membership. */

@@ -47,33 +47,22 @@ export const Icon: React.FC<{ name: string }> = ({ name }) => (
 
 interface Props {
   children: React.ReactNode;
-  /** Pass when the page already has dashboard data, to avoid a duplicate fetch. */
+  /** Supplied by MemberLayout, which fetches once for the whole member area. */
   data?: DashboardData | null;
-  /** Left side of the shared top row (e.g. the dashboard's "Hey Sai! 👋"). */
-  header?: React.ReactNode;
-  /** Sits between the header and the user menu (e.g. streak / level / XP pills). */
-  headerPills?: React.ReactNode;
 }
 
-const MemberShell: React.FC<Props> = ({ children, data, header, headerPills }) => {
+const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
   const { user, logout } = useAuth();
-  const [own, setOwn] = useState<DashboardData | null>(null);
   const [practiceOpen, setPracticeOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
-  const d = data ?? own;
+  const d = data ?? null;
 
-  const loadOwn = useCallback(async () => {
-    if (data) return;                       // parent supplied it
-    try { setOwn(await passportApi.getDashboard()); } catch { /* sidebar degrades gracefully */ }
-  }, [data]);
-
-  useEffect(() => { loadOwn(); }, [loadOwn]);
-  useEffect(() => { setMobileOpen(false); }, [loc.pathname, loc.search]);
+  useEffect(() => { setMobileOpen(false); setUserOpen(false); }, [loc.pathname, loc.search]);
 
   const share = async () => {
     if (!d?.shareSlug) return;
@@ -166,9 +155,35 @@ const MemberShell: React.FC<Props> = ({ children, data, header, headerPills }) =
         {/* Shared top row: page header, page pills, then the user menu on the right.
             The profile lives here now rather than in a card at the foot of the rail. */}
         <div className="gd-topbar">
-          <div className="gd-topbar-l">{header}</div>
+          <div className="gd-topbar-l">
+            {/* Greeting belongs to the home screen; the pills are useful everywhere. */}
+            {path === '/passport' && (
+              <div className="gd-hello">
+                <h1>Hey {firstName}! 👋</h1>
+                <p>Let’s code, solve problems and level up your skills.</p>
+              </div>
+            )}
+          </div>
           <div className="gd-topbar-r">
-            {headerPills}
+            {st && lv && (
+              <>
+                <div className="gd-pill">
+                  <span className="em">🔥</span>
+                  <div><b>{st.streak}</b><span>Day Streak</span></div>
+                </div>
+                <div className="gd-pill level">
+                  <span className="hex">🎖️</span>
+                  <div>
+                    <b>Level {lv.level}</b><span>{lv.title}</span>
+                    <div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div>
+                  </div>
+                </div>
+                <div className="gd-pill">
+                  <span className="em">⚡</span>
+                  <div><b>{lv.xpToNextLevel.toLocaleString()} XP</b><span>to next level</span></div>
+                </div>
+              </>
+            )}
             <div className="gd-user">
               <button className="gd-user-btn" onClick={() => setUserOpen(o => !o)}>
                 <span className="av">{initial}</span>

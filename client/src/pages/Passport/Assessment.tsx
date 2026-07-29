@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessQuestion, AssessResult } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
-import MemberShell from './MemberShell';
 import './assessment.css';
 
 /**
@@ -402,7 +401,7 @@ const ResultView: React.FC<{
   // A paying member gets the rail on this screen like every other member page. A free
   // candidate keeps the standalone marketing chrome — the rail's destinations are all
   // locked to them, so it would be a menu of dead ends.
-  if (isMember) return <MemberShell>{body}</MemberShell>;
+  if (isMember) return body;
 
   return (
     <div className="pf-shell">

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import passportApi, { DashboardData, Badge } from '../../api/passportApi';
-import { useAuth } from '../../contexts/AuthContext';
+import MemberShell from './MemberShell';
 import './dashboard.css';
 
 /**
@@ -147,11 +147,7 @@ interface Props {
 
 const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const nav = useNavigate();
-  const loc = useLocation();
-  const { user, logout } = useAuth();
   const [d, setD] = useState<DashboardData>(data);
-  const [practiceOpen, setPracticeOpen] = useState(true);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => { setD(data); }, [data]);
 
@@ -167,15 +163,8 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     try { await passportApi.completeMission(key); } finally { reload(); }
   };
 
-  const share = async () => {
-    if (!d.shareSlug) return;
-    const url = `${window.location.origin}/passport/card/${d.shareSlug}`;
-    try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.prompt('Copy your Career Passport link:', url); }
-  };
-
-  const firstName = d.firstName || user?.firstName || 'there';
-  const initial = (firstName[0] || 'C').toUpperCase();
+  // Share + profile now live in MemberShell, which every member page mounts.
+  const firstName = d.firstName || 'there';
   const hoursLeft = useMemo(() => {
     const now = new Date();
     const end = new Date(now); end.setHours(23, 59, 59, 999);
@@ -190,90 +179,8 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const totalMissions = (d.missions || []).length;
   const hasActivity = (d.activity || []).some(a => a.xp > 0);
 
-  const navBtn = (label: string, icon: string, to: string, on = false) => (
-    <button className={`gd-nav-btn${on ? ' on' : ''}`} onClick={() => nav(to)} key={label}>
-      <span className="ic"><Icon name={icon} /></span><span className="lbl">{label}</span>
-    </button>
-  );
-
   return (
-    <div className="gd">
-      {/* ── Sidebar ── */}
-      <aside className="gd-side">
-        <div className="gd-logo">
-          <span className="mk">{'</>'}</span>
-          <div><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div>
-        </div>
-
-        <nav className="gd-nav">
-          {navBtn('Coding Home', 'home', '/passport', true)}
-
-          <button className="gd-nav-btn" onClick={() => setPracticeOpen(o => !o)}>
-            <span className="ic"><Icon name="practice" /></span>
-            <span className="lbl">Practice Lab</span>
-            <span className={`cr${practiceOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
-          </button>
-          {practiceOpen && (
-            <div className="gd-sub">
-              {PRACTICE_SUB.map(s => {
-                const on = `${loc.pathname}${loc.search}` === s.to;
-                return <button key={s.to} className={on ? 'on' : ''} onClick={() => nav(s.to)}>{s.label}</button>;
-              })}
-            </div>
-          )}
-
-          <div className="gd-nav-label">My Journey</div>
-          {navBtn('90-Day Roadmap', 'roadmap', '/passport/roadmap')}
-          {navBtn('Mock Interview', 'interview', '/passport/interview')}
-          {navBtn('Resume Center', 'resume', '/passport/resume')}
-          {navBtn('My Assessment', 'chart', '/passport/assessment')}
-
-          <div className="gd-nav-label">Account</div>
-          {!!d.contests?.length && navBtn('Contests', 'trophy', '/battles')}
-          <button className="gd-nav-btn" onClick={share}>
-            <span className="ic"><Icon name="card" /></span>
-            <span className="lbl">{copied ? 'Link copied!' : 'My Passport Card'}</span>
-          </button>
-          <button className="gd-nav-btn" onClick={() => logout()}>
-            <span className="ic"><Icon name="logout" /></span>
-            <span className="lbl">Log out</span>
-          </button>
-        </nav>
-
-        <div className="gd-goal">
-          <div className="hd">🎯 Daily Goal</div>
-          <div className="big">{goal.earned} <small>/ {goal.target} XP</small></div>
-          <div className="bar"><i style={{ width: `${goal.pct}%` }} /></div>
-          <div className="note">
-            {goal.met
-              ? 'Goal smashed for today — anything else is bonus.'
-              : `${totalMissions - doneCount} more mission${totalMissions - doneCount === 1 ? '' : 's'} to hit today's goal.`}
-          </div>
-          {!goal.met && <button className="cta" onClick={() => nav('/passport/practice')}>Earn XP now</button>}
-        </div>
-
-        <div className="gd-me">
-          <div className="gd-me-card">
-            <div className="gd-me-top">
-              <span className="av">{initial}</span>
-              <div>
-                <b>{d.name || firstName}</b>
-                <span>Level {lv.level}</span>
-                <div className="gd-me-tag">{lv.title}</div>
-              </div>
-            </div>
-            <div className="gd-me-stats">
-              <div><b>{st.xp.toLocaleString()}</b><span>XP</span></div>
-              <div><b>{st.streak}</b><span>Day Streak</span></div>
-              <div><b>{d.leaderboard?.find(r => r.me)?.rank ? `#${d.leaderboard.find(r => r.me)!.rank}` : '—'}</b><span>Rank</span></div>
-            </div>
-            <button className="gd-me-btn" onClick={() => nav('/passport/roadmap')}>View My Journey</button>
-          </div>
-        </div>
-      </aside>
-
-      {/* ── Main ── */}
-      <main className="gd-main">
+    <MemberShell data={d}>
         <div className="gd-top">
           <div className="gd-hello">
             <h1>Hey {firstName}! 👋</h1>
@@ -547,8 +454,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <small>Placement<br />Ready!</small>
           </div>
         </div>
-      </main>
-    </div>
+    </MemberShell>
   );
 };
 

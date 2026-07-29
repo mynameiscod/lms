@@ -37,6 +37,10 @@
 
 .pm-body { max-width: 1200px; margin: 0 auto; padding: 22px 26px 0; }
 
+/* Page-level stat pills, right-aligned above the content (rendered by PassportShell
+   inside MemberShell's main column, since the rail owns navigation now). */
+.pm-metabar { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+
 /* ── Primitives ── */
 .pm-head { margin-bottom: 20px; }
 .pm-head h1 { font-size: 28px; font-weight: 900; color: #0f172a; margin: 0 0 6px; letter-spacing: -.3px; }

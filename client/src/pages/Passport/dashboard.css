@@ -1,15 +1,21 @@
 /* CareerPilot gamified member dashboard — sidebar shell + game furniture.
    Palette matches the rest of Passport: violet #6d4bd8, teal #14a89c, slate text. */
 
-.gd { min-height: 100vh; background: #f4f5fa; display: flex; }
+/* The rail is FIXED, not a flex child. As a 100vh flex item it stopped where the
+   viewport ended while the page kept scrolling, leaving a grey gap below it. Fixed
+   + inset:0 means it always spans the full height regardless of page length. */
+.gd { min-height: 100vh; background: #f4f5fa; }
 .gd * { box-sizing: border-box; }
+
+.gd-burger { display: none; }
+.gd-scrim { display: none; }
 
 /* ── Sidebar ──
    Only the NAV scrolls. The logo, daily-goal card and profile card are pinned, so
    they can never be clipped. (Putting overflow-y on the whole rail scrolled the lot
    and cut the goal card in half once the nav grew past the viewport.) */
-.gd-side { width: 248px; flex-shrink: 0; background: #fff; border-right: 1px solid #ecedf5; display: flex; flex-direction: column; padding: 18px 12px 14px; position: sticky; top: 0; height: 100vh; overflow: hidden; }
-.gd-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 16px; flex-shrink: 0; }
+.gd-side { position: fixed; top: 0; left: 0; bottom: 0; width: 248px; z-index: 30; background: #fff; border-right: 1px solid #ecedf5; display: flex; flex-direction: column; padding: 18px 12px 14px; overflow: hidden; }
+.gd-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 16px; flex-shrink: 0; background: none; border: none; cursor: pointer; text-align: left; width: 100%; }
 .gd-logo .mk { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: -.5px; flex-shrink: 0; }
 .gd-logo b { font-size: 16.5px; font-weight: 900; color: #0f172a; display: block; line-height: 1.15; }
 .gd-logo b .p { color: #6d4bd8; }
@@ -65,7 +71,9 @@
 .gd-me-btn:hover { border-color: #cdd2e0; }
 
 /* ── Main ── */
-.gd-main { flex: 1; min-width: 0; padding: 22px 26px 40px; }
+.gd-main { margin-left: 248px; min-width: 0; padding: 22px 26px 40px; }
+.gd-main > .pm-body { max-width: none; padding: 0; margin: 0; }
+.gd-main .pm-shell { background: none; min-height: 0; padding: 0; }
 .gd-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; margin-bottom: 20px; }
 .gd-hello h1 { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0; letter-spacing: -.4px; }
 .gd-hello p { font-size: 14px; color: #7b8496; margin: 4px 0 0; }
@@ -223,16 +231,23 @@
 .gd-path-end small { display: block; font-size: 11px; font-weight: 800; color: #7b8496; }
 
 /* Mobile: sidebar collapses to a top strip */
-@media (max-width: 860px) {
-  .gd { flex-direction: column; }
-  /* The rail becomes a top strip: undo the vertical scroll container so the
-     horizontal nav row isn't clipped by the desktop overflow rules. */
-  .gd-side { width: 100%; height: auto; position: static; overflow: visible; flex-direction: column; border-right: none; border-bottom: 1px solid #ecedf5; padding: 14px 14px 10px; }
-  .gd-nav { flex: none; min-height: 0; flex-direction: row; overflow-x: auto; overflow-y: visible; gap: 6px; padding: 0 0 4px; }
-  .gd-nav-btn { white-space: nowrap; width: auto; }
-  .gd-nav-btn .lbl { overflow: visible; }
-  .gd-nav-btn .cr, .gd-nav-label, .gd-sub, .gd-goal, .gd-me { display: none; }
-  .gd-main { padding: 18px 16px 32px; }
+@media (max-width: 980px) {
+  /* Rail slides off-canvas behind a burger rather than becoming a cramped strip,
+     so the goal + profile cards stay reachable on a phone. */
+  .gd-side { transform: translateX(-100%); transition: transform .22s ease; box-shadow: 0 0 40px rgba(15,23,42,.16); }
+  .gd-side.open { transform: translateX(0); }
+  .gd-main { margin-left: 0; padding: 64px 16px 32px; }
+
+  .gd-burger { display: grid; place-items: center; position: fixed; top: 12px; left: 12px; z-index: 40; width: 42px; height: 42px; border-radius: 12px; background: #fff; border: 1px solid #e6e8f0; box-shadow: 0 4px 14px rgba(15,23,42,.1); cursor: pointer; color: #334155; }
+  .gd-burger svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
+  .gd-scrim { display: block; position: fixed; inset: 0; background: rgba(15,23,42,.34); z-index: 29; }
+
   .gd-hello h1 { font-size: 24px; }
   .gd-top-pills { gap: 8px; }
+  .gd-2, .gd-2b { grid-template-columns: 1fr; }
+  .gd-tiles { grid-template-columns: repeat(2,1fr); }
+}
+@media (max-width: 560px) {
+  .gd-tiles { grid-template-columns: 1fr; }
+  .gd-badges { grid-template-columns: repeat(3,1fr); }
 }

@@ -10,14 +10,35 @@ const BattlesAdmin: React.FC = () => {
   const [battles, setBattles] = useState<TechBattle[]>([]);
   const [quizzes, setQuizzes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadErr, setLoadErr] = useState('');
+  const [canCreate, setCanCreate] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
   const [f, setF] = useState<any>({ title: '', quizId: '', prize: '', description: '', startAt: '', endAt: '', registerClosesAt: '', joinCutoffMins: 15, status: 'live', registrationMode: 'approval', proofNote: '' });
 
+  /**
+   * Fetch the two independently.
+   *
+   * These used to be one Promise.all inside an empty catch, so a failure in EITHER
+   * blanked the page with no message. A view-only role (view_battles without
+   * manage_battles) gets 403 on availableQuizzes — which is correct, it only feeds
+   * the create form — and that silently took the battle list down with it, showing
+   * "No battles yet" to someone whose battles loaded fine.
+   */
   const load = async () => {
     setLoading(true);
-    try { const [b, q] = await Promise.all([battleAdminApi.list(), battleAdminApi.availableQuizzes()]); setBattles(b); setQuizzes(q); } catch { /* */ }
+    setLoadErr('');
+    try {
+      setBattles(await battleAdminApi.list());
+    } catch (e: any) {
+      setLoadErr(e?.response?.status === 403
+        ? 'Your role does not include permission to view battles.'
+        : (e?.response?.data?.message || 'Could not load battles.'));
+    }
+    // Quizzes only populate the create form; not being allowed to create is normal.
+    try { setQuizzes(await battleAdminApi.availableQuizzes()); }
+    catch { setCanCreate(false); }
     setLoading(false);
   };
   useEffect(() => { load(); }, []);
@@ -46,12 +67,22 @@ const BattlesAdmin: React.FC = () => {
           <h1 style={{ fontSize: 23, fontWeight: 800, color: '#0f172a', margin: 0 }}>⚔️ Tech Battles</h1>
           <p style={{ color: '#64748b', fontSize: 13.5, margin: '4px 0 0' }}>Public & college competitions. Create once — registration, links, reminders and grading are automatic.</p>
         </div>
-        <button onClick={() => setShowCreate(true)} style={primary}>+ Create Battle</button>
+        {canCreate && <button onClick={() => setShowCreate(true)} style={primary}>+ Create Battle</button>}
       </div>
+
+      {loadErr && (
+        <div style={{ marginTop: 14, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 10, padding: '11px 14px', fontSize: 13.5 }}>
+          {loadErr}
+        </div>
+      )}
 
       {loading ? <div style={{ padding: 40, color: '#64748b' }}>Loading…</div> : (
         <div style={{ display: 'grid', gap: 12, marginTop: 20 }}>
-          {battles.length === 0 && <div style={card}>No battles yet. Create your first one.</div>}
+          {/* Only claim "none exist" when the list actually loaded — otherwise the
+              error above is the truth, and this line would contradict it. */}
+          {battles.length === 0 && !loadErr && (
+            <div style={card}>{canCreate ? 'No battles yet. Create your first one.' : 'No battles yet.'}</div>
+          )}
           {battles.map(b => {
             const bd = badge(b.status);
             return (

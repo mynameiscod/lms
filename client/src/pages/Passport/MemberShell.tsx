@@ -18,11 +18,11 @@ import './member.css';
  * identical everywhere rather than appearing only on the home screen.
  */
 
-const PRACTICE_SUB: { label: string; to: string }[] = [
-  { label: 'All Problems', to: '/passport/practice' },
-  { label: 'Coding', to: '/passport/practice?kind=coding' },
-  { label: 'SQL', to: '/passport/practice?kind=sql' },
-  { label: 'Aptitude & MCQ', to: '/passport/practice?kind=mcq' },
+const PRACTICE_SUB: { label: string; to: string; icon: string }[] = [
+  { label: 'All Problems', to: '/passport/practice', icon: 'grid' },
+  { label: 'Coding', to: '/passport/practice?kind=coding', icon: 'code' },
+  { label: 'SQL', to: '/passport/practice?kind=sql', icon: 'db' },
+  { label: 'Aptitude & MCQ', to: '/passport/practice?kind=mcq', icon: 'brain' },
 ];
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -39,6 +39,10 @@ const ICONS: Record<string, React.ReactNode> = {
   menu:      <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   board:     <><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z" /></>,
   medal:     <><circle cx="12" cy="15" r="6" /><path d="M8.5 9.5 6 2.5h12L15.5 9.5" /><path d="m12 12.8 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2L8.8 15l2.2-.3z" /></>,
+  grid:      <><rect x="3" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" /></>,
+  code:      <><path d="m8 8-4.5 4L8 16" /><path d="m16 8 4.5 4L16 16" /><path d="m13.5 5-3 14" /></>,
+  db:        <><ellipse cx="12" cy="5.5" rx="7.5" ry="3" /><path d="M4.5 5.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" /><path d="M4.5 11.5v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6" /></>,
+  brain:     <><path d="M9.5 3.5A3 3 0 0 0 6.6 7 3 3 0 0 0 5 12.6 3 3 0 0 0 7.5 18a3 3 0 0 0 4.5 2.2V4.6a3 3 0 0 0-2.5-1.1z" /><path d="M14.5 3.5A3 3 0 0 1 17.4 7 3 3 0 0 1 19 12.6 3 3 0 0 1 16.5 18" /></>,
 };
 
 export const Icon: React.FC<{ name: string }> = ({ name }) => (
@@ -95,38 +99,32 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
       <aside className={`gd-side${mobileOpen ? ' open' : ''}`}>
         <button className="gd-logo" onClick={() => nav('/passport')}>
-          <span className="mk">{'</>'}</span>
-          <div><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div>
+          <img className="mk" src="/assets/logo.png" alt="CodeBegun"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          <div><b>Codebegun</b><small>Begin Your Code. Build Your Future.</small></div>
         </button>
 
         <nav className="gd-nav">
           {navBtn('Coding Home', 'home', '/passport')}
 
-          <button
-            className={`gd-nav-btn${path.startsWith('/passport/practice') ? ' on' : ''}`}
-            onClick={() => setPracticeOpen(o => !o)}
-          >
-            <span className="ic"><Icon name="practice" /></span>
-            <span className="lbl">Practice Lab</span>
-            <span className={`cr${practiceOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
-          </button>
-          {practiceOpen && (
-            <div className="gd-sub">
-              {PRACTICE_SUB.map(s => (
-                <button
-                  key={s.to}
-                  className={`${loc.pathname}${loc.search}` === s.to ? 'on' : ''}
-                  onClick={() => nav(s.to)}
-                >{s.label}</button>
-              ))}
-            </div>
-          )}
+          {/* Practice Lab is a section, not a collapsible — its four surfaces are the
+              most-used part of the product and shouldn't need a click to reach. */}
+          <div className="gd-nav-label">Practice Lab</div>
+          {PRACTICE_SUB.map(s => {
+            const on = `${loc.pathname}${loc.search}` === s.to;
+            return (
+              <button key={s.to} className={`gd-nav-btn${on ? ' on' : ''}`} onClick={() => nav(s.to)}>
+                <span className="ic"><Icon name={s.icon} /></span><span className="lbl">{s.label}</span>
+              </button>
+            );
+          })}
 
-          {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
+          <div className="gd-nav-gap" />
           {navBtn('Learning Path', 'roadmap', '/passport/roadmap')}
           {navBtn('Mock Interview', 'interview', '/passport/interview')}
           {navBtn('Resume Builder', 'resume', '/passport/resume')}
           {navBtn('Performance', 'chart', '/passport/assessment')}
+          {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
 
           <div className="gd-nav-label">Leaderboard</div>
           <button className="gd-nav-btn" onClick={() => nav('/passport#leaderboard')}>

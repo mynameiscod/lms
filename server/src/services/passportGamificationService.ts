@@ -254,6 +254,12 @@ export function weeklyStats(progress: IPassportProgress, now = new Date()) {
   const nowPct = pct(thisWeek);
   const prevPct = pct(lastWeek);
 
+  // XP week-over-week, from the event log ("+20 XP vs last week" on the activity card).
+  const xpAt = (e: any) => new Date(e.at).getTime();
+  const log = progress.xpLog || [];
+  const xpThisWeek = log.filter(e => xpAt(e) >= weekAgo).reduce((s, e) => s + (e.amount || 0), 0);
+  const xpLastWeek = log.filter(e => xpAt(e) >= twoWeeksAgo && xpAt(e) < weekAgo).reduce((s, e) => s + (e.amount || 0), 0);
+
   return {
     submissions: thisWeek.length,
     solved: thisWeek.filter(p => p.xp > 0).length,
@@ -262,6 +268,9 @@ export function weeklyStats(progress: IPassportProgress, now = new Date()) {
     // Only a real delta when BOTH weeks have attempts — otherwise null, and the UI
     // says nothing rather than implying improvement we can't evidence.
     accuracyDelta: nowPct !== null && prevPct !== null ? nowPct - prevPct : null,
+    xpThisWeek,
+    xpLastWeek,
+    xpDelta: xpThisWeek - xpLastWeek,
   };
 }
 

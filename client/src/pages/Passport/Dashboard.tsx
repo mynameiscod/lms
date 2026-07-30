@@ -190,7 +190,20 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <h2>Skill Meter <span className="gd-help" title="Your six Career Readiness Assessment categories. Retake the assessment to move these.">?</span></h2>
               <button className="lnk" onClick={() => nav('/passport/assessment')}>View full report →</button>
             </div>
-            <div className="gd-radar-wrap"><Radar skills={d.skills || []} /></div>
+            <div className="gd-skill-wrap">
+              {/* Named list beside the radar — the shape alone doesn't tell you which
+                  category is which, or the exact score. */}
+              <div className="gd-skill-list">
+                {[...(d.skills || [])].sort((a, b) => b.score - a.score).map(s => (
+                  <div className="gd-skill-row" key={s.key}>
+                    <span className="ic">{CAT_ICON[s.key] || '•'}</span>
+                    <span className="t">{s.label}</span>
+                    <span className="v">{s.score}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="gd-radar-wrap"><Radar skills={d.skills || []} /></div>
+            </div>
           </div>
 
           {/* Your Coding Stats — every row from stored data; no rating/global rank,
@@ -239,8 +252,9 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             <div>
               <div className="lbl">Problems Solved</div>
               <div className="val">{st.solved}<span style={{ fontSize: 13, color: '#a3aab8', fontWeight: 700 }}> / {st.totalProblems}</span></div>
-              <div className="sub" style={{ color: st.solvedToday ? '#16a34a' : '#a3aab8' }}>
-                {st.solvedToday ? `▲ ${st.solvedToday} today` : 'None yet today'}
+              <div className="gd-tile-bar">
+                <span className="tr"><i style={{ width: `${st.totalProblems ? Math.max((st.solved / st.totalProblems) * 100, 2) : 0}%` }} /></span>
+                <em>{st.totalProblems ? Math.round((st.solved / st.totalProblems) * 1000) / 10 : 0}%</em>
               </div>
             </div>
           </div>
@@ -274,6 +288,26 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <div className="val">{st.longestStreak} {st.longestStreak === 1 ? 'Day' : 'Days'}</div>
               <div className="sub" style={{ color: '#f59e0b' }}>
                 {st.streak >= st.longestStreak && st.streak > 0 ? 'Personal best — keep it!' : 'Beat your record'}
+              </div>
+            </div>
+          </div>
+          <div className="gd-tile">
+            <span className="ic" style={{ background: '#f3eaff' }}>🎙️</span>
+            <div>
+              <div className="lbl">Mock Interviews</div>
+              <div className="val">{st.interviews}</div>
+              <div className="sub" style={{ color: '#a3aab8' }}>
+                {st.bestInterview !== null ? `Best ${st.bestInterview}%` : 'Not attempted yet'}
+              </div>
+            </div>
+          </div>
+          <div className="gd-tile">
+            <span className="ic" style={{ background: '#fff3e0' }}>⚡</span>
+            <div>
+              <div className="lbl">XP Earned Today</div>
+              <div className="val">{goal.earned} XP</div>
+              <div className="sub" style={{ color: goal.met ? '#16a34a' : '#a3aab8' }}>
+                {goal.met ? 'Goal reached!' : `${Math.max(0, goal.target - goal.earned)} to your goal`}
               </div>
             </div>
           </div>
@@ -360,7 +394,17 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         <div className="gd-grid gd-2b" style={{ marginTop: 16 }}>
           {/* Activity feed from the XP event log, with the 7-day trend underneath */}
           <div className="gd-card">
-            <div className="gd-card-hd"><h2>Recent Activity</h2><span className="gd-timer">Last 7 days</span></div>
+            <div className="gd-card-hd">
+              <h2>Recent Activity</h2>
+              <span className="gd-timer">
+                {d.weekly && d.weekly.xpLastWeek > 0 && (
+                  <b style={{ color: d.weekly.xpDelta >= 0 ? '#16a34a' : '#b91c1c', marginRight: 8 }}>
+                    {d.weekly.xpDelta >= 0 ? '+' : ''}{d.weekly.xpDelta} XP vs last week
+                  </b>
+                )}
+                Last 7 days
+              </span>
+            </div>
             {!d.recentActivity?.length ? (
               <div className="gd-chart-empty">Nothing yet.<br />Complete a mission or solve a problem and it appears here.</div>
             ) : (
@@ -410,7 +454,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               {!!d.contests?.length && <button className="lnk" onClick={() => nav('/battles')}>View All →</button>}
             </div>
             {!d.contests?.length ? (
-              <div className="gd-chart-empty">No contests scheduled right now.<br />Tech Battles are announced here when they open.</div>
+              <div className="gd-empty-state">
+                <span className="em">🗓️</span>
+                <b>No contests scheduled right now.</b>
+                <span>You'll see upcoming contests here.</span>
+                <button onClick={() => nav('/battles')}>Explore Contests</button>
+              </div>
             ) : (
               <div className="gd-contest-grid">
                 {d.contests.slice(0, 2).map((c, i) => (

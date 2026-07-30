@@ -244,6 +244,7 @@ export interface DashboardData {
   weekly?: {
     submissions: number; solved: number; totalAttempts: number;
     accuracyPct: number | null; accuracyDelta: number | null;
+    xpThisWeek: number; xpLastWeek: number; xpDelta: number;
   };
   recentActivity?: { label: string; icon: string; color: string; xp: number; ago: string }[];
   missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; done: boolean }[];

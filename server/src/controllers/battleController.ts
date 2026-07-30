@@ -339,6 +339,7 @@ export const getPublicLeaderboard = async (req: Request, res: Response) => {
 export async function sendConfirmEmail(reg: any, b: any, url: string) {
   const html = buildBattleConfirmationEmail({
     name: reg.name,
+    email: reg.email,
     battleTitle: b.title,
     startAt: b.startAt,
     examUrl: url,

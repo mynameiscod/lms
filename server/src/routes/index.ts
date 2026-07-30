@@ -104,6 +104,7 @@ import { webhook as paymentWebhook, paymentReturn } from '../controllers/payment
 import { partnerUnsubscribe } from '../controllers/partnerPublicController';
 // Boot notification listeners
 import '../notifications/notificationService';
+import { unsubscribe } from '../controllers/unsubscribeController';
 
 const router = express.Router();
 
@@ -113,6 +114,7 @@ router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
 router.use('/public/proof', publicProofRoutes); // HR-facing candidate proof profile (specific, before generic /public)
+router.get('/public/unsubscribe', unsubscribe);
 router.use('/public', publicBattleRoutes); // Tech Battle public funnel (specific battle paths, before generic /public)
 router.use('/public', publicLeadRoutes);
 router.use('/battles', battleRoutes);

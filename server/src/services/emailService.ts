@@ -1,7 +1,8 @@
 import nodemailer from 'nodemailer';
 import * as settings from './settingsService';
+import { isSuppressed } from './unsubscribeService';
 import {
-  getStudentWelcomeEmailHtml, 
+  getStudentWelcomeEmailHtml,
   getStudentWelcomeEmailPlainText,
   getPasswordResetEmailHtml,
   getPasswordResetEmailPlainText,
@@ -255,6 +256,13 @@ export class EmailService {
     attachments?: { filename: string; content: Buffer }[],
     opts?: EmailSendOpts
   ): Promise<boolean> {
+    // Honour opt-outs at the one place every generic email passes through, so a new
+    // caller cannot accidentally bypass it. Transactional sends that a recipient
+    // explicitly asked for can opt out with opts.ignoreSuppression.
+    if (!(opts as any)?.ignoreSuppression && await isSuppressed(email)) {
+      console.log('[EMAIL SERVICE] suppressed (unsubscribed):', email);
+      return false;
+    }
     const text = textContent || htmlContent.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
     try {
       if (this.useBrevoApi) {

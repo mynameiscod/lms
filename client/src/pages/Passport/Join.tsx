@@ -42,20 +42,15 @@ const STEPS: { n: string; ic: string; title: string; desc: string }[] = [
  * are isolated here so they are easy to replace or empty out — an empty array simply
  * hides its section rather than breaking the page.
  */
-const COLLEGES: { name: string; sub: string }[] = [
-  { name: 'VIT', sub: 'Vellore Institute of Technology' },
-  { name: 'SRM', sub: 'Institute of Science & Technology' },
-  { name: 'AMITY', sub: 'University' },
-  { name: 'LPU', sub: 'Lovely Professional University' },
-  { name: 'CHITKARA', sub: 'University' },
-  { name: 'MANIPAL', sub: 'University' },
-];
+// Emptied 2026-07-30: the owner confirmed these were placeholder copy from the
+// mockup, not real institutional relationships. The section is hidden while empty.
+// Add real, agreed partners here to bring it back.
+const COLLEGES: { name: string; sub: string }[] = [];
 
-const STORIES: { quote: string; name: string; role: string; company: string }[] = [
-  { quote: 'CodeBegun gave me the right roadmap and confidence to crack interviews. Today I am a Software Engineer at my dream company.', name: 'Rohit Sharma', role: 'Placed at', company: 'Amazon' },
-  { quote: 'The personalized learning path and mentorship helped me go from confused to confident. Highly recommended.', name: 'Sneha Reddy', role: 'Placed at', company: 'Microsoft' },
-  { quote: 'I loved the hands-on projects and mock interviews. It made all the difference in my placement journey.', name: 'Arjun Mehta', role: 'Placed at', company: 'Deloitte' },
-];
+// Emptied 2026-07-30: the owner confirmed these named students and employers were
+// placeholder copy. Fabricated placement outcomes on a page selling a paid
+// membership are a claim we cannot stand behind. Only add real, consented stories.
+const STORIES: { quote: string; name: string; role: string; company: string }[] = [];
 
 const ICON: Record<string, string> = { name: '👤', mobile: '📞', email: '✉️' };
 

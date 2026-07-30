@@ -1,4 +1,5 @@
 import { SOCIAL_LINKS } from '../constants/brand';
+import { unsubscribeUrl } from './unsubscribeService';
 
 /**
  * Tech Battle registration-confirmation email.
@@ -14,6 +15,7 @@ import { SOCIAL_LINKS } from '../constants/brand';
 
 export interface BattleEmailData {
   name: string;
+  email: string;
   battleTitle: string;
   startAt: Date | string;
   examUrl: string;
@@ -46,7 +48,7 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
   const weekday = ist(d.startAt, { weekday: 'long' });
   const timeStr = `${ist(d.startAt, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase()} IST`;
   const support = d.supportUrl || 'mailto:support@codebegun.com';
-  const unsubscribe = d.unsubscribeUrl || 'mailto:support@codebegun.com?subject=Unsubscribe';
+  const unsubscribe = d.unsubscribeUrl || unsubscribeUrl(d.email);
   const logo = 'https://www.codebegun.com/images/logo.png';
   const esc = (s: string) => String(s || '').replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] as string));
   const name = esc(d.name);
@@ -350,7 +352,7 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
             <table role="presentation" width="100%" class="mobile-stack" bgcolor="#f4f7fc" style="width:100%; background:#f4f7fc; border-radius:10px;"><tr>
               <td width="25%" align="center" class="stat-cell" style="width:25%; padding:16px 9px; border-right:1px solid #dce4f0; font-family:Arial,Helvetica,sans-serif;">
                 <div style="font-size:22px; line-height:25px;">👥</div>
-                <div style="font-size:15px; line-height:20px; font-weight:800; color:#0a2557;">1000+</div>
+                <div style="font-size:15px; line-height:20px; font-weight:800; color:#0a2557;">12,000+</div>
                 <div style="font-size:10px; line-height:14px; color:#53647d;">Students Trained</div>
               </td>
               <td width="25%" align="center" class="stat-cell" style="width:25%; padding:16px 9px; border-right:1px solid #dce4f0; font-family:Arial,Helvetica,sans-serif;">

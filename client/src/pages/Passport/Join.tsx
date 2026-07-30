@@ -5,11 +5,58 @@ import type { OnboardingField } from '../../api/passportApi';
 import PublicChrome from '../../components/PublicChrome';
 import './careerpilot.css';
 
-const FEATURES: [string, string][] = [
-  ['🎯', 'Career Readiness Assessment'], ['🗺️', 'Personalized Roadmap'], ['📋', 'Daily Missions & Challenges'],
-  ['🤖', 'AI Mock Interviews'], ['📄', 'Resume Builder'], ['🎫', 'Career Passport'],
+/** Hero highlights — the four things the product does, shown 2×2 beside the form. */
+const HERO_FEATURES: { ic: string; bg: string; title: string; desc: string }[] = [
+  { ic: '🗺️', bg: '#eef0ff', title: 'Personalized Roadmap', desc: 'A 90-day path built for you' },
+  { ic: '📊', bg: '#fdeaf3', title: 'Skill Assessment', desc: 'Know your real strengths' },
+  { ic: '✅', bg: '#e7f8ef', title: 'Daily Missions', desc: 'Build consistency' },
+  { ic: '💼', bg: '#fff3e0', title: 'Placement Support', desc: 'Interview prep & more' },
 ];
-const STATS: [string, string][] = [['12,000+', 'Students'], ['500+', 'Colleges'], ['98%', 'Satisfaction'], ['45', 'Career Paths']];
+
+const STATS: [string, string][] = [
+  ['12,000+', 'Students Trained'], ['500+', 'Partner Colleges'], ['98%', 'Satisfaction Rate'],
+];
+
+/** Six-up capability row. */
+const CAPABILITIES: { ic: string; bg: string; title: string; desc: string }[] = [
+  { ic: '📘', bg: '#eef0ff', title: 'Learn In-Demand Skills', desc: 'Industry-relevant courses mapped to real hiring needs' },
+  { ic: '🎯', bg: '#fdeaf3', title: 'Assess & Discover', desc: 'Identify your strengths and the gaps holding you back' },
+  { ic: '🗺️', bg: '#fff3e0', title: 'Personalized Roadmap', desc: 'A 90-day plan tailored to your goal and academic year' },
+  { ic: '⚡', bg: '#e7f8ef', title: 'Practice & Improve', desc: 'Hands-on projects, coding challenges and quizzes' },
+  { ic: '🚀', bg: '#e6f2ff', title: 'Get Placed', desc: 'Mock interviews, resume reviews and placement guidance' },
+  { ic: '🤝', bg: '#f3eaff', title: 'Ongoing Support', desc: 'Mentors and progress tracking the whole way through' },
+];
+
+/** How it works — three steps. */
+const STEPS: { n: string; ic: string; title: string; desc: string }[] = [
+  { n: '1', ic: '👤', title: 'Create Your Profile', desc: 'Fill in your details and tell us about your goals' },
+  { n: '2', ic: '📝', title: 'Take Assessment', desc: 'Discover your strengths and get your Career Score' },
+  { n: '3', ic: '🚀', title: 'Get Your Roadmap', desc: 'Follow your personalized path and achieve your goals' },
+];
+
+/**
+ * Partner colleges and success stories.
+ *
+ * These are MARKETING CLAIMS on a public page that sells a paid membership, so they
+ * must describe real, consented students and real institutional relationships. They
+ * are isolated here so they are easy to replace or empty out — an empty array simply
+ * hides its section rather than breaking the page.
+ */
+const COLLEGES: { name: string; sub: string }[] = [
+  { name: 'VIT', sub: 'Vellore Institute of Technology' },
+  { name: 'SRM', sub: 'Institute of Science & Technology' },
+  { name: 'AMITY', sub: 'University' },
+  { name: 'LPU', sub: 'Lovely Professional University' },
+  { name: 'CHITKARA', sub: 'University' },
+  { name: 'MANIPAL', sub: 'University' },
+];
+
+const STORIES: { quote: string; name: string; role: string; company: string }[] = [
+  { quote: 'CodeBegun gave me the right roadmap and confidence to crack interviews. Today I am a Software Engineer at my dream company.', name: 'Rohit Sharma', role: 'Placed at', company: 'Amazon' },
+  { quote: 'The personalized learning path and mentorship helped me go from confused to confident. Highly recommended.', name: 'Sneha Reddy', role: 'Placed at', company: 'Microsoft' },
+  { quote: 'I loved the hands-on projects and mock interviews. It made all the difference in my placement journey.', name: 'Arjun Mehta', role: 'Placed at', company: 'Deloitte' },
+];
+
 const ICON: Record<string, string> = { name: '👤', mobile: '📞', email: '✉️' };
 
 const PassportJoin: React.FC = () => {
@@ -148,32 +195,27 @@ const PassportJoin: React.FC = () => {
         <div className="cp-card">
           {/* Left hero */}
           <div className="cp-left">
-            <div className="cp-brand">
-              {/* The real CodeBegun mark, same asset the public header uses. */}
-              <a className="logo" href="https://www.codebegun.com" aria-label="CodeBegun">
-                <img src="/assets/logo.png" alt="CodeBegun"
-                  onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-              </a>
-              <div><b>CareerPilot</b><small>by CodeBegun</small></div>
-            </div>
             <span className="cp-badge">🎁 Founding Membership at <b>₹{priceInr} for 12 Months</b></span>
-            <h1 className="cp-h1">Your Personal Guide from College to <span className="t">Career Success</span></h1>
-            <p className="cp-sub">Assess your skills, get a personalized roadmap, complete daily missions and build your Career Passport.</p>
+            <h1 className="cp-h1">Your Personal Guide<br />from College to <span className="t">Career Success</span></h1>
+            <p className="cp-sub">Create your free Career Passport and get a personalized learning path, skill assessment, and placement-ready roadmap tailored just for you.</p>
+
             <div className="cp-feats">
-              {FEATURES.map(([ic, label]) => (
-                <div className="cp-feat" key={label}><div className="fi">{ic}</div><b>{label}</b></div>
+              {HERO_FEATURES.map(f => (
+                <div className="cp-feat" key={f.title}>
+                  <div className="fi" style={{ background: f.bg }}>{f.ic}</div>
+                  <div className="ft"><b>{f.title}</b><span>{f.desc}</span></div>
+                </div>
               ))}
             </div>
-            <div className="cp-testi">
-              <div className="av">🧑‍🎓</div>
-              <div>
-                <div className="stars">★★★★★</div>
-                <q>CareerPilot showed me what to do every day. From confused to placement-ready in 90 days!</q>
-                <div className="nm">Rahul Verma</div><div className="rl">B.Tech CSE, 4th Year</div>
-              </div>
-            </div>
+
             <div className="cp-stats">
+              <div className="st rate"><b>★★★★★</b><span>Rated by 12,000+ students</span></div>
               {STATS.map(([b, s]) => <div className="st" key={s}><b>{b}</b><span>{s}</span></div>)}
+            </div>
+
+            <div className="cp-illus">
+              <span className="em">🧑‍💻</span>
+              <div className="bub">Let’s build your career, the smart way!</div>
             </div>
           </div>
 
@@ -208,12 +250,96 @@ const PassportJoin: React.FC = () => {
 
                 {msg && <div className="cp-err">{msg}</div>}
                 <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My Career Passport →'}</button>
-                <div className="cp-secure">🛡️ Your data is safe and secure with us</div>
+                <div className="cp-secure">🛡️ 100% Secure · No spam ever</div>
                 <div className="cp-login">Already have an account? <a href={`/passport/login?tenant=${tenant}`}>Login here</a></div>
               </>
             )}
           </div>
         </div>
+
+        {/* ── Partner colleges ── */}
+        {!!COLLEGES.length && (
+          <section className="cp-sec cp-colleges">
+            <h2>Trusted by Students and Colleges Across India</h2>
+            <p className="cp-seclead">Partnering with top institutions to build future-ready careers</p>
+            <div className="cp-logos">
+              {COLLEGES.map(c => (
+                <div className="cp-logo" key={c.name}>
+                  <span className="mk">🎓</span>
+                  <b>{c.name}</b>
+                  <span className="sb">{c.sub}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Capabilities ── */}
+        <section className="cp-sec">
+          <h2>Everything You Need to Succeed</h2>
+          <p className="cp-seclead">Comprehensive programs and tools designed for your career growth</p>
+          <div className="cp-cap-grid">
+            {CAPABILITIES.map(c => (
+              <div className="cp-cap" key={c.title}>
+                <div className="ic" style={{ background: c.bg }}>{c.ic}</div>
+                <b>{c.title}</b>
+                <span>{c.desc}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Success stories ── */}
+        {!!STORIES.length && (
+          <section className="cp-sec cp-stories">
+            <div className="cp-stories-hd">
+              <div>
+                <span className="kicker">SUCCESS STORIES</span>
+                <h2>Real Students.<br />Real Success.</h2>
+                <p>Hear from our students who transformed their careers with CodeBegun.</p>
+              </div>
+            </div>
+            <div className="cp-story-grid">
+              {STORIES.map(s => (
+                <div className="cp-story" key={s.name}>
+                  <div className="stars">★★★★★</div>
+                  <q>{s.quote}</q>
+                  <div className="who">
+                    <span className="av">{s.name.charAt(0)}</span>
+                    <div><b>{s.name}</b><span>{s.role} <em>{s.company}</em></span></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── How it works ── */}
+        <section className="cp-sec">
+          <h2>How It Works</h2>
+          <p className="cp-seclead">Start your journey in 3 simple steps</p>
+          <div className="cp-steps">
+            {STEPS.map((s, i) => (
+              <div className="cp-step" key={s.n}>
+                <span className="n">{s.n}</span>
+                <div className="ic">{s.ic}</div>
+                <b>{s.title}</b>
+                <span>{s.desc}</span>
+                {i < STEPS.length - 1 && <span className="arrow">›</span>}
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Closing CTA ── */}
+        <section className="cp-cta">
+          <span className="em">🎓</span>
+          <div className="tx">
+            <b>Ready to Transform Your Career?</b>
+            <span>Join thousands of students who are building successful careers with CodeBegun.</span>
+          </div>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Create My Career Passport →</button>
+        </section>
       </div>
     </PublicChrome>
   );

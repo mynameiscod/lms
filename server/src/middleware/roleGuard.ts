@@ -192,6 +192,15 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_ai_spend', label: 'View AI Spend Dashboard' },
     ]
   },
+  techBattles: {
+    label: 'Tech Battles (Public Competitions)',
+    permissions: [
+      { key: 'manage_battles', label: 'Create, Edit, Delete & Broadcast Battles' },
+      { key: 'view_battles', label: 'View Battles, Registrations & Leaderboards' },
+      { key: 'review_battle_registrations', label: 'Approve / Reject Registrations' },
+      { key: 'export_battle_data', label: 'Export Registration Data (contains public PII)' },
+    ]
+  },
   careerPassport: {
     label: 'Career Passport (CareerPilot)',
     permissions: [
@@ -260,6 +269,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_ai_spend',
     // Career Passport — full control, including granting membership without payment
     'manage_passport', 'view_passport_members', 'convert_passport_member', 'use_passport',
+    // Tech Battles — full control, including exporting public registrant PII
+    'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
   ],
   INSTRUCTOR: [
     // Courses
@@ -293,6 +304,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_certificates',
     // Placement & Alumni
     'view_placement',
+    // Tech Battles — run competitions, but exporting registrant PII stays with admins
+    'manage_battles', 'view_battles', 'review_battle_registrations',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',
@@ -310,6 +323,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Career Passport — read-only. Config, pathways, missions, the assessment bank
     // and free membership grants stay with TENANT_ADMIN.
     'view_passport_members',
+    // Tech Battles — process registrations only. Creating, deleting, broadcasting to
+    // the public and exporting PII all stay above STAFF.
+    'view_battles', 'review_battle_registrations',
   ],
   STUDENT: [
     'enroll_courses', 'view_courses', 'view_public_courses', 'access_resources',

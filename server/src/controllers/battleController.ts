@@ -13,7 +13,6 @@ const emailService = new EmailService();
 
 const slugify = (s: string) => String(s || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60);
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
-const isAdmin = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'].includes(String((req as any).user?.role || ''));
 const publicBase = (tenantId: string) => settings.getStr('PUBLIC_SITE_URL', 'https://platform.codebegun.com', tenantId).replace(/\/+$/, '');
 const examUrl = (tenantId: string, token: string) => `${publicBase(tenantId)}/battles/exam/${token}`;
 
@@ -411,7 +410,6 @@ async function sendConfirmEmail(reg: any, b: any, url: string) {
 // ─────────────────────────── ADMIN ───────────────────────────
 
 export const listBattles = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const rows = await TechBattle.find({ tenantId: tenantOf(req) }).sort({ createdAt: -1 }).lean();
   const withCounts = await Promise.all(rows.map(async (b: any) => ({
     ...b,
@@ -423,7 +421,6 @@ export const listBattles = async (req: Request, res: Response) => {
 
 export const createBattle = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const body = req.body || {};
     if (!body.title || !body.quizId || !body.startAt || !body.endAt) {
@@ -454,7 +451,6 @@ export const createBattle = async (req: Request, res: Response) => {
 };
 
 export const getBattle = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const b = await TechBattle.findOne({ _id: req.params.id, tenantId: tenantOf(req) }).lean();
   if (!b) return res.status(404).json({ message: 'Not found' });
   res.json({ battle: b, publicBase: publicBase(tenantOf(req)) });
@@ -462,7 +458,6 @@ export const getBattle = async (req: Request, res: Response) => {
 
 export const updateBattle = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const allowed = ['title', 'quizId', 'bannerUrl', 'description', 'prize', 'rules', 'registerOpensAt', 'registerClosesAt', 'startAt', 'endAt', 'joinCutoffMins', 'visibility', 'doors', 'registrationFields', 'registrationMode', 'proofNote', 'proctoring', 'leaderboardPublished', 'status'];
     const $set: any = {};
     for (const k of allowed) if (req.body[k] !== undefined) $set[k] = req.body[k];
@@ -477,7 +472,6 @@ export const updateBattle = async (req: Request, res: Response) => {
 };
 
 export const getRegistrations = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const q: any = { battleId: req.params.id, tenantId: tenantOf(req) };
   if (req.query.door) q.doorCode = req.query.door;
   if (req.query.college) q.college = req.query.college;
@@ -491,7 +485,6 @@ export const getRegistrations = async (req: Request, res: Response) => {
 /** Admin: approve a registration → mark approved + email the exam link. */
 export const approveRegistration = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const reg = await BattleRegistration.findOne({ _id: req.params.regId, battleId: req.params.id, tenantId: tenantOf(req) });
     if (!reg) return res.status(404).json({ message: 'Registration not found' });
     reg.reviewStatus = 'approved'; reg.approvedAt = new Date(); reg.approvedBy = String((req as any).user?.id || '');
@@ -516,7 +509,6 @@ export const approveRegistration = async (req: Request, res: Response) => {
 /** Admin: reject a registration (+ reason). */
 export const rejectRegistration = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const reg = await BattleRegistration.findOneAndUpdate(
       { _id: req.params.regId, battleId: req.params.id, tenantId: tenantOf(req) },
       { $set: { reviewStatus: 'rejected', rejectionReason: req.body?.reason || '' } }, { new: true }
@@ -527,13 +519,11 @@ export const rejectRegistration = async (req: Request, res: Response) => {
 };
 
 export const adminLeaderboard = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const rows = await battle.getBattleLeaderboard(req.params.id, { door: req.query.door as string, college: req.query.college as string, limit: 200 });
   res.json({ leaderboard: rows });
 };
 
 export const exportRegistrations = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const rows = await BattleRegistration.find({ battleId: req.params.id, tenantId: tenantOf(req) })
     .sort({ score: -1, timeSpentSec: 1 }).lean();
   const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
@@ -548,7 +538,6 @@ export const exportRegistrations = async (req: Request, res: Response) => {
 /** POST /battles/:id/broadcast — send a custom reminder to registrants (WhatsApp / email / both). */
 export const broadcastBattle = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const { message, channel = 'whatsapp', review = 'approved', includeLink } = req.body || {};
     if (!message || !String(message).trim()) return res.status(400).json({ message: 'Message is required' });
@@ -583,7 +572,6 @@ export const broadcastBattle = async (req: Request, res: Response) => {
 /** DELETE /battles/:id — delete a battle and its registrations. */
 export const deleteBattle = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const b = await TechBattle.findOneAndDelete({ _id: req.params.id, tenantId });
     if (!b) return res.status(404).json({ message: 'Battle not found' });
@@ -594,7 +582,6 @@ export const deleteBattle = async (req: Request, res: Response) => {
 
 /** GET /battles/available-quizzes — quizzes to pick from (reuse). */
 export const availableQuizzes = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const Quiz = (await import('../models/Quiz')).default;
   const rows = await Quiz.find({ tenantId: tenantOf(req) }).select('title totalQuestions totalMarks totalTime').sort({ createdAt: -1 }).limit(500).lean();
   res.json({ quizzes: rows });

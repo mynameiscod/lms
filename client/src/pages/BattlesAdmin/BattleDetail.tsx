@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { battleAdminApi, fileOrigin } from '../../api/battleApi';
+import { useAuth } from '../../contexts/AuthContext';
 
 type Tab = 'links' | 'registrations' | 'leaderboard';
 
@@ -60,6 +61,18 @@ const BattleDetail: React.FC = () => {
     } catch (e: any) { setToast(e?.response?.data?.message || 'Save failed'); }
     setBusy(false);
   };
+  /**
+   * Gate every destructive / privileged action on the user's effective permissions,
+   * not just on reaching the page. Offering Edit, Delete, CSV or Approve to a
+   * view-only role produced buttons that always failed at the API.
+   */
+  const { user } = useAuth();
+  const can = (p: string) =>
+    user?.role === 'SUPER_ADMIN' || (user?.permissions || []).includes(p);
+  const canManage = can('manage_battles');
+  const canReview = can('review_battle_registrations') || canManage;
+  const canExport = can('export_battle_data');
+
   const del = async () => { if (!window.confirm('Delete this battle AND all its registrations? This cannot be undone.')) return; await battleAdminApi.remove(String(id)); nav('/admin/battles'); };
   const sendReminder = async () => {
     setBusy(true);
@@ -91,15 +104,17 @@ const BattleDetail: React.FC = () => {
           </div>
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={async () => { const b = await battleAdminApi.update(String(id), { leaderboardPublished: !battle.leaderboardPublished } as any); setBattle(b); setToast(b.leaderboardPublished ? '🏆 Leaderboard published (public)' : 'Leaderboard hidden'); setTimeout(() => setToast(''), 3000); }} style={{ ...ghost, ...(battle.leaderboardPublished ? { color: '#15803d', borderColor: '#bbf7d0' } : {}) }}>
-            {battle.leaderboardPublished ? '🏆 Published' : '🏆 Publish leaderboard'}
-          </button>
-          <button onClick={() => setShowRemind(true)} style={{ ...ghost, color: '#15803d', borderColor: '#bbf7d0' }}>💬 Send reminder</button>
-          <button onClick={openEdit} style={ghost}>✏️ Edit</button>
+          {canManage && (
+            <button onClick={async () => { const b = await battleAdminApi.update(String(id), { leaderboardPublished: !battle.leaderboardPublished } as any); setBattle(b); setToast(b.leaderboardPublished ? '🏆 Leaderboard published (public)' : 'Leaderboard hidden'); setTimeout(() => setToast(''), 3000); }} style={{ ...ghost, ...(battle.leaderboardPublished ? { color: '#15803d', borderColor: '#bbf7d0' } : {}) }}>
+              {battle.leaderboardPublished ? '🏆 Published' : '🏆 Publish leaderboard'}
+            </button>
+          )}
+          {canManage && <button onClick={() => setShowRemind(true)} style={{ ...ghost, color: '#15803d', borderColor: '#bbf7d0' }}>💬 Send reminder</button>}
+          {canManage && <button onClick={openEdit} style={ghost}>✏️ Edit</button>}
           {battle.status !== 'live' && <button onClick={() => setStatus('live')} style={ghost}>Go live</button>}
-          {battle.status !== 'closed' && <button onClick={() => setStatus('closed')} style={ghost}>Close</button>}
-          <a href={battleAdminApi.exportUrl(String(id))} style={{ ...ghost, textDecoration: 'none' }}>⬇ CSV</a>
-          <button onClick={del} style={{ ...ghost, color: '#b91c1c', borderColor: '#fecaca' }}>🗑 Delete</button>
+          {canManage && battle.status !== 'closed' && <button onClick={() => setStatus('closed')} style={ghost}>Close</button>}
+          {canExport && <a href={battleAdminApi.exportUrl(String(id))} style={{ ...ghost, textDecoration: 'none' }}>⬇ CSV</a>}
+          {canManage && <button onClick={del} style={{ ...ghost, color: '#b91c1c', borderColor: '#fecaca' }}>🗑 Delete</button>}
         </div>
       </div>
       {toast && <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 8, padding: '8px 14px', fontSize: 13.5, marginBottom: 12 }}>{toast}</div>}
@@ -169,7 +184,9 @@ const BattleDetail: React.FC = () => {
                       <td style={td}><span style={{ fontSize: 11, fontWeight: 800, color: rc }}>{(r.reviewStatus || 'pending').toUpperCase()}</span></td>
                       <td style={td}>{r.score != null ? `${r.score}/${r.totalMarks}${r.rank ? ` · #${r.rank}` : ''}` : '—'}</td>
                       <td style={td}>
-                        {r.reviewStatus === 'pending' ? (
+                        {!canReview ? (
+                          <span style={{ color: '#94a3b8', fontSize: 12 }}>{(r.reviewStatus || 'pending')}</span>
+                        ) : r.reviewStatus === 'pending' ? (
                           <span style={{ display: 'flex', gap: 6 }}>
                             <button onClick={() => approve(r._id)} style={{ ...ghost, color: '#15803d', borderColor: '#bbf7d0', padding: '5px 10px' }}>✓ Approve</button>
                             <button onClick={() => reject(r._id)} style={{ ...ghost, color: '#b91c1c', borderColor: '#fecaca', padding: '5px 10px' }}>✕</button>

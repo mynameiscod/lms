@@ -365,14 +365,16 @@ export const roleGuard = (requiredPermissions: string[]) => {
     const userRole = req.user.role;
     let userPermissions: string[];
 
-    // If user has a custom role assigned, merge base role permissions + custom role permissions
-    // (custom roles extend base permissions, never fully replace them)
+    // A custom role REPLACES the base role's permissions — it is the authoritative
+    // list for that user. This used to merge base + custom, which meant a custom role
+    // could only ever ADD access: ticking "1 / 4" in Roles & Permissions still left
+    // the user with everything their base role had. It also disagreed with
+    // getMyPermissions(), which already replaced — so the UI showed one set of
+    // permissions while the API enforced a larger one.
     if (req.user.customRoleId) {
       try {
         const customRole = await Role.findById(req.user.customRoleId);
-        const basePermissions = ROLE_PERMISSIONS[userRole] || [];
-        const customPermissions = customRole ? customRole.permissions : [];
-        userPermissions = [...new Set([...basePermissions, ...customPermissions])];
+        userPermissions = customRole ? customRole.permissions : (ROLE_PERMISSIONS[userRole] || []);
       } catch {
         userPermissions = ROLE_PERMISSIONS[userRole] || [];
       }

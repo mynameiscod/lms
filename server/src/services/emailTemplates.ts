@@ -209,7 +209,8 @@ export function getStudentWelcomeEmailHtml({
                                                     <div style="font-size: 12px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Connect With Us</div>
                                                     ${footLink('LinkedIn', 'https://www.linkedin.com/company/codbegun')}
                                                     ${footLink('Instagram', 'https://www.instagram.com/codebegun')}
-                                                    ${footLink('YouTube', 'https://www.youtube.com/@codebegun')}
+                                                    ${footLink('YouTube', 'https://www.youtube.com/@CodeBegun')}
+                                                    ${footLink('Facebook', 'https://www.facebook.com/profile.php?id=100092735476326')}
                                                     ${footLink('Website', 'https://codebegun.com')}
                                                     <div style="margin-top: 10px; font-size: 12px; color: #a9bcd8; line-height: 1.7;">
                                                         📞 +91-6301099587<br>
@@ -284,7 +285,7 @@ STAY CONNECTED:
 
 LinkedIn: https://www.linkedin.com/company/codbegun
 Instagram: https://www.instagram.com/codebegun
-YouTube: https://www.youtube.com/@codebegun
+YouTube: https://www.youtube.com/@CodeBegun
 Website: https://codebegun.com
 
 ---
@@ -298,7 +299,7 @@ Phone: +91-6301099587 | +91-9063906358
 
 LinkedIn: https://www.linkedin.com/company/codbegun
 Instagram: https://www.instagram.com/codebegun
-YouTube: https://www.youtube.com/@codebegun
+YouTube: https://www.youtube.com/@CodeBegun
 Website: https://codebegun.com
 
 © ${new Date().getFullYear()} CodeBegun. All rights reserved.

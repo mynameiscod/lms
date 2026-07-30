@@ -8,6 +8,7 @@ import * as otp from '../services/assessmentOtpService';
 import * as battle from '../services/battleService';
 import * as settings from '../services/settingsService';
 import { logger } from '../utils/logger';
+import { SITE_URL, LOGO_URL, socialRowHtml } from '../constants/brand';
 
 const emailService = new EmailService();
 
@@ -333,12 +334,13 @@ export const getPublicLeaderboard = async (req: Request, res: Response) => {
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
-async function sendConfirmEmail(reg: any, b: any, url: string) {
+/** Exported so the exact production template can be rendered for a test send,
+ *  rather than approving a real registrant just to see the email. */
+export async function sendConfirmEmail(reg: any, b: any, url: string) {
   const ist = (opts: Intl.DateTimeFormatOptions) => new Date(b.startAt).toLocaleString('en-IN', { ...opts, timeZone: 'Asia/Kolkata' });
   const dateStr = ist({ day: 'numeric', month: 'short', year: 'numeric' });
   const timeStr = ist({ hour: '2-digit', minute: '2-digit' });
-  const site = 'https://www.codebegun.com';
-  const soc = (label: string, href: string) => `<a href="${href}" style="display:inline-block;width:30px;height:30px;line-height:30px;text-align:center;background:rgba(255,255,255,.12);border-radius:50%;color:#fff;text-decoration:none;font-size:12px;margin-left:6px">${label}</a>`;
+  // Brand links live in one place now — every icon used to point at the website.
   const noteCell = (icon: string, text: string) => `<td width="25%" valign="top" style="padding:6px;text-align:center"><div style="font-size:18px">${icon}</div><div style="font-size:11px;color:#64748b;margin-top:4px;line-height:1.3">${text}</div></td>`;
 
   const html = `
@@ -347,8 +349,13 @@ async function sendConfirmEmail(reg: any, b: any, url: string) {
       <!-- header -->
       <tr><td style="background:#0a1730;padding:16px 22px" align="left">
         <table role="presentation" width="100%"><tr>
-          <td style="color:#fff;font-weight:800;font-size:16px;letter-spacing:.5px">CODE<span style="color:#37d0c0">BEGUN</span><div style="font-size:9px;color:#93a1c4;font-weight:400">Nurturing Skills, Building Futures</div></td>
-          <td align="right" style="white-space:nowrap">${soc('in', site)}${soc('◎', site)}${soc('▶', site)}${soc('𝕏', site)}${soc('f', site)}</td>
+          <td>
+            <!-- Real logo on a white chip: the mark is dark and would vanish on navy. -->
+            <a href="${SITE_URL}" style="display:inline-block;background:#ffffff;padding:8px 12px;border-radius:9px;text-decoration:none">
+              <img src="${LOGO_URL}" alt="CodeBegun — Software Training &amp; Career Solutions" width="150" style="display:block;height:auto;border:0" />
+            </a>
+          </td>
+          <td align="right" style="white-space:nowrap">${socialRowHtml()}</td>
         </tr></table>
       </td></tr>
       <!-- body -->

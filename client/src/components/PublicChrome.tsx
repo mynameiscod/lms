@@ -50,10 +50,13 @@ const PublicChrome: React.FC<{ children: React.ReactNode }> = ({ children }) => 
             <div className="tag">Hyderabad’s Edutech Startup · Building engineers top companies want to hire</div>
             <div className="own">CodeBegun is a training and education brand owned and operated by Savas Tech Solution Pvt Ltd.</div>
             <div className="pc-social">
-              <a href="https://facebook.com/codebegun" aria-label="Facebook">f</a>
-              <a href="https://linkedin.com/company/codebegun" aria-label="LinkedIn">in</a>
-              <a href="https://youtube.com/@codebegun" aria-label="YouTube">▶</a>
-              <a href="https://instagram.com/codebegun" aria-label="Instagram">◎</a>
+              {/* Confirmed accounts. Facebook and LinkedIn were both broken here:
+                  facebook.com/codebegun does not exist, and the LinkedIn slug is
+                  `codbegun` (no 'e'), which the emails already had right. */}
+              <a href="https://www.facebook.com/profile.php?id=100092735476326" target="_blank" rel="noreferrer" aria-label="Facebook">f</a>
+              <a href="https://www.linkedin.com/company/codbegun" target="_blank" rel="noreferrer" aria-label="LinkedIn">in</a>
+              <a href="https://www.youtube.com/@CodeBegun" target="_blank" rel="noreferrer" aria-label="YouTube">▶</a>
+              <a href="https://www.instagram.com/codebegun" target="_blank" rel="noreferrer" aria-label="Instagram">◎</a>
             </div>
           </div>
           <div className="pc-fcol"><h4>PROGRAMS</h4>{PROGRAMS.map(p => <a key={p} href={SITE}>{p}</a>)}</div>

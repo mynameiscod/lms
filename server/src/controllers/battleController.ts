@@ -8,7 +8,7 @@ import * as otp from '../services/assessmentOtpService';
 import * as battle from '../services/battleService';
 import * as settings from '../services/settingsService';
 import { logger } from '../utils/logger';
-import { SITE_URL, LOGO_URL, socialRowHtml } from '../constants/brand';
+import { buildBattleConfirmationEmail } from '../services/battleEmailTemplate';
 
 const emailService = new EmailService();
 
@@ -337,81 +337,13 @@ export const getPublicLeaderboard = async (req: Request, res: Response) => {
 /** Exported so the exact production template can be rendered for a test send,
  *  rather than approving a real registrant just to see the email. */
 export async function sendConfirmEmail(reg: any, b: any, url: string) {
-  const ist = (opts: Intl.DateTimeFormatOptions) => new Date(b.startAt).toLocaleString('en-IN', { ...opts, timeZone: 'Asia/Kolkata' });
-  const dateStr = ist({ day: 'numeric', month: 'short', year: 'numeric' });
-  const timeStr = ist({ hour: '2-digit', minute: '2-digit' });
-  // Brand links live in one place now — every icon used to point at the website.
-  const noteCell = (icon: string, text: string) => `<td width="25%" valign="top" style="padding:6px;text-align:center"><div style="font-size:18px">${icon}</div><div style="font-size:11px;color:#64748b;margin-top:4px;line-height:1.3">${text}</div></td>`;
-
-  const html = `
-  <div style="background:#eef2f7;padding:0;margin:0;font-family:Arial,Helvetica,sans-serif">
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto">
-      <!-- header -->
-      <tr><td style="background:#0a1730;padding:16px 22px" align="left">
-        <table role="presentation" width="100%"><tr>
-          <td>
-            <!-- Real logo on a white chip: the mark is dark and would vanish on navy. -->
-            <a href="${SITE_URL}" style="display:inline-block;background:#ffffff;padding:8px 12px;border-radius:9px;text-decoration:none">
-              <img src="${LOGO_URL}" alt="CodeBegun — Software Training &amp; Career Solutions" width="150" style="display:block;height:auto;border:0" />
-            </a>
-          </td>
-          <td align="right" style="white-space:nowrap">${socialRowHtml()}</td>
-        </tr></table>
-      </td></tr>
-      <!-- body -->
-      <tr><td style="background:#ffffff;padding:34px 28px;text-align:center">
-        <div style="font-size:40px">✉️</div>
-        <h1 style="font-size:26px;color:#0b2e63;margin:12px 0 4px">You're Registered for</h1>
-        <div style="font-size:24px;font-weight:800;color:#1d4ed8;margin-bottom:12px">${b.title} 🎉</div>
-        <p style="font-size:15px;color:#0f172a;font-weight:700;margin:0">Hi ${reg.name},</p>
-        <p style="font-size:14px;color:#475569;margin:6px 0 20px">Great news! Your spot is confirmed for <b>${b.title}</b>.</p>
-
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
-          <td width="50%" style="padding:6px"><div style="border:1px solid #eef1f6;border-radius:12px;padding:14px"><div style="font-size:12px;color:#64748b">📅 Exam Opens</div><div style="font-size:15px;font-weight:800;color:#0b2e63;margin-top:4px">${dateStr}</div><div style="font-size:13px;color:#1d4ed8;font-weight:700">${timeStr} IST</div></div></td>
-          <td width="50%" style="padding:6px"><div style="border:1px solid #eef1f6;border-radius:12px;padding:14px"><div style="font-size:12px;color:#64748b">⏰ Time to Start</div><div style="font-size:15px;font-weight:800;color:#0b2e63;margin-top:4px">${timeStr} IST</div><div style="font-size:12px;color:#94a3b8">(Be on time!)</div></div></td>
-        </tr></table>
-
-        <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:14px;padding:20px;margin:16px 0">
-          <div style="font-size:15px;font-weight:800;color:#15803d">🛡️ Your Personal Exam Link</div>
-          <div style="font-size:12.5px;color:#166534;margin:4px 0 14px">This link unlocks at the start time.</div>
-          <a href="${url}" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;padding:13px 30px;border-radius:10px;font-weight:800;font-size:15px">Open My Exam →</a>
-          <div style="font-size:12px;color:#64748b;margin-top:12px">Keep this link private. One attempt · single device. Good luck! 🍀</div>
-        </div>
-
-        <div style="border:1px solid #eef1f6;border-radius:12px;padding:12px;margin:10px 0">
-          <div style="font-size:11px;color:#94a3b8;letter-spacing:1px;font-weight:700;margin-bottom:6px">IMPORTANT NOTES</div>
-          <table role="presentation" width="100%"><tr>
-            ${noteCell('🕐', 'Join at least 10 minutes early')}
-            ${noteCell('📶', 'Ensure a stable internet connection')}
-            ${noteCell('📱', 'Use a single device (no switching)')}
-            ${noteCell('🔕', 'Avoid distractions and stay focused')}
-          </tr></table>
-        </div>
-
-        <div style="background:#eff6ff;border:1px solid #dbeafe;border-radius:12px;padding:12px 16px;margin:10px 0;text-align:left">
-          <table role="presentation" width="100%"><tr>
-            <td style="font-size:13.5px;color:#1e40af"><b>Need Help?</b><br>Our support team is here for you.</td>
-            <td align="right"><a href="mailto:contact@codebegun.com" style="display:inline-block;background:#1d4ed8;color:#fff;text-decoration:none;padding:9px 16px;border-radius:8px;font-weight:700;font-size:13px">Contact Support →</a></td>
-          </tr></table>
-        </div>
-
-        <p style="text-align:left;font-size:13.5px;color:#475569;margin-top:18px">All the best,<br><b style="color:#0b2e63">Team CodeBegun</b></p>
-      </td></tr>
-      <!-- keep learning banner -->
-      <tr><td style="background:#0b2e63;padding:18px 22px;text-align:center;color:#dbe6ff">
-        <div style="font-size:15px;font-weight:800;color:#fff">🏆 Keep Learning. Keep Winning.</div>
-        <div style="font-size:12.5px;color:#a9bbe8;margin-top:4px">Every challenge you take brings you closer to your goals.</div>
-      </td></tr>
-      <!-- footer -->
-      <tr><td style="background:#0a1730;padding:18px 22px;color:#93a1c4;font-size:12px;text-align:center">
-        <div style="color:#fff;font-weight:800">CODE<span style="color:#37d0c0">BEGUN</span></div>
-        <div style="margin:6px 0">CodeBegun is a training and education brand owned and operated by Savas Tech Solution Pvt Ltd.</div>
-        <div>© 2026 CodeBegun by Savas Tech Solution Pvt Ltd. All rights reserved.</div>
-      </td></tr>
-    </table>
-  </div>`;
+  const html = buildBattleConfirmationEmail({
+    name: reg.name,
+    battleTitle: b.title,
+    startAt: b.startAt,
+    examUrl: url,
+  });
   await emailService.sendGenericEmail(reg.email, `You're Registered for ${b.title} 🎉`, html);
-  await BattleRegistration.updateOne({ _id: reg._id }, { $set: { 'remindersSent.confirm': true } });
 }
 
 // ─────────────────────────── ADMIN ───────────────────────────

@@ -35,6 +35,7 @@ export const SOCIAL_LINKS: SocialLink[] = [
   { key: 'instagram', label: '◎',  title: 'Instagram', href: 'https://www.instagram.com/codebegun' },
   { key: 'youtube',   label: '▶',  title: 'YouTube',   href: 'https://www.youtube.com/@CodeBegun' },
   { key: 'facebook',  label: 'f',  title: 'Facebook',  href: 'https://www.facebook.com/profile.php?id=100092735476326' },
+  { key: 'whatsapp',  label: 'WA', title: 'WhatsApp',  href: 'https://wa.me/916301099587' },
 ];
 
 /** Only the entries that actually have a destination. */

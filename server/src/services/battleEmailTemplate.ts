@@ -1,4 +1,4 @@
-import { SOCIAL_LINKS } from '../constants/brand';
+import { SOCIAL_LINKS, APP_URL, SITE_URL } from '../constants/brand';
 import { unsubscribeUrl } from './unsubscribeService';
 
 /**
@@ -30,18 +30,31 @@ const ist = (d: Date | string, opts: Intl.DateTimeFormatOptions) =>
  *  come from the single source of truth rather than being retyped here. */
 const social = (key: string) => SOCIAL_LINKS.find(s => s.key === key)?.href || '';
 
-const chip = (href: string, label: string, aria: string, bg: string, size: number, mr = true) =>
+/**
+ * One icon = one table cell.
+ *
+ * These were inline-block anchors separated by margins, which is what threw the row
+ * out of alignment: inline-block defaults to `vertical-align:baseline`, so chips
+ * carrying different font sizes (10px "WA" next to 14px "f") sat at different
+ * heights, and Outlook ignores both `line-height` and `border-radius` on an inline
+ * anchor, so the glyphs drifted off-centre inside squares. Cells in a single row are
+ * always mutually aligned, in every client. `mso-line-height-rule` makes Outlook
+ * honour the 28px line box so each glyph is vertically centred; `text-decoration`
+ * kills the underline clients add to bare links, which also skewed the optical row.
+ */
+const chip = (href: string, label: string, aria: string, bg: string, size: number) =>
   href
-    ? `<a href="${href}" target="_blank" aria-label="${aria}" style="display:inline-block; width:28px; height:28px; line-height:28px; border-radius:50%; background:${bg}; color:#ffffff; text-align:center; font-size:${size}px; font-weight:700; ${mr ? 'margin-right:5px;' : 'margin-left:5px;'}">${label}</a>`
+    ? `<td style="padding:0 4px; font-size:0; line-height:0;"><a href="${href}" target="_blank" aria-label="${aria}" title="${aria}" style="display:block; width:28px; height:28px; line-height:28px; mso-line-height-rule:exactly; border-radius:50%; background:${bg}; color:#ffffff; text-align:center; text-decoration:none; font-family:Arial,Helvetica,sans-serif; font-size:${size}px; font-weight:700;">${label}</a></td>`
     : '';
 
-const socialRow = (marginRight: boolean) => [
-  chip(social('instagram'), 'IG', 'Instagram', '#e1306c', 11, marginRight),
-  chip(social('linkedin'), 'in', 'LinkedIn', '#0a66c2', 11, marginRight),
-  chip(social('youtube'), '▶', 'YouTube', '#ff0000', 11, marginRight),
-  chip(social('facebook'), 'f', 'Facebook', '#1877f2', 14, marginRight),
-  chip(social('whatsapp'), 'WA', 'WhatsApp', '#25d366', 10, marginRight),
-].join('');
+const socialRow = (align: 'left' | 'right') =>
+  `<table role="presentation" cellpadding="0" cellspacing="0" border="0" align="${align}" class="social-tbl" style="border-collapse:collapse;"><tr>${[
+    chip(social('instagram'), 'IG', 'Instagram', '#e1306c', 11),
+    chip(social('linkedin'), 'in', 'LinkedIn', '#0a66c2', 11),
+    chip(social('youtube'), '▶', 'YouTube', '#ff0000', 11),
+    chip(social('facebook'), 'f', 'Facebook', '#1877f2', 14),
+    chip(social('whatsapp'), 'WA', 'WhatsApp', '#25d366', 10),
+  ].join('')}</tr></table>`;
 
 export function buildBattleConfirmationEmail(d: BattleEmailData): string {
   const dateStr = ist(d.startAt, { day: 'numeric', month: 'short', year: 'numeric' });
@@ -79,6 +92,9 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
       .mobile-center img { margin-left:auto !important; margin-right:auto !important; }
       .hero-title { font-size:33px !important; line-height:39px !important; }
       .header-social { padding-top:16px !important; text-align:left !important; }
+      /* align="right" floats the icon table; on mobile the header stacks, so it has
+         to come back to the left edge under the logo instead of hugging the margin. */
+      .header-social .social-tbl { float:left !important; }
       .hero-art-wrap { padding:24px 0 4px !important; }
       .info-col { border-right:0 !important; border-bottom:1px solid #e2e8f4 !important; padding-bottom:18px !important; margin-bottom:18px !important; }
       .exam-button-cell { padding-top:18px !important; }
@@ -111,7 +127,7 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
                 </td>
                 <td width="53%" align="right" class="header-social mobile-center" style="width:53%; vertical-align:middle; font-family:Arial,Helvetica,sans-serif;">
                   <div style="font-size:12px; line-height:16px; font-weight:700; color:#304364; margin-bottom:8px;">Stay Connected</div>
-                  ${socialRow(false)}
+                  ${socialRow('right')}
                 </td>
               </tr>
             </table>
@@ -270,7 +286,7 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
                     <div>&#10003; Track progress and opportunities</div>
                   </div>
                   <div style="padding-top:13px;">
-                    <a href="https://www.codebegun.com/career" target="_blank" style="display:inline-block; padding:11px 17px; border-radius:6px; background:#6a2be2; color:#ffffff; font-size:13px; line-height:17px; font-weight:800;">Explore CareerPilot &nbsp; &rarr;</a>
+                    <a href="${APP_URL}/passport/join" target="_blank" style="display:inline-block; padding:11px 17px; border-radius:6px; background:#6a2be2; color:#ffffff; font-size:13px; line-height:17px; font-weight:800;">Explore CareerPilot &nbsp; &rarr;</a>
                   </div>
                 </td>
                 <td width="22%" align="center" class="mobile-hide" style="width:22%; padding:20px 10px; vertical-align:bottom;">
@@ -303,7 +319,7 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
                     <div>&#10003; Industry-relevant projects</div>
                   </div>
                   <div style="padding-top:13px;">
-                    <a href="https://lms.codebegun.com/" target="_blank" style="display:inline-block; padding:10px 16px; border:1px solid #95b6ff; border-radius:6px; color:#ffffff; font-size:13px; line-height:17px; font-weight:800;">Explore LMS &nbsp; &rarr;</a>
+                    <a href="${SITE_URL}/" target="_blank" style="display:inline-block; padding:10px 16px; border:1px solid #95b6ff; border-radius:6px; color:#ffffff; font-size:13px; line-height:17px; font-weight:800;">Explore LMS &nbsp; &rarr;</a>
                   </div>
                 </td>
               </tr>
@@ -395,7 +411,7 @@ export function buildBattleConfirmationEmail(d: BattleEmailData): string {
               </td>
               <td width="29%" class="footer-col" style="width:29%; padding:0 0 0 24px; font-family:Arial,Helvetica,sans-serif; color:#ffffff;">
                 <div style="font-size:12px; line-height:16px; font-weight:800;">Follow Us</div>
-                <div style="padding-top:10px;">${socialRow(true)}</div>
+                <div style="padding-top:10px;">${socialRow('left')}</div>
               </td>
             </tr></table>
             <table role="presentation" width="100%" style="width:100%; margin-top:20px !important; border-top:1px solid rgba(255,255,255,.20);"><tr>

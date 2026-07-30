@@ -114,12 +114,12 @@
 .gd-pill.level .lbar { height: 5px; width: 108px; border-radius: 99px; background: #eef0f7; overflow: hidden; margin-top: 5px; }
 .gd-pill.level .lbar i { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg,#7c6cf0,#37d0c0); }
 
-.gd-grid { display: grid; gap: 16px; }
+.gd-grid { display: grid; gap: 16px; align-items: start; }
 .gd-2 { grid-template-columns: 1.05fr 1fr; }
 .gd-2b { grid-template-columns: 1.35fr 1fr; }
-.gd-3 { grid-template-columns: 1.25fr 1.1fr 0.78fr; }
-@media (max-width: 1380px) { .gd-3 { grid-template-columns: 1fr 1fr; } .gd-3 > :last-child { grid-column: 1 / -1; } }
-@media (max-width: 1080px) { .gd-2, .gd-2b, .gd-3 { grid-template-columns: 1fr; } .gd-3 > :last-child { grid-column: auto; } }
+.gd-3 { grid-template-columns: 1.12fr 1fr 0.8fr; }
+@media (max-width: 1150px) { .gd-3 { grid-template-columns: 1fr 1fr; } .gd-3 > :last-child { grid-column: 1 / -1; } }
+@media (max-width: 880px) { .gd-2, .gd-2b, .gd-3 { grid-template-columns: 1fr; } .gd-3 > :last-child { grid-column: auto; } }
 
 .gd-card { background: #fff; border: 1px solid #ecedf5; border-radius: 18px; padding: 22px; box-shadow: 0 2px 12px rgba(15,23,42,.03); }
 .gd-card-hd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
@@ -132,14 +132,7 @@
 .gd-nav-gap { height: 12px; }
 
 /* Skill Meter — named list beside the radar */
-.gd-skill-wrap { display: grid; grid-template-columns: minmax(160px, 1fr) 1.15fr; gap: 12px; align-items: center; }
-@media (max-width: 1380px) { .gd-skill-wrap { grid-template-columns: 1fr; } }
-.gd-skill-list { display: grid; gap: 2px; }
-.gd-skill-row { display: flex; align-items: center; gap: 9px; padding: 7px 2px; }
-.gd-skill-row + .gd-skill-row { border-top: 1px solid #f6f7fb; }
-.gd-skill-row .ic { width: 24px; height: 24px; border-radius: 7px; background: #f4f5fa; display: grid; place-items: center; font-size: 12px; flex-shrink: 0; }
-.gd-skill-row .t { flex: 1; font-size: 12.5px; color: #5b6478; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gd-skill-row .v { font-size: 14px; font-weight: 900; color: #0f172a; }
+.gd-skill-wrap { display: grid; place-items: center; }
 
 /* Progress bar inside a stat tile */
 .gd-tile-bar { display: flex; align-items: center; gap: 8px; margin-top: 6px; }
@@ -200,9 +193,10 @@
 .gd-radar text.v { font-size: 11px; font-weight: 900; fill: #0f172a; }
 
 /* Stat tiles */
-.gd-tiles { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; }
-@media (max-width: 1080px) { .gd-tiles { grid-template-columns: repeat(2,1fr); } }
-@media (max-width: 560px) { .gd-tiles { grid-template-columns: 1fr; } }
+.gd-tiles { display: grid; grid-template-columns: repeat(6,1fr); gap: 14px; }
+@media (max-width: 1500px) { .gd-tiles { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 880px) { .gd-tiles { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 520px) { .gd-tiles { grid-template-columns: 1fr; } }
 .gd-tile { background: #fff; border: 1px solid #ecedf5; border-radius: 16px; padding: 17px 19px; display: flex; align-items: center; gap: 14px; }
 .gd-tile .ic { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 20px; flex-shrink: 0; }
 .gd-tile .lbl { font-size: 12px; color: #8b93a4; font-weight: 700; }

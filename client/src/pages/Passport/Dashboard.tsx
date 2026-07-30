@@ -190,20 +190,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <h2>Skill Meter <span className="gd-help" title="Your six Career Readiness Assessment categories. Retake the assessment to move these.">?</span></h2>
               <button className="lnk" onClick={() => nav('/passport/assessment')}>View full report →</button>
             </div>
-            <div className="gd-skill-wrap">
-              {/* Named list beside the radar — the shape alone doesn't tell you which
-                  category is which, or the exact score. */}
-              <div className="gd-skill-list">
-                {[...(d.skills || [])].sort((a, b) => b.score - a.score).map(s => (
-                  <div className="gd-skill-row" key={s.key}>
-                    <span className="ic">{CAT_ICON[s.key] || '•'}</span>
-                    <span className="t">{s.label}</span>
-                    <span className="v">{s.score}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="gd-radar-wrap"><Radar skills={d.skills || []} /></div>
-            </div>
+            <div className="gd-skill-wrap"><Radar skills={d.skills || []} /></div>
           </div>
 
           {/* Your Coding Stats — every row from stored data; no rating/global rank,

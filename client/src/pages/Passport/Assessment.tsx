@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { AssessQuestion, AssessResult } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
+import { useMember } from './MemberLayout';
 import './assessment.css';
 
 /**
@@ -203,6 +204,8 @@ const ResultView: React.FC<{
   result: AssessResult; firstName: string; initial: string;
   onRetake: () => void; onHome: () => void; topBrand: (ui: React.ReactNode) => React.ReactNode;
 }> = ({ result, firstName, initial, onRetake, onHome, topBrand }) => {
+  const nav = useNavigate();
+  const { data: member } = useMember();
   const [paying, setPaying] = useState(false);
   const [payMsg, setPayMsg] = useState('');
   const [unlocked, setUnlocked] = useState(false);
@@ -249,12 +252,19 @@ const ResultView: React.FC<{
     : score >= 45 ? "You're on the right track. With the right plan and consistent effort, you can achieve great things!"
     : "Great first step — a focused plan will move your score up fast.";
 
+  const sorted = [...(result.categoryScores || [])].sort((a, b) => b.score - a.score);
+  const topThree = sorted.slice(0, 3);
+
   const body = (
-      <div className="rs-wrap">
+      <div className={`rs-wrap${isMember ? ' rs-member' : ''}`}>
+        {isMember && <div className="rs-crumb">Assessment <span>›</span> <b>Results</b></div>}
         <div className="rs-hi">
           <h1>Great start, {firstName}! 🎉</h1>
           <p>You've just discovered your Career Score. This is the first step towards your dream career.</p>
         </div>
+
+        <div className="rs-cols">
+        <div className="rs-colmain">
 
         {/* Score summary */}
         <div className="rs-card">
@@ -272,10 +282,20 @@ const ResultView: React.FC<{
               </svg>
               <div className="ctr"><b>{score}</b><span>/ 100</span></div>
             </div>
-            <div className="rs-path">
-              <div className="k">Recommended pathway</div>
-              <div className="sub">Your best-fit direction</div>
-              <span className="chip">🚀 {result.pathwayLabel}</span>
+            {/* Only facts we genuinely hold — no invented percentile when there are no peers */}
+            <div className="rs-facts">
+              <div className="rs-fact">
+                <div className="k">Percentile</div>
+                <div className="v">{member?.percentileAhead != null ? `Top ${100 - member.percentileAhead}% of members` : 'Needs more members'}</div>
+              </div>
+              <div className="rs-fact">
+                <div className="k">Strongest area</div>
+                <div className="v">{topThree[0] ? `${topThree[0].label} · ${topThree[0].score}%` : '—'}</div>
+              </div>
+              <div className="rs-fact">
+                <div className="k">Attempts</div>
+                <div className="v">{(result as any).attempts ?? 1}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -296,23 +316,25 @@ const ResultView: React.FC<{
           })}
         </div>
 
-        {/* Strengths / focus */}
-        <div className="rs-two">
-          <div className="rs-card">
-            <div className="rs-sec-h">Your Top Strengths 💪</div>
-            <div className="rs-list">
-              {result.strengths.map((s, i) => (
-                <div className="rs-li" key={i}><span className="ic" style={{ background: '#e7f8f0' }}>✓</span><div><b>{s}</b></div></div>
-              ))}
-            </div>
-          </div>
-          <div className="rs-card">
-            <div className="rs-sec-h">Focus Areas 🎯</div>
-            <div className="rs-list">
-              {result.weaknesses.map((s, i) => (
-                <div className="rs-li" key={i}><span className="ic" style={{ background: '#fff2e3' }}>!</span><div><b>{s}</b></div></div>
-              ))}
-            </div>
+        {/* Focus areas — the weakest categories, each with somewhere to act on it */}
+        <div className="rs-card">
+          <div className="rs-sec-h">Focus Areas 🎯 <span className="hint">Areas to improve for a stronger profile</span></div>
+          <div className="rs-focus-grid">
+            {sorted.slice(-3).reverse().map((c, i) => {
+              const tint = ['#f4f2ff', '#f0fdf4', '#fff7ed'][i] || '#f8fafc';
+              const to = c.key === 'technical' ? '/passport/practice?kind=coding'
+                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/passport/practice?kind=mcq'
+                : c.key === 'communication' ? '/passport/interview'
+                : c.key === 'employability' ? '/passport/resume' : '/passport/roadmap';
+              return (
+                <div className="rs-focus-card" style={{ background: tint }} key={c.key}>
+                  <span className="ic">{CAT_ICON[c.key] || '🎯'}</span>
+                  <b>{c.label}</b>
+                  <span>Currently {c.score}% — the fastest place to gain points.</span>
+                  {isMember && <button onClick={() => nav(to)}>Practice now →</button>}
+                </div>
+              );
+            })}
           </div>
         </div>
 
@@ -328,6 +350,64 @@ const ResultView: React.FC<{
               </div>
             ))}
           </div>
+        </div>
+
+        {isMember && (
+          <div className="rs-cta">
+            <span className="em">🏆</span>
+            <div className="tx">
+              <b>Every step counts!</b>
+              <span>Stay consistent, keep learning, and unlock your full potential.</span>
+            </div>
+            <button onClick={() => nav('/passport/roadmap')}>Go to Roadmap →</button>
+          </div>
+        )}
+        </div>
+
+        {/* ── Aside ── */}
+        <div className="rs-aside">
+          <div className="rs-path-card">
+            <div className="hd">🚀 Recommended Pathway</div>
+            <div className="sub">Your best-fit learning path</div>
+            <div className="rs-path-pick">
+              <span className="ic">{'</>'}</span>
+              <b>{result.pathwayLabel}</b>
+            </div>
+            <div className="rs-path-why">
+              <div><span>✅</span>Matched to your strongest areas: {topThree.slice(0, 2).map(c => c.label).join(' and ')}.</div>
+              <div><span>🗺️</span>Sets the weekly themes of your {member?.stats?.totalDays ?? 90}-day roadmap.</div>
+              <div><span>🎯</span>Daily missions are biased to your two weakest categories.</div>
+            </div>
+            <button className="rs-path-btn" onClick={() => nav('/passport/roadmap')}>View Full Roadmap →</button>
+          </div>
+
+          <div className="rs-card">
+            <div className="rs-sec-h">⭐ Your Top Strengths</div>
+            {topThree.map(c => (
+              <div className="rs-str" key={c.key}>
+                <span className="ic">{CAT_ICON[c.key] || '✓'}</span>
+                <div className="tx"><b>{c.label}</b><span>Your strongest scoring area</span></div>
+                <span className="pc">{c.score}%</span>
+              </div>
+            ))}
+            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 8 }}>Keep it up! You're doing great. 👏</div>
+          </div>
+
+          {/* Next steps = today's real missions, with their real XP */}
+          {isMember && !!member?.missions?.length && (
+            <div className="rs-card">
+              <div className="rs-sec-h">🏁 Next Steps</div>
+              {member.missions.map(m => (
+                <div className="rs-next" key={m.key}>
+                  <span className={`ck${m.done ? ' on' : ''}`} />
+                  <span className="t" style={{ textDecoration: m.done ? 'line-through' : 'none', color: m.done ? '#94a3b8' : undefined }}>{m.title}</span>
+                  <span className="xp">+{m.xp} XP</span>
+                </div>
+              ))}
+              <button className="rs-path-btn" style={{ marginTop: 12 }} onClick={() => nav('/passport')}>View All Missions →</button>
+            </div>
+          )}
+        </div>
         </div>
 
         {/* Unlock — never pitched to someone who has already paid */}

@@ -386,19 +386,19 @@ const AppRoutes: React.FC = () => {
 
       {/* ── Career Passport (separate product) ── */}
       <Route path="/admin/passport/config" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathways" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/missions" element={
-        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminMissions /></Layout></ProtectedRoute>
       } />
       {/* Student Passport surfaces — deliberately NOT the LMS Layout (separate product) */}
       {/* Layout route: MemberShell mounts ONCE here and only <Outlet/> swaps, so the

@@ -188,11 +188,11 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     // ── Tech Battles (public competitions) ──
     { label: 'Tech Battles', path: '/admin/battles', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR', 'STAFF'], icon: 'fa-solid fa-trophy', permissions: ['create_quiz', 'edit_quiz', 'view_reports'] },
     // ── Career Passport (separate product) ──
-    { label: 'Passport Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-sliders', permissions: ['manage_tenant_settings', 'manage_tenant'] },
-    { label: 'Passport Students', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['manage_tenant_settings', 'manage_tenant', 'manage_tenant_users'] },
-    { label: 'Passport Pathways', path: '/admin/passport/pathways', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-route', permissions: ['manage_tenant_settings', 'manage_tenant'] },
-    { label: 'Passport Assessment', path: '/admin/passport/assessment', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_tenant_settings', 'manage_tenant'] },
-    { label: 'Passport Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-bullseye', permissions: ['manage_tenant_settings', 'manage_tenant'] },
+    { label: 'Passport Config', path: '/admin/passport/config', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport'] },
+    { label: 'Passport Members', path: '/admin/passport/students', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'], icon: 'fa-solid fa-id-card-clip', permissions: ['view_passport_members', 'manage_passport'] },
+    { label: 'Passport Pathways', path: '/admin/passport/pathways', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport'] },
+    { label: 'Passport Assessment', path: '/admin/passport/assessment', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_passport'] },
+    { label: 'Passport Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-bullseye', permissions: ['manage_passport'] },
     { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -401,7 +401,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'COLLEGE',                 labels: ['College'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: '⚔️ TECH BATTLES',         labels: ['Tech Battles'] },
-    { title: '🎫 CAREER PASSPORT',      labels: ['Passport Config', 'Passport Students', 'Passport Pathways', 'Passport Assessment', 'Passport Missions'] },
+    { title: '🎫 CAREER PASSPORT',      labels: ['Passport Config', 'Passport Members', 'Passport Pathways', 'Passport Assessment', 'Passport Missions'] },
     { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];
   const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));

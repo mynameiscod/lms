@@ -6,13 +6,10 @@ import { buildRoadmap } from '../services/passportRoadmapService';
 import { PASSPORT_CATEGORIES } from '../models/PassportAssessment';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
-const role = (req: Request): string => String((req as any).user?.role || '');
-const isAdmin = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'].includes(role(req));
 
 /** GET /passport/content — pathways + mission pools (seeds defaults on first open). */
 export const getContent = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const content = await ensureContent(tenantOf(req));
     res.json({ content, categories: PASSPORT_CATEGORIES });
   } catch (e: any) {
@@ -23,7 +20,6 @@ export const getContent = async (req: Request, res: Response) => {
 /** PUT /passport/content — save edited pathways / mission pools / journey length. */
 export const saveContent = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     await ensureContent(tenantId);
 
@@ -47,7 +43,6 @@ export const saveContent = async (req: Request, res: Response) => {
 /** POST /passport/content/reset — restore the shipped defaults for one part or both. */
 export const resetContent = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const what = String(req.body?.what || 'all');
     await ensureContent(tenantId);
@@ -69,7 +64,6 @@ export const resetContent = async (req: Request, res: Response) => {
  */
 export const previewContent = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const content = await ensureContent(tenantId);
 

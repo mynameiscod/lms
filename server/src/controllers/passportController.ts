@@ -10,8 +10,6 @@ import { membershipActive, entitlementMap } from '../services/passportEntitlemen
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
-const role = (req: Request): string => String((req as any).user?.role || '');
-const isAdmin = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'].includes(role(req));
 
 /** Master switch = the Passport Config "Enable" toggle (read fresh). PASSPORT_ENABLED is
  *  only an OPTIONAL platform hard-kill — set it to 'false' to force Passport off globally. */
@@ -35,7 +33,6 @@ async function ensureConfig(tenantId: string) {
 /** Admin: read the Passport config (seeds defaults on first open). */
 export const getConfig = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const cfg = await ensureConfig(tenantId);
     res.json({ config: cfg, platformEnabled: settings.getStr('PASSPORT_ENABLED', 'true', tenantId) !== 'false' });
@@ -47,7 +44,6 @@ export const getConfig = async (req: Request, res: Response) => {
 /** Admin: update the Passport config. */
 export const updateConfig = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     await ensureConfig(tenantId);
     const allowed = ['enabled', 'assessmentMode', 'onboardingFields', 'entitlements', 'priceInr', 'membershipMonths'];
@@ -107,7 +103,6 @@ export const setPassword = async (req: Request, res: Response) => {
 /** Admin: list Passport students. */
 export const listStudents = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const q: any = { tenantId, 'passport.active': true };
     if (req.query.search) {
@@ -124,7 +119,6 @@ export const listStudents = async (req: Request, res: Response) => {
 /** Admin: manually convert/activate a student into Passport (the "Both" entry path). */
 export const convertStudent = async (req: Request, res: Response) => {
   try {
-    if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
     const tenantId = tenantOf(req);
     const { studentId } = req.body || {};
     const cfg = await ensureConfig(tenantId);

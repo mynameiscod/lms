@@ -192,6 +192,15 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'view_ai_spend', label: 'View AI Spend Dashboard' },
     ]
   },
+  careerPassport: {
+    label: 'Career Passport (CareerPilot)',
+    permissions: [
+      { key: 'manage_passport', label: 'Manage Career Passport (Config, Pathways, Missions, Assessment Bank)' },
+      { key: 'view_passport_members', label: 'View Career Passport Members' },
+      { key: 'convert_passport_member', label: 'Grant Membership Without Payment' },
+      { key: 'use_passport', label: 'Use Career Passport (Member Surfaces)' },
+    ]
+  },
 };
 
 // Flatten all permission keys
@@ -249,6 +258,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_placement', 'manage_placement_status', 'view_placement',
     // AI Spend
     'view_ai_spend',
+    // Career Passport — full control, including granting membership without payment
+    'manage_passport', 'view_passport_members', 'convert_passport_member', 'use_passport',
   ],
   INSTRUCTOR: [
     // Courses
@@ -296,6 +307,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Leads — Manager level: view all team leads, assign, analytics
     'view_leads', 'create_leads', 'edit_leads', 'assign_leads',
     'view_lead_analytics', 'export_leads', 'convert_leads',
+    // Career Passport — read-only. Config, pathways, missions, the assessment bank
+    // and free membership grants stay with TENANT_ADMIN.
+    'view_passport_members',
   ],
   STUDENT: [
     'enroll_courses', 'view_courses', 'view_public_courses', 'access_resources',
@@ -317,6 +331,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_certificates',
     // Placement & Alumni
     'view_placement',
+    // Career Passport — member surfaces (entitlements still gate paid features)
+    'use_passport',
   ],
   GUEST: ['view_public_courses'],
 };

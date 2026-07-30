@@ -6,8 +6,6 @@ import { scoreAttempt } from '../services/passportScoringService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
-const role = (req: Request): string => String((req as any).user?.role || '');
-const isAdmin = (req: Request) => ['SUPER_ADMIN', 'TENANT_ADMIN', 'STAFF'].includes(role(req));
 
 async function ensureAssessment(tenantId: string) {
   let a = await PassportAssessment.findOne({ tenantId });
@@ -58,9 +56,13 @@ export const submitAssessment = async (req: Request, res: Response) => {
 /** Student: latest result. */
 export const getResult = async (req: Request, res: Response) => {
   try {
-    const attempt = await PassportAttempt.findOne({ tenantId: tenantOf(req), studentId: userIdOf(req) }).sort({ createdAt: -1 }).lean();
+    const tenantId = tenantOf(req), studentId = userIdOf(req);
+    const [attempt, attempts] = await Promise.all([
+      PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean(),
+      PassportAttempt.countDocuments({ tenantId, studentId }),
+    ]);
     if (!attempt) return res.json({ result: null });
-    res.json({ result: publicResult(attempt) });
+    res.json({ result: { ...publicResult(attempt), attempts } });
   } catch (e: any) { res.status(500).json({ message: e.message || 'Failed to load result' }); }
 };
 
@@ -75,13 +77,11 @@ function publicResult(a: any) {
 
 // ── Admin ──
 export const getAssessmentAdmin = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const a = await ensureAssessment(tenantOf(req));
   res.json({ assessment: a });
 };
 
 export const saveAssessment = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const tenantId = tenantOf(req);
   await ensureAssessment(tenantId);
   const $set: any = {};
@@ -92,7 +92,6 @@ export const saveAssessment = async (req: Request, res: Response) => {
 };
 
 export const resetAssessment = async (req: Request, res: Response) => {
-  if (!isAdmin(req)) return res.status(403).json({ message: 'Not allowed' });
   const tenantId = tenantOf(req);
   const a = await PassportAssessment.findOneAndUpdate({ tenantId }, { $set: { questions: DEFAULT_QUESTIONS } }, { new: true, upsert: true });
   res.json({ assessment: a });

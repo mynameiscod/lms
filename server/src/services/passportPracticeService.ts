@@ -433,6 +433,31 @@ export interface RunOutcome {
 }
 
 /**
+ * sqlite reports errors against the whole script it was handed — our fixture schema
+ * first, then the student's query — so an error on the student's line 1 comes back as
+ * "near line 11". They only ever see their own 3-line editor, so the number is worse
+ * than useless: it points at code they cannot see.
+ *
+ * Two offsets stack, both measured against the live Piston image rather than assumed:
+ *   • the sqlite3 runner prepends 2 lines of its own before the file, and
+ *   • we prepend `setupSql` plus a joining newline.
+ * Subtract both to land back in editor coordinates. If the result falls outside the
+ * student's code the error belongs to our fixture, not to them — drop the reference
+ * entirely instead of printing a line they can't act on.
+ */
+function remapSqlErrorLines(err: string, setupSql: string, code: string): string {
+  if (!err) return err;
+  const PISTON_SQLITE_PREAMBLE_LINES = 2;
+  const setupLines = `${setupSql || ''}\n`.split('\n').length - 1;
+  const codeLines = String(code || '').split('\n').length;
+
+  return err.replace(/near line (\d+):\s*/gi, (whole, n) => {
+    const studentLine = Number(n) - PISTON_SQLITE_PREAMBLE_LINES - setupLines;
+    return studentLine >= 1 && studentLine <= codeLines ? `near line ${studentLine}: ` : '';
+  });
+}
+
+/**
  * Run a coding/SQL submission against its tests on Piston. `visibleOnly` runs just the
  * sample tests (the "Run" button); submit runs everything.
  */
@@ -463,7 +488,10 @@ export async function runProblem(
       comparisonMode: 'lenient',
     });
 
-    if (r.compilationError && !compilationError) compilationError = r.compilationError;
+    const fix = (m?: string) =>
+      problem.kind === 'sql' && m ? remapSqlErrorLines(m, problem.setupSql || '', code) : m;
+
+    if (r.compilationError && !compilationError) compilationError = fix(r.compilationError);
     executionMs = Math.max(executionMs, r.executionTime || 0);
     memoryMb = Math.max(memoryMb, r.memoryUsed || 0);
     results.push({
@@ -471,7 +499,7 @@ export async function runProblem(
       input: t.hidden ? '(hidden)' : t.input,
       expected: t.hidden ? '(hidden)' : t.expected,
       got: t.hidden && !r.passed ? '(hidden)' : (r.output || ''),
-      error: r.error || r.compilationError,
+      error: fix(r.error || r.compilationError),
     });
     // A compile error fails every test identically — no point burning Piston runs.
     if (r.compilationError) break;

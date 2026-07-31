@@ -5,6 +5,7 @@ import ThinkingProblem from '../models/ThinkingProblem';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import { AuthRequest } from '../types/express';
 import { resolveLabDay, dayIndexFor, expectedDaysSoFar } from '../services/labTrackService';
+import { resolveLabGate } from '../services/labGateService';
 
 /** Admin API for lab tracks: author a plan once, attach it to any batch. */
 
@@ -256,5 +257,50 @@ export const previewToday = async (req: AuthRequest, res: Response) => {
     if (!oid(batchId)) return fail(res, 400, 'batchId is required');
     const resolved = await resolveLabDay(tid(req), String(batchId), lab);
     res.json({ success: true, data: resolved });
+  } catch (e: any) { fail(res, 500, e.message); }
+};
+
+
+// ── Gate ────────────────────────────────────────────────────────────────────
+
+/**
+ * The signed-in student's own gate state. The client shell calls this to decide whether
+ * to show a banner, an interstitial, or hold a section shut.
+ *
+ * This is the ADVISORY read. It is never the enforcement: a client can simply not call
+ * it, so anything that actually matters must check isAreaBlocked() on its own route.
+ */
+export const myGate = async (req: AuthRequest, res: Response) => {
+  try {
+    const gate = await resolveLabGate(String(req.user?.id || ''), tid(req));
+    res.json({ success: true, data: gate });
+  } catch (e: any) {
+    // A gate that errors must FAIL OPEN. A bug in this file must never be the reason a
+    // student cannot reach their lessons.
+    res.json({ success: true, data: { mode: 'off', blockedAreas: [], neverBlock: [], pending: [], reason: 'gate_error' } });
+  }
+};
+
+/** Admin view of any student's gate — for answering "why am I locked out?". */
+export const studentGate = async (req: AuthRequest, res: Response) => {
+  try {
+    const gate = await resolveLabGate(String(req.params.userId), tid(req));
+    res.json({ success: true, data: gate });
+  } catch (e: any) { fail(res, 500, e.message); }
+};
+
+/** Release one student from the gate (broken mic, connectivity, anything). */
+export const setBypass = async (req: AuthRequest, res: Response) => {
+  try {
+    const { batchId, lab, userId, enabled } = req.body;
+    if (!oid(batchId) || !oid(userId)) return fail(res, 400, 'batchId and userId are required');
+    const a: any = await LabTrackAssignment.findOne({ tenantId: tid(req), batchId: oid(batchId), lab, status: 'active' });
+    if (!a) return fail(res, 404, 'No active plan for that batch and lab');
+
+    const list = (a.gate.bypassStudentIds || []).map(String).filter((x: string) => x !== String(userId));
+    if (enabled !== false) list.push(String(userId));
+    a.gate.bypassStudentIds = list.map((x: string) => oid(x));
+    await a.save();
+    res.json({ success: true, data: { bypassed: enabled !== false, count: list.length } });
   } catch (e: any) { fail(res, 500, e.message); }
 };

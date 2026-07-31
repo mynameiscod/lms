@@ -6,6 +6,7 @@ import {
   listTracks, createTrack, updateTrack, deleteTrack, getTrack,
   libraryFor, setTrackItems,
   listAssignments, upsertAssignment, deleteAssignment, previewToday,
+  myGate, studentGate, setBypass,
 } from '../controllers/labTrackController';
 
 const router = Router();
@@ -35,5 +36,10 @@ router.get('/assignments/list', authMiddleware, tenantResolver, VIEW, listAssign
 router.post('/assignments', authMiddleware, tenantResolver, MANAGE, upsertAssignment);
 router.delete('/assignments/:id', authMiddleware, tenantResolver, MANAGE, deleteAssignment);
 router.get('/assignments/preview', authMiddleware, tenantResolver, VIEW, previewToday);
+
+// Gate: the student's own state needs no admin permission, only a session.
+router.get('/gate/me', authMiddleware, tenantResolver, myGate);
+router.get('/gate/student/:userId', authMiddleware, tenantResolver, VIEW, studentGate);
+router.post('/gate/bypass', authMiddleware, tenantResolver, MANAGE, setBypass);
 
 export default router;

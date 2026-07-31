@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import multer, { MulterError } from 'multer';
 import path from 'path';
 import * as ctrl from '../controllers/battleController';
+import { battleRateLimit } from '../middleware/battleRateLimit';
 
 // Public (no auth) Tech Battle funnel: list → landing → register(proofs/OTP) → time-gated exam → leaderboard.
 const router = express.Router();
@@ -22,12 +23,14 @@ const multipart = (req: Request, res: Response, next: NextFunction) => {
 };
 
 // Token-scoped exam + OTP (specific literals first).
+// Limits are per candidate token and deliberately far above real usage — the client
+// heartbeats twice a minute and submits once, so these only catch scripted abuse.
 router.post('/battles/verify', express.json(), ctrl.verifyBattleOtp);
 router.post('/battles/resend', express.json(), ctrl.resendBattleOtp);
-router.get('/battles/exam/:token', ctrl.getBattleExam);
-router.post('/battles/exam/:token/start', express.json(), ctrl.startBattleExam);
-router.post('/battles/exam/:token/heartbeat', express.json(), ctrl.battleHeartbeat);
-router.post('/battles/exam/:token/submit', express.json(), ctrl.submitBattleExam);
+router.get('/battles/exam/:token', battleRateLimit(60, 'exam-fetch'), ctrl.getBattleExam);
+router.post('/battles/exam/:token/start', express.json(), battleRateLimit(30, 'exam-start'), ctrl.startBattleExam);
+router.post('/battles/exam/:token/heartbeat', express.json(), battleRateLimit(20, 'heartbeat'), ctrl.battleHeartbeat);
+router.post('/battles/exam/:token/submit', express.json(), battleRateLimit(10, 'submit'), ctrl.submitBattleExam);
 
 // Tenant-scoped listing / landing / register / leaderboard.
 router.get('/:tenantSlug/battles', ctrl.listPublicBattles);

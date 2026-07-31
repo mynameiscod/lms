@@ -274,7 +274,13 @@ export const submitBattleExam = async (req: Request, res: Response) => {
   try {
     const reg = await BattleRegistration.findOne({ examToken: req.params.token });
     if (!reg) return res.status(404).json({ message: 'Invalid link', code: 'NOT_FOUND' });
-    if (reg.submittedAt) return res.status(200).json({ score: reg.score, totalMarks: reg.totalMarks, percentage: Math.round(reg.percentage || 0), rank: reg.rank, alreadySubmitted: true });
+    // Re-counted rather than read off the document: while the battle is live everyone
+    // else is still finishing, so a rank stored at submit time is out of date the moment
+    // the next person beats it.
+    if (reg.submittedAt) {
+      const rank = await battle.rankOf(String(reg.battleId), reg);
+      return res.status(200).json({ score: reg.score, totalMarks: reg.totalMarks, percentage: Math.round(reg.percentage || 0), rank, alreadySubmitted: true });
+    }
 
     const b = await TechBattle.findById(reg.battleId).lean() as any;
     const quiz = await battle.getBattleQuiz(b.quizId) as any;
@@ -285,11 +291,17 @@ export const submitBattleExam = async (req: Request, res: Response) => {
       ? raw
       : Object.entries(raw).map(([questionId, selectedOptions]) => ({ questionId, selectedOptions: Array.isArray(selectedOptions) ? selectedOptions : [selectedOptions] as any }));
 
+    // Fetch every answered question in ONE query, then grade in memory. This used to be
+    // `await Question.findById(...)` inside the loop — 50 sequential round-trips for a
+    // 50-question paper, per student, and 5 million queries across a 100k battle.
     const Question = (await import('../models/Question')).default;
+    const qDocs = await Question.find({ _id: { $in: answers.map(a => a.questionId).filter(Boolean) } });
+    const qById = new Map(qDocs.map((q: any) => [String(q._id), q]));
+
     let obtained = 0;
     const graded: any[] = [];
     for (const a of answers) {
-      const q = await Question.findById(a.questionId);
+      const q = qById.get(String(a.questionId));
       if (!q) continue;
       const sel = (Array.isArray(a.selectedOptions) ? a.selectedOptions : []).map((o: any) => String(o).trim());
       const { isCorrect, marksAwarded } = battle.gradeMcq(q, sel);
@@ -308,12 +320,17 @@ export const submitBattleExam = async (req: Request, res: Response) => {
     reg.answers = graded;
     await reg.save();
 
-    await battle.computeBattleRanks(String(reg.battleId));
-    const fresh = await BattleRegistration.findById(reg._id).select('rank');
+    // Rank is COUNTED, not written. The previous call here re-ranked every submitted
+    // registration with one write each, so submission #100,000 waited on 100,000 writes
+    // before it could answer. This is a single indexed count that costs the same for
+    // the first entrant and the last.
+    const liveRank = await battle.rankOf(String(reg.battleId), {
+      score: obtained, timeSpentSec: timeSpent, submittedAt: now,
+    });
 
     res.json({
       success: true, score: obtained, totalMarks: quiz.totalMarks, percentage: Math.round(percentage),
-      passed, rank: fresh?.rank ?? null, timeSpentSec: timeSpent,
+      passed, rank: liveRank, timeSpentSec: timeSpent,
       slug: b.slug, tenantSlug: (await Tenant.findById(reg.tenantId).select('slug').lean() as any)?.slug,
     });
   } catch (e: any) { logger.error('submitBattleExam failed', { error: e.message }); res.status(500).json({ message: e.message }); }
@@ -407,6 +424,14 @@ export const updateBattle = async (req: Request, res: Response) => {
     }
     const b = await TechBattle.findOneAndUpdate({ _id: req.params.id, tenantId: tenantOf(req) }, { $set }, { new: true });
     if (!b) return res.status(404).json({ message: 'Not found' });
+
+    // Publishing the leaderboard is the moment the result becomes final, so freeze the
+    // ranks onto the documents once — a single bulkWrite. During the live battle ranks
+    // are counted on demand and never written, which is what keeps submit O(1).
+    if ($set.leaderboardPublished === true) {
+      const frozen = await battle.finalizeBattleRanks(String(b._id));
+      return res.json({ battle: b, ranksFrozen: frozen });
+    }
     res.json({ battle: b });
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
@@ -464,11 +489,18 @@ export const adminLeaderboard = async (req: Request, res: Response) => {
 };
 
 export const exportRegistrations = async (req: Request, res: Response) => {
+  // Sorted by the one shared ordering (score, then TIME, then who finished first), so
+  // the exported rank column is derived from position here rather than from a stored
+  // field that is only frozen once the battle is finalized.
   const rows = await BattleRegistration.find({ battleId: req.params.id, tenantId: tenantOf(req) })
-    .sort({ score: -1, timeSpentSec: 1 }).lean();
+    .sort(battle.BATTLE_SORT).lean();
+
+  let seq = 0;
+  const rankFor = (r: any) => (r.status === 'submitted' ? ++seq : '');
+
   const esc = (v: any) => `"${String(v ?? '').replace(/"/g, '""')}"`;
   const header = ['Rank', 'Name', 'Mobile', 'Email', 'College', 'Door', 'Status', 'Score', 'Total', 'Percentage', 'TimeSec', 'SubmittedAt'];
-  const lines = rows.map((r: any) => [r.rank ?? '', r.name, r.mobile, r.email, r.college, r.doorLabel, r.status, r.score ?? '', r.totalMarks ?? '', r.percentage != null ? Math.round(r.percentage) : '', r.timeSpentSec ?? '', r.submittedAt ? new Date(r.submittedAt).toISOString() : ''].map(esc).join(','));
+  const lines = rows.map((r: any) => [rankFor(r), r.name, r.mobile, r.email, r.college, r.doorLabel, r.status, r.score ?? '', r.totalMarks ?? '', r.percentage != null ? Math.round(r.percentage) : '', r.timeSpentSec ?? '', r.submittedAt ? new Date(r.submittedAt).toISOString() : ''].map(esc).join(','));
   const csv = [header.map(esc).join(','), ...lines].join('\n');
   res.setHeader('Content-Type', 'text/csv');
   res.setHeader('Content-Disposition', `attachment; filename="battle-${req.params.id}-registrations.csv"`);

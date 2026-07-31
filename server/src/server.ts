@@ -3,6 +3,8 @@ dotenv.config();
 
 import app from './app';
 import http from 'http';
+import cluster from 'cluster';
+import os from 'os';
 import { Server as SocketIOServer } from 'socket.io';
 import connectDB from './config/database';
 import { initSettings } from './services/settingsService';
@@ -26,6 +28,12 @@ import { startPartnerReplyScheduler } from './jobs/partnerReplyCron';
 
 const PORT = process.env.PORT || 5000;
 console.log(`🚀 Starting server with NODE_ENV=${process.env.NODE_ENV}, PORT=${PORT}`);
+
+/**
+ * Which process owns the background schedulers. Single-process mode: this one. Cluster
+ * mode: worker 1 only, so cron work happens once rather than once per core.
+ */
+const IS_JOB_RUNNER = !cluster.isWorker || cluster.worker?.id === 1;
 
 const startServer = async () => {
   try {
@@ -258,6 +266,14 @@ const startServer = async () => {
       });
     });
 
+    // ── Background jobs ────────────────────────────────────────────────────────
+    // Exactly ONE process may run these. Under clustering every worker executes this
+    // file, so an ungated block would mean 8 copies of every reminder scheduler — and
+    // students receiving each reminder email eight times.
+    if (!IS_JOB_RUNNER) {
+      console.log(`⏭️  worker ${process.pid}: schedulers skipped (job runner is another worker)`);
+    } else {
+
     // Start Google Sheets sync cron (runs every 5 minutes)
     const GSHEET_SYNC_INTERVAL = 5 * 60 * 1000; // 5 minutes
     setInterval(async () => {
@@ -325,6 +341,8 @@ const startServer = async () => {
     // Start placement-partner reply poller (IMAP → auto-stop sequence on reply)
     startPartnerReplyScheduler();
 
+    } // ── end background jobs (single process only) ─────────────────────────────
+
     console.log(`⏳ Starting HTTP server on port ${PORT}...`);
     // Start server
     httpServer.listen(PORT, () => {
@@ -338,7 +356,39 @@ const startServer = async () => {
   }
 };
 
-startServer();
+/**
+ * Optional multi-core mode, for event-scale traffic (Tech Battles).
+ *
+ * Node runs one thread, so by default this process uses ONE core no matter how many the
+ * machine has. `WEB_CONCURRENCY=8` forks eight workers sharing port 5000, roughly
+ * multiplying request throughput by the worker count.
+ *
+ * Default OFF. Two things must be understood before switching it on:
+ *
+ *  1. socket.io has no Redis adapter here, so with multiple workers a message emitted by
+ *     one worker will not reach clients connected to another. The battle exam path is
+ *     pure HTTP and unaffected, but in-app realtime (live classes, notifications) needs
+ *     sticky sessions plus an adapter before clustering is safe for everyday use. Enable
+ *     it for a battle; leave it off otherwise until that adapter exists.
+ *  2. Only the first worker runs the 14 background schedulers (see IS_JOB_RUNNER above),
+ *     so reminders are not sent once per worker.
+ */
+const WEB_CONCURRENCY = Math.max(0, Number(process.env.WEB_CONCURRENCY) || 0);
+
+if (WEB_CONCURRENCY > 1 && cluster.isPrimary) {
+  const cores = os.cpus().length;
+  const count = Math.min(WEB_CONCURRENCY, cores);
+  console.log(`🧵 Cluster mode: forking ${count} workers (machine has ${cores} cores)`);
+
+  for (let i = 0; i < count; i++) cluster.fork();
+
+  cluster.on('exit', (worker, code, signal) => {
+    console.error(`[CLUSTER] worker ${worker.process.pid} died (${signal || code}) — respawning`);
+    cluster.fork();
+  });
+} else {
+  startServer();
+}
 
 // Graceful shutdown
 process.on('SIGTERM', async () => {

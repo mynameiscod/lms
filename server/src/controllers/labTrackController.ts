@@ -6,6 +6,10 @@ import CommunicationChallenge from '../models/CommunicationChallenge';
 import { AuthRequest } from '../types/express';
 import { resolveLabDay, dayIndexFor, expectedDaysSoFar } from '../services/labTrackService';
 import { resolveLabGate } from '../services/labGateService';
+import { expectedDaysSoFar as _expected, ymdIn } from '../services/labTrackService';
+import User from '../models/User';
+import DailyChallenge from '../models/DailyChallenge';
+import CommunicationAttempt from '../models/CommunicationAttempt';
 
 /** Admin API for lab tracks: author a plan once, attach it to any batch. */
 
@@ -302,5 +306,102 @@ export const setBypass = async (req: AuthRequest, res: Response) => {
     a.gate.bypassStudentIds = list.map((x: string) => oid(x));
     await a.save();
     res.json({ success: true, data: { bypassed: enabled !== false, count: list.length } });
+  } catch (e: any) { fail(res, 500, e.message); }
+};
+
+
+// ── Progress ────────────────────────────────────────────────────────────────
+
+/**
+ * Per-student progress for one batch and lab: what has been done, what is owed, and
+ * whether today is finished.
+ *
+ * Staff had no way to answer "is this batch actually doing the daily lab?" — the only
+ * signal was a streak buried on an individual profile. `expected` comes from the batch's
+ * own calendar (working days, holidays, cadence), so a batch that has had two holidays
+ * is not judged against a batch that has not.
+ */
+export const labProgress = async (req: AuthRequest, res: Response) => {
+  try {
+    const { batchId, lab } = req.query as any;
+    if (!oid(batchId)) return fail(res, 400, 'batchId is required');
+    if (!['thinking', 'communication'].includes(lab)) return fail(res, 400, 'lab must be thinking or communication');
+
+    const tenantId = tid(req);
+    const a: any = await LabTrackAssignment.findOne({
+      tenantId, batchId: oid(batchId), lab, status: 'active',
+    }).populate('trackId', 'name totalDays').lean();
+    if (!a) return res.json({ success: true, data: { assigned: false, students: [] } });
+
+    const expected = _expected(a);
+    const today = ymdIn(new Date(), a.window?.tz || 'Asia/Kolkata');
+
+    // Students match on batch; tenantId is stored inconsistently across collections, so
+    // the batch is the reliable key here.
+    const students: any[] = await User.find({ batchId: oid(batchId), role: 'STUDENT', isActive: true })
+      .select('firstName lastName email').lean();
+    const ids = students.map((s: any) => s._id);
+    if (!ids.length) return res.json({ success: true, data: { assigned: true, expected, students: [] } });
+
+    const done = new Map<string, { total: number; today: boolean; last?: Date }>();
+
+    if (lab === 'thinking') {
+      const rows = await DailyChallenge.find({
+        studentId: { $in: ids }, status: { $in: ['submitted', 'solved'] },
+      }).select('studentId date updatedAt').lean();
+      for (const r of rows as any[]) {
+        const k = String(r.studentId);
+        const cur = done.get(k) || { total: 0, today: false };
+        cur.total++;
+        if (r.date === today) cur.today = true;
+        if (!cur.last || r.updatedAt > cur.last) cur.last = r.updatedAt;
+        done.set(k, cur);
+      }
+    } else {
+      const rows = await CommunicationAttempt.find({
+        studentId: { $in: ids }, status: 'completed',
+      }).select('studentId practiceDate createdAt').lean();
+      for (const r of rows as any[]) {
+        const k = String(r.studentId);
+        const cur = done.get(k) || { total: 0, today: false };
+        cur.total++;
+        const d = r.practiceDate || ymdIn(new Date(r.createdAt));
+        if (d === today) cur.today = true;
+        if (!cur.last || r.createdAt > cur.last) cur.last = r.createdAt;
+        done.set(k, cur);
+      }
+    }
+
+    const rows = students.map((s: any) => {
+      const d = done.get(String(s._id)) || { total: 0, today: false };
+      const completed = Math.min(d.total, expected);
+      return {
+        _id: String(s._id),
+        name: `${s.firstName || ''} ${s.lastName || ''}`.trim() || s.email,
+        email: s.email,
+        completed, expected,
+        missed: Math.max(0, expected - completed),
+        rate: expected ? Math.round((completed / expected) * 100) : 0,
+        doneToday: d.today,
+        lastActivity: d.last || null,
+      };
+    }).sort((x, y) => x.rate - y.rate);   // worst first — that is who needs attention
+
+    res.json({
+      success: true,
+      data: {
+        assigned: true,
+        track: a.trackId, startDate: a.startDate, gate: a.gate?.mode,
+        currentDay: dayIndexFor(a), expected,
+        summary: {
+          students: rows.length,
+          doneToday: rows.filter(r => r.doneToday).length,
+          onTrack: rows.filter(r => r.missed === 0).length,
+          behind: rows.filter(r => r.missed > 0).length,
+          avgRate: rows.length ? Math.round(rows.reduce((s, r) => s + r.rate, 0) / rows.length) : 0,
+        },
+        students: rows,
+      },
+    });
   } catch (e: any) { fail(res, 500, e.message); }
 };

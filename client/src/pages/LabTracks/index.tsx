@@ -3,6 +3,7 @@ import * as api from '../../api/labTrackApi';
 import { Track, TrackItem, Lab } from '../../api/labTrackApi';
 import { Spinner } from '../../components/common';
 import AssignPanel from './AssignPanel';
+import ProgressPanel from './ProgressPanel';
 import './LabTracks.css';
 
 /**
@@ -26,7 +27,7 @@ const LabTracks: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
-  const [view, setView] = useState<'tracks' | 'assign'>('tracks');
+  const [view, setView] = useState<'tracks' | 'assign' | 'progress'>('tracks');
 
   const load = () => {
     setLoading(true);
@@ -54,9 +55,11 @@ const LabTracks: React.FC = () => {
           className={`lt-tab ${view === 'tracks' ? 'on' : ''}`} onClick={() => setView('tracks')}>Tracks</button>
         <button role="tab" aria-selected={view === 'assign'}
           className={`lt-tab ${view === 'assign' ? 'on' : ''}`} onClick={() => setView('assign')}>Batch Assignments</button>
+        <button role="tab" aria-selected={view === 'progress'}
+          className={`lt-tab ${view === 'progress' ? 'on' : ''}`} onClick={() => setView('progress')}>Progress</button>
       </div>
 
-      {view === 'assign' ? <AssignPanel /> : (
+      {view === 'progress' ? <ProgressPanel /> : view === 'assign' ? <AssignPanel /> : (
       <>
       <div className="lt-tabs" role="tablist">
         {LABS.map(l => (

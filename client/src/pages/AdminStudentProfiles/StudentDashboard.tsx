@@ -159,32 +159,22 @@ const StudentDashboard: React.FC<{ userId: string }> = ({ userId }) => {
 
   return (
     <div className="sd">
-      {/* ── Header ── */}
+      {/* ── Progress summary (identity lives in the page's profile card above,
+             so this deliberately does NOT repeat avatar/name/email) ── */}
       <div className="sd-hero">
-        <div className="sd-hero-main">
-          <div className="sd-avatar">
-            {d.student.photo
-              ? <img src={d.student.photo} alt={d.student.name} />
-              : <span>{(d.student.name || '?').charAt(0).toUpperCase()}</span>}
-          </div>
-          <div className="sd-hero-id">
-            <h2>{d.student.name}</h2>
-            <div className="sd-hero-sub">{d.student.email}</div>
-            <div className="sd-chips">
-              {d.student.batch && <span className="sd-chip blue">Batch: {d.student.batch}</span>}
-              {d.headline.rank
-                ? <span className="sd-chip amber" title={d.headline.rankBasis}>Rank: #{d.headline.rank}{d.headline.rankOf ? ` of ${d.headline.rankOf}` : ''}</span>
-                : <span className="sd-chip grey" title="No quiz attempts in this batch yet">Rank: —</span>}
-              <span className="sd-chip green">Streak: {d.headline.streak} Days 🔥</span>
-            </div>
-          </div>
-        </div>
-
         <div className="sd-hero-progress">
           <div className="sd-hp-head">Overall Progress</div>
           <div className="sd-hp-val">{d.headline.overallProgress}%</div>
           <div className="sd-hp-bar"><div style={{ width: `${d.headline.overallProgress}%` }} /></div>
           <div className="sd-hp-note">Averaged across attendance, classes, quizzes and assignments</div>
+        </div>
+        <div className="sd-hero-chips">
+          {d.student.batch && <span className="sd-chip blue">Batch: {d.student.batch}</span>}
+          {d.headline.rank
+            ? <span className="sd-chip amber" title={d.headline.rankBasis}>Rank: #{d.headline.rank} of {d.headline.rankOf}</span>
+            : <span className="sd-chip grey" title="No quiz attempts in this batch yet">Rank: not ranked</span>}
+          <span className="sd-chip green">Streak: {d.headline.streak} days</span>
+          <span className="sd-chip grey">Best: {d.headline.longestStreak} days</span>
         </div>
         <Ring value={d.headline.overallProgress} />
       </div>

@@ -2,11 +2,17 @@
 .spd-error { color: #ef4444; padding: 20px; font-size: 1rem; }
 
 .spd-page {
+  /* Was max-width:1100px, which left most of a wide screen empty and squeezed every
+     panel into a narrow column. The page now uses the space it is given, with a cap
+     high enough that text lines stay readable on ultra-wide monitors. */
   padding: 24px;
-  max-width: 1100px;
+  max-width: 1720px;
   margin: 0 auto;
   font-family: inherit;
 }
+@media (max-width: 1439px) { .spd-page { padding: 20px; } }
+@media (max-width: 1023px) { .spd-page { padding: 16px; } }
+@media (max-width: 767px)  { .spd-page { padding: 12px; } }
 
 .spd-topbar { margin-bottom: 20px; }
 .spd-back-btn {
@@ -263,3 +269,55 @@
   border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
 .spd-btn-danger { background: #fff; color: #b91c1c; border: 1px solid #fecaca; padding: 7px 13px;
   border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+
+/* ── Candidate Proof Profile — light card ─────────────────────────────────────
+   Replaces a full-width saturated navy gradient. Brand blue is now reserved for
+   the accent bar and the primary action, per the design system. */
+.spd-proof {
+  background: #fff; border: 1px solid #e8edf5; border-left: 4px solid #005897;
+  border-radius: 12px; padding: 16px 20px; margin: 0 0 16px; color: #0f172a;
+}
+.spd-proof-title { font-weight: 800; font-size: 15.5px; color: #0f172a; }
+.spd-proof-sub { color: #64748b; font-size: 12.5px; margin-top: 2px; }
+.spd-proof-url { flex: 1; min-width: 200px; align-self: center; color: #005897; font-size: 11.5px; word-break: break-all; }
+.spd-proof-warn {
+  margin-top: 12px; padding: 8px 12px; border-radius: 8px;
+  background: #fffbeb; color: #92400e; font-size: 12px;
+}
+.spd-proof-stat {
+  background: #f8fafc; border: 1px solid #e8edf5; border-radius: 10px;
+  padding: 8px 14px; min-width: 92px; text-align: center;
+}
+
+/* ── Sticky, scrollable tabs ─────────────────────────────────────────────────
+   The bar sticks under the global header so tabs stay reachable on long pages,
+   and scrolls horizontally instead of wrapping into several confusing rows. */
+.spd-tabs {
+  position: sticky; top: 0; z-index: 20;
+  background: #fff; border-bottom: 1px solid #e8edf5;
+  display: flex; gap: 4px; overflow-x: auto; scrollbar-width: thin;
+  padding: 0 2px; margin-bottom: 18px;
+  -webkit-overflow-scrolling: touch;
+}
+.spd-tabs::-webkit-scrollbar { height: 4px; }
+.spd-tabs::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+.spd-tab {
+  flex: 0 0 auto; background: none; border: none; cursor: pointer;
+  padding: 13px 16px; font-size: 13.5px; font-weight: 600; color: #64748b;
+  border-bottom: 3px solid transparent; white-space: nowrap; min-height: 44px;
+}
+.spd-tab:hover { color: #005897; }
+.spd-tab.active { color: #005897; border-bottom-color: #005897; font-weight: 700; }
+.spd-tab:focus-visible { outline: 2px solid #005897; outline-offset: -2px; }
+
+/* ── Breadcrumb ─────────────────────────────────────────────────────────────── */
+.spd-crumbs {
+  display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+  font-size: 12.5px; color: #94a3b8; margin-bottom: 10px;
+}
+.spd-crumbs a, .spd-crumbs button {
+  color: #005897; background: none; border: none; padding: 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 600;
+}
+.spd-crumbs .sep { color: #cbd5e1; }
+.spd-crumbs .current { color: #0f172a; font-weight: 700; }

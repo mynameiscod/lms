@@ -7,9 +7,10 @@
 
 /* ── Hero ─────────────────────────────────────────────────────────────────── */
 .sd-hero {
-  display: flex; align-items: center; gap: 22px; flex-wrap: wrap;
-  background: #fff; border: 1px solid #e8edf5; border-radius: 16px; padding: 20px 24px;
+  display: flex; align-items: center; gap: 24px; flex-wrap: wrap;
+  background: #fff; border: 1px solid #e8edf5; border-radius: 14px; padding: 18px 22px;
 }
+.sd-hero-chips { display: flex; gap: 8px; flex-wrap: wrap; flex: 1 1 260px; }
 .sd-hero-main { display: flex; align-items: center; gap: 16px; flex: 1 1 320px; min-width: 260px; }
 .sd-avatar {
   width: 74px; height: 74px; border-radius: 50%; overflow: hidden; flex-shrink: 0;
@@ -80,7 +81,9 @@
 .sd-legend { display: flex; gap: 15px; font-size: 11.5px; color: #64748b; margin-bottom: 6px; }
 .sd-legend span { display: flex; align-items: center; gap: 5px; }
 .sd-legend i { width: 9px; height: 9px; border-radius: 3px; display: inline-block; }
-.sd-chart { width: 100%; height: auto; }
+/* The SVG scales to its container, so without a ceiling it grew to the full width of
+   a wide panel and became page-height tall. Cap it and let it letterbox instead. */
+.sd-chart { width: 100%; height: auto; max-height: 230px; display: block; }
 .sd-axis { font-size: 10px; fill: #94a3b8; }
 .sd-week-tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 12px; }
 .sd-wt { border-radius: 10px; padding: 9px 11px; display: flex; flex-direction: column; gap: 2px; }
@@ -141,10 +144,10 @@
 .sd-sched-time { font-size: 11.5px; color: #64748b; font-weight: 600; flex-shrink: 0; }
 
 /* ── Responsive ───────────────────────────────────────────────────────────── */
-@media (max-width: 1500px) { .sd-cards { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 1280px) {
-  .sd-row, .sd-row.two { grid-template-columns: 1fr; }
-}
+@media (max-width: 1600px) { .sd-cards { grid-template-columns: repeat(6, 1fr); } }
+@media (max-width: 1200px) { .sd-cards { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 1150px) { .sd-row { grid-template-columns: 1fr 1fr; } .sd-row > :nth-child(3) { grid-column: 1 / -1; } }
+@media (max-width: 900px)  { .sd-row, .sd-row.two { grid-template-columns: 1fr; } .sd-row > :nth-child(3) { grid-column: auto; } }
 @media (max-width: 720px) {
   .sd-cards { grid-template-columns: repeat(2, 1fr); }
   .sd-week-tiles { grid-template-columns: repeat(2, 1fr); }

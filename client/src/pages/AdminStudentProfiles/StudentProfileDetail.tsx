@@ -111,7 +111,22 @@ const StudentProfileDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
+  // Active tab lives in the URL (?tab=assignments) so a refresh, a bookmark or a link
+  // shared with a colleague all land on the same tab instead of resetting to Overview.
+  const ALL_TABS: DetailTab[] = ['overview', 'profile', 'attendance', 'quizzes', 'assignments',
+    'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees'];
+  const tabFromUrl = (): DetailTab => {
+    const t = new URLSearchParams(location.search).get('tab') as DetailTab | null;
+    return t && ALL_TABS.includes(t) ? t : 'overview';
+  };
+  const [activeTab, setActiveTabState] = useState<DetailTab>(tabFromUrl);
+  const setActiveTab = (t: DetailTab) => {
+    setActiveTabState(t);
+    const qs = new URLSearchParams(location.search);
+    qs.set('tab', t);
+    navigate({ pathname: location.pathname, search: qs.toString() }, { replace: true });
+  };
+  useEffect(() => { setActiveTabState(tabFromUrl()); }, [location.search]);
   const [profile, setProfile] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
   const [report, setReport] = useState<any>(null);
@@ -248,6 +263,13 @@ const StudentProfileDetail: React.FC = () => {
     <div className="spd-page">
       {/* Header */}
       <div className="spd-topbar">
+        <nav className="spd-crumbs" aria-label="Breadcrumb">
+          <button onClick={() => navigate('/users')}>Users</button>
+          <span className="sep">/</span>
+          <span>Candidates</span>
+          <span className="sep">/</span>
+          <span className="current">{fullName || 'Candidate'}</span>
+        </nav>
         <button className="spd-back-btn" onClick={() => navigate('/users')}>
           ← Back to Users
         </button>
@@ -963,11 +985,11 @@ const ProofPanel: React.FC<{ userId: string; name: string }> = ({ userId, name }
   const readiness = pf?.assessment?.readiness, interview = pf?.interview?.score, comm = pf?.communication?.score;
 
   return (
-    <div style={{ background: 'linear-gradient(135deg,#051D64,#0a2a86)', borderRadius: 14, padding: '18px 22px', margin: '0 0 16px', color: '#fff' }}>
+    <div className="spd-proof">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 16 }}>🌉 Candidate Proof Profile</div>
-          <div style={{ color: '#c3cfe6', fontSize: 12.5, marginTop: 2 }}>A shareable, HR-facing page with {name.split(' ')[0]}'s verified scores — send it instead of a plain resume.</div>
+          <div className="spd-proof-title">Candidate Proof Profile</div>
+          <div className="spd-proof-sub">A shareable, HR-facing page with {name.split(' ')[0]}'s verified scores — send it instead of a plain resume.</div>
         </div>
         {!loading && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -989,21 +1011,22 @@ const ProofPanel: React.FC<{ userId: string; name: string }> = ({ userId, name }
         </div>
       )}
       {!loading && !readiness && !interview && !comm && (
-        <div style={{ marginTop: 10, color: '#fbbf24', fontSize: 12 }}>⚠ This student has little proof data yet (no assessment / mock-interview / communication scores). The page will still work but look thin.</div>
+        <div className="spd-proof-warn">⚠ This student has little proof data yet (no assessment / mock-interview / communication scores). The page will still work but look thin.</div>
       )}
     </div>
   );
 };
 
 const ProofStat: React.FC<{ label: string; v?: number; suffix?: string }> = ({ label, v, suffix = '' }) => (
-  <div style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(148,178,230,.25)', borderRadius: 10, padding: '8px 14px', minWidth: 92, textAlign: 'center' }}>
+  <div className="spd-proof-stat">
     <div style={{ fontSize: 20, fontWeight: 800, color: v == null ? '#94a3b8' : v >= 80 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171' }}>{v != null ? `${v}${suffix}` : '—'}</div>
     <div style={{ color: '#c3cfe6', fontSize: 11 }}>{label}</div>
   </div>
 );
 
-const btnT: React.CSSProperties = { background: '#359AAD', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, cursor: 'pointer' };
-const btnG: React.CSSProperties = { background: '#fff', color: '#051D64', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, textDecoration: 'none', cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { background: 'transparent', color: '#c3cfe6', border: '1px solid rgba(148,178,230,.4)', borderRadius: 9, padding: '9px 15px', fontWeight: 600, fontSize: 13, cursor: 'pointer' };
+// Buttons re-tuned for a light card; they were built for the old dark background.
+const btnT: React.CSSProperties = { background: '#005897', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, cursor: 'pointer' };
+const btnG: React.CSSProperties = { background: '#fff', color: '#005897', border: '1px solid #cbd5e1', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, textDecoration: 'none', cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { background: '#fff', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 9, padding: '9px 15px', fontWeight: 600, fontSize: 13, cursor: 'pointer' };
 
 export default StudentProfileDetail;

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import LabTracks from './pages/LabTracks';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
@@ -927,6 +928,10 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/student-profiles" element={<Navigate to="/users" replace />} />
 
       {/* Unified Student Detail (reached by clicking a student in Users) */}
+      <Route
+        path="/lab-tracks"
+        element={<ProtectedRoute><Layout><LabTracks /></Layout></ProtectedRoute>}
+      />
       <Route
         path="/users/:userId"
         element={

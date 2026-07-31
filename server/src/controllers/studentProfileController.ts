@@ -18,7 +18,6 @@ import { AuthRequest } from '../types/express';
 import { computeProfileCompleteness, computeProfileMissing } from '../utils/profileCompleteness';
 import { EmailService } from '../services/emailService';
 import { resolveAssignedQuizzes, resolveAssignedSnippets, tallyStatuses } from '../services/studentWorkService';
-import { buildStudentDashboard } from '../services/studentDashboardService';
 import assignmentService from '../services/assignmentService';
 
 // GET - Get current user's student profile
@@ -492,22 +491,6 @@ export const getProfileStats = async (req: AuthRequest, res: Response) => {
       message: 'Failed to fetch statistics',
       error: (error as Error).message,
     });
-  }
-};
-
-// GET - Everything the redesigned profile screen renders, in one call.
-export const getStudentDashboard = async (req: AuthRequest, res: Response) => {
-  try {
-    const { userId } = req.params;
-    if (!mongoose.Types.ObjectId.isValid(userId)) {
-      return res.status(400).json({ success: false, message: 'Invalid user ID' });
-    }
-    const data = await buildStudentDashboard(userId, String(req.user?.tenantId || ''));
-    if (!data) return res.status(404).json({ success: false, message: 'Student not found' });
-    res.json({ success: true, data });
-  } catch (error) {
-    console.error('Get student dashboard error:', error);
-    res.status(500).json({ success: false, message: 'Failed to build dashboard', error: (error as Error).message });
   }
 };
 

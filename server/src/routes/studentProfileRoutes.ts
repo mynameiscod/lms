@@ -10,7 +10,6 @@ import {
   deleteProfile,
   getProfileStats,
   getStudentActivity,
-  getStudentDashboard,
   addStudentNote,
   deleteStudentNote,
   sendProfileReminderEmail,
@@ -126,15 +125,6 @@ router.get(
   tenantResolver,
   roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
   getStudentActivity
-);
-
-// Full dashboard for the redesigned profile screen (admin)
-router.get(
-  '/admin/:userId/dashboard',
-  authMiddleware,
-  tenantResolver,
-  roleGuard(['view_reports', 'view_enrolled_students', 'manage_tenant']),
-  getStudentDashboard
 );
 
 // Get profile by user ID (admin)

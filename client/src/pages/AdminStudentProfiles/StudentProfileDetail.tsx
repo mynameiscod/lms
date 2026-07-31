@@ -10,8 +10,6 @@ import {
   ExamRecord, ExamSummary,
 } from '../../api/examApi';
 import { Spinner } from '../../components/common';
-import StudentDashboard from './StudentDashboard';
-import AssignmentsPanel from './AssignmentsPanel';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
 
@@ -112,22 +110,7 @@ const StudentProfileDetail: React.FC = () => {
   const { userId } = useParams<{ userId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  // Active tab lives in the URL (?tab=assignments) so a refresh, a bookmark or a link
-  // shared with a colleague all land on the same tab instead of resetting to Overview.
-  const ALL_TABS: DetailTab[] = ['overview', 'profile', 'attendance', 'quizzes', 'assignments',
-    'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees'];
-  const tabFromUrl = (): DetailTab => {
-    const t = new URLSearchParams(location.search).get('tab') as DetailTab | null;
-    return t && ALL_TABS.includes(t) ? t : 'overview';
-  };
-  const [activeTab, setActiveTabState] = useState<DetailTab>(tabFromUrl);
-  const setActiveTab = (t: DetailTab) => {
-    setActiveTabState(t);
-    const qs = new URLSearchParams(location.search);
-    qs.set('tab', t);
-    navigate({ pathname: location.pathname, search: qs.toString() }, { replace: true });
-  };
-  useEffect(() => { setActiveTabState(tabFromUrl()); }, [location.search]);
+  const [activeTab, setActiveTab] = useState<DetailTab>('overview');
   const [profile, setProfile] = useState<any>(null);
   const [activity, setActivity] = useState<any>(null);
   const [report, setReport] = useState<any>(null);
@@ -264,13 +247,6 @@ const StudentProfileDetail: React.FC = () => {
     <div className="spd-page">
       {/* Header */}
       <div className="spd-topbar">
-        <nav className="spd-crumbs" aria-label="Breadcrumb">
-          <button onClick={() => navigate('/users')}>Users</button>
-          <span className="sep">/</span>
-          <span>Candidates</span>
-          <span className="sep">/</span>
-          <span className="current">{fullName || 'Candidate'}</span>
-        </nav>
         <button className="spd-back-btn" onClick={() => navigate('/users')}>
           ← Back to Users
         </button>
@@ -366,7 +342,7 @@ const StudentProfileDetail: React.FC = () => {
 
       {/* Tabs */}
       <div className="spd-tabs">
-        {(['overview', 'profile', 'attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees'] as DetailTab[]).map(t => (
+        {(['overview', 'attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees'] as DetailTab[]).map(t => (
           <button
             key={t}
             className={`spd-tab ${activeTab === t ? 'active' : ''}`}
@@ -379,8 +355,157 @@ const StudentProfileDetail: React.FC = () => {
 
       <div className="spd-tab-content">
         {/* ── Overview Tab (dashboard) ── */}
-        {/* -- Overview Tab: the redesigned dashboard -- */}
-        {activeTab === 'overview' && userId && <StudentDashboard userId={userId} />}
+        {activeTab === 'overview' && (
+          <div className="spd-ov">
+            {/* Stat cards */}
+            <div className="spd-ov-stats">
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic blue">📅</span><span className="spd-ovc-label">Attendance</span></div>
+                <div className="spd-ovc-val">{report?.attendance?.percentage ?? 0}%</div>
+                <div className="spd-ovc-sub">Overall Attendance</div>
+                <div className="spd-ovc-bar"><div className="spd-ovc-fill blue" style={{ width: `${report?.attendance?.percentage ?? 0}%` }} /></div>
+                <div className="spd-ovc-foot">Last 30 days</div>
+              </div>
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic purple">📝</span><span className="spd-ovc-label">Quizzes</span></div>
+                <div className="spd-ovc-val">{report?.quizzes?.averageScore ?? 0}%</div>
+                <div className="spd-ovc-sub">Average Score</div>
+                <div className="spd-ovc-bar"><div className="spd-ovc-fill purple" style={{ width: `${report?.quizzes?.averageScore ?? 0}%` }} /></div>
+                <div className="spd-ovc-foot">Total Quizzes: {report?.quizzes?.total ?? 0}</div>
+              </div>
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic indigo">📋</span><span className="spd-ovc-label">Assignments</span></div>
+                <div className="spd-ovc-val">{assignmentRate}%</div>
+                <div className="spd-ovc-sub">Submission Rate</div>
+                <div className="spd-ovc-bar"><div className="spd-ovc-fill indigo" style={{ width: `${assignmentRate}%` }} /></div>
+                <div className="spd-ovc-foot">Submitted: {submittedCount}/{report?.assignments?.total ?? 0}</div>
+              </div>
+              <div className="spd-ovc">
+                <div className="spd-ovc-head"><span className="spd-ovc-ic orange">💰</span><span className="spd-ovc-label">Fees Status</span></div>
+                <div className="spd-ovc-val">₹{report?.fees?.dueAmount ?? 0}</div>
+                <div className="spd-ovc-sub">Total Due</div>
+                <button className="spd-ovc-link" onClick={() => setActiveTab('fees')}>View Details →</button>
+              </div>
+            </div>
+
+            {/* Personal Information + Education */}
+            <div className="spd-ov-2col">
+              <div className="spd-card">
+                <h3 className="spd-card-title">🪪 Personal Information</h3>
+                <div className="spd-kv">
+                  <div><label>Full Name</label><span>{fullName}</span></div>
+                  <div><label>Email</label><span>{email || '—'}</span></div>
+                  <div><label>Phone</label><span>{p.mobileNumber || '—'}</span></div>
+                  <div><label>Location</label><span>{[p.city, p.state].filter(Boolean).join(', ') || '—'}</span></div>
+                  <div><label>Date of Birth</label><span>{p.dateOfBirth ? fmt(p.dateOfBirth) : '—'}</span></div>
+                  <div><label>Gender</label><span>{p.gender || '—'}</span></div>
+                  <div><label>Profile Status</label><span>{profile?.isProfileComplete ? <span className="spd-pill green">Completed</span> : <span className="spd-pill amber">Incomplete</span>}</span></div>
+                  <div><label>Member Since</label><span>{fmt(profile?.createdAt)}</span></div>
+                </div>
+              </div>
+              <div className="spd-card">
+                <h3 className="spd-card-title">🎓 Education</h3>
+                {profile?.education ? (
+                  <div className="spd-kv">
+                    <div><label>Qualification</label><span>{profile.education.highestQualification || '—'}</span></div>
+                    <div><label>College</label><span>{profile.education.degree?.college || '—'}</span></div>
+                    <div><label>Degree %</label><span>{profile.education.degree?.percentage ?? '—'}{profile.education.degree?.percentage !== undefined ? '%' : ''}</span></div>
+                    <div><label>Intermediate %</label><span>{profile.education.intermediate?.percentage ?? '—'}{profile.education.intermediate?.percentage !== undefined ? '%' : ''}</span></div>
+                    <div><label>10th %</label><span>{profile.education.tenthClass?.percentage ?? '—'}{profile.education.tenthClass?.percentage !== undefined ? '%' : ''}</span></div>
+                    <div><label>Graduation Year</label><span>{profile.education.degree?.graduationYear || '—'}</span></div>
+                    <div><label>Status</label><span>{profile.education.currentStatus ? <span className="spd-pill green">{profile.education.currentStatus}</span> : '—'}</span></div>
+                  </div>
+                ) : <p className="spd-empty">No education info.</p>}
+              </div>
+            </div>
+
+            {/* Technical Background */}
+            <div className="spd-card">
+              <h3 className="spd-card-title">💻 Technical Background</h3>
+              {profile?.technicalBackground || profile?.courseInterest ? (
+                <div className="spd-tech-grid">
+                  <div>
+                    <div className="spd-tech-label">Experience Level</div>
+                    {profile?.technicalBackground?.experienceLevel ? <span className="spd-pill green">{profile.technicalBackground.experienceLevel}</span> : '—'}
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Languages</div>
+                    <div className="spd-tags">{(profile?.technicalBackground?.programmingLanguages || []).map((l: string) => <span key={l} className="spd-tag">{l}</span>)}</div>
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Technologies</div>
+                    <div className="spd-tags">{(profile?.technicalBackground?.technologies || []).map((t: string) => <span key={t} className="spd-tag blue">{t}</span>)}</div>
+                  </div>
+                  <div>
+                    <div className="spd-tech-label">Course Interest</div>
+                    {profile?.courseInterest?.interestedCourse ? <span className="spd-tag blue">{profile.courseInterest.interestedCourse}</span> : '—'}
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Preferred Batch</div>
+                    {profile?.courseInterest?.preferredBatchTime ? <span className="spd-tag blue">{profile.courseInterest.preferredBatchTime}</span> : '—'}
+                    <div className="spd-tech-label" style={{ marginTop: 14 }}>Preferred Timings</div>
+                    <div>{profile?.courseInterest?.preferredLearningMode || '—'}</div>
+                  </div>
+                </div>
+              ) : <p className="spd-empty">No technical background info.</p>}
+            </div>
+
+            {/* Payment Summary + Recent Activity */}
+            <div className="spd-ov-2col">
+              <div className="spd-card">
+                <h3 className="spd-card-title">💳 Payment Summary</h3>
+                <div className="spd-pay-boxes">
+                  <div className="spd-pay-box"><span>Total Amount</span><b>₹{report?.fees?.totalAmount ?? 0}</b></div>
+                  <div className="spd-pay-box green"><span>Paid Amount</span><b>₹{report?.fees?.paidAmount ?? 0}</b></div>
+                  <div className="spd-pay-box red"><span>Due Amount</span><b>₹{report?.fees?.dueAmount ?? 0}</b></div>
+                  <div className="spd-pay-box"><span>Status</span><b>{(report?.fees?.status || 'N/A').toUpperCase()}</b></div>
+                </div>
+                <h4 className="spd-subh">Payment History</h4>
+                {(report?.fees?.payments || []).length === 0 ? <div className="spd-nodata">No payment records found</div> : (
+                  <table className="spd-table"><thead><tr><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody>
+                    {report.fees.payments.map((pay: any, i: number) => <tr key={i}><td>{new Date(pay.paymentDate).toLocaleDateString()}</td><td>₹{pay.amount}</td><td>{pay.paymentMethod}</td></tr>)}
+                  </tbody></table>
+                )}
+              </div>
+              <div className="spd-card">
+                <h3 className="spd-card-title">🕑 Recent Activity</h3>
+                {recentActivity.length === 0 ? <p className="spd-empty">No recent activity.</p> : (
+                  <div className="spd-timeline">
+                    {recentActivity.map((a, i) => (
+                      <div key={i} className="spd-tl-item">
+                        <span className="spd-tl-dot" />
+                        <div className="spd-tl-body">
+                          <div className="spd-tl-title">{a.title}{a.badge && <span className="spd-pill green">{a.badge}</span>}</div>
+                          <div className="spd-tl-time">{a.time}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div className="spd-card">
+              <h3 className="spd-card-title">🗒️ Notes</h3>
+              <div className="spd-note-add">
+                <input className="spd-note-input" placeholder="Add a note about this student..." value={noteText}
+                  onChange={e => setNoteText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handleAddNote(); }} />
+                <button className="spd-note-btn" onClick={handleAddNote} disabled={savingNote || !noteText.trim()}>{savingNote ? '…' : 'Add Note'}</button>
+              </div>
+              {notes.length === 0 ? <p className="spd-empty">No notes yet.</p> : (
+                notes.slice().reverse().map((n: any) => (
+                  <div key={n._id} className="spd-note">
+                    <span className="spd-note-avatar">{(n.authorName || 'A').split(' ').map((s: string) => s[0]).slice(0, 2).join('')}</span>
+                    <div className="spd-note-body">
+                      <div className="spd-note-head">
+                        <b>{n.authorName || 'Admin'}</b>
+                        {n.authorRole && <span className="spd-note-role">({n.authorRole})</span>}
+                        <span className="spd-note-time">{new Date(n.createdAt).toLocaleString()}</span>
+                        <button className="spd-note-del" onClick={() => handleDeleteNote(n._id)} title="Delete note">🗑️</button>
+                      </div>
+                      <div className="spd-note-text">{n.text}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
         {/* ── Profile Tab ── */}
         {activeTab === 'profile' && (
@@ -508,7 +633,29 @@ const StudentProfileDetail: React.FC = () => {
 
         {/* ── Assignments Tab ── */}
         {activeTab === 'assignments' && (
-          <AssignmentsPanel rows={assignments} loading={loadingActivity} />
+          loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
+          assignments.length === 0 ? <p className="spd-empty">No assignments assigned.</p> :
+          <div className="spd-table-wrap">
+            {totals?.assignments && <WorkTally t={totals.assignments} noun="assignments" />}
+            <table className="spd-table">
+              <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Due Date</th><th>Status</th><th>Assigned via</th><th>Submitted</th></tr></thead>
+              <tbody>
+                {assignments.map((s: any, i: number) => (
+                  <tr key={i}>
+                    <td>{(s.assignment as any)?.title || s.assignmentId || '—'}</td>
+                    <td>{(s.assignment as any)?.type || '—'}</td>
+                    <td>{s.obtainedPoints !== undefined && s.obtainedPoints !== null
+                      ? `${s.obtainedPoints}/${(s.assignment as any)?.totalPoints ?? '?'}${s.percentage != null ? ` (${s.percentage}%)` : ''}`
+                      : '—'}</td>
+                    <td>{fmt(s.dueAt || (s.assignment as any)?.dueDate)}</td>
+                    <td><StatusChip status={s.status} /></td>
+                    <td><SourceChip source={s.source} /></td>
+                    <td>{fmt(s.submittedAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* ── Code Snippets Tab ── */}
@@ -964,11 +1111,11 @@ const ProofPanel: React.FC<{ userId: string; name: string }> = ({ userId, name }
   const readiness = pf?.assessment?.readiness, interview = pf?.interview?.score, comm = pf?.communication?.score;
 
   return (
-    <div className="spd-proof">
+    <div style={{ background: 'linear-gradient(135deg,#051D64,#0a2a86)', borderRadius: 14, padding: '18px 22px', margin: '0 0 16px', color: '#fff' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
         <div>
-          <div className="spd-proof-title">Candidate Proof Profile</div>
-          <div className="spd-proof-sub">A shareable, HR-facing page with {name.split(' ')[0]}'s verified scores — send it instead of a plain resume.</div>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>🌉 Candidate Proof Profile</div>
+          <div style={{ color: '#c3cfe6', fontSize: 12.5, marginTop: 2 }}>A shareable, HR-facing page with {name.split(' ')[0]}'s verified scores — send it instead of a plain resume.</div>
         </div>
         {!loading && (
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -990,22 +1137,21 @@ const ProofPanel: React.FC<{ userId: string; name: string }> = ({ userId, name }
         </div>
       )}
       {!loading && !readiness && !interview && !comm && (
-        <div className="spd-proof-warn">⚠ This student has little proof data yet (no assessment / mock-interview / communication scores). The page will still work but look thin.</div>
+        <div style={{ marginTop: 10, color: '#fbbf24', fontSize: 12 }}>⚠ This student has little proof data yet (no assessment / mock-interview / communication scores). The page will still work but look thin.</div>
       )}
     </div>
   );
 };
 
 const ProofStat: React.FC<{ label: string; v?: number; suffix?: string }> = ({ label, v, suffix = '' }) => (
-  <div className="spd-proof-stat">
+  <div style={{ background: 'rgba(255,255,255,.08)', border: '1px solid rgba(148,178,230,.25)', borderRadius: 10, padding: '8px 14px', minWidth: 92, textAlign: 'center' }}>
     <div style={{ fontSize: 20, fontWeight: 800, color: v == null ? '#94a3b8' : v >= 80 ? '#4ade80' : v >= 60 ? '#fbbf24' : '#f87171' }}>{v != null ? `${v}${suffix}` : '—'}</div>
     <div style={{ color: '#c3cfe6', fontSize: 11 }}>{label}</div>
   </div>
 );
 
-// Buttons re-tuned for a light card; they were built for the old dark background.
-const btnT: React.CSSProperties = { background: '#005897', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, cursor: 'pointer' };
-const btnG: React.CSSProperties = { background: '#fff', color: '#005897', border: '1px solid #cbd5e1', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, textDecoration: 'none', cursor: 'pointer' };
-const btnGhost: React.CSSProperties = { background: '#fff', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 9, padding: '9px 15px', fontWeight: 600, fontSize: 13, cursor: 'pointer' };
+const btnT: React.CSSProperties = { background: '#359AAD', color: '#fff', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, cursor: 'pointer' };
+const btnG: React.CSSProperties = { background: '#fff', color: '#051D64', border: 'none', borderRadius: 9, padding: '9px 15px', fontWeight: 700, fontSize: 13, textDecoration: 'none', cursor: 'pointer' };
+const btnGhost: React.CSSProperties = { background: 'transparent', color: '#c3cfe6', border: '1px solid rgba(148,178,230,.4)', borderRadius: 9, padding: '9px 15px', fontWeight: 600, fontSize: 13, cursor: 'pointer' };
 
 export default StudentProfileDetail;

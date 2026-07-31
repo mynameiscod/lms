@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import './StudentDashboard.css';
 import { thinkingLabApi, DIFF_COLORS } from '../../api/thinkingLabApi';
 import { communicationApi } from '../../api/communicationApi';
@@ -54,6 +55,8 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
 
   return (
     <div className="sd2">
+      <XpLeaderboard />
+
       <div className="sd2-welcome">
         <h1>Welcome back, {firstName}! 👋</h1>
         <p>Let's continue your learning journey. Stay consistent and achieve your goals.</p>

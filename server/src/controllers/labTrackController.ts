@@ -10,6 +10,8 @@ import { expectedDaysSoFar as _expected, ymdIn } from '../services/labTrackServi
 import User from '../models/User';
 import DailyChallenge from '../models/DailyChallenge';
 import CommunicationAttempt from '../models/CommunicationAttempt';
+import StudentGameStats from '../models/StudentGameStats';
+import Batch from '../models/Batch';
 
 /** Admin API for lab tracks: author a plan once, attach it to any batch. */
 
@@ -403,5 +405,65 @@ export const labProgress = async (req: AuthRequest, res: Response) => {
         students: rows,
       },
     });
+  } catch (e: any) { fail(res, 500, e.message); }
+};
+
+
+// ── XP leaderboard ──────────────────────────────────────────────────────────
+
+/**
+ * Top XP earners, shown on everyone's dashboard as a motivator.
+ *
+ * Eligibility is checked live rather than trusted from the stats row: a student must
+ * still be ACTIVE and sit in an ACTIVE batch. Someone who left, or a batch that has
+ * finished, would otherwise sit at the top of a board they can no longer compete on —
+ * and since prizes hang off this, a stale name is worse than an empty board.
+ *
+ * Only first name plus a last initial is returned. This is shown to every student in the
+ * tenant, so it needs to identify a winner without publishing a full roster of names and
+ * nothing more than the ranking requires.
+ */
+export const xpLeaderboard = async (req: AuthRequest, res: Response) => {
+  try {
+    const tenantId = tid(req);
+    const limit = Math.min(Number(req.query.limit) || 3, 20);
+
+    const activeBatches = await Batch.find({ isActive: true }).select('_id').lean();
+    const batchIds = activeBatches.map((b: any) => b._id);
+    if (!batchIds.length) return res.json({ success: true, data: { top: [], me: null } });
+
+    const students: any[] = await User.find({
+      role: 'STUDENT', isActive: true, batchId: { $in: batchIds },
+    }).select('firstName lastName batchId').lean();
+    if (!students.length) return res.json({ success: true, data: { top: [], me: null } });
+
+    const byId = new Map(students.map((s: any) => [String(s._id), s]));
+    const stats: any[] = await StudentGameStats.find({
+      tenantId, studentId: { $in: students.map((s: any) => s._id) },
+    }).select('studentId xpTotal level currentStreak').lean();
+
+    const ranked = stats
+      .filter(r => (r.xpTotal || 0) > 0)          // zero XP is not a placing
+      .sort((a, b) => (b.xpTotal || 0) - (a.xpTotal || 0));
+
+    const shortName = (u: any) =>
+      `${u?.firstName || ''} ${(u?.lastName || '').charAt(0)}${u?.lastName ? '.' : ''}`.trim() || 'Student';
+
+    const top = ranked.slice(0, limit).map((r, i) => ({
+      rank: i + 1,
+      name: shortName(byId.get(String(r.studentId))),
+      xp: r.xpTotal || 0,
+      level: r.level || 1,
+      streak: r.currentStreak || 0,
+    }));
+
+    // The viewer's own standing, so the board means something to someone outside the top.
+    const meId = String(req.user?.id || '');
+    const meIdx = ranked.findIndex(r => String(r.studentId) === meId);
+    const me = meIdx >= 0
+      ? { rank: meIdx + 1, xp: ranked[meIdx].xpTotal || 0, of: ranked.length }
+      : null;
+
+    res.json({ success: true, data: { top, me, totalRanked: ranked.length } });
   } catch (e: any) { fail(res, 500, e.message); }
 };

@@ -1,0 +1,34 @@
+/* Top XP earners — dashboard motivator */
+.xplb {
+  background: #fff; border: 1px solid #e8edf5; border-radius: 14px;
+  padding: 16px 18px; margin-bottom: 18px;
+}
+.xplb-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+.xplb-title { font-size: 14.5px; font-weight: 800; color: #0f172a; }
+.xplb-sub { font-size: 11.5px; color: #94a3b8; }
+
+.xplb-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.xplb-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: 10px; background: #f8fafc; border: 1px solid #eef2f7;
+}
+.xplb-row.r1 { background: linear-gradient(90deg, #fffbeb, #fff); border-color: #fde68a; }
+.xplb-row.r2 { background: linear-gradient(90deg, #f8fafc, #fff); border-color: #e2e8f0; }
+.xplb-row.r3 { background: linear-gradient(90deg, #fff7ed, #fff); border-color: #fed7aa; }
+.xplb-medal { font-size: 17px; width: 24px; text-align: center; flex-shrink: 0; }
+.xplb-name { font-size: 13.5px; font-weight: 700; color: #0f172a; flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.xplb-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.xplb-meta em { font-style: normal; font-size: 11px; color: #92400e; background: #fef3c7;
+  padding: 2px 8px; border-radius: 999px; font-weight: 700; }
+.xplb-meta b { font-size: 13px; color: #0f172a; font-variant-numeric: tabular-nums; }
+
+.xplb-me {
+  margin-top: 11px; padding-top: 10px; border-top: 1px solid #f1f5f9;
+  font-size: 12.5px; color: #475569;
+}
+.xplb-me b { color: #005897; }
+
+@media (max-width: 480px) {
+  .xplb-meta em { display: none; }   /* keep the XP figure readable on a phone */
+}

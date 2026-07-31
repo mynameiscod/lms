@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { Spinner } from '../../components/common';
@@ -321,6 +322,7 @@ const DashboardPage: React.FC = () => {
     return (
       <div className="dashboard-container">
         <div className="admin-dashboard">
+          <XpLeaderboard />
           <div className="dashboard-header">
             <h1>Dashboard</h1>
             <p>Welcome back, <strong>{user.firstName}!</strong></p>

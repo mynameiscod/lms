@@ -7,6 +7,7 @@ import StudentGameStats from '../models/StudentGameStats';
 import ThinkingProfile from '../models/ThinkingProfile';
 import ScheduledChallenge from '../models/ScheduledChallenge';
 import User from '../models/User';
+import { resolveLabDay } from '../services/labTrackService';
 import { istToday, ymd } from '../utils/planSchedule';
 import * as lab from '../services/thinkingLabService';
 import * as game from '../services/gamificationService';
@@ -117,12 +118,38 @@ export const getToday = async (req: Request, res: Response) => {
     const d = today();
     const u: any = await User.findById(uId(req)).select('firstName lastName batchId').lean();
     // Admin-scheduled batch challenge (may carry a time window) takes priority.
-    const sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
+    let sc: any = u?.batchId ? await ScheduledChallenge.findOne({ tenantId: tId(req), batchId: u.batchId, date: d }).lean() : null;
 
-    // Schedule-driven only: with no scheduled challenge for this batch today, show nothing —
-    // this also hides stale challenges left over from the old random fallback.
+    // No hand-made row for today? Derive the day from the batch's track. An explicit
+    // ScheduledChallenge still WINS, so anything an admin set by hand — including an
+    // override for a single day — keeps working exactly as before. This is what stops
+    // "no challenge scheduled yet" from being the normal experience: a track is authored
+    // once and every batch resolves its own day from it.
+    let dayIndex: number | null = null;
+    if (!sc && u?.batchId) {
+      const r: any = await resolveLabDay(tId(req), String(u.batchId), 'thinking');
+      if (r && r.contentId) {
+        dayIndex = r.dayIndex;
+        sc = {
+          tenantId: tId(req), batchId: u.batchId, date: d,
+          problemId: r.contentId,
+          startTime: r.assignment?.window?.startTime,
+          endTime: r.assignment?.window?.endTime,
+          fromTrack: true,
+        };
+      }
+    }
+
+    // Still nothing: say WHY, because "not scheduled", "your plan starts Monday" and
+    // "today is a rest day" need very different responses from the student.
     if (!sc) {
-      return res.json({ challenge: null, empty: true, message: 'No challenge scheduled yet. Your instructor will assign one for your batch.' });
+      const r: any = u?.batchId ? await resolveLabDay(tId(req), String(u.batchId), 'thinking') : { reason: 'no_assignment' };
+      const message =
+        r?.reason === 'not_started' ? 'Your daily plan has not started yet.'
+        : r?.reason === 'non_learning_day' ? 'No challenge today — enjoy the break.'
+        : r?.reason === 'track_unpublished' ? 'Your batch plan is still being prepared.'
+        : 'No challenge scheduled yet. Your instructor will assign one for your batch.';
+      return res.json({ challenge: null, empty: true, reason: r?.reason || 'no_assignment', message });
     }
 
     const wStatus = windowStatus(sc, d, istNowHM());

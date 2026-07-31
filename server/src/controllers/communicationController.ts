@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import CommunicationProfile from '../models/CommunicationProfile';
 import CommunicationChallenge from '../models/CommunicationChallenge';
 import CommunicationSchedule from '../models/CommunicationSchedule';
+import { resolveLabDay } from '../services/labTrackService';
 import CommunicationAttempt from '../models/CommunicationAttempt';
 import CommunicationStreak from '../models/CommunicationStreak';
 import User from '../models/User';
@@ -68,7 +69,23 @@ export const getToday = async (req: Request, res: Response) => {
     if (!me?.batchId) return res.json({ challenge: null, status: 'not_started' });
     // Admin-scheduled batch challenge (may carry a time window) — IST-based.
     const now = istParts();
-    const sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean();
+    let sc: any = await CommunicationSchedule.findOne({ tenantId, batchId: me.batchId, date: now.date }).lean();
+
+    // Fall back to the batch's track when nobody scheduled today by hand. An explicit
+    // CommunicationSchedule still wins, so existing rows and one-off overrides are
+    // unaffected — this only fills the days that would otherwise be blank.
+    if (!sc) {
+      const r: any = await resolveLabDay(String(tenantId), String(me.batchId), 'communication');
+      if (r && r.contentId) {
+        sc = {
+          tenantId, batchId: me.batchId, date: now.date,
+          challengeId: r.contentId,
+          startTime: r.assignment?.window?.startTime,
+          endTime: r.assignment?.window?.endTime,
+          fromTrack: true,
+        };
+      }
+    }
 
     const challenges = await CommunicationChallenge.find({ tenantId, challengeType: 'self_introduction', active: true, batchIds: me.batchId })
       .sort({ sequenceNumber: 1 }).lean();

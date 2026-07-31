@@ -328,10 +328,21 @@ export const submitBattleExam = async (req: Request, res: Response) => {
       score: obtained, timeSpentSec: timeSpent, submittedAt: now,
     });
 
+    // The paper is already saved by this point, so nothing below may throw the request
+    // into the catch — a candidate whose answers are safely stored must never be shown
+    // "submission failed". The tenant slug is only used to build a redirect link, so a
+    // lookup failure degrades the link, not the result.
+    let tenantSlug: string | undefined;
+    try {
+      tenantSlug = (await Tenant.findById(reg.tenantId).select('slug').lean() as any)?.slug;
+    } catch {
+      logger.warn('submitBattleExam: tenant slug lookup failed', { tenantId: String(reg.tenantId) });
+    }
+
     res.json({
       success: true, score: obtained, totalMarks: quiz.totalMarks, percentage: Math.round(percentage),
       passed, rank: liveRank, timeSpentSec: timeSpent,
-      slug: b.slug, tenantSlug: (await Tenant.findById(reg.tenantId).select('slug').lean() as any)?.slug,
+      slug: b.slug, tenantSlug,
     });
   } catch (e: any) { logger.error('submitBattleExam failed', { error: e.message }); res.status(500).json({ message: e.message }); }
 };

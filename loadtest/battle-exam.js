@@ -73,8 +73,12 @@ export default function () {
   const ok = check(r, { 'exam fetched': (x) => x.status === 200 });
   if (!ok) return;
 
+  // `questions` sits at the top level of the payload, NOT under `quiz` (which carries
+  // only the settings). Reading the wrong path silently yields an empty answer array,
+  // so submissions grade nothing and the test quietly stops measuring the work it exists
+  // to measure.
   let questions = [];
-  try { questions = (r.json('quiz.questions') || []); } catch (e) { /* shape varies by gate */ }
+  try { questions = (r.json('questions') || []); } catch (e) { /* gated response shape */ }
 
   // 2. Start.
   r = http.post(`${BASE}/api/v1/public/battles/exam/${token}/start`, JSON.stringify({ sessionId }), { headers });

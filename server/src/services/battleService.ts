@@ -111,10 +111,19 @@ export interface RankKey {
  * everyone ahead of them to be rewritten before their own response returned.
  *
  * Rank is not a fact worth storing during a live battle; it changes every time anyone
- * finishes. Counting it on demand is one indexed query and never writes at all, so the
- * hundred-thousandth submission costs exactly what the first one did. The three clauses
- * below are the tiebreakers above, expressed as "strictly better than me", and they are
- * served by the existing {battleId, score, timeSpentSec} index.
+ * finishes. Counting it on demand is one indexed query that never writes.
+ *
+ * This is NOT constant time — measured on staging, the count runs 2.4ms at 1k entrants,
+ * ~58ms at 50k, because counting how many beat you means walking that many index
+ * entries. It is a read that grows linearly, replacing writes that grew quadratically,
+ * which is the difference between ~120ms of index scan and 100,000 document updates on
+ * the last submission of a 100k battle. If it ever needs to be genuinely flat, the shape
+ * for that is a sorted structure (a Redis sorted set gives O(log n) ZREVRANK) — not more
+ * counting.
+ *
+ * The three clauses below are the tiebreakers above expressed as "strictly better than
+ * me", served by battle_rank_idx, which includes `status` so the count stays inside the
+ * index instead of fetching every candidate document.
  */
 export async function rankOf(battleId: string, me: RankKey): Promise<number> {
   const score = me.score ?? 0;

@@ -1,0 +1,43 @@
+/* Gamified header — level, XP, streak, rank */
+.gp { display: grid; grid-template-columns: 1.4fr 1.6fr 1fr; gap: 14px; margin-bottom: 18px; }
+
+.gp-level, .gp-stats, .gp-streak {
+  background: #fff; border: 1px solid #e8edf5; border-radius: 14px; padding: 15px 17px;
+}
+
+.gp-level { display: flex; align-items: center; gap: 14px; }
+.gp-mascot {
+  width: 54px; height: 54px; flex-shrink: 0; border-radius: 14px;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  display: flex; align-items: center; justify-content: center; font-size: 28px;
+}
+.gp-level-body { flex: 1; min-width: 0; }
+.gp-level-title { font-size: 14px; font-weight: 800; color: #0f172a; margin-bottom: 8px; }
+.gp-level-bar { height: 9px; background: #eef2f7; border-radius: 999px; overflow: hidden; }
+.gp-level-bar div { height: 100%; border-radius: 999px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width .4s ease; }
+.gp-level-note { font-size: 11.5px; color: #64748b; margin-top: 6px; }
+
+.gp-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; align-items: center; }
+.gp-stat { text-align: center; display: flex; flex-direction: column; gap: 2px; }
+.gp-ic { font-size: 18px; }
+.gp-stat b { font-size: 19px; color: #0f172a; font-variant-numeric: tabular-nums; }
+.gp-stat small { font-size: 10.5px; color: #64748b; font-weight: 600; }
+
+.gp-streak-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.gp-streak-head span { font-size: 13px; font-weight: 800; color: #0f172a; }
+.gp-streak-head small { font-size: 11px; color: #94a3b8; }
+.gp-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.gp-day {
+  border-radius: 9px; background: #f8fafc; border: 1px solid #eef2f7;
+  padding: 6px 0; text-align: center; display: flex; flex-direction: column; gap: 1px;
+}
+.gp-day.on { background: #dcfce7; border-color: #bbf7d0; }
+.gp-day.today { outline: 2px solid #6366f1; outline-offset: -2px; }
+.gp-day-l { font-size: 9.5px; color: #94a3b8; font-weight: 700; }
+.gp-day-d { font-size: 12px; color: #0f172a; font-weight: 700; }
+.gp-day.on .gp-day-d { color: #166534; }
+.gp-streak-empty { font-size: 11px; color: #94a3b8; margin: 8px 0 0; }
+
+@media (max-width: 1200px) { .gp { grid-template-columns: 1fr 1fr; } .gp-streak { grid-column: 1 / -1; } }
+@media (max-width: 700px)  { .gp { grid-template-columns: 1fr; } .gp-stats { grid-template-columns: repeat(4, 1fr); } }

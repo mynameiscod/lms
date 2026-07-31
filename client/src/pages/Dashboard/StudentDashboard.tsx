@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import GamePanel from '../../components/dashboard/GamePanel';
 import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import './StudentDashboard.css';
 import { thinkingLabApi, DIFF_COLORS } from '../../api/thinkingLabApi';
@@ -55,7 +56,7 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
 
   return (
     <div className="sd2">
-      <XpLeaderboard />
+      <GamePanel />
 
       <div className="sd2-welcome">
         <h1>Welcome back, {firstName}! 👋</h1>
@@ -256,6 +257,7 @@ const CommunicationChallengeCard: React.FC<{ navigate: (to: string) => void }> =
       <button onClick={() => navigate('/ai-communication-lab')} style={{ background: '#fff', color: '#0e7490', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         {done ? '✓ Done — view feedback →' : 'Start Practice →'}
       </button>
+      <XpLeaderboard />
     </div>
   );
 };

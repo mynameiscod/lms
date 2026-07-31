@@ -341,9 +341,10 @@ export class StudentReportService {
           studentId: student._id, tenantId, status: { $in: ['submitted', 'grading'] },
         });
         // Submission's fields are `student` and `tenant`, not studentId/tenantId, so
-        // this silently matched nothing too.
+        // this silently matched nothing too. The status literal was wrong as well:
+        // 'GRADED' is the enum KEY, the stored value is 'graded'.
         const assignments = await Submission.countDocuments({
-          student: student._id, tenant: tenantId, status: 'GRADED',
+          student: student._id, tenant: tenantId, status: SubmissionStatus.GRADED,
         });
 
         return {

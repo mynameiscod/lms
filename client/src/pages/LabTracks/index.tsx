@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import * as api from '../../api/labTrackApi';
 import { Track, TrackItem, Lab } from '../../api/labTrackApi';
 import { Spinner } from '../../components/common';
+import AssignPanel from './AssignPanel';
 import './LabTracks.css';
 
 /**
@@ -25,6 +26,7 @@ const LabTracks: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
+  const [view, setView] = useState<'tracks' | 'assign'>('tracks');
 
   const load = () => {
     setLoading(true);
@@ -47,6 +49,15 @@ const LabTracks: React.FC = () => {
         <NewTrack lab={lab} onCreated={load} />
       </div>
 
+      <div className="lt-tabs" role="tablist">
+        <button role="tab" aria-selected={view === 'tracks'}
+          className={`lt-tab ${view === 'tracks' ? 'on' : ''}`} onClick={() => setView('tracks')}>Tracks</button>
+        <button role="tab" aria-selected={view === 'assign'}
+          className={`lt-tab ${view === 'assign' ? 'on' : ''}`} onClick={() => setView('assign')}>Batch Assignments</button>
+      </div>
+
+      {view === 'assign' ? <AssignPanel /> : (
+      <>
       <div className="lt-tabs" role="tablist">
         {LABS.map(l => (
           <button key={l.key} role="tab" aria-selected={lab === l.key}
@@ -89,6 +100,8 @@ const LabTracks: React.FC = () => {
             })}
           </div>
         )
+      )}
+      </>
       )}
     </div>
   );

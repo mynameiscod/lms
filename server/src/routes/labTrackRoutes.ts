@@ -26,6 +26,14 @@ router.get('/library', authMiddleware, tenantResolver, VIEW, libraryFor);
 // Tracks
 router.get('/', authMiddleware, tenantResolver, VIEW, listTracks);
 router.post('/', authMiddleware, tenantResolver, MANAGE, createTrack);
+/* Literal single-segment routes MUST sit above '/:id'. Express matches in declaration
+ * order, so with '/:id' first a request for /leaderboard was routed into getTrack with
+ * id='leaderboard' and answered 404 — which the dashboard widget swallowed, showing an
+ * empty space rather than an error. Same for /progress. */
+// Everyone sees the board — it is a motivator, so it needs no admin permission.
+router.get('/leaderboard', authMiddleware, tenantResolver, xpLeaderboard);
+router.get('/progress', authMiddleware, tenantResolver, VIEW, labProgress);
+
 router.get('/:id', authMiddleware, tenantResolver, VIEW, getTrack);
 router.put('/:id', authMiddleware, tenantResolver, MANAGE, updateTrack);
 router.delete('/:id', authMiddleware, tenantResolver, MANAGE, deleteTrack);
@@ -37,10 +45,6 @@ router.post('/assignments', authMiddleware, tenantResolver, MANAGE, upsertAssign
 router.delete('/assignments/:id', authMiddleware, tenantResolver, MANAGE, deleteAssignment);
 router.get('/assignments/preview', authMiddleware, tenantResolver, VIEW, previewToday);
 
-// Everyone sees the board — it is a motivator, so it needs no admin permission.
-router.get('/leaderboard', authMiddleware, tenantResolver, xpLeaderboard);
-
-router.get('/progress', authMiddleware, tenantResolver, VIEW, labProgress);
 
 // Gate: the student's own state needs no admin permission, only a session.
 router.get('/gate/me', authMiddleware, tenantResolver, myGate);

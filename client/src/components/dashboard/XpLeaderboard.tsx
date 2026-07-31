@@ -26,10 +26,16 @@ const XpLeaderboard: React.FC = () => {
     const x = localStorage.getItem('tenantId'); if (x) h['X-Tenant-Id'] = x;
 
     fetch(`${base}/lab-tracks/leaderboard?limit=3`, { headers: h })
-      .then(r => r.json())
+      .then(async r => {
+        const b = await r.json();
+        if (!r.ok || b?.success === false) throw new Error(b?.message || `HTTP ${r.status}`);
+        return b;
+      })
       .then(b => setData(b?.data || null))
-      // A dashboard widget must never break the dashboard. Silence beats an error card.
-      .catch(() => setData(null))
+      // Still no error card — a motivational widget must never break the dashboard — but
+      // the failure is logged. Swallowing it silently is what hid a 404 from a route
+      // ordering bug and made this look like "no data" instead of "broken".
+      .catch(e => { console.warn('[XpLeaderboard]', e.message); setData(null); })
       .finally(() => setLoading(false));
   }, []);
 

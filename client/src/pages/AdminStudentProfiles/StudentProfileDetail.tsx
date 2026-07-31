@@ -11,6 +11,7 @@ import {
 } from '../../api/examApi';
 import { Spinner } from '../../components/common';
 import StudentDashboard from './StudentDashboard';
+import AssignmentsPanel from './AssignmentsPanel';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
 
@@ -507,29 +508,7 @@ const StudentProfileDetail: React.FC = () => {
 
         {/* ── Assignments Tab ── */}
         {activeTab === 'assignments' && (
-          loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
-          assignments.length === 0 ? <p className="spd-empty">No assignments assigned.</p> :
-          <div className="spd-table-wrap">
-            {totals?.assignments && <WorkTally t={totals.assignments} noun="assignments" />}
-            <table className="spd-table">
-              <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Due Date</th><th>Status</th><th>Assigned via</th><th>Submitted</th></tr></thead>
-              <tbody>
-                {assignments.map((s: any, i: number) => (
-                  <tr key={i}>
-                    <td>{(s.assignment as any)?.title || s.assignmentId || '—'}</td>
-                    <td>{(s.assignment as any)?.type || '—'}</td>
-                    <td>{s.obtainedPoints !== undefined && s.obtainedPoints !== null
-                      ? `${s.obtainedPoints}/${(s.assignment as any)?.totalPoints ?? '?'}${s.percentage != null ? ` (${s.percentage}%)` : ''}`
-                      : '—'}</td>
-                    <td>{fmt(s.dueAt || (s.assignment as any)?.dueDate)}</td>
-                    <td><StatusChip status={s.status} /></td>
-                    <td><SourceChip source={s.source} /></td>
-                    <td>{fmt(s.submittedAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <AssignmentsPanel rows={assignments} loading={loadingActivity} />
         )}
 
         {/* ── Code Snippets Tab ── */}

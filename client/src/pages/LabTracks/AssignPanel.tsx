@@ -33,6 +33,7 @@ const AssignPanel: React.FC = () => {
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
   const [preview, setPreview] = useState<any>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [f, setF] = useState<any>({
     batchId: '', trackId: '', lab: 'thinking' as Lab,
@@ -66,6 +67,26 @@ const AssignPanel: React.FC = () => {
   useEffect(() => { loadAll(); }, []);
 
   const set = (k: string, v: any) => setF((p: any) => ({ ...p, [k]: v }));
+
+  /** Load a saved assignment into the form. Editing is an upsert on (batch, lab), so
+   *  saving replaces the row rather than creating a second active plan. */
+  const edit = (r: any) => {
+    setF({
+      batchId: String(r.batchId), trackId: String(r.trackId?._id || r.trackId), lab: r.lab,
+      startDate: new Date(r.startDate).toISOString().slice(0, 10),
+      workingDays: r.workingDays || [1, 2, 3, 4, 5],
+      cadence: r.cadence || 'daily', cadenceDays: r.cadenceDays || [],
+      startTime: r.window?.startTime || '07:00', endTime: r.window?.endTime || '23:59',
+      gateMode: r.gate?.mode || 'off',
+    });
+    setEditingId(r._id); setPreview(null); setMsg(''); setErr('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const cancelEdit = () => {
+    setEditingId(null); setPreview(null); setMsg('');
+    setF((p: any) => ({ ...p, batchId: '', trackId: '' }));
+  };
   const toggleDay = (key: 'workingDays' | 'cadenceDays', d: number) =>
     set(key, f[key].includes(d) ? f[key].filter((x: number) => x !== d) : [...f[key], d].sort());
 
@@ -79,7 +100,8 @@ const AssignPanel: React.FC = () => {
         window: { startTime: f.startTime, endTime: f.endTime, tz: 'Asia/Kolkata' },
         gate: { mode: f.gateMode },
       });
-      setMsg('Saved. The batch will resolve its day automatically from now on.');
+      setMsg(editingId ? 'Updated. The batch picks up the new settings immediately.' : 'Saved. The batch will resolve its day automatically from now on.');
+      setEditingId(null);
       await loadAll();
       doPreview();
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
@@ -102,7 +124,13 @@ const AssignPanel: React.FC = () => {
       {msg && <div className="lt-ok">{msg}</div>}
 
       <div className="lt-form">
-        <h4>Attach a track to a batch</h4>
+        <h4>{editingId ? 'Edit assignment' : 'Attach a track to a batch'}</h4>
+        {editingId && (
+          <p className="lt-hint">
+            Editing an existing plan. Changing the start date re-derives which day the batch is on,
+            so a batch mid-way through can jump forward or back — check Preview before saving.
+          </p>
+        )}
 
         <div className="lt-form-grid">
           <label>Lab
@@ -192,8 +220,9 @@ const AssignPanel: React.FC = () => {
         <div className="lt-form-actions">
           <button className="lt-btn" onClick={doPreview} disabled={!f.batchId}>Preview today</button>
           <button className="lt-btn primary" onClick={save} disabled={!ready || busy}>
-            {busy ? 'Saving…' : 'Save assignment'}
+            {busy ? 'Saving…' : editingId ? 'Update assignment' : 'Save assignment'}
           </button>
+          {editingId && <button className="lt-btn ghost" onClick={cancelEdit} disabled={busy}>Cancel edit</button>}
         </div>
 
         {preview && (
@@ -232,7 +261,8 @@ const AssignPanel: React.FC = () => {
                   <td>{new Date(r.startDate).toLocaleDateString()}</td>
                   <td>{r.currentDay ?? <span className="lt-muted">—</span>}</td>
                   <td><span className={`lt-gate ${r.gate?.mode}`}>{r.gate?.mode || 'off'}</span></td>
-                  <td>
+                  <td className="lt-row-actions">
+                    <button className="lt-btn" onClick={() => edit(r)}>Edit</button>
                     <button className="lt-btn ghost" onClick={async () => {
                       if (!window.confirm('Remove this assignment? The batch stops receiving daily challenges.')) return;
                       try { await api.deleteAssignment(r._id); loadAll(); } catch (e: any) { setErr(e.message); }

@@ -82,6 +82,8 @@ const StudentDashboard: React.FC<Props> = ({ firstName, data, attendance, todayP
       <TodayChallengeBanner navigate={navigate} />
       <CommunicationChallengeCard navigate={navigate} />
 
+      <XpLeaderboard />
+
       {/* Main two-column */}
       <div className="sd2-main">
         <div className="sd2-col">
@@ -257,7 +259,6 @@ const CommunicationChallengeCard: React.FC<{ navigate: (to: string) => void }> =
       <button onClick={() => navigate('/ai-communication-lab')} style={{ background: '#fff', color: '#0e7490', border: 'none', borderRadius: 10, padding: '11px 22px', fontWeight: 800, fontSize: 14, cursor: 'pointer', whiteSpace: 'nowrap' }}>
         {done ? '✓ Done — view feedback →' : 'Start Practice →'}
       </button>
-      <XpLeaderboard />
     </div>
   );
 };

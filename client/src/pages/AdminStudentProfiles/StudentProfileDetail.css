@@ -205,3 +205,61 @@
 .spd-note-time { color: #94a3b8; margin-left: auto; }
 .spd-note-del { background: none; border: none; cursor: pointer; font-size: 13px; }
 .spd-note-text { font-size: 13.5px; color: #334155; margin-top: 3px; }
+
+/* ── Delivery status chips (shared vocabulary with the student's own screens) ── */
+.spd-dstatus { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 11.5px;
+  font-weight: 700; letter-spacing: .01em; white-space: nowrap; }
+.spd-dstatus.not_started, .spd-dstatus.pending { background: #eef2f7; color: #64748b; }
+.spd-dstatus.in_progress { background: #fef3c7; color: #92400e; }
+.spd-dstatus.submitted, .spd-dstatus.graded { background: #dcfce7; color: #166534; }
+.spd-dstatus.late { background: #ffedd5; color: #9a3412; }
+.spd-dstatus.overdue { background: #fee2e2; color: #b91c1c; }
+.spd-dstatus.missed { background: #fecaca; color: #7f1d1d; }
+
+.spd-src { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px;
+  font-weight: 600; background: #f1f5f9; color: #475569; }
+.spd-src.sched { background: #ede9fe; color: #5b21b6; }
+
+/* ── Assigned-vs-done tally above each work table ── */
+.spd-tally { margin: 4px 0 14px; }
+.spd-tally-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; font-size: 13px; color: #475569; }
+.spd-tally-item b { color: #0f172a; font-size: 15px; margin-right: 3px; }
+.spd-tally-item.done b { color: #166534; }
+.spd-tally-item.pend b { color: #92400e; }
+.spd-tally-item.miss b { color: #b91c1c; }
+.spd-tally-rate { margin-left: auto; font-weight: 700; color: #0f172a; }
+.spd-tally-bar { height: 6px; background: #eef2f7; border-radius: 999px; margin-top: 8px; overflow: hidden; }
+.spd-tally-fill { height: 100%; background: linear-gradient(90deg, #6a2be2, #22c55e); border-radius: 999px; }
+
+/* ── Student labs ── */
+.spd-lab-insight { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px;
+  margin: 18px 0; }
+.spd-lab-insight h5 { margin: 0 0 6px; font-size: 12.5px; text-transform: uppercase; letter-spacing: .04em;
+  color: #6a2be2; }
+.spd-lab-insight ul { margin: 0; padding-left: 18px; font-size: 13px; color: #334155; }
+.spd-lab-insight li { margin-bottom: 4px; }
+.spd-lab-sub { font-size: 13px; color: #475569; margin: 12px 0 18px; }
+
+/* ── Exam records ── */
+.spd-exam-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.spd-exam-head h4 { margin: 0; }
+.spd-exam-error { background: #fee2e2; color: #b91c1c; padding: 9px 12px; border-radius: 8px;
+  font-size: 13px; margin-bottom: 12px; }
+.spd-exam-form { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 16px;
+  margin: 14px 0 18px; }
+.spd-exam-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.spd-exam-grid label { display: flex; flex-direction: column; gap: 5px; font-size: 12.5px;
+  font-weight: 600; color: #475569; }
+.spd-exam-grid input, .spd-exam-grid select { padding: 8px 10px; border: 1px solid #cbd5e1;
+  border-radius: 8px; font-size: 13.5px; font-weight: 400; color: #0f172a; background: #fff; }
+.spd-exam-wide { grid-column: 1 / -1; }
+.spd-exam-actions { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+.spd-exam-pct { margin-right: auto; font-size: 18px; font-weight: 800; color: #6a2be2; }
+.spd-exam-row-actions { display: flex; gap: 6px; white-space: nowrap; }
+.spd-btn-primary { background: #6a2be2; color: #fff; border: none; padding: 8px 15px; border-radius: 8px;
+  font-size: 13px; font-weight: 700; cursor: pointer; }
+.spd-btn-primary:disabled { opacity: .6; cursor: default; }
+.spd-btn-ghost { background: #fff; color: #475569; border: 1px solid #cbd5e1; padding: 7px 13px;
+  border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; }
+.spd-btn-danger { background: #fff; color: #b91c1c; border: 1px solid #fecaca; padding: 7px 13px;
+  border-radius: 8px; font-size: 12.5px; font-weight: 600; cursor: pointer; }

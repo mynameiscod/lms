@@ -6,6 +6,7 @@ import Fee from '../models/Fee';
 import Interview from '../models/Interview';
 import Exam from '../models/Exam';
 import Batch from '../models/Batch';
+import { resolveAssignedQuizzes, tallyStatuses } from './studentWorkService';
 
 export interface StudentReportData {
   student: {
@@ -81,8 +82,9 @@ export class StudentReportService {
     // Get attendance data
     const attendanceData = await this.getAttendanceData(studentId, tenantId);
 
-    // Get quiz data
-    const quizData = await this.getQuizData(studentId, tenantId);
+    // Get quiz data — needs the batch to resolve what was actually assigned.
+    const batchIdStr = student.batchId ? String((student.batchId as any)._id || student.batchId) : null;
+    const quizData = await this.getQuizData(studentId, tenantId, batchIdStr);
 
     // Get assignment data
     const assignmentData = await this.getAssignmentData(studentId, tenantId);
@@ -147,28 +149,40 @@ export class StudentReportService {
     };
   }
 
-  private async getQuizData(studentId: string, tenantId: string) {
-    const attempts = await QuizAttempt.find({ studentId, tenantId })
-      .populate('quizId', 'title totalMarks passingMarks')
-      .sort({ submittedAt: -1 });
+  /**
+   * `total` is the number of quizzes ASSIGNED to this student right now — not the
+   * number of attempt rows on file. Those are different questions, and reporting the
+   * second while the Quizzes tab lists the first is what made the profile contradict
+   * itself: one student here showed "Total Quizzes 43" beside a tab listing 1, because
+   * 34 of his 40 attempted quizzes were old content he can no longer see.
+   */
+  private async getQuizData(studentId: string, tenantId: string, batchId: string | null = null) {
+    const assigned = await resolveAssignedQuizzes(tenantId, studentId, batchId);
+    const tally = tallyStatuses(assigned.map(a => a.status));
 
-    const completed = attempts.filter(a => a.status === 'submitted' || a.status === 'grading');
-    const passed = completed.filter(a => {
-      const quiz = a.quizId as any;
-      return a.obtainedMarks >= (quiz?.passingMarks || 0);
-    }).length;
-    const failed = completed.length - passed;
+    const attemptedRows = assigned
+      .map(a => ({ a, at: a.latestAttempt }))
+      .filter(x => !!x.at);
 
-    const totalScore = completed.reduce((sum, a) => sum + (a.obtainedMarks || 0), 0);
-    const averageScore = completed.length > 0 ? Math.round(totalScore / completed.length) : 0;
+    const passed = attemptedRows.filter(({ a, at }) =>
+      (at.obtainedMarks || 0) >= (a.quiz?.passingMarks || 0)).length;
+    const failed = attemptedRows.length - passed;
+
+    const totalScore = attemptedRows.reduce((s, { at }) => s + (at.obtainedMarks || 0), 0);
+    const averageScore = attemptedRows.length > 0 ? Math.round(totalScore / attemptedRows.length) : 0;
 
     return {
-      total: attempts.length,
-      completed: completed.length,
+      total: tally.total,               // assigned
+      completed: tally.completed,       // actually submitted/graded
+      pending: tally.pending,
+      missed: tally.missed,
       passed,
       failed,
       averageScore,
-      recentAttempts: attempts.slice(0, 10)
+      recentAttempts: attemptedRows.slice(0, 10).map(({ a, at }) => ({
+        ...(typeof at.toObject === 'function' ? at.toObject() : at),
+        quizId: { _id: a.quiz._id, title: a.quiz.title, totalMarks: a.quiz.totalMarks, passingMarks: a.quiz.passingMarks },
+      })),
     };
   }
 
@@ -320,8 +334,17 @@ export class StudentReportService {
       students.map(async (student) => {
         const attendance = await Attendance.countDocuments({ studentId: student._id, tenantId, status: 'present' });
         const totalAttendance = await Attendance.countDocuments({ studentId: student._id, tenantId });
-        const quizzes = await QuizAttempt.countDocuments({ studentId: student._id, tenantId, status: 'completed' });
-        const assignments = await Submission.countDocuments({ studentId: student._id, tenantId, status: 'GRADED' });
+        // QuizAttempt has no 'completed' status — the enum is
+        // in_progress | submitted | abandoned | grading — so this counted zero for
+        // every student on the list, including the 98 here who really had submitted.
+        const quizzes = await QuizAttempt.countDocuments({
+          studentId: student._id, tenantId, status: { $in: ['submitted', 'grading'] },
+        });
+        // Submission's fields are `student` and `tenant`, not studentId/tenantId, so
+        // this silently matched nothing too.
+        const assignments = await Submission.countDocuments({
+          student: student._id, tenant: tenantId, status: 'GRADED',
+        });
 
         return {
           _id: student._id,

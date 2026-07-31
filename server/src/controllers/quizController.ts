@@ -10,6 +10,7 @@ import Content from '../models/Content';
 import { EmailService } from '../services/emailService';
 import { checkDeadlineGate, studentSchedulesMap, policyFromRow } from '../services/assessmentDeliveryService';
 import { computeStatus, mergePolicy, DEFAULT_POLICY } from '../services/deadlinePolicyService';
+import { resolveAssignedQuizzes } from '../services/studentWorkService';
 
 export const createQuiz = async (req: Request, res: Response) => {
   try {
@@ -546,94 +547,29 @@ export const getStudentQuizzes = async (req: Request, res: Response) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    // Get all quizzes for the tenant — exclude external/token-only and archived quizzes
-    const allQuizzes = await Quiz.find({ tenantId, isActive: true, isExternalQuiz: { $ne: true }, archivedAt: null });
-
-    // Quizzes delivered to this batch via an AssessmentSchedule (the reusable path).
+    // Visibility, attempts and deadline status all come from the shared resolver, so
+    // the admin's view of this student cannot disagree with what the student sees.
     const batchIdStr = user.batchId ? user.batchId.toString() : null;
-    const quizSchedMap = await studentSchedulesMap(tenantId, userId, batchIdStr, 'quiz');
+    const assigned = await resolveAssignedQuizzes(tenantId, userId, batchIdStr, { autoAbandon: true });
 
-    // Filter quizzes based on access level and enrollment
-    const availableQuizzes = await Promise.all(
-      allQuizzes.map(async (quiz) => {
-        // Check access based on accessibleTo (always respected, regardless of public/private)
-        let hasAccess = false;
-
-        if (quiz.accessibleTo === 'batch_wise') {
-          // Batch-wise: only students whose batchId is in selectedBatches
-          if (user.batchId && quiz.selectedBatches && quiz.selectedBatches.includes(user.batchId.toString())) {
-            hasAccess = true;
-          }
-        } else if (quiz.accessibleTo === 'individual') {
-          // Individual: only selected students
-          if (quiz.selectedStudents && quiz.selectedStudents.includes(userId)) {
-            hasAccess = true;
-          }
-        } else {
-          // Only explicit 'everyone' grants in-app access. `access: 'public'` is for
-          // shareable links and must NOT surface a quiz to every student's list.
-          hasAccess = quiz.accessibleTo === 'everyone';
-        }
-
-        // A schedule row for this batch also grants access (reusable delivery).
-        if (!hasAccess && quizSchedMap.has(String(quiz._id))) hasAccess = true;
-
-        if (!hasAccess) {
-          return null;
-        }
-
-        // Get attempt information for this student (include all statuses)
-        const allAttempts = await QuizAttempt.find({
-          quizId: quiz._id,
-          studentId: userId
-        }).sort({ createdAt: -1 });
-
-        const completedAttempts = allAttempts.filter(a => a.status === 'submitted' || a.status === 'abandoned');
-        const inProgressAttempts = allAttempts.filter(a => a.status === 'in_progress');
-
-        // Auto-abandon in_progress attempts if quiz time has ended
-        const now = new Date();
-        const endTime = new Date(`${quiz.endDate.toISOString().split('T')[0]}T${quiz.endTime}`);
-        if (now > endTime && inProgressAttempts.length > 0) {
-          for (const ip of inProgressAttempts) {
-            ip.status = 'abandoned';
-            ip.abandonedAt = now;
-            await ip.save();
-            completedAttempts.push(ip);
-          }
-        }
-
-        const latestAttempt = completedAttempts[0] || inProgressAttempts[0];
-        const hasAttempted = completedAttempts.length > 0 || inProgressAttempts.length > 0;
-        
-        // Convert to plain object and add student-specific info
-        const quizData = quiz.toObject() as any;
-        quizData.isAttempted = hasAttempted;
-        quizData.attemptCount = completedAttempts.length;
-        quizData.lastAttemptMarks = latestAttempt?.obtainedMarks || 0;
-        quizData.lastAttemptPassed = latestAttempt ? (latestAttempt.obtainedMarks || 0) >= quiz.passingMarks : false;
-        quizData.hasInProgressAttempt = inProgressAttempts.length > 0 && now <= endTime;
-
-        // Resolve the deadline + status: schedule row for this batch wins, else the
-        // quiz's baked end window (hard_lock, matching legacy behavior).
-        const row = quizSchedMap.get(String(quiz._id));
-        const dueAt = row?.dueAt ? new Date(row.dueAt) : endTime;
-        const policy = row ? policyFromRow(row) : mergePolicy(DEFAULT_POLICY, { latePolicy: 'hard_lock' });
-        const sub = hasAttempted ? { status: 'submitted', submittedAt: (latestAttempt as any)?.submittedAt || (latestAttempt as any)?.createdAt } : null;
-        quizData.delivery = {
-          dueAt,
-          startAt: row?.startAt ? new Date(row.startAt) : null,
-          source: row ? 'schedule' : 'baked',
-          latePolicy: policy.latePolicy,
-          status: computeStatus({ policy, dueAt, submission: sub }),
-        };
-
-        return quizData;
-      })
-    );
-
-    // Filter out null values (quizzes student doesn't have access to)
-    const filteredQuizzes = availableQuizzes.filter((q) => q !== null);
+    const filteredQuizzes = assigned.map(a => {
+      const quizData = { ...a.quiz } as any;
+      quizData.isAttempted = a.attemptCount > 0 || a.hasInProgress;
+      quizData.attemptCount = a.attemptCount;
+      quizData.lastAttemptMarks = a.latestAttempt?.obtainedMarks || 0;
+      quizData.lastAttemptPassed = a.latestAttempt
+        ? (a.latestAttempt.obtainedMarks || 0) >= a.quiz.passingMarks
+        : false;
+      quizData.hasInProgressAttempt = a.hasInProgress;
+      quizData.delivery = {
+        dueAt: a.dueAt,
+        startAt: a.startAt,
+        source: a.source,
+        latePolicy: a.latePolicy,
+        status: a.status,
+      };
+      return quizData;
+    });
 
     res.json(filteredQuizzes);
   } catch (error: any) {

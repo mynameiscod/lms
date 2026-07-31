@@ -5,14 +5,19 @@ import { getStudentReport } from '../../api/studentReportApi';
 import { interviewAnalyticsApi } from '../../api/interviewModuleApi';
 import { scheduledInterviewApi } from '../../api';
 import { candidateProofApi } from '../../api/candidateProofApi';
+import {
+  listStudentExams, createExam, updateExam, deleteExam,
+  ExamRecord, ExamSummary,
+} from '../../api/examApi';
 import { Spinner } from '../../components/common';
 import './StudentProfileDetail.css';
 import '../StudentReports/StudentReports.css';
 
-type DetailTab = 'overview' | 'profile' | 'attendance' | 'quizzes' | 'assignments' | 'snippets' | 'interviews' | 'fees' | 'exams';
+type DetailTab = 'overview' | 'profile' | 'attendance' | 'quizzes' | 'assignments' | 'snippets'
+  | 'thinking' | 'communication' | 'interviews' | 'fees' | 'exams';
 
-const ACTIVITY_TABS: DetailTab[] = ['attendance', 'quizzes', 'assignments', 'snippets'];
-const REPORT_TABS: DetailTab[] = ['overview', 'interviews', 'fees', 'exams'];
+const ACTIVITY_TABS: DetailTab[] = ['attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication'];
+const REPORT_TABS: DetailTab[] = ['overview', 'interviews', 'fees'];
 const TAB_LABELS: Record<DetailTab, string> = {
   overview: 'Overview',
   profile: 'Profile',
@@ -20,10 +25,55 @@ const TAB_LABELS: Record<DetailTab, string> = {
   quizzes: 'Quizzes',
   assignments: 'Assignments',
   snippets: 'Code Snippets',
+  thinking: 'Thinking Lab',
+  communication: 'Communication Lab',
   interviews: 'Interviews',
   fees: 'Fees',
   exams: 'Exams',
 };
+
+/**
+ * The delivery statuses the server now returns for every assigned item. Staff and the
+ * student are looking at the same value — before this, the admin side only ever knew
+ * "pending" or whatever an attempt row happened to say.
+ */
+const STATUS_LABELS: Record<string, string> = {
+  not_started: 'Not started',
+  in_progress: 'In progress',
+  submitted: 'Completed',
+  graded: 'Graded',
+  late: 'Completed (late)',
+  overdue: 'Due',
+  missed: 'Missed',
+  pending: 'Not started',
+};
+
+const StatusChip: React.FC<{ status?: string }> = ({ status }) => {
+  const key = String(status || 'not_started').toLowerCase();
+  return <span className={`spd-dstatus ${key}`}>{STATUS_LABELS[key] || status}</span>;
+};
+
+/** "How did this reach the student" — batch/individual targeting vs a schedule row. */
+const SourceChip: React.FC<{ source?: string }> = ({ source }) =>
+  source === 'schedule'
+    ? <span className="spd-src sched" title="Delivered by an assessment schedule">Scheduled</span>
+    : <span className="spd-src" title="Targeted directly on the item">Direct</span>;
+
+interface Tally { total: number; completed: number; pending: number; missed: number; completionRate: number }
+
+/** Assigned-vs-done at a glance, above each work table. */
+const WorkTally: React.FC<{ t: Tally; noun: string }> = ({ t, noun }) => (
+  <div className="spd-tally">
+    <div className="spd-tally-row">
+      <span className="spd-tally-item"><b>{t.total}</b> assigned</span>
+      <span className="spd-tally-item done"><b>{t.completed}</b> completed</span>
+      <span className="spd-tally-item pend"><b>{t.pending}</b> pending</span>
+      {t.missed > 0 && <span className="spd-tally-item miss"><b>{t.missed}</b> missed</span>}
+      <span className="spd-tally-rate">{t.completionRate}% of {noun} done</span>
+    </div>
+    <div className="spd-tally-bar"><div className="spd-tally-fill" style={{ width: `${t.completionRate}%` }} /></div>
+  </div>
+);
 
 const avatarColor = (name: string) => {
   const colors = ['#005897', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#0ea5e9', '#ec4899'];
@@ -179,6 +229,9 @@ const StudentProfileDetail: React.FC = () => {
   const quizAttempts: any[] = activity?.quizAttempts || [];
   const assignments: any[] = activity?.assignmentSubmissions || [];
   const snippets: any[] = activity?.snippetSubmissions || [];
+  const thinking = activity?.thinkingLab;
+  const communication = activity?.communicationLab;
+  const totals = activity?.totals;
 
   // Overview-derived values
   const asg = report?.assignments;
@@ -289,7 +342,7 @@ const StudentProfileDetail: React.FC = () => {
 
       {/* Tabs */}
       <div className="spd-tabs">
-        {(['overview', 'attendance', 'quizzes', 'assignments', 'interviews', 'exams', 'fees', 'snippets'] as DetailTab[]).map(t => (
+        {(['overview', 'attendance', 'quizzes', 'assignments', 'snippets', 'thinking', 'communication', 'interviews', 'exams', 'fees'] as DetailTab[]).map(t => (
           <button
             key={t}
             className={`spd-tab ${activeTab === t ? 'active' : ''}`}
@@ -553,8 +606,9 @@ const StudentProfileDetail: React.FC = () => {
           loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
           quizAttempts.length === 0 ? <p className="spd-empty">No quizzes assigned.</p> :
           <div className="spd-table-wrap">
+            {totals?.quizzes && <WorkTally t={totals.quizzes} noun="quizzes" />}
             <table className="spd-table">
-              <thead><tr><th>Quiz</th><th>Score</th><th>Time Taken</th><th>Status</th><th>Date</th></tr></thead>
+              <thead><tr><th>Quiz</th><th>Score</th><th>Time Taken</th><th>Status</th><th>Due</th><th>Assigned via</th><th>Date</th></tr></thead>
               <tbody>
                 {quizAttempts.map((a: any, i: number) => {
                   const marks = a.obtainedMarks ?? a.score;
@@ -565,7 +619,9 @@ const StudentProfileDetail: React.FC = () => {
                       ? `${marks}/${a.totalMarks ?? '?'}${a.percentage != null ? ` (${a.percentage}%)` : ''}`
                       : '—'}</td>
                     <td>{fmtDur(a.timeSpent)}</td>
-                    <td><span className={`spd-status-badge ${a.status}`}>{a.status}</span></td>
+                    <td><StatusChip status={a.status} /></td>
+                    <td>{fmt(a.dueAt)}</td>
+                    <td><SourceChip source={a.source} /></td>
                     <td>{fmt(a.submittedAt || a.createdAt)}</td>
                   </tr>
                   );
@@ -580,18 +636,21 @@ const StudentProfileDetail: React.FC = () => {
           loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
           assignments.length === 0 ? <p className="spd-empty">No assignments assigned.</p> :
           <div className="spd-table-wrap">
+            {totals?.assignments && <WorkTally t={totals.assignments} noun="assignments" />}
             <table className="spd-table">
-              <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Due Date</th><th>Time Taken</th><th>Status</th><th>Submitted</th></tr></thead>
+              <thead><tr><th>Assignment</th><th>Type</th><th>Score</th><th>Due Date</th><th>Status</th><th>Assigned via</th><th>Submitted</th></tr></thead>
               <tbody>
                 {assignments.map((s: any, i: number) => (
                   <tr key={i}>
                     <td>{(s.assignment as any)?.title || s.assignmentId || '—'}</td>
                     <td>{(s.assignment as any)?.type || '—'}</td>
-                    <td>{s.finalScore !== undefined && s.finalScore !== null ? `${s.finalScore}/${(s.assignment as any)?.totalPoints ?? '?'}` : '—'}</td>
-                    <td>{fmt((s.assignment as any)?.dueDate)}</td>
-                    <td>{fmtDur(s.timeSpent)}</td>
-                    <td><span className={`spd-status-badge ${s.status?.toLowerCase().replace('_', '-')}`}>{s.status}</span></td>
-                    <td>{fmt(s.submittedAt || s.createdAt)}</td>
+                    <td>{s.obtainedPoints !== undefined && s.obtainedPoints !== null
+                      ? `${s.obtainedPoints}/${(s.assignment as any)?.totalPoints ?? '?'}${s.percentage != null ? ` (${s.percentage}%)` : ''}`
+                      : '—'}</td>
+                    <td>{fmt(s.dueAt || (s.assignment as any)?.dueDate)}</td>
+                    <td><StatusChip status={s.status} /></td>
+                    <td><SourceChip source={s.source} /></td>
+                    <td>{fmt(s.submittedAt)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -611,13 +670,104 @@ const StudentProfileDetail: React.FC = () => {
                   <tr key={i}>
                     <td>{(s.assessmentId as any)?.title || '—'}</td>
                     <td>{(s.assessmentId as any)?.language || '—'}</td>
-                    <td>{s.totalMarksAwarded !== undefined ? `${s.totalMarksAwarded}/${(s.assessmentId as any)?.totalMarks || '?'}` : '—'}</td>
-                    <td><span className={`spd-status-badge ${s.status}`}>{s.status}</span></td>
+                    <td>{s.totalMarksAwarded !== undefined && s.totalMarksAwarded !== null ? `${s.totalMarksAwarded}/${(s.assessmentId as any)?.totalMarks || '?'}` : '—'}</td>
+                    <td><StatusChip status={s.status} /></td>
                     <td>{fmt(s.submittedAt || s.createdAt)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* ── Thinking Lab Tab ── */}
+        {activeTab === 'thinking' && (
+          loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
+          !thinking ? <p className="spd-empty">No Thinking Lab activity yet.</p> :
+          <div>
+            <div className="report-stats-grid">
+              <div className="stat-box"><span className="stat-label">XP</span><span className="stat-value">{thinking.summary.xp}</span></div>
+              <div className="stat-box"><span className="stat-label">Level</span><span className="stat-value">{thinking.summary.level}</span></div>
+              <div className="stat-box present"><span className="stat-label">Solved</span><span className="stat-value">{thinking.summary.solvedTotal}</span></div>
+              <div className="stat-box percentage"><span className="stat-label">Streak</span><span className="stat-value">{thinking.summary.currentStreak}</span></div>
+              <div className="stat-box"><span className="stat-label">Best Streak</span><span className="stat-value">{thinking.summary.longestStreak}</span></div>
+              <div className="stat-box"><span className="stat-label">Badges</span><span className="stat-value">{thinking.summary.badges}</span></div>
+            </div>
+
+            {(thinking.strengths?.length > 0 || thinking.weaknesses?.length > 0 || thinking.traits?.length > 0) && (
+              <div className="spd-lab-insight">
+                {thinking.strengths?.length > 0 && (
+                  <div><h5>Strengths</h5><ul>{thinking.strengths.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>
+                )}
+                {thinking.weaknesses?.length > 0 && (
+                  <div><h5>Needs work</h5><ul>{thinking.weaknesses.map((s: string, i: number) => <li key={i}>{s}</li>)}</ul></div>
+                )}
+                {thinking.traits?.length > 0 && (
+                  <div><h5>Traits</h5><ul>{thinking.traits.map((t: any, i: number) => <li key={i}>{t.label}{t.note ? ` — ${t.note}` : ''}</li>)}</ul></div>
+                )}
+              </div>
+            )}
+
+            <h4>Recent Challenges</h4>
+            {thinking.recent.length === 0 ? <p className="spd-empty">No challenges attempted yet.</p> : (
+              <div className="spd-table-wrap">
+                <table className="spd-table">
+                  <thead><tr><th>Date</th><th>Difficulty</th><th>Status</th><th>Score</th><th>Hints Used</th></tr></thead>
+                  <tbody>
+                    {thinking.recent.map((c: any, i: number) => (
+                      <tr key={i}>
+                        <td>{c.date || '—'}</td>
+                        <td>{c.difficulty || '—'}</td>
+                        <td><span className={`spd-status-badge ${c.status}`}>{c.status}</span></td>
+                        <td>{c.score != null ? `${c.score}/10` : '—'}</td>
+                        <td>{c.hintsUsed ?? 0}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Communication Lab Tab ── */}
+        {activeTab === 'communication' && (
+          loadingActivity ? <div className="spd-tab-loading"><Spinner /></div> :
+          !communication ? <p className="spd-empty">No Communication Lab activity yet.</p> :
+          <div>
+            <div className="report-stats-grid">
+              <div className="stat-box"><span className="stat-label">Attempts</span><span className="stat-value">{communication.summary.attempts}</span></div>
+              <div className="stat-box present"><span className="stat-label">Completed</span><span className="stat-value">{communication.summary.completed}</span></div>
+              <div className="stat-box percentage"><span className="stat-label">Avg Overall</span><span className="stat-value">{communication.summary.averageOverall}</span></div>
+              <div className="stat-box"><span className="stat-label">Avg Fluency</span><span className="stat-value">{communication.summary.averageFluency}</span></div>
+              <div className="stat-box"><span className="stat-label">Avg Confidence</span><span className="stat-value">{communication.summary.averageConfidence}</span></div>
+              <div className="stat-box"><span className="stat-label">Streak</span><span className="stat-value">{communication.summary.currentStreak}</span></div>
+            </div>
+
+            <div className="spd-lab-sub">
+              Completed days: <b>{communication.summary.completedDays}</b> · Missed days: <b>{communication.summary.missedDays}</b> · Best streak: <b>{communication.summary.longestStreak}</b>
+            </div>
+
+            <h4>Recent Practice</h4>
+            {communication.recent.length === 0 ? <p className="spd-empty">No practice sessions yet.</p> : (
+              <div className="spd-table-wrap">
+                <table className="spd-table">
+                  <thead><tr><th>Date</th><th>Status</th><th>Overall</th><th>Fluency</th><th>Confidence</th><th>Grammar</th></tr></thead>
+                  <tbody>
+                    {communication.recent.map((a: any, i: number) => (
+                      <tr key={i}>
+                        <td>{fmt(a.date)}</td>
+                        <td><span className={`spd-status-badge ${a.status}`}>{a.status}</span></td>
+                        <td>{a.overall ?? '—'}</td>
+                        <td>{a.fluency ?? '—'}</td>
+                        <td>{a.confidence ?? '—'}</td>
+                        <td>{a.grammar ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
@@ -752,38 +902,173 @@ const StudentProfileDetail: React.FC = () => {
         )}
 
         {/* ── Exams Tab ── */}
-        {activeTab === 'exams' && (
-          loadingReport ? <div className="spd-tab-loading"><Spinner /></div> :
-          !report ? <p className="spd-empty">No exam data found.</p> :
-          <div className="detail-section">
-            <div className="stats-row">
-              <div className="stat-box"><span className="stat-label">Total</span><span className="stat-value">{report.exams?.total ?? 0}</span></div>
-              <div className="stat-box present"><span className="stat-label">Passed</span><span className="stat-value">{report.exams?.passed ?? 0}</span></div>
-              <div className="stat-box absent"><span className="stat-label">Failed</span><span className="stat-value">{report.exams?.failed ?? 0}</span></div>
-              <div className="stat-box percentage"><span className="stat-label">Average %</span><span className="stat-value">{report.exams?.averagePercentage ?? 0}%</span></div>
-            </div>
-            <h4>Recent Exams</h4>
-            <table className="data-table">
-              <thead><tr><th>Exam Name</th><th>Type</th><th>Date</th><th>Score</th><th>Percentage</th><th>Result</th></tr></thead>
-              <tbody>
-                {(report.exams?.recentExams || []).length === 0 ? (
-                  <tr><td colSpan={6} className="no-data">No exam records found</td></tr>
-                ) : (
-                  report.exams.recentExams.map((exam: any, idx: number) => (
-                    <tr key={idx}>
-                      <td>{exam.examName}</td>
-                      <td>{exam.examType}</td>
-                      <td>{new Date(exam.date).toLocaleDateString()}</td>
-                      <td>{exam.scoredMarks}/{exam.maxScore}</td>
-                      <td>{exam.percentage}%</td>
-                      <td><span className={`status-badge ${exam.result}`}>{exam.result}</span></td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+        {activeTab === 'exams' && userId && <ExamsPanel userId={userId} />}
+      </div>
+    </div>
+  );
+};
+
+/**
+ * Exam records — the tab that could never show anything.
+ *
+ * The Exam model and this tab both shipped long ago, but no endpoint existed to CREATE
+ * an exam, so it was permanently empty and offline/placement marks had nowhere to live.
+ * This panel is the missing write side: record a result, correct it, remove it.
+ */
+const BLANK_EXAM = {
+  examName: '', examType: 'internal', date: new Date().toISOString().slice(0, 10),
+  maxScore: 100, scoredMarks: 0, result: '', remarks: '',
+};
+
+const ExamsPanel: React.FC<{ userId: string }> = ({ userId }) => {
+  const [exams, setExams] = useState<ExamRecord[]>([]);
+  const [summary, setSummary] = useState<ExamSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState<any>({ ...BLANK_EXAM });
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState('');
+
+  const load = () => {
+    setLoading(true);
+    listStudentExams(userId)
+      .then(d => { setExams(d.exams || []); setSummary(d.summary); setErr(''); })
+      .catch(e => setErr(e.message || 'Failed to load exams'))
+      .finally(() => setLoading(false));
+  };
+  useEffect(load, [userId]);
+
+  const openNew = () => { setForm({ ...BLANK_EXAM }); setEditingId(null); setShowForm(true); setErr(''); };
+  const openEdit = (e: ExamRecord) => {
+    setForm({
+      examName: e.examName, examType: e.examType, date: new Date(e.date).toISOString().slice(0, 10),
+      maxScore: e.maxScore, scoredMarks: e.scoredMarks, result: e.result, remarks: e.remarks || '',
+    });
+    setEditingId(e._id); setShowForm(true); setErr('');
+  };
+
+  const save = async () => {
+    setSaving(true); setErr('');
+    try {
+      const payload = {
+        ...form,
+        maxScore: Number(form.maxScore),
+        scoredMarks: Number(form.scoredMarks),
+        // Blank means "work it out from the marks" — don't send an empty string.
+        ...(form.result ? { result: form.result } : {}),
+      };
+      if (editingId) await updateExam(editingId, payload);
+      else await createExam({ ...payload, studentId: userId });
+      setShowForm(false);
+      load();
+    } catch (e: any) {
+      setErr(e.message || 'Failed to save');
+    } finally { setSaving(false); }
+  };
+
+  const remove = async (e: ExamRecord) => {
+    if (!window.confirm(`Delete "${e.examName}"? This cannot be undone.`)) return;
+    try { await deleteExam(e._id); load(); }
+    catch (ex: any) { setErr(ex.message || 'Failed to delete'); }
+  };
+
+  const pct = Number(form.maxScore) > 0
+    ? Math.round((Number(form.scoredMarks) || 0) / Number(form.maxScore) * 100) : 0;
+
+  if (loading) return <div className="spd-tab-loading"><Spinner /></div>;
+
+  return (
+    <div className="detail-section">
+      <div className="spd-exam-head">
+        <h4>Exam Records</h4>
+        <button className="spd-btn-primary" onClick={openNew}>+ Record Exam</button>
+      </div>
+
+      {err && <div className="spd-exam-error">{err}</div>}
+
+      {summary && (
+        <div className="stats-row">
+          <div className="stat-box"><span className="stat-label">Total</span><span className="stat-value">{summary.total}</span></div>
+          <div className="stat-box present"><span className="stat-label">Passed</span><span className="stat-value">{summary.passed}</span></div>
+          <div className="stat-box absent"><span className="stat-label">Failed</span><span className="stat-value">{summary.failed}</span></div>
+          <div className="stat-box percentage"><span className="stat-label">Average %</span><span className="stat-value">{summary.averagePercentage}%</span></div>
+        </div>
+      )}
+
+      {showForm && (
+        <div className="spd-exam-form">
+          <div className="spd-exam-grid">
+            <label>Exam Name
+              <input value={form.examName} onChange={e => setForm({ ...form, examName: e.target.value })}
+                placeholder="e.g. Java Internal 1" />
+            </label>
+            <label>Type
+              <select value={form.examType} onChange={e => setForm({ ...form, examType: e.target.value })}>
+                <option value="internal">Internal</option>
+                <option value="external">External</option>
+                <option value="certification">Certification</option>
+                <option value="placement">Placement</option>
+              </select>
+            </label>
+            <label>Date
+              <input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} />
+            </label>
+            <label>Max Score
+              <input type="number" min={1} value={form.maxScore}
+                onChange={e => setForm({ ...form, maxScore: e.target.value })} />
+            </label>
+            <label>Scored Marks
+              <input type="number" min={0} value={form.scoredMarks}
+                onChange={e => setForm({ ...form, scoredMarks: e.target.value })} />
+            </label>
+            <label>Result
+              <select value={form.result} onChange={e => setForm({ ...form, result: e.target.value })}>
+                <option value="">Auto ({pct >= 40 ? 'pass' : 'fail'} at {pct}%)</option>
+                <option value="pass">Pass</option>
+                <option value="fail">Fail</option>
+                <option value="pending">Pending</option>
+              </select>
+            </label>
+            <label className="spd-exam-wide">Remarks
+              <input value={form.remarks} onChange={e => setForm({ ...form, remarks: e.target.value })}
+                placeholder="Optional note" />
+            </label>
           </div>
-        )}
+          <div className="spd-exam-actions">
+            <span className="spd-exam-pct">{pct}%</span>
+            <button className="spd-btn-ghost" onClick={() => setShowForm(false)} disabled={saving}>Cancel</button>
+            <button className="spd-btn-primary" onClick={save} disabled={saving}>
+              {saving ? 'Saving…' : editingId ? 'Update' : 'Save'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="spd-table-wrap">
+        <table className="spd-table">
+          <thead><tr><th>Exam Name</th><th>Type</th><th>Date</th><th>Score</th><th>%</th><th>Grade</th><th>Result</th><th>Remarks</th><th></th></tr></thead>
+          <tbody>
+            {exams.length === 0 ? (
+              <tr><td colSpan={9} className="no-data">No exam records yet. Use “Record Exam” to add one.</td></tr>
+            ) : exams.map(e => (
+              <tr key={e._id}>
+                <td>{e.examName}</td>
+                <td>{e.examType}</td>
+                <td>{new Date(e.date).toLocaleDateString()}</td>
+                <td>{e.scoredMarks}/{e.maxScore}</td>
+                <td>{e.percentage}%</td>
+                <td>{e.grade || '—'}</td>
+                <td><span className={`status-badge ${e.result}`}>{e.result}</span></td>
+                <td>{e.remarks || '—'}</td>
+                <td className="spd-exam-row-actions">
+                  <button className="spd-btn-ghost" onClick={() => openEdit(e)}>Edit</button>
+                  <button className="spd-btn-danger" onClick={() => remove(e)}>Delete</button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   );

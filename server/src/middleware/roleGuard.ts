@@ -79,6 +79,13 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       { key: 'attempt_interviews', label: 'Attempt Assigned Interviews' },
     ]
   },
+  exams: {
+    label: 'Exams (Offline / External Marks)',
+    permissions: [
+      { key: 'manage_exams', label: 'Record, Edit & Delete Exam Marks' },
+      { key: 'view_exams', label: 'View Exam Records' },
+    ]
+  },
   reports: {
     label: 'Reports & Analytics',
     permissions: [
@@ -271,6 +278,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_passport', 'view_passport_members', 'convert_passport_member', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
+    // Exams — record and correct offline/external marks
+    'manage_exams', 'view_exams',
   ],
   INSTRUCTOR: [
     // Courses
@@ -306,6 +315,8 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_placement',
     // Tech Battles — run competitions, but exporting registrant PII stays with admins
     'manage_battles', 'view_battles', 'review_battle_registrations',
+    // Exams — instructors conduct them, so they enter and correct the marks
+    'manage_exams', 'view_exams',
   ],
   ATTENDANCE_ADMIN: [
     'mark_attendance', 'view_attendance', 'view_reports',
@@ -326,6 +337,9 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Tech Battles — process registrations only. Creating, deleting, broadcasting to
     // the public and exporting PII all stay above STAFF.
     'view_battles', 'review_battle_registrations',
+    // Exams — read-only. A mark decides whether a student passed, so entering and
+    // correcting one stays with instructors and admins.
+    'view_exams',
   ],
   STUDENT: [
     'enroll_courses', 'view_courses', 'view_public_courses', 'access_resources',

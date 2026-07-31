@@ -9,9 +9,16 @@ import CodeSnippetSubmission from '../models/CodeSnippetSubmission';
 import Attendance from '../models/Attendance';
 import Assignment from '../models/Assignment';
 import CodeSnippetAssessment from '../models/CodeSnippetAssessment';
+import StudentGameStats from '../models/StudentGameStats';
+import DailyChallenge from '../models/DailyChallenge';
+import ThinkingProfile from '../models/ThinkingProfile';
+import CommunicationAttempt from '../models/CommunicationAttempt';
+import CommunicationStreak from '../models/CommunicationStreak';
 import { AuthRequest } from '../types/express';
 import { computeProfileCompleteness, computeProfileMissing } from '../utils/profileCompleteness';
 import { EmailService } from '../services/emailService';
+import { resolveAssignedQuizzes, resolveAssignedSnippets, tallyStatuses } from '../services/studentWorkService';
+import assignmentService from '../services/assignmentService';
 
 // GET - Get current user's student profile
 export const getMyProfile = async (req: AuthRequest, res: Response) => {
@@ -506,68 +513,65 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
     const batchId = student?.batchId ? new mongoose.Types.ObjectId(String(student.batchId)) : null;
     const batchStr = batchId ? String(batchId) : '';
 
-    // "Assigned to this student" = targeted to THEIR BATCH or to THEM INDIVIDUALLY.
-    // We deliberately exclude "everyone"/course-wide/global items so the profile shows
-    // only what was really assigned to this person (no flood of unrelated tasks).
-    const NONE = { _id: { $in: [] as any[] } }; // matches nothing when no batch
-    const quizQuery: any = {
-      tenantId: tenantStr, archivedAt: { $in: [null, undefined] },
-      $or: [
-        ...(batchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchStr }] : []),
-        { accessibleTo: 'individual', selectedStudents: userId },
-      ],
-    };
-    const assignmentQuery: any = {
-      ...(tenantObjId ? { tenant: tenantObjId } : {}), status: 'published',
-      $or: [
-        ...(batchStr ? [{ accessibleTo: 'batch_wise', selectedBatches: batchStr }] : []),
-        { accessibleTo: 'individual', selectedStudents: userId },
-        ...(batchId ? [{ accessibleTo: { $exists: false }, batch: batchId }] : []), // legacy batch-scoped
-      ],
-    };
-    const snippetQuery: any = batchStr ? { tenantId: tenantStr, status: 'published', batchIds: batchStr } : NONE;
-
-    const [attendanceRecords, quizAttemptsRaw, submissionsRaw, snippetSubsRaw, assignedQuizzes, assignedAssignments, assignedSnippets] = await Promise.all([
+    // "Assigned to this student" is resolved by the SHARED service — the same code the
+    // student's own screens use. This used to be a hand-rolled query here that only
+    // knew about batch_wise/individual targeting, so anything delivered through an
+    // AssessmentSchedule was invisible to staff while the student saw it every day.
+    const [attendanceRecords, assignedQuizzes, assignedAssignments, assignedSnippets] = await Promise.all([
       Attendance.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) }).sort({ date: -1 }).limit(60).lean(),
-      QuizAttempt.find({ studentId: userId, tenantId: tenantStr }).sort({ createdAt: -1 }).lean(),
-      Submission.find({ student: userObjId, ...(tenantObjId ? { tenant: tenantObjId } : {}) }).sort({ createdAt: -1 }).lean(),
-      CodeSnippetSubmission.find({ studentId: userObjId, ...(tenantObjId ? { tenantId: tenantObjId } : {}) }).sort({ createdAt: -1 }).lean(),
-      Quiz.find(quizQuery).select('title totalMarks').sort({ createdAt: -1 }).lean(),
-      Assignment.find(assignmentQuery).select('title type totalPoints dueDate').sort({ createdAt: -1 }).lean(),
-      CodeSnippetAssessment.find(snippetQuery).select('title language totalMarks').sort({ createdAt: -1 }).lean(),
+      resolveAssignedQuizzes(tenantStr, userId, batchStr || null),
+      tenantObjId
+        ? assignmentService.getStudentAssignments(tenantObjId, userObjId, batchId || undefined)
+        : Promise.resolve([] as any[]),
+      resolveAssignedSnippets(tenantStr, userId, batchStr || null),
     ]);
 
-    // ── Merge assigned items with the student's attempts/submissions ──────────
-    const bestBy = (rows: any[], key: (r: any) => string) => {
-      const m = new Map<string, any>();
-      for (const r of rows) { const k = key(r); if (!m.has(k)) m.set(k, r); } // rows are newest-first
-      return m;
-    };
-    const attemptByQuiz = bestBy(quizAttemptsRaw, (r) => String(r.quizId));
-    const subByAssignment = bestBy(submissionsRaw, (r) => String(r.assignment));
-    const subBySnippet = bestBy(snippetSubsRaw, (r) => String(r.assessmentId));
-
-    // Quizzes → all assigned, with attempt info (pending = 'pending').
-    const quizAttempts = assignedQuizzes.map((q: any) => {
-      const a = attemptByQuiz.get(String(q._id));
-      return a
-        ? { ...a, quizId: String(q._id), quizTitle: q.title, totalMarks: a.totalMarks ?? q.totalMarks, assigned: true }
-        : { quizId: String(q._id), quizTitle: q.title, totalMarks: q.totalMarks, status: 'pending', assigned: true, attempted: false };
+    // Quizzes → every assigned quiz with its real delivery status.
+    const quizAttempts = assignedQuizzes.map((a) => {
+      const at = a.latestAttempt;
+      return {
+        ...(at ? (typeof at.toObject === 'function' ? at.toObject() : at) : {}),
+        quizId: String(a.quiz._id),
+        quizTitle: a.quiz.title,
+        totalMarks: at?.totalMarks ?? a.quiz.totalMarks,
+        obtainedMarks: at?.obtainedMarks ?? null,
+        status: a.status,                 // not_started | in_progress | submitted | late | graded | overdue | missed
+        attempted: a.attemptCount > 0 || a.hasInProgress,
+        attemptCount: a.attemptCount,
+        assigned: true,
+        dueAt: a.dueAt,
+        source: a.source,                 // 'schedule' | 'baked' — how it reached them
+      };
     });
 
-    // Assignments → all assigned, with submission info.
-    const assignmentSubmissions = assignedAssignments.map((asg: any) => {
-      const s = subByAssignment.get(String(asg._id));
-      const assignment = { _id: asg._id, title: asg.title, type: asg.type, totalPoints: asg.totalPoints, dueDate: asg.dueDate };
-      return s ? { ...s, assignment, assigned: true } : { assignmentId: String(asg._id), assignment, status: 'PENDING', assigned: true, attempted: false };
-    });
+    // Assignments → straight from the student-facing resolver, so the two agree.
+    const assignmentSubmissions = (assignedAssignments as any[]).map((asg: any) => ({
+      assignmentId: String(asg._id),
+      assignment: {
+        _id: asg._id, title: asg.title, type: asg.type,
+        totalPoints: asg.totalPoints, dueDate: asg.dueDate,
+      },
+      status: asg.delivery?.status || 'not_started',
+      attempted: !!asg.submission,
+      obtainedPoints: asg.submission?.finalScore ?? null,
+      percentage: asg.submission?.percentage ?? null,
+      submittedAt: asg.submission?.submittedAt || null,
+      assigned: true,
+      dueAt: asg.delivery?.dueAt || asg.dueDate || null,
+      source: asg.delivery?.source || 'baked',
+    }));
 
-    // Code snippets → all assigned, with submission info.
-    const snippetSubmissions = assignedSnippets.map((asmt: any) => {
-      const s = subBySnippet.get(String(asmt._id));
-      const assessmentId = { _id: asmt._id, title: asmt.title, language: asmt.language, totalMarks: asmt.totalMarks };
-      return s ? { ...s, assessmentId, assigned: true } : { status: 'pending', assessmentId, assigned: true, attempted: false };
-    });
+    // Code snippets → same resolver as the student's list.
+    const snippetSubmissions = assignedSnippets.map((s) => ({
+      assessmentId: {
+        _id: s.assessment._id, title: s.assessment.title,
+        language: s.assessment.language, totalMarks: s.assessment.totalMarks,
+      },
+      status: s.status,
+      attempted: !!s.submission,
+      totalMarksAwarded: s.submission?.totalMarksAwarded ?? null,
+      assigned: true,
+    }));
 
     // Attendance summary
     const present = attendanceRecords.filter((a: any) => a.status === 'present').length;
@@ -575,6 +579,66 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
     const late = attendanceRecords.filter((a: any) => a.status === 'late').length;
     const totalDays = present + absent + late;
     const attendancePercentage = totalDays > 0 ? Math.round(((present + late) / totalDays) * 100) : 0;
+
+    // ── Student labs — previously untrackable from the admin side at all ────────
+    const [gameStats, challenges, thinkingProfile, commAttempts, commStreak] = await Promise.all([
+      StudentGameStats.findOne({ tenantId: tenantStr, studentId: userObjId }).lean(),
+      DailyChallenge.find({ tenantId: tenantStr, studentId: userObjId }).sort({ date: -1 }).limit(30).lean(),
+      ThinkingProfile.findOne({ tenantId: tenantStr, studentId: userObjId }).lean(),
+      tenantObjId
+        ? CommunicationAttempt.find({ tenantId: tenantObjId, studentId: userObjId }).sort({ createdAt: -1 }).limit(30).lean()
+        : Promise.resolve([] as any[]),
+      tenantObjId
+        ? CommunicationStreak.findOne({ tenantId: tenantObjId, studentId: userObjId }).lean()
+        : Promise.resolve(null as any),
+    ]);
+
+    const gs: any = gameStats;
+    const solved = (challenges as any[]).filter(c => c.status === 'solved');
+    const thinkingLab = {
+      summary: {
+        xp: gs?.xpTotal || 0,
+        level: gs?.level || 1,
+        solvedTotal: gs?.solvedTotal || 0,
+        currentStreak: gs?.currentStreak || 0,
+        longestStreak: gs?.longestStreak || 0,
+        badges: (gs?.badges || []).length,
+        lastSolvedDate: gs?.lastSolvedDate || null,
+        assignedRecent: challenges.length,
+        solvedRecent: solved.length,
+      },
+      traits: (thinkingProfile as any)?.traits || [],
+      strengths: (thinkingProfile as any)?.strengths || [],
+      weaknesses: (thinkingProfile as any)?.weaknesses || [],
+      recent: (challenges as any[]).slice(0, 15).map(c => ({
+        date: c.date, difficulty: c.difficulty, status: c.status,
+        score: c.evaluation?.overall ?? null, hintsUsed: c.hintsUsed ?? 0,
+      })),
+    };
+
+    const completedComm = (commAttempts as any[]).filter(a => a.status === 'completed');
+    const avg = (pick: (a: any) => number) => completedComm.length
+      ? Math.round(completedComm.reduce((s, a) => s + (pick(a) || 0), 0) / completedComm.length)
+      : 0;
+    const communicationLab = {
+      summary: {
+        attempts: commAttempts.length,
+        completed: completedComm.length,
+        averageOverall: avg(a => a.overallScore),
+        averageFluency: avg(a => a.fluencyScore),
+        averageConfidence: avg(a => a.confidenceScore),
+        averageGrammar: avg(a => a.grammarScore),
+        currentStreak: (commStreak as any)?.currentStreak || 0,
+        longestStreak: (commStreak as any)?.longestStreak || 0,
+        completedDays: (commStreak as any)?.totalCompletedDays || 0,
+        missedDays: (commStreak as any)?.totalMissedDays || 0,
+      },
+      recent: (commAttempts as any[]).slice(0, 15).map(a => ({
+        date: a.practiceDate || a.createdAt, status: a.status,
+        overall: a.overallScore ?? null, fluency: a.fluencyScore ?? null,
+        confidence: a.confidenceScore ?? null, grammar: a.grammarScore ?? null,
+      })),
+    };
 
     res.json({
       success: true,
@@ -586,6 +650,14 @@ export const getStudentActivity = async (req: AuthRequest, res: Response) => {
         quizAttempts,
         assignmentSubmissions,
         snippetSubmissions,
+        thinkingLab,
+        communicationLab,
+        // Headline counts so every screen agrees on "assigned vs done".
+        totals: {
+          quizzes: tallyStatuses(assignedQuizzes.map(a => a.status)),
+          assignments: tallyStatuses((assignedAssignments as any[]).map(a => a.delivery?.status || 'not_started')),
+          snippets: tallyStatuses(assignedSnippets.map(s => s.status)),
+        },
       },
     });
   } catch (error) {

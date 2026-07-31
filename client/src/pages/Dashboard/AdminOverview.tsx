@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import XpLeaderboard from '../../components/dashboard/XpLeaderboard';
 import { useNavigate } from 'react-router-dom';
 import { dashboardApi } from '../../api';
 import './AdminOverview.css';
@@ -106,6 +107,7 @@ const AdminOverview: React.FC<{ firstName?: string }> = ({ firstName }) => {
 
   return (
     <div className="ov-page">
+      <XpLeaderboard />
       <div className="ov-head">
         <div>
           <h1>Welcome back, {firstName || 'Admin'} 👋</h1>

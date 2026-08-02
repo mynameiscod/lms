@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { resolveCareerProfile } from '../services/careerStageService';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
@@ -116,6 +117,19 @@ export const signup = async (req: Request, res: Response) => {
         passport: {
           active: false, product: 'career_passport', onboarded: true,
           degree: fields.degree, yearOfStudy: fields.yearOfStudy, careerGoal: fields.careerGoal, pathway: fields.pathway,
+          // Career staging. Stored raw AND derived: the raw graduation date is the
+          // fact, `stage` is a cached read of it that is recomputed on every login so
+          // a member advances from foundation to placement without anyone editing them.
+          program: fields.program, branch: fields.branch,
+          graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : undefined,
+          graduationYear: fields.graduationYear ? Number(fields.graduationYear) : undefined,
+          graduated: fields.graduated === true || fields.graduated === 'true',
+          ...resolveCareerProfile({
+            program: fields.program, branch: fields.branch,
+            graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : null,
+            graduationYear: fields.graduationYear ? Number(fields.graduationYear) : null,
+            graduated: fields.graduated === true || fields.graduated === 'true',
+          }),
         },
       });
     }

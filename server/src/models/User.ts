@@ -26,6 +26,17 @@ export interface IUser extends Document {
     onboarded?: boolean;
     degree?: string;
     yearOfStudy?: string;
+    // Career staging. yearOfStudy alone cannot drive content: a 3rd-year B.Sc is in
+    // their final year while a 3rd-year B.Tech is mid-course. The graduation date can,
+    // and `stage` is DERIVED from it so a member advances without anyone editing a record.
+    program?: string;              // B.Tech | B.Sc | MCA | Diploma | …
+    branch?: string;               // specialization, drives cs / non_cs
+    graduationMonth?: number;      // 1-12
+    graduationYear?: number;
+    graduated?: boolean;
+    stage?: string;                // foundation | build | placement | job_seeker
+    background?: string;           // cs | non_cs | any
+    stageComputedAt?: Date;
     careerGoal?: string;
     pathway?: string;
     careerScore?: number;      // cached from latest assessment (for card/Mission Control)
@@ -128,6 +139,14 @@ const UserSchema: Schema = new Schema(
       default: false
     },
     passport: {
+      program:         { type: String },
+      branch:          { type: String },
+      graduationMonth: { type: Number },
+      graduationYear:  { type: Number },
+      graduated:       { type: Boolean },
+      stage:           { type: String, index: true },
+      background:      { type: String },
+      stageComputedAt: { type: Date },
       active:      { type: Boolean, default: false },
       product:     { type: String },
       activatedAt: { type: Date },

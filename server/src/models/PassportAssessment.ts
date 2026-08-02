@@ -26,6 +26,12 @@ export interface IPassportQuestion {
   options: string[];
   correctIndex: number;   // -1 for self-report (career_clarity) — any answer scores by index weight
   weight: number;         // points if correct (default 1)
+  /** Which career stages this applies to. Empty or absent = every stage, which is
+   *  what all existing content is, so nothing changes until an admin narrows it. */
+  stages?: string[];
+  /** 'cs' | 'non_cs' | 'any'. Absent = any. */
+  background?: string;
+
   selfReport?: boolean;   // if true, score = (chosen option's implied readiness) not right/wrong
 }
 
@@ -43,6 +49,9 @@ const QuestionSchema = new Schema<IPassportQuestion>({
   options:     [{ type: String }],
   correctIndex:{ type: Number, default: -1 },
   weight:      { type: Number, default: 1 },
+  stages:     { type: [String], default: [] },
+  background: { type: String, default: 'any' },
+
   selfReport:  { type: Boolean, default: false },
 }, { _id: true });
 

@@ -88,3 +88,47 @@ export function resolveCareerProfile(input: {
     stageComputedAt: input.now || new Date(),
   };
 }
+
+/**
+ * Does a piece of content apply to this member?
+ *
+ * Written once and shared by the assessment filter and the mission generator, because
+ * the failure mode otherwise is subtle: two near-identical predicates that drift, so a
+ * student is asked a placement question but never given the matching placement mission.
+ *
+ * Both filters default to INCLUDE. Untagged content — which is every question and
+ * mission that exists today — serves everyone, so tagging is opt-in and nothing
+ * disappears the moment this ships. A member with no stage (unknown graduation date)
+ * likewise sees everything rather than being guessed into a segment.
+ */
+export function appliesToMember(
+  content: { stages?: string[] | null; background?: string | null },
+  member: { stage?: string | null; background?: string | null },
+): boolean {
+  const stages = content.stages || [];
+  if (stages.length && member.stage && !stages.includes(member.stage)) return false;
+
+  const want = content.background || 'any';
+  if (want !== 'any' && member.background && want !== member.background) return false;
+
+  return true;
+}
+
+/**
+ * Guard against a stage being served an empty or near-empty paper.
+ *
+ * A stage with three questions still produces a score out of 100, and that score is
+ * meaningless — but nothing in the system would say so. Admin screens call this to warn
+ * before a thin segment reaches a student.
+ */
+export function coverageByStage(
+  items: { stages?: string[] | null }[],
+): Record<CareerStage, number> {
+  const out = { foundation: 0, build: 0, placement: 0, job_seeker: 0 } as Record<CareerStage, number>;
+  for (const it of items) {
+    const tags = it.stages || [];
+    if (!tags.length) { for (const k of Object.keys(out) as CareerStage[]) out[k]++; continue; }
+    for (const t of tags) if (t in out) out[t as CareerStage]++;
+  }
+  return out;
+}

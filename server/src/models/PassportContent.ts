@@ -16,7 +16,13 @@ export interface IMissionPoolItem {
   detail: string;
   type: string;          // learn | practice | aptitude | communication | resume | mock
   xp: number;
-  link?: string;         // in-product destination, e.g. /passport/practice
+  link?: string;         // in-product destination, e.g. /careerpilot/practice
+  /** Which career stages this applies to. Empty or absent = every stage, which is
+   *  what all existing content is, so nothing changes until an admin narrows it. */
+  stages?: string[];
+  /** 'cs' | 'non_cs' | 'any'. Absent = any. */
+  background?: string;
+
 }
 
 export interface IMissionPool {
@@ -30,6 +36,10 @@ export interface IPassportPathway {
   description: string;
   focus: string[];        // category keys this pathway emphasises
   weekThemes: string[];   // 13 themes — one per week of the 90-day journey
+  /** Stage this pathway is written for. Absent = serves every stage, which is what
+   *  today's pathways are. A foundation plan and a placement plan for the same track
+   *  are two pathways sharing a key, not one pathway with a filter. */
+  stage?: string;
 }
 
 export interface IPassportContent extends Document {
@@ -45,6 +55,9 @@ const MissionPoolItemSchema = new Schema<IMissionPoolItem>({
   title:  { type: String, required: true },
   detail: { type: String, default: '' },
   type:   { type: String, default: 'learn' },
+  stages:     { type: [String], default: [] },
+  background: { type: String, default: 'any' },
+
   xp:     { type: Number, default: 20 },
   link:   { type: String },
 }, { _id: false });
@@ -56,6 +69,7 @@ const MissionPoolSchema = new Schema<IMissionPool>({
 
 const PathwaySchema = new Schema<IPassportPathway>({
   key:         { type: String, required: true },
+  stage:       { type: String },
   label:       { type: String, required: true },
   description: { type: String, default: '' },
   focus:       [{ type: String }],

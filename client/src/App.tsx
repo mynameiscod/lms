@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import LabTracks from './pages/LabTracks';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
@@ -318,14 +318,24 @@ const HotLeadToast: React.FC = () => {
   );
 };
 
+/** Old card links carry a slug that must survive the move to /careerpilot. */
+const LegacyCardRedirect: React.FC = () => {
+  const { slug } = useParams<{ slug: string }>();
+  return <Navigate to={`/careerpilot/card/${slug}`} replace />;
+};
+
 const AppRoutes: React.FC = () => {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      <Route path="/passport/join" element={<PassportJoin />} />
-      <Route path="/passport/login" element={<PassportLogin />} />
-      <Route path="/passport/card/:slug" element={<PassportCard />} />
+      <Route path="/careerpilot/join" element={<PassportJoin />} />
+      <Route path="/passport/join" element={<Navigate to="/careerpilot/join" replace />} />
+      <Route path="/careerpilot/login" element={<PassportLogin />} />
+      <Route path="/passport/login" element={<Navigate to="/careerpilot/login" replace />} />
+      <Route path="/careerpilot/card/:slug" element={<PassportCard />} />
+      {/* Card links live in recruiters' inboxes; this redirect can never be removed. */}
+      <Route path="/passport/card/:slug" element={<LegacyCardRedirect />} />
       {/* ── Public Tech Battles (no auth) ── */}
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />
@@ -405,13 +415,20 @@ const AppRoutes: React.FC = () => {
       {/* Layout route: MemberShell mounts ONCE here and only <Outlet/> swaps, so the
           sidebar no longer remounts (and re-fetches) on every nav click. */}
       <Route element={<ProtectedRoute><PassportMemberLayout /></ProtectedRoute>}>
-        <Route path="/passport" element={<PassportHome />} />
-        <Route path="/passport/assessment" element={<PassportAssessmentPage />} />
-        <Route path="/passport/roadmap" element={<PassportRoadmap />} />
-        <Route path="/passport/practice" element={<PassportPractice />} />
-        <Route path="/passport/practice/:id" element={<PassportPracticeItem />} />
-        <Route path="/passport/interview" element={<PassportInterview />} />
-        <Route path="/passport/resume" element={<PassportResumeCenter />} />
+        <Route path="/careerpilot" element={<PassportHome />} />
+        <Route path="/passport" element={<Navigate to="/careerpilot" replace />} />
+        <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
+        <Route path="/passport/assessment" element={<Navigate to="/careerpilot/assessment" replace />} />
+        <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
+        <Route path="/passport/roadmap" element={<Navigate to="/careerpilot/roadmap" replace />} />
+        <Route path="/careerpilot/practice" element={<PassportPractice />} />
+        <Route path="/passport/practice" element={<Navigate to="/careerpilot/practice" replace />} />
+        <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
+        <Route path="/passport/practice/:id" element={<Navigate to="/careerpilot/practice/:id" replace />} />
+        <Route path="/careerpilot/interview" element={<PassportInterview />} />
+        <Route path="/passport/interview" element={<Navigate to="/careerpilot/interview" replace />} />
+        <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
+        <Route path="/passport/resume" element={<Navigate to="/careerpilot/resume" replace />} />
       </Route>
 
       <Route

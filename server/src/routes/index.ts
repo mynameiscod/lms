@@ -111,7 +111,11 @@ import { unsubscribe } from '../controllers/unsubscribeController';
 const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
-router.use('/public/passport', publicPassportRoutes); // CareerPilot signup (specific, before generic /public)
+// CareerPilot signup (specific, before generic /public). Mounted at BOTH paths:
+// /passport is the legacy path and must keep answering, because member card links
+// already sent to recruiters point at it and cannot be recalled.
+router.use('/public/careerpilot', publicPassportRoutes);
+router.use('/public/passport', publicPassportRoutes);
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount
@@ -210,7 +214,8 @@ router.use('/thinking-lab', thinkingLabRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/batch-offerings', batchOfferingRoutes);
 router.use('/assessment-schedules', assessmentScheduleRoutes);
-router.use('/passport', passportRoutes);
+router.use('/careerpilot', passportRoutes);
+router.use('/passport', passportRoutes);   // legacy alias — keeps existing clients working
 router.use('/concept-lessons', conceptLessonRoutes);
 router.use('/interactive-lessons', interactiveLessonRoutes);
 

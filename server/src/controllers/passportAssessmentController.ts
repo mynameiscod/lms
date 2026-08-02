@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { appliesToMember } from '../services/careerStageService';
 import PassportAssessment, { DEFAULT_QUESTIONS } from '../models/PassportAssessment';
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
@@ -14,12 +15,28 @@ async function ensureAssessment(tenantId: string) {
 }
 
 /** Student: fetch the assessment (correct answers stripped). */
+/** The member's stage and background, for filtering. Absent values mean "serve all". */
+async function memberProfile(req: Request): Promise<{ stage: string | null; background: string | null }> {
+  const User = (await import('../models/User')).default;
+  const u: any = await User.findById(userIdOf(req)).select('passport.stage passport.background').lean();
+  return { stage: u?.passport?.stage || null, background: u?.passport?.background || null };
+}
+
 export const getAssessment = async (req: Request, res: Response) => {
   try {
     const a = await ensureAssessment(tenantOf(req));
+
+    // Serve only what applies to this member's stage and background. Asking a first-year
+    // student to describe an internship they have not had scores them zero on something
+    // that does not exist yet — the low score is then used to build a roadmap aimed at
+    // gaps they do not have. Untagged questions still reach everyone.
+    const me = await memberProfile(req);
+    const questions = a.questions.filter((q: any) => appliesToMember(q, me));
+
     res.json({
       title: a.title,
-      questions: a.questions.map((q: any) => ({ id: String(q._id), category: q.category, text: q.text, options: q.options })),
+      stage: me.stage || null,
+      questions: questions.map((q: any) => ({ id: String(q._id), category: q.category, text: q.text, options: q.options })),
     });
   } catch (e: any) { res.status(500).json({ message: e.message || 'Failed to load assessment' }); }
 };

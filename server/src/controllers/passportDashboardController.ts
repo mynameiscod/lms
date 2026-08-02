@@ -51,7 +51,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     }
 
     const progress = await getOrCreateProgress(tenantId, studentId, user?.passport?.activatedAt || new Date());
-    const pools = poolMapOf(content.missionPools);
+    const pools = poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null });
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
     const totalDays = content.journeyDays || 90;

@@ -11,6 +11,7 @@ import PassportContent, {
   DEFAULT_MISSION_POOLS, DEFAULT_PATHWAYS,
   IMissionPool, IMissionPoolItem, IPassportPathway,
 } from '../models/PassportContent';
+import { appliesToMember } from './careerStageService';
 
 export interface Mission { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; }
 export interface AttemptLite {
@@ -38,18 +39,41 @@ export async function ensureContent(tenantId: string) {
 }
 
 /** Normalise a content doc's pools into a category → items map, falling back to defaults. */
-export function poolMapOf(pools?: IMissionPool[] | null): PoolMap {
+export function poolMapOf(
+  pools?: IMissionPool[] | null,
+  member?: { stage?: string | null; background?: string | null },
+): PoolMap {
   const src = (pools && pools.length ? pools : DEFAULT_MISSION_POOLS);
   const out: PoolMap = {};
-  for (const p of src) if (p?.category && p.items?.length) out[p.category] = p.items as IMissionPoolItem[];
+  // Filtering here rather than at each call site means the daily missions and the
+  // 90-day roadmap read the same pool — tag a mission once and both change together.
+  // A member with no stage, or an untagged mission, is unaffected.
+  const keep = (it: any) => !member || appliesToMember(it, member);
+  for (const p of src) {
+    if (!p?.category || !p.items?.length) continue;
+    const items = (p.items as IMissionPoolItem[]).filter(keep);
+    if (items.length) out[p.category] = items;
+  }
   // Any category the admin emptied falls back to the default so generation never yields nothing.
   for (const d of DEFAULT_MISSION_POOLS) if (!out[d.category]?.length) out[d.category] = d.items;
   return out;
 }
 
-export function pathwayOf(pathways: IPassportPathway[] | undefined, key: string): IPassportPathway {
+export function pathwayOf(
+  pathways: IPassportPathway[] | undefined,
+  key: string,
+  stage?: string | null,
+): IPassportPathway {
   const list = (pathways && pathways.length ? pathways : DEFAULT_PATHWAYS);
-  return list.find(p => p.key === key) || list.find(p => p.key === 'it_bridge') || list[0];
+  // A stage-specific pathway wins when one has been authored: a foundation plan and a
+  // placement plan for the same track have different WEEK THEMES, not just different
+  // tasks, which is the part a member actually notices they paid for.
+  const staged = stage ? list.find((p: any) => p.key === key && p.stage === stage) : null;
+  return staged
+    || list.find(p => p.key === key && !(p as any).stage)
+    || list.find(p => p.key === key)
+    || list.find(p => p.key === 'it_bridge')
+    || list[0];
 }
 
 // Stable per-day hash (no Math.random — must be reproducible).

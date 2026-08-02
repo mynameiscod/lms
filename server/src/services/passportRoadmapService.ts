@@ -93,9 +93,10 @@ export function buildRoadmap(opts: {
   startDate?: Date | null;
   currentDay?: number;
   completedKeys?: Set<string>;
+  stage?: string | null;
 }): Roadmap {
   const totalDays = Math.max(7, opts.totalDays || 90);
-  const pw = pathwayOf(opts.pathways, opts.attempt.pathway);
+  const pw = pathwayOf(opts.pathways, opts.attempt.pathway, opts.stage);
   const completed = opts.completedKeys || new Set<string>();
   const currentDay = Math.min(Math.max(1, opts.currentDay || 1), totalDays);
   const start = opts.startDate ? new Date(opts.startDate) : null;

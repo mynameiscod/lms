@@ -193,6 +193,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Pathways', path: '/admin/passport/pathways', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport'] },
     { label: 'CareerPilot Assessment', path: '/admin/passport/assessment', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_passport'] },
     { label: 'CareerPilot Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-bullseye', permissions: ['manage_passport'] },
+    { label: 'Career Stage Tagging', path: '/admin/careerpilot/staging', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
     { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['manage_tenant_settings', 'manage_tenant'] },
     { label: 'Interview Q&A Bank', path: '/interview-question-bank', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-briefcase', moduleKey: 'mockInterviews', permissions: ['manage_interviews'] },
     { label: 'Scheduled Interviews', path: '/scheduled-interviews', roles: ['SUPER_ADMIN', 'TENANT_ADMIN', 'INSTRUCTOR'], icon: 'fa-solid fa-calendar-check', permissions: ['manage_tenant_users', 'create_courses', 'edit_courses', 'manage_own_courses', 'manage_tenant'] },
@@ -402,7 +403,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { title: 'COLLEGE',                 labels: ['College'] },
     { title: 'BILLING',                 labels: ['Fees'] },
     { title: '⚔️ TECH BATTLES',         labels: ['Tech Battles'] },
-    { title: '🎫 CAREER PASSPORT',      labels: ['CareerPilot Config', 'CareerPilot Members', 'CareerPilot Pathways', 'CareerPilot Assessment', 'CareerPilot Missions'] },
+    { title: '🎫 CAREERPILOT',      labels: ['CareerPilot Config', 'CareerPilot Members', 'CareerPilot Pathways', 'CareerPilot Assessment', 'CareerPilot Missions', 'Career Stage Tagging'] },
     { title: 'PLATFORM',                labels: ['Student Features', 'AI Spend', 'API Logs', 'Recording Diagnostics', 'Tenant Management', 'Platform Settings'] },
   ];
   const adminSectionLabels = new Set(ADMIN_SECTIONS.flatMap(s => s.labels));

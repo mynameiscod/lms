@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { resolveCareerProfile } from '../services/careerStageService';
 import PassportConfig, { DEFAULT_ONBOARDING_FIELDS, DEFAULT_ENTITLEMENTS } from '../models/PassportConfig';
 import User from '../models/User';
 import Payment from '../models/Payment';
@@ -197,4 +198,71 @@ export const verifyMembership = async (req: Request, res: Response) => {
     console.error('[passport] verifyMembership:', e);
     res.status(500).json({ message: e.message || 'Verification failed' });
   }
+};
+
+
+// ── Career profile backfill ─────────────────────────────────────────────────
+
+/**
+ * Members who joined before staging existed have no graduation date, so they have no
+ * stage and receive every question and every mission — correct, but generic.
+ *
+ * Asking is better than guessing. Defaulting them to 'placement' because it is the most
+ * common buyer would silently mis-stage a first-year: they would be assessed on
+ * internships they have not had and handed a plan about resumes. They are five active
+ * members; one question answers it properly.
+ */
+export const getCareerProfileStatus = async (req: Request, res: Response) => {
+  try {
+    const User = (await import('../models/User')).default;
+    const u: any = await User.findById(userIdOf(req)).select('passport').lean();
+    const p = u?.passport || {};
+    res.json({
+      needed: !p.stage,
+      stage: p.stage || null,
+      program: p.program || null,
+      graduationMonth: p.graduationMonth || null,
+      graduationYear: p.graduationYear || null,
+    });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
+};
+
+/** Member submits (or corrects) their program and graduation date; stage is re-derived. */
+export const setCareerProfile = async (req: Request, res: Response) => {
+  try {
+    const { program, branch, graduationMonth, graduationYear, graduated } = req.body || {};
+    const grad = graduated === true || graduated === 'true';
+
+    // A member who is not graduated must give a usable date, otherwise we would store a
+    // null stage and ask them again on the next screen.
+    if (!grad) {
+      const y = Number(graduationYear);
+      if (!y || y < 2000 || y > 2100) {
+        return res.status(400).json({ message: 'Please choose your expected graduation year.' });
+      }
+    }
+
+    const derived = resolveCareerProfile({
+      program, branch,
+      graduationMonth: graduationMonth ? Number(graduationMonth) : null,
+      graduationYear: graduationYear ? Number(graduationYear) : null,
+      graduated: grad,
+    });
+
+    const User = (await import('../models/User')).default;
+    await User.updateOne({ _id: userIdOf(req) }, {
+      $set: {
+        'passport.program': program,
+        'passport.branch': branch,
+        'passport.graduationMonth': graduationMonth ? Number(graduationMonth) : undefined,
+        'passport.graduationYear': graduationYear ? Number(graduationYear) : undefined,
+        'passport.graduated': grad,
+        'passport.stage': derived.stage,
+        'passport.background': derived.background,
+        'passport.stageComputedAt': derived.stageComputedAt,
+      },
+    });
+
+    res.json({ success: true, stage: derived.stage, background: derived.background });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
 };

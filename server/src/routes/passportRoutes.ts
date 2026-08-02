@@ -51,6 +51,10 @@ router.post('/membership/order',  MEMBER, ctrl.createMembershipOrder);
 router.post('/membership/verify', MEMBER, ctrl.verifyMembership);
 
 // Gamified member dashboard — one call for the whole home screen
+// Backfill for members who joined before staging existed.
+router.get('/career-profile', MEMBER, ctrl.getCareerProfileStatus);
+router.post('/career-profile', MEMBER, ctrl.setCareerProfile);
+
 router.get('/dashboard', MEMBER, dashboard.getDashboard);
 
 // Daily missions (gated behind the daily_missions entitlement)

@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import CareerProfilePrompt from './CareerProfilePrompt';
 import { Outlet } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import MemberShell from './MemberShell';
@@ -52,7 +53,12 @@ const MemberLayout: React.FC = () => {
   // Free candidates keep each page's own chrome — the rail's destinations are all
   // locked to them, so wrapping them in it would be a menu of dead ends.
   if (!isMember) {
-    return <Ctx.Provider value={ctx}><Outlet /></Ctx.Provider>;
+    return (
+      <Ctx.Provider value={ctx}>
+        <CareerProfilePrompt />
+        <Outlet />
+      </Ctx.Provider>
+    );
   }
 
   return (

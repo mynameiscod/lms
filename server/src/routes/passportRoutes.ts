@@ -1,4 +1,5 @@
 import express from 'express';
+import * as staging from '../controllers/careerStagingController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
@@ -84,6 +85,10 @@ router.post('/assessment/submit', MEMBER, assess.submitAssessment);
 router.get('/assessment/result', MEMBER, assess.getResult);
 
 // Assessment — admin bank management
+// Career-stage tagging. Admin-only: it decides which students see which content.
+router.get('/staging', MANAGE, staging.getStaging);
+router.put('/staging', MANAGE, staging.setStaging);
+
 router.get('/assessment/admin',  MANAGE, assess.getAssessmentAdmin);
 router.put('/assessment/admin',  MANAGE, assess.saveAssessment);
 router.post('/assessment/reset', MANAGE, assess.resetAssessment);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import CareerPilotStaging from './pages/Passport/AdminStaging';
 import LabTracks from './pages/LabTracks';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -416,6 +417,7 @@ const AppRoutes: React.FC = () => {
           sidebar no longer remounts (and re-fetches) on every nav click. */}
       <Route element={<ProtectedRoute><PassportMemberLayout /></ProtectedRoute>}>
         <Route path="/careerpilot" element={<PassportHome />} />
+        <Route path="/admin/careerpilot/staging" element={<CareerPilotStaging />} />
         <Route path="/passport" element={<Navigate to="/careerpilot" replace />} />
         <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
         <Route path="/passport/assessment" element={<Navigate to="/careerpilot/assessment" replace />} />

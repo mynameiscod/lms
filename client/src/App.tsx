@@ -400,6 +400,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/passport/config" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
       } />
+      <Route path="/admin/careerpilot/staging" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotStaging /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
@@ -417,7 +420,6 @@ const AppRoutes: React.FC = () => {
           sidebar no longer remounts (and re-fetches) on every nav click. */}
       <Route element={<ProtectedRoute><PassportMemberLayout /></ProtectedRoute>}>
         <Route path="/careerpilot" element={<PassportHome />} />
-        <Route path="/admin/careerpilot/staging" element={<CareerPilotStaging />} />
         <Route path="/passport" element={<Navigate to="/careerpilot" replace />} />
         <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
         <Route path="/passport/assessment" element={<Navigate to="/careerpilot/assessment" replace />} />

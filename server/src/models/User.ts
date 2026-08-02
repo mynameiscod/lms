@@ -16,7 +16,7 @@ export interface IUser extends Document {
   dashboardWidgets?: string[];
   isActive: boolean;
   profileComplete: boolean;
-  // Career Passport membership (separate product; drives the /passport experience).
+  // CareerPilot membership (separate product; drives the /passport experience).
   // Absent/inactive = a normal LMS student, unaffected.
   passport?: {
     active: boolean;
@@ -30,7 +30,7 @@ export interface IUser extends Document {
     pathway?: string;
     careerScore?: number;      // cached from latest assessment (for card/Mission Control)
     level?: string;
-    shareSlug?: string;        // public shareable Career Passport card slug
+    shareSlug?: string;        // public shareable CareerPilot card slug
     passwordSet?: boolean;     // member chose their own password (vs the signup placeholder)
   };
   phone?: string;

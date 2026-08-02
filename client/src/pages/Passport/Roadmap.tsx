@@ -418,9 +418,9 @@ const Roadmap: React.FC = () => {
           {!entitled && (
             <div className="rq-lock">
               <h3>🔒 That's your first week — {rm.totalDays - (rm.previewDays || 7)} more days are waiting</h3>
-              <p>Unlock daily missions, the Practice Lab, AI mock interviews, the Resume Center and your shareable Career Passport.</p>
+              <p>Unlock daily missions, the Practice Lab, AI mock interviews, the Resume Center and your shareable CareerPilot.</p>
               <button className="rq-primary" onClick={unlock} disabled={paying}>
-                {paying ? 'Opening payment…' : `Unlock My ${rm.totalDays}-Day Career Passport — ₹${data?.priceInr ?? 499}`}
+                {paying ? 'Opening payment…' : `Unlock My ${rm.totalDays}-Day CareerPilot — ₹${data?.priceInr ?? 499}`}
               </button>
               {payMsg && <div className="pm-msg err" style={{ maxWidth: 420, margin: '12px auto 0' }}>{payMsg}</div>}
             </div>

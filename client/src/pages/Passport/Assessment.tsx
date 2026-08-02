@@ -434,7 +434,7 @@ const ResultView: React.FC<{
                 <div><span className="ck">✓</span> Daily missions &amp; practice</div>
                 <div><span className="ck">✓</span> AI-powered feedback</div>
                 <div><span className="ck">✓</span> Track progress &amp; improve</div>
-                <div><span className="ck">✓</span> Certificates &amp; Career Passport</div>
+                <div><span className="ck">✓</span> Certificates &amp; CareerPilot</div>
               </div>
             </div>
             <div className="rs-unlock-r">
@@ -447,7 +447,7 @@ const ResultView: React.FC<{
                 <div><span className="ck">✓</span> Full 90-day journey</div>
                 <div><span className="ck">✓</span> A career coach</div>
                 <div><span className="ck">✓</span> AI assessments &amp; practice</div>
-                <div><span className="ck">✓</span> Career Passport &amp; certificates</div>
+                <div><span className="ck">✓</span> CareerPilot &amp; certificates</div>
                 <div><span className="ck">✓</span> Priority support</div>
               </div>
               {paymentOff ? (

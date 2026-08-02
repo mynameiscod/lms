@@ -3,7 +3,7 @@ import passportApi, { PassportContentDoc, PassportPathway, ContentPreview } from
 import './member.css';
 
 /**
- * Admin › Passport Pathways — edit the career pathways a member's 90-day roadmap is
+ * Admin › CareerPilot Pathways — edit the career pathways a member's 90-day roadmap is
  * generated from: label, description, focus categories and the per-week themes.
  * "Preview" runs the real generator so an admin sees the output before saving.
  */
@@ -68,10 +68,10 @@ const AdminPathways: React.FC = () => {
 
   return (
     <div className="pa-wrap">
-      <div className="pa-crumb">Career Passport <span style={{ color: '#cbd5e1' }}>›</span> <b>Pathways</b></div>
+      <div className="pa-crumb">CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b>Pathways</b></div>
       <div className="pa-head">
         <div>
-          <h1>Passport Pathways</h1>
+          <h1>CareerPilot Pathways</h1>
           <p>Each member is matched to one pathway from their assessment (career goal, or technical strength when they haven't picked one). The pathway sets the roadmap's week-by-week themes and which categories get emphasised.</p>
         </div>
         <div className="pa-actions">

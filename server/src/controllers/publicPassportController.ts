@@ -8,7 +8,7 @@ import PassportConfig, { DEFAULT_ONBOARDING_FIELDS, DEFAULT_ENTITLEMENTS } from 
 import * as settings from '../services/settingsService';
 import { sendOtp, verifyOtp } from '../services/assessmentOtpService';
 
-// Public Career Passport funnel: signup (Name/Mobile/Email + admin-configured onboarding
+// Public CareerPilot funnel: signup (Name/Mobile/Email + admin-configured onboarding
 // fields) → OTP → account created (STUDENT + passport, not yet active/paid) → auto-login.
 
 async function resolveTenantId(raw: any): Promise<string | null> {
@@ -51,7 +51,7 @@ export const getPublicConfig = async (req: Request, res: Response) => {
   }
 };
 
-/** GET /public/passport/card/:slug — the shareable, read-only Career Passport card. */
+/** GET /public/passport/card/:slug — the shareable, read-only CareerPilot card. */
 export const getCard = async (req: Request, res: Response) => {
   try {
     const slug = String(req.params.slug || '').trim();
@@ -83,7 +83,7 @@ export const signup = async (req: Request, res: Response) => {
     const tenantId = await resolveTenantId(b.tenant || b.tenantId);
     if (!tenantId) return res.status(400).json({ success: false, message: 'Unknown tenant' });
     const cfg = await ensureConfig(tenantId);
-    if (!passportEnabled(tenantId, cfg)) return res.status(503).json({ success: false, message: 'Career Passport is not available yet.' });
+    if (!passportEnabled(tenantId, cfg)) return res.status(503).json({ success: false, message: 'CareerPilot is not available yet.' });
 
     const name = String(b.name || '').trim();
     const email = String(b.email || '').trim().toLowerCase();
@@ -106,7 +106,7 @@ export const signup = async (req: Request, res: Response) => {
     let user: any = await User.findOne({ email });
     if (user) {
       // Existing account: only resume if it's a not-yet-active passport signup.
-      if (user.passport?.active) return res.status(409).json({ success: false, message: 'You already have a Career Passport — please log in.' });
+      if (user.passport?.active) return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
       if (!user.passport) return res.status(409).json({ success: false, message: 'This email is already registered. Please log in.' });
     } else {
       user = await User.create({
@@ -170,7 +170,7 @@ export const loginPassword = async (req: Request, res: Response) => {
       ? { tenantId, email: id.toLowerCase() }
       : { tenantId, phone: normalizePhone(id) };
     const user: any = await User.findOne(query);
-    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No Career Passport found for that email/mobile.' });
+    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that email/mobile.' });
     if (!user.passport.passwordSet) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
 
     const ok = await user.comparePassword(String(password));
@@ -191,7 +191,7 @@ export const loginOtpStart = async (req: Request, res: Response) => {
     if (!phone) return res.status(400).json({ success: false, message: 'Enter your registered mobile number.' });
 
     const user: any = await User.findOne({ tenantId, phone });
-    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No Career Passport found for that mobile number.' });
+    if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that mobile number.' });
 
     const otp = await sendOtp(tenantId, String(user._id), phone);
     // token = userId so the existing /verify endpoint completes the OTP login.

@@ -118,7 +118,7 @@ const MissionControl: React.FC = () => {
     if (!slug) return;
     const url = `${window.location.origin}/passport/card/${slug}`;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.prompt('Copy your Career Passport link:', url); }
+    catch { window.prompt('Copy your CareerPilot link:', url); }
   };
 
   const firstName = user?.firstName || (status?.name || '').split(' ')[0] || 'there';
@@ -152,7 +152,7 @@ const MissionControl: React.FC = () => {
     </div>
   );
 
-  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your Career Passport…</div>;
+  if (loading) return <div style={{ padding: 60, textAlign: 'center', color: '#64748b' }}>Loading your CareerPilot…</div>;
 
   const active = !!status?.active;
   const hasScore = !!result;
@@ -238,7 +238,7 @@ const MissionControl: React.FC = () => {
             <QuickCard title="🎙️ Mock interview" onClick={() => nav('/passport/interview')} sub="AI interviewer + scored feedback" />
             <QuickCard title="📄 Resume Center" onClick={() => nav('/passport/resume')} sub="Build it, score it, fix it" />
             <QuickCard title="📊 My assessment result" onClick={() => nav('/passport/assessment')} sub="Score, breakdown & pathway" />
-            <QuickCard title="🎫 My Career Passport" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
+            <QuickCard title="🎫 My CareerPilot" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
           </div>
         </div>
       </div>
@@ -253,7 +253,7 @@ const MissionControl: React.FC = () => {
         <div className="mc-scored">
           <div className="mc-hd">
             <h1>🚀 Mission <span className="b">Control</span></h1>
-            <p>Your CodeBegun Career Passport — one place that tells you what to do next.</p>
+            <p>Your CodeBegun CareerPilot — one place that tells you what to do next.</p>
           </div>
 
           <div className="mc-stats">
@@ -269,16 +269,16 @@ const MissionControl: React.FC = () => {
               <div><span className="ck">✓</span> Daily missions</div>
               <div><span className="ck">✓</span> Verified practice</div>
               <div><span className="ck">✓</span> Mock interviews</div>
-              <div><span className="ck">✓</span> Shareable Career Passport</div>
+              <div><span className="ck">✓</span> Shareable CareerPilot</div>
               <div><span className="ck">✓</span> Personalized for your score</div>
             </div>
             {status?.paymentAvailable === false ? (
               <p className="mc-uh-note">Online payment isn’t enabled yet — please <a href="#contact" onClick={e => e.preventDefault()}>contact your mentor</a> to activate.</p>
             ) : null}
             {status?.paymentAvailable === false ? (
-              <button className="mc-uh-btn" onClick={() => nav('/passport/assessment')}>🔓 Unlock My 90-Day Career Passport</button>
+              <button className="mc-uh-btn" onClick={() => nav('/passport/assessment')}>🔓 Unlock My 90-Day CareerPilot</button>
             ) : (
-              <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock My 90-Day Career Passport — ₹${price}`}</button>
+              <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock My 90-Day CareerPilot — ₹${price}`}</button>
             )}
             {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
             <button className="mc-uh-link" onClick={() => nav('/passport/roadmap')}>See what's in the 90 days →</button>
@@ -326,7 +326,7 @@ const MissionControl: React.FC = () => {
               ) : (
                 <>
                   <div><button className="mc-unlock" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock Full Journey — ₹${price}`}</button></div>
-                  <div className="mc-cta-note">You scored {scoreNum}/100 — unlock daily missions, mock interviews & your Career Passport.</div>
+                  <div className="mc-cta-note">You scored {scoreNum}/100 — unlock daily missions, mock interviews & your CareerPilot.</div>
                 </>
               )}
               {payMsg && <div className="mc-paymsg">{payMsg}</div>}

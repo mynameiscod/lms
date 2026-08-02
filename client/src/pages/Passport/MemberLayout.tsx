@@ -43,7 +43,7 @@ const MemberLayout: React.FC = () => {
   }, [load]);
 
   if (loading) {
-    return <div style={{ padding: 60, textAlign: 'center', color: '#7b8496' }}>Loading your Career Passport…</div>;
+    return <div style={{ padding: 60, textAlign: 'center', color: '#7b8496' }}>Loading your CareerPilot…</div>;
   }
 
   const isMember = !!data?.active && !!data?.hasAssessment;

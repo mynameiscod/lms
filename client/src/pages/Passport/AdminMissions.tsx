@@ -14,7 +14,7 @@ const LINKS = [
 ];
 
 /**
- * Admin › Passport Missions — edit the per-category mission pools that daily missions
+ * Admin › CareerPilot Missions — edit the per-category mission pools that daily missions
  * AND the roadmap are generated from. Generation stays deterministic: each day picks
  * from these pools by a stable hash, biased to the member's two weakest categories.
  */
@@ -80,10 +80,10 @@ const AdminMissions: React.FC = () => {
 
   return (
     <div className="pa-wrap">
-      <div className="pa-crumb">Career Passport <span style={{ color: '#cbd5e1' }}>›</span> <b>Missions</b></div>
+      <div className="pa-crumb">CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b>Missions</b></div>
       <div className="pa-head">
         <div>
-          <h1>Passport Missions</h1>
+          <h1>CareerPilot Missions</h1>
           <p>Daily missions are generated deterministically — no AI cost per member. Each day picks 3 items: two from the member's weakest categories and one rotating. Edit the pools here and both daily missions and the 90-day roadmap change.</p>
         </div>
         <div className="pa-actions">

@@ -5,7 +5,7 @@ import PublicChrome from '../../components/PublicChrome';
 import './careerpilot.css';
 
 /**
- * Returning Career Passport member login. Two ways in:
+ * Returning CareerPilot member login. Two ways in:
  *  - Password (free): email/mobile + password (only after they've set one).
  *  - WhatsApp OTP (small cost): mobile → OTP → verify. Also the "forgot password" path.
  */
@@ -128,7 +128,7 @@ const PassportLogin: React.FC = () => {
           <div className="cp-right" style={{ padding: '34px 32px' }}>
             <div className="cp-ric">🧭</div>
             <div className="cp-ftitle">Welcome back</div>
-            <div className="cp-fsub">Log in to your Career Passport</div>
+            <div className="cp-fsub">Log in to your CareerPilot</div>
 
             {/* Mode tabs */}
             <div style={{ display: 'flex', gap: 8, background: '#f1f3fa', borderRadius: 12, padding: 4, margin: '6px 0 18px' }}>
@@ -163,7 +163,7 @@ const PassportLogin: React.FC = () => {
               </>
             )}
 
-            <div className="cp-login">New here? <a href={`/passport/join?tenant=${tenant}`}>Create your Career Passport</a></div>
+            <div className="cp-login">New here? <a href={`/passport/join?tenant=${tenant}`}>Create your CareerPilot</a></div>
           </div>
         </div>
       </div>

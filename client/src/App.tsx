@@ -385,7 +385,7 @@ const AppRoutes: React.FC = () => {
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'INSTRUCTOR', 'STAFF']}><Layout><BattleDetail /></Layout></ProtectedRoute>
       } />
 
-      {/* ── Career Passport (separate product) ── */}
+      {/* ── CareerPilot (separate product) ── */}
       <Route path="/admin/passport/config" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminConfig /></Layout></ProtectedRoute>
       } />

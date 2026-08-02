@@ -209,12 +209,12 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     ]
   },
   careerPassport: {
-    label: 'Career Passport (CareerPilot)',
+    label: 'CareerPilot',
     permissions: [
-      { key: 'manage_passport', label: 'Manage Career Passport (Config, Pathways, Missions, Assessment Bank)' },
-      { key: 'view_passport_members', label: 'View Career Passport Members' },
+      { key: 'manage_passport', label: 'Manage CareerPilot (Config, Pathways, Missions, Assessment Bank)' },
+      { key: 'view_passport_members', label: 'View CareerPilot Members' },
       { key: 'convert_passport_member', label: 'Grant Membership Without Payment' },
-      { key: 'use_passport', label: 'Use Career Passport (Member Surfaces)' },
+      { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
     ]
   },
 };
@@ -274,7 +274,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'manage_placement', 'manage_placement_status', 'view_placement',
     // AI Spend
     'view_ai_spend',
-    // Career Passport — full control, including granting membership without payment
+    // CareerPilot — full control, including granting membership without payment
     'manage_passport', 'view_passport_members', 'convert_passport_member', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
@@ -331,7 +331,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // Leads — Manager level: view all team leads, assign, analytics
     'view_leads', 'create_leads', 'edit_leads', 'assign_leads',
     'view_lead_analytics', 'export_leads', 'convert_leads',
-    // Career Passport — read-only. Config, pathways, missions, the assessment bank
+    // CareerPilot — read-only. Config, pathways, missions, the assessment bank
     // and free membership grants stay with TENANT_ADMIN.
     'view_passport_members',
     // Tech Battles — process registrations only. Creating, deleting, broadcasting to
@@ -361,7 +361,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     'view_certificates',
     // Placement & Alumni
     'view_placement',
-    // Career Passport — member surfaces (entitlements still gate paid features)
+    // CareerPilot — member surfaces (entitlements still gate paid features)
     'use_passport',
   ],
   GUEST: ['view_public_courses'],

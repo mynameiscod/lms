@@ -1,4 +1,4 @@
-// Entitlement gating for Career Passport. Free features are always available; paid
+// Entitlement gating for CareerPilot. Free features are always available; paid
 // features require an active, non-expired membership. The entitlement list is admin-
 // configured on PassportConfig, so tiers are data, not hard-coded.
 

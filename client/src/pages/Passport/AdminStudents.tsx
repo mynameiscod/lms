@@ -21,8 +21,8 @@ const PassportAdminStudents: React.FC = () => {
 
   return (
     <div style={{ padding: '22px 26px', maxWidth: 980 }}>
-      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>Career Passport <span style={{ color: '#cbd5e1' }}>›</span> <b style={{ color: '#334155' }}>Students</b></div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>Passport Students</h1>
+      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b style={{ color: '#334155' }}>Students</b></div>
+      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 16px' }}>CareerPilot Students</h1>
 
       <div style={{ background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 12, padding: 14, marginBottom: 16, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
         <span style={{ fontSize: 13, fontWeight: 700, color: '#475569' }}>Manually activate a student:</span>
@@ -39,7 +39,7 @@ const PassportAdminStudents: React.FC = () => {
             {['Student', 'Email', 'Activated', 'Expires'].map(h => <th key={h} style={{ textAlign: 'left', padding: '10px 14px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase' }}>{h}</th>)}
           </tr></thead>
           <tbody>
-            {rows.length === 0 ? <tr><td colSpan={4} style={{ padding: 30, textAlign: 'center', color: '#94a3b8' }}>No Passport students yet.</td></tr> :
+            {rows.length === 0 ? <tr><td colSpan={4} style={{ padding: 30, textAlign: 'center', color: '#94a3b8' }}>No CareerPilot students yet.</td></tr> :
               rows.map(r => (
                 <tr key={r._id} style={{ borderTop: '1px solid #f5f7fa' }}>
                   <td style={{ padding: '10px 14px', fontWeight: 600 }}>{r.firstName} {r.lastName}</td>

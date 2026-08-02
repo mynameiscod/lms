@@ -41,9 +41,9 @@ const PassportAdminConfig: React.FC = () => {
 
   return (
     <div style={{ padding: '22px 26px', maxWidth: 900 }}>
-      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>Career Passport <span style={{ color: '#cbd5e1' }}>›</span> <b style={{ color: '#334155' }}>Config</b></div>
-      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>Career Passport — Configuration</h1>
-      <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 18px' }}>Set up the whole Passport product here. Changes apply without a deploy.</p>
+      <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>CareerPilot <span style={{ color: '#cbd5e1' }}>›</span> <b style={{ color: '#334155' }}>Config</b></div>
+      <h1 style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', margin: '0 0 4px' }}>CareerPilot — Configuration</h1>
+      <p style={{ color: '#64748b', fontSize: 14, margin: '0 0 18px' }}>Set up the whole CareerPilot product here. Changes apply without a deploy.</p>
 
       {!platformEnabled && (
         <div style={{ ...card, background: '#fffbeb', borderColor: '#fde68a' }}>

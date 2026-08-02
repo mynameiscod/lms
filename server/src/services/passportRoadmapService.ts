@@ -75,7 +75,7 @@ const WEEK_GOALS = [
   'Learn the shape of a real interview round.',
   'Complete mock interviews and act on the feedback.',
   'Apply, refer, follow up — build the pipeline.',
-  'Polish everything and share your Career Passport.',
+  'Polish everything and share your CareerPilot.',
 ];
 
 const catLabel = (key: string) =>

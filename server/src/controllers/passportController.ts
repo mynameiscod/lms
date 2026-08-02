@@ -11,7 +11,7 @@ import { membershipActive, entitlementMap } from '../services/passportEntitlemen
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 
-/** Master switch = the Passport Config "Enable" toggle (read fresh). PASSPORT_ENABLED is
+/** Master switch = the CareerPilot Config "Enable" toggle (read fresh). PASSPORT_ENABLED is
  *  only an OPTIONAL platform hard-kill — set it to 'false' to force Passport off globally. */
 function passportEnabled(tenantId: string, cfg?: any): boolean {
   const hardOff = settings.getStr('PASSPORT_ENABLED', 'true', tenantId) === 'false';
@@ -126,7 +126,7 @@ export const convertStudent = async (req: Request, res: Response) => {
     if (!user) return res.status(404).json({ message: 'Student not found' });
     await activateMembership(tenantId, String(studentId));
     const fresh = await User.findById(studentId).select('passport').lean() as any;
-    res.json({ message: 'Student activated for Career Passport', passport: fresh?.passport });
+    res.json({ message: 'Student activated for CareerPilot', passport: fresh?.passport });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to convert student' });
   }
@@ -139,7 +139,7 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
     const studentId = userIdOf(req);
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Unauthorized' });
     const cfg = await ensureConfig(tenantId);
-    if (!passportEnabled(tenantId, cfg)) return res.status(403).json({ message: 'Career Passport is not available.' });
+    if (!passportEnabled(tenantId, cfg)) return res.status(403).json({ message: 'CareerPilot is not available.' });
     if (!razorpay.isConfigured(tenantId)) {
       return res.status(503).json({ message: 'Online payment is not available yet. Please contact your mentor.' });
     }
@@ -161,7 +161,7 @@ export const createMembershipOrder = async (req: Request, res: Response) => {
 
     res.json({
       orderId: order.id, amount: order.amount, currency: order.currency, keyId: order.keyId, priceInr,
-      name: 'CodeBegun Career Passport',
+      name: 'CodeBegun CareerPilot',
       description: 'Unlock your full 90-day journey',
       prefill: {
         name: user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() : '',

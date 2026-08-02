@@ -111,7 +111,7 @@ import { unsubscribe } from '../controllers/unsubscribeController';
 const router = express.Router();
 
 // PUBLIC ROUTES (no auth required)
-router.use('/public/passport', publicPassportRoutes); // Career Passport signup (specific, before generic /public)
+router.use('/public/passport', publicPassportRoutes); // CareerPilot signup (specific, before generic /public)
 router.use('/public/assessment', publicAssessmentRoutes); // specific first
 router.use('/public/certificate', publicCertificateRoutes); // certificate verification (specific, before generic /public)
 router.get('/public/partner-unsubscribe/:token', partnerUnsubscribe); // one-click opt-out (public, signed token) — before the generic /public mount

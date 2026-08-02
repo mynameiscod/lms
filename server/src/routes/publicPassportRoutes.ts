@@ -1,7 +1,7 @@
 import express from 'express';
 import * as ctrl from '../controllers/publicPassportController';
 
-// Public (no auth) Career Passport signup funnel.
+// Public (no auth) CareerPilot signup funnel.
 const router = express.Router();
 
 router.get('/config',  ctrl.getPublicConfig);

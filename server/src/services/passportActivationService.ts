@@ -4,7 +4,7 @@ import PassportConfig from '../models/PassportConfig';
 import PassportProgress from '../models/PassportProgress';
 
 /**
- * Activate a student's Career Passport membership. Shared by the admin manual path
+ * Activate a student's CareerPilot membership. Shared by the admin manual path
  * (convertStudent) and the online ₹499 Razorpay path (settlePayment). Idempotent:
  * safe to call more than once — re-activation extends from the later of now / current
  * expiry, so a webhook + verify race won't double-charge time. Also ensures the

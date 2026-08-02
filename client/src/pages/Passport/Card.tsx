@@ -3,9 +3,9 @@ import { useParams } from 'react-router-dom';
 import { passportPublicApi, PassportCard } from '../../api/passportApi';
 
 /**
- * Public, read-only Career Passport card (shareable link `/passport/card/:slug`).
+ * Public, read-only CareerPilot card (shareable link `/passport/card/:slug`).
  * No auth — anyone with the link can view the learner's verified Career Score, level
- * and pathway. This is the "shareable v1" of the Career Passport.
+ * and pathway. This is the "shareable v1" of the CareerPilot.
  */
 const PATHWAY_LABEL: Record<string, string> = {
   software_dev: 'Software Development Foundation',
@@ -32,8 +32,8 @@ const Card: React.FC = () => {
 
   const wrap: React.CSSProperties = { minHeight: '100vh', background: 'linear-gradient(135deg,#1e1b4b,#0f766e)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 };
 
-  if (loading) return <div style={{ ...wrap, color: '#fff' }}>Loading Career Passport…</div>;
-  if (notFound || !card) return <div style={{ ...wrap, color: '#fff', flexDirection: 'column', gap: 8 }}><div style={{ fontSize: 40 }}>🎫</div><div>This Career Passport link isn’t valid.</div></div>;
+  if (loading) return <div style={{ ...wrap, color: '#fff' }}>Loading CareerPilot…</div>;
+  if (notFound || !card) return <div style={{ ...wrap, color: '#fff', flexDirection: 'column', gap: 8 }}><div style={{ fontSize: 40 }}>🎫</div><div>This CareerPilot link isn’t valid.</div></div>;
 
   const score = card.careerScore ?? 0;
   const scoreColor = score >= 75 ? '#14a89c' : score >= 45 ? '#6650d8' : '#f59e0b';
@@ -75,7 +75,7 @@ const Card: React.FC = () => {
         </div>
 
         <div style={{ borderTop: '1px solid #f1f5f9', padding: '14px 24px', textAlign: 'center' }}>
-          <a href="/passport/join" style={{ fontSize: 12.5, color: '#6650d8', fontWeight: 700, textDecoration: 'none' }}>Get your own Career Passport →</a>
+          <a href="/passport/join" style={{ fontSize: 12.5, color: '#6650d8', fontWeight: 700, textDecoration: 'none' }}>Get your own CareerPilot →</a>
         </div>
       </div>
     </div>

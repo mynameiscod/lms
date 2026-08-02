@@ -72,7 +72,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
     if (!d?.shareSlug) return;
     const url = `${window.location.origin}/passport/card/${d.shareSlug}`;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
-    catch { window.prompt('Copy your Career Passport link:', url); }
+    catch { window.prompt('Copy your CareerPilot link:', url); }
   };
 
   const path = loc.pathname;

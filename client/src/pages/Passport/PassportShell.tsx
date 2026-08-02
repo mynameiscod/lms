@@ -43,7 +43,7 @@ export const LockedPanel: React.FC<{ title: string; blurb: string; priceInr?: nu
       <h2>{title}</h2>
       <p>{blurb}</p>
       <button className="pm-btn primary" onClick={onUnlock} disabled={busy}>
-        {busy ? 'Opening payment…' : priceInr ? `Unlock My 90-Day Career Passport — ₹${priceInr}` : 'Unlock my Career Passport'}
+        {busy ? 'Opening payment…' : priceInr ? `Unlock My 90-Day CareerPilot — ₹${priceInr}` : 'Unlock my CareerPilot'}
       </button>
     </div>
   );

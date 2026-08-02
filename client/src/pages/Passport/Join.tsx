@@ -74,7 +74,7 @@ const PassportJoin: React.FC = () => {
   useEffect(() => {
     (async () => {
       try { const c = await passportPublicApi.getConfig(tenant); setFieldsDef(c.onboardingFields || []); setPriceInr(c.priceInr); setEnabled(c.enabled); }
-      catch { setEnabled(false); setMsg('Career Passport is not available right now.'); }
+      catch { setEnabled(false); setMsg('CareerPilot is not available right now.'); }
     })();
   }, [tenant]);
 
@@ -192,7 +192,7 @@ const PassportJoin: React.FC = () => {
           <div className="cp-left">
             <span className="cp-badge">🎁 Founding Membership at <b>₹{priceInr} for 12 Months</b></span>
             <h1 className="cp-h1">Your Personal Guide<br />from College to <span className="t">Career Success</span></h1>
-            <p className="cp-sub">Create your free Career Passport and get a personalized learning path, skill assessment, and placement-ready roadmap tailored just for you.</p>
+            <p className="cp-sub">Create your free CareerPilot and get a personalized learning path, skill assessment, and placement-ready roadmap tailored just for you.</p>
 
             <div className="cp-feats">
               {HERO_FEATURES.map(f => (
@@ -217,11 +217,11 @@ const PassportJoin: React.FC = () => {
           {/* Right form */}
           <div className="cp-right">
             <div className="cp-ric">🪪</div>
-            <div className="cp-ftitle">Create Your Career Passport</div>
+            <div className="cp-ftitle">Create Your CareerPilot</div>
             <div className="cp-fsub">Start your career transformation journey today</div>
 
             {!enabled ? (
-              <div className="cp-err" style={{ textAlign: 'center' }}>{msg || 'Career Passport is not available right now.'}</div>
+              <div className="cp-err" style={{ textAlign: 'center' }}>{msg || 'CareerPilot is not available right now.'}</div>
             ) : (
               <>
                 <label className="cp-label">Full Name *</label>
@@ -244,7 +244,7 @@ const PassportJoin: React.FC = () => {
                 ))}
 
                 {msg && <div className="cp-err">{msg}</div>}
-                <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My Career Passport →'}</button>
+                <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My CareerPilot →'}</button>
                 <div className="cp-secure">🛡️ 100% Secure · No spam ever</div>
                 <div className="cp-login">Already have an account? <a href={`/passport/login?tenant=${tenant}`}>Login here</a></div>
               </>
@@ -333,7 +333,7 @@ const PassportJoin: React.FC = () => {
             <b>Ready to Transform Your Career?</b>
             <span>Join thousands of students who are building successful careers with CodeBegun.</span>
           </div>
-          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Create My Career Passport →</button>
+          <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Create My CareerPilot →</button>
         </section>
       </div>
     </PublicChrome>

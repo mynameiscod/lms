@@ -33,6 +33,23 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/convert`, { studentId }, { headers: auth() });
     return data;
   },
+
+  createMember: async (body: { firstName: string; lastName?: string; email: string; phone?: string }): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/members`, body, { headers: auth() });
+    return data;
+  },
+  updateMember: async (userId: string, body: Record<string, any>): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/members/${userId}`, body, { headers: auth() });
+    return data;
+  },
+  setMemberActive: async (userId: string, active: boolean): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/members/${userId}/active`, { active }, { headers: auth() });
+    return data;
+  },
+  deleteMember: async (userId: string): Promise<any> => {
+    const { data } = await axios.delete(`${BASE}/members/${userId}`, { headers: auth() });
+    return data;
+  },
   me: async (): Promise<any> => {
     const { data } = await axios.get(`${BASE}/me`, { headers: auth() });
     return data;

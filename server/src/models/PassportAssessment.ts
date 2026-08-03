@@ -76,7 +76,7 @@ const PassportAssessmentSchema = new Schema<IPassportAssessment>(
 export const DEFAULT_QUESTIONS: IPassportQuestion[] = [
   // Career clarity (self-report: later option = more clarity)
   { category: 'career_clarity', text: 'How clear are you about the career role you want?', options: ['No idea', 'Somewhat', 'Fairly clear', 'Very clear'], correctIndex: -1, selfReport: true, weight: 1 },
-  { category: 'career_clarity', text: 'Do you know what skills your target role needs?', options: ['Not at all', 'A little', 'Mostly', 'Yes, in detail'], correctIndex: -1, selfReport: true, weight: 1 },
+  { category: 'career_clarity', text: 'Do you know what skills your target role needs?', stages: ['foundation'], options: ['Not at all', 'A little', 'Mostly', 'Yes, in detail'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'career_clarity', text: 'How often do you work on your career (weekly)?', options: ['Never', 'Rarely', 'Few times', 'Daily'], correctIndex: -1, selfReport: true, weight: 1 },
 
   // Aptitude

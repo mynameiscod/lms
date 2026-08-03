@@ -282,6 +282,22 @@ const RETAG: { text: string; stages: string[] }[] = [
   { text: 'Have you attempted a mock interview?',               stages: ['build'] },                    // placement has 'how many have you sat'
   { text: 'Can you explain a project you built in simple English?', stages: ['build'] },                // placement has the 3-minute version
   { text: 'How many projects can you show (GitHub/demo)?',      stages: ['placement', 'job_seeker'] },  // build has 'is your code visible anywhere'
+  { text: 'Do you know what skills your target role needs?',    stages: ['foundation'] },               // later stages get the job-posts version
+];
+
+/**
+ * Questions to remove outright.
+ *
+ * Editing a seed script does not edit a bank that has already been seeded from it, so a
+ * question dropped from the source stays in the database forever unless something takes
+ * it out. This one restated a starter question almost word for word, and both were
+ * landing on the same paper.
+ *
+ * Matched on exact text and reported when not found, because silently deleting by a
+ * loose match is how an admin's own question disappears.
+ */
+const PRUNE: string[] = [
+  'How settled are you on the kind of work you want after graduating?',   // dup of 'How clear are you about the career role you want?'
 ];
 
 async function run() {
@@ -298,6 +314,13 @@ async function run() {
     if (q && !(q.stages?.length)) { q.stages = r.stages; retagged++; }
   }
 
+  let pruned = 0;
+  for (const text of PRUNE) {
+    const before = a.questions.length;
+    a.questions = a.questions.filter((q: any) => q.text !== text);
+    if (a.questions.length < before) pruned++;
+  }
+
   let added = 0, updated = 0;
   for (const q of QUESTIONS) {
     const existing = a.questions.find((x: any) => x.text === q.text);
@@ -307,7 +330,7 @@ async function run() {
   a.markModified('questions');
   await a.save();
 
-  console.log(`Goal questions — added ${added}, updated ${updated}; retagged ${retagged} starter question(s)`);
+  console.log(`Goal questions — added ${added}, updated ${updated}; retagged ${retagged}, pruned ${pruned}`);
   console.log(`Bank now ${a.questions.length} questions; each student is served ${a.maxQuestions || 14}.\n`);
 
   // What a real student actually sits, per goal and stage. A count of what is in the

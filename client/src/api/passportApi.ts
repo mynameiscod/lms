@@ -78,7 +78,7 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/assessment/admin`, { headers: auth() });
     return data;
   },
-  saveAssessment: async (patch: { title?: string; questions?: AssessQuestionFull[] }): Promise<{ assessment: AssessmentBank }> => {
+  saveAssessment: async (patch: { title?: string; maxQuestions?: number; questions?: AssessQuestionFull[] }): Promise<{ assessment: AssessmentBank }> => {
     const { data } = await axios.put(`${BASE}/assessment/admin`, patch, { headers: auth() });
     return data;
   },
@@ -371,8 +371,8 @@ export interface PassportCard {
 }
 
 export interface AssessQuestion { id: string; category: string; text: string; options: string[]; }
-export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; }
-export interface AssessmentBank { _id?: string; tenantId: string; title: string; questions: AssessQuestionFull[]; }
+export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; stages?: string[]; goals?: string[]; background?: string; }
+export interface AssessmentBank { _id?: string; tenantId: string; title: string; maxQuestions?: number; questions: AssessQuestionFull[]; }
 export interface CategoryScore { key: string; label: string; score: number; }
 export interface AssessResult {
   careerScore: number; level: string; levelKey: string;

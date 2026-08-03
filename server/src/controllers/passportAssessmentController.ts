@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { appliesToMember } from '../services/careerStageService';
+import { appliesToMember, resolveCareerProfile, selectPaper } from '../services/careerStageService';
 import PassportAssessment, { DEFAULT_QUESTIONS } from '../models/PassportAssessment';
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
@@ -16,10 +16,20 @@ async function ensureAssessment(tenantId: string) {
 
 /** Student: fetch the assessment (correct answers stripped). */
 /** The member's stage and background, for filtering. Absent values mean "serve all". */
-async function memberProfile(req: Request): Promise<{ stage: string | null; background: string | null }> {
+async function memberProfile(req: Request): Promise<{ stage: string | null; background: string | null; careerGoal: string | null }> {
   const User = (await import('../models/User')).default;
-  const u: any = await User.findById(userIdOf(req)).select('passport.stage passport.background').lean();
-  return { stage: u?.passport?.stage || null, background: u?.passport?.background || null };
+  const u: any = await User.findById(userIdOf(req))
+    .select('passport.stage passport.background passport.careerGoal passport.degree passport.yearOfStudy').lean();
+  const p = u?.passport || {};
+
+  // Members who joined before staging existed have no stored stage. Rather than serving
+  // them the whole bank forever, derive it on read from the degree and year they gave at
+  // signup — the same inputs the stored value comes from, so the answer is identical.
+  let stage = p.stage || null;
+  if (!stage && (p.degree || p.yearOfStudy)) {
+    stage = resolveCareerProfile({ degree: p.degree, yearOfStudy: p.yearOfStudy }).stage;
+  }
+  return { stage, background: p.background || null, careerGoal: p.careerGoal || null };
 }
 
 export const getAssessment = async (req: Request, res: Response) => {
@@ -31,7 +41,12 @@ export const getAssessment = async (req: Request, res: Response) => {
     // that does not exist yet — the low score is then used to build a roadmap aimed at
     // gaps they do not have. Untagged questions still reach everyone.
     const me = await memberProfile(req);
-    const questions = a.questions.filter((q: any) => appliesToMember(q, me));
+    const eligible = a.questions.filter((q: any) => appliesToMember(q, me));
+
+    // Then cap it. Filtering alone does not shorten the paper much, because most of the
+    // bank is untagged and so applies to everyone — a member was seeing 34 questions,
+    // several of them near-duplicates of each other.
+    const questions = selectPaper(eligible as any[], a.maxQuestions || 14);
 
     res.json({
       title: a.title,
@@ -103,6 +118,11 @@ export const saveAssessment = async (req: Request, res: Response) => {
   await ensureAssessment(tenantId);
   const $set: any = {};
   if (req.body.title !== undefined) $set.title = req.body.title;
+  // Clamped rather than trusted: 0 would serve an empty paper and 500 would serve the
+  // whole bank, and both are reachable by typing into the number box.
+  if (req.body.maxQuestions !== undefined) {
+    $set.maxQuestions = Math.min(60, Math.max(5, Number(req.body.maxQuestions) || 14));
+  }
   if (Array.isArray(req.body.questions)) $set.questions = req.body.questions;
   const a = await PassportAssessment.findOneAndUpdate({ tenantId }, { $set }, { new: true });
   res.json({ assessment: a });

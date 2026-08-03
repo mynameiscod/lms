@@ -27,6 +27,79 @@ export const CAREER_STAGES: { key: CareerStage; label: string; blurb: string }[]
 
 export const PROGRAMS = ['B.Tech', 'B.E', 'B.Sc', 'BCA', 'B.Com', 'MCA', 'M.Tech', 'MBA', 'Diploma', 'Other'];
 
+/**
+ * How long each course runs. This is what lets us skip asking for a graduation date:
+ * the join form already collects degree and academic year, and those two together give
+ * the same answer — a 1st-year B.Tech has 3 years left, a 3rd-year B.Sc has none.
+ *
+ * Asking for a graduation date as well would be asking a student to restate, in a
+ * format they have to think about, something they have already told us.
+ */
+const COURSE_YEARS: Record<string, number> = {
+  'b.tech': 4, 'btech': 4, 'b.e': 4, 'b.e.': 4, 'be': 4,
+  'b.sc': 3, 'b.sc.': 3, 'bsc': 3, 'bca': 3, 'b.com': 3, 'bcom': 3, 'b.a': 3, 'ba': 3,
+  'mca': 2, 'm.tech': 2, 'mtech': 2, 'mba': 2, 'm.sc': 2, 'msc': 2,
+  'diploma': 3, 'polytechnic': 3,
+};
+
+/** '3rd Year' → 3. 'Graduated' → 0 with graduated=true. */
+function parseYear(yearOfStudy?: string | null): { year: number | null; graduated: boolean } {
+  const s = String(yearOfStudy || '').trim().toLowerCase();
+  if (!s) return { year: null, graduated: false };
+  if (s.includes('grad') || s.includes('pass') || s.includes('complet')) return { year: null, graduated: true };
+  const m = s.match(/(\d)/);
+  return { year: m ? Number(m[1]) : null, graduated: false };
+}
+
+/**
+ * Months remaining, derived from degree + academic year instead of a graduation date.
+ *
+ * Returns null when either input is missing or the degree is unrecognised, so the
+ * caller falls back to a real graduation date if one was collected, and to "serve
+ * everything" if not. An unknown degree must not silently become a 4-year course:
+ * guessing here mis-stages a student, and mis-staging is worse than not staging.
+ */
+export function monthsFromCourse(degree?: string | null, yearOfStudy?: string | null): number | null {
+  const { year, graduated } = parseYear(yearOfStudy);
+  if (graduated) return -1;
+  if (!year) return null;
+
+  const key = String(degree || '').trim().toLowerCase().replace(/\s+/g, '');
+  const total = COURSE_YEARS[key];
+  if (!total) return null;
+
+  // Clamp: a "4th Year" answer against a 3-year course means the course is over, not
+  // that they have negative time left.
+  return Math.max(0, total - year) * 12;
+}
+
+/**
+ * Stage from where someone sits in their course, which is not the same question as how
+ * many months are left.
+ *
+ * Months alone gets 3-year courses wrong: a first-year B.Sc has two years remaining, and
+ * a pure time rule calls that 'build' — so no one in a 3-year course is ever offered
+ * foundations, however new to programming they are. Position fixes that. A first year is
+ * a first year in any course: they have just arrived and need fundamentals. A final year
+ * is facing placements regardless of whether the course ran three years or four.
+ *
+ * Postgraduates are the deliberate exception — a first-year MCA already holds a degree
+ * and is a year from the market, so they start at 'build', not 'foundation'.
+ */
+export function stageFromCourse(degree?: string | null, yearOfStudy?: string | null): CareerStage | null {
+  const { year, graduated } = parseYear(yearOfStudy);
+  if (graduated) return 'job_seeker';
+  if (!year) return null;
+
+  const key = String(degree || '').trim().toLowerCase().replace(/\s+/g, '');
+  const total = COURSE_YEARS[key];
+  if (!total) return null;                       // unknown course — do not guess
+
+  if (year >= total) return 'placement';         // final year (or beyond, on a mismatch)
+  if (year === 1 && total >= 3) return 'foundation';
+  return 'build';
+}
+
 /** Whole months from now until the graduation date. Negative once it has passed. */
 export function monthsUntil(gradYear?: number | null, gradMonth?: number | null, now = new Date()): number | null {
   if (!gradYear || gradYear < 1990 || gradYear > 2100) return null;
@@ -65,28 +138,102 @@ const CS_HINTS = [
   'data science', 'ai', 'artificial intelligence', 'machine learning', 'ise',
 ];
 
-export function deriveBackground(program?: string | null, branch?: string | null): Background {
+/**
+ * Degrees that say nothing about the field on their own. "B.Tech" is CSE and Civil
+ * alike; only the branch separates them. Treating a bare degree as evidence would tag
+ * every B.Tech CSE student non_cs and ask them to justify switching into IT from a field
+ * they are already in — so a degree with no branch resolves to 'any', not to a guess.
+ */
+const FIELD_AGNOSTIC = ['b.tech', 'btech', 'b.e', 'b.e.', 'be', 'm.tech', 'mtech', 'diploma', 'b.sc', 'b.sc.', 'bsc', 'm.sc', 'msc', 'other'];
+
+export function deriveBackground(program?: string | null, branch?: string | null, degree?: string | null): Background {
   const hay = `${program || ''} ${branch || ''}`.toLowerCase();
-  if (!hay.trim()) return 'any';
-  return CS_HINTS.some(h => hay.includes(h)) ? 'cs' : 'non_cs';
+  if (hay.trim()) return CS_HINTS.some(h => hay.includes(h)) ? 'cs' : 'non_cs';
+
+  // Nothing but a degree to go on. BCA/MCA are unambiguous; the rest are not.
+  const key = String(degree || '').trim().toLowerCase().replace(/\s+/g, '');
+  if (!key) return 'any';
+  if (FIELD_AGNOSTIC.includes(key)) return 'any';
+  return CS_HINTS.some(h => key.includes(h)) ? 'cs' : 'any';
 }
 
 /** Everything derived, in one call, for storing on the member. */
 export function resolveCareerProfile(input: {
   program?: string | null;
   branch?: string | null;
+  /** From the join form. Preferred, because these are the fields we actually collect. */
+  degree?: string | null;
+  yearOfStudy?: string | null;
   graduationYear?: number | null;
   graduationMonth?: number | null;
   graduated?: boolean;
   now?: Date;
 }) {
-  const stage = deriveStage(input);
+  // Degree + academic year first: it is the data the signup form collects, so it is the
+  // path that fires for real members. A graduation date, when an admin has set one, is
+  // more precise and wins — but for most members it simply is not there.
+  const fromDate = monthsUntil(input.graduationYear, input.graduationMonth, input.now);
+  const stage = input.graduated
+    ? 'job_seeker'
+    : (fromDate !== null ? deriveStage(input) : stageFromCourse(input.degree, input.yearOfStudy));
+
   return {
     stage,
-    background: deriveBackground(input.program, input.branch),
-    monthsToGraduation: monthsUntil(input.graduationYear, input.graduationMonth, input.now),
+    background: deriveBackground(input.program, input.branch, input.degree),
+    monthsToGraduation: fromDate !== null ? fromDate : monthsFromCourse(input.degree, input.yearOfStudy),
     stageComputedAt: input.now || new Date(),
   };
+}
+
+/**
+ * Trim a filtered bank down to a paper a person will actually finish.
+ *
+ * Thirty-four questions is not a more accurate assessment than fourteen — it is the same
+ * assessment with a worse completion rate and answers that get careless near the end.
+ * Selection is deliberate rather than random so two students at the same stage sit
+ * comparable papers and their scores mean the same thing:
+ *
+ *   - every category stays represented (round-robin), so no dimension scores 0/0
+ *   - within a category, stage- and goal-specific questions outrank generic ones, since
+ *     a targeted question tells us more about this student than a catch-all
+ *   - the bank's own order is restored at the end, so the paper still reads coherently
+ */
+export function selectPaper<T extends { _id?: any; category?: string; weight?: number; stages?: string[] | null; goals?: string[] | null; background?: string | null }>(
+  questions: T[],
+  max: number,
+): T[] {
+  if (!max || max <= 0 || questions.length <= max) return questions;
+
+  const specificity = (q: T) =>
+    (q.stages?.length ? 2 : 0) +
+    (q.goals?.length ? 2 : 0) +
+    (q.background && q.background !== 'any' ? 1 : 0);
+
+  const byCat = new Map<string, T[]>();
+  for (const q of questions) {
+    const c = q.category || 'general';
+    if (!byCat.has(c)) byCat.set(c, []);
+    byCat.get(c)!.push(q);
+  }
+  for (const list of byCat.values()) {
+    list.sort((a, b) => specificity(b) - specificity(a) || (b.weight || 1) - (a.weight || 1));
+  }
+
+  const cats = [...byCat.keys()];
+  const picked = new Set<T>();
+  for (let depth = 0; picked.size < max; depth++) {
+    let progressed = false;
+    for (const c of cats) {
+      const list = byCat.get(c)!;
+      if (depth >= list.length) continue;
+      picked.add(list[depth]);
+      progressed = true;
+      if (picked.size >= max) break;
+    }
+    if (!progressed) break;
+  }
+
+  return questions.filter(q => picked.has(q));
 }
 
 /**
@@ -102,14 +249,22 @@ export function resolveCareerProfile(input: {
  * likewise sees everything rather than being guessed into a segment.
  */
 export function appliesToMember(
-  content: { stages?: string[] | null; background?: string | null },
-  member: { stage?: string | null; background?: string | null },
+  content: { stages?: string[] | null; background?: string | null; goals?: string[] | null },
+  member: { stage?: string | null; background?: string | null; careerGoal?: string | null },
 ): boolean {
   const stages = content.stages || [];
   if (stages.length && member.stage && !stages.includes(member.stage)) return false;
 
   const want = content.background || 'any';
   if (want !== 'any' && member.background && want !== member.background) return false;
+
+  // Goal is the third axis: two students can share a stage and a background and still
+  // need different questions, because one is heading for data work and the other for
+  // development. "Not sure yet" is not a goal to filter on — a member who has not chosen
+  // should see the broad paper, since narrowing them now is what we are trying to avoid.
+  const goals = content.goals || [];
+  const mine = member.careerGoal || '';
+  if (goals.length && mine && !/not sure/i.test(mine) && !goals.includes(mine)) return false;
 
   return true;
 }

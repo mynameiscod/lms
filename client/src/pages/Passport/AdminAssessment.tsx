@@ -19,6 +19,7 @@ const blank = (): AssessQuestionFull => ({ category: 'technical', text: '', opti
 
 const AdminAssessment: React.FC = () => {
   const [title, setTitle] = useState('');
+  const [maxQuestions, setMaxQuestions] = useState(14);
   const [questions, setQuestions] = useState<AssessQuestionFull[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -29,6 +30,7 @@ const AdminAssessment: React.FC = () => {
     try {
       const { assessment } = await passportApi.getAssessmentAdmin();
       setTitle(assessment.title || '');
+      setMaxQuestions(assessment.maxQuestions || 14);
       setQuestions(assessment.questions || []);
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Failed to load'); }
     setLoading(false);
@@ -43,7 +45,7 @@ const AdminAssessment: React.FC = () => {
   const save = async () => {
     setSaving(true); setMsg('');
     try {
-      await passportApi.saveAssessment({ title, questions });
+      await passportApi.saveAssessment({ title, maxQuestions, questions });
       setMsg('Saved ✓');
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Save failed'); }
     setSaving(false);
@@ -77,7 +79,25 @@ const AdminAssessment: React.FC = () => {
       {msg && <div style={{ margin: '12px 0', padding: '8px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 8, fontSize: 13.5 }}>{msg}</div>}
 
       <label style={lbl}>Assessment title</label>
-      <input value={title} onChange={e => setTitle(e.target.value)} style={{ ...input, marginBottom: 20 }} />
+      <input value={title} onChange={e => setTitle(e.target.value)} style={{ ...input, marginBottom: 16 }} />
+
+      {/* The bank and the paper are different sizes on purpose: staff add questions to
+          cover more cases, not to make every student sit a longer test. */}
+      <div style={{ background: '#f8fafc', border: '1px solid #eef1f6', borderRadius: 12, padding: '13px 15px', marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label style={{ ...lbl, margin: 0 }}>Questions per student</label>
+          <input type="number" min={5} max={60} value={maxQuestions}
+            onChange={e => setMaxQuestions(Number(e.target.value))}
+            style={{ ...input, width: 90, marginBottom: 0 }} />
+          <span style={{ fontSize: 12.5, color: '#64748b' }}>
+            of <b style={{ color: '#334155' }}>{questions.length}</b> in the bank
+          </span>
+        </div>
+        <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 7, lineHeight: 1.5 }}>
+          Each student is served this many, chosen to keep every category represented and to
+          prefer questions tagged for their stage. Grow the bank freely — the paper stays this long.
+        </div>
+      </div>
 
       {questions.map((q, i) => (
         <div key={i} style={{ background: '#fff', border: '1px solid #eef1f6', borderRadius: 14, padding: 16, marginBottom: 14 }}>

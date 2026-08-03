@@ -41,11 +41,9 @@ const LATER = ['build', 'placement', 'job_seeker'];
 
 const QUESTIONS: Q[] = [
   /* ── Foundation: habits and starting points, not achievements ──────────── */
-  {
-    category: 'career_clarity', stages: FOUNDATION, selfReport: true, correctIndex: -1, weight: 1,
-    text: 'How settled are you on the kind of work you want after graduating?',
-    options: ['No idea yet', 'A rough direction', 'A clear field', 'A specific role'],
-  },
+  // NOTE: no "how clear are you about your career direction" question here — the base
+  // bank already asks that of everyone, and two phrasings of the same question in one
+  // paper reads as carelessness and scores the same trait twice.
   {
     category: 'employability', stages: FOUNDATION, selfReport: true, correctIndex: -1, weight: 1,
     text: 'Do you have a regular study routine outside your college timetable?',

@@ -31,6 +31,9 @@ export interface IPassportQuestion {
   stages?: string[];
   /** 'cs' | 'non_cs' | 'any'. Absent = any. */
   background?: string;
+  /** Career goals this applies to (matches PassportConfig's careerGoal options).
+   *  Empty = every goal, so a question only narrows when an admin says it should. */
+  goals?: string[];
 
   selfReport?: boolean;   // if true, score = (chosen option's implied readiness) not right/wrong
 }
@@ -38,6 +41,9 @@ export interface IPassportQuestion {
 export interface IPassportAssessment extends Document {
   tenantId: string;
   title: string;
+  /** Most questions a single member is served. The bank grows without the paper growing
+   *  with it — otherwise every question an admin adds is one more a student must sit. */
+  maxQuestions: number;
   questions: IPassportQuestion[];
   updatedAt: Date;
   createdAt: Date;
@@ -51,6 +57,7 @@ const QuestionSchema = new Schema<IPassportQuestion>({
   weight:      { type: Number, default: 1 },
   stages:     { type: [String], default: [] },
   background: { type: String, default: 'any' },
+  goals:      { type: [String], default: [] },
 
   selfReport:  { type: Boolean, default: false },
 }, { _id: true });
@@ -59,6 +66,7 @@ const PassportAssessmentSchema = new Schema<IPassportAssessment>(
   {
     tenantId:  { type: String, required: true, unique: true, index: true },
     title:     { type: String, default: 'Career Readiness Assessment' },
+    maxQuestions: { type: Number, default: 14 },
     questions: [QuestionSchema],
   },
   { timestamps: true }

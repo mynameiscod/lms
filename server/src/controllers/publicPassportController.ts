@@ -117,14 +117,18 @@ export const signup = async (req: Request, res: Response) => {
         passport: {
           active: false, product: 'career_passport', onboarded: true,
           degree: fields.degree, yearOfStudy: fields.yearOfStudy, careerGoal: fields.careerGoal, pathway: fields.pathway,
-          // Career staging. Stored raw AND derived: the raw graduation date is the
-          // fact, `stage` is a cached read of it that is recomputed on every login so
-          // a member advances from foundation to placement without anyone editing them.
+          // Career staging. Stored raw AND derived: the raw inputs are the fact, `stage`
+          // is a cached read of them that is recomputed on every login so a member
+          // advances from foundation to placement without anyone editing them.
           program: fields.program, branch: fields.branch,
           graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : undefined,
           graduationYear: fields.graduationYear ? Number(fields.graduationYear) : undefined,
           graduated: fields.graduated === true || fields.graduated === 'true',
           ...resolveCareerProfile({
+            // degree + yearOfStudy are the fields the form actually asks for, so these
+            // are what stage every real signup. The graduation date below is optional
+            // and only present when an admin has added those fields to onboarding.
+            degree: fields.degree, yearOfStudy: fields.yearOfStudy,
             program: fields.program, branch: fields.branch,
             graduationMonth: fields.graduationMonth ? Number(fields.graduationMonth) : null,
             graduationYear: fields.graduationYear ? Number(fields.graduationYear) : null,

@@ -28,6 +28,54 @@ const AdminPathways: React.FC = () => {
     setContent(prev => { if (!prev) return prev; const next = JSON.parse(JSON.stringify(prev)); fn(next); return next; });
   };
 
+  /**
+   * Create, duplicate and delete all go through `patch`, which deep-clones the document
+   * before mutating. That matters most for duplicate: copying the pathway object by
+   * reference would leave both entries sharing one weekThemes array, so editing week 3
+   * of the copy would silently rewrite week 3 of the original.
+   */
+  const addPathway = () => {
+    patch(c => {
+      c.pathways.push({
+        key: 'new_pathway_' + (c.pathways.length + 1),
+        label: 'New Pathway',
+        description: '',
+        focus: [],
+        weekThemes: Array.from({ length: 13 }, (_, i) => `Week ${i + 1}`),
+      } as any);
+    });
+    setActive(content ? content.pathways.length : 0);
+    setMsg({ kind: 'ok', text: 'Pathway added. Give it a key and label, then Save.' });
+  };
+
+  const duplicatePathway = () => {
+    if (!content) return;
+    const src = content.pathways[active];
+    if (!src) return;
+    patch(c => {
+      const copy = JSON.parse(JSON.stringify(c.pathways[active]));
+      copy.key = `${src.key}_copy`;
+      copy.label = `${src.label} (copy)`;
+      c.pathways.splice(active + 1, 0, copy);
+    });
+    setActive(active + 1);
+    setMsg({ kind: 'ok', text: 'Duplicated. Change the key and stage, rewrite the themes, then Save.' });
+  };
+
+  const deletePathway = () => {
+    if (!content) return;
+    const p = content.pathways[active];
+    if (!p) return;
+    // Members already on this pathway fall back to another one rather than breaking, but
+    // their roadmap changes — so the confirm says that rather than just "are you sure".
+    if (!window.confirm(
+      `Delete "${p.label}"?\n\nAny member currently on this pathway will fall back to another one, ` +
+      `which changes their roadmap. This is not applied until you press Save.`)) return;
+    patch(c => { c.pathways.splice(active, 1); });
+    setActive(Math.max(0, active - 1));
+    setMsg({ kind: 'ok', text: 'Removed from the list. Press Save to apply.' });
+  };
+
   const save = async () => {
     if (!content) return;
     setBusy(true); setMsg(null);
@@ -99,8 +147,22 @@ const AdminPathways: React.FC = () => {
 
       <div className="pa-tabs">
         {content.pathways.map((p, i) => (
-          <button key={p.key} className={`pr-chip${i === active ? ' on' : ''}`} onClick={() => setActive(i)}>{p.label}</button>
+          <button key={`${p.key}-${(p as any).stage || 'generic'}-${i}`}
+            className={`pr-chip${i === active ? ' on' : ''}`} onClick={() => setActive(i)}>
+            {p.label}{(p as any).stage ? <em className="pa-stage"> · {(p as any).stage}</em> : null}
+          </button>
         ))}
+        <button className="pr-chip pa-add" onClick={addPathway} title="Create a new pathway">+ New</button>
+      </div>
+
+      <div className="pa-rowacts">
+        {/* Duplicate is the workhorse here: a stage variant is an existing pathway with
+            its 13 week themes rewritten, so copying beats authoring from blank. */}
+        <button className="pa-mini" onClick={duplicatePathway} disabled={!pw}>Duplicate this pathway</button>
+        <button className="pa-mini danger" onClick={deletePathway} disabled={!pw || content.pathways.length <= 1}>
+          Delete this pathway
+        </button>
+        {content.pathways.length <= 1 && <span className="pa-note">The last pathway cannot be deleted.</span>}
       </div>
 
       {pw && (

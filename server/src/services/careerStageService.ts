@@ -201,13 +201,23 @@ export function resolveCareerProfile(input: {
 export function selectPaper<T extends { _id?: any; category?: string; weight?: number; stages?: string[] | null; goals?: string[] | null; background?: string | null }>(
   questions: T[],
   max: number,
+  opts: { preferSpecific?: boolean } = {},
 ): T[] {
   if (!max || max <= 0 || questions.length <= max) return questions;
 
-  const specificity = (q: T) =>
-    (q.stages?.length ? 2 : 0) +
-    (q.goals?.length ? 2 : 0) +
-    (q.background && q.background !== 'any' ? 1 : 0);
+  // Preferring targeted questions is only right when we know who the student is. For a
+  // member with no stage — an unrecognised degree, a pre-staging account — nothing has
+  // been filtered out, so the targeted questions in the pool are targeted at somebody
+  // else. Ranking them first would hand the one student we know least about a paper
+  // aimed entirely at strangers. So the preference inverts: they get the general paper.
+  const preferSpecific = opts.preferSpecific !== false;
+  const rank = (q: T) => {
+    const s = (q.stages?.length ? 2 : 0) +
+              (q.goals?.length ? 2 : 0) +
+              (q.background && q.background !== 'any' ? 1 : 0);
+    return preferSpecific ? s : -s;
+  };
+  const specificity = rank;
 
   const byCat = new Map<string, T[]>();
   for (const q of questions) {

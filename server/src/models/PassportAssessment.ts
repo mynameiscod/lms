@@ -97,12 +97,12 @@ export const DEFAULT_QUESTIONS: IPassportQuestion[] = [
 
   // Communication (self-report)
   { category: 'communication', text: 'How comfortable are you giving a 2-minute self-introduction?', options: ['Very nervous', 'Somewhat', 'Comfortable', 'Very confident'], correctIndex: -1, selfReport: true, weight: 1 },
-  { category: 'communication', text: 'Can you explain a project you built in simple English?', options: ['No', 'With difficulty', 'Mostly', 'Clearly'], correctIndex: -1, selfReport: true, weight: 1 },
+  { category: 'communication', text: 'Can you explain a project you built in simple English?', stages: ['build'], options: ['No', 'With difficulty', 'Mostly', 'Clearly'], correctIndex: -1, selfReport: true, weight: 1 },
 
   // Employability (self-report)
-  { category: 'employability', text: 'Do you have a resume ready?', options: ['No', 'Draft', 'Yes, basic', 'Yes, polished'], correctIndex: -1, selfReport: true, weight: 1 },
-  { category: 'employability', text: 'How many projects can you show (GitHub/demo)?', options: ['0', '1', '2', '3+'], correctIndex: -1, selfReport: true, weight: 1 },
-  { category: 'employability', text: 'Have you attempted a mock interview?', options: ['Never', 'Once', 'A few', 'Regularly'], correctIndex: -1, selfReport: true, weight: 1 },
+  { category: 'employability', text: 'Do you have a resume ready?', stages: ['build'], options: ['No', 'Draft', 'Yes, basic', 'Yes, polished'], correctIndex: -1, selfReport: true, weight: 1 },
+  { category: 'employability', text: 'How many projects can you show (GitHub/demo)?', stages: ['placement', 'job_seeker'], options: ['0', '1', '2', '3+'], correctIndex: -1, selfReport: true, weight: 1 },
+  { category: 'employability', text: 'Have you attempted a mock interview?', stages: ['build'], options: ['Never', 'Once', 'A few', 'Regularly'], correctIndex: -1, selfReport: true, weight: 1 },
 ];
 
 export default mongoose.model<IPassportAssessment>('PassportAssessment', PassportAssessmentSchema);

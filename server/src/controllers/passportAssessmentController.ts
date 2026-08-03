@@ -46,7 +46,7 @@ export const getAssessment = async (req: Request, res: Response) => {
     // Then cap it. Filtering alone does not shorten the paper much, because most of the
     // bank is untagged and so applies to everyone — a member was seeing 34 questions,
     // several of them near-duplicates of each other.
-    const questions = selectPaper(eligible as any[], a.maxQuestions || 14);
+    const questions = selectPaper(eligible as any[], a.maxQuestions || 14, { preferSpecific: !!me.stage });
 
     res.json({
       title: a.title,

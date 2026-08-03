@@ -39,7 +39,7 @@ const PLACEMENT = ['placement'];
 const SEEKING = ['placement', 'job_seeker'];
 const LATER = ['build', 'placement', 'job_seeker'];
 
-const QUESTIONS: Q[] = [
+export const QUESTIONS: Q[] = [
   /* ── Foundation: habits and starting points, not achievements ──────────── */
   // NOTE: no "how clear are you about your career direction" question here — the base
   // bank already asks that of everyone, and two phrasings of the same question in one
@@ -171,4 +171,6 @@ async function run() {
   await mongoose.disconnect();
 }
 
-run().catch(e => { console.error(e); process.exit(1); });
+// Only when invoked directly. Without this guard, importing QUESTIONS for a test or a
+// coverage check would connect to the database and start writing to it.
+if (require.main === module) run().catch(e => { console.error(e); process.exit(1); });

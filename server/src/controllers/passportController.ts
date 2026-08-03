@@ -105,12 +105,19 @@ export const setPassword = async (req: Request, res: Response) => {
 export const listStudents = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
-    const q: any = { tenantId, 'passport.active': true };
+    // Everyone in the CareerPilot funnel, not only those who have paid. The filter was
+    // 'passport.active': true, which made the screen a paid-member list — an admin could
+    // add a member and never see them, because a manually created member starts inactive
+    // and someone mid-funnel has not paid yet. Keyed on `product` so ordinary LMS
+    // students, who have no CareerPilot record at all, stay out.
+    const q: any = { tenantId, 'passport.product': { $exists: true, $ne: null } };
     if (req.query.search) {
       const s = String(req.query.search);
       q.$or = [{ firstName: { $regex: s, $options: 'i' } }, { lastName: { $regex: s, $options: 'i' } }, { email: { $regex: s, $options: 'i' } }];
     }
-    const rows = await User.find(q).select('firstName lastName email phone passport createdAt').sort({ createdAt: -1 }).limit(500).lean();
+    // isActive is selected because the screen shows account status separately from
+    // membership status — without it the Deactivated badge could never render.
+    const rows = await User.find(q).select('firstName lastName email phone passport isActive createdAt').sort({ createdAt: -1 }).limit(500).lean();
     res.json({ students: rows });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to list students' });
@@ -300,12 +307,19 @@ export const createMember = async (req: Request, res: Response) => {
       return res.status(409).json({ message: 'A user with that email already exists.' });
     }
 
+    // The model requires a password. An admin-created member has not chosen one, so a
+    // random unguessable value is stored and `passwordSet` stays false — the same shape
+    // the public signup uses. They set a real password through the normal flow; this
+    // placeholder can never be logged in with because nobody, including us, knows it.
+    const placeholder = (await import('crypto')).randomBytes(24).toString('hex');
+
     const user: any = await User.create({
       tenantId, firstName: String(firstName).trim(), lastName: String(lastName || '').trim(),
       email: mail, phone: String(phone || '').trim(),
+      password: placeholder,
       role: 'STUDENT', isActive: true,
       // Created inactive on purpose — granting membership is a separate, permissioned act.
-      passport: { active: false, product: 'career_passport', onboarded: false },
+      passport: { active: false, product: 'career_passport', onboarded: false, passwordSet: false },
     });
 
     res.status(201).json({ success: true, data: { _id: String(user._id), email: user.email } });

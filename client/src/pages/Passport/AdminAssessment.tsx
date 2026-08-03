@@ -95,7 +95,30 @@ const AdminAssessment: React.FC = () => {
                 <input type="number" min={0.5} step={0.5} value={q.weight} onChange={e => update(i, { weight: Number(e.target.value) })} style={{ ...input, width: 60, padding: '5px 8px' }} />
               </label>
             </div>
-            <button onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 18 }}>✕</button>
+            <div style={{ display: 'flex', gap: 4, alignItems: 'flex-start', flexShrink: 0 }}>
+              {/* Order is what the candidate reads. Opening a career assessment on a
+                  self-rating question sets a very different tone to opening on aptitude. */}
+              <button title="Move up" disabled={i === 0} style={miniBtn}
+                onClick={() => setQuestions(qs => {
+                  const a = [...qs]; [a[i - 1], a[i]] = [a[i], a[i - 1]]; return a;
+                })}>↑</button>
+              <button title="Move down" disabled={i === questions.length - 1} style={miniBtn}
+                onClick={() => setQuestions(qs => {
+                  const a = [...qs]; [a[i + 1], a[i]] = [a[i], a[i + 1]]; return a;
+                })}>↓</button>
+              {/* Deep copy: a shallow one would share the options array, so editing an
+                  option on the copy would rewrite it on the original. */}
+              <button title="Duplicate" style={miniBtn}
+                onClick={() => setQuestions(qs => {
+                  const a = [...qs];
+                  const copy = JSON.parse(JSON.stringify(a[i]));
+                  a.splice(i + 1, 0, copy);
+                  return a;
+                })}>⧉</button>
+              <button title="Delete question"
+                onClick={() => setQuestions(qs => qs.filter((_, j) => j !== i))}
+                style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: 18 }}>✕</button>
+            </div>
           </div>
           <input value={q.text} onChange={e => update(i, { text: e.target.value })} placeholder="Question text" style={{ ...input, marginBottom: 10, fontWeight: 600 }} />
           <div style={{ display: 'grid', gap: 8 }}>
@@ -131,6 +154,7 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: 12.5, fontWeight:
 const input: React.CSSProperties = { flex: 1, width: '100%', border: '1px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: 14, color: '#0f172a', boxSizing: 'border-box' };
 const select: React.CSSProperties = { border: '1px solid #e2e8f0', borderRadius: 8, padding: '7px 10px', fontSize: 13, color: '#0f172a', background: '#fff' };
 const primaryBtn: React.CSSProperties = { background: 'linear-gradient(90deg,#6650d8,#14a89c)', color: '#fff', border: 'none', borderRadius: 9, padding: '10px 20px', fontWeight: 800, fontSize: 14, cursor: 'pointer' };
+const miniBtn: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 7, width: 28, height: 28, fontSize: 12, color: '#475569', cursor: 'pointer', lineHeight: 1 };
 const ghostBtn: React.CSSProperties = { background: '#fff', border: '1px solid #e2e8f0', borderRadius: 9, padding: '10px 16px', fontWeight: 700, fontSize: 13.5, color: '#475569', cursor: 'pointer' };
 
 export default AdminAssessment;

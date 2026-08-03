@@ -275,3 +275,9 @@
 .pa-mini:disabled { opacity: .5; cursor: default; }
 .pa-mini.danger { color: #b91c1c; border-color: #fecaca; }
 .pa-note { font-size: 11.5px; color: #94a3b8; }
+
+/* Mission item reorder / duplicate */
+.mi-mv { background: #fff; border: 1px solid #cbd5e1; border-radius: 7px; width: 30px; height: 32px;
+  font-size: 13px; color: #475569; cursor: pointer; flex-shrink: 0; }
+.mi-mv:disabled { opacity: .35; cursor: default; }
+.mi-mv:hover:not(:disabled) { border-color: #5b2bd9; color: #5b2bd9; }

@@ -137,6 +137,26 @@ const AdminMissions: React.FC = () => {
                 onChange={e => patch(c => { c.missionPools[active].items[i].link = e.target.value || undefined; })}>
                 {LINKS.map(l => <option key={l.v} value={l.v}>{l.label}</option>)}
               </select>
+              {/* Order is not cosmetic: missionsForDay walks the pool by a stable index,
+                  so moving an item changes which day it lands on. */}
+              <button className="mi-mv" title="Move up" disabled={i === 0}
+                onClick={() => patch(c => {
+                  const a = c.missionPools[active].items;
+                  [a[i - 1], a[i]] = [a[i], a[i - 1]];
+                })}>↑</button>
+              <button className="mi-mv" title="Move down" disabled={i === pool.items.length - 1}
+                onClick={() => patch(c => {
+                  const a = c.missionPools[active].items;
+                  [a[i + 1], a[i]] = [a[i], a[i + 1]];
+                })}>↓</button>
+              {/* Deep-copied through `patch`, so the copy does not share nested fields. */}
+              <button className="mi-mv" title="Duplicate"
+                onClick={() => patch(c => {
+                  const a = c.missionPools[active].items;
+                  const copy = JSON.parse(JSON.stringify(a[i]));
+                  copy.title = `${copy.title} (copy)`;
+                  a.splice(i + 1, 0, copy);
+                })}>⧉</button>
               <button className="rs-del" style={{ position: 'static' }} onClick={() => patch(c => { c.missionPools[active].items.splice(i, 1); })}>✕</button>
             </div>
           ))}

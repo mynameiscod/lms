@@ -22,6 +22,9 @@ export interface IMissionPoolItem {
   stages?: string[];
   /** 'cs' | 'non_cs' | 'any'. Absent = any. */
   background?: string;
+  /** Career goals this applies to. Empty = every goal. A student aiming for data work
+   *  should not be handed a mission about system design. */
+  goals?: string[];
 
 }
 
@@ -57,6 +60,7 @@ const MissionPoolItemSchema = new Schema<IMissionPoolItem>({
   type:   { type: String, default: 'learn' },
   stages:     { type: [String], default: [] },
   background: { type: String, default: 'any' },
+  goals:      { type: [String], default: [] },
 
   xp:     { type: Number, default: 20 },
   link:   { type: String },

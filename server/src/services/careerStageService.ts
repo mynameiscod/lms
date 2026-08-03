@@ -18,11 +18,16 @@
 
 export type CareerStage = 'foundation' | 'build' | 'placement' | 'job_seeker';
 
-export const CAREER_STAGES: { key: CareerStage; label: string; blurb: string }[] = [
-  { key: 'foundation', label: 'Foundation', blurb: 'More than 2 years out — fundamentals and study habits.' },
-  { key: 'build',      label: 'Build',      blurb: '1–2 years out — projects, depth, first real proof.' },
-  { key: 'placement',  label: 'Placement',  blurb: 'Final year — resume, mock interviews, applications.' },
-  { key: 'job_seeker', label: 'Job Seeker', blurb: 'Graduated — active in the market now.' },
+/**
+ * `who` spells out which degree-and-year answers land in each stage, because that is the
+ * form the admin tagging a question is thinking in — they know they are writing for a
+ * first-year, not for "foundation".
+ */
+export const CAREER_STAGES: { key: CareerStage; label: string; blurb: string; who: string }[] = [
+  { key: 'foundation', label: 'Foundation', blurb: 'Fundamentals and study habits — no achievements to report yet.', who: '1st year of B.Tech, B.Sc, BCA, Diploma' },
+  { key: 'build',      label: 'Build',      blurb: 'Projects, depth, the first real proof of ability.',              who: 'B.Tech 2nd–3rd · B.Sc 2nd · MCA 1st' },
+  { key: 'placement',  label: 'Placement',  blurb: 'Resume, mock interviews, applications.',                        who: 'Final year of any course' },
+  { key: 'job_seeker', label: 'Job Seeker', blurb: 'Active in the market now.',                                     who: 'Graduated' },
 ];
 
 export const PROGRAMS = ['B.Tech', 'B.E', 'B.Sc', 'BCA', 'B.Com', 'MCA', 'M.Tech', 'MBA', 'Diploma', 'Other'];

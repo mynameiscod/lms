@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import PassportAssessment from '../models/PassportAssessment';
 import PassportContent from '../models/PassportContent';
+import PassportConfig from '../models/PassportConfig';
 import { AuthRequest } from '../types/express';
 import { CAREER_STAGES, coverageByStage } from '../services/careerStageService';
 
@@ -23,14 +24,22 @@ const THIN = 8;
 export const getStaging = async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = tid(req);
-    const [assessment, content] = await Promise.all([
+    const [assessment, content, config] = await Promise.all([
       PassportAssessment.findOne({ tenantId }).lean(),
       PassportContent.findOne({ tenantId }).lean(),
+      PassportConfig.findOne({ tenantId }).lean(),
     ]);
+
+    // Goal names come from the signup form's own options rather than a list kept here.
+    // A tag that does not match what students actually pick reaches nobody, and nothing
+    // else in the system would report that — so there must be only one list.
+    const goalField = ((config as any)?.onboardingFields || []).find((f: any) => f.key === 'careerGoal');
+    const goalOptions: string[] = (goalField?.options || [])
+      .filter((g: string) => !/not sure/i.test(g));   // the undecided are never narrowed
 
     const questions = ((assessment as any)?.questions || []).map((q: any) => ({
       id: String(q._id), text: q.text, category: q.category,
-      stages: q.stages || [], background: q.background || 'any',
+      stages: q.stages || [], background: q.background || 'any', goals: q.goals || [],
     }));
 
     const missions: any[] = [];
@@ -38,7 +47,7 @@ export const getStaging = async (req: AuthRequest, res: Response) => {
       for (const it of (pool.items || [])) {
         missions.push({
           category: pool.category, title: it.title,
-          stages: it.stages || [], background: it.background || 'any',
+          stages: it.stages || [], background: it.background || 'any', goals: it.goals || [],
         });
       }
     }
@@ -50,6 +59,21 @@ export const getStaging = async (req: AuthRequest, res: Response) => {
       success: true,
       data: {
         stages: CAREER_STAGES,
+        goalOptions,
+        // What a real student is actually served, per stage AND goal. Counting the bank
+        // per stage hides the case that matters: a stage can look healthy overall while
+        // one goal inside it has almost nothing aimed at it.
+        goalCoverage: goalOptions.map(g => ({
+          goal: g,
+          byStage: CAREER_STAGES.reduce((acc: any, st) => {
+            acc[st.key] = questions.filter((q: any) => {
+              if (q.stages.length && !q.stages.includes(st.key)) return false;
+              if (q.goals.length && !q.goals.includes(g)) return false;
+              return true;
+            }).length;
+            return acc;
+          }, {}),
+        })),
         questions, missions,
         coverage: {
           questions: qCov, missions: mCov,
@@ -68,7 +92,7 @@ export const getStaging = async (req: AuthRequest, res: Response) => {
   } catch (e: any) { fail(res, 500, e.message); }
 };
 
-/** Bulk-set tags. Body: { questions?: [{id, stages, background}], missions?: [{category,title,stages,background}] } */
+/** Bulk-set tags. Body: { questions?: [{id, stages, goals, background}], missions?: [{category,title,stages,goals,background}] } */
 export const setStaging = async (req: AuthRequest, res: Response) => {
   try {
     const tenantId = tid(req);
@@ -82,6 +106,7 @@ export const setStaging = async (req: AuthRequest, res: Response) => {
         const q = a.questions.id ? a.questions.id(patch.id) : a.questions.find((x: any) => String(x._id) === patch.id);
         if (!q) continue;
         if (Array.isArray(patch.stages)) q.stages = patch.stages;
+        if (Array.isArray(patch.goals)) q.goals = patch.goals;
         if (patch.background) q.background = patch.background;
         touched++;
       }
@@ -99,6 +124,7 @@ export const setStaging = async (req: AuthRequest, res: Response) => {
         const it = (pool.items || []).find((x: any) => x.title === patch.title);
         if (!it) continue;
         if (Array.isArray(patch.stages)) it.stages = patch.stages;
+        if (Array.isArray(patch.goals)) it.goals = patch.goals;
         if (patch.background) it.background = patch.background;
         touched++;
       }

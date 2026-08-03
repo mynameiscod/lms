@@ -436,6 +436,15 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
 
   const resp = await callClaudeJSON(system, user, 400);
   if (!resp || typeof resp.data !== 'object' || !resp.data.say) {
+    // Mid-interview this filler is a reasonable safety net — one flaky turn should not
+    // destroy a session the member is part-way through. On the OPENING turn it is not:
+    // it greets the candidate with "Thanks. Can you tell me more about that?" before they
+    // have said anything, and the member sits through a whole interview with a broken
+    // interviewer believing that is the product. Better to refuse to start.
+    console.error('[interview] AI turn failed', history.length === 0 ? '(opening — refusing to start)' : '(mid-interview — using fallback)');
+    if (history.length === 0) {
+      throw new Error('The interviewer is unavailable right now. Please try again in a few minutes.');
+    }
     return { say: nearEnd ? 'Thanks for your time today — that wraps up our interview.' : 'Thanks. Can you tell me more about that?', kind: nearEnd ? 'closing' : 'followup', endInterview: nearEnd };
   }
   const kind = ['intro', 'question', 'followup', 'transition', 'closing'].includes(resp.data.kind) ? resp.data.kind : 'question';

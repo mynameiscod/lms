@@ -17,17 +17,32 @@ const clamp = (n: any, max: number) => Math.max(0, Math.min(Number(n) || 0, max)
 
 /** Call the best available model (Claude preferred, OpenAI fallback) → raw text. */
 async function aiComplete(prompt: string, maxTokens = 1800): Promise<string> {
+  // Anthropic first, OpenAI as a fallback — and the fallback must cover a client that
+  // EXISTS but whose call fails. The old check only fell through when the client was
+  // absent, so an expired key or an exhausted credit balance took the whole feature down
+  // while a working OpenAI key sat unused beside it.
+  let anthropicError: Error | null = null;
   if (isAnthropicEnabled()) {
     const anth = getAnthropic();
     if (anth) {
-      const model = settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6');
-      const r: any = await anth.messages.create({ model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
-      const block = (r.content || []).find((b: any) => b.type === 'text');
-      return block?.text || '';
+      try {
+        const model = settings.getStr('INTERVIEW_AI_MODEL', 'claude-sonnet-4-6');
+        const r: any = await anth.messages.create({ model, max_tokens: maxTokens, temperature: 0.3, messages: [{ role: 'user', content: prompt }] });
+        const block = (r.content || []).find((b: any) => b.type === 'text');
+        if (block?.text) return block.text;
+        anthropicError = new Error('Anthropic returned no text');
+      } catch (e: any) {
+        anthropicError = e;
+        console.error('[resume] Anthropic failed, trying OpenAI:', e?.status || '', String(e?.message || e).slice(0, 200));
+      }
     }
   }
+
   const openai = getOpenAI();
-  if (!openai) throw new Error('No AI provider configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY).');
+  if (!openai) {
+    throw anthropicError
+      || new Error('No AI provider configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY).');
+  }
   const model = settings.getStr('OPENAI_MODEL', 'gpt-4o-mini');
   const resp = await openai.chat.completions.create({ model, temperature: 0.3, max_tokens: maxTokens, messages: [{ role: 'user', content: prompt }] });
   return resp.choices[0]?.message?.content || '';
@@ -55,9 +70,17 @@ Give max 6 of the most impactful, specific suggestions; flag only real issues.
 Resume data (JSON):
 ${JSON.stringify(sections, null, 2).slice(0, 5000)}`;
 
+  // Deliberately NOT caught into a zero score. A resume with every section filled in was
+  // being returned as 0/100 across the board because the AI call failed — and a member
+  // cannot tell "our AI is down" from "your resume is worthless". The caller already
+  // turns a thrown error into an honest message, so let it.
+  const raw = await aiComplete(prompt);
   let parsed: any;
-  try { parsed = JSON.parse(stripJson(await aiComplete(prompt))); }
-  catch { return getZeroScore(); }
+  try { parsed = JSON.parse(stripJson(raw)); }
+  catch {
+    console.error('[resume] unparseable AI response:', String(raw).slice(0, 300));
+    throw new Error('The scoring service returned an unreadable response. Please try again.');
+  }
 
   const b = parsed.breakdown || {};
   const breakdown = {
@@ -103,8 +126,13 @@ Current resume (JSON):
 ${JSON.stringify(sections, null, 2).slice(0, 6000)}`;
 
   let parsed: any;
+  // Returning `sections` unchanged on failure meant "Improve with AI" quietly did
+  // nothing, which a member reads as the AI judging their resume already perfect.
   try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 4096))); }
-  catch { return sections; }
+  catch (e: any) {
+    console.error('[resume] improve failed:', String(e?.message || e).slice(0, 200));
+    throw new Error('Could not improve the resume right now. Please try again shortly.');
+  }
 
   const skillsOk = Array.isArray(parsed.skills) && parsed.skills.every((g: any) => g && typeof g.category === 'string' && Array.isArray(g.items));
   return {
@@ -172,7 +200,13 @@ ${JSON.stringify(sections).slice(0, 6000)}
 Return ONLY raw JSON:
 {"matchScore": <0-100 how well this resume matches THIS job today>, "jobTitle": "<role this JD is for>", "matchedKeywords": ["<JD skills/keywords the resume already has>"], "missingKeywords": ["<important JD skills/keywords absent or weak in the resume>"], "tailoredSummary": "<2-3 line professional summary rewritten to target THIS job, truthful to the resume>", "tailoredBullets": ["<5-8 impact/metric-driven experience or project bullets re-worded to hit this JD's requirements, grounded in real resume content>"], "suggestions": [{"area": "<what to strengthen>", "fix": "<specific action to close the gap for this job>"}]}`;
   let parsed: any = {};
-  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 2400))); } catch { parsed = {}; }
+  try { parsed = JSON.parse(stripJson(await aiComplete(prompt, 2400))); }
+  catch (e: any) {
+    // An empty object here produced a "tailored" result with a 0% match and no keywords,
+    // which looks like a verdict on the resume rather than a failed call.
+    console.error('[resume] tailor failed:', String(e?.message || e).slice(0, 200));
+    throw new Error('Could not tailor the resume right now. Please try again shortly.');
+  }
   const arr = (v: any): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string' && x.trim()).map((x) => x.trim()) : []);
   return {
     matchScore: clamp(parsed.matchScore, 100),

@@ -70,8 +70,15 @@ export const DEFAULT_ONBOARDING_FIELDS: IOnboardingField[] = [
   { key: 'mobile', label: 'Mobile',      type: 'phone', required: true, locked: true, order: 2 },
   { key: 'email',  label: 'Email',       type: 'email', required: true, locked: true, order: 3 },
   { key: 'degree', label: 'Degree',      type: 'select', required: false, order: 4, options: ['B.Tech', 'B.E.', 'BCA', 'B.Sc.', 'MCA', 'Diploma', 'Other'] },
-  { key: 'yearOfStudy', label: 'Academic Year', type: 'select', required: false, order: 5, options: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'] },
-  { key: 'careerGoal',  label: 'Career Goal',   type: 'select', required: false, order: 6, options: ['Software Development', 'Data Analytics', 'AI-Ready', 'Not sure yet'] },
+  { key: 'yearOfStudy', label: 'Academic Year', type: 'select', required: false, order: 6, options: ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Graduated'] },
+  // Degree alone cannot say CS or not — a B.Tech is CSE and Civil alike — so without
+  // this the background axis resolves to 'any' for nearly everyone and any question or
+  // mission tagged non_cs reaches nobody. Placed after Degree because that is the order
+  // a student thinks in.
+  { key: 'branch', label: 'Branch / Specialization', type: 'select', required: false, order: 5,
+    options: ['Computer Science / IT', 'Electronics / ECE', 'Electrical / EEE', 'Mechanical', 'Civil',
+              'Data Science / AI', 'Mathematics / Statistics', 'Commerce / Management', 'Other'] },
+  { key: 'careerGoal',  label: 'Career Goal',   type: 'select', required: false, order: 7, options: ['Software Development', 'Data Analytics', 'AI-Ready', 'Not sure yet'] },
 ];
 
 export const DEFAULT_ENTITLEMENTS: IEntitlement[] = [

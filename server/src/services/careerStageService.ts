@@ -138,10 +138,22 @@ export function deriveStage(opts: {
  */
 export type Background = 'cs' | 'non_cs' | 'any';
 
-const CS_HINTS = [
-  'computer', 'cse', 'it', 'information tech', 'software', 'bca', 'mca',
-  'data science', 'ai', 'artificial intelligence', 'machine learning', 'ise',
+/** Matched anywhere in the text — long enough that a chance substring is not a risk. */
+const CS_PHRASES = [
+  'computer', 'information tech', 'software', 'data science',
+  'artificial intelligence', 'machine learning',
 ];
+
+/**
+ * Matched as WHOLE WORDS only. As substrings these are landmines: 'ai' appears inside
+ * Aeronautical and Maintenance, 'it' inside dozens of ordinary words. An admin adding
+ * "Aeronautical Engineering" to the branch list would otherwise have it classified as a
+ * computing background.
+ */
+const CS_WORDS = ['cse', 'it', 'ise', 'bca', 'mca', 'ai'];
+
+/** Branch answers that carry no information — treated as unknown, not as non-CS. */
+const UNINFORMATIVE = ['other', 'others', 'none', 'na', 'n/a'];
 
 /**
  * Degrees that say nothing about the field on their own. "B.Tech" is CSE and Civil
@@ -151,15 +163,28 @@ const CS_HINTS = [
  */
 const FIELD_AGNOSTIC = ['b.tech', 'btech', 'b.e', 'b.e.', 'be', 'm.tech', 'mtech', 'diploma', 'b.sc', 'b.sc.', 'bsc', 'm.sc', 'msc', 'other'];
 
+const looksCS = (text: string): boolean => {
+  if (CS_PHRASES.some(h => text.includes(h))) return true;
+  const words = text.split(/[^a-z]+/).filter(Boolean);
+  return words.some(w => CS_WORDS.includes(w));
+};
+
 export function deriveBackground(program?: string | null, branch?: string | null, degree?: string | null): Background {
-  const hay = `${program || ''} ${branch || ''}`.toLowerCase();
-  if (hay.trim()) return CS_HINTS.some(h => hay.includes(h)) ? 'cs' : 'non_cs';
+  const hay = `${program || ''} ${branch || ''}`.toLowerCase().trim();
+  if (hay) {
+    if (looksCS(hay)) return 'cs';
+    // "Other" means they answered without telling us anything. Reading that as non-CS
+    // would put them in front of "why are you moving into IT from your own field?".
+    const words = hay.split(/[^a-z]+/).filter(Boolean);
+    if (words.every(w => UNINFORMATIVE.includes(w))) return 'any';
+    return 'non_cs';
+  }
 
   // Nothing but a degree to go on. BCA/MCA are unambiguous; the rest are not.
   const key = String(degree || '').trim().toLowerCase().replace(/\s+/g, '');
   if (!key) return 'any';
   if (FIELD_AGNOSTIC.includes(key)) return 'any';
-  return CS_HINTS.some(h => key.includes(h)) ? 'cs' : 'any';
+  return looksCS(key) ? 'cs' : 'any';
 }
 
 /** Everything derived, in one call, for storing on the member. */

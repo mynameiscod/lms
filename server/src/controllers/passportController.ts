@@ -266,3 +266,115 @@ export const setCareerProfile = async (req: Request, res: Response) => {
     res.json({ success: true, stage: derived.stage, background: derived.background });
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
+
+
+// ── Member management ───────────────────────────────────────────────────────
+
+/**
+ * Managing CareerPilot members.
+ *
+ * The rules that matter live here rather than in the UI, because a screen can be
+ * bypassed and these decisions involve money:
+ *
+ *  - A member who has PAID is never hard-deleted. Their record is what a ₹499 payment
+ *    points at; destroying it leaves an orphaned transaction and no way to prove what
+ *    the money bought. Deactivation is reversible and loses nothing.
+ *  - Hard delete exists only for records created in error, and only while they carry no
+ *    payment and no assessment attempt.
+ *  - A manually created member starts INACTIVE. Creating someone straight into an active
+ *    paid membership would make `convert` — which is deliberately behind its own
+ *    permission — trivially bypassable through the create form.
+ */
+
+export const createMember = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const { firstName, lastName, email, phone } = req.body || {};
+    const mail = String(email || '').trim().toLowerCase();
+
+    if (!String(firstName || '').trim()) return res.status(400).json({ message: 'First name is required' });
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return res.status(400).json({ message: 'A valid email is required' });
+
+    const User = (await import('../models/User')).default;
+    if (await User.findOne({ email: mail })) {
+      return res.status(409).json({ message: 'A user with that email already exists.' });
+    }
+
+    const user: any = await User.create({
+      tenantId, firstName: String(firstName).trim(), lastName: String(lastName || '').trim(),
+      email: mail, phone: String(phone || '').trim(),
+      role: 'STUDENT', isActive: true,
+      // Created inactive on purpose — granting membership is a separate, permissioned act.
+      passport: { active: false, product: 'career_passport', onboarded: false },
+    });
+
+    res.status(201).json({ success: true, data: { _id: String(user._id), email: user.email } });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
+};
+
+export const updateMember = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const User = (await import('../models/User')).default;
+    const u: any = await User.findOne({ _id: req.params.userId, tenantId });
+    if (!u) return res.status(404).json({ message: 'Member not found' });
+
+    for (const k of ['firstName', 'lastName', 'phone'] as const) {
+      if (req.body[k] !== undefined) u[k] = String(req.body[k]).trim();
+    }
+    // Email is the login identity, so a change must not collide with another account.
+    if (req.body.email !== undefined) {
+      const mail = String(req.body.email).trim().toLowerCase();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(mail)) return res.status(400).json({ message: 'A valid email is required' });
+      const clash = await User.findOne({ email: mail, _id: { $ne: u._id } });
+      if (clash) return res.status(409).json({ message: 'Another user already uses that email.' });
+      u.email = mail;
+    }
+    await u.save();
+    res.json({ success: true });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
+};
+
+/** Deactivate or restore. The reversible action, and the one to reach for by default. */
+export const setMemberActive = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const active = req.body?.active !== false;
+    const User = (await import('../models/User')).default;
+    const r = await User.updateOne({ _id: req.params.userId, tenantId }, { $set: { isActive: active } });
+    if (!r.matchedCount) return res.status(404).json({ message: 'Member not found' });
+    res.json({ success: true, active });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
+};
+
+/** Hard delete — refused for anyone who has paid or been assessed. */
+export const deleteMember = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const User = (await import('../models/User')).default;
+    const u: any = await User.findOne({ _id: req.params.userId, tenantId }).lean();
+    if (!u) return res.status(404).json({ message: 'Member not found' });
+
+    const mongoose = (await import('mongoose')).default;
+    const paid = await mongoose.connection.collection('payments')
+      .countDocuments({ userId: u._id, purpose: 'passport_membership' })
+      .catch(() => 0);
+    const attempts = await mongoose.connection.collection('passportattempts')
+      .countDocuments({ studentId: u._id })
+      .catch(() => 0);
+
+    if (paid > 0 || u.passport?.active) {
+      return res.status(409).json({
+        message: 'This member has paid for a membership, so the record cannot be deleted. Deactivate them instead — that is reversible and keeps the payment traceable.',
+      });
+    }
+    if (attempts > 0) {
+      return res.status(409).json({
+        message: 'This member has completed an assessment. Deactivate rather than delete, so their result is not lost.',
+      });
+    }
+
+    await User.deleteOne({ _id: u._id });
+    res.json({ success: true, message: 'Member deleted' });
+  } catch (e: any) { res.status(500).json({ message: e.message }); }
+};

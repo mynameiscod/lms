@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CareerPilotStaging from './pages/Passport/AdminStaging';
 import LabTracks from './pages/LabTracks';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
@@ -320,6 +320,19 @@ const HotLeadToast: React.FC = () => {
 };
 
 /** Old card links carry a slug that must survive the move to /careerpilot. */
+/**
+ * Redirect that keeps ?query and #hash.
+ *
+ * A plain <Navigate to="/x"> drops both, so /passport/practice?kind=coding landed on the
+ * practice list with no filter — the member reached the right page and the wrong content,
+ * which is worse than a 404 because nothing looks broken. Mission links, saved bookmarks
+ * and anything already sent by email all go through these.
+ */
+const LegacyRedirect: React.FC<{ to: string }> = ({ to }) => {
+  const { search, hash } = useLocation();
+  return <Navigate to={`${to}${search}${hash}`} replace />;
+};
+
 const LegacyCardRedirect: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   return <Navigate to={`/careerpilot/card/${slug}`} replace />;
@@ -331,9 +344,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/careerpilot/join" element={<PassportJoin />} />
-      <Route path="/passport/join" element={<Navigate to="/careerpilot/join" replace />} />
+      <Route path="/passport/join" element={<LegacyRedirect to="/careerpilot/join" />} />
       <Route path="/careerpilot/login" element={<PassportLogin />} />
-      <Route path="/passport/login" element={<Navigate to="/careerpilot/login" replace />} />
+      <Route path="/passport/login" element={<LegacyRedirect to="/careerpilot/login" />} />
       <Route path="/careerpilot/card/:slug" element={<PassportCard />} />
       {/* Card links live in recruiters' inboxes; this redirect can never be removed. */}
       <Route path="/passport/card/:slug" element={<LegacyCardRedirect />} />
@@ -420,19 +433,19 @@ const AppRoutes: React.FC = () => {
           sidebar no longer remounts (and re-fetches) on every nav click. */}
       <Route element={<ProtectedRoute><PassportMemberLayout /></ProtectedRoute>}>
         <Route path="/careerpilot" element={<PassportHome />} />
-        <Route path="/passport" element={<Navigate to="/careerpilot" replace />} />
+        <Route path="/passport" element={<LegacyRedirect to="/careerpilot" />} />
         <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
-        <Route path="/passport/assessment" element={<Navigate to="/careerpilot/assessment" replace />} />
+        <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
-        <Route path="/passport/roadmap" element={<Navigate to="/careerpilot/roadmap" replace />} />
+        <Route path="/passport/roadmap" element={<LegacyRedirect to="/careerpilot/roadmap" />} />
         <Route path="/careerpilot/practice" element={<PassportPractice />} />
-        <Route path="/passport/practice" element={<Navigate to="/careerpilot/practice" replace />} />
+        <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />
         <Route path="/careerpilot/practice/:id" element={<PassportPracticeItem />} />
-        <Route path="/passport/practice/:id" element={<Navigate to="/careerpilot/practice/:id" replace />} />
+        <Route path="/passport/practice/:id" element={<LegacyRedirect to="/careerpilot/practice/:id" />} />
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
-        <Route path="/passport/interview" element={<Navigate to="/careerpilot/interview" replace />} />
+        <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
-        <Route path="/passport/resume" element={<Navigate to="/careerpilot/resume" replace />} />
+        <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />
       </Route>
 
       <Route

@@ -47,8 +47,8 @@ export const getRoadmap = async (req: Request, res: Response) => {
     }
 
     const full = buildRoadmap({
-      attempt, pools: poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null }), pathways: content.pathways,
-      stage: { stage: user?.passport?.stage || null, background: user?.passport?.background || null }.stage,
+      attempt, pools: poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null }), pathways: content.pathways,
+      stage: { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null }.stage,
       totalDays: content.journeyDays || 90,
       startDate, currentDay, completedKeys,
     });

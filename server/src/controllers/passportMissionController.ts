@@ -19,7 +19,7 @@ async function ctx(req: Request) {
     ensureContent(tenantId),
   ]);
   // Missions come from the tenant's admin-editable pools (PassportContent).
-  return { tenantId, studentId, user, cfg, pools: poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null }) };
+  return { tenantId, studentId, user, cfg, pools: poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null }) };
 }
 
 /** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */

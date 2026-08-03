@@ -41,7 +41,7 @@ export async function ensureContent(tenantId: string) {
 /** Normalise a content doc's pools into a category → items map, falling back to defaults. */
 export function poolMapOf(
   pools?: IMissionPool[] | null,
-  member?: { stage?: string | null; background?: string | null },
+  member?: { stage?: string | null; background?: string | null; careerGoal?: string | null },
 ): PoolMap {
   const src = (pools && pools.length ? pools : DEFAULT_MISSION_POOLS);
   const out: PoolMap = {};
@@ -54,8 +54,16 @@ export function poolMapOf(
     const items = (p.items as IMissionPoolItem[]).filter(keep);
     if (items.length) out[p.category] = items;
   }
-  // Any category the admin emptied falls back to the default so generation never yields nothing.
-  for (const d of DEFAULT_MISSION_POOLS) if (!out[d.category]?.length) out[d.category] = d.items;
+  // Any category the admin emptied falls back to the default so generation never yields
+  // nothing — but the fallback is filtered too. Handing back the raw defaults was how a
+  // first-year could still be given "Resume kickoff": their stage filter emptied the
+  // employability pool, and the unfiltered default was then restored on top of it.
+  // A category with nothing suitable is simply left out; the other categories cover the day.
+  for (const d of DEFAULT_MISSION_POOLS) {
+    if (out[d.category]?.length) continue;
+    const items = (d.items as IMissionPoolItem[]).filter(keep);
+    if (items.length) out[d.category] = items;
+  }
   return out;
 }
 

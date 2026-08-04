@@ -79,7 +79,7 @@ const AdminPaperDesign: React.FC = () => {
     setDrafts({ ...drafts, [k]: cur.filter(s => s.count > 0) });
   };
 
-  const useSuggestion = (seg: any) =>
+  const applySuggestion = (seg: any) =>
     setDrafts({ ...drafts, [keyOf(seg.stage, seg.goal)]: seg.suggestion.slots.map((s: Slot) => ({ ...s })) });
 
   const clearSegment = (seg: any) => {
@@ -180,7 +180,7 @@ const AdminPaperDesign: React.FC = () => {
                 </p>
               </div>
               <div className="pd-panel-btns">
-                <button onClick={() => useSuggestion(open)}>Use suggested</button>
+                <button onClick={() => applySuggestion(open)}>Use suggested</button>
                 {drafts[openKey] && <button onClick={() => clearSegment(open)}>Clear</button>}
               </div>
             </div>

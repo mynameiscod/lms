@@ -79,16 +79,40 @@ const Assessment: React.FC = () => {
     setLoading(false);
   };
 
-  const total = questions.length;
-  const answeredCount = Object.keys(answers).length;
-  const current = questions[idx];
+  // A conditional question only appears once its premise holds. Asking "how many
+  // companies have you applied to?" straight after "resume: not written" reads as a form
+  // that is not listening, and the member stops trusting the score it produces.
+  const visible = React.useMemo(
+    () => questions.filter(q => {
+      const dep = q.dependsOn;
+      if (!dep?.questionId) return true;
+      const parent = answers[dep.questionId];
+      return parent !== undefined && parent >= (dep.minChosen ?? 1);
+    }),
+    [questions, answers],
+  );
+
+  const total = visible.length;
+  // Answers to questions that later became hidden are NOT counted or submitted: going
+  // Back and lowering the parent retracts the child, so it must not still be scored.
+  const visibleIds = React.useMemo(() => new Set(visible.map(q => q.id)), [visible]);
+  const answeredCount = Object.keys(answers).filter(id => visibleIds.has(id)).length;
+
+  // Hiding a question can leave idx past the end of the list.
+  React.useEffect(() => {
+    if (idx > 0 && idx >= total) setIdx(Math.max(0, total - 1));
+  }, [idx, total]);
+
+  const current = visible[Math.min(idx, Math.max(0, total - 1))];
   const progress = total ? Math.round(((idx + 1) / total) * 100) : 0;
   const canSubmit = answeredCount === total && total > 0;
 
   const submit = async () => {
     setSubmitting(true); setError('');
     try {
-      const payload = Object.entries(answers).map(([questionId, chosen]) => ({ questionId, chosen }));
+      const payload = Object.entries(answers)
+        .filter(([questionId]) => visibleIds.has(questionId))
+        .map(([questionId, chosen]) => ({ questionId, chosen }));
       const { result: r } = await passportApi.submitAssessment(payload);
       setResult(r); setRetake(false);
     } catch (e: any) { setError(e?.response?.data?.message || 'Submit failed. Try again.'); }

@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
@@ -47,8 +48,8 @@ export const getRoadmap = async (req: Request, res: Response) => {
     }
 
     const full = buildRoadmap({
-      attempt, pools: poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null }), pathways: content.pathways,
-      stage: { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null }.stage,
+      attempt, pools: poolMapOf(content.missionPools, memberAxes(user)), pathways: content.pathways,
+      stage: memberAxes(user).stage,
       totalDays: content.journeyDays || 90,
       startDate, currentDay, completedKeys,
     });

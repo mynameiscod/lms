@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
@@ -19,7 +20,7 @@ async function ctx(req: Request) {
     ensureContent(tenantId),
   ]);
   // Missions come from the tenant's admin-editable pools (PassportContent).
-  return { tenantId, studentId, user, cfg, pools: poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null }) };
+  return { tenantId, studentId, user, cfg, pools: poolMapOf(content.missionPools, memberAxes(user)) };
 }
 
 /** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */

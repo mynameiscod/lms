@@ -370,8 +370,8 @@ export interface PassportCard {
   pathway: string | null; careerGoal: string | null; memberSince: string | null;
 }
 
-export interface AssessQuestion { id: string; category: string; text: string; options: string[]; }
-export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; stages?: string[]; goals?: string[]; background?: string; }
+export interface AssessQuestion { id: string; category: string; text: string; options: string[]; dependsOn?: { questionId: string; minChosen: number }; }
+export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; stages?: string[]; goals?: string[]; background?: string; dependsOn?: { questionId: string; minChosen: number }; }
 export interface AssessmentBank { _id?: string; tenantId: string; title: string; maxQuestions?: number; questions: AssessQuestionFull[]; }
 export interface CategoryScore { key: string; label: string; score: number; }
 export interface AssessResult {

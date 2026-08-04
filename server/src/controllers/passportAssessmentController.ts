@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { appliesToMember, resolveCareerProfile, selectPaper } from '../services/careerStageService';
+import { appliesToMember, applyDependencies, memberAxes, selectPaper } from '../services/careerStageService';
 import PassportAssessment, { DEFAULT_QUESTIONS } from '../models/PassportAssessment';
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
@@ -18,18 +18,10 @@ async function ensureAssessment(tenantId: string) {
 /** The member's stage and background, for filtering. Absent values mean "serve all". */
 async function memberProfile(req: Request): Promise<{ stage: string | null; background: string | null; careerGoal: string | null }> {
   const User = (await import('../models/User')).default;
-  const u: any = await User.findById(userIdOf(req))
-    .select('passport.stage passport.background passport.careerGoal passport.degree passport.yearOfStudy').lean();
-  const p = u?.passport || {};
-
-  // Members who joined before staging existed have no stored stage. Rather than serving
-  // them the whole bank forever, derive it on read from the degree and year they gave at
-  // signup — the same inputs the stored value comes from, so the answer is identical.
-  let stage = p.stage || null;
-  if (!stage && (p.degree || p.yearOfStudy)) {
-    stage = resolveCareerProfile({ degree: p.degree, yearOfStudy: p.yearOfStudy }).stage;
-  }
-  return { stage, background: p.background || null, careerGoal: p.careerGoal || null };
+  // The whole passport sub-object: memberAxes derives from branch and graduation date as
+  // well as degree/year, and a narrow select silently starves it of those.
+  const u: any = await User.findById(userIdOf(req)).select('passport').lean();
+  return memberAxes(u);
 }
 
 export const getAssessment = async (req: Request, res: Response) => {
@@ -46,12 +38,21 @@ export const getAssessment = async (req: Request, res: Response) => {
     // Then cap it. Filtering alone does not shorten the paper much, because most of the
     // bank is untagged and so applies to everyone — a member was seeing 34 questions,
     // several of them near-duplicates of each other.
-    const questions = selectPaper(eligible as any[], a.maxQuestions || 14, { preferSpecific: !!me.stage });
+    const picked = selectPaper(eligible as any[], a.maxQuestions || 14, { preferSpecific: !!me.stage });
+
+    // Then make the conditional questions coherent — a question whose premise was denied
+    // is skipped by the client, and one whose parent is missing is not asked at all.
+    const questions = applyDependencies(picked as any[], eligible as any[], a.maxQuestions || 14);
 
     res.json({
       title: a.title,
       stage: me.stage || null,
-      questions: questions.map((q: any) => ({ id: String(q._id), category: q.category, text: q.text, options: q.options })),
+      questions: questions.map((q: any) => ({
+        id: String(q._id), category: q.category, text: q.text, options: q.options,
+        dependsOn: q.dependsOn?.questionId
+          ? { questionId: String(q.dependsOn.questionId), minChosen: Number(q.dependsOn.minChosen ?? 1) }
+          : undefined,
+      })),
     });
   } catch (e: any) { res.status(500).json({ message: e.message || 'Failed to load assessment' }); }
 };
@@ -70,7 +71,17 @@ export const submitAssessment = async (req: Request, res: Response) => {
       .map(x => ({ questionId: String(x.questionId), category: (qById.get(String(x.questionId)) as any).category, chosen: Number(x.chosen) }));
 
     const user = await User.findById(studentId).select('passport').lean() as any;
-    const result = scoreAttempt(a.questions as any, answers, { careerGoal: user?.passport?.careerGoal });
+
+    // Score against the questions this member was ACTUALLY ASKED, not the whole bank.
+    // categoryScore adds every question it is given to the denominator but only credits
+    // the answered ones — so passing the full bank scored each member against the ~47
+    // questions filtering and the 14-question cap had already removed from their paper,
+    // every one of them counted as wrong. The larger the bank grew, the lower everyone's
+    // score fell, which is exactly backwards.
+    const askedIds = new Set(answers.map(x => x.questionId));
+    const asked = a.questions.filter((q: any) => askedIds.has(String(q._id)));
+
+    const result = scoreAttempt(asked as any, answers, { careerGoal: user?.passport?.careerGoal });
 
     const attempt = await PassportAttempt.create({ tenantId, studentId, answers, ...result });
 

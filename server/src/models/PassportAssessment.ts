@@ -34,6 +34,10 @@ export interface IPassportQuestion {
   /** Career goals this applies to (matches PassportConfig's careerGoal options).
    *  Empty = every goal, so a question only narrows when an admin says it should. */
   goals?: string[];
+  /** Ask this ONLY if an earlier question was answered at `minChosen` or above.
+   *  "How many companies have you applied to?" makes no sense after "resume: not
+   *  written" — the pair reads as a form that is not listening. */
+  dependsOn?: { questionId: string; minChosen: number };
 
   selfReport?: boolean;   // if true, score = (chosen option's implied readiness) not right/wrong
 }
@@ -58,6 +62,7 @@ const QuestionSchema = new Schema<IPassportQuestion>({
   stages:     { type: [String], default: [] },
   background: { type: String, default: 'any' },
   goals:      { type: [String], default: [] },
+  dependsOn:  { type: { questionId: String, minChosen: Number }, default: undefined, _id: false },
 
   selfReport:  { type: Boolean, default: false },
 }, { _id: true });

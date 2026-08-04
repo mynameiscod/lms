@@ -277,6 +277,102 @@ export function selectPaper<T extends { _id?: any; category?: string; weight?: n
 }
 
 /**
+ * Make a paper's conditional questions coherent.
+ *
+ * Stage tagging decides WHO is asked something; it cannot decide whether two questions
+ * make sense together. "How many companies have you applied to?" is a fair question for a
+ * final-year — but not immediately after they answered "resume: not written". The pair
+ * reads as a form that is not listening, and a member who sees it stops trusting the
+ * score at the end of it.
+ *
+ * A question may declare `dependsOn: { questionId, minChosen }`. Three things follow:
+ *
+ *   1. If the parent is not on the paper, the child cannot be asked at all — its condition
+ *      could never be evaluated. Pull the parent in if there is room, otherwise drop the
+ *      child. Dropping is safe: it only ever removes a question that would have been
+ *      incoherent.
+ *   2. The parent must come BEFORE the child. Restoring bank order alone does not
+ *      guarantee that, and a child asked first is worse than the problem being fixed.
+ *   3. Chains resolve — a child may itself be someone's parent.
+ */
+export function applyDependencies<T extends { _id?: any; dependsOn?: { questionId?: string; minChosen?: number } | null }>(
+  paper: T[],
+  eligible: T[],
+  max: number,
+): T[] {
+  const id = (q: T) => String((q as any)?._id ?? '');
+  const depOf = (q: T) => (q.dependsOn?.questionId ? String(q.dependsOn.questionId) : null);
+
+  let out = paper.slice();
+  // Bounded rather than "until stable": a malformed cycle in the data must not hang a
+  // request. Each pass either adds a parent or drops a child, so it converges quickly.
+  for (let pass = 0; pass < 10; pass++) {
+    let changed = false;
+    for (const q of out.slice()) {
+      const want = depOf(q);
+      if (!want) continue;
+      if (out.some(x => id(x) === want)) continue;
+
+      const parent = eligible.find(x => id(x) === want);
+      if (parent && out.length < max) out.push(parent);
+      else out = out.filter(x => id(x) !== id(q));
+      changed = true;
+    }
+    if (!changed) break;
+  }
+
+  // Order: move any child that sits before its parent to just after it.
+  for (let pass = 0; pass < 10; pass++) {
+    let moved = false;
+    for (let i = 0; i < out.length; i++) {
+      const want = depOf(out[i]);
+      if (!want) continue;
+      const p = out.findIndex(x => id(x) === want);
+      if (p <= i) continue;
+      const [child] = out.splice(i, 1);
+      out.splice(p, 0, child);           // p is now the slot just after the parent
+      moved = true;
+      break;
+    }
+    if (!moved) break;
+  }
+
+  return out;
+}
+
+/**
+ * The three filtering axes for a member, derived on read.
+ *
+ * Every member who joined before staging shipped has `stage` unset, and an unset stage
+ * means "serve everything" — so a first-year was still being offered resume questions and
+ * resume missions long after the tagging was correct. Backfilling the stored value fixes
+ * today's members; this fixes the ones who signed up an hour before the backfill, and any
+ * member whose stored value is stale because they moved up a year.
+ *
+ * It must be ONE function used by every surface. The assessment had this logic inline and
+ * the mission, dashboard and roadmap paths did not, so the same member was staged for
+ * their questions and unstaged for their missions.
+ */
+export function memberAxes(user: any): { stage: string | null; background: string | null; careerGoal: string | null } {
+  const p = user?.passport || {};
+  let stage: string | null = p.stage || null;
+  let background: string | null = p.background || null;
+
+  if (!stage || !background) {
+    const d = resolveCareerProfile({
+      degree: p.degree, yearOfStudy: p.yearOfStudy,
+      program: p.program, branch: p.branch,
+      graduationMonth: p.graduationMonth ?? null,
+      graduationYear: p.graduationYear ?? null,
+      graduated: p.graduated === true,
+    });
+    stage = stage || d.stage;
+    background = background || d.background;
+  }
+  return { stage, background, careerGoal: p.careerGoal || null };
+}
+
+/**
  * Does a piece of content apply to this member?
  *
  * Written once and shared by the assessment filter and the mission generator, because

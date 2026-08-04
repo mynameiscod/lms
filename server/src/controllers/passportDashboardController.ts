@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { memberAxes } from '../services/careerStageService';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
@@ -51,7 +52,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     }
 
     const progress = await getOrCreateProgress(tenantId, studentId, user?.passport?.activatedAt || new Date());
-    const pools = poolMapOf(content.missionPools, { stage: user?.passport?.stage || null, background: user?.passport?.background || null, careerGoal: user?.passport?.careerGoal || null });
+    const pools = poolMapOf(content.missionPools, memberAxes(user));
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
     const totalDays = content.journeyDays || 90;

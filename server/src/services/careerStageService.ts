@@ -321,6 +321,23 @@ export function applyDependencies<T extends { _id?: any; dependsOn?: { questionI
     if (!changed) break;
   }
 
+  // Dropping a child leaves the paper short of the cap, so refill from what is left.
+  // Only questions with no unmet dependency of their own are eligible, and the bank's
+  // order is preserved so the refill reads as part of the paper rather than appended.
+  if (out.length < max) {
+    const have = new Set(out.map(id));
+    for (const q of eligible) {
+      if (out.length >= max) break;
+      if (have.has(id(q))) continue;
+      const want = depOf(q);
+      if (want && !have.has(want)) continue;
+      out.push(q);
+      have.add(id(q));
+    }
+    const order = new Map(eligible.map((q, i) => [id(q), i]));
+    out.sort((x, y) => (order.get(id(x)) ?? 0) - (order.get(id(y)) ?? 0));
+  }
+
   // Order: move any child that sits before its parent to just after it.
   for (let pass = 0; pass < 10; pass++) {
     let moved = false;

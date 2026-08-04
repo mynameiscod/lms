@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import { appliesToMember, applyDependencies, memberAxes, selectPaper } from '../services/careerStageService';
-import PassportAssessment, { DEFAULT_QUESTIONS } from '../models/PassportAssessment';
+import { appliesToMember, applyDependencies, CAREER_STAGES, memberAxes, selectPaper } from '../services/careerStageService';
+import PassportAssessment, { DEFAULT_QUESTIONS, PASSPORT_CATEGORIES } from '../models/PassportAssessment';
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
 import { scoreAttempt } from '../services/passportScoringService';
+import { blueprintFor, drawPaper, suggestBlueprint } from '../services/paperBuilderService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -38,11 +39,31 @@ export const getAssessment = async (req: Request, res: Response) => {
     // Then cap it. Filtering alone does not shorten the paper much, because most of the
     // bank is untagged and so applies to everyone — a member was seeing 34 questions,
     // several of them near-duplicates of each other.
-    const picked = selectPaper(eligible as any[], a.maxQuestions || 14, { preferSpecific: !!me.stage });
+    // Shape first: if an admin has defined a blueprint for this segment, the paper is
+    // DRAWN to that shape — same mix for everyone at this stage, different questions each.
+    // The seed is the member plus their attempt number, never the clock: refreshing
+    // mid-assessment must return the identical paper (a reshuffle would discard their
+    // answers and read as data loss), while a retake seeds differently and draws anew.
+    const bp = (a as any).randomize === false ? null : blueprintFor((a as any).blueprints, me);
+
+    let picked: any[];
+    if (bp) {
+      const priorAttempts = await PassportAttempt.countDocuments({ tenantId: tenantOf(req), studentId: userIdOf(req) });
+      const { paper, report } = drawPaper(eligible as any[], bp, `${userIdOf(req)}:${priorAttempts}`);
+      picked = paper;
+      // A starved slot changes what the score measures, and nothing else would show it.
+      if (report.short.length) {
+        console.warn('[passport] blueprint under-filled for', me.stage, me.careerGoal,
+          report.short.map(s => `${s.category} ${s.got}/${s.wanted}`).join(', '));
+      }
+    } else {
+      picked = selectPaper(eligible as any[], a.maxQuestions || 14, { preferSpecific: !!me.stage });
+    }
 
     // Then make the conditional questions coherent — a question whose premise was denied
     // is skipped by the client, and one whose parent is missing is not asked at all.
-    const questions = applyDependencies(picked as any[], eligible as any[], a.maxQuestions || 14);
+    const cap = bp ? Math.max(picked.length, a.maxQuestions || 14) : (a.maxQuestions || 14);
+    const questions = applyDependencies(picked as any[], eligible as any[], cap);
 
     res.json({
       title: a.title,
@@ -124,6 +145,49 @@ export const getAssessmentAdmin = async (req: Request, res: Response) => {
   res.json({ assessment: a });
 };
 
+/**
+ * GET /assessment/paper-design — everything the paper builder screen needs.
+ *
+ * Returns each stage x goal segment with the DEPTH of its eligible pool per category,
+ * because that is the number that decides whether randomisation means anything: a slot
+ * asking for 3 questions from a pool of 3 draws the same 3 every time, and the screen
+ * has to say so rather than let an admin believe the paper varies.
+ */
+export const getPaperDesign = async (req: Request, res: Response) => {
+  try {
+    const a: any = await ensureAssessment(tenantOf(req));
+    const cfg: any = await (await import('../models/PassportConfig')).default.findOne({ tenantId: tenantOf(req) }).lean();
+    const goalField = (cfg?.onboardingFields || []).find((f: any) => f.key === 'careerGoal');
+    const goals: string[] = (goalField?.options || []).filter((g: string) => !/not sure/i.test(g));
+
+    const segments: any[] = [];
+    for (const st of CAREER_STAGES) {
+      for (const g of goals) {
+        const me = { stage: st.key, background: null, careerGoal: g };
+        const eligible = a.questions.filter((q: any) => appliesToMember(q, me));
+        const pool: Record<string, number> = {};
+        for (const q of eligible) pool[q.category] = (pool[q.category] || 0) + 1;
+        segments.push({
+          stage: st.key, stageLabel: st.label, goal: g,
+          pool, total: eligible.length,
+          blueprint: blueprintFor(a.blueprints, me) || null,
+          suggestion: suggestBlueprint(eligible, a.maxQuestions || 14),
+        });
+      }
+    }
+
+    res.json({
+      categories: PASSPORT_CATEGORIES,
+      stages: CAREER_STAGES,
+      goals,
+      maxQuestions: a.maxQuestions || 14,
+      randomize: a.randomize !== false,
+      blueprints: a.blueprints || [],
+      segments,
+    });
+  } catch (e: any) { res.status(500).json({ message: e.message || 'Failed to load paper design' }); }
+};
+
 export const saveAssessment = async (req: Request, res: Response) => {
   const tenantId = tenantOf(req);
   await ensureAssessment(tenantId);
@@ -133,6 +197,20 @@ export const saveAssessment = async (req: Request, res: Response) => {
   // whole bank, and both are reachable by typing into the number box.
   if (req.body.maxQuestions !== undefined) {
     $set.maxQuestions = Math.min(60, Math.max(5, Number(req.body.maxQuestions) || 14));
+  }
+  if (req.body.randomize !== undefined) $set.randomize = !!req.body.randomize;
+  if (Array.isArray(req.body.blueprints)) {
+    // Counts are clamped rather than trusted: a slot of 0 is meaningless and a slot of
+    // 200 would serve the whole bank from one category.
+    $set.blueprints = req.body.blueprints.map((b: any) => ({
+      stage: b.stage || undefined,
+      goal:  b.goal || undefined,
+      label: String(b.label || '').slice(0, 60),
+      slots: (Array.isArray(b.slots) ? b.slots : [])
+        .filter((s: any) => s?.category)
+        .map((s: any) => ({ category: String(s.category), count: Math.min(30, Math.max(0, Number(s.count) || 0)) }))
+        .filter((s: any) => s.count > 0),
+    })).filter((b: any) => b.slots.length);
   }
   if (Array.isArray(req.body.questions)) $set.questions = req.body.questions;
   const a = await PassportAssessment.findOneAndUpdate({ tenantId }, { $set }, { new: true });

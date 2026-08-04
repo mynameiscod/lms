@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import CareerPilotStaging from './pages/Passport/AdminStaging';
+import CareerPilotPaperDesign from './pages/Passport/AdminPaperDesign';
 import LabTracks from './pages/LabTracks';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -415,6 +416,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/careerpilot/staging" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotStaging /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/careerpilot/paper-design" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><CareerPilotPaperDesign /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>

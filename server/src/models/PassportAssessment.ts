@@ -42,12 +42,36 @@ export interface IPassportQuestion {
   selfReport?: boolean;   // if true, score = (chosen option's implied readiness) not right/wrong
 }
 
+/**
+ * A paper's SHAPE for one segment: how many questions from each category.
+ *
+ * Separating shape from content is what lets two students at the same stage sit
+ * different questions and still receive comparable scores. If the draw were free to vary
+ * the mix as well, one student could get four aptitude questions and another four
+ * technical, and their two "68/100" would not mean the same thing — which makes the
+ * leaderboard and the percentile dishonest.
+ */
+export interface IPaperSlot { category: PassportCategory | string; count: number }
+
+export interface IPaperBlueprint {
+  _id?: any;
+  /** Empty = applies to any stage. A blueprint naming both stage and goal wins over one naming neither. */
+  stage?: string;
+  goal?: string;
+  label?: string;
+  slots: IPaperSlot[];
+}
+
 export interface IPassportAssessment extends Document {
   tenantId: string;
   title: string;
   /** Most questions a single member is served. The bank grows without the paper growing
    *  with it — otherwise every question an admin adds is one more a student must sit. */
   maxQuestions: number;
+  /** Per-segment paper shapes. Empty = fall back to the balanced round-robin. */
+  blueprints: IPaperBlueprint[];
+  /** Draw the slots randomly per attempt instead of always taking the same questions. */
+  randomize: boolean;
   questions: IPassportQuestion[];
   updatedAt: Date;
   createdAt: Date;
@@ -72,6 +96,13 @@ const PassportAssessmentSchema = new Schema<IPassportAssessment>(
     tenantId:  { type: String, required: true, unique: true, index: true },
     title:     { type: String, default: 'Career Readiness Assessment' },
     maxQuestions: { type: Number, default: 14 },
+    blueprints: [new Schema<IPaperBlueprint>({
+      stage: { type: String },
+      goal:  { type: String },
+      label: { type: String, default: '' },
+      slots: [{ category: { type: String, required: true }, count: { type: Number, default: 2 }, _id: false }],
+    }, { _id: true })],
+    randomize: { type: Boolean, default: true },
     questions: [QuestionSchema],
   },
   { timestamps: true }

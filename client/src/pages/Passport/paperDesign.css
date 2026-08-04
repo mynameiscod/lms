@@ -1,0 +1,67 @@
+/* Paper Designer — admin screen for the assessment's shape per segment. */
+
+.pd { padding: 22px 26px; max-width: 1180px; color: #0f172a; }
+
+.pd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; flex-wrap: wrap; }
+.pd-crumb { font-size: 12.5px; color: #94a3b8; margin-bottom: 6px; }
+.pd-crumb span { color: #cbd5e1; }
+.pd-crumb b { color: #334155; }
+.pd h2 { font-size: 22px; font-weight: 800; margin: 0 0 6px; }
+.pd-muted { font-size: 12.5px; color: #64748b; margin: 0; line-height: 1.55; max-width: 68ch; }
+
+.pd-save { background: #5b2bd9; color: #fff; border: none; border-radius: 9px;
+  padding: 10px 18px; font-size: 13.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.pd-save:disabled { background: #cbd5e1; cursor: default; }
+
+.pd-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c;
+  padding: 10px 14px; border-radius: 9px; font-size: 13px; margin: 14px 0; }
+.pd-ok { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d;
+  padding: 10px 14px; border-radius: 9px; font-size: 13px; margin: 14px 0; }
+
+.pd-toggle { display: flex; gap: 10px; align-items: flex-start; margin: 18px 0 6px;
+  background: #f8fafc; border: 1px solid #eef1f6; border-radius: 11px; padding: 13px 15px; cursor: pointer; }
+.pd-toggle input { margin-top: 2px; width: 16px; height: 16px; cursor: pointer; }
+.pd-toggle b { display: block; font-size: 13px; }
+.pd-toggle small { display: block; font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.5; }
+
+.pd-body { display: grid; grid-template-columns: 260px 1fr; gap: 18px; margin-top: 18px; align-items: start; }
+@media (max-width: 900px) { .pd-body { grid-template-columns: 1fr; } }
+
+.pd-list { display: flex; flex-direction: column; gap: 6px; max-height: 620px; overflow-y: auto; }
+.pd-seg { text-align: left; background: #fff; border: 1px solid #e8edf5; border-radius: 10px;
+  padding: 9px 12px; cursor: pointer; display: flex; flex-direction: column; gap: 1px; }
+.pd-seg.on { border-color: #5b2bd9; background: #faf8ff; }
+.pd-seg b { font-size: 12.5px; }
+.pd-seg span { font-size: 11.5px; color: #64748b; }
+.pd-seg em { font-size: 10.5px; color: #94a3b8; font-style: normal; }
+.pd-seg em.none { color: #b45309; }
+
+.pd-panel { background: #fff; border: 1px solid #e8edf5; border-radius: 13px; padding: 16px 18px; }
+.pd-panel-h { display: flex; justify-content: space-between; gap: 14px; flex-wrap: wrap; margin-bottom: 12px; }
+.pd-panel-h h3 { font-size: 15px; font-weight: 750; margin: 0 0 4px; }
+.pd-panel-btns { display: flex; gap: 7px; }
+.pd-panel-btns button { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 7px 13px; font-size: 12.5px; font-weight: 650; color: #475569; cursor: pointer; white-space: nowrap; }
+.pd-panel-btns button:hover { border-color: #cbd5e1; }
+
+.pd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.pd-table th { text-align: left; padding: 8px 10px; font-size: 10.5px; font-weight: 700;
+  color: #94a3b8; text-transform: uppercase; letter-spacing: .03em; border-bottom: 1px solid #eef1f6; }
+.pd-table td { padding: 8px 10px; border-bottom: 1px solid #f5f7fa; }
+.pd-table td.num, .pd-table th:nth-child(2) { text-align: right; font-variant-numeric: tabular-nums; }
+.pd-table tr.empty { opacity: .5; }
+.pd-table input { width: 66px; padding: 6px 9px; border: 1px solid #cbd5e1; border-radius: 7px;
+  font-size: 13px; text-align: right; font-variant-numeric: tabular-nums; }
+.pd-table input:disabled { background: #f8fafc; color: #cbd5e1; }
+.pd-table tfoot td { border-top: 1.5px solid #e8edf5; border-bottom: none; padding-top: 10px; }
+
+.pd-table td.var { font-size: 11.5px; }
+.pd-table td.var.ok   { color: #15803d; }
+.pd-table td.var.weak { color: #b45309; }
+.pd-table td.var.bad  { color: #b91c1c; font-weight: 650; }
+
+.pd-note { font-size: 11.5px; color: #64748b; background: #f8fafc; border-radius: 9px;
+  padding: 10px 13px; margin-top: 14px; line-height: 1.6; }
+.pd-note b { color: #334155; }
+
+.pd button:focus-visible, .pd input:focus-visible { outline: 2px solid #5b2bd9; outline-offset: 2px; }

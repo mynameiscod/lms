@@ -59,10 +59,20 @@ export function scoreAttempt(
   const ansMap = new Map<string, number>(answers.map(a => [String(a.questionId), a.chosen]));
 
   const cats = ctx.categories?.length ? ctx.categories : PASSPORT_CATEGORIES;
-  const categoryScores = cats.map(c => {
-    const qs = questions.filter(q => q.category === c.key);
-    return { key: c.key, label: c.label, score: categoryScore(qs, ansMap), weight: c.weight };
-  });
+
+  // Only categories this member was ACTUALLY ASKED about. A category with no questions
+  // on the paper scores 0 through no fault of theirs, and averaging that 0 in drags the
+  // Career Score down: the moment an admin adds a category, every score falls until
+  // questions exist for it. It would also plot a false 0 on the result page's radar,
+  // which reads as "you are terrible at this" rather than "we never asked".
+  const categoryScores = cats
+    .map(c => ({ c, qs: questions.filter(q => q.category === c.key) }))
+    .filter(x => x.qs.length > 0)
+    .map(({ c, qs }) => ({
+      key: c.key, label: c.label,
+      score: categoryScore(qs, ansMap),
+      weight: c.weight ?? 1,
+    }));
 
   // Weighted Career Score
   const totW = categoryScores.reduce((s, c) => s + c.weight, 0);

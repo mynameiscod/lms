@@ -101,6 +101,7 @@ router.get('/staging', MANAGE, staging.getStaging);
 router.put('/staging', MANAGE, staging.setStaging);
 
 router.get('/assessment/paper-design', MANAGE, assess.getPaperDesign);
+router.put('/assessment/categories',   MANAGE, assess.saveCategories);
 router.get('/assessment/admin',  MANAGE, assess.getAssessmentAdmin);
 router.put('/assessment/admin',  MANAGE, assess.saveAssessment);
 router.post('/assessment/reset', MANAGE, assess.resetAssessment);

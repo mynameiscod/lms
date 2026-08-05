@@ -65,3 +65,47 @@
 .pd-note b { color: #334155; }
 
 .pd button:focus-visible, .pd input:focus-visible { outline: 2px solid #5b2bd9; outline-offset: 2px; }
+
+/* ── Segment list, grouped by stage ──────────────────────────────────────────
+   A flat list repeated the stage name once per career goal, which reads as
+   duplication rather than as one stage holding three goals. */
+.pd-group { margin-bottom: 10px; }
+.pd-group-h { font-size: 10.5px; font-weight: 700; color: #94a3b8; text-transform: uppercase;
+  letter-spacing: .04em; padding: 4px 4px 5px; }
+.pd-group .pd-seg { margin-bottom: 4px; }
+
+/* ── Scoring categories ──────────────────────────────────────────────────── */
+.pd-cats { background: #fff; border: 1px solid #e8edf5; border-radius: 12px;
+  padding: 14px 16px; margin-top: 18px; }
+.pd-cats-h { display: flex; justify-content: space-between; align-items: flex-start;
+  gap: 14px; flex-wrap: wrap; }
+.pd-cats-h b { font-size: 13px; display: block; }
+.pd-cats-h small { display: block; font-size: 11.5px; color: #94a3b8; margin-top: 3px;
+  line-height: 1.55; max-width: 62ch; }
+.pd-cats-h button, .pd-cats-btns button { background: #fff; border: 1px solid #e2e8f0;
+  border-radius: 8px; padding: 7px 13px; font-size: 12.5px; font-weight: 650;
+  color: #475569; cursor: pointer; white-space: nowrap; }
+.pd-cats-btns { display: flex; gap: 7px; }
+.pd-cats-btns button.primary { background: #5b2bd9; border-color: #5b2bd9; color: #fff; }
+.pd-cats-btns button:disabled { opacity: .6; cursor: default; }
+
+.pd-cats-view { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 11px; }
+.pd-chip { background: #f1f5f9; border-radius: 999px; padding: 4px 11px;
+  font-size: 11.5px; font-weight: 650; color: #475569; }
+.pd-chip i { font-style: normal; color: #94a3b8; margin-left: 6px; font-weight: 500; }
+
+.pd-cats-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+.pd-cats-table th { text-align: left; padding: 7px 9px; font-size: 10.5px; font-weight: 700;
+  color: #94a3b8; text-transform: uppercase; letter-spacing: .03em; border-bottom: 1px solid #eef1f6; }
+.pd-cats-table td { padding: 7px 9px; border-bottom: 1px solid #f5f7fa; vertical-align: middle; }
+.pd-cats-table input { width: 100%; padding: 6px 9px; border: 1px solid #cbd5e1;
+  border-radius: 7px; font-size: 13px; }
+.pd-cats-table td:nth-child(3) input { width: 78px; text-align: right;
+  font-variant-numeric: tabular-nums; }
+.pd-key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px;
+  color: #64748b; white-space: nowrap; }
+.pd-key small { display: block; font-size: 9.5px; color: #16a34a; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .03em; }
+.pd-key em { color: #cbd5e1; }
+.pd-del { background: #fff; border: 1px solid #fecaca; color: #b91c1c; border-radius: 7px;
+  padding: 5px 11px; font-size: 12px; font-weight: 650; cursor: pointer; }

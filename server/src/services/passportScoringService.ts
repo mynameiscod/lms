@@ -52,11 +52,14 @@ function categoryScore(qs: Question[], answers: Map<string, number>): number {
 export function scoreAttempt(
   questions: Question[],
   answers: ScoredAnswer[],
-  ctx: { careerGoal?: string } = {},
+  // `categories` is passed in rather than imported so an admin-defined list scores
+  // correctly. Falling back to the constant keeps every existing caller working.
+  ctx: { careerGoal?: string; categories?: { key: string; label: string; weight: number }[] } = {},
 ) {
   const ansMap = new Map<string, number>(answers.map(a => [String(a.questionId), a.chosen]));
 
-  const categoryScores = PASSPORT_CATEGORIES.map(c => {
+  const cats = ctx.categories?.length ? ctx.categories : PASSPORT_CATEGORIES;
+  const categoryScores = cats.map(c => {
     const qs = questions.filter(q => q.category === c.key);
     return { key: c.key, label: c.label, score: categoryScore(qs, ansMap), weight: c.weight };
   });

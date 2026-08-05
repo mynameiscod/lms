@@ -3,7 +3,7 @@ import PassportContent, { DEFAULT_PATHWAYS, DEFAULT_MISSION_POOLS } from '../mod
 import PassportAttempt from '../models/PassportAttempt';
 import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
 import { buildRoadmap } from '../services/passportRoadmapService';
-import { PASSPORT_CATEGORIES } from '../models/PassportAssessment';
+import PassportAssessment, { PASSPORT_CATEGORIES, categoriesOf } from '../models/PassportAssessment';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 
@@ -11,7 +11,8 @@ const tenantOf = (req: Request): string => String((req as any).user?.tenantId ||
 export const getContent = async (req: Request, res: Response) => {
   try {
     const content = await ensureContent(tenantOf(req));
-    res.json({ content, categories: PASSPORT_CATEGORIES });
+    const a = await PassportAssessment.findOne({ tenantId: tenantOf(req) }).lean();
+    res.json({ content, categories: categoriesOf(a as any) });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load content' });
   }

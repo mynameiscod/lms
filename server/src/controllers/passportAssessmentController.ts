@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { appliesToMember, applyDependencies, CAREER_STAGES, memberAxes, selectPaper } from '../services/careerStageService';
-import PassportAssessment, { DEFAULT_QUESTIONS, PASSPORT_CATEGORIES } from '../models/PassportAssessment';
+import PassportAssessment, { DEFAULT_QUESTIONS, categoriesOf } from '../models/PassportAssessment';
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
 import { scoreAttempt } from '../services/passportScoringService';
@@ -102,7 +102,10 @@ export const submitAssessment = async (req: Request, res: Response) => {
     const askedIds = new Set(answers.map(x => x.questionId));
     const asked = a.questions.filter((q: any) => askedIds.has(String(q._id)));
 
-    const result = scoreAttempt(asked as any, answers, { careerGoal: user?.passport?.careerGoal });
+    const result = scoreAttempt(asked as any, answers, {
+      careerGoal: user?.passport?.careerGoal,
+      categories: categoriesOf(a),
+    });
 
     const attempt = await PassportAttempt.create({ tenantId, studentId, answers, ...result });
 
@@ -177,7 +180,7 @@ export const getPaperDesign = async (req: Request, res: Response) => {
     }
 
     res.json({
-      categories: PASSPORT_CATEGORIES,
+      categories: categoriesOf(a),
       stages: CAREER_STAGES,
       goals,
       maxQuestions: a.maxQuestions || 14,
@@ -215,6 +218,69 @@ export const saveAssessment = async (req: Request, res: Response) => {
   if (Array.isArray(req.body.questions)) $set.questions = req.body.questions;
   const a = await PassportAssessment.findOneAndUpdate({ tenantId }, { $set }, { new: true });
   res.json({ assessment: a });
+};
+
+/**
+ * PUT /assessment/categories — replace the scoring category list.
+ *
+ * Refuses to remove a category that questions or mission pool items still use. Deleting
+ * it would leave that content scored against a category the result page does not render,
+ * so it disappears from the member's breakdown while still consuming a paper slot —
+ * a failure with no visible symptom until someone audits a score by hand.
+ */
+export const saveCategories = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const a: any = await ensureAssessment(tenantId);
+
+    const incoming = Array.isArray(req.body?.categories) ? req.body.categories : null;
+    if (!incoming) return res.status(400).json({ message: 'categories must be an array' });
+
+    const clean = incoming
+      .map((c: any, i: number) => ({
+        // Slugged rather than trusted: the key is a stable identifier stored on every
+        // question, so spaces and case would produce categories that never match.
+        key: String(c.key || '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, ''),
+        label: String(c.label || '').trim().slice(0, 40),
+        weight: Math.min(3, Math.max(0.1, Number(c.weight) || 1)),
+        order: Number.isFinite(Number(c.order)) ? Number(c.order) : i,
+      }))
+      .filter((c: any) => c.key && c.label);
+
+    if (!clean.length) return res.status(400).json({ message: 'At least one category is required.' });
+
+    const seen = new Set<string>();
+    for (const c of clean) {
+      if (seen.has(c.key)) return res.status(400).json({ message: `Duplicate category key "${c.key}".` });
+      seen.add(c.key);
+    }
+
+    // What is being removed, and is anything still using it?
+    const before = categoriesOf(a).map(c => c.key);
+    const removed = before.filter(k => !seen.has(k));
+    if (removed.length) {
+      const PassportContent = (await import('../models/PassportContent')).default;
+      const content: any = await PassportContent.findOne({ tenantId }).lean();
+      const inUse: { key: string; questions: number; missions: number }[] = [];
+      for (const k of removed) {
+        const questions = a.questions.filter((q: any) => q.category === k).length;
+        let missions = 0;
+        for (const pool of (content?.missionPools || [])) if (pool.category === k) missions += (pool.items || []).length;
+        if (questions || missions) inUse.push({ key: k, questions, missions });
+      }
+      if (inUse.length) {
+        return res.status(409).json({
+          message: 'Cannot remove a category that still has content. Move or delete it first.',
+          inUse,
+        });
+      }
+    }
+
+    a.categories = clean;
+    a.markModified('categories');
+    await a.save();
+    res.json({ categories: categoriesOf(a), removed });
+  } catch (e: any) { res.status(500).json({ message: e.message || 'Failed to save categories' }); }
 };
 
 export const resetAssessment = async (req: Request, res: Response) => {

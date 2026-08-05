@@ -53,6 +53,24 @@ export interface IPassportQuestion {
  */
 export interface IPaperSlot { category: PassportCategory | string; count: number }
 
+/**
+ * An admin-defined scoring category.
+ *
+ * PASSPORT_CATEGORIES below stays as the seed and the fallback: a tenant that has never
+ * touched this still gets the original six, and every consumer keeps working. Once an
+ * admin edits them, the stored list wins.
+ *
+ * `weight` matters more than it looks — it scales the category's contribution to the
+ * Career Score, so adding a category with a high weight quietly rebalances every score
+ * that follows. The admin screen says so.
+ */
+export interface IPassportCategoryDef {
+  key: string;
+  label: string;
+  weight: number;
+  order?: number;
+}
+
 export interface IPaperBlueprint {
   _id?: any;
   /** Empty = applies to any stage. A blueprint naming both stage and goal wins over one naming neither. */
@@ -72,6 +90,8 @@ export interface IPassportAssessment extends Document {
   blueprints: IPaperBlueprint[];
   /** Draw the slots randomly per attempt instead of always taking the same questions. */
   randomize: boolean;
+  /** Admin-managed scoring categories. Empty = use PASSPORT_CATEGORIES. */
+  categories: IPassportCategoryDef[];
   questions: IPassportQuestion[];
   updatedAt: Date;
   createdAt: Date;
@@ -103,6 +123,12 @@ const PassportAssessmentSchema = new Schema<IPassportAssessment>(
       slots: [{ category: { type: String, required: true }, count: { type: Number, default: 2 }, _id: false }],
     }, { _id: true })],
     randomize: { type: Boolean, default: true },
+    categories: [new Schema<IPassportCategoryDef>({
+      key:    { type: String, required: true },
+      label:  { type: String, required: true },
+      weight: { type: Number, default: 1 },
+      order:  { type: Number, default: 0 },
+    }, { _id: false })],
     questions: [QuestionSchema],
   },
   { timestamps: true }
@@ -140,5 +166,15 @@ export const DEFAULT_QUESTIONS: IPassportQuestion[] = [
   { category: 'employability', text: 'How many projects can you show (GitHub/demo)?', stages: ['placement', 'job_seeker'], options: ['0', '1', '2', '3+'], correctIndex: -1, selfReport: true, weight: 1 },
   { category: 'employability', text: 'Have you attempted a mock interview?', stages: ['build'], options: ['Never', 'Once', 'A few', 'Regularly'], correctIndex: -1, selfReport: true, weight: 1 },
 ];
+
+/**
+ * The categories in force for a tenant. Falls back to the built-in six, so every caller
+ * can use this unconditionally and a tenant that never opens the editor is unaffected.
+ */
+export function categoriesOf(a: { categories?: IPassportCategoryDef[] } | null | undefined): IPassportCategoryDef[] {
+  const list = a?.categories || [];
+  if (!list.length) return PASSPORT_CATEGORIES.map((c, i) => ({ key: c.key, label: c.label, weight: c.weight, order: i }));
+  return list.slice().sort((x, y) => (x.order ?? 0) - (y.order ?? 0));
+}
 
 export default mongoose.model<IPassportAssessment>('PassportAssessment', PassportAssessmentSchema);

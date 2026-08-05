@@ -49,6 +49,8 @@ const AdminPaperDesign: React.FC = () => {
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
   const [openKey, setOpenKey] = useState<string>('');
+  const [cats, setCats] = useState<any[] | null>(null);   // non-null = editing
+  const [catBusy, setCatBusy] = useState(false);
 
   const load = () => fetch(`${API}/assessment/paper-design`, { headers: headers() })
     .then(r => r.json())
@@ -86,6 +88,35 @@ const AdminPaperDesign: React.FC = () => {
     const next = { ...drafts };
     delete next[keyOf(seg.stage, seg.goal)];
     setDrafts(next);
+  };
+
+  const startEditingCats = () => setCats(d.categories.map((c: any) => ({ ...c })));
+
+  const saveCats = async () => {
+    if (!cats) return;
+    setCatBusy(true); setErr(''); setMsg('');
+    try {
+      const res = await fetch(`${API}/assessment/categories`, {
+        method: 'PUT', headers: headers(),
+        body: JSON.stringify({ categories: cats.map((c, i) => ({ ...c, order: i })) }),
+      });
+      const b = await res.json();
+      if (!res.ok) {
+        // The server refuses to drop a category that still holds content, and says what
+        // is using it — surfaced verbatim rather than as a generic failure.
+        if (b.inUse?.length) {
+          throw new Error(b.message + ' ' + b.inUse
+            .map((u: any) => `"${u.key}" has ${u.questions} question(s) and ${u.missions} mission(s)`)
+            .join('; '));
+        }
+        throw new Error(b.message || 'Could not save categories');
+      }
+      setMsg('Categories saved.');
+      setTimeout(() => setMsg(''), 3000);
+      setCats(null);
+      await load();
+    } catch (e: any) { setErr(e.message); }
+    setCatBusy(false);
   };
 
   const save = async () => {
@@ -136,6 +167,83 @@ const AdminPaperDesign: React.FC = () => {
       {err && <div className="pd-err">{err}</div>}
       {msg && <div className="pd-ok">{msg}</div>}
 
+      <div className="pd-cats">
+        <div className="pd-cats-h">
+          <div>
+            <b>Scoring categories</b>
+            <small>
+              Every question belongs to one. They are the axes of the Career Score and the
+              rows below — changing the weight rebalances every score that follows.
+            </small>
+          </div>
+          {!cats
+            ? <button onClick={startEditingCats}>Edit categories</button>
+            : (
+              <span className="pd-cats-btns">
+                <button onClick={() => setCats([...cats, { key: '', label: '', weight: 1 }])}>+ Add</button>
+                <button className="primary" onClick={saveCats} disabled={catBusy}>
+                  {catBusy ? 'Saving…' : 'Save categories'}
+                </button>
+                <button onClick={() => { setCats(null); setErr(''); }}>Cancel</button>
+              </span>
+            )}
+        </div>
+
+        {!cats ? (
+          <div className="pd-cats-view">
+            {d.categories.map((c: any) => (
+              <span key={c.key} className="pd-chip">{c.label}<i>×{c.weight}</i></span>
+            ))}
+          </div>
+        ) : (
+          <table className="pd-cats-table">
+            <thead><tr><th>Name</th><th>Key</th><th>Weight</th><th /></tr></thead>
+            <tbody>
+              {cats.map((c, i) => (
+                <tr key={i}>
+                  <td>
+                    <input
+                      value={c.label} placeholder="Category name"
+                      onChange={e => {
+                        const next = cats.slice();
+                        next[i] = { ...c, label: e.target.value };
+                        // Only auto-derive the key for a NEW category. Rewriting it for an
+                        // existing one would orphan every question already tagged with it.
+                        if (!c.key || !d.categories.some((x: any) => x.key === c.key)) {
+                          next[i].key = e.target.value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+                        }
+                        setCats(next);
+                      }}
+                    />
+                  </td>
+                  <td className="pd-key">
+                    {c.key || <em>—</em>}
+                    {d.categories.some((x: any) => x.key === c.key) && <small>in use</small>}
+                  </td>
+                  <td>
+                    <input
+                      type="number" step="0.1" min="0.1" max="3" value={c.weight}
+                      onChange={e => {
+                        const next = cats.slice();
+                        next[i] = { ...c, weight: Number(e.target.value) };
+                        setCats(next);
+                      }}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      className="pd-del"
+                      onClick={() => setCats(cats.filter((_, j) => j !== i))}
+                      title="Remove — refused if questions still use it"
+                    >Remove</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       <label className="pd-toggle">
         <input type="checkbox" checked={randomize} onChange={e => setRandomize(e.target.checked)} />
         <span>
@@ -149,22 +257,32 @@ const AdminPaperDesign: React.FC = () => {
 
       <div className="pd-body">
         <div className="pd-list">
-          {d.segments.map((seg: any) => {
-            const k = keyOf(seg.stage, seg.goal);
-            const slots = drafts[k];
-            const size = (slots || []).reduce((a, s) => a + s.count, 0);
+          {/* Grouped by stage. A flat list repeated "Foundation" three times, which reads
+              as duplication rather than as one stage with three career goals under it. */}
+          {d.stages.map((st: any) => {
+            const rows = d.segments.filter((x: any) => x.stage === st.key);
+            if (!rows.length) return null;
             return (
-              <button
-                key={k}
-                className={'pd-seg' + (k === openKey ? ' on' : '')}
-                onClick={() => setOpenKey(k)}
-              >
-                <b>{seg.stageLabel}</b>
-                <span>{seg.goal}</span>
-                <em className={slots ? '' : 'none'}>
-                  {slots ? `${size} questions` : 'not designed'} · pool {seg.total}
-                </em>
-              </button>
+              <div className="pd-group" key={st.key}>
+                <div className="pd-group-h">{st.label}</div>
+                {rows.map((seg: any) => {
+                  const k = keyOf(seg.stage, seg.goal);
+                  const slots = drafts[k];
+                  const size = (slots || []).reduce((a, s) => a + s.count, 0);
+                  return (
+                    <button
+                      key={k}
+                      className={'pd-seg' + (k === openKey ? ' on' : '')}
+                      onClick={() => setOpenKey(k)}
+                    >
+                      <b>{seg.goal}</b>
+                      <em className={slots ? '' : 'none'}>
+                        {slots ? `${size} questions` : 'not designed'} · pool {seg.total}
+                      </em>
+                    </button>
+                  );
+                })}
+              </div>
             );
           })}
         </div>

@@ -49,6 +49,16 @@ cd /root/lms
 bash scripts/provision-vps.sh
 ```
 
+> **Private repo?** The new box has no GitHub credentials yet, so the clone fails. Generate
+> a key *on the new box* and register it as a **deploy key** (read-only) on the repo — do
+> not copy the old server's key across, it is one of the things being retired:
+> ```bash
+> ssh-keygen -t ed25519 -N "" -f /root/.ssh/id_ed25519 -C "lms-vps-$(date +%F)"
+> cat /root/.ssh/id_ed25519.pub   # → GitHub → repo → Settings → Deploy keys → Add
+> git clone git@github.com:<you>/lms-saas.git /root/lms
+> ```
+> Revoke the **old** server's deploy keys in the same screen while you are there.
+
 This installs Docker, nginx, certbot, ufw + `DOCKER-USER` rules, fail2ban and
 unattended-upgrades; hardens SSH to key-only (refusing to proceed if no key is installed);
 generates four fresh secrets into `/root/lms/.env`; and starts Mongo and Redis bound to

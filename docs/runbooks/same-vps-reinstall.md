@@ -9,9 +9,38 @@ cleaning in place cannot, while avoiding a new server, a new bill, and a DNS cha
 > **Reinstall OS destroys everything on the disk. There is no undo.** The database, the
 > uploads, `/root/lms-backups`, the TLS certs, the SSH host keys — all gone.
 >
-> Steps 1–3 exist entirely to make step 4 safe. **Do not trigger the reinstall until
-> step 3 has actually restored your dump into a throwaway container and printed real
-> document counts.** A dump you have not opened is a dump you do not have.
+> Steps 1–3 exist entirely to make step 4 safe. **Do not trigger the reinstall until step 3
+> has printed `✅ SAFE TO WIPE`.** A dump you have not opened is a dump you do not have.
+
+## The zero-loss requirement
+
+The stated constraint is **not a single document lost**. That rules out "take a backup and
+hope", and it specifically rules out trusting a document *count* — a restore that drops
+three rows and adds three others counts equal. So this runbook does three things:
+
+**1. Three independent copies, not one.** Different failure modes, so one bad copy is
+survivable:
+
+| Copy | What it is | Covers |
+|---|---|---|
+| **A** — `mongodump` | logical export (BSON) | the normal restore path |
+| **B** — raw volume tar | the physical `/data/db` files | a corrupt or partial dump |
+| **C** — provider snapshot | whole-disk image | everything, including anything forgotten |
+
+**2. A per-document fingerprint, not a count.** `scripts/db-fingerprint.sh --deep` hashes
+every document in every collection. Taken before the wipe, re-taken after the restore, and
+`diff`ed. Verified to detect a single deleted document, and to detect a
+delete-plus-insert that leaves counts identical.
+
+**3. A full trial restore before the wipe, not after.** The dump is restored into a
+throwaway container and fingerprinted while the original is still alive and comparable —
+the only moment the comparison means anything.
+
+> **Relevant history:** `scripts/restore.sh` was, until commit `7666a914`, printing
+> "✅ Database restored" while restoring **zero documents** — `mongorestore` needs `--db`,
+> and its errors were being discarded. Every archive in `/root/lms-backups` predates that
+> fix and should be treated as unverified. This is precisely why nothing below is trusted
+> without being opened and counted.
 
 Related: [vps-recovery-hardening.md](./vps-recovery-hardening.md) (what went wrong and why),
 [fresh-vps-deploy.md](./fresh-vps-deploy.md) (the new-server variant — steps 3–8 there are
@@ -82,37 +111,83 @@ docker-compose up -d mongodb
 sleep 8
 ```
 
-Dump the database:
+### 2a. The fingerprint — take this FIRST
+
+Everything later is compared against this file. Take it before anything else touches the
+database, and `--deep` because the requirement is *no document lost*:
 
 ```bash
-docker exec -e MONGO_ROOT_USERNAME=admin -e MONGO_ROOT_PASSWORD=password123 lms-mongodb sh -c \
+cd /root/lms
+bash scripts/db-fingerprint.sh --deep | tee /root/FINGERPRINT-BEFORE.txt
+tail -2 /root/FINGERPRINT-BEFORE.txt      # note TOTAL_DOCUMENTS — memorise this number
+```
+
+The script refuses to emit an empty or truncated fingerprint, so if it prints a file at
+all, that file is trustworthy.
+
+### 2b. Copy A — logical dump
+
+```bash
+docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
   'mongodump --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/lms-saas?authSource=admin" --out=/data/dump --gzip'
+```
 
-# Record the true collection counts NOW, to compare against after the restore.
-docker exec -e MONGO_ROOT_USERNAME=admin -e MONGO_ROOT_PASSWORD=password123 lms-mongodb sh -c \
- 'mongosh --quiet -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin lms-saas --eval "
-    db.getCollectionNames().sort().forEach(c => print(c + \" \" + db[c].countDocuments()))
- "' | tee /root/PRE-WIPE-COUNTS.txt
+`mongodump` prints a per-collection document count. **Read it** — the totals must match
+`FINGERPRINT-BEFORE.txt`. Then package it:
 
+```bash
 docker cp lms-mongodb:/data/dump /root/lms-dump
 tar -czf /root/lms-dump.tar.gz -C /root lms-dump
 ```
 
-Package the uploads:
+### 2c. Copy B — raw volume (the independent one)
+
+A physical copy of Mongo's data files. If the logical dump turns out to be flawed, this is
+a completely different representation of the same data, produced by a different code path.
+**Stop Mongo first** — copying live data files gives you a torn, unusable snapshot:
+
+```bash
+docker-compose stop mongodb
+docker run --rm -v lms-saas_mongodb_data:/d -v /root:/out alpine \
+  tar -czf /out/lms-mongo-volume.tar.gz -C /d .
+docker-compose start mongodb          # bring it back for the rest of the steps
+ls -lh /root/lms-mongo-volume.tar.gz
+```
+
+### 2d. Uploads and reference files
 
 ```bash
 docker run --rm -v lms-saas_uploads_data:/u -v /root:/out alpine \
   tar -czf /out/lms-uploads.tar.gz -C /u .
+
+# Count the files, so the restore can be checked against a number.
+docker run --rm -v lms-saas_uploads_data:/u alpine sh -c 'find /u -type f | wc -l' \
+  | tee /root/UPLOADS-FILECOUNT.txt
 ```
 
-Pull everything to your laptop:
+### 2e. Pull everything to your laptop
 
 ```bash
-scp -i ~/.ssh/github-ci root@187.124.97.56:/root/lms-dump.tar.gz      .
-scp -i ~/.ssh/github-ci root@187.124.97.56:/root/lms-uploads.tar.gz   .
-scp -i ~/.ssh/github-ci root@187.124.97.56:/root/PRE-WIPE-COUNTS.txt  .
-scp -i ~/.ssh/github-ci -r root@187.124.97.56:/root/lms-backups       ./old-backups
+scp -i ~/.ssh/github-ci root@187.124.97.56:/root/lms-dump.tar.gz            .
+scp -i ~/.ssh/github-ci root@187.124.97.56:/root/lms-mongo-volume.tar.gz    .
+scp -i ~/.ssh/github-ci root@187.124.97.56:/root/lms-uploads.tar.gz         .
+scp -i ~/.ssh/github-ci root@187.124.97.56:/root/FINGERPRINT-BEFORE.txt     .
+scp -i ~/.ssh/github-ci root@187.124.97.56:/root/UPLOADS-FILECOUNT.txt      .
+scp -i ~/.ssh/github-ci -r root@187.124.97.56:/root/lms-backups             ./old-backups
 ```
+
+Verify the transfers arrived intact — a truncated `scp` is silent:
+
+```bash
+# On the VPS
+md5sum /root/lms-dump.tar.gz /root/lms-mongo-volume.tar.gz /root/lms-uploads.tar.gz
+# On the laptop — the three hashes must match exactly
+md5sum lms-dump.tar.gz lms-mongo-volume.tar.gz lms-uploads.tar.gz
+```
+
+**Then put a second copy somewhere that is not your laptop** — cloud drive, external disk,
+anything. Between the wipe and the verified restore, these archives are the only existing
+copy of your production database. A laptop failure in that window is total loss.
 
 Also copy the **old `server/.env`** to your laptop — **not to reuse**, but as a checklist of
 which integrations were configured, so nothing is forgotten when you re-enter keys:
@@ -126,50 +201,92 @@ scp -i ~/.ssh/github-ci root@187.124.97.56:/root/lms/server/.env ./OLD-env-REFER
 
 ## Step 3 — 🚦 Prove the dump is good (the gate)
 
-**This is the step that makes the wipe safe. Do not skip it.** On your **laptop**, with
-Docker Desktop running:
+**This is the step that makes the wipe safe. It is a pass/fail gate, not a look-over.**
+Run it on your **laptop**, with Docker Desktop running, while the old VPS is still alive —
+if anything fails you can go straight back and re-extract.
+
+### 3a. Restore copy A into a throwaway container
 
 ```bash
+cd <wherever the archives are>
 tar -xzf lms-dump.tar.gz
 
-docker run -d --name verify-mongo -p 127.0.0.1:27099:27017 mongo:latest
-sleep 8
-docker cp lms-dump/lms-saas verify-mongo:/data/verify
-# --db is required; without it mongorestore skips every file and still exits 0.
-docker exec verify-mongo mongorestore --gzip --drop --db lms-saas /data/verify
+docker rm -f verify-mongo 2>/dev/null
+docker run -d --name verify-mongo mongo:latest
+sleep 10
 
-docker exec verify-mongo mongosh --quiet lms-saas --eval '
-  db.getCollectionNames().sort().forEach(c => print(c + " " + db[c].countDocuments()))
-' | tee RESTORED-COUNTS.txt
+docker cp lms-dump verify-mongo:/data/verify
+# --db is REQUIRED. Without it mongorestore skips every file, restores 0
+# documents, and still exits 0 — this is the bug that was in restore.sh.
+docker exec verify-mongo mongorestore --gzip --drop --db lms-saas /data/verify/lms-saas
 ```
 
-Compare against what you recorded before:
+Read the final line: `N document(s) restored successfully. 0 document(s) failed`. If
+anything failed, stop here.
+
+### 3b. Fingerprint it and diff — the actual gate
 
 ```bash
-diff PRE-WIPE-COUNTS.txt RESTORED-COUNTS.txt && echo "✅ counts match — safe to wipe"
+CONTAINER=verify-mongo AUTH=none bash /path/to/lms-saas/scripts/db-fingerprint.sh --deep \
+  > FINGERPRINT-AFTER.txt
+
+# Normalise the container-name header, then compare everything else.
+if diff <(sed 's/container=[^ ]*/container=X/' FINGERPRINT-BEFORE.txt) \
+        <(sed 's/container=[^ ]*/container=X/' FINGERPRINT-AFTER.txt); then
+  echo "✅ SAFE TO WIPE — every document, in every collection, byte-identical"
+else
+  echo "❌ DO NOT WIPE — the restore does not match the source"
+fi
 ```
 
-Sanity-check the things you would most hate to lose:
+**`✅ SAFE TO WIPE` is the only acceptable output.** Any diff line means a collection lost
+documents, gained documents, or had content change. Do not proceed; re-extract instead.
+
+### 3c. Prove the app itself runs on the restored data
+
+Matching bytes is necessary but not sufficient — indexes and app assumptions matter too.
+Point a local server at the verified database and log in:
 
 ```bash
-docker exec verify-mongo mongosh --quiet lms-saas --eval '
-  print("users:        " + db.users.countDocuments());
-  print("tenants:      " + db.tenants.countDocuments());
-  print("curriculums:  " + db.learningcurriculums.countDocuments());
-  print("passport atts:" + db.passportattempts.countDocuments());
-  print("payments:     " + db.payments.countDocuments());
-  printjson(db.users.findOne({ email: "gsivaprasad2009@gmail.com" }, { email:1, role:1 }));
-'
-docker rm -f verify-mongo
+docker run -d --name verify-app --link verify-mongo:mongodb \
+  -e MONGODB_URI="mongodb://mongodb:27017/lms-saas" \
+  -e JWT_SECRET=localtest -e ENCRYPTION_KEY=localtest2 \
+  -e NODE_ENV=production -p 127.0.0.1:5099:5000 \
+  lms-server:latest
+sleep 20
+curl -sf http://127.0.0.1:5099/api/health && echo " ✅ app boots against the restored data"
+docker logs verify-app 2>&1 | grep -iE 'error|failed' | head
 ```
 
-Also confirm the uploads archive is intact and free of anything executable:
+Open <http://127.0.0.1:5099>, log in as yourself, and confirm a batch, a curriculum and a
+CareerPilot member all render. Then clean up:
 
 ```bash
-tar -tzf lms-uploads.tar.gz | wc -l
+docker rm -f verify-app verify-mongo
+```
+
+### 3d. Check the uploads archive
+
+```bash
+tar -tzf lms-uploads.tar.gz | grep -c .          # compare to UPLOADS-FILECOUNT.txt
 tar -tzf lms-uploads.tar.gz | grep -iE '\.(php|sh|jsp|exe|elf|py|pl)$' \
   && echo "⚠️ remove these before restoring" || echo "✅ no executables in uploads"
 ```
+
+### 3e. Final checklist before the one-way door
+
+Every box must be ticked:
+
+- [ ] `FINGERPRINT-BEFORE.txt` exists and its `TOTAL_DOCUMENTS` looks right
+- [ ] `✅ SAFE TO WIPE` printed from 3b
+- [ ] The app booted and you logged in against the restored data (3c)
+- [ ] Upload file count matches, no executables
+- [ ] `md5sum` of all three archives matches between VPS and laptop
+- [ ] A **second copy** of the archives exists off the laptop
+- [ ] Copy B (`lms-mongo-volume.tar.gz`) is on the laptop too, untouched, as the fallback
+- [ ] The provider snapshot from step 0 exists
+
+Only now continue.
 
 **Only when the counts match and the spot-checks look right, continue.**
 
@@ -230,11 +347,12 @@ means re-entering every API key by hand.
 ## Step 6 — Restore the data
 
 ```bash
-# From your laptop. PRE-WIPE-COUNTS.txt goes back too — it was destroyed with the
-# disk, and the restore check below compares against it.
-scp -i ~/.ssh/github-ci lms-dump.tar.gz      root@187.124.97.56:/root/
-scp -i ~/.ssh/github-ci lms-uploads.tar.gz   root@187.124.97.56:/root/
-scp -i ~/.ssh/github-ci PRE-WIPE-COUNTS.txt  root@187.124.97.56:/root/
+# From your laptop. FINGERPRINT-BEFORE.txt goes back too — it was destroyed with
+# the disk, and it is what the final check compares against.
+scp -i ~/.ssh/github-ci lms-dump.tar.gz          root@187.124.97.56:/root/
+scp -i ~/.ssh/github-ci lms-uploads.tar.gz       root@187.124.97.56:/root/
+scp -i ~/.ssh/github-ci FINGERPRINT-BEFORE.txt   root@187.124.97.56:/root/
+scp -i ~/.ssh/github-ci UPLOADS-FILECOUNT.txt    root@187.124.97.56:/root/
 ```
 
 On the VPS:
@@ -250,14 +368,33 @@ docker cp /root/lms-dump lms-mongodb:/data/restore
 docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
   'mongorestore --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" --drop --gzip --db lms-saas /data/restore/lms-saas'
 docker exec lms-mongodb rm -rf /data/restore
+```
 
-# Confirm the restore landed in the right database, with the right counts.
-docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
- 'mongosh --quiet -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin lms-saas --eval "
-    db.getCollectionNames().sort().forEach(c => print(c + \" \" + db[c].countDocuments()))
- "' > /root/POST-RESTORE-COUNTS.txt
-diff /root/POST-RESTORE-COUNTS.txt <(cat /root/PRE-WIPE-COUNTS.txt 2>/dev/null) \
-  && echo "✅ counts match the pre-wipe snapshot"
+**The zero-loss proof.** Same fingerprint, same comparison as the pre-wipe gate:
+
+```bash
+cd /root/lms
+bash scripts/db-fingerprint.sh --deep > /root/FINGERPRINT-RESTORED.txt
+
+if diff <(sed 's/container=[^ ]*/container=X/' /root/FINGERPRINT-BEFORE.txt) \
+        <(sed 's/container=[^ ]*/container=X/' /root/FINGERPRINT-RESTORED.txt); then
+  echo "✅ ZERO DATA LOSS CONFIRMED — every document matches the pre-wipe original"
+else
+  echo "❌ MISMATCH — do NOT go live. Restore copy B (lms-mongo-volume.tar.gz) instead."
+fi
+```
+
+If this mismatches, you still hold copy B and the provider snapshot. Nothing is lost —
+stop, and restore the raw volume instead:
+
+```bash
+# Fallback: replace the volume contents wholesale with the physical copy.
+docker-compose stop mongodb
+docker run --rm -v lms-saas_mongodb_data:/d -v /root:/in alpine \
+  sh -c 'rm -rf /d/* && tar -xzf /in/lms-mongo-volume.tar.gz -C /d'
+docker-compose start mongodb
+# NOTE: copy B carries the OLD credentials, so rotate the Mongo password again
+# (runbook vps-recovery-hardening.md step 6) before continuing.
 ```
 
 **Drop the old encrypted API keys.** They were encrypted with the old `ENCRYPTION_KEY`,
@@ -276,6 +413,13 @@ Restore uploads:
 docker volume create lms-saas_uploads_data
 docker run --rm -v lms-saas_uploads_data:/u -v /root:/in alpine \
   sh -c 'tar -xzf /in/lms-uploads.tar.gz -C /u'
+
+# Same principle as the database: count, do not assume.
+RESTORED_FILES=$(docker run --rm -v lms-saas_uploads_data:/u alpine sh -c 'find /u -type f | wc -l')
+echo "restored=$RESTORED_FILES expected=$(cat /root/UPLOADS-FILECOUNT.txt)"
+[ "$RESTORED_FILES" = "$(tr -dc '0-9' < /root/UPLOADS-FILECOUNT.txt)" ] \
+  && echo "✅ every uploaded file accounted for" \
+  || echo "❌ upload count mismatch — re-extract before going live"
 ```
 
 ## Step 7 — Ship the image, then TLS

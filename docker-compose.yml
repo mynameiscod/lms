@@ -1,12 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# SECURITY NOTE (2026-08-07, after the second cryptominer compromise)
+#
+# Every `ports:` entry below is bound to 127.0.0.1 ON PURPOSE. A bare
+# "6379:6379" binds 0.0.0.0 and — critically — Docker writes that rule into the
+# DOCKER iptables chain, which is evaluated BEFORE the INPUT chain that ufw
+# manages. So `ufw deny 6379` does NOT close a Docker-published port. The only
+# reliable fixes are binding to 127.0.0.1 (here) and the DOCKER-USER rules in
+# scripts/harden-firewall.sh. Do not "simplify" these back to "PORT:PORT".
+#
+# Reaching Mongo/Redis from your laptop is done with an SSH tunnel, never by
+# republishing the port. See docs/runbooks/vps-recovery-hardening.md.
+#
+# Credentials come from /root/lms/.env (compose-level). There are NO fallback
+# defaults — compose must fail loudly rather than silently boot with a password
+# that is public in git history.
+# ─────────────────────────────────────────────────────────────────────────────
+
 services:
   mongodb:
     image: mongo:latest
     container_name: lms-mongodb
+    # localhost-only. Was 0.0.0.0:27017 with admin/password123 until 2026-08-07.
     ports:
-      - "27017:27017"
+      - "127.0.0.1:27017:27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: admin
-      MONGO_INITDB_ROOT_PASSWORD: password123
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME:?set MONGO_ROOT_USERNAME in /root/lms/.env}
+      # NOTE: MONGO_INITDB_* only applies when the data volume is EMPTY. On an
+      # existing volume this value is NOT applied — you must rotate the password
+      # inside Mongo with db.changeUserPassword() first, then set it here, or the
+      # app will fail to authenticate. The runbook does these in the right order.
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD:?set MONGO_ROOT_PASSWORD in /root/lms/.env}
       MONGO_INITDB_DATABASE: lms-saas
     volumes:
       - mongodb_data:/data/db
@@ -17,8 +40,28 @@ services:
   redis:
     image: redis:7-alpine
     container_name: lms-redis
+    # THIS was the reinfection vector: unauthenticated Redis on 0.0.0.0:6379 lets
+    # a scanner CONFIG SET dir /var/spool/cron and write a root crontab. Now
+    # localhost-only AND password-protected — either alone would have stopped it.
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
+    command:
+      - redis-server
+      - --requirepass
+      - ${REDIS_PASSWORD:?set REDIS_PASSWORD in /root/lms/.env}
+      - --protected-mode
+      - "yes"
+      # MODULE LOAD is an arbitrary-code-execution path and nothing here uses it.
+      # CONFIG is deliberately NOT disabled even though CONFIG SET dir is the
+      # exact command used in the attack: BullMQ calls CONFIG GET maxmemory-policy
+      # on connect, so renaming it would take the AI call queue down. The attack
+      # needs an unauthenticated connection, and requirepass + the localhost bind
+      # + the DOCKER-USER drop each independently prevent that.
+      - --rename-command
+      - MODULE
+      - ""
+    volumes:
+      - redis_data:/data
     networks:
       - lms-network
     restart: unless-stopped
@@ -29,18 +72,21 @@ services:
       dockerfile: Dockerfile
       network: host
     container_name: lms-server-blue
+    # localhost-only: nginx is the only thing that should reach the app. Publishing
+    # 0.0.0.0:5001 let anyone bypass nginx (and its TLS, rate limits and logging).
     ports:
-      - "5001:5000"
+      - "127.0.0.1:5001:5000"
     env_file:
       - ./server/.env
     environment:
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/lms-saas?authSource=admin
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/lms-saas?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in /root/lms/.env}
       NODE_ENV: production
       FRONTEND_URL: https://platform.codebegun.com
       PISTON_URL: http://piston:2000/api/v2
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -58,17 +104,18 @@ services:
       network: host
     container_name: lms-server-green
     ports:
-      - "5002:5000"
+      - "127.0.0.1:5002:5000"
     env_file:
       - ./server/.env
     environment:
-      MONGODB_URI: mongodb://admin:password123@mongodb:27017/lms-saas?authSource=admin
-      JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-this}
+      MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/lms-saas?authSource=admin
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in /root/lms/.env}
       NODE_ENV: production
       FRONTEND_URL: https://platform.codebegun.com
       PISTON_URL: http://piston:2000/api/v2
       REDIS_HOST: redis
       REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     volumes:
       - uploads_data:/app/uploads
     depends_on:
@@ -82,7 +129,18 @@ services:
   piston:
     image: ghcr.io/engineer-man/piston
     container_name: lms-piston
-    privileged: true
+    # `privileged: true` (used until 2026-08-07) gives this container effective
+    # root on the HOST — and it runs arbitrary student-submitted code, so a
+    # container escape is one published exploit away. Piston's sandbox needs
+    # mount/cgroup namespaces, which is CAP_SYS_ADMIN, not the full privileged set.
+    #
+    # ⚠️ VERIFY code execution after deploying this (runbook step 7). If Piston
+    # fails to run jobs, the fallback is `privileged: true` again — but treat that
+    # as temporary and keep Piston off any public port either way.
+    cap_add:
+      - SYS_ADMIN
+    security_opt:
+      - apparmor=unconfined
     tmpfs:
       - /piston/jobs:exec,size=256m
     volumes:

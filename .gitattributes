@@ -1,0 +1,8 @@
+# Shell scripts must keep LF endings. They are authored on Windows but executed
+# on the Linux VPS, and a CRLF shebang makes the kernel look for an interpreter
+# literally named "/bin/bash\r" — which fails as "bad interpreter: No such file
+# or directory". Pin them so a future clone or editor cannot reintroduce CRLF.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

@@ -12,6 +12,15 @@ APP_DIR="/root/lms"
 BACKUP_DIR="/root/lms-backups"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
+# Credentials come from the compose env file, never hardcoded. This script used
+# to carry admin:password123 inline, so the DB password was readable in git and
+# in `ps` output for anyone on the box.
+if [ -f "$APP_DIR/.env" ]; then
+    set -a; . "$APP_DIR/.env"; set +a
+fi
+: "${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME not set — is $APP_DIR/.env present?}"
+: "${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD not set — is $APP_DIR/.env present?}"
+
 echo ""
 echo "========================================="
 echo "  LMS Backup - $(date)"
@@ -23,10 +32,11 @@ mkdir -p "$BACKUP_DIR"
 # Backup database
 echo "📦 Backing up database..."
 if docker ps | grep -q "lms-mongodb"; then
-    docker exec lms-mongodb mongodump \
-        --uri="mongodb://admin:password123@localhost:27017/lms-saas?authSource=admin" \
-        --out="/data/backup" \
-        --gzip 2>/dev/null || true
+    # The credentials are passed as env vars into the container rather than
+    # interpolated into the command line, so they do not show up in `ps`.
+    docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
+        'mongodump --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/lms-saas?authSource=admin" --out=/data/backup --gzip' \
+        2>/dev/null || true
     
     docker cp lms-mongodb:/data/backup "$BACKUP_DIR/db_$TIMESTAMP" 2>/dev/null || true
     docker exec lms-mongodb rm -rf /data/backup 2>/dev/null || true

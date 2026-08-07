@@ -11,6 +11,13 @@ set -e
 BACKUP_DIR="/root/lms-backups"
 APP_DIR="/root/lms"
 
+# Credentials come from the compose env file, never hardcoded (see backup.sh).
+if [ -f "$APP_DIR/.env" ]; then
+    set -a; . "$APP_DIR/.env"; set +a
+fi
+: "${MONGO_ROOT_USERNAME:?MONGO_ROOT_USERNAME not set — is $APP_DIR/.env present?}"
+: "${MONGO_ROOT_PASSWORD:?MONGO_ROOT_PASSWORD not set — is $APP_DIR/.env present?}"
+
 # Get timestamp
 TIMESTAMP="$1"
 
@@ -66,11 +73,9 @@ cd "$BACKUP_DIR"
 tar -xzf "db_$TIMESTAMP.tar.gz"
 
 docker cp "db_$TIMESTAMP" lms-mongodb:/data/restore
-docker exec lms-mongodb mongorestore \
-    --uri="mongodb://admin:password123@localhost:27017/?authSource=admin" \
-    --drop \
-    --gzip \
-    /data/restore/lms-saas 2>/dev/null || true
+docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
+    'mongorestore --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" --drop --gzip /data/restore/lms-saas' \
+    2>/dev/null || true
 
 docker exec lms-mongodb rm -rf /data/restore
 rm -rf "db_$TIMESTAMP"

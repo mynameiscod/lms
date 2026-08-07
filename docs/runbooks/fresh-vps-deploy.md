@@ -169,9 +169,12 @@ On the new box:
 cd /root && tar -xzf lms-dump.tar.gz
 set -a; . /root/lms/.env; set +a
 
-docker cp /root/lms-dump/lms-saas lms-mongodb:/data/restore
+# `--db lms-saas` is REQUIRED. Pointed at a directory of .bson.gz files without
+# it, mongorestore prints "don't know what to do with file ..., skipping" for
+# every collection, restores 0 documents, and STILL EXITS 0. Verified.
+docker cp /root/lms-dump lms-mongodb:/data/restore
 docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
-  'mongorestore --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" --drop --gzip /data/restore'
+  'mongorestore --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" --drop --gzip --db lms-saas /data/restore/lms-saas'
 docker exec lms-mongodb rm -rf /data/restore
 ```
 

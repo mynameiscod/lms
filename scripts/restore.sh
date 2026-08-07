@@ -73,13 +73,34 @@ cd "$BACKUP_DIR"
 tar -xzf "db_$TIMESTAMP.tar.gz"
 
 docker cp "db_$TIMESTAMP" lms-mongodb:/data/restore
-docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
-    'mongorestore --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" --drop --gzip /data/restore/lms-saas' \
-    2>/dev/null || true
+
+# `--db lms-saas` is REQUIRED and the output must NOT be discarded.
+#
+# This previously ran `mongorestore ... /data/restore/lms-saas` with no --db and
+# with `2>/dev/null || true`. Pointed at a directory of .bson.gz files without
+# being told the database name, current mongorestore prints "don't know what to
+# do with file ..., skipping" for every collection, restores 0 documents, and
+# still EXITS 0. With stderr discarded, this script then printed
+# "✅ Database restored" over an empty database — verified reproducible.
+# A restore that cannot fail loudly is not a backup system.
+if ! docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
+    'mongorestore --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/?authSource=admin" --drop --gzip --db lms-saas /data/restore/lms-saas'; then
+    echo "   ❌ mongorestore failed — the database was NOT restored." >&2
+    exit 1
+fi
+
+# Trust nothing: count what actually landed.
+RESTORED=$(docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
+    'mongosh --quiet -u "$MONGO_ROOT_USERNAME" -p "$MONGO_ROOT_PASSWORD" --authenticationDatabase admin lms-saas \
+     --eval "db.getCollectionNames().length"' | tr -dc '0-9')
+if [ -z "$RESTORED" ] || [ "$RESTORED" -eq 0 ]; then
+    echo "   ❌ Restore reported success but lms-saas has 0 collections. NOT restored." >&2
+    exit 1
+fi
 
 docker exec lms-mongodb rm -rf /data/restore
 rm -rf "db_$TIMESTAMP"
-echo "   ✅ Database restored"
+echo "   ✅ Database restored ($RESTORED collections)"
 
 # Step 4: Rebuild
 echo "🔄 Step 4: Rebuilding..."

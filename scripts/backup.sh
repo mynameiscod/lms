@@ -34,18 +34,31 @@ echo "📦 Backing up database..."
 if docker ps | grep -q "lms-mongodb"; then
     # The credentials are passed as env vars into the container rather than
     # interpolated into the command line, so they do not show up in `ps`.
-    docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
-        'mongodump --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/lms-saas?authSource=admin" --out=/data/backup --gzip' \
-        2>/dev/null || true
-    
-    docker cp lms-mongodb:/data/backup "$BACKUP_DIR/db_$TIMESTAMP" 2>/dev/null || true
+    # Errors are NOT discarded here. A backup that fails quietly is worse than no
+    # backup, because you only discover it during a restore — which is the one
+    # moment you cannot afford to.
     docker exec lms-mongodb rm -rf /data/backup 2>/dev/null || true
-    
-    if [ -d "$BACKUP_DIR/db_$TIMESTAMP" ]; then
-        tar -czf "$BACKUP_DIR/db_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" "db_$TIMESTAMP"
-        rm -rf "$BACKUP_DIR/db_$TIMESTAMP"
-        echo "   ✅ Database: db_$TIMESTAMP.tar.gz"
+    if ! docker exec -e MONGO_ROOT_USERNAME -e MONGO_ROOT_PASSWORD lms-mongodb sh -c \
+        'mongodump --uri="mongodb://$MONGO_ROOT_USERNAME:$MONGO_ROOT_PASSWORD@localhost:27017/lms-saas?authSource=admin" --out=/data/backup --gzip'; then
+        echo "   ❌ mongodump FAILED — no database backup was written." >&2
+        exit 1
     fi
+
+    docker cp lms-mongodb:/data/backup "$BACKUP_DIR/db_$TIMESTAMP"
+    docker exec lms-mongodb rm -rf /data/backup 2>/dev/null || true
+
+    # mongodump can exit 0 having written an empty tree (wrong db name, no perms).
+    # Require actual collection files before calling this a backup.
+    COLLS=$(find "$BACKUP_DIR/db_$TIMESTAMP" -name '*.bson.gz' 2>/dev/null | wc -l)
+    if [ "$COLLS" -eq 0 ]; then
+        echo "   ❌ Dump contains 0 collections — refusing to call this a backup." >&2
+        rm -rf "$BACKUP_DIR/db_$TIMESTAMP"
+        exit 1
+    fi
+
+    tar -czf "$BACKUP_DIR/db_$TIMESTAMP.tar.gz" -C "$BACKUP_DIR" "db_$TIMESTAMP"
+    rm -rf "$BACKUP_DIR/db_$TIMESTAMP"
+    echo "   ✅ Database: db_$TIMESTAMP.tar.gz ($COLLS collections)"
 else
     echo "   ⚠️ MongoDB not running"
 fi

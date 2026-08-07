@@ -61,13 +61,18 @@ for IPT in iptables ip6tables; do
   while $IPT -D DOCKER-USER -m comment --comment "lms-harden" -j RETURN 2>/dev/null; do :; done
   while $IPT -D DOCKER-USER -m comment --comment "lms-harden" -j DROP   2>/dev/null; do :; done
 
-  # Return traffic for connections the containers themselves opened (npm,
-  # Anthropic API, Brevo, Razorpay) must survive — insert this FIRST.
+  # BOTH rules are INSERTED at the top, in order. They must NOT be appended:
+  # Docker ships DOCKER-USER containing a default `-j RETURN`, so an appended
+  # DROP lands after it and is never evaluated — the chain would look configured
+  # while blocking nothing.
+  #
+  # Position 1: return traffic for connections the containers themselves opened
+  # (npm, Anthropic, Brevo, Razorpay) must survive.
   $IPT -I DOCKER-USER 1 -m conntrack --ctstate RELATED,ESTABLISHED \
        -m comment --comment "lms-harden" -j RETURN
 
-  # Anything arriving from the internet addressed to a container: drop.
-  $IPT -A DOCKER-USER -i "$EXT_IF" \
+  # Position 2: anything arriving from the internet addressed to a container.
+  $IPT -I DOCKER-USER 2 -i "$EXT_IF" \
        -m comment --comment "lms-harden" -j DROP
 done
 echo "   ✅ Internet → container traffic dropped (both IPv4 and IPv6)"
@@ -100,6 +105,17 @@ echo "   ✅ fail2ban active on sshd"
 
 echo ""
 echo "==> Verification"
+# Prove the DROP actually precedes Docker's default RETURN. If it does not, the
+# chain is cosmetic and the box is still exposed.
+DROP_POS=$(iptables -L DOCKER-USER -n --line-numbers | awk '/DROP/{print $1; exit}')
+RET_POS=$(iptables -L DOCKER-USER -n --line-numbers | awk '/RETURN/{ if(++c==2){print $1; exit} }')
+if [ -n "$DROP_POS" ] && { [ -z "$RET_POS" ] || [ "$DROP_POS" -lt "$RET_POS" ]; }; then
+  echo "   ✅ DROP is at position $DROP_POS, ahead of Docker's RETURN"
+else
+  echo "${RED}   ❌ DROP is NOT ahead of Docker's RETURN — the chain is not blocking anything.${NC}"
+  iptables -L DOCKER-USER -n --line-numbers
+  exit 1
+fi
 echo "--- listening sockets reachable from outside (should be ONLY 22/80/443) ---"
 ss -tlnp | awk 'NR==1 || ($4 !~ /^127\.0\.0\.1:/ && $4 !~ /^\[::1\]:/)'
 echo ""

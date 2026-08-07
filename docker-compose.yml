@@ -81,6 +81,11 @@ services:
     environment:
       MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/lms-saas?authSource=admin
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in /root/lms/.env}
+      # Set EXPLICITLY and kept SEPARATE from JWT_SECRET. settingsService falls
+      # back to JWT_SECRET (then to a hardcoded string) when this is unset, which
+      # means rotating JWT_SECRET would silently make every API key stored in
+      # Platform Settings undecryptable. These two must rotate independently.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY in /root/lms/.env}
       NODE_ENV: production
       FRONTEND_URL: https://platform.codebegun.com
       PISTON_URL: http://piston:2000/api/v2
@@ -110,6 +115,11 @@ services:
     environment:
       MONGODB_URI: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/lms-saas?authSource=admin
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in /root/lms/.env}
+      # Set EXPLICITLY and kept SEPARATE from JWT_SECRET. settingsService falls
+      # back to JWT_SECRET (then to a hardcoded string) when this is unset, which
+      # means rotating JWT_SECRET would silently make every API key stored in
+      # Platform Settings undecryptable. These two must rotate independently.
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:?set ENCRYPTION_KEY in /root/lms/.env}
       NODE_ENV: production
       FRONTEND_URL: https://platform.codebegun.com
       PISTON_URL: http://piston:2000/api/v2

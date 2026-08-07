@@ -38,7 +38,23 @@ function encrypt(text: string): string {
   }
 }
 
-function decrypt(text: string): string {
+/**
+ * Returns '' when the value cannot be decrypted — NOT the raw ciphertext.
+ *
+ * This used to `return text` on failure, which was actively harmful: the
+ * ciphertext was cached as if it were the secret and then mirrored into
+ * process.env by applyToEnv(), so every provider call went out with a key like
+ * "9f3a…:c71b…". The result was an auth/billing error from the provider that
+ * looks like a broken account rather than a broken key — the same
+ * failure-masquerading-as-a-result pattern we hit in CareerPilot.
+ *
+ * It fails for one realistic reason: ENCRYPTION_KEY changed. That happens on a
+ * server migration, or if it was falling back to JWT_SECRET and JWT_SECRET was
+ * rotated. Returning '' makes the setting read as *unset*, so callers fall back
+ * to .env and their existing "not configured" handling, and the log below says
+ * exactly which key to re-enter in Platform Settings.
+ */
+function decrypt(text: string, keyName = '?'): string {
   if (!text || !text.includes(':')) return text;
   try {
     const key = crypto.scryptSync(ENCRYPTION_KEY, 'salt', 32);
@@ -49,7 +65,12 @@ function decrypt(text: string): string {
     dec += decipher.final('utf8');
     return dec;
   } catch {
-    return text;
+    console.error(
+      `[settings] ❌ Could not decrypt "${keyName}" — ENCRYPTION_KEY does not match ` +
+        `the one used to save it. Treating it as unset. Re-enter this value in ` +
+        `Platform Settings, or restore the previous ENCRYPTION_KEY.`
+    );
+    return '';
   }
 }
 
@@ -79,7 +100,7 @@ export async function loadAll(): Promise<void> {
     platformCache.clear();
     tenantCache.clear();
     for (const r of rows) {
-      const raw = r.isSecret ? decrypt(r.value) : r.value;
+      const raw = r.isSecret ? decrypt(r.value, r.key) : r.value;
       if (r.tenantId) {
         const tid = r.tenantId.toString();
         if (!tenantCache.has(tid)) tenantCache.set(tid, new Map());

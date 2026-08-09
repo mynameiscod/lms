@@ -68,7 +68,7 @@ const Roadmap: React.FC = () => {
 
   const share = async () => {
     const slug = member?.shareSlug;
-    const url = slug ? `${window.location.origin}/passport/card/${slug}` : window.location.href;
+    const url = slug ? `${window.location.origin}/careerpilot/card/${slug}` : window.location.href;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
     catch { window.prompt('Copy your roadmap link:', url); }
   };

@@ -197,7 +197,7 @@ export const passportApi = {
     // server settles and bounces back to /passport.
     const apiRoot = process.env.REACT_APP_API_URL || '/api/v1';
     const base = apiRoot.startsWith('http') ? apiRoot : window.location.origin + apiRoot;
-    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/passport')}`;
+    const callbackUrl = `${base}/payments/return?to=${encodeURIComponent('/careerpilot')}`;
     return new Promise((resolve) => {
       const rzp = new (window as any).Razorpay({
         key: order.keyId, amount: order.amount, currency: order.currency,

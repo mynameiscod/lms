@@ -91,7 +91,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
   const share = async () => {
     if (!d?.shareSlug) return;
-    const url = `${window.location.origin}/passport/card/${d.shareSlug}`;
+    const url = `${window.location.origin}/careerpilot/card/${d.shareSlug}`;
     try { await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 2000); }
     catch { window.prompt('Copy your CareerPilot link:', url); }
   };

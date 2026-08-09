@@ -19,14 +19,20 @@ async function ctx(req: Request) {
     PassportConfig.findOne({ tenantId }).lean(),
     ensureContent(tenantId),
   ]);
-  // Missions come from the tenant's admin-editable pools (PassportContent).
-  return { tenantId, studentId, user, cfg, pools: poolMapOf(content.missionPools, memberAxes(user)) };
+  // Missions come from the tenant's admin-editable pools (PassportContent). The journey
+  // length rides along because mission emphasis tapers over the WHOLE journey, and a
+  // tenant may run 150, 300 or 365 days rather than the default 90.
+  return {
+    tenantId, studentId, user, cfg,
+    pools: poolMapOf(content.missionPools, memberAxes(user)),
+    journeyDays: content.journeyDays || 90,
+  };
 }
 
 /** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */
 export const getToday = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, pools } = await ctx(req);
+    const { tenantId, studentId, user, cfg, pools, journeyDays } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, reason: 'Membership required to unlock daily missions.' });
     }
@@ -39,7 +45,7 @@ export const getToday = async (req: Request, res: Response) => {
 
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
-    const missions = missionsForDay(attempt, day, pools);
+    const missions = missionsForDay(attempt, day, pools, journeyDays);
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
 
     res.json({
@@ -57,7 +63,7 @@ export const getToday = async (req: Request, res: Response) => {
 /** Student: mark one mission done → award XP + update streak. Idempotent per (day,key). */
 export const completeMission = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, pools } = await ctx(req);
+    const { tenantId, studentId, user, cfg, pools, journeyDays } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.status(403).json({ message: 'Membership required.' });
     }
@@ -70,7 +76,7 @@ export const completeMission = async (req: Request, res: Response) => {
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
     const key = String(req.body?.key || '');
-    const valid = missionsForDay(attempt, day, pools).find(m => m.key === key);
+    const valid = missionsForDay(attempt, day, pools, journeyDays).find(m => m.key === key);
     if (!valid) return res.status(400).json({ message: 'Unknown mission.' });
 
     const already = progress.completed.some(c => c.day === day && c.key === key);
@@ -82,7 +88,7 @@ export const completeMission = async (req: Request, res: Response) => {
     }
 
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
-    const missions = missionsForDay(attempt, day, pools);
+    const missions = missionsForDay(attempt, day, pools, journeyDays);
     res.json({
       ok: true, xp: progress.xp, streak: progress.streak, longestStreak: progress.longestStreak,
       allDone: missions.every(m => doneKeys.has(m.key)),

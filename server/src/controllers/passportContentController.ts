@@ -80,10 +80,11 @@ export const previewContent = async (req: Request, res: Response) => {
     };
     attempt.pathway = pathwayKey;
 
-    const days = [1, 2, 3, 4, 5, 6, 7].map(d => ({ day: d, missions: missionsForDay(attempt, d, pools) }));
+    const previewDays = Number(req.body?.journeyDays) || content.journeyDays || 90;
+    const days = [1, 2, 3, 4, 5, 6, 7].map(d => ({ day: d, missions: missionsForDay(attempt, d, pools, previewDays) }));
     const roadmap = buildRoadmap({
       attempt, pools, pathways,
-      totalDays: Number(req.body?.journeyDays) || content.journeyDays || 90,
+      totalDays: previewDays,
       currentDay: 1,
     });
 

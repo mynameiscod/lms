@@ -112,7 +112,7 @@ export function buildRoadmap(opts: {
     let weekDone = 0;
 
     for (let d = fromDay; d <= toDay; d++) {
-      const missions = missionsForDay(opts.attempt, d, opts.pools);
+      const missions = missionsForDay(opts.attempt, d, opts.pools, totalDays);
       const xp = missions.reduce((s, m) => s + (m.xp || 0), 0);
       const allDone = missions.length > 0 && missions.every(m => completed.has(m.key));
       totalXp += xp;
@@ -120,7 +120,7 @@ export function buildRoadmap(opts: {
       days.push({
         day: d,
         date: start ? new Date(start.getTime() + (d - 1) * 86400000).toISOString().slice(0, 10) : undefined,
-        categories: categoriesForDay(opts.attempt, d),
+        categories: categoriesForDay(opts.attempt, d, totalDays),
         titles: missions.map(m => m.title),
         xp,
         done: allDone,

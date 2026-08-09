@@ -58,7 +58,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const totalDays = content.journeyDays || 90;
 
     // Today's missions + completion state
-    const todaysMissions = missionsForDay(attempt, day, pools);
+    const todaysMissions = missionsForDay(attempt, day, pools, totalDays);
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
     const missions = todaysMissions.map(m => ({ ...m, done: doneKeys.has(m.key) }));
     const targetXp = todaysMissions.reduce((s, m) => s + (m.xp || 0), 0);

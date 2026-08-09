@@ -104,28 +104,41 @@ function hash(n: number): number { let x = (n * 2654435761) >>> 0; x ^= x >>> 15
 /** At or above this, a category stops leading the day — the member has it. */
 const MASTERY = 85;
 /**
- * Length of one emphasis cycle, in days. Deliberately equal to PHASE_DAYS — one whole
- * cycle per phase. Two properties depend on that:
- *
- *  - It must DIVIDE PHASE_DAYS. At 12 against 30, a phase boundary landed mid-cycle and
- *    the realised split depended on where the index happened to sit, which showed up as
- *    a category wobbling between phases (9 / 25 / 15) for no reason a member could
- *    explain.
- *  - Longer cycles resolve finer. 30 days x 3 slots = 90 appearances, so ~1% steps; at
- *    10 days it was ~3% and two categories six points apart (72 and 78) rounded to
- *    exactly the same share, throwing away the proportionality this exists to provide.
+ * Length of one emphasis cycle, in days. This is a RESOLUTION knob, not a calendar:
+ * 30 days x 3 slots = 90 appearances to share out, so ~1% steps. An earlier value of
+ * 10 gave ~3% steps, and two categories six points apart (72 and 78) rounded to
+ * exactly the same share — throwing away the proportionality this exists to provide.
  */
 const EMPHASIS_CYCLE = 30;
-/** Days per taper phase — 3 phases over the 90-day journey. */
-const PHASE_DAYS = 30;
 /**
- * How proportional emphasis is in each phase: 1 = fully need-weighted, 0 = even
- * across categories. Early on, the weakest dominates; by the last phase the plan
- * has broadened, because by then they should have moved.
+ * Journey length assumed when a caller doesn't pass one. Every caller should pass
+ * `content.journeyDays`; this only covers direct calls in tests and tooling.
  */
-const PHASE_TAPER = [1, 0.65, 0.35];
+export const DEFAULT_JOURNEY_DAYS = 90;
+/**
+ * How far emphasis flattens by the end of the journey. Weighting runs from fully
+ * need-proportional on day 1 to (1 - TAPER_DEPTH) at the finish, so the leaders give
+ * days up and the middle of the pack picks them up as the member works through them.
+ */
+const TAPER_DEPTH = 0.65;
 
 const needOf = (score: number) => Math.max(0, 100 - score);
+
+/**
+ * How need-proportional the weighting is on a given day: 1 = fully proportional,
+ * 0 = even across categories.
+ *
+ * Scaled by PROGRESS THROUGH THE JOURNEY, not by a fixed number of days. The journey
+ * is admin-configurable (`PassportContent.journeyDays`) and tenants run 150, 300 or
+ * 365 days as well as 90 — an earlier version used three fixed 30-day phases, so on a
+ * 365-day plan it finished tapering at day 90 and then sat flat for 275 days. Anything
+ * derived from the journey's length has to be a fraction of it.
+ */
+function taperAt(day: number, journeyDays: number): number {
+  const span = Math.max(1, journeyDays - 1);
+  const progress = Math.min(1, Math.max(0, (day - 1) / span));
+  return 1 - progress * TAPER_DEPTH;
+}
 
 /**
  * Categories eligible to lead a day: everything not yet mastered.
@@ -190,15 +203,18 @@ function allocate(weights: number[], total: number, cap: number): number[] {
  * Picking the top 3 by remaining quota guarantees three different categories, so
  * `missionsForDay`'s title guard rarely has to fire.
  *
- * Fully deterministic in (attempt, day) — no clock, no randomness — so the roadmap
+ * Fully deterministic in (attempt, day, journeyDays) — no clock, no randomness — so the roadmap
  * preview and the daily view agree, and a refresh never reshuffles the day.
  */
-export function categoriesForDay(attempt: AttemptLite, day: number): string[] {
+export function categoriesForDay(
+  attempt: AttemptLite,
+  day: number,
+  journeyDays: number = DEFAULT_JOURNEY_DAYS,
+): string[] {
   const cats = eligibleCategories(attempt);
   if (cats.length <= SLOTS_PER_DAY) return cats.map(c => c.key);
 
-  const phase = Math.min(PHASE_TAPER.length - 1, Math.max(0, Math.floor((day - 1) / PHASE_DAYS)));
-  const t = PHASE_TAPER[phase];
+  const t = taperAt(day, journeyDays);
 
   // Interpolate between need-proportional (t=1) and even (t=0). The total is the same
   // either way, so the taper is a genuine redistribution — the weakest gives days up
@@ -236,8 +252,13 @@ export function categoriesForDay(attempt: AttemptLite, day: number): string[] {
   return picked.map(i => cats[i].key);
 }
 
-export function missionsForDay(attempt: AttemptLite, day: number, pools: PoolMap = poolMapOf()): Mission[] {
-  const cats = categoriesForDay(attempt, day);
+export function missionsForDay(
+  attempt: AttemptLite,
+  day: number,
+  pools: PoolMap = poolMapOf(),
+  journeyDays: number = DEFAULT_JOURNEY_DAYS,
+): Mission[] {
+  const cats = categoriesForDay(attempt, day, journeyDays);
   if (!cats.length) return [];
   const h = hash(day);
 

@@ -158,6 +158,29 @@ function eligibleCategories(attempt: AttemptLite): { key: string; score: number 
 const SLOTS_PER_DAY = 3;
 
 /**
+ * Drop a mission link that cannot actually complete the mission.
+ *
+ * The roadmap is a PLAN view — it lists the same missions and its day arrow sends the
+ * member back to today's dashboard. So a mission linking there produced a loop:
+ * dashboard → "Open →" → roadmap → "›" → dashboard, with nowhere in between to do the
+ * task. "Define your target role — write 1 role you want + 3 skills it needs" offered an
+ * Open button that led in a circle.
+ *
+ * These are reflective tasks with no digital surface yet. Until there is one, showing no
+ * button is the honest rendering: the client only renders "Open →" when a link exists, so
+ * they read as "do this, then tick it" — exactly like "Build a study routine", which
+ * carries no link and never confused anyone.
+ *
+ * Filtered here rather than patched in the database so it holds for every tenant, for
+ * rows already written, and for anything an admin points at the roadmap in future.
+ */
+function actionableLink(link?: string): string | undefined {
+  if (!link) return undefined;
+  const path = link.split(/[?#]/)[0].replace(/\/+$/, '');
+  return path === '/careerpilot/roadmap' || path === '/passport/roadmap' ? undefined : link;
+}
+
+/**
  * Share `total` appearances across `weights`, with no category exceeding `cap`.
  *
  * Largest-remainder, so the parts sum to exactly `total` — proportional rounding on
@@ -285,7 +308,7 @@ export function missionsForDay(
       category: cat,
       type: pick.type,
       xp: pick.xp,
-      link: pick.link,
+      link: actionableLink(pick.link),
     } as Mission;
   }).filter(Boolean) as Mission[];
 }

@@ -402,7 +402,17 @@ const Roadmap: React.FC = () => {
                             : <div className="rest">Rest / review day</div>}
                         </div>
                         <span className="xp">+{d.xp} XP</span>
-                        <button className="go" onClick={() => nav('/careerpilot')} aria-label="Open day">›</button>
+                        {/*
+                          Only today's row can be opened. The arrow always navigated to
+                          today's missions regardless of which day it sat on, so on day 47
+                          it silently took you somewhere else — and on today's row it
+                          completed a loop back to the screen you arrived from. There is no
+                          per-day view to send the other rows to, so they get no arrow
+                          rather than a misleading one.
+                        */}
+                        {d.isToday && (
+                          <button className="go" onClick={() => nav('/careerpilot')} aria-label="Go to today's missions">›</button>
+                        )}
                       </div>
                     ))}
                   </div>

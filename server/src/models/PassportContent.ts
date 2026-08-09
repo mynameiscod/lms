@@ -183,8 +183,8 @@ export const DEFAULT_MISSION_POOLS: IMissionPool[] = [
   {
     category: 'career_clarity',
     items: [
-      { title: 'Define your target role', detail: 'Write 1 role you want + 3 skills it needs.', type: 'learn', xp: 15, link: '/careerpilot/roadmap' },
-      { title: 'Research a company', detail: 'Pick 1 company; note what role & skills they hire for.', type: 'learn', xp: 20, link: '/careerpilot/roadmap' },
+      { title: 'Define your target role', detail: 'Write 1 role you want + 3 skills it needs.', type: 'learn', xp: 15 },
+      { title: 'Research a company', detail: 'Pick 1 company; note what role & skills they hire for.', type: 'learn', xp: 20 },
     ],
   },
 ];

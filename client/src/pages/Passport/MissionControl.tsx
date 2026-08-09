@@ -57,22 +57,7 @@ const MissionControl: React.FC = () => {
   const [payMsg, setPayMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [pwdOpen, setPwdOpen] = useState(false);
-  const [pwd, setPwd] = useState('');
-  const [pwdBusy, setPwdBusy] = useState(false);
-  const [pwdMsg, setPwdMsg] = useState('');
   const whyRef = useRef<HTMLDivElement>(null);
-
-  const savePassword = async () => {
-    if (pwd.length < 6) { setPwdMsg('Use at least 6 characters.'); return; }
-    setPwdBusy(true); setPwdMsg('');
-    try {
-      await passportApi.setPassword(pwd);
-      setStatus((s: any) => ({ ...s, passwordSet: true }));
-      setPwdOpen(false); setPwd('');
-    } catch (e: any) { setPwdMsg(e?.response?.data?.message || 'Could not save password.'); }
-    setPwdBusy(false);
-  };
 
   const load = useCallback(async () => {
     try {
@@ -173,26 +158,8 @@ const MissionControl: React.FC = () => {
           ))}
         </nav>
         <div style={{ maxWidth: 1040, margin: '0 auto', padding: '16px 26px 0' }}>
-          {status && status.passwordSet === false && (
-            <div style={{ background: 'linear-gradient(90deg,#eef0ff,#e7f8f5)', border: '1px solid #dcd7fb', borderRadius: 14, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 22 }}>🔒</span>
-              <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 14, fontWeight: 800, color: '#0f172a' }}>Secure your account — set a password</div>
-                <div style={{ fontSize: 12.5, color: '#64748b' }}>So you can log in next time without a WhatsApp code.</div>
-              </div>
-              {!pwdOpen ? (
-                <button onClick={() => setPwdOpen(true)} style={{ background: '#6650d8', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 18px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>Set password</button>
-              ) : (
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  <input type="password" value={pwd} onChange={e => setPwd(e.target.value)} placeholder="New password (min 6)" onKeyDown={e => e.key === 'Enter' && savePassword()}
-                    style={{ border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 12px', fontSize: 13.5, width: 190 }} />
-                  <button onClick={savePassword} disabled={pwdBusy} style={{ background: '#14a89c', color: '#fff', border: 'none', borderRadius: 10, padding: '10px 16px', fontWeight: 800, fontSize: 13.5, cursor: 'pointer' }}>{pwdBusy ? 'Saving…' : 'Save'}</button>
-                  <button onClick={() => { setPwdOpen(false); setPwdMsg(''); }} style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
-                </div>
-              )}
-              {pwdMsg && <div style={{ flexBasis: '100%', fontSize: 12.5, color: '#b91c1c' }}>{pwdMsg}</div>}
-            </div>
-          )}
+          {/* The set-password nudge now lives in MemberShell, which wraps every
+              member page — including the Dashboard, where it was never shown. */}
           {hasScore && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 14, marginBottom: 18 }}>
               <Stat label="Career Score" big={String(result!.careerScore)} hint={result!.level} />

@@ -21,7 +21,35 @@ async function resolveTenantId(raw: any): Promise<string | null> {
   return mongoose.isValidObjectId(t) ? t : null;
 }
 
-const normalizePhone = (p: string) => String(p || '').replace(/[^\d]/g, '');
+/**
+ * Canonical mobile: national digits only, country code and trunk prefix removed.
+ *
+ * This used to strip non-digits and stop there, which made "+91 97435 45311" and
+ * "9743545311" two DIFFERENT accounts keys for the same person. Registering with the
+ * country code and then logging in without it (or the reverse) found no user, so OTP
+ * login answered "No CareerPilot found for that mobile number" and never sent a code —
+ * and since the set-password nudge only rendered on one screen, an affected member had
+ * no second way in at all.
+ */
+const normalizePhone = (p: string) => {
+  let d = String(p || '').replace(/[^\d]/g, '');
+  if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
+  else if (d.length === 13 && d.startsWith('091')) d = d.slice(3);
+  else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
+  return d;
+};
+
+/**
+ * Every shape the number may ALREADY be stored as.
+ *
+ * Canonicalising new writes does nothing for rows written before this fix, so lookups
+ * match any of the historical forms rather than only the canonical one. Without this,
+ * fixing the normaliser would lock out exactly the members it was meant to rescue.
+ */
+const phoneVariants = (p: string): string[] => {
+  const n = normalizePhone(p);
+  return n ? Array.from(new Set([n, `91${n}`, `+91${n}`, `0${n}`])) : [];
+};
 
 async function ensureConfig(tenantId: string) {
   let cfg = await PassportConfig.findOne({ tenantId });
@@ -216,7 +244,7 @@ export const loginPassword = async (req: Request, res: Response) => {
     const id = String(identifier).trim();
     const query: any = id.includes('@')
       ? { tenantId, email: id.toLowerCase() }
-      : { tenantId, phone: normalizePhone(id) };
+      : { tenantId, phone: { $in: phoneVariants(id) } };
     const user: any = await User.findOne(query);
     if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that email/mobile.' });
     if (!user.passport.passwordSet) return res.status(400).json({ success: false, message: 'You haven’t set a password yet — log in with WhatsApp OTP.', code: 'NO_PASSWORD' });
@@ -238,8 +266,12 @@ export const loginOtpStart = async (req: Request, res: Response) => {
     const phone = normalizePhone(mobile);
     if (!phone) return res.status(400).json({ success: false, message: 'Enter your registered mobile number.' });
 
-    const user: any = await User.findOne({ tenantId, phone });
+    const user: any = await User.findOne({ tenantId, phone: { $in: phoneVariants(mobile) } });
     if (!user || !user.passport) return res.status(404).json({ success: false, message: 'No CareerPilot found for that mobile number.' });
+
+    // Canonicalise the stored value on the way past, so a row written before this fix
+    // stops needing the variant match on every future login.
+    if (user.phone !== phone) { user.phone = phone; await user.save(); }
 
     const otp = await sendOtp(tenantId, String(user._id), phone);
     // token = userId so the existing /verify endpoint completes the OTP login.

@@ -64,6 +64,27 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
 
+  const [pwdOpen, setPwdOpen] = useState(false);
+  const [pwd, setPwd] = useState('');
+  const [pwdBusy, setPwdBusy] = useState(false);
+  const [pwdMsg, setPwdMsg] = useState('');
+  // Hides the nudge immediately on success. The shell's `data` comes from MemberLayout
+  // and only refreshes on reload, so without this the banner would sit there telling a
+  // member to do something they just did.
+  const [pwdDone, setPwdDone] = useState(false);
+
+  const savePassword = async () => {
+    if (pwd.length < 6) { setPwdMsg('Use at least 6 characters.'); return; }
+    setPwdBusy(true); setPwdMsg('');
+    try {
+      await passportApi.setPassword(pwd);
+      setPwdDone(true); setPwdOpen(false); setPwd('');
+    } catch (e: any) {
+      setPwdMsg(e?.response?.data?.message || 'Could not save password.');
+    }
+    setPwdBusy(false);
+  };
+
   const d = data ?? null;
 
   useEffect(() => { setMobileOpen(false); setUserOpen(false); }, [loc.pathname, loc.search]);
@@ -210,6 +231,42 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             </div>
           </div>
         </div>
+
+        {/*
+          Set-password nudge.
+
+          It used to live only in MissionControl — but PassportHome renders MissionControl
+          ONLY for members without a paid assessment; everyone past that point gets the
+          Dashboard and never saw it. So the members most likely to come back later, and
+          most likely to need a way in that isn't a WhatsApp code, were the ones who were
+          never offered one. Here in the shell it shows on every member page until they
+          set one.
+        */}
+        {d && d.passwordSet === false && !pwdDone && (
+          <div className="gd-pwd-nudge">
+            <span className="ic">🔒</span>
+            <div className="txt">
+              <b>Secure your account — set a password</b>
+              <span>So you can log in next time without waiting for a WhatsApp code.</span>
+            </div>
+            {!pwdOpen ? (
+              <button className="go" onClick={() => setPwdOpen(true)}>Set password</button>
+            ) : (
+              <div className="row">
+                <input
+                  type="password" value={pwd} autoFocus
+                  placeholder="New password (min 6)"
+                  onChange={e => setPwd(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && savePassword()}
+                />
+                <button className="save" onClick={savePassword} disabled={pwdBusy}>{pwdBusy ? 'Saving…' : 'Save'}</button>
+                <button className="cancel" onClick={() => { setPwdOpen(false); setPwdMsg(''); }}>Cancel</button>
+              </div>
+            )}
+            {pwdMsg && <div className="msg">{pwdMsg}</div>}
+          </div>
+        )}
+
         {children}
       </main>
     </div>

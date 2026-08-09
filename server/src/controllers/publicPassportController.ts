@@ -109,6 +109,21 @@ export const signup = async (req: Request, res: Response) => {
       // Existing account: only resume if it's a not-yet-active passport signup.
       if (user.passport?.active) return res.status(409).json({ success: false, message: 'You already have a CareerPilot — please log in.' });
       if (!user.passport) return res.status(409).json({ success: false, message: 'This email is already registered. Please log in.' });
+
+      // Resuming an abandoned signup: persist what they just typed.
+      //
+      // The OTP is sent to the mobile from THIS submission, but the record kept
+      // whatever was entered the first time. So someone could resume with a new
+      // number, receive the code on it, and still not own that number as far as
+      // the system is concerned — and OTP login later looks up by phone, so it
+      // would never find them. Same for a corrected name.
+      if (mobile && user.phone !== mobile) user.phone = mobile;
+      if (name) {
+        const [fn, ...rn] = name.split(' ');
+        user.firstName = fn;
+        user.lastName = rn.join(' ') || '-';
+      }
+      if (user.isModified()) await user.save();
     } else {
       user = await User.create({
         email, firstName, lastName, phone: mobile,
@@ -148,6 +163,21 @@ export const signup = async (req: Request, res: Response) => {
 
 /** Issue the standard Passport login payload (JWT + user) for a resolved user. */
 function issueLogin(res: Response, user: any) {
+  // Refuse deactivated accounts HERE, so every login path (OTP verify, password,
+  // OTP re-login) is covered by one check.
+  //
+  // Without it the funnel dead-ends in a way that looks like a broken product:
+  // the OTP is accepted, a valid JWT is issued, the browser stores it and
+  // reloads — and then AuthContext re-reads the account, sees isActive false and
+  // wipes the session, dropping the member on /login with no explanation. Say no
+  // at the door instead of one screen later.
+  if (user.isActive === false) {
+    return res.status(403).json({
+      success: false,
+      code: 'ACCOUNT_DEACTIVATED',
+      message: 'This account has been deactivated. Please contact support.',
+    });
+  }
   const secret = (process.env.JWT_SECRET || 'secret-key') as string;
   const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
   return res.json({

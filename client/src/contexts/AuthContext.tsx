@@ -46,21 +46,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               }
             });
             
+            // ONLY 401 means "this session is no longer valid".
+            //
+            // This used to treat EVERY non-OK response as "user no longer exists"
+            // and wipe the session. That is wrong for 403 (allowed to be logged
+            // in, not allowed to read this endpoint), 404 (routing change), and
+            // every 5xx or network blip. Because the CareerPilot join finishes
+            // with a full page reload, this ran on the very first paint after a
+            // successful OTP — so one non-401 response bounced a brand-new member
+            // straight to /login with no error shown.
             if (!response.ok) {
-              // User no longer exists or is inactive - logout
-              localStorage.removeItem('user');
-              localStorage.removeItem('token');
-              localStorage.removeItem('tenantId');
-              setUser(null);
-              setToken(null);
+              if (response.status === 401) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('token');
+                localStorage.removeItem('tenantId');
+                setUser(null);
+                setToken(null);
+                setLoading(false);
+                return;
+              }
+              // Anything else: keep the session we were given and carry on. If the
+              // token really is dead, the next API call returns 401 and the shared
+              // handler logs them out properly.
+              console.warn(`[auth] validation returned ${response.status}; keeping session`);
+              setUser(parsedUser);
+              setToken(savedToken);
               setLoading(false);
               return;
             }
-            
+
             const userData = await response.json();
-            // Check if user is still active
-            if (!userData.data?.isActive) {
-              // User was deactivated - logout
+            // Deactivated is a real logout — but only when the server actually
+            // told us so. A missing field is not proof of deactivation.
+            if (userData.data && userData.data.isActive === false) {
               localStorage.removeItem('user');
               localStorage.removeItem('token');
               localStorage.removeItem('tenantId');
@@ -70,9 +88,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               return;
             }
             
-            // Use fresh data from API, update localStorage
+            // Use fresh data from API, update localStorage. A 200 with no payload
+            // is not a reason to log anyone out — fall back to the stored user.
             const freshUser = userData.data;
-            
+            if (!freshUser) {
+              console.warn('[auth] validation returned no user payload; keeping session');
+              setUser(parsedUser);
+              setToken(savedToken);
+              setLoading(false);
+              return;
+            }
+
             // Fetch effective permissions
             try {
               const permResponse = await fetch(`${API_URL}/users/me/permissions`, {

@@ -471,13 +471,23 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             </div>
             {!d.leaderboard?.length ? (
               <div className="gd-chart-empty">You're the first member here — the board fills as others join.</div>
-            ) : d.leaderboard.map(r => (
-              <div className={`gd-lb${r.me ? ' me' : ''}`} key={`${r.rank}-${r.name}`}>
-                <span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span>
-                <span className="av">{(r.name[0] || '?').toUpperCase()}</span>
-                <span className="nm">{r.name}{r.me ? ' (You)' : ''}</span>
-                <span className="xp">{r.xp.toLocaleString()} XP</span>
-              </div>
+            ) : d.leaderboard.map((r, i, arr) => (
+              <React.Fragment key={`${r.rank}-${r.name}`}>
+                {/* The board is top 3 + you, so ranks jump (1,2,3 … 12). Mark the
+                    break — without it the last row reads as fourth place. */}
+                {i > 0 && r.rank > arr[i - 1].rank + 1 && (
+                  <div className="gd-lb-gap" aria-hidden="true">⋯</div>
+                )}
+                <div className={`gd-lb${r.me ? ' me' : ''}`}>
+                  <span className={`rk${r.rank <= 3 ? ` g${r.rank}` : ''}`}>{r.rank}</span>
+                  <span className="av">{(r.name[0] || '?').toUpperCase()}</span>
+                  <span className="nm">{r.name}{r.me ? ' (You)' : ''}</span>
+                  <span className="sc">
+                    <b className="xp">{r.xp.toLocaleString()} XP</b>
+                    <small className="rnk">Rank {r.rank}{st.cohortSize ? ` of ${st.cohortSize}` : ''}</small>
+                  </span>
+                </div>
+              </React.Fragment>
             ))}
           </div>
         </div>

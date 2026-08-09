@@ -284,7 +284,16 @@
 .gd-lb .av { width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-size: 12.5px; font-weight: 900; flex-shrink: 0; }
 .gd-lb .nm { flex: 1; font-size: 13.5px; font-weight: 700; color: #29313f; }
 .gd-lb.me .nm { font-weight: 900; color: #6d4bd8; }
+/* Right-hand score cell: XP on top, true cohort rank beneath it. The rank badge
+   on the left is a visual position; this spells it out, which matters because the
+   board is truncated to the podium plus you. */
+.gd-lb .sc { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; flex-shrink: 0; }
 .gd-lb .xp { font-size: 13px; font-weight: 800; color: #5b6478; }
+.gd-lb .rnk { font-size: 10.5px; font-weight: 700; color: #a3aab8; letter-spacing: .2px; white-space: nowrap; }
+.gd-lb.me .xp { color: #6d4bd8; }
+.gd-lb.me .rnk { color: #8b74e0; }
+/* Separator shown when the rank sequence skips (e.g. 3 → 12). */
+.gd-lb-gap { text-align: center; color: #c3c9d6; font-size: 15px; font-weight: 900; line-height: 1; padding: 2px 0 4px; letter-spacing: 2px; }
 
 /* Journey path */
 .gd-path { background: #fff; border: 1px solid #ecedf5; border-radius: 18px; padding: 22px 24px; margin-top: 16px; display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }

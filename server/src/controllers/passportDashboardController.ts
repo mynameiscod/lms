@@ -83,7 +83,7 @@ export const getDashboard = async (req: Request, res: Response) => {
     const solved = progress.solvedProblems || [];
     const codingSolved = solved.filter(id => codingIds.has(id)).length;
 
-    // Leaderboard — this tenant's Passport members by XP (top 5 + where I sit)
+    // Leaderboard — this tenant's Passport members by XP (top 3 + where I sit)
     const board = await PassportProgress.find({ tenantId })
       .select('studentId xp').sort({ xp: -1 }).limit(200).lean();
     const boardIds = board.map(b => b.studentId);
@@ -95,8 +95,13 @@ export const getDashboard = async (req: Request, res: Response) => {
       xp: b.xp,
       me: String(b.studentId) === studentId,
     }));
+    // Top 3 only, plus the member's own row when they are not in it. A longer
+    // board mostly showed strangers; what a member acts on is the podium and
+    // their own standing. `rank` is the TRUE position within the whole cohort,
+    // so the client can render the jump (1,2,3 … 27) honestly rather than
+    // implying the person sitting below third place is fourth.
     const myRow = ranked.find(r => r.me);
-    const leaderboard = ranked.slice(0, 5);
+    const leaderboard = ranked.slice(0, 3);
     if (myRow && !leaderboard.some(r => r.me)) leaderboard.push(myRow);
 
     // Upcoming Tech Battles (a real, separate CodeBegun product — surfaced, not faked)

@@ -43,3 +43,27 @@ export function addXp(
     progress.lastCompletedDate = today;
   }
 }
+
+/**
+ * Record a mission as done exactly once, awarding its XP and bumping the streak.
+ * Returns true when it was newly completed, false when it already was.
+ *
+ * Extracted because completion now has TWO callers: the member ticking it, and the
+ * Practice Lab completing it automatically when the linked problem is solved. Leaving
+ * the logic inline in the controller would have meant a second copy of the
+ * already-completed guard, and a mission that awarded XP twice the first time someone
+ * solved a problem and then also ticked the box.
+ */
+export function completeMissionOnce(
+  progress: IPassportProgress,
+  day: number,
+  key: string,
+  xp: number,
+  now = new Date(),
+  answer?: string,
+): boolean {
+  if (progress.completed.some(c => c.day === day && c.key === key)) return false;
+  progress.completed.push({ day, key, at: now, ...(answer ? { answer } : {}) });
+  addXp(progress, xp || 10, true, now, 'mission');
+  return true;
+}

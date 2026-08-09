@@ -3,7 +3,10 @@ import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { isEntitled } from '../services/passportEntitlementService';
-import { getOrCreateProgress, addXp } from '../services/passportXpService';
+import { getOrCreateProgress, addXp, completeMissionOnce } from '../services/passportXpService';
+import PassportAttempt from '../models/PassportAttempt';
+import { ensureContent, poolMapOf, missionsForDay, dayNumber } from '../services/passportMissionService';
+import { memberAxes } from '../services/careerStageService';
 import {
   listProblems, findProblem, toPublic, runProblem, gradeMcq, PracticeKind,
 } from '../services/passportPracticeService';
@@ -88,7 +91,7 @@ export const run = async (req: Request, res: Response) => {
  */
 export const submit = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, cfg, entitled } = await gate(req);
+    const { tenantId, studentId, user, cfg, entitled } = await gate(req);
     if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required.' });
     const problem = findProblem(String(req.params.id));
     if (!problem) return res.status(404).json({ message: 'Problem not found' });
@@ -125,11 +128,44 @@ export const submit = async (req: Request, res: Response) => {
     });
     // Keep the attempt log from growing without bound.
     if (progress.practice.length > 200) progress.practice = progress.practice.slice(-200);
+
+    // Solving the problem IS the mission — complete it here rather than making the member
+    // walk back to the dashboard and tick a box for work we just watched them do. Only on
+    // a first solve, and only for a mission whose link asked for this kind of practice.
+    //
+    // Wrapped because none of this may cost the member their submission: they wrote code
+    // that passed, and a missing attempt or an empty pool must not turn that into a 500.
+    let missionCompleted: string | null = null;
+    if (firstSolve) {
+      try {
+        const [attempt, content] = await Promise.all([
+          PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any,
+          ensureContent(tenantId),
+        ]);
+        if (attempt) {
+          const day = dayNumber(progress.startDate, new Date());
+          const pools = poolMapOf(content.missionPools, memberAxes(user));
+          const todays = missionsForDay(attempt, day, pools, content.journeyDays || 90);
+          const match = todays.find(m => {
+            if (!m.link) return false;
+            const kind = new URLSearchParams(m.link.split('?')[1] || '').get('kind');
+            return kind === problem.kind;
+          });
+          if (match && completeMissionOnce(progress, day, match.key, match.xp, new Date())) {
+            missionCompleted = match.title;
+          }
+        }
+      } catch (e: any) {
+        console.error('[passport] practice -> mission auto-complete failed:', e?.message || e);
+      }
+    }
+
     await progress.save();
 
     res.json({
       ...payload, passed,
       xpAwarded: firstSolve ? problem.xp : 0,
+      missionCompleted,
       xp: progress.xp, streak: progress.streak, longestStreak: progress.longestStreak,
       alreadySolved: passed && !firstSolve,
     });

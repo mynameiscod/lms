@@ -59,8 +59,14 @@ export const getDashboard = async (req: Request, res: Response) => {
 
     // Today's missions + completion state
     const todaysMissions = missionsForDay(attempt, day, pools, totalDays);
-    const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
-    const missions = todaysMissions.map(m => ({ ...m, done: doneKeys.has(m.key) }));
+    // Carry the saved answer back so a completed reflective mission shows what the
+    // member wrote, rather than just a tick they cannot review.
+    const todayDone = new Map(progress.completed.filter(c => c.day === day).map(c => [c.key, c]));
+    const missions = todaysMissions.map(m => ({
+      ...m,
+      done: todayDone.has(m.key),
+      answer: todayDone.get(m.key)?.answer || undefined,
+    }));
     const targetXp = todaysMissions.reduce((s, m) => s + (m.xp || 0), 0);
 
     // Roadmap — used for the journey stepper and the completed-days figure

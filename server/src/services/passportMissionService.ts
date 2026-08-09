@@ -13,7 +13,14 @@ import PassportContent, {
 } from '../models/PassportContent';
 import { appliesToMember } from './careerStageService';
 
-export interface Mission { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; }
+export interface Mission {
+  key: string; title: string; detail: string; category: string; type: string; xp: number;
+  link?: string;
+  /** No surface exists to do this one on, so it completes by writing a short answer.
+   *  Derived from the absence of a link rather than stored, so a mission gains or loses
+   *  the requirement the moment an admin gives it a real destination. */
+  needsAnswer?: boolean;
+}
 export interface AttemptLite {
   careerScore: number;
   categoryScores: { key: string; label: string; score: number }[];
@@ -300,6 +307,7 @@ export function missionsForDay(
     }
     const pick = pool[idx];
     usedTitles.add(pick.title);
+    const link = actionableLink(pick.link);
 
     return {
       key: `d${day}-s${slot}`,
@@ -308,7 +316,8 @@ export function missionsForDay(
       category: cat,
       type: pick.type,
       xp: pick.xp,
-      link: actionableLink(pick.link),
+      link,
+      needsAnswer: !link,
     } as Mission;
   }).filter(Boolean) as Mission[];
 }

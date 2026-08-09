@@ -126,9 +126,34 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     return () => window.removeEventListener('focus', onFocus);
   }, [reload]);
 
-  const toggleMission = async (key: string) => {
-    setD(p => ({ ...p, missions: p.missions?.map(m => m.key === key ? { ...m, done: true } : m) }));
-    try { await passportApi.completeMission(key); } finally { reload(); }
+  // Which reflective mission is open for writing, and what has been typed into it.
+  const [answerFor, setAnswerFor] = useState<string | null>(null);
+  const [answerText, setAnswerText] = useState('');
+  const [answerBusy, setAnswerBusy] = useState(false);
+  const [answerMsg, setAnswerMsg] = useState('');
+
+  const toggleMission = async (key: string, answer?: string) => {
+    // Optimistic tick, then reload. Deliberately NOT optimistic for a written answer —
+    // the server rejects one that is too short, and showing it as done before that
+    // check would tell the member they had finished something they had not.
+    if (!answer) {
+      setD(p => ({ ...p, missions: p.missions?.map(m => m.key === key ? { ...m, done: true } : m) }));
+    }
+    try { await passportApi.completeMission(key, answer); } finally { reload(); }
+  };
+
+  const saveAnswer = async (key: string) => {
+    const text = answerText.trim();
+    if (text.length < 10) { setAnswerMsg('Write a little more — at least 10 characters.'); return; }
+    setAnswerBusy(true); setAnswerMsg('');
+    try {
+      await passportApi.completeMission(key, text);
+      setAnswerFor(null); setAnswerText('');
+      reload();
+    } catch (e: any) {
+      setAnswerMsg(e?.response?.data?.message || 'Could not save your answer.');
+    }
+    setAnswerBusy(false);
   };
 
   // Share + profile now live in MemberShell, which every member page mounts.
@@ -317,18 +342,58 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
             ) : (
               <>
                 {(d.missions || []).map(m => (
-                  <div className={`gd-mission${m.done ? ' done' : ''}`} key={m.key}>
-                    <span className="badge" style={{ background: m.done ? '#dcfce7' : '#f1eeff' }}>{CAT_ICON[m.category] || '•'}</span>
-                    <div className="txt">
-                      <b>{m.title}</b>
-                      <span>{m.detail}</span>
+                  <React.Fragment key={m.key}>
+                    <div className={`gd-mission${m.done ? ' done' : ''}`}>
+                      <span className="badge" style={{ background: m.done ? '#dcfce7' : '#f1eeff' }}>{CAT_ICON[m.category] || '•'}</span>
+                      <div className="txt">
+                        <b>{m.title}</b>
+                        <span>{m.detail}</span>
+                      </div>
+                      {m.link && !m.done && <button className="lnk" style={{ background: 'none', border: 'none', color: '#6d4bd8', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }} onClick={() => nav(m.link!)}>Open →</button>}
+                      {/* No surface to do it on — writing the answer IS the completion, so
+                          offer that instead of a bare tick. */}
+                      {m.needsAnswer && !m.done && (
+                        <button className="lnk" style={{ background: 'none', border: 'none', color: '#6d4bd8', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }}
+                          onClick={() => { setAnswerFor(answerFor === m.key ? null : m.key); setAnswerText(''); setAnswerMsg(''); }}>
+                          {answerFor === m.key ? 'Close' : 'Write answer →'}
+                        </button>
+                      )}
+                      <span className="cnt">+{m.xp}</span>
+                      {/* A written mission cannot be ticked straight to done — it would be
+                          a claim with nothing behind it, which is what this replaces. */}
+                      <button
+                        className={`gd-check${m.done ? ' on' : ''}`}
+                        disabled={m.done || (m.needsAnswer && !m.done)}
+                        title={m.needsAnswer && !m.done ? 'Write your answer to complete this one' : undefined}
+                        onClick={() => toggleMission(m.key)}
+                      >
+                        {m.done ? '✓' : ''}
+                      </button>
                     </div>
-                    {m.link && !m.done && <button className="lnk" style={{ background: 'none', border: 'none', color: '#6d4bd8', fontWeight: 800, fontSize: 12.5, cursor: 'pointer' }} onClick={() => nav(m.link!)}>Open →</button>}
-                    <span className="cnt">+{m.xp}</span>
-                    <button className={`gd-check${m.done ? ' on' : ''}`} disabled={m.done} onClick={() => toggleMission(m.key)}>
-                      {m.done ? '✓' : ''}
-                    </button>
-                  </div>
+
+                    {m.needsAnswer && !m.done && answerFor === m.key && (
+                      <div className="gd-answer">
+                        <textarea
+                          value={answerText} autoFocus rows={3}
+                          placeholder={m.detail}
+                          onChange={e => setAnswerText(e.target.value)}
+                        />
+                        <div className="row">
+                          <button className="save" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>
+                            {answerBusy ? 'Saving…' : `Save & complete  +${m.xp} XP`}
+                          </button>
+                          <button className="cancel" onClick={() => { setAnswerFor(null); setAnswerMsg(''); }}>Cancel</button>
+                          {answerMsg && <span className="msg">{answerMsg}</span>}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Once done, show what they wrote — a tick they cannot review is not
+                        worth much, and this is the record they came back for. */}
+                    {m.done && m.answer && (
+                      <div className="gd-answer saved"><b>Your answer</b><p>{m.answer}</p></div>
+                    )}
+                  </React.Fragment>
                 ))}
                 <button className="gd-mission-cta" onClick={() => nav(d.missions?.find(m => !m.done)?.link || '/careerpilot/practice')}>
                   {d.allDone ? 'All done today — practice anyway →' : 'Start Now →'}

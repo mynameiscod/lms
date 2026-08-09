@@ -6,7 +6,7 @@ import PassportAttempt from '../models/PassportAttempt';
 import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
 import { missionsForDay, dayNumber, ensureContent, poolMapOf } from '../services/passportMissionService';
-import { addXp } from '../services/passportXpService';
+import { completeMissionOnce } from '../services/passportXpService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -76,14 +76,19 @@ export const completeMission = async (req: Request, res: Response) => {
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
     const key = String(req.body?.key || '');
+    const answer = String(req.body?.answer || '').trim();
     const valid = missionsForDay(attempt, day, pools, journeyDays).find(m => m.key === key);
     if (!valid) return res.status(400).json({ message: 'Unknown mission.' });
 
-    const already = progress.completed.some(c => c.day === day && c.key === key);
-    if (!already) {
-      progress.completed.push({ day, key, at: now });
-      // addXp also writes the XP event log and bumps the streak once per calendar day.
-      addXp(progress, valid.xp || 10, true, now, 'mission');
+    // A mission with no surface to do it on completes by writing the answer. Ticking a
+    // box was the only option before, which made XP a claim rather than work — and threw
+    // away the very thing worth keeping: the member's own words about the role they want
+    // and the gaps they see.
+    if (valid.needsAnswer && answer.length < 10) {
+      return res.status(400).json({ message: 'Write a short answer (at least 10 characters) to complete this one.' });
+    }
+
+    if (completeMissionOnce(progress, day, key, valid.xp, now, valid.needsAnswer ? answer : undefined)) {
       await progress.save();
     }
 

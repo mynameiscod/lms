@@ -340,3 +340,23 @@
   .gd-tiles { grid-template-columns: 1fr; }
   .gd-badges { grid-template-columns: repeat(3,1fr); }
 }
+
+/* ── Mission written answer ─────────────────────────────────────────────────
+   For missions with no surface to complete them on. The answer IS the
+   completion, so this sits inline under the mission rather than in a modal. */
+.gd-answer { margin: 0 0 10px 43px; }
+.gd-answer textarea {
+  width: 100%; box-sizing: border-box; resize: vertical;
+  border: 1.5px solid #e2e8f0; border-radius: 11px; padding: 11px 13px;
+  font: inherit; font-size: 13.5px; line-height: 1.55; color: #29313f;
+}
+.gd-answer textarea:focus { outline: none; border-color: #b9aef5; }
+.gd-answer .row { display: flex; align-items: center; gap: 9px; margin-top: 8px; flex-wrap: wrap; }
+.gd-answer .save { background: #6d4bd8; color: #fff; border: none; border-radius: 10px; padding: 9px 16px; font-size: 12.5px; font-weight: 800; cursor: pointer; }
+.gd-answer .save:disabled { opacity: .6; cursor: default; }
+.gd-answer .cancel { background: none; border: none; color: #94a3b8; font-size: 12.5px; cursor: pointer; }
+.gd-answer .msg { font-size: 12.5px; color: #b91c1c; }
+/* Saved state: quieter, and the text wraps rather than stretching the row. */
+.gd-answer.saved { background: #f8fafc; border: 1px solid #eef0f7; border-radius: 11px; padding: 10px 13px; }
+.gd-answer.saved b { display: block; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #a3aab8; margin-bottom: 3px; }
+.gd-answer.saved p { margin: 0; font-size: 13px; color: #29313f; line-height: 1.55; white-space: pre-wrap; }

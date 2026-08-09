@@ -92,8 +92,10 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/missions/today`, { headers: auth() });
     return data;
   },
-  completeMission: async (key: string): Promise<{ ok: boolean; xp: number; streak: number; longestStreak: number; allDone: boolean }> => {
-    const { data } = await axios.post(`${BASE}/missions/complete`, { key }, { headers: auth() });
+  /** `answer` is required for missions flagged needsAnswer — those have no surface to
+   *  complete them on, so the written response IS the completion. */
+  completeMission: async (key: string, answer?: string): Promise<{ ok: boolean; xp: number; streak: number; longestStreak: number; allDone: boolean }> => {
+    const { data } = await axios.post(`${BASE}/missions/complete`, { key, answer }, { headers: auth() });
     return data;
   },
 
@@ -264,7 +266,7 @@ export interface DashboardData {
     xpThisWeek: number; xpLastWeek: number; xpDelta: number;
   };
   recentActivity?: { label: string; icon: string; color: string; xp: number; ago: string }[];
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; done: boolean }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string }[];
   allDone?: boolean;
   dailyGoal?: { earned: number; target: number; pct: number; met: boolean };
   streakWeek?: { date: string; letter: string; active: boolean; isToday: boolean }[];
@@ -362,7 +364,7 @@ export interface ContentPreview {
 export interface TodayMissions {
   locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;
   day?: number; streak?: number; longestStreak?: number; xp?: number; allDone?: boolean;
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; done: boolean }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string }[];
 }
 
 export interface PassportCard {

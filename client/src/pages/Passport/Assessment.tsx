@@ -122,14 +122,14 @@ const Assessment: React.FC = () => {
   const Top = (progressUI: React.ReactNode) => (
     <div className="pf-top"><div className="pf-top-in">
       <div className="pf-brand"><span className="mark">🧭</span><div className="bt"><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div></div>
-      <button className="pf-back" onClick={() => nav('/passport')}>← Mission Control</button>
+      <button className="pf-back" onClick={() => nav('/careerpilot')}>← Mission Control</button>
       {progressUI}
     </div></div>
   );
 
   if (loading) return <div className="pf-shell">{Top(<div className="pf-spacer" />)}<div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>Loading…</div></div>;
 
-  if (result && !retake) return <ResultView result={result} firstName={firstName} initial={initial} onRetake={startFresh} onHome={() => nav('/passport')} topBrand={Top} />;
+  if (result && !retake) return <ResultView result={result} firstName={firstName} initial={initial} onRetake={startFresh} onHome={() => nav('/careerpilot')} topBrand={Top} />;
 
   return (
     <div className="pf-shell">
@@ -346,10 +346,10 @@ const ResultView: React.FC<{
           <div className="rs-focus-grid">
             {sorted.slice(-3).reverse().map((c, i) => {
               const tint = ['#f4f2ff', '#f0fdf4', '#fff7ed'][i] || '#f8fafc';
-              const to = c.key === 'technical' ? '/passport/practice?kind=coding'
-                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/passport/practice?kind=mcq'
-                : c.key === 'communication' ? '/passport/interview'
-                : c.key === 'employability' ? '/passport/resume' : '/passport/roadmap';
+              const to = c.key === 'technical' ? '/careerpilot/practice?kind=coding'
+                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/careerpilot/practice?kind=mcq'
+                : c.key === 'communication' ? '/careerpilot/interview'
+                : c.key === 'employability' ? '/careerpilot/resume' : '/careerpilot/roadmap';
               return (
                 <div className="rs-focus-card" style={{ background: tint }} key={c.key}>
                   <span className="ic">{CAT_ICON[c.key] || '🎯'}</span>
@@ -383,7 +383,7 @@ const ResultView: React.FC<{
               <b>Every step counts!</b>
               <span>Stay consistent, keep learning, and unlock your full potential.</span>
             </div>
-            <button onClick={() => nav('/passport/roadmap')}>Go to Roadmap →</button>
+            <button onClick={() => nav('/careerpilot/roadmap')}>Go to Roadmap →</button>
           </div>
         )}
         </div>
@@ -402,7 +402,7 @@ const ResultView: React.FC<{
               <div><span>🗺️</span>Sets the weekly themes of your {member?.stats?.totalDays ?? 90}-day roadmap.</div>
               <div><span>🎯</span>Daily missions are biased to your two weakest categories.</div>
             </div>
-            <button className="rs-path-btn" onClick={() => nav('/passport/roadmap')}>View Full Roadmap →</button>
+            <button className="rs-path-btn" onClick={() => nav('/careerpilot/roadmap')}>View Full Roadmap →</button>
           </div>
 
           <div className="rs-card">
@@ -428,7 +428,7 @@ const ResultView: React.FC<{
                   <span className="xp">+{m.xp} XP</span>
                 </div>
               ))}
-              <button className="rs-path-btn" style={{ marginTop: 12 }} onClick={() => nav('/passport')}>View All Missions →</button>
+              <button className="rs-path-btn" style={{ marginTop: 12 }} onClick={() => nav('/careerpilot')}>View All Missions →</button>
             </div>
           )}
         </div>

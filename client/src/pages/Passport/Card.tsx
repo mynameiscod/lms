@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { passportPublicApi, PassportCard } from '../../api/passportApi';
 
 /**
- * Public, read-only CareerPilot card (shareable link `/passport/card/:slug`).
+ * Public, read-only CareerPilot card (shareable link `/careerpilot/card/:slug`).
  * No auth — anyone with the link can view the learner's verified Career Score, level
  * and pathway. This is the "shareable v1" of the CareerPilot.
  */
@@ -75,7 +75,7 @@ const Card: React.FC = () => {
         </div>
 
         <div style={{ borderTop: '1px solid #f1f5f9', padding: '14px 24px', textAlign: 'center' }}>
-          <a href="/passport/join" style={{ fontSize: 12.5, color: '#6650d8', fontWeight: 700, textDecoration: 'none' }}>Get your own CareerPilot →</a>
+          <a href="/careerpilot/join" style={{ fontSize: 12.5, color: '#6650d8', fontWeight: 700, textDecoration: 'none' }}>Get your own CareerPilot →</a>
         </div>
       </div>
     </div>

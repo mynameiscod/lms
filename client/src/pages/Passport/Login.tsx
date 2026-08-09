@@ -42,7 +42,7 @@ const PassportLogin: React.FC = () => {
         email: r.user.email, firstName: r.user.firstName, lastName: r.user.lastName, role: r.user.role,
       }));
     }
-    window.location.href = '/passport';
+    window.location.href = '/careerpilot';
   };
 
   const doPassword = async () => {
@@ -163,7 +163,7 @@ const PassportLogin: React.FC = () => {
               </>
             )}
 
-            <div className="cp-login">New here? <a href={`/passport/join?tenant=${tenant}`}>Create your CareerPilot</a></div>
+            <div className="cp-login">New here? <a href={`/careerpilot/join?tenant=${tenant}`}>Create your CareerPilot</a></div>
           </div>
         </div>
       </div>

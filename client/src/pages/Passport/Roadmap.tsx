@@ -90,7 +90,7 @@ const Roadmap: React.FC = () => {
         </div>
         <div className="pm-card" style={{ textAlign: 'center', padding: '40px 24px' }}>
           <div style={{ fontSize: 38, marginBottom: 10 }}>🧭</div>
-          <button className="pm-btn primary" onClick={() => nav('/passport/assessment')}>Start Free Assessment →</button>
+          <button className="pm-btn primary" onClick={() => nav('/careerpilot/assessment')}>Start Free Assessment →</button>
         </div>
       </>
     );
@@ -170,7 +170,7 @@ const Roadmap: React.FC = () => {
         <span className="star">⭐</span>
         <b>Stay Consistent, Win Big!</b>
         <span>Small steps every day lead to big breakthroughs.</span>
-        <button onClick={() => nav('/passport/practice')}>Earn XP now</button>
+        <button onClick={() => nav('/careerpilot/practice')}>Earn XP now</button>
       </div>
 
       {!!milestones.length && (
@@ -402,7 +402,7 @@ const Roadmap: React.FC = () => {
                             : <div className="rest">Rest / review day</div>}
                         </div>
                         <span className="xp">+{d.xp} XP</span>
-                        <button className="go" onClick={() => nav('/passport')} aria-label="Open day">›</button>
+                        <button className="go" onClick={() => nav('/careerpilot')} aria-label="Open day">›</button>
                       </div>
                     ))}
                   </div>

@@ -320,23 +320,33 @@ const HotLeadToast: React.FC = () => {
   );
 };
 
-/** Old card links carry a slug that must survive the move to /careerpilot. */
 /**
- * Redirect that keeps ?query and #hash.
+ * Redirect that keeps :params, ?query and #hash.
  *
- * A plain <Navigate to="/x"> drops both, so /passport/practice?kind=coding landed on the
- * practice list with no filter — the member reached the right page and the wrong content,
- * which is worse than a 404 because nothing looks broken. Mission links, saved bookmarks
- * and anything already sent by email all go through these.
+ * Three things get dropped by a naive redirect, and each one lands the member somewhere
+ * that looks fine and isn't:
+ *
+ *  - **:params.** `<LegacyRedirect to="/careerpilot/practice/:id" />` used the pattern
+ *    LITERALLY as the destination, so /passport/practice/abc123 navigated to the string
+ *    "/careerpilot/practice/:id" — the address bar really did read `:id`, and the page
+ *    then looked up a problem by that name and found nothing.
+ *  - **?query.** /passport/practice?kind=coding landed on the practice list unfiltered:
+ *    right page, wrong content.
+ *  - **#hash.** Deep links to a section lost their anchor.
+ *
+ * Mission links stored in the database, saved bookmarks, and anything already sent by
+ * email all arrive through here, so this has to keep working indefinitely.
  */
 const LegacyRedirect: React.FC<{ to: string }> = ({ to }) => {
   const { search, hash } = useLocation();
-  return <Navigate to={`${to}${search}${hash}`} replace />;
-};
-
-const LegacyCardRedirect: React.FC = () => {
-  const { slug } = useParams<{ slug: string }>();
-  return <Navigate to={`/careerpilot/card/${slug}`} replace />;
+  const params = useParams();
+  const target = to.replace(/:([A-Za-z0-9_]+)/g, (whole, name: string) => {
+    const value = params[name];
+    // Leave an unmatched token alone rather than substituting "undefined" — a visibly
+    // wrong URL is easier to diagnose than one that looks plausible and 404s.
+    return value === undefined ? whole : encodeURIComponent(value);
+  });
+  return <Navigate to={`${target}${search}${hash}`} replace />;
 };
 
 const AppRoutes: React.FC = () => {
@@ -350,7 +360,7 @@ const AppRoutes: React.FC = () => {
       <Route path="/passport/login" element={<LegacyRedirect to="/careerpilot/login" />} />
       <Route path="/careerpilot/card/:slug" element={<PassportCard />} />
       {/* Card links live in recruiters' inboxes; this redirect can never be removed. */}
-      <Route path="/passport/card/:slug" element={<LegacyCardRedirect />} />
+      <Route path="/passport/card/:slug" element={<LegacyRedirect to="/careerpilot/card/:slug" />} />
       {/* ── Public Tech Battles (no auth) ── */}
       <Route path="/battles" element={<BattleList />} />
       <Route path="/battles/exam/:token" element={<BattleExam />} />

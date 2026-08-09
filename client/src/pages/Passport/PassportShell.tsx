@@ -15,11 +15,11 @@ import './member.css';
 
 /** Kept for MissionControl, which shows this nav to members who haven't scored yet. */
 export const MEMBER_NAV: { path: string; label: string; icon: string }[] = [
-  { path: '/passport',           label: 'Mission Control', icon: '🚀' },
-  { path: '/passport/roadmap',   label: '90-Day Roadmap',  icon: '🗺️' },
-  { path: '/passport/practice',  label: 'Practice Lab',    icon: '💻' },
-  { path: '/passport/interview', label: 'Mock Interview',  icon: '🎙️' },
-  { path: '/passport/resume',    label: 'Resume Center',   icon: '📄' },
+  { path: '/careerpilot',           label: 'Mission Control', icon: '🚀' },
+  { path: '/careerpilot/roadmap',   label: '90-Day Roadmap',  icon: '🗺️' },
+  { path: '/careerpilot/practice',  label: 'Practice Lab',    icon: '💻' },
+  { path: '/careerpilot/interview', label: 'Mock Interview',  icon: '🎙️' },
+  { path: '/careerpilot/resume',    label: 'Resume Center',   icon: '📄' },
 ];
 
 interface Props {

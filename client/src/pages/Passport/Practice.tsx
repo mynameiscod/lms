@@ -90,7 +90,7 @@ const Practice: React.FC = () => {
       ) : (
         <div className="pr-grid">
           {problems.map(p => (
-            <button key={p.id} className="pr-item" onClick={() => nav(`/passport/practice/${p.id}`)}>
+            <button key={p.id} className="pr-item" onClick={() => nav(`/careerpilot/practice/${p.id}`)}>
               <div className="top">
                 <span className={`kind ${p.kind}`}>{p.kind}</span>
                 {solved.includes(p.id) && <span className="solved">✓ Solved</span>}

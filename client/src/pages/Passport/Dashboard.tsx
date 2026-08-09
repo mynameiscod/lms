@@ -188,7 +188,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           <div className="gd-card">
             <div className="gd-card-hd">
               <h2>Skill Meter <span className="gd-help" title="Your six Career Readiness Assessment categories. Retake the assessment to move these.">?</span></h2>
-              <button className="lnk" onClick={() => nav('/passport/assessment')}>View full report →</button>
+              <button className="lnk" onClick={() => nav('/careerpilot/assessment')}>View full report →</button>
             </div>
             <div className="gd-skill-wrap"><Radar skills={d.skills || []} /></div>
           </div>
@@ -330,7 +330,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                     </button>
                   </div>
                 ))}
-                <button className="gd-mission-cta" onClick={() => nav(d.missions?.find(m => !m.done)?.link || '/passport/practice')}>
+                <button className="gd-mission-cta" onClick={() => nav(d.missions?.find(m => !m.done)?.link || '/careerpilot/practice')}>
                   {d.allDone ? 'All done today — practice anyway →' : 'Start Now →'}
                 </button>
               </>
@@ -414,7 +414,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
           <div className="gd-card">
             <div className="gd-card-hd" id="badges">
               <h2>Badge Collection</h2>
-              <button className="lnk" onClick={() => nav('/passport/roadmap')}>View all →</button>
+              <button className="lnk" onClick={() => nav('/careerpilot/roadmap')}>View all →</button>
             </div>
             <div className="gd-badges">
               {(d.badges || []).slice(0, 5).map((b: Badge) => (

@@ -388,8 +388,8 @@ async function run() {
   let relinked = 0;
   for (const p of c.missionPools) {
     for (const i of (p.items || [])) {
-      if (i.link && i.link.indexOf('/passport/') === 0) {
-        i.link = i.link.replace('/passport/', '/careerpilot/');
+      if (i.link && i.link.indexOf('/careerpilot/') === 0) {
+        i.link = i.link.replace('/careerpilot/', '/careerpilot/');
         relinked++;
       }
     }

@@ -125,10 +125,10 @@ const PracticeItem: React.FC = () => {
     return (
       <>
         <div className="pl-bar">
-          <button className="pl-back" onClick={() => nav('/passport/practice')}>← Back to Practice Lab</button>
+          <button className="pl-back" onClick={() => nav('/careerpilot/practice')}>← Back to Practice Lab</button>
           <div className="pl-nextprev">
-            {prev && <button onClick={() => nav(`/passport/practice/${prev.id}`)}>‹ Previous</button>}
-            {next && <button className="on" onClick={() => nav(`/passport/practice/${next.id}`)}>Next ›</button>}
+            {prev && <button onClick={() => nav(`/careerpilot/practice/${prev.id}`)}>‹ Previous</button>}
+            {next && <button className="on" onClick={() => nav(`/careerpilot/practice/${next.id}`)}>Next ›</button>}
           </div>
         </div>
         <div className="pl-head">
@@ -180,7 +180,7 @@ const PracticeItem: React.FC = () => {
           ) : (
             <>
               <button className="pm-btn" onClick={load}>Try again</button>
-              {next && <button className="pm-btn primary" onClick={() => nav(`/passport/practice/${next.id}`)}>Next problem →</button>}
+              {next && <button className="pm-btn primary" onClick={() => nav(`/careerpilot/practice/${next.id}`)}>Next problem →</button>}
             </>
           )}
         </div>
@@ -192,15 +192,15 @@ const PracticeItem: React.FC = () => {
   return (
     <>
       <div className="pl-bar">
-        <button className="pl-back" onClick={() => nav('/passport/practice')}>← Back to Practice Lab</button>
+        <button className="pl-back" onClick={() => nav('/careerpilot/practice')}>← Back to Practice Lab</button>
         <div className="pl-meta">
           {problem.estimatedMinutes && <span><i>⏱</i>Est. {problem.estimatedMinutes} min</span>}
           <span><i>⭐</i>+{problem.xp} XP</span>
           {alreadySolved && <span className="ok"><i>✓</i>Solved</span>}
         </div>
         <div className="pl-nextprev">
-          {prev && <button onClick={() => nav(`/passport/practice/${prev.id}`)}>‹ Previous</button>}
-          {next && <button className="on" onClick={() => nav(`/passport/practice/${next.id}`)}>Next ›</button>}
+          {prev && <button onClick={() => nav(`/careerpilot/practice/${prev.id}`)}>‹ Previous</button>}
+          {next && <button className="on" onClick={() => nav(`/careerpilot/practice/${next.id}`)}>Next ›</button>}
         </div>
       </div>
 
@@ -384,7 +384,7 @@ const PracticeItem: React.FC = () => {
           )}
 
           {result?.passed && next && (
-            <button className="pm-btn primary" style={{ width: '100%', marginTop: 12 }} onClick={() => nav(`/passport/practice/${next.id}`)}>
+            <button className="pm-btn primary" style={{ width: '100%', marginTop: 12 }} onClick={() => nav(`/careerpilot/practice/${next.id}`)}>
               Solved! Next problem →
             </button>
           )}

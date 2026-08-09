@@ -19,10 +19,10 @@ import './member.css';
  */
 
 const PRACTICE_SUB: { label: string; to: string; icon: string }[] = [
-  { label: 'All Problems', to: '/passport/practice', icon: 'grid' },
-  { label: 'Coding', to: '/passport/practice?kind=coding', icon: 'code' },
-  { label: 'SQL', to: '/passport/practice?kind=sql', icon: 'db' },
-  { label: 'Aptitude & MCQ', to: '/passport/practice?kind=mcq', icon: 'brain' },
+  { label: 'All Problems', to: '/careerpilot/practice', icon: 'grid' },
+  { label: 'Coding', to: '/careerpilot/practice?kind=coding', icon: 'code' },
+  { label: 'SQL', to: '/careerpilot/practice?kind=sql', icon: 'db' },
+  { label: 'Aptitude & MCQ', to: '/careerpilot/practice?kind=mcq', icon: 'brain' },
 ];
 
 const ICONS: Record<string, React.ReactNode> = {
@@ -98,14 +98,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
       {mobileOpen && <div className="gd-scrim" onClick={() => setMobileOpen(false)} />}
 
       <aside className={`gd-side${mobileOpen ? ' open' : ''}`}>
-        <button className="gd-logo" onClick={() => nav('/passport')}>
+        <button className="gd-logo" onClick={() => nav('/careerpilot')}>
           <img className="mk" src="/assets/logo.png" alt="CodeBegun"
             onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
           <div><b>Codebegun</b><small>Begin Your Code. Build Your Future.</small></div>
         </button>
 
         <nav className="gd-nav">
-          {navBtn('Coding Home', 'home', '/passport')}
+          {navBtn('Coding Home', 'home', '/careerpilot')}
 
           {/* Practice Lab is a section, not a collapsible — its four surfaces are the
               most-used part of the product and shouldn't need a click to reach. */}
@@ -120,17 +120,17 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           })}
 
           <div className="gd-nav-gap" />
-          {navBtn('Learning Path', 'roadmap', '/passport/roadmap')}
-          {navBtn('Mock Interview', 'interview', '/passport/interview')}
-          {navBtn('Resume Builder', 'resume', '/passport/resume')}
-          {navBtn('Performance', 'chart', '/passport/assessment')}
+          {navBtn('Learning Path', 'roadmap', '/careerpilot/roadmap')}
+          {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
+          {navBtn('Resume Builder', 'resume', '/careerpilot/resume')}
+          {navBtn('Performance', 'chart', '/careerpilot/assessment')}
           {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
 
           <div className="gd-nav-label">Leaderboard</div>
-          <button className="gd-nav-btn" onClick={() => nav('/passport#leaderboard')}>
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot#leaderboard')}>
             <span className="ic"><Icon name="board" /></span><span className="lbl">Leaderboards</span>
           </button>
-          <button className="gd-nav-btn" onClick={() => nav('/passport#badges')}>
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot#badges')}>
             <span className="ic"><Icon name="medal" /></span><span className="lbl">Achievements</span>
           </button>
         </nav>
@@ -143,7 +143,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
             <div className="note">
               {goal.met ? 'Goal smashed for today — anything else is bonus.' : 'Finish today’s missions to hit your goal.'}
             </div>
-            {!goal.met && <button className="cta" onClick={() => nav('/passport/practice')}>Earn XP now</button>}
+            {!goal.met && <button className="cta" onClick={() => nav('/careerpilot/practice')}>Earn XP now</button>}
           </div>
         )}
 
@@ -155,7 +155,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-topbar">
           <div className="gd-topbar-l">
             {/* Greeting belongs to the home screen; the pills are useful everywhere. */}
-            {path === '/passport' && (
+            {path === '/careerpilot' && (
               <div className="gd-hello">
                 <h1>Hey {firstName}! 👋</h1>
                 <p>Let’s code, solve problems and level up your skills.</p>
@@ -201,8 +201,8 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                       <div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div>
                     </div>
                   )}
-                  <button onClick={() => { setUserOpen(false); nav('/passport/assessment'); }}>My assessment result</button>
-                  <button onClick={() => { setUserOpen(false); nav('/passport/roadmap'); }}>My journey</button>
+                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/assessment'); }}>My assessment result</button>
+                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/roadmap'); }}>My journey</button>
                   <button onClick={share} disabled={!d?.shareSlug}>{copied ? 'Link copied!' : 'Share my Passport card'}</button>
                   <button className="out" onClick={() => logout()}>Log out</button>
                 </div>

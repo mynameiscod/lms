@@ -5,12 +5,12 @@ import './member.css';
 const TYPES = ['learn', 'practice', 'aptitude', 'communication', 'resume', 'mock'];
 const LINKS = [
   { v: '', label: '— none (self-directed) —' },
-  { v: '/passport/practice?kind=coding', label: 'Practice Lab · Coding' },
-  { v: '/passport/practice?kind=sql', label: 'Practice Lab · SQL' },
-  { v: '/passport/practice?kind=mcq', label: 'Practice Lab · MCQ' },
-  { v: '/passport/interview', label: 'Mock Interview' },
-  { v: '/passport/resume', label: 'Resume Center' },
-  { v: '/passport/roadmap', label: '90-Day Roadmap' },
+  { v: '/careerpilot/practice?kind=coding', label: 'Practice Lab · Coding' },
+  { v: '/careerpilot/practice?kind=sql', label: 'Practice Lab · SQL' },
+  { v: '/careerpilot/practice?kind=mcq', label: 'Practice Lab · MCQ' },
+  { v: '/careerpilot/interview', label: 'Mock Interview' },
+  { v: '/careerpilot/resume', label: 'Resume Center' },
+  { v: '/careerpilot/roadmap', label: '90-Day Roadmap' },
 ];
 
 /**

@@ -142,7 +142,7 @@ const MissionControl: React.FC = () => {
           </button>
           {menuOpen && (
             <div className="mc-menu">
-              <button onClick={() => nav('/passport/assessment')}>My assessment result</button>
+              <button onClick={() => nav('/careerpilot/assessment')}>My assessment result</button>
               {status?.active && status?.shareSlug && <button onClick={share}>{copied ? 'Link copied!' : 'Share my Passport'}</button>}
               <button onClick={() => logout()}>Log out</button>
             </div>
@@ -167,7 +167,7 @@ const MissionControl: React.FC = () => {
         {/* Member nav — every paid surface lives under /passport, never in the LMS. */}
         <nav className="pm-nav" style={{ maxWidth: 1040 }}>
           {MEMBER_NAV.map(n => (
-            <button key={n.path} className={`pm-nav-item${n.path === '/passport' ? ' on' : ''}`} onClick={() => nav(n.path)}>
+            <button key={n.path} className={`pm-nav-item${n.path === '/careerpilot' ? ' on' : ''}`} onClick={() => nav(n.path)}>
               <span>{n.icon}</span>{n.label}
             </button>
           ))}
@@ -209,7 +209,7 @@ const MissionControl: React.FC = () => {
             </div>
 
             {today?.needsAssessment ? (
-              <div style={{ color: '#64748b', fontSize: 14 }}>Take the <button onClick={() => nav('/passport/assessment')} style={linkBtn}>Career Readiness Assessment</button> first to personalize your missions.</div>
+              <div style={{ color: '#64748b', fontSize: 14 }}>Take the <button onClick={() => nav('/careerpilot/assessment')} style={linkBtn}>Career Readiness Assessment</button> first to personalize your missions.</div>
             ) : !today?.missions?.length ? (
               <div style={{ color: '#94a3b8', fontSize: 14 }}>No missions for today. Check back tomorrow.</div>
             ) : (
@@ -233,11 +233,11 @@ const MissionControl: React.FC = () => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(220px,1fr))', gap: 14, marginTop: 14 }}>
-            <QuickCard title="🗺️ My 90-day roadmap" onClick={() => nav('/passport/roadmap')} sub="Every week, every day, planned" />
-            <QuickCard title="💻 Practice Lab" onClick={() => nav('/passport/practice')} sub="Code that actually runs" />
-            <QuickCard title="🎙️ Mock interview" onClick={() => nav('/passport/interview')} sub="AI interviewer + scored feedback" />
-            <QuickCard title="📄 Resume Center" onClick={() => nav('/passport/resume')} sub="Build it, score it, fix it" />
-            <QuickCard title="📊 My assessment result" onClick={() => nav('/passport/assessment')} sub="Score, breakdown & pathway" />
+            <QuickCard title="🗺️ My 90-day roadmap" onClick={() => nav('/careerpilot/roadmap')} sub="Every week, every day, planned" />
+            <QuickCard title="💻 Practice Lab" onClick={() => nav('/careerpilot/practice')} sub="Code that actually runs" />
+            <QuickCard title="🎙️ Mock interview" onClick={() => nav('/careerpilot/interview')} sub="AI interviewer + scored feedback" />
+            <QuickCard title="📄 Resume Center" onClick={() => nav('/careerpilot/resume')} sub="Build it, score it, fix it" />
+            <QuickCard title="📊 My assessment result" onClick={() => nav('/careerpilot/assessment')} sub="Score, breakdown & pathway" />
             <QuickCard title="🎫 My CareerPilot" onClick={share} sub={copied ? 'Link copied!' : 'Share your verified card'} />
           </div>
         </div>
@@ -276,13 +276,13 @@ const MissionControl: React.FC = () => {
               <p className="mc-uh-note">Online payment isn’t enabled yet — please <a href="#contact" onClick={e => e.preventDefault()}>contact your mentor</a> to activate.</p>
             ) : null}
             {status?.paymentAvailable === false ? (
-              <button className="mc-uh-btn" onClick={() => nav('/passport/assessment')}>🔓 Unlock My 90-Day CareerPilot</button>
+              <button className="mc-uh-btn" onClick={() => nav('/careerpilot/assessment')}>🔓 Unlock My 90-Day CareerPilot</button>
             ) : (
               <button className="mc-uh-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : `🔓 Unlock My 90-Day CareerPilot — ₹${price}`}</button>
             )}
             {payMsg && <div className="mc-uh-paymsg">{payMsg}</div>}
-            <button className="mc-uh-link" onClick={() => nav('/passport/roadmap')}>See what's in the 90 days →</button>
-            <button className="mc-uh-link" onClick={() => nav('/passport/assessment')}>View my full result →</button>
+            <button className="mc-uh-link" onClick={() => nav('/careerpilot/roadmap')}>See what's in the 90 days →</button>
+            <button className="mc-uh-link" onClick={() => nav('/careerpilot/assessment')}>View my full result →</button>
           </div>
 
           <div className="mc-features">
@@ -315,12 +315,12 @@ const MissionControl: React.FC = () => {
 
           {!hasScore ? (
             <>
-              <button className="mc-cta" onClick={() => nav('/passport/assessment')}>Start Free Assessment →</button>
+              <button className="mc-cta" onClick={() => nav('/careerpilot/assessment')}>Start Free Assessment →</button>
               <div className="mc-cta-note">Takes about 5 minutes • No payment needed</div>
             </>
           ) : (
             <>
-              <button className="mc-cta" onClick={() => nav('/passport/assessment')}>View My Result & Roadmap →</button>
+              <button className="mc-cta" onClick={() => nav('/careerpilot/assessment')}>View My Result & Roadmap →</button>
               {status?.paymentAvailable === false ? (
                 <div className="mc-cta-note">You scored {scoreNum}/100 — contact your mentor to unlock your 90-day journey.</div>
               ) : (

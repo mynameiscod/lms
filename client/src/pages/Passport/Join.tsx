@@ -132,7 +132,7 @@ const PassportJoin: React.FC = () => {
       // Full page load so the auth context re-initializes from the stored token/user — a
       // client-side nav would hit the protected route before the context knows we're
       // logged in and bounce to /login.
-      window.location.href = '/passport';
+      window.location.href = '/careerpilot';
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Verification failed'); }
     setBusy(false);
   };
@@ -246,7 +246,7 @@ const PassportJoin: React.FC = () => {
                 {msg && <div className="cp-err">{msg}</div>}
                 <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My CareerPilot →'}</button>
                 <div className="cp-secure">🛡️ 100% Secure · No spam ever</div>
-                <div className="cp-login">Already have an account? <a href={`/passport/login?tenant=${tenant}`}>Login here</a></div>
+                <div className="cp-login">Already have an account? <a href={`/careerpilot/login?tenant=${tenant}`}>Login here</a></div>
               </>
             )}
           </div>

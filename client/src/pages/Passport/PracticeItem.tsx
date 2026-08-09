@@ -43,6 +43,24 @@ const PracticeItem: React.FC = () => {
   const [review, setReview] = useState<SubmitOutcome['review'] | null>(null);
   const editorRef = useRef<any>(null);
 
+  /**
+   * Re-measure Monaco when the fullscreen toggle changes the column layout.
+   *
+   * Monaco caches its own pixel dimensions and writes them onto its internal DOM.
+   * `automaticLayout` re-measures on its own schedule, so for at least a frame after
+   * the grid flips back to two columns the editor is still sized for the full width —
+   * wide enough to push the grid past the viewport, which is what made leaving
+   * fullscreen leave a page-wide horizontal scrollbar and a problem panel squeezed to
+   * one word per line.
+   *
+   * The rAF matters: called synchronously the container has not been laid out at its
+   * new width yet, so Monaco would measure the old one and nothing would change.
+   */
+  useEffect(() => {
+    const id = requestAnimationFrame(() => editorRef.current?.layout());
+    return () => cancelAnimationFrame(id);
+  }, [full]);
+
   const load = useCallback(async () => {
     setLoading(true); setErr(''); setOutcome(null); setResult(null); setReview(null); setHintsShown(0); setTab('tests');
     try {

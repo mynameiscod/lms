@@ -13,6 +13,22 @@
 .pl-nextprev button.on { background: #6d4bd8; color: #fff; border-color: transparent; }
 
 .pl-grid { display: grid; grid-template-columns: 0.82fr 1.18fr; gap: 16px; align-items: start; }
+/*
+ * Grid children default to `min-width: auto`, i.e. min-CONTENT — a track will not
+ * shrink below the widest thing inside it, whatever the fr says.
+ *
+ * The editor column holds a button row (.pl-btn is flex:1 with min-width:120px, so
+ * three of them floor at ~400px) and a verdict row (190px + 118px), which puts its
+ * min-content around 500px. Leaving fullscreen restores 0.82fr / 1.18fr, the editor
+ * track refuses to come back under its min-content, the grid overflows its container,
+ * and the problem column is squeezed to the leftover — which is what "the UI breaks
+ * on exiting fullscreen" looks like: a page-wide horizontal scrollbar and a problem
+ * panel wrapping one word per line.
+ *
+ * min-width: 0 lets the fr sizing actually win. The inner rows already wrap, so they
+ * reflow rather than clip.
+ */
+.pl-grid > * { min-width: 0; }
 .pl-grid.full { grid-template-columns: 1fr; }
 .pl-grid.full .pl-problem { display: none; }
 @media (max-width: 1120px) { .pl-grid { grid-template-columns: 1fr; } }

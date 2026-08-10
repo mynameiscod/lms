@@ -31,9 +31,12 @@ export interface FaceLandmarks {
 
 /** Framing for a square, head-and-shoulders portrait shot straight on. */
 export const DEFAULT_LANDMARKS: FaceLandmarks = {
-  mouth: { x: 0.548, y: 0.437, r: 0.085 },
-  eyeL:  { x: 0.487, y: 0.323, r: 0.052 },
-  eyeR:  { x: 0.617, y: 0.323, r: 0.052 },
+  // Measured off the shipped portrait. The mouth radius is deliberately wider than the
+  // lips: when a jaw drops, the beard and chin move with it, and confining the warp to the
+  // lips alone makes the mouth look pasted onto a rigid face.
+  mouth: { x: 0.545, y: 0.440, r: 0.085 },
+  eyeL:  { x: 0.494, y: 0.322, r: 0.052 },
+  eyeR:  { x: 0.616, y: 0.322, r: 0.052 },
 };
 
 const VERT = `

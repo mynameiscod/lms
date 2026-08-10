@@ -34,6 +34,8 @@ const PHOTO_URL = process.env.REACT_APP_INTERVIEWER_PHOTO || '/avatars/interview
 const PHOTO_ZOOM = 1.55;
 /** Positive moves the visible crop UP the image, toward the face. */
 const PHOTO_FACE_OFFSET = 0.12;
+/** The subject is rarely dead centre. Positive shifts the crop RIGHT, toward the face. */
+const PHOTO_FACE_OFFSET_X = 0.052;
 
 interface Props {
   /** Drives idle vs speaking motion. The mouth itself follows the audio, not this flag. */
@@ -199,6 +201,7 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'your interviewer' 
           photoFrame = new THREE.Group();
           photoFrame.add(photo.mesh);
           photo.mesh.position.y = -PHOTO_FACE_OFFSET;
+          photo.mesh.position.x = -PHOTO_FACE_OFFSET_X;
           photoAspect = aspect;
           // A flat photo wants a flat camera: perspective on a plane just distorts the
           // face toward the edges.

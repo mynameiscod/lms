@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import passportApi, { InterviewSession } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
+import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
 
 const READINESS_LABEL: Record<string, string> = {
   not_ready: 'Not ready yet',
@@ -23,6 +24,38 @@ const Interview: React.FC = () => {
   const [err, setErr] = useState('');
   const [paying, setPaying] = useState(false);
   const chatEnd = useRef<HTMLDivElement>(null);
+
+  // Voice is opt-in but ON by default when the browser can do it — an interview you hear
+  // is the point, and a member who wants to type can turn it off in one click.
+  const [voiceOn, setVoiceOn] = useState(speechOutSupported);
+  const [elapsed, setElapsed] = useState(0);
+  const spokenRef = useRef<string>('');
+
+  // Speech arrives in fragments; append rather than replace so a pause mid-sentence does
+  // not wipe what they already said.
+  const onFinalTranscript = useCallback((text: string) => {
+    setAnswer(a => (a ? `${a} ${text}` : text));
+  }, []);
+  const voice = useInterviewVoice({ onFinalTranscript });
+
+  // Interview clock. Real interviews are timed, and seeing it run is most of why a mock
+  // one feels like practice rather than a chat window.
+  useEffect(() => {
+    if (!session || session.status !== 'in_progress') return;
+    const t = setInterval(() => setElapsed(e => e + 1), 1000);
+    return () => clearInterval(t);
+  }, [session?.id, session?.status]);
+
+  // Read each NEW interviewer line aloud, exactly once. Keyed on the text itself: a
+  // re-render or a poll must not make her repeat the question.
+  useEffect(() => {
+    if (!voiceOn || !session || session.status !== 'in_progress') return;
+    const last = session.transcript?.[session.transcript.length - 1];
+    if (!last || last.role !== 'interviewer' || last.text === spokenRef.current) return;
+    spokenRef.current = last.text;
+    voice.stopListening();
+    voice.speak(last.text);
+  }, [session?.transcript?.length, voiceOn]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const load = useCallback(async () => {
     try { setData(await passportApi.listInterviews()); } catch { /* ignore */ }
@@ -52,6 +85,7 @@ const Interview: React.FC = () => {
     if (!session || !answer.trim()) return;
     const text = answer.trim();
     setAnswer(''); setBusy(true); setErr('');
+    voice.stopListening();
     // Optimistic — the candidate's turn shows instantly while the interviewer thinks.
     setSession(s => s && ({ ...s, transcript: [...s.transcript, { role: 'candidate', text }] }));
     try {
@@ -196,13 +230,31 @@ const Interview: React.FC = () => {
             {busy && <div className="iv-turn interviewer"><span className="av">🎙️</span><div className="bub" style={{ color: '#94a3b8' }}>typing…</div></div>}
             <div ref={chatEnd} />
 
+            {voice.speaking && (
+              <div className="iv-speaking">
+                <span className="dot" /> Priya is speaking…
+                <button onClick={voice.stopSpeaking}>Skip</button>
+              </div>
+            )}
+
             <div className="iv-compose">
               <textarea
-                value={answer} onChange={e => setAnswer(e.target.value)}
-                placeholder="Type your answer…"
+                value={answer + (voice.interim ? ` ${voice.interim}` : '')}
+                onChange={e => setAnswer(e.target.value)}
+                placeholder={voice.listening ? 'Listening — just talk…' : 'Type your answer, or tap the mic…'}
                 onKeyDown={e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) send(); }}
                 disabled={busy}
               />
+              {speechInSupported && (
+                <button
+                  className={`iv-mic${voice.listening ? ' on' : ''}`}
+                  onClick={() => (voice.listening ? voice.stopListening() : voice.startListening())}
+                  disabled={busy || voice.speaking}
+                  title={voice.speaking ? 'Wait for the interviewer to finish' : voice.listening ? 'Stop recording' : 'Answer out loud'}
+                >
+                  {voice.listening ? '⏹' : '🎤'}
+                </button>
+              )}
               <button className="pm-btn primary" onClick={send} disabled={busy || !answer.trim()}>Send</button>
             </div>
             {err && <div className="pm-msg err">{err}</div>}
@@ -214,6 +266,22 @@ const Interview: React.FC = () => {
               <div className="iv-areas">
                 {session.areas.map((a, i) => <div key={i}><span>•</span>{a}</div>)}
               </div>
+            </div>
+            <div className="pm-card">
+              <div className="iv-clock">
+                <span>⏱</span>
+                <b>{String(Math.floor(elapsed / 60)).padStart(2, '0')}:{String(elapsed % 60).padStart(2, '0')}</b>
+                <span className="lbl">elapsed</span>
+              </div>
+              {speechOutSupported && (
+                <label className="iv-voice-toggle">
+                  <input type="checkbox" checked={voiceOn} onChange={e => { setVoiceOn(e.target.checked); if (!e.target.checked) voice.stopSpeaking(); }} />
+                  Hear the interviewer
+                </label>
+              )}
+              {!speechInSupported && (
+                <div className="iv-note">Speaking your answer needs Chrome or Edge. Typing works everywhere.</div>
+              )}
             </div>
             <div className="pm-card">
               <div style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.6 }}>

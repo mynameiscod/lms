@@ -4,6 +4,8 @@ import { istToday, ymd } from '../utils/planSchedule';
 import * as settings from '../services/settingsService';
 
 const MODULE_LABEL: Record<string, string> = {
+  interview_turn: 'Mock interview — conversation',
+  interview_evaluation: 'Mock interview — evaluation',
   careerpilot_mission_answer: 'CareerPilot — mission answer coaching',
   thinking_lab_eval: 'Thinking Lab — feedback',
   thinking_lab_voice: 'Thinking Lab — voice eval',

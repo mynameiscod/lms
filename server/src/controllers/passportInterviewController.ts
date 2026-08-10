@@ -13,7 +13,12 @@ const tenantOf = (req: Request): string => String((req as any).user?.tenantId ||
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 
 const INTERVIEW_XP = 60;
+// Cost scales linearly with turns: every turn re-sends the history window and pays for a
+// completion. Six is a real interview; the lever exists here if it ever needs trimming.
 const MAX_QUESTIONS = 6;
+/** Turns of transcript sent per request. The single biggest driver of interview cost. */
+const HISTORY_WINDOW = 6;
+const PRODUCT = 'careerpilot';
 
 // Which areas a mock covers, per pathway. Keeps the interview relevant to what the
 // member's roadmap is actually preparing them for.
@@ -83,6 +88,8 @@ export const start = async (req: Request, res: Response) => {
     const first = await nextInterviewerTurn({
       interviewerName: 'Priya', role, areas: preset.areas,
       history: [], askedCount: 0, maxQuestions: MAX_QUESTIONS,
+      candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
+      tenantId, product: PRODUCT,
     });
 
     const session = await PassportInterview.create({
@@ -102,7 +109,7 @@ export const start = async (req: Request, res: Response) => {
 /** POST /passport/interview/:id/turn — submit the candidate's answer, get the next line. */
 export const turn = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, cfg, entitled } = await gate(req);
+    const { tenantId, studentId, user, cfg, entitled } = await gate(req);
     if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required.' });
 
     const session = await PassportInterview.findOne({ _id: req.params.id, tenantId, studentId });
@@ -118,6 +125,8 @@ export const turn = async (req: Request, res: Response) => {
     const next = await nextInterviewerTurn({
       interviewerName: session.interviewerName, role: session.role, areas: session.areas,
       history, askedCount: session.askedCount, maxQuestions: session.maxQuestions,
+      candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
+      tenantId, product: PRODUCT,
     });
 
     session.transcript.push({ role: 'interviewer', text: next.say, at: new Date() } as any);
@@ -152,6 +161,7 @@ export const finish = async (req: Request, res: Response) => {
       role: session.role,
       areas: session.areas.map(a => ({ title: a, type: 'mixed' })),
       transcript: session.transcript.map(t => ({ role: t.role, text: t.text })),
+      tenantId, product: PRODUCT,
     });
 
     session.evaluation = evalResult

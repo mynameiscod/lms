@@ -1,4 +1,5 @@
 import { getAnthropic, isAnthropicEnabled } from './aiClients';
+import { aiComplete } from './aiGateway';
 import * as settings from './settingsService';
 
 /**
@@ -125,6 +126,34 @@ async function callClaudeJSON(system: string, user: string, maxTokens = 1500): P
     return { data: parseJSONLoose(r.text), usage: r.usage };
   } catch (e: any) {
     console.error('[interviewAI] call failed:', e?.status || '', (e?.message || '').slice(0, 200));
+    return null;
+  }
+}
+
+/**
+ * JSON call routed through the shared AI gateway.
+ *
+ * The direct-to-Anthropic path above has no failover and writes nothing to the AiUsage
+ * ledger, which is why the mock interview was the ONLY feature to go down when the
+ * Anthropic balance ran out, and why its cost has never appeared on the AI Spend screen.
+ * The gateway gives it both: OpenAI takes over when Anthropic fails, and every call is
+ * priced and attributed.
+ *
+ * `prefer: 'anthropic'` because interview quality is the product here — OpenAI is the
+ * safety net, not the default.
+ */
+async function gatewayJSON(
+  system: string, user: string, maxTokens: number,
+  o: { tenantId?: string; module: string; product?: string },
+): Promise<any | null> {
+  try {
+    const text = await aiComplete({
+      tenantId: o.tenantId, module: o.module, product: o.product,
+      system, user, maxTokens, prefer: 'anthropic',
+    });
+    return parseJSONLoose(text);
+  } catch (e: any) {
+    console.error(`[interviewAI] ${o.module} failed:`, e?.status || '', (e?.message || '').slice(0, 200));
     return null;
   }
 }
@@ -390,6 +419,17 @@ export interface NextTurnInput {
   askedCount: number;                   // interviewer questions asked so far
   maxQuestions: number;                 // soft budget
   timeLeftSeconds?: number;
+  /** Spend attribution — 'careerpilot' or 'lms' (default). */
+  product?: string;
+  tenantId?: string;
+  /** Candidate's first name, so the interviewer can use it like a person would. */
+  candidateName?: string;
+  /**
+   * How many past turns to send. Every turn re-sends this window, so it is the single
+   * biggest driver of interview cost. Six is ample for "probe the last answer or move
+   * on"; twelve was re-sending most of the interview to decide one follow-up.
+   */
+  historyWindow?: number;
 }
 export interface NextTurnResult {
   say: string;
@@ -405,7 +445,7 @@ export interface NextTurnResult {
  * Falls back to a sensible scripted line if AI is unavailable.
  */
 export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTurnResult> {
-  const { interviewerName, role, areas, history, askedCount, maxQuestions, timeLeftSeconds } = input;
+  const { interviewerName, role, areas, history, askedCount, maxQuestions, timeLeftSeconds, candidateName } = input;
   const nearEnd = askedCount >= maxQuestions || (timeLeftSeconds !== undefined && timeLeftSeconds <= 30);
 
   if (!isInterviewAIEnabled()) {
@@ -417,12 +457,24 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
   }
 
   const transcript = history.slice(-12).map(t => `${t.role === 'interviewer' ? interviewerName : 'Candidate'}: ${t.text}`).join('\n');
-  const system =
-    `You are ${interviewerName}, a warm but professional interviewer running a LIVE spoken mock interview for a ${role} role. ` +
-    `Speak like a real person on a video call: ONE short turn at a time (1–2 sentences), natural and conversational, no markdown, no lists. ` +
-    `Use the candidate's last answer — if it's worth probing, ask a specific follow-up; otherwise acknowledge briefly and move to the next area. ` +
-    `Cover these areas over the interview: ${areas.join(', ') || 'background, technical skills, problem solving'}. ` +
-    `Ask only one question per turn. Output ONLY raw JSON.`;
+  // Written for SPEECH — this line is read aloud to the candidate, so anything that only
+  // works on a page (markdown, lists, restating the question, "as I mentioned above")
+  // sounds wrong out loud.
+  const system = [
+    `You are ${interviewerName}, a real interviewer running a LIVE SPOKEN mock interview for a ${role} role.`,
+    candidateName ? `The candidate's name is ${candidateName}. Use it occasionally, the way a person would — not every turn.` : '',
+    `Your line will be READ ALOUD. Write how people talk: ONE turn, 1–2 sentences, no markdown, no lists, no bullet points, no emoji.`,
+    ``,
+    `How to behave like a person:`,
+    `- React to what they actually SAID before asking anything. A short, specific acknowledgement ("that's a fair point about the caching") — never a generic "great answer".`,
+    `- PROBE when an answer is thin, vague, or claims something without evidence. Ask for the specific: a number, a trade-off they weighed, what broke. Probe the same answer up to TWICE before moving on.`,
+    `- Move to a new area once an answer is genuinely covered. Do not interrogate a point they have already made well.`,
+    `- If they say they don't know, accept it warmly and move on. Do not punish it or ask the same thing again.`,
+    `- Never restate the question you just asked, and never number your questions.`,
+    ``,
+    `Cover these areas across the interview: ${areas.join(', ') || 'background, technical skills, problem solving'}.`,
+    `Ask exactly one question per turn. Output ONLY raw JSON.`,
+  ].filter(Boolean).join('\n');
   const user = [
     `Interviewer questions asked so far: ${askedCount} (aim for about ${maxQuestions}).`,
     timeLeftSeconds !== undefined ? `Time left: ~${Math.round(timeLeftSeconds / 60)} min.` : '',
@@ -434,8 +486,10 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
     'Return ONLY this JSON: {"say":"<your next spoken line>","kind":"intro|question|followup|transition|closing","endInterview":<true|false>}',
   ].filter(Boolean).join('\n');
 
-  const resp = await callClaudeJSON(system, user, 400);
-  if (!resp || typeof resp.data !== 'object' || !resp.data.say) {
+  const data = await gatewayJSON(system, user, 300, {
+    tenantId: input.tenantId, module: 'interview_turn', product: input.product,
+  });
+  if (!data || typeof data !== 'object' || !data.say) {
     // Mid-interview this filler is a reasonable safety net — one flaky turn should not
     // destroy a session the member is part-way through. On the OPENING turn it is not:
     // it greets the candidate with "Thanks. Can you tell me more about that?" before they
@@ -447,12 +501,13 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
     }
     return { say: nearEnd ? 'Thanks for your time today — that wraps up our interview.' : 'Thanks. Can you tell me more about that?', kind: nearEnd ? 'closing' : 'followup', endInterview: nearEnd };
   }
-  const kind = ['intro', 'question', 'followup', 'transition', 'closing'].includes(resp.data.kind) ? resp.data.kind : 'question';
+  const kind = ['intro', 'question', 'followup', 'transition', 'closing'].includes(data.kind) ? data.kind : 'question';
   return {
-    say: String(resp.data.say).slice(0, 600),
+    say: String(data.say).slice(0, 600),
     kind,
-    endInterview: !!resp.data.endInterview || kind === 'closing',
-    usage: resp.usage,
+    endInterview: !!data.endInterview || kind === 'closing',
+    // Token usage now lands in the AiUsage ledger via the gateway rather than being
+    // returned here — the caller no longer has to tally it to know what this cost.
   };
 }
 
@@ -474,8 +529,10 @@ export async function evaluateTranscript(input: {
   role: string;
   areas: TranscriptEvalArea[];
   transcript: ConvTurn[];
+  /** Spend attribution — 'careerpilot' or 'lms' (default). */
+  product?: string;
+  tenantId?: string;
 }): Promise<TranscriptEvalResult | null> {
-  if (!isInterviewAIEnabled()) return null;
   const convo = input.transcript.map(t => `${t.role === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${t.text}`).join('\n').slice(0, 9000);
   const areaList = input.areas.map(a => `${a.title} (${a.type})`).join(', ') || 'overall performance';
 
@@ -492,7 +549,13 @@ export async function evaluateTranscript(input: {
     '{"overallPercentage":<0-100>,"overallFeedback":"<3-4 sentences to the candidate>","topStrengths":["..."],"topWeaknesses":["..."],"recommendedPracticeAreas":["..."],"readinessLevel":"not_ready|needs_improvement|almost_ready|interview_ready","areaScores":[{"title":"<one of the areas>","percentage":<0-100>,"feedback":"<1-2 sentences>"}]}',
   ].join('\n');
 
-  const resp = await callClaudeJSON(system, user, 1200);
+  // Through the gateway: the evaluation is the part a member reads and judges the
+  // product on, so it must survive one provider being down, and its cost belongs on the
+  // CareerPilot line of the spend screen like every other call.
+  const d0 = await gatewayJSON(system, user, 1200, {
+    tenantId: input.tenantId, module: 'interview_evaluation', product: input.product,
+  });
+  const resp = d0 ? { data: d0, usage: { inputTokens: 0, outputTokens: 0 } } : null;
   if (!resp || typeof resp.data !== 'object') return null;
   const d = resp.data;
   const readiness = String(d.readinessLevel || '').trim();

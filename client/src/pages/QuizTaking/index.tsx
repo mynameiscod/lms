@@ -6,8 +6,12 @@ import { Quiz, Question, QuizAttempt } from '../../types';
 import './QuizTakingPage.css';
 import './QuizRunner.css';
 import QuestionText from '../../components/QuestionText';
+import useExamGuards from '../../hooks/useExamGuards';
 
 const QuizTakingPage: React.FC = () => {
+  // Same guards as the Tech Battle exam — the two must not drift apart, or candidates
+  // learn which one is softer.
+  useExamGuards(true);
   const { quizId } = useParams<{ quizId: string }>();
   const navigate = useNavigate();
   const [quiz, setQuiz] = useState<Quiz | null>(null);
@@ -702,7 +706,7 @@ const QuizTakingPage: React.FC = () => {
           {error && <div style={{ marginBottom: 12 }}><Alert type="error" message={error} onClose={() => setError('')} /></div>}
 
           {currentQuestion && (
-            <div className="qr-card qr-qcard">
+            <div className="qr-card qr-qcard" data-noselect>
               <div className="qr-qhead">
                 <div className="qr-qnum">{currentQuestionIndex + 1}</div>
                 <div className="qr-qtext"><QuestionText text={currentQuestion.questionText} /></div>

@@ -18,7 +18,6 @@
 .pc-nav a:hover { color: #1d4ed8; }
 .pc-nav a .caret { font-size: 9px; color: #94a3b8; margin-left: 3px; }
 .pc-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
-.pc-theme { background: #f1f5f9; border: none; width: 36px; height: 36px; border-radius: 50%; font-size: 15px; cursor: pointer; color: #475569; }
 .pc-apply { background: #0b1f56; color: #fff; text-decoration: none; font-weight: 700; font-size: 14px; padding: 11px 20px; border-radius: 10px; white-space: nowrap; }
 .pc-apply:hover { background: #12276e; }
 

@@ -167,3 +167,19 @@
   .qr-grid { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); }
   .qr-num { height: 33px; font-size: 12px; }
 }
+
+/* ── Anti-cheat: the paper cannot be selected ──
+   Pairs with useExamGuards, which blocks copy/cut/right-click/drag inside the same
+   regions and blocks paste everywhere. CSS alone stops the highlight; the JS stops the
+   keyboard shortcuts that do not need one. */
+[data-noselect],
+[data-noselect] * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;   /* iOS long-press "Copy" bubble */
+}
+/* Radio inputs must still take a click — user-select does not affect that, but making the
+   intent explicit stops someone "tidying" this into pointer-events: none later. */
+[data-noselect] input { pointer-events: auto; }

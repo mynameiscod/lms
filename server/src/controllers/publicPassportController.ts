@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { normalizePhone, mobileError } from '../utils/phone';
 import { resolveCareerProfile } from '../services/careerStageService';
 import mongoose from 'mongoose';
 import crypto from 'crypto';
@@ -31,13 +32,6 @@ async function resolveTenantId(raw: any): Promise<string | null> {
  * and since the set-password nudge only rendered on one screen, an affected member had
  * no second way in at all.
  */
-const normalizePhone = (p: string) => {
-  let d = String(p || '').replace(/[^\d]/g, '');
-  if (d.length === 12 && d.startsWith('91')) d = d.slice(2);
-  else if (d.length === 13 && d.startsWith('091')) d = d.slice(3);
-  else if (d.length === 11 && d.startsWith('0')) d = d.slice(1);
-  return d;
-};
 
 /**
  * Every shape the number may ALREADY be stored as.
@@ -120,7 +114,10 @@ export const signup = async (req: Request, res: Response) => {
     const fields = b.fields || {};
 
     if (!name) return res.status(400).json({ success: false, message: 'Name is required' });
-    if (mobile.length < 10) return res.status(400).json({ success: false, message: 'A valid mobile number is required' });
+    // `< 10` accepted anything longer, so a pasted +91 number sailed through as twelve
+    // digits and became a second identity for the same person.
+    const mobErr = mobileError(b.mobile);
+    if (mobErr) return res.status(400).json({ success: false, message: mobErr });
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return res.status(400).json({ success: false, message: 'A valid email is required' });
     // Enforce admin-configured required onboarding fields (beyond the locked Name/Mobile/Email).
     for (const f of cfg.onboardingFields || []) {
@@ -131,6 +128,20 @@ export const signup = async (req: Request, res: Response) => {
 
     const [firstName, ...rest] = name.split(' ');
     const lastName = rest.join(' ') || '-';
+
+    // ONE MOBILE, ONE ACCOUNT. The lookup below is by email alone, so the same person
+    // could sign up again with a fresh address and the same phone — and end up with two
+    // accounts, two sets of progress, and an OTP login that finds whichever it happens to
+    // match first. Existing duplicates are left alone deliberately; this only stops new
+    // ones, so nobody currently signed in loses access.
+    const phoneOwner: any = await User.findOne({ phone: mobile, tenantId }).select('email').lean();
+    if (phoneOwner && String(phoneOwner.email || '').toLowerCase() !== email) {
+      const masked = String(phoneOwner.email || '').replace(/^(.{2})[^@]*(@.*)$/, '$1•••$2');
+      return res.status(409).json({
+        success: false,
+        message: `This mobile number is already registered${masked ? ` to ${masked}` : ''}. Please log in with that account, or use a different number.`,
+      });
+    }
 
     let user: any = await User.findOne({ email });
     if (user) {

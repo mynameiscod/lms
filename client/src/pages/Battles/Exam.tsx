@@ -3,12 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { battlePublicApi } from '../../api/battleApi';
 import BattleChrome from './BattleChrome';
 import QuestionText from '../../components/QuestionText';
+import useExamGuards from '../../hooks/useExamGuards';
 import './battles.css';
 import '../QuizTaking/QuizRunner.css';
 
 type Phase = 'loading' | 'countdown' | 'ready' | 'exam' | 'result' | 'error';
 
 const BattleExam: React.FC = () => {
+  // Question text cannot be copied out; nothing can be pasted in, anywhere.
+  useExamGuards(true);
   const { token } = useParams();
   const nav = useNavigate();
   const sid = useMemo(() => {
@@ -359,7 +362,7 @@ const BattleExam: React.FC = () => {
 
         <div className="qr-center">
           {q && (
-            <div className="qr-card qr-qcard">
+            <div className="qr-card qr-qcard" data-noselect>
               <div className="qr-qhead"><div className="qr-qnum">{idx + 1}</div><div className="qr-qtext"><QuestionText text={q.questionText || q.question} /></div></div>
               <div className="qr-options">
                 {(q.options || []).map((o: any, i: number) => {

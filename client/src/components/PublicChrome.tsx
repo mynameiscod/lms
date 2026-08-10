@@ -35,7 +35,9 @@ const PublicChrome: React.FC<{ children: React.ReactNode }> = ({ children }) => 
           <a className="pc-logo" href={SITE}><img src="/assets/logo.png" alt="CodeBegun" onError={hideOnErr} /></a>
           <nav className="pc-nav">{NAV.map(([label, href, caret]) => <a key={label} href={href}>{label}{caret && <span className="caret">▼</span>}</a>)}</nav>
           <div className="pc-right">
-            <button className="pc-theme" aria-label="Theme">🌙</button>
+            {/* No theme toggle. This app is light-only by design; the moon button that
+                used to sit here had no handler at all, so pressing it did nothing and
+                read as a broken feature. */}
             <a className="pc-apply" href={SITE}>Apply Now →</a>
           </div>
         </div>

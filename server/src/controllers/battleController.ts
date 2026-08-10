@@ -8,6 +8,7 @@ import * as otp from '../services/assessmentOtpService';
 import * as battle from '../services/battleService';
 import * as settings from '../services/settingsService';
 import { logger } from '../utils/logger';
+import { normalizePhone, mobileError } from '../utils/phone';
 import { buildBattleConfirmationEmail } from '../services/battleEmailTemplate';
 
 const emailService = new EmailService();
@@ -116,9 +117,21 @@ export const registerForBattle = async (req: Request, res: Response) => {
     const uploadedFiles = files.map(f => ({ fieldName: f.fieldname, filePath: `/uploads/registrations/${f.filename}`, mimeType: f.mimetype, originalName: f.originalname }));
 
     const approvalMode = b.registrationMode === 'approval';
-    const mob = String(mobileRaw).replace(/[^\d]/g, '');
-    const wa = String(whatsapp || mobileRaw).replace(/[^\d]/g, '');
-    let reg = await BattleRegistration.findOne({ battleId: b._id, mobile: mob });
+    // Normalised, not merely stripped. "+91 97435 45311" and "9743545311" are the same
+    // person, and the duplicate check below only works if they produce the same string —
+    // stripping alone left them as "919743545311" and "9743545311", which never matched.
+    const mob = normalizePhone(mobileRaw);
+    const mobErr = mobileError(mobileRaw);
+    if (mobErr) return res.status(400).json({ message: mobErr });
+    const wa = normalizePhone(whatsapp || mobileRaw) || mob;
+    const emailNorm = String(email).toLowerCase().trim();
+
+    // Match on mobile OR email: one person, one entry per battle. Deduping on mobile alone
+    // let the same candidate back in with a second number on the same email address.
+    let reg = await BattleRegistration.findOne({
+      battleId: b._id,
+      $or: [{ mobile: mob }, { email: emailNorm }],
+    });
 
     // Already fully in? (approved in approval mode, or verified in auto mode)
     if (reg && ((approvalMode && reg.reviewStatus === 'approved') || (!approvalMode && reg.verified))) {
@@ -130,7 +143,7 @@ export const registerForBattle = async (req: Request, res: Response) => {
     if (!reg) {
       reg = new BattleRegistration({
         tenantId, battleId: b._id, battleSlug: b.slug, doorCode: door.code, doorLabel: door.label,
-        name: String(name).trim(), mobile: mob, whatsapp: wa, email: String(email).toLowerCase().trim(),
+        name: String(name).trim(), mobile: mob, whatsapp: wa, email: emailNorm,
         college: college || (door.type === 'college' ? door.label : ''), city, extra, uploadedFiles,
         examToken: crypto.randomBytes(16).toString('hex'),
         ipAddress: req.ip, userAgent: req.headers['user-agent'] || '',

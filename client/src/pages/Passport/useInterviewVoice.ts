@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import passportApi from '../../api/passportApi';
+import { lipSync } from './lipsync';
 
 /**
  * Voice for the mock interview.
@@ -48,6 +49,7 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
     if (a) {
       a.onended = null; a.onerror = null;   // detach before pause, or pausing resolves the promise
       try { a.pause(); } catch { /* ignore */ }
+      lipSync.reset();          // stop the mouth mid-word rather than freezing it open
       if (a.src) URL.revokeObjectURL(a.src);
       audioRef.current = null;
     }
@@ -89,8 +91,13 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
         try {
           const url = await passportApi.speakInterviewLine(text);
           await new Promise<void>(resolve => {
+            // A blob: URL is same-origin, so the analyser can read its samples — audio
+            // fetched cross-origin without CORS would be silent in the graph.
             const a = new Audio(url);
             audioRef.current = a;
+            // Route through the analyser so the avatar's mouth follows this line. Must
+            // happen before play(): attaching mid-playback drops the first syllables.
+            lipSync.attach(a);
             const done = () => { URL.revokeObjectURL(url); resolve(); };
             a.onended = done;
             a.onerror = done;

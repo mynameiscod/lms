@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import passportApi, { InterviewSession } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
+import InterviewAvatar from './InterviewAvatar';
 
 const READINESS_LABEL: Record<string, string> = {
   not_ready: 'Not ready yet',
@@ -248,6 +249,11 @@ const Interview: React.FC = () => {
 
         <div className="iv-room">
           <div className="iv-chat">
+            {/* The face sits above the transcript rather than beside it: on a phone the
+                room is one column, and a talking head pushed below the fold is the same
+                as no head at all. */}
+            <InterviewAvatar speaking={voice.speaking} name={session.interviewerName} />
+
             {session.transcript.map((t, i) => (
               <div className={`iv-turn ${t.role}`} key={i}>
                 <span className="av">{t.role === 'interviewer' ? '🎙️' : '🙋'}</span>

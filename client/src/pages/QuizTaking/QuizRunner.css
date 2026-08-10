@@ -149,3 +149,21 @@
   .qr-legend { grid-template-columns: 1fr 1fr; }
   .qr-grid { grid-template-columns: repeat(6, 1fr); }
 }
+
+/* ── Compact question palette on small screens ──
+   The palette is a jump-list, not the exam. At desktop sizes square 5-across tiles read
+   well; on a phone the same tiles run full width and push the actual question off the
+   screen, so 30 of them become the page. Fixed-height chips that pack as tight as the
+   width allows keep the whole paper visible in about four rows. */
+@media (max-width: 1080px) {
+  .qr-page { color-scheme: only light; }
+  .qr-navcard { padding: 13px; }
+  .qr-grid { grid-template-columns: repeat(auto-fill, minmax(38px, 1fr)); gap: 6px; }
+  .qr-num { aspect-ratio: auto; height: 36px; font-size: 12.5px; border-radius: 8px; border-width: 1px; }
+  .qr-panel-title { font-size: 12.5px; }
+}
+@media (max-width: 560px) {
+  /* Overrides the 6-column rule above it, which at 360px gives 45px tiles. */
+  .qr-grid { grid-template-columns: repeat(auto-fill, minmax(34px, 1fr)); }
+  .qr-num { height: 33px; font-size: 12px; }
+}

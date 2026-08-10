@@ -1,4 +1,10 @@
 /* filepath: d:\Simple_CB_LMS\Codebegun\lms-saas\client\src\index.css */
+
+/* `only light` opts the whole app out of browser-level auto-darkening. Mobile browsers
+   force-dark any page that does not declare a scheme, and an inverted exam paper is not a
+   theme — it is unreadable options and a black proctoring feed. */
+:root { color-scheme: only light; }
+
 html {
   width: 100%;
   height: 100%;

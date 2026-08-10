@@ -336,7 +336,10 @@ const BattleExam: React.FC = () => {
         </div>
       </div>
 
-      <div className="qr-body" style={{ gridTemplateColumns: '260px 1fr 260px' }}>
+      {/* No inline grid-template-columns. An inline style outranks every rule in the
+          stylesheet, including the media queries — which is why this exam stayed in three
+          columns on a phone while the identical layout in QuizTaking collapsed correctly. */}
+      <div className="qr-body">
         <div className="qr-left">
           <div className="qr-card qr-navcard">
             <div className="qr-panel-title">🧭 Questions</div>

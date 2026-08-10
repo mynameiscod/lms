@@ -239,11 +239,25 @@ export const speak = async (req: Request, res: Response) => {
     const client = getOpenAI();
     if (!client) return res.status(503).json({ message: 'Voice is not configured.' });
 
-    const voice = settings.getStr('INTERVIEW_TTS_VOICE', 'nova');
-    const model = settings.getStr('INTERVIEW_TTS_MODEL', 'tts-1');
+    // gpt-4o-mini-tts, NOT tts-1. The six tts-1 voices are all American or British —
+    // there is no Indian one, so the previous version returned a genuinely human voice
+    // that still sounded wrong for an interviewer called Priya talking to a candidate in
+    // India. Only gpt-4o-mini-tts accepts `instructions`, and that is the only lever
+    // OpenAI gives for accent.
+    const model = settings.getStr('INTERVIEW_TTS_MODEL', 'gpt-4o-mini-tts');
+    const voice = settings.getStr('INTERVIEW_TTS_VOICE', 'coral');
+    const instructions = settings.getStr(
+      'INTERVIEW_TTS_INSTRUCTIONS',
+      'Speak in natural Indian English, with the rhythm and vowels of an educated Indian professional from a city like Bengaluru or Hyderabad. ' +
+      'You are a warm, calm interviewer in her early thirties. Speak at an unhurried, conversational pace — this is a real conversation, not a reading. ' +
+      'Sound genuinely interested in the answer. Do not sound like a newsreader or an announcer.',
+    );
 
     const speech = await client.audio.speech.create({
       model, voice: voice as any, input: text, response_format: 'mp3',
+      // tts-1 rejects this field, so only send it on a model that supports it — leaving
+      // the older model usable as an escape hatch from Platform Settings.
+      ...(/^tts-1/.test(model) ? {} : { instructions }),
     } as any);
     const buf = Buffer.from(await speech.arrayBuffer());
 

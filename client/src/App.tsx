@@ -4,6 +4,7 @@ import CareerPilotPaperDesign from './pages/Passport/AdminPaperDesign';
 import LabTracks from './pages/LabTracks';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useParams, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { loginPathFor } from './utils/loginPath';
 import { TenantProvider } from './contexts/TenantContext';
 import { StudentFeaturesProvider, useStudentFeatures, StudentFeatures } from './contexts/StudentFeaturesContext';
 import { TenantModulesProvider } from './contexts/TenantModulesContext';
@@ -237,11 +238,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRoles
 }) => {
   const { isAuthenticated, loading, user } = useAuth();
+  const { pathname } = useLocation();
 
   if (loading) return <Spinner fullScreen />;
 
   if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+    // Send CareerPilot members to the CareerPilot login, not the LMS one. This covers
+    // logging out (logout() only clears state — the redirect happens here when the guard
+    // re-runs) and a session expiring mid-visit. `replace` so the back button does not
+    // return to a page they are no longer allowed to see.
+    return <Navigate to={loginPathFor(pathname)} replace />;
   }
 
   if (requiredRoles && user && !requiredRoles.includes(user.role)) {

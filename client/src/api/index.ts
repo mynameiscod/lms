@@ -1,4 +1,5 @@
 import { pushClientError } from '../utils/errorStore';
+import { loginPathFor } from '../utils/loginPath';
 
 // Use relative URL (no hardcoded domain) - works with any deployment
 const API_BASE_URL = process.env.REACT_APP_API_URL || '/api/v1';
@@ -68,7 +69,7 @@ const authenticatedFetch = async (url: string, options: RequestInit = {}) => {
     localStorage.setItem('loginMessage', message);
     
     // Redirect to login - use replace to ensure navigation happens immediately
-    window.location.replace('/login');
+    window.location.replace(loginPathFor(window.location.pathname));
     
     // Return a never-resolving promise to prevent further code execution
     return new Promise(() => {});

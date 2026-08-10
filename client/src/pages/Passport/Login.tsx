@@ -26,6 +26,17 @@ const PassportLogin: React.FC = () => {
   const [resendIn, setResendIn] = useState(25);
   const boxRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Show why they were sent here, if anything was left for us.
+  //
+  // The 401 handler stores "Your session has expired" (or the deactivated-account
+  // notice) before bouncing. Only the LMS login used to read it, so a member whose
+  // session expired arrived at a login form with no explanation for why they were
+  // suddenly logged out. Read once, then clear, so it cannot reappear on a later visit.
+  useEffect(() => {
+    const stored = localStorage.getItem('loginMessage');
+    if (stored) { setMsg(stored); localStorage.removeItem('loginMessage'); }
+  }, []);
+
   useEffect(() => {
     if (!otpStep) return;
     setResendIn(25);

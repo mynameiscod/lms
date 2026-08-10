@@ -288,7 +288,9 @@ export const saveQuestions = async (req: Request, res: Response) => {
         aiPredicted: !!q.aiPredicted,
         status: 'published',
       }))
-      .filter((q: any) => q.questionText.length > 8);
+      // Same threshold as the parser — a question that survives review must not then be
+      // dropped on save for being short.
+      .filter((q: any) => q.questionText.length >= 4);
 
     if (!docs.length) return res.status(400).json({ message: 'Nothing to save.' });
     await CompanyQuestion.insertMany(docs);

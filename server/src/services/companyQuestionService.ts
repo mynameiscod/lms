@@ -118,7 +118,10 @@ export async function structureQuestions(opts: {
       answer: String(q.answer || '').trim().slice(0, 4000),
       tags: Array.isArray(q.tags) ? q.tags.map((t: any) => String(t).toLowerCase().trim().slice(0, 24)).filter(Boolean).slice(0, 5) : [],
     }))
-    .filter(q => q.questionText.length > 8)
+    // Length 4, not 9. The previous threshold silently ate "why TCS" (7 characters) —
+    // the model had extracted it correctly and this line discarded it. Short questions
+    // are real questions, and a rejection nobody can see is the worst kind.
+    .filter(q => q.questionText.length >= 4)
     .slice(0, 200);
 }
 
@@ -180,5 +183,5 @@ export async function predictQuestions(opts: {
       answer: String(q.answer || '').trim().slice(0, 4000),
       tags: Array.isArray(q.tags) ? q.tags.map((t: any) => String(t).toLowerCase().trim().slice(0, 24)).filter(Boolean).slice(0, 5) : [],
     }))
-    .filter(q => q.questionText.length > 8);
+    .filter(q => q.questionText.length >= 4);
 }

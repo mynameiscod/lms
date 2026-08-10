@@ -180,8 +180,15 @@
 .rs-li .ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 14px; flex-shrink: 0; }
 .rs-li b { font-size: 13.5px; font-weight: 800; color: #0f172a; display: block; }
 .rs-li span { font-size: 12.5px; color: #64748b; line-height: 1.4; }
-.rs-days { display: flex; gap: 6px; margin-top: 16px; overflow-x: auto; padding-bottom: 4px; }
-.rs-day { flex: 1; min-width: 92px; text-align: center; }
+/* Horizontal strip. Three properties matter here and all three were missing:
+   overscroll-behavior-x stops a swipe past the end from triggering the browser's
+   back gesture (which reads as the page jumping away mid-scroll); flex-shrink: 0
+   makes the items scroll instead of squashing to fit; and scroll-snap stops the
+   strip resting half-way through a day. */
+.rs-days { display: flex; gap: 6px; margin-top: 16px; overflow-x: auto; padding-bottom: 4px;
+  overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity; }
+.rs-day { flex: 1 0 92px; min-width: 92px; text-align: center; scroll-snap-align: start; }
 .rs-day .circ { width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; color: #64748b; font-weight: 800; font-size: 15px; display: grid; place-items: center; margin: 0 auto 8px; }
 .rs-day.on .circ { background: linear-gradient(135deg,#6a4be0,#37d0c0); color: #fff; }
 .rs-day b { font-size: 11.5px; font-weight: 800; color: #0f172a; display: block; line-height: 1.2; }

@@ -127,7 +127,7 @@
 .rq-tip-end { font-size: 12.5px; font-weight: 800; color: #6d4bd8; margin-top: 11px; }
 
 /* ── Full view ── */
-.rq-timeline { background: #fff; border: 1px solid #ecedf5; border-radius: 15px; padding: 22px 24px 30px; display: flex; gap: 22px; align-items: flex-start; margin-bottom: 18px; overflow-x: auto; }
+.rq-timeline { background: #fff; border: 1px solid #ecedf5; border-radius: 15px; padding: 22px 24px 30px; display: flex; gap: 22px; align-items: flex-start; margin-bottom: 18px; overflow-x: auto;  overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .rq-timeline .lb { font-size: 10px; font-weight: 900; letter-spacing: .8px; color: #a3aab8; line-height: 1.4; flex-shrink: 0; padding-top: 26px; }
 .rq-timeline .track { position: relative; flex: 1; min-width: 520px; height: 78px; }
 .rq-timeline .line { position: absolute; top: 34px; left: 0; right: 0; height: 4px; border-radius: 99px; background: #eef0f7; overflow: hidden; }
@@ -190,3 +190,7 @@
   .gd-main { margin-left: 0 !important; }
   .rq-full { grid-template-columns: 1fr !important; }
 }
+
+/* Timeline steps must keep their width and scroll, not compress to fit — a flex child
+   shrinks by default, so without this the strip silently squashed instead of scrolling. */
+.rq-timeline > * { flex-shrink: 0; }

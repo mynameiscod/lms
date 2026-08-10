@@ -102,7 +102,7 @@
 .pl-verdict .m b { font-size: 15px; font-weight: 900; color: #0f172a; }
 .pl-verdict .m b.g { color: #16a34a; }
 
-.pl-tabs { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid #f1f2f8; overflow-x: auto; }
+.pl-tabs { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid #f1f2f8; overflow-x: auto;  overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; }
 .pl-tabs button { background: none; border: none; border-bottom: 2.5px solid transparent; padding: 12px 14px; font-size: 12.5px; font-weight: 700; color: #7b8496; cursor: pointer; white-space: nowrap; }
 .pl-tabs button:hover { color: #29313f; }
 .pl-tabs button.on { color: #6d4bd8; border-bottom-color: #6d4bd8; font-weight: 800; }

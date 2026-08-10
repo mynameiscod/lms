@@ -36,6 +36,7 @@ const ICONS: Record<string, React.ReactNode> = {
   trophy:    <><path d="M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11" /><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11" /><path d="M12 14v4M8.5 20h7" /></>,
   logout:    <><path d="M14.5 16.5 19 12l-4.5-4.5" /><path d="M19 12H9" /><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" /></>,
   target:    <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></>,
+  news:      <><path d="M4 5h12v14H5.5A1.5 1.5 0 0 1 4 17.5z" /><path d="M16 8h3.5A1.5 1.5 0 0 1 21 9.5v8a1.5 1.5 0 0 1-3 0V19" /><path d="M7 9h6M7 12.5h6M7 16h4" /></>,
   user:      <><circle cx="12" cy="8" r="3.6" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></>,
   chevron:   <><path d="m6 9 6 6 6-6" /></>,
   menu:      <><path d="M4 7h16M4 12h16M4 17h16" /></>,
@@ -179,6 +180,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Learning Path', 'roadmap', '/careerpilot/roadmap')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Resume Builder', 'resume', '/careerpilot/resume')}
+          {navBtn('Tech News', 'news', '/careerpilot/news')}
           {navBtn('Performance', 'chart', '/careerpilot/assessment')}
           {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
 

@@ -16,6 +16,7 @@ import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
+import * as news from '../controllers/techNewsController';
 
 const router = express.Router();
 
@@ -70,6 +71,15 @@ router.delete('/members/:userId',      MANAGE, ctrl.deleteMember);
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so
 // switching an event on or changing what it pays needs no deploy.
 router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
+
+// Daily tech news. The member sees only what an admin has published; the AI writes
+// drafts and never publishes on its own.
+router.get('/news',                  MEMBER, news.feed);
+router.get('/news/admin',            MANAGE, news.list);
+router.post('/news/admin/draft',     MANAGE, news.draft);
+router.post('/news/admin',           MANAGE, news.create);
+router.put('/news/admin/:id',        MANAGE, news.update);
+router.delete('/news/admin/:id',     MANAGE, news.remove);
 router.get('/coins',                MEMBER, coins.myCoins);
 router.get('/coins/admin',          MANAGE, coins.getAdmin);
 router.put('/coins/admin/config',   MANAGE, coins.saveConfig);

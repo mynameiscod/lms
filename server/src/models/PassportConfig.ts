@@ -91,6 +91,8 @@ export const DEFAULT_ENTITLEMENTS: IEntitlement[] = [
   { featureKey: 'mock_interview',  label: 'AI Mock Interviews',           tier: 'paid' },
   { featureKey: 'resume',          label: 'Resume Center',                tier: 'paid' },
   { featureKey: 'career_passport', label: 'CareerPilot Profile',      tier: 'paid' },
+  { featureKey: 'tech_news',       label: 'Daily Tech News',             tier: 'paid' },
+  { featureKey: 'company_questions', label: 'Company Interview Questions', tier: 'paid' },
 ];
 
 export default mongoose.model<IPassportConfig>('PassportConfig', PassportConfigSchema);

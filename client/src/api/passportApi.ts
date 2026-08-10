@@ -187,6 +187,33 @@ export const passportApi = {
     return data;
   },
 
+  // ── Tech News ──
+  getNews: async (): Promise<{ locked?: boolean; priceInr?: number; items?: NewsItem[] }> => {
+    const { data } = await axios.get(`${BASE}/news`, { headers: auth() });
+    return data;
+  },
+  listNewsAdmin: async (): Promise<{ items: AdminNewsItem[]; hoursSincePublish: number | null }> => {
+    const { data } = await axios.get(`${BASE}/news/admin`, { headers: auth() });
+    return data;
+  },
+  /** Paste a link — the server fetches it and the AI writes a draft. Nothing is saved. */
+  draftNews: async (url: string): Promise<{ draft: NewsDraft }> => {
+    const { data } = await axios.post(`${BASE}/news/admin/draft`, { url }, { headers: auth() });
+    return data;
+  },
+  createNews: async (body: Partial<AdminNewsItem>): Promise<{ item: AdminNewsItem }> => {
+    const { data } = await axios.post(`${BASE}/news/admin`, body, { headers: auth() });
+    return data;
+  },
+  updateNews: async (id: string, body: Partial<AdminNewsItem>): Promise<{ item: AdminNewsItem }> => {
+    const { data } = await axios.put(`${BASE}/news/admin/${id}`, body, { headers: auth() });
+    return data;
+  },
+  deleteNews: async (id: string): Promise<{ success: boolean }> => {
+    const { data } = await axios.delete(`${BASE}/news/admin/${id}`, { headers: auth() });
+    return data;
+  },
+
   // ── Leaderboard ──
   getLeaderboard: async (limit = 50): Promise<LeaderboardResponse> => {
     const { data } = await axios.get(`${BASE}/leaderboard`, { headers: auth(), params: { limit } });
@@ -543,4 +570,14 @@ export interface CoinAdminResponse {
     totalIssued: number; awards: number; earningMembers: number;
     worstCaseInrPerMember: number; membershipPriceInr: number; budgetInrPerMember: number;
   };
+}
+
+// ── Tech News ──
+export interface NewsItem {
+  id: string; title: string; summary: string; note?: string;
+  url: string; source: string; imageUrl?: string; tags: string[]; publishedAt: string;
+}
+export interface AdminNewsItem extends NewsItem { status: 'draft' | 'published'; aiGenerated?: boolean; }
+export interface NewsDraft {
+  title: string; summary: string; source: string; imageUrl: string; tags: string[]; url: string;
 }

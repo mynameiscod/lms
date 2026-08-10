@@ -25,13 +25,13 @@ const MODEL_URL = process.env.REACT_APP_INTERVIEWER_MODEL || '/avatars/interview
 const PHOTO_URL = process.env.REACT_APP_INTERVIEWER_PHOTO || '/avatars/interviewer.jpg';
 
 /**
- * Framing for the photo, in fractions of the image height.
+ * Framing for the photo, in fractions of the image.
  *
- * A portrait is usually shot head-and-shoulders, so filling the frame with the whole
- * picture puts a shirt where a face should be. These crop in on the head. Tuned for a
- * square, straight-on portrait — nudge them if a different photo sits high or low.
+ * A portrait is shot head-and-shoulders, so showing all of it puts a shirt where a face
+ * should be. This is how much of the image HEIGHT stays in frame — 0.55 is head and a
+ * little shoulder.
  */
-const PHOTO_ZOOM = 1.55;
+const PHOTO_VISIBLE_FRACTION = 0.55;
 /** Positive moves the visible crop UP the image, toward the face. */
 const PHOTO_FACE_OFFSET = 0.12;
 /** The subject is rarely dead centre. Positive shifts the crop RIGHT, toward the face. */
@@ -252,10 +252,12 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'your interviewer' 
       camera.updateProjectionMatrix();
 
       if (photoFrame) {
-        // Cover, not contain: a letterboxed portrait with background showing down both
-        // sides looks like a mistake. Scale until the plane fills the shorter axis too.
-        const cover = Math.max(1, camera.aspect / photoAspect);
-        const s = cover * PHOTO_ZOOM;
+        // The larger of two requirements, NOT their product:
+        //   1/VISIBLE_FRACTION  crops in far enough to frame the face
+        //   aspect/photoAspect  covers the frame so no background shows down the sides
+        // Multiplying them compounds: in a wide, short container the cover term alone can
+        // be 3-4x, and multiplying a 1.55 zoom on top of that fills the screen with a chin.
+        const s = Math.max(1 / PHOTO_VISIBLE_FRACTION, camera.aspect / photoAspect);
         photoFrame.scale.set(s, s, 1);
       }
     };

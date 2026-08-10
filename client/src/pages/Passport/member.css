@@ -354,15 +354,21 @@
 .iv-qf-better p { margin: 0; font-size: 13.5px; line-height: 1.7; color: #1e1b4b; font-style: italic; }
 
 /* ── The interviewer's face ── */
-.iv-avatar { position: relative; margin: 0 0 16px; border-radius: 16px; overflow: hidden;
+/* Capped and centred like a video-call tile. Full width is wrong here: the stage has to
+   stay roughly square or the cover-scale crops the frame down to a chin — a 100%-wide box
+   with a max-height becomes a 3.8:1 letterbox on a desktop, and the face fills it. */
+.iv-avatar { position: relative; width: 100%; max-width: 360px; margin: 0 auto 16px; border-radius: 16px;
+  overflow: hidden;
   background: radial-gradient(120% 90% at 50% 0%, #eef2ff 0%, #e2e8f5 55%, #dbe2f0 100%);
   border: 1px solid #e6eaf4; }
-/* Fixed aspect rather than a fixed height, so the face keeps its framing on every screen. */
-.iv-avatar-stage { width: 100%; aspect-ratio: 4 / 3; max-height: 320px; }
-@supports not (aspect-ratio: 1) { .iv-avatar-stage { height: 240px; } }
-.iv-avatar-name { position: absolute; left: 14px; bottom: 12px; display: flex; align-items: baseline; gap: 8px;
-  font-size: 13.5px; font-weight: 900; color: #0f172a; text-shadow: 0 1px 2px rgba(255,255,255,.75); }
-.iv-avatar-state { font-size: 11.5px; font-weight: 700; color: #64748b; }
+.iv-avatar-stage { width: 100%; aspect-ratio: 1 / 1; }
+@supports not (aspect-ratio: 1) { .iv-avatar-stage { height: 320px; } }
+/* A scrim, because the label sits over whatever the photo happens to be — dark hair or a
+   bright wall — and neither a light nor a dark text colour is readable over both. */
+.iv-avatar-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 26px 14px 10px;
+  display: flex; align-items: baseline; gap: 8px; font-size: 13.5px; font-weight: 900; color: #fff;
+  background: linear-gradient(to top, rgba(8,12,24,.72), rgba(8,12,24,0)); }
+.iv-avatar-state { font-size: 11.5px; font-weight: 700; color: #d7dcea; }
 /* A ring that breathes while she talks — peripheral confirmation that audio is playing,
    for anyone on mute or with the volume down. */
 .iv-avatar.speaking::after { content: ''; position: absolute; inset: 0; border-radius: 16px;

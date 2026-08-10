@@ -131,6 +131,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const [answerText, setAnswerText] = useState('');
   const [answerBusy, setAnswerBusy] = useState(false);
   const [answerMsg, setAnswerMsg] = useState('');
+  const [justCoached, setJustCoached] = useState<{ key: string; feedback: string } | null>(null);
 
   const toggleMission = async (key: string, answer?: string) => {
     // Optimistic tick, then reload. Deliberately NOT optimistic for a written answer —
@@ -147,8 +148,11 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
     if (text.length < 10) { setAnswerMsg('Write a little more — at least 10 characters.'); return; }
     setAnswerBusy(true); setAnswerMsg('');
     try {
-      await passportApi.completeMission(key, text);
+      const r = await passportApi.completeMission(key, text);
       setAnswerFor(null); setAnswerText('');
+      // Show the coaching straight away. reload() will bring the same text back from the
+      // server, but that round-trip is slower than the moment the member is waiting for.
+      if (r?.feedback) setJustCoached({ key, feedback: r.feedback });
       reload();
     } catch (e: any) {
       setAnswerMsg(e?.response?.data?.message || 'Could not save your answer.');
@@ -405,6 +409,12 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                         worth much, and this is the record they came back for. */}
                     {m.done && m.answer && (
                       <div className="gd-answer saved"><b>Your answer</b><p>{m.answer}</p></div>
+                    )}
+                    {(m.feedback || (justCoached?.key === m.key && justCoached.feedback)) && (
+                      <div className="gd-coach">
+                        <b>💬 Coach</b>
+                        <p>{m.feedback || justCoached?.feedback}</p>
+                      </div>
                     )}
                   </React.Fragment>
                 ))}

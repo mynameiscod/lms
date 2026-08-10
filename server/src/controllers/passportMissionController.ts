@@ -7,6 +7,7 @@ import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
 import { missionsForDay, dayNumber, ensureContent, poolMapOf } from '../services/passportMissionService';
 import { completeMissionOnce } from '../services/passportXpService';
+import { reviewAnswer } from '../services/passportAnswerAIService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -88,15 +89,34 @@ export const completeMission = async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Write a short answer (at least 10 characters) to complete this one.' });
     }
 
-    if (completeMissionOnce(progress, day, key, valid.xp, now, valid.needsAnswer ? answer : undefined)) {
-      await progress.save();
+    const newlyDone = completeMissionOnce(progress, day, key, valid.xp, now, valid.needsAnswer ? answer : undefined);
+
+    // Coach the answer AFTER the mission is already recorded. The order matters: this is
+    // a network call to a third party, and a provider outage must cost the member their
+    // feedback, never their progress or their XP. Feedback is a bonus on top of a
+    // completion that has already happened.
+    let feedback: string | null = null;
+    if (newlyDone && valid.needsAnswer && answer) {
+      const reviewed = await reviewAnswer({
+        tenantId, missionTitle: valid.title, missionDetail: valid.detail, answer,
+      });
+      if (reviewed) {
+        const rec = progress.completed.find(c => c.day === day && c.key === key);
+        if (rec) { rec.feedback = reviewed.feedback; rec.extract = reviewed.extract as any; }
+        feedback = reviewed.feedback;
+      }
     }
+
+    if (newlyDone) await progress.save();
 
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
     const missions = missionsForDay(attempt, day, pools, journeyDays);
     res.json({
       ok: true, xp: progress.xp, streak: progress.streak, longestStreak: progress.longestStreak,
       allDone: missions.every(m => doneKeys.has(m.key)),
+      // null when AI is unavailable — the client shows the completion without coaching
+      // rather than pretending the feature is broken.
+      feedback,
     });
   } catch (e: any) { console.error('[passport] completeMission:', e); res.status(500).json({ message: e.message || 'Failed' }); }
 };

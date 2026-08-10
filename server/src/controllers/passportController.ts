@@ -182,6 +182,8 @@ export const listStudentAnswers = async (req: Request, res: Response) => {
           detail: m?.detail || '',
           category: m?.category || null,
           answer: c.answer,
+          feedback: c.feedback || null,
+          extract: c.extract || null,
           at: c.at,
         };
       })

@@ -4,6 +4,11 @@ import mongoose, { Schema, Document } from 'mongoose';
 export interface IAiUsage extends Document {
   tenantId?: mongoose.Types.ObjectId;
   module: string;                 // 'thinking_lab_eval', 'quiz_gen', 'interview', 'whisper', …
+  /** Which PRODUCT the spend belongs to — 'careerpilot' | 'lms'. Module alone cannot
+   *  answer "what is CareerPilot costing us": several modules (resume, interview) serve
+   *  both products, so the split has to be stated by the caller, not inferred from a
+   *  name prefix. Absent on rows written before this existed; those read as 'lms'. */
+  product?: string;
   provider: 'openai' | 'anthropic' | 'whisper';
   aiModel: string;
   inputTokens: number;
@@ -20,6 +25,7 @@ const AiUsageSchema = new Schema<IAiUsage>(
   {
     tenantId:    { type: Schema.Types.ObjectId, ref: 'Tenant' },
     module:      { type: String, required: true, index: true },
+    product:     { type: String, index: true },
     provider:    { type: String, required: true },
     aiModel:     { type: String, required: true },
     inputTokens: { type: Number, default: 0 },
@@ -35,5 +41,6 @@ const AiUsageSchema = new Schema<IAiUsage>(
 );
 AiUsageSchema.index({ tenantId: 1, date: 1 });
 AiUsageSchema.index({ date: 1, module: 1 });
+AiUsageSchema.index({ product: 1, date: 1 });
 
 export default mongoose.model<IAiUsage>('AiUsage', AiUsageSchema);

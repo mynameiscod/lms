@@ -168,6 +168,24 @@ const PassportAdminStudents: React.FC = () => {
                               {/* pre-wrap: the member typed line breaks and they carry meaning
                                   (one role, then three skills). Collapsing them loses the shape. */}
                               <div style={{ fontSize: 13, color: '#29313f', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{a.answer}</div>
+                              {/* The extracted fields are the point of this screen at scale:
+                                  prose cannot be counted, these can. Shown per answer so you
+                                  can sanity-check the extraction against the words above it
+                                  before trusting any aggregate built on top. */}
+                              {a.extract && (a.extract.targetRole || a.extract.skills?.length || a.extract.gaps?.length) && (
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8, paddingTop: 8, borderTop: '1px dashed #eef0f7' }}>
+                                  {a.extract.targetRole && <span style={{ fontSize: 11, fontWeight: 700, background: '#eef2ff', color: '#4338ca', borderRadius: 99, padding: '3px 9px' }}>🎯 {a.extract.targetRole}</span>}
+                                  {(a.extract.skills || []).map(k => <span key={`s-${k}`} style={{ fontSize: 11, fontWeight: 700, background: '#ecfdf5', color: '#047857', borderRadius: 99, padding: '3px 9px' }}>{k}</span>)}
+                                  {(a.extract.gaps || []).map(k => <span key={`g-${k}`} style={{ fontSize: 11, fontWeight: 700, background: '#fff7ed', color: '#c2410c', borderRadius: 99, padding: '3px 9px' }}>gap: {k}</span>)}
+                                  {typeof a.extract.specificity === 'number' && <span style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>specificity {a.extract.specificity}/3</span>}
+                                  {a.extract.flag && a.extract.flag !== 'none' && <span style={{ fontSize: 11, fontWeight: 800, background: '#fef2f2', color: '#b91c1c', borderRadius: 99, padding: '3px 9px' }}>⚠ {a.extract.flag.replace(/_/g, ' ')}</span>}
+                                </div>
+                              )}
+                              {a.feedback && (
+                                <div style={{ marginTop: 8, background: '#f8fafc', borderLeft: '3px solid #c7d2fe', borderRadius: 6, padding: '8px 11px', fontSize: 12.5, color: '#475569', lineHeight: 1.55 }}>
+                                  <b style={{ color: '#6650d8', fontSize: 10.5, letterSpacing: .4 }}>COACH SAID</b><br />{a.feedback}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>

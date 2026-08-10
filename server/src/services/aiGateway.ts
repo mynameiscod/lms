@@ -28,7 +28,7 @@ const priceFor = (model: string) => {
 const usdToInr = () => settings.getNum('USD_TO_INR', 85);
 
 interface RecordOpts {
-  tenantId?: string; module: string; provider: 'openai' | 'anthropic' | 'whisper';
+  tenantId?: string; module: string; product?: string; provider: 'openai' | 'anthropic' | 'whisper';
   model: string; inputTokens?: number; outputTokens?: number; audioSeconds?: number; fellBack?: boolean;
 }
 
@@ -40,7 +40,7 @@ export async function recordUsage(o: RecordOpts): Promise<void> {
     else { const p = priceFor(o.model); costUsd = ((o.inputTokens || 0) / 1e6) * p.in + ((o.outputTokens || 0) / 1e6) * p.out; }
     await AiUsage.create({
       tenantId: o.tenantId && /^[a-f0-9]{24}$/i.test(o.tenantId) ? o.tenantId : undefined,
-      module: o.module, provider: o.provider, aiModel: o.model,
+      module: o.module, product: o.product || 'lms', provider: o.provider, aiModel: o.model,
       inputTokens: o.inputTokens || 0, outputTokens: o.outputTokens || 0, audioSeconds: o.audioSeconds || 0,
       costUsd, costInr: costUsd * usdToInr(), date: ymd(istToday()), fellBack: !!o.fellBack,
     });
@@ -49,6 +49,8 @@ export async function recordUsage(o: RecordOpts): Promise<void> {
 
 export interface AiCompleteOpts {
   tenantId?: string; module: string;
+  /** 'careerpilot' | 'lms' — see AiUsage.product. Defaults to 'lms' when unset. */
+  product?: string;
   system: string; user: string; maxTokens?: number;
   prefer?: 'openai' | 'anthropic';        // default 'openai' (cheap)
   openaiModel?: string; anthropicModel?: string;
@@ -89,7 +91,7 @@ export async function aiComplete(o: AiCompleteOpts): Promise<string> {
     try {
       const res = provider === 'openai' ? await callOpenAI(o) : await callAnthropic(o);
       if (!res) { continue; }                 // provider not configured — try the other
-      await recordUsage({ tenantId: o.tenantId, module: o.module, provider, model: res.model, inputTokens: res.inT, outputTokens: res.outT, fellBack: i > 0 });
+      await recordUsage({ tenantId: o.tenantId, module: o.module, product: o.product, provider, model: res.model, inputTokens: res.inT, outputTokens: res.outT, fellBack: i > 0 });
       return res.text;
     } catch (err: any) {
       lastErr = err;

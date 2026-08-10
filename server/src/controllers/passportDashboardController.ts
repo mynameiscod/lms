@@ -66,6 +66,7 @@ export const getDashboard = async (req: Request, res: Response) => {
       ...m,
       done: todayDone.has(m.key),
       answer: todayDone.get(m.key)?.answer || undefined,
+      feedback: todayDone.get(m.key)?.feedback || undefined,
     }));
     const targetXp = todaysMissions.reduce((s, m) => s + (m.xp || 0), 0);
 

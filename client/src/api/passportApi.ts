@@ -32,7 +32,12 @@ export const passportApi = {
   /** Admin: what this member has written on missions that have no other surface. */
   listStudentAnswers: async (studentId: string): Promise<{
     name: string; email?: string;
-    answers: { day: number; key: string; title: string; detail: string; category: string | null; answer: string; at: string }[];
+    answers: {
+      day: number; key: string; title: string; detail: string; category: string | null;
+      answer: string; at: string;
+      feedback?: string | null;
+      extract?: { targetRole?: string | null; skills?: string[]; gaps?: string[]; specificity?: number; flag?: string } | null;
+    }[];
   }> => {
     const { data } = await axios.get(`${BASE}/students/${studentId}/answers`, { headers: auth() });
     return data;
@@ -102,7 +107,7 @@ export const passportApi = {
   },
   /** `answer` is required for missions flagged needsAnswer — those have no surface to
    *  complete them on, so the written response IS the completion. */
-  completeMission: async (key: string, answer?: string): Promise<{ ok: boolean; xp: number; streak: number; longestStreak: number; allDone: boolean }> => {
+  completeMission: async (key: string, answer?: string): Promise<{ ok: boolean; xp: number; streak: number; longestStreak: number; allDone: boolean; feedback?: string | null }> => {
     const { data } = await axios.post(`${BASE}/missions/complete`, { key, answer }, { headers: auth() });
     return data;
   },
@@ -274,7 +279,7 @@ export interface DashboardData {
     xpThisWeek: number; xpLastWeek: number; xpDelta: number;
   };
   recentActivity?: { label: string; icon: string; color: string; xp: number; ago: string }[];
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string; feedback?: string }[];
   allDone?: boolean;
   dailyGoal?: { earned: number; target: number; pct: number; met: boolean };
   streakWeek?: { date: string; letter: string; active: boolean; isToday: boolean }[];
@@ -372,7 +377,7 @@ export interface ContentPreview {
 export interface TodayMissions {
   locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;
   day?: number; streak?: number; longestStreak?: number; xp?: number; allDone?: boolean;
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string; feedback?: string }[];
 }
 
 export interface PassportCard {

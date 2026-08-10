@@ -81,8 +81,28 @@ const AiSpend: React.FC = () => {
                 })}
             </div>
 
-            {/* By provider + model */}
+            {/* By product + provider + model */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Product split first: "what is CareerPilot costing us" is the question
+                  asked most often, and module-level rows cannot answer it — resume and
+                  interview serve both products. */}
+              {!!d.byProduct?.length && (
+                <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 18 }}>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: INK, marginBottom: 10 }}>By product</div>
+                  {d.byProduct.map((p: any) => (
+                    <div key={p.product} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                      <span style={{ width: 9, height: 9, borderRadius: '50%', background: p.product === 'careerpilot' ? '#6d4bd8' : '#0ea5e9' }} />
+                      <span style={{ flex: 1, fontSize: 13, color: '#475569' }}>{p.label}</span>
+                      <b style={{ fontSize: 13, color: INK }}>{inr(p.inr)}</b>
+                      <span style={{ fontSize: 11.5, color: '#94a3b8', minWidth: 54, textAlign: 'right' }}>{p.calls} calls</span>
+                    </div>
+                  ))}
+                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 8, lineHeight: 1.5 }}>
+                    Mock interview is not counted yet — it calls Anthropic directly rather than
+                    through the shared gateway, so it never reaches this ledger.
+                  </div>
+                </div>
+              )}
               <div style={{ background: '#fff', border: '1px solid #e6e8f0', borderRadius: 16, padding: 18 }}>
                 <div style={{ fontSize: 14, fontWeight: 800, color: INK, marginBottom: 10 }}>By provider</div>
                 {d.byProvider.map((p: any) => (

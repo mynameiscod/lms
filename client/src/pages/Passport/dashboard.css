@@ -361,3 +361,9 @@
 .gd-answer.saved { background: #f8fafc; border: 1px solid #eef0f7; border-radius: 11px; padding: 10px 13px; }
 .gd-answer.saved b { display: block; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #a3aab8; margin-bottom: 3px; }
 .gd-answer.saved p { margin: 0; font-size: 13px; color: #29313f; line-height: 1.55; white-space: pre-wrap; }
+
+/* Coaching on a written answer. Sits under the saved answer, visually distinct from it —
+   one is the member's words, the other is the reply, and they should not read as one block. */
+.gd-coach { margin: 0 0 10px 43px; background: #f4f2ff; border: 1px solid #e7e2fb; border-radius: 11px; padding: 10px 13px; }
+.gd-coach b { display: block; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #6d4bd8; margin-bottom: 3px; }
+.gd-coach p { margin: 0; font-size: 13px; color: #29313f; line-height: 1.6; }

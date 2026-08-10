@@ -16,7 +16,14 @@ export interface IPassportProgress extends Document {
   xp: number;
   /** `answer` holds the member's written response for missions that have no surface
    *  to complete them on — the reflective ones. Absent for the rest. */
-  completed: { day: number; key: string; at: Date; answer?: string }[];
+  completed: {
+    day: number; key: string; at: Date;
+    answer?: string;
+    /** Coaching shown back to the member. */
+    feedback?: string;
+    /** Structured read of the answer — what makes these aggregatable at scale. */
+    extract?: { targetRole?: string | null; skills?: string[]; gaps?: string[]; specificity?: number; flag?: string };
+  }[];
   /** Practice Lab attempts. `solvedProblems` makes the XP award idempotent per problem. */
   practice: { problemId: string; kind: string; passed: boolean; score: number; total: number; xp: number; at: Date }[];
   solvedProblems: string[];
@@ -36,7 +43,18 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
     longestStreak: { type: Number, default: 0 },
     lastCompletedDate: { type: String },
     xp:        { type: Number, default: 0 },
-    completed: [{ day: Number, key: String, at: { type: Date, default: Date.now }, answer: String }],
+    completed: [{
+      day: Number, key: String, at: { type: Date, default: Date.now },
+      answer: String,
+      feedback: String,
+      extract: {
+        targetRole: String,
+        skills: [String],
+        gaps: [String],
+        specificity: Number,
+        flag: String,
+      },
+    }],
     practice: [{
       problemId: String, kind: String, passed: Boolean,
       score: Number, total: Number, xp: Number,

@@ -1,4 +1,7 @@
 import express from 'express';
+import multer from 'multer';
+import fs from 'fs';
+import path from 'path';
 import * as staging from '../controllers/careerStagingController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
@@ -15,6 +18,24 @@ import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
 
 const router = express.Router();
+
+const RESUME_TMP = 'uploads/resumes';
+if (!fs.existsSync(RESUME_TMP)) fs.mkdirSync(RESUME_TMP, { recursive: true });
+const resumeUpload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _f, cb) => cb(null, RESUME_TMP),
+    filename: (_req, f, cb) => cb(null, `cp-${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(f.originalname)}`),
+  }),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (_req, f, cb) => {
+    const ok = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+    ];
+    cb(null, ok.includes(f.mimetype));
+  },
+});
 router.use(authMiddleware, tenantMiddleware);
 
 /**
@@ -102,6 +123,9 @@ router.post('/interview/:id/finish',  MEMBER, interview.finish);
 // Resume Center (resume entitlement)
 router.get('/resume',            MEMBER, resume.get);
 router.put('/resume',            MEMBER, resume.save);
+// Import an existing CV. Stored briefly, parsed, then deleted by the controller — the
+// text is the point, the file is not.
+router.post('/resume/import',    MEMBER, resumeUpload.single('file'), resume.importResume);
 router.post('/resume/score',     MEMBER, resume.score);
 router.post('/resume/improve',   MEMBER, resume.improve);
 

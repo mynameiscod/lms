@@ -6,6 +6,8 @@ import { IResumeSections } from '../models/Resume';
 import { isEntitled } from '../services/passportEntitlementService';
 import { scoreResume, improveResume } from '../services/resumeScoringService';
 import { getOrCreateProgress, addXp } from '../services/passportXpService';
+import { extractTextFromFile, parseResumeText } from '../services/resumeParserService';
+import fs from 'fs';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -126,5 +128,59 @@ export const improve = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[passport] resume improve:', e);
     res.status(500).json({ message: e.message || 'Could not improve the resume. AI may not be configured yet.' });
+  }
+};
+
+/**
+ * POST /passport/resume/import — start from a resume the member already has.
+ *
+ * Members arrive with a PDF or DOCX they have already written; asking them to retype it
+ * into an empty form is the reason the editor sat unused and the AI was the only thing
+ * touching it. The parser and extractor already exist for the LMS Resume Builder, so this
+ * reuses them rather than growing a second implementation.
+ *
+ * Parsed fields are MERGED into what is already stored, never dropped on top of it: a
+ * parser that misses a section must not delete work the member typed by hand.
+ */
+export const importResume = async (req: Request, res: Response) => {
+  const file = (req as any).file;
+  try {
+    const { tenantId, studentId, cfg, user } = await gate(req);
+    if (!isEntitled(cfg?.entitlements as any, user?.passport, 'resume')) {
+      return res.status(403).json({ message: 'Membership required.' });
+    }
+    if (!file) return res.status(400).json({ message: 'Attach a PDF or Word file.' });
+
+    const text = await extractTextFromFile(file.path);
+    if (!text || text.trim().length < 40) {
+      return res.status(422).json({
+        message: 'That file had almost no readable text. If it is a scanned image, type your details in instead.',
+      });
+    }
+
+    const parsed = await parseResumeText(text);
+    const doc = await PassportResume.findOne({ tenantId, studentId });
+    const current: any = doc?.sections || {};
+
+    // Field-by-field merge: keep anything already present, fill only the gaps.
+    const merged: any = { ...current };
+    merged.contact = { ...(parsed.contact || {}), ...(current.contact || {}) };
+    merged.summary = current.summary || parsed.summary || '';
+    for (const key of ['experience', 'education', 'skills', 'projects', 'certifications'] as const) {
+      const mine = Array.isArray(current[key]) ? current[key] : [];
+      merged[key] = mine.length ? mine : ((parsed as any)[key] || []);
+    }
+
+    if (doc) { doc.sections = merged; await doc.save(); }
+    else await PassportResume.create({ tenantId, studentId, sections: merged });
+
+    res.json({ sections: merged, importedChars: text.length });
+  } catch (e: any) {
+    console.error('[passport] resume import:', e?.message || e);
+    res.status(500).json({ message: e?.message || 'Could not read that file' });
+  } finally {
+    // The upload is a means to the text, not something to keep. Leaving CVs on disk is a
+    // data-retention problem nobody asked for.
+    if (file?.path) { try { fs.unlinkSync(file.path); } catch { /* already gone */ } }
   }
 };

@@ -179,6 +179,14 @@ export const passportApi = {
     return URL.createObjectURL(data as Blob);
   },
 
+  /** Import an existing CV. Parsed fields fill gaps only — they never overwrite typed work. */
+  importResume: async (file: File): Promise<{ sections: ResumeSections; importedChars: number }> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const { data } = await axios.post(`${BASE}/resume/import`, fd, { headers: auth() });
+    return data;
+  },
+
   // ── Leaderboard ──
   getLeaderboard: async (limit = 50): Promise<LeaderboardResponse> => {
     const { data } = await axios.get(`${BASE}/leaderboard`, { headers: auth(), params: { limit } });

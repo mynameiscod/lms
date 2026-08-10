@@ -13,6 +13,54 @@ const BLANK: ResumeSections = {
   summary: '', experience: [], education: [], skills: [], projects: [], certifications: [],
 };
 
+/**
+ * A comma-separated list you can actually type into.
+ *
+ * The obvious version — value={items.join(', ')} with onChange splitting and filtering —
+ * cannot be typed in at all. Type "Java," and the split yields ["Java", ""], filter(Boolean)
+ * drops the empty, and the value renders back as "Java": the comma is deleted the instant
+ * it is pressed, so a second skill can never be entered. That is why skills could only be
+ * changed by the AI.
+ *
+ * The fix is to display the DRAFT STRING rather than a re-joined array, so the field shows
+ * what was typed. The parsed array is still published on every keystroke, so nothing has
+ * to be committed before saving.
+ */
+const ListField: React.FC<{
+  label: string; items: string[]; onChange: (v: string[]) => void;
+  placeholder?: string;
+  /** ', ' for a skills list, '\n' for bullets — the same bug bit both. */
+  sep?: string;
+  area?: boolean;
+}> =
+  ({ label, items, onChange, placeholder, sep = ', ', area }) => {
+    const joined = items.join(sep);
+    const [draft, setDraft] = useState(joined);
+    const [editing, setEditing] = useState(false);
+    // Adopt changes made elsewhere (AI improve, a reload) — but never while the member is
+    // mid-word, or their cursor jumps and the text reformats under them.
+    useEffect(() => { if (!editing) setDraft(joined); }, [joined, editing]);
+
+    const commit = (raw: string) => {
+      setDraft(raw);
+      onChange(raw.split(sep === ', ' ? ',' : sep).map(x => x.trim()).filter(Boolean));
+    };
+    const props = {
+      value: draft,
+      placeholder,
+      onFocus: () => setEditing(true),
+      onBlur: () => { setEditing(false); setDraft(items.join(sep)); },
+      onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => commit(e.target.value),
+    };
+
+    return (
+      <div className="rs-field">
+        <label>{label}</label>
+        {area ? <textarea {...props} rows={4} /> : <input {...props} />}
+      </div>
+    );
+  };
+
 const Field: React.FC<{ label: string; value: string; onChange: (v: string) => void; area?: boolean; placeholder?: string }> =
   ({ label, value, onChange, area, placeholder }) => (
     <div className="rs-field">
@@ -30,6 +78,7 @@ const Field: React.FC<{ label: string; value: string; onChange: (v: string) => v
  */
 const ResumeCenter: React.FC = () => {
   const [sections, setSections] = useState<ResumeSections>(BLANK);
+  const [importing, setImporting] = useState(false);
   const [score, setScore] = useState<ResumeScore | null>(null);
   const [locked, setLocked] = useState<{ priceInr?: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -63,6 +112,23 @@ const ResumeCenter: React.FC = () => {
 
   const patch = (fn: (s: ResumeSections) => void) => {
     setSections(prev => { const next = JSON.parse(JSON.stringify(prev)); fn(next); return next; });
+  };
+
+  /**
+   * Import an existing CV. The server merges rather than replaces — a parser that misses
+   * a section must not wipe work that was typed by hand — so this is safe to run on a
+   * resume that already has content.
+   */
+  const runImport = async (file: File) => {
+    setImporting(true); setMsg(null);
+    try {
+      const r = await passportApi.importResume(file);
+      setSections({ ...BLANK, ...r.sections });
+      setMsg({ kind: 'ok', text: 'Imported. Check each section, then Save — anything you had already typed was kept.' });
+    } catch (e: any) {
+      setMsg({ kind: 'err', text: e?.response?.data?.message || 'Could not read that file.' });
+    }
+    setImporting(false);
   };
 
   const save = async () => {
@@ -198,8 +264,8 @@ const ResumeCenter: React.FC = () => {
                 <button className="rs-del" onClick={() => patch(s => { s.skills.splice(i, 1); })}>✕</button>
                 <div className="rs-row">
                   <Field label="Group" value={g.category} onChange={v => patch(s => { s.skills[i].category = v; })} placeholder="Languages" />
-                  <Field label="Items (comma separated)" value={g.items.join(', ')}
-                    onChange={v => patch(s => { s.skills[i].items = v.split(',').map(x => x.trim()).filter(Boolean); })}
+                  <ListField label="Items (comma separated)" items={g.items}
+                    onChange={v => patch(s => { s.skills[i].items = v; })}
                     placeholder="Java, SQL, Git" />
                 </div>
               </div>
@@ -214,8 +280,8 @@ const ResumeCenter: React.FC = () => {
                 <button className="rs-del" onClick={() => patch(s => { s.projects.splice(i, 1); })}>✕</button>
                 <div className="rs-row">
                   <Field label="Name" value={p.name} onChange={v => patch(s => { s.projects[i].name = v; })} />
-                  <Field label="Tech (comma separated)" value={p.tech.join(', ')}
-                    onChange={v => patch(s => { s.projects[i].tech = v.split(',').map(x => x.trim()).filter(Boolean); })} />
+                  <ListField label="Tech (comma separated)" items={p.tech}
+                    onChange={v => patch(s => { s.projects[i].tech = v; })} />
                 </div>
                 <Field label="What it does & what you built" area value={p.description} onChange={v => patch(s => { s.projects[i].description = v; })} />
                 <Field label="Link" value={p.link || ''} onChange={v => patch(s => { s.projects[i].link = v; })} placeholder="https://github.com/…" />
@@ -237,8 +303,9 @@ const ResumeCenter: React.FC = () => {
                   <Field label="From" value={x.from} onChange={v => patch(s => { s.experience[i].from = v; })} placeholder="Jun 2025" />
                   <Field label="To" value={x.to} onChange={v => patch(s => { s.experience[i].to = v; })} placeholder="Aug 2025" />
                 </div>
-                <Field label="Bullets (one per line)" area value={x.bullets.join('\n')}
-                  onChange={v => patch(s => { s.experience[i].bullets = v.split('\n').filter(l => l.trim()); })} />
+                <ListField label="Bullets (one per line)" area sep={'\n'} items={x.bullets}
+                  placeholder={'Built the payment screen in React\nCut page load from 4s to 1.2s'}
+                  onChange={v => patch(s => { s.experience[i].bullets = v; })} />
               </div>
             ))}
             <button className="rs-add" onClick={() => patch(s => { s.experience.push({ company: '', role: '', from: '', to: '', current: false, bullets: [] }); })}>+ Add experience</button>
@@ -267,6 +334,15 @@ const ResumeCenter: React.FC = () => {
               <button className="pm-btn teal" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save'}</button>
               <button className="pm-btn primary" onClick={runScore} disabled={scoring}>{scoring ? 'Scoring…' : 'Score my resume'}</button>
               <button className="pm-btn" onClick={runImprove} disabled={improving}>{improving ? 'Rewriting…' : '✨ AI improve'}</button>
+              {/* Members arrive with a CV they have already written. Asking them to retype
+                  it into an empty form is why this editor sat unused. */}
+              <label className="pm-btn" style={{ cursor: importing ? 'default' : 'pointer', opacity: importing ? .6 : 1 }}>
+                {importing ? 'Reading…' : '⬆ Import my resume'}
+                <input
+                  type="file" accept=".pdf,.doc,.docx" hidden disabled={importing}
+                  onChange={e => { const f = e.target.files?.[0]; e.target.value = ''; if (f) runImport(f); }}
+                />
+              </label>
             </div>
 
             {!score ? (

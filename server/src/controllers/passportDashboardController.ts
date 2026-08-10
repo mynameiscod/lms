@@ -242,6 +242,10 @@ export const getDashboard = async (req: Request, res: Response) => {
         startAt: c.startAt, slug: c.slug || null,
       })),
 
+      // Which day of the journey the member is on. The missions card needs it to offer a
+      // step back to a day they missed.
+      day,
+
       // Opening the dashboard IS the daily visit — there is no separate login event to
       // hook, and a member who never opens this screen has not shown up in any sense
       // worth paying for. Keyed on the calendar day, so refreshing costs nothing.

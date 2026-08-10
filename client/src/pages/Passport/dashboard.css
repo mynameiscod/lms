@@ -388,3 +388,12 @@
      the pinned account block pushes the last links out of reach on a short screen. */
   .gd-side .gd-nav { overflow-y: auto; }
 }
+
+/* Day stepper on the missions card (B9). Quiet by design — it is a way back to a missed
+   day, not a primary action competing with the missions themselves. */
+.gd-day-nav { display: flex; align-items: center; gap: 6px; }
+.gd-day-nav button { width: 28px; height: 28px; border-radius: 8px; border: 1px solid #e6e8f0;
+  background: #fff; color: #475569; font-size: 14px; line-height: 1; cursor: pointer; }
+.gd-day-nav button:hover:not(:disabled) { background: #f8fafc; border-color: #cbd5e1; }
+.gd-day-nav button:disabled { opacity: .35; cursor: default; }
+.gd-day-nav button.today { width: auto; padding: 0 11px; font-size: 12px; font-weight: 800; color: #6d4bd8; }

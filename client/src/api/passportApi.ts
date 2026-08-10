@@ -114,8 +114,9 @@ export const passportApi = {
   },
 
   // Missions
-  getToday: async (): Promise<TodayMissions> => {
-    const { data } = await axios.get(`${BASE}/missions/today`, { headers: auth() });
+  /** `day` omitted = today. Past days only; the server clamps anything ahead. */
+  getToday: async (day?: number): Promise<TodayMissions> => {
+    const { data } = await axios.get(`${BASE}/missions/today`, { headers: auth(), params: day ? { day } : undefined });
     return data;
   },
   /** `answer` is required for missions flagged needsAnswer — those have no surface to
@@ -310,6 +311,8 @@ export interface LevelInfo {
 export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
 export interface DashboardData {
   active: boolean;
+  /** Which day of the journey the member is on. */
+  day?: number;
   /** Null when the coin ledger is unavailable — the dashboard renders without it. */
   coins?: { balance: number; lifetimeEarned: number } | null;
   hasAssessment: boolean;
@@ -434,6 +437,9 @@ export interface ContentPreview {
 }
 
 export interface TodayMissions {
+  /** The day being shown, and the member's real current day, so the UI can offer a step back. */
+  today?: number;
+  isPast?: boolean;
   locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;
   day?: number; streak?: number; longestStreak?: number; xp?: number; allDone?: boolean;
   missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview'; done: boolean; answer?: string; feedback?: string }[];

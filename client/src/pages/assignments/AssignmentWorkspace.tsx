@@ -200,16 +200,31 @@ const AssignmentWorkspace: React.FC = () => {
     return () => clearInterval(interval);
   }, [timeRemaining]);
 
-  // Auto-save for coding assignments
+  /**
+   * Auto-save for coding assignments.
+   *
+   * This used to list `code` and `selectedLanguage` as dependencies, which meant every
+   * keystroke tore down the 30-second timer and started a fresh one — so it only ever
+   * fired if the student stopped typing for a full 30 seconds, and never while they were
+   * actually working. That is why it read as "auto-save not working" and as taking far
+   * longer than 30 seconds.
+   *
+   * The timer is now created once per submission and reads the current values through a
+   * ref, so typing cannot reset it. SQL is included: it had a Save button but no
+   * auto-save, which is the inconsistency that made the gap easy to miss.
+   */
+  const autoSaveRef = useRef<(silent: boolean) => void>(() => {});
+  useEffect(() => { autoSaveRef.current = handleSave; });
+
   useEffect(() => {
-    if (!submission || (assignment?.type !== AssignmentType.CODING && assignment?.type !== AssignmentType.WEB)) return;
-    
-    const saveInterval = setInterval(() => {
-      handleSave(true);
-    }, 30000); // Auto-save every 30 seconds
-    
+    const t = assignment?.type;
+    if (!submission || (t !== AssignmentType.CODING && t !== AssignmentType.WEB && t !== AssignmentType.SQL)) return;
+
+    const saveInterval = setInterval(() => autoSaveRef.current(true), 30000);
     return () => clearInterval(saveInterval);
-  }, [submission, code, selectedLanguage]);
+    // Deliberately NOT depending on `code`: see above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [submission?._id, assignment?.type]);
 
   const handleSave = async (silent = false) => {
     if (!submission || (assignment?.type !== AssignmentType.CODING && assignment?.type !== AssignmentType.SQL && assignment?.type !== AssignmentType.WEB)) return;

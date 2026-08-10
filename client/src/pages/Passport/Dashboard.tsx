@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import passportApi, { DashboardData, Badge } from '../../api/passportApi';
+import passportApi, { DashboardData, Badge, TodayMissions } from '../../api/passportApi';
 import './dashboard.css';
 
 /**
@@ -127,6 +127,26 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   }, [reload]);
 
   // Which reflective mission is open for writing, and what has been typed into it.
+  // B9 — when set, the missions card shows an earlier day instead of today. Held apart
+  // from the dashboard payload so stepping back never disturbs XP, streak or the rest of
+  // the screen, and "Back to today" is a single discard.
+  const [pastDay, setPastDay] = useState<TodayMissions | null>(null);
+  const [dayBusy, setDayBusy] = useState(false);
+
+  const stepDay = async (delta: number) => {
+    const current = pastDay?.day ?? d.day ?? 1;
+    const want = current + delta;
+    if (want < 1) return;
+    setDayBusy(true);
+    try {
+      const r = await passportApi.getToday(want);
+      // The server clamps forward at today; stepping back onto today drops the override
+      // so the card returns to the live view rather than a frozen copy of it.
+      setPastDay(r.isPast ? r : null);
+    } catch { /* leave the current view alone */ }
+    setDayBusy(false);
+  };
+
   const [answerFor, setAnswerFor] = useState<string | null>(null);
   const [answerText, setAnswerText] = useState('');
   const [answerBusy, setAnswerBusy] = useState(false);
@@ -172,8 +192,11 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   const st = d.stats!;
   const lv = d.level!;
   const goal = d.dailyGoal!;
-  const doneCount = (d.missions || []).filter(m => m.done).length;
-  const totalMissions = (d.missions || []).length;
+  // Everything the missions card renders comes from here, so one swap covers the list,
+  // the counts and the XP total.
+  const shownMissions = pastDay ? (pastDay.missions || []) : (d.missions || []);
+  const doneCount = shownMissions.filter(m => m.done).length;
+  const totalMissions = shownMissions.length;
   const hasActivity = (d.activity || []).some(a => a.xp > 0);
 
   return (
@@ -333,19 +356,36 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
         <div className="gd-grid gd-2b" style={{ marginTop: 16 }}>
           <div className="gd-card">
             <div className="gd-card-hd">
-              <h2>Today's Mission</h2>
-              <span className="gd-timer">⏱ {hoursLeft}</span>
+              <h2>{pastDay ? `Day ${pastDay.day}` : "Today's Mission"}</h2>
+              {/* B9 — a member who missed a day had no way to see what it asked of them.
+                  missionsForDay is deterministic in (attempt, day), so a past day rebuilds
+                  exactly as it was. Forward is capped at today by the server. */}
+              <div className="gd-day-nav">
+                <button
+                  onClick={() => stepDay(-1)}
+                  disabled={(pastDay?.day ?? d.day ?? 1) <= 1 || dayBusy}
+                  title="Previous day"
+                >←</button>
+                {pastDay
+                  ? <button className="today" onClick={() => setPastDay(null)}>Back to today</button>
+                  : <span className="gd-timer">⏱ {hoursLeft}</span>}
+                <button
+                  onClick={() => stepDay(1)}
+                  disabled={!pastDay || dayBusy}
+                  title="Next day"
+                >→</button>
+              </div>
             </div>
             <div className="gd-reward" style={{ marginBottom: 6 }}>
               Complete all missions to earn
-              <span className="chip">+{(d.missions || []).reduce((s, m) => s + m.xp, 0)} XP</span>
+              <span className="chip">+{shownMissions.reduce((s, m) => s + m.xp, 0)} XP</span>
             </div>
 
             {!totalMissions ? (
               <div className="gd-chart-empty">No missions generated for today.</div>
             ) : (
               <>
-                {(d.missions || []).map(m => (
+                {shownMissions.map(m => (
                   <React.Fragment key={m.key}>
                     <div className={`gd-mission${m.done ? ' done' : ''}`}>
                       <span className="badge" style={{ background: m.done ? '#dcfce7' : '#f1eeff' }}>{CAT_ICON[m.category] || '•'}</span>

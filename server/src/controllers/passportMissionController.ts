@@ -47,13 +47,29 @@ export const getToday = async (req: Request, res: Response) => {
     if (!progress) progress = await PassportProgress.create({ tenantId, studentId, startDate: user?.passport?.activatedAt || new Date() });
 
     const now = new Date();
-    const day = dayNumber(progress.startDate, now);
+    const today = dayNumber(progress.startDate, now);
+
+    /**
+     * B9 — look back at an earlier day.
+     *
+     * Missions were only ever generated for TODAY, so a member who missed Tuesday had no
+     * way to see what Tuesday had asked of them. `missionsForDay` is deterministic in
+     * (attempt, day, journeyDays), so any past day can be rebuilt exactly as it was.
+     *
+     * Clamped forward at today on purpose: showing tomorrow would leak the pacing the
+     * roadmap exists to enforce, and let a member burn through a week in an afternoon.
+     */
+    const asked = Number(req.query.day);
+    const day = Number.isFinite(asked) ? Math.min(today, Math.max(1, Math.round(asked))) : today;
+
     const missions = missionsForDay(attempt, day, pools, journeyDays);
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
 
     res.json({
       locked: false,
       day,
+      today,
+      isPast: day < today,
       streak: progress.streak,
       longestStreak: progress.longestStreak,
       xp: progress.xp,

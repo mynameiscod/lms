@@ -16,7 +16,12 @@
    and cut the goal card in half once the nav grew past the viewport.) */
 .gd-side { position: fixed; top: 0; left: 0; bottom: 0; width: 248px; z-index: 30; background: #fff; border-right: 1px solid #ecedf5; display: flex; flex-direction: column; padding: 18px 12px 14px; overflow: hidden; }
 .gd-logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 16px; flex-shrink: 0; background: none; border: none; cursor: pointer; text-align: left; width: 100%; }
-.gd-logo .mk { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: -.5px; flex-shrink: 0; }
+/* The chip is a gradient tile with a "CB" monogram; the logo image sits ON TOP of it,
+   filling the tile. If the image fails to load it hides itself and the monogram shows
+   through — which is why both live in the same box rather than the image replacing it. */
+.gd-logo .mk { position: relative; width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: -.5px; flex-shrink: 0; overflow: hidden; }
+.gd-logo .mk .mono { font-size: 14px; font-weight: 900; color: #fff; }
+.gd-logo .mk img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 11px; }
 .gd-logo b { font-size: 16.5px; font-weight: 900; color: #0f172a; display: block; line-height: 1.15; }
 .gd-logo b .p { color: #6d4bd8; }
 .gd-logo small { font-size: 10px; color: #a3aab8; }
@@ -367,3 +372,19 @@
 .gd-coach { margin: 0 0 10px 43px; background: #f4f2ff; border: 1px solid #e7e2fb; border-radius: 11px; padding: 10px 13px; }
 .gd-coach b { display: block; font-size: 11px; font-weight: 900; letter-spacing: .5px; text-transform: uppercase; color: #6d4bd8; margin-bottom: 3px; }
 .gd-coach p { margin: 0; font-size: 13px; color: #29313f; line-height: 1.6; }
+
+
+/* ── Account actions inside the mobile drawer (M4) ──
+   The topbar account menu is not rendered on a phone, so profile and log out had no
+   route on mobile at all. Desktop keeps the topbar menu and hides this. */
+.gd-side-account { display: none; }
+.gd-side-account .gd-nav-btn.out .lbl { color: #b91c1c; }
+.gd-side-account .gd-nav-btn.out .ic { color: #b91c1c; }
+@media (max-width: 980px) {
+  .gd-side-account {
+    display: block; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f2f9; flex-shrink: 0;
+  }
+  /* .gd-side is a flex column with overflow:hidden, so the nav needs its own scroll or
+     the pinned account block pushes the last links out of reach on a short screen. */
+  .gd-side .gd-nav { overflow-y: auto; }
+}

@@ -48,6 +48,7 @@ router.delete('/members/:userId',      MANAGE, ctrl.deleteMember);
 
 // Coins — the member's balance, and the admin's dials. Earning rules are data, so
 // switching an event on or changing what it pays needs no deploy.
+router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
 router.get('/coins',                MEMBER, coins.myCoins);
 router.get('/coins/admin',          MANAGE, coins.getAdmin);
 router.put('/coins/admin/config',   MANAGE, coins.saveConfig);
@@ -62,6 +63,8 @@ router.post('/content/preview',   MANAGE, content.previewContent);
 
 // Student
 router.get('/me',        MEMBER, ctrl.getMyStatus);
+router.get('/me/profile', MEMBER, ctrl.getMyProfile);
+router.put('/me/profile', MEMBER, ctrl.updateMyProfile);
 router.post('/set-password', MEMBER, ctrl.setPassword);
 
 // Membership activation (₹499, reuses the Razorpay rail)

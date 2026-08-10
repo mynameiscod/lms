@@ -13,6 +13,7 @@ import PassportAttempt from '../models/PassportAttempt';
 import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
 import { memberAxes } from '../services/careerStageService';
 import PassportInterview from '../models/PassportInterview';
+import { normalizePhone, mobileError } from '../utils/phone';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -193,6 +194,92 @@ export const listStudentAnswers = async (req: Request, res: Response) => {
     res.json({ name: `${user.firstName || ''} ${user.lastName || ''}`.trim(), email: user.email, answers });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load answers' });
+  }
+};
+
+/**
+ * PUT /passport/me — a member edits their own details.
+ *
+ * Email is deliberately NOT editable here. It is the login identity and the key the
+ * signup funnel dedupes on; changing it from a profile screen would let someone walk
+ * away from an account another person is already using.
+ *
+ * The phone IS editable, but carries the same one-number-one-account rule as signup —
+ * otherwise the guard added there is trivially bypassed by registering with a spare
+ * number and editing it afterwards.
+ */
+export const updateMyProfile = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    const b = req.body || {};
+
+    const user: any = await User.findOne({ _id: studentId, tenantId });
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+
+    const name = String(b.name ?? '').trim();
+    if (name) {
+      const [fn, ...rest] = name.split(' ');
+      user.firstName = fn;
+      user.lastName = rest.join(' ') || '-';
+    }
+
+    if (b.mobile !== undefined) {
+      const err = mobileError(b.mobile);
+      if (err) return res.status(400).json({ message: err });
+      const mobile = normalizePhone(b.mobile);
+      if (mobile !== user.phone) {
+        const taken = await User.findOne({ phone: mobile, tenantId, _id: { $ne: studentId } }).select('_id').lean();
+        if (taken) return res.status(409).json({ message: 'That mobile number already belongs to another account.' });
+        user.phone = mobile;
+      }
+    }
+
+    // Free-text and select fields the member owns. Capped because they are rendered on
+    // the dashboard, the passport card and the admin list.
+    user.passport = user.passport || {};
+    for (const key of ['degree', 'branch', 'yearOfStudy', 'careerGoal', 'city'] as const) {
+      if (b[key] === undefined) continue;
+      user.passport[key] = String(b[key] || '').trim().slice(0, 120);
+    }
+
+    await user.save();
+    res.json({
+      success: true,
+      profile: {
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        email: user.email,
+        mobile: user.phone,
+        degree: user.passport?.degree || '',
+        branch: user.passport?.branch || '',
+        yearOfStudy: user.passport?.yearOfStudy || '',
+        careerGoal: user.passport?.careerGoal || '',
+        city: user.passport?.city || '',
+      },
+    });
+  } catch (e: any) {
+    console.error('[passport] updateMyProfile:', e);
+    res.status(500).json({ message: e.message || 'Could not save your profile' });
+  }
+};
+
+/** GET /passport/me/profile — the editable view of the member's own details. */
+export const getMyProfile = async (req: Request, res: Response) => {
+  try {
+    const user: any = await User.findOne({ _id: userIdOf(req), tenantId: tenantOf(req) })
+      .select('firstName lastName email phone passport').lean();
+    if (!user) return res.status(404).json({ message: 'Account not found' });
+    res.json({
+      profile: {
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+        email: user.email, mobile: user.phone || '',
+        degree: user.passport?.degree || '', branch: user.passport?.branch || '',
+        yearOfStudy: user.passport?.yearOfStudy || '', careerGoal: user.passport?.careerGoal || '',
+        city: user.passport?.city || '',
+      },
+    });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not load your profile' });
   }
 };
 

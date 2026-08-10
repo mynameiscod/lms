@@ -19,6 +19,55 @@ const tenantOf = (req: Request): string => String((req as any).user?.tenantId ||
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 
 /**
+ * GET /passport/leaderboard — the full board, not the podium.
+ *
+ * The dashboard deliberately shows only the top 3 plus the member's own row, because a
+ * longer list there is mostly strangers. This is the page for people who DO want the
+ * list. The nav has always pointed at it — at a `#leaderboard` anchor that never existed,
+ * so those links silently did nothing but reload the dashboard.
+ *
+ * `rank` is the true position in the whole cohort, and a percentile is included because
+ * "top 12%" stays meaningful at a million members in a way that "#4,182" does not.
+ */
+export const getLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    const limit = Math.min(200, Math.max(10, Number(req.query.limit) || 50));
+
+    const board = await PassportProgress.find({ tenantId })
+      .select('studentId xp streak').sort({ xp: -1 }).limit(500).lean();
+    const users = await User.find({ _id: { $in: board.map((b: any) => b.studentId) } })
+      .select('firstName lastName passport.city').lean();
+    const byId = new Map(users.map((u: any) => [String(u._id), u]));
+
+    const ranked = board.map((b: any, i: number) => {
+      const u: any = byId.get(String(b.studentId));
+      return {
+        rank: i + 1,
+        name: u ? `${u.firstName || ''} ${u.lastName || ''}`.trim() || 'Member' : 'Member',
+        city: u?.passport?.city || '',
+        xp: b.xp, streak: b.streak || 0,
+        me: String(b.studentId) === studentId,
+      };
+    });
+
+    const mine = ranked.find(r => r.me) || null;
+    res.json({
+      total: ranked.length,
+      rows: ranked.slice(0, limit),
+      me: mine,
+      percentile: mine && ranked.length > 1
+        ? Math.max(1, Math.round((mine.rank / ranked.length) * 100))
+        : null,
+    });
+  } catch (e: any) {
+    console.error('[passport] leaderboard:', e);
+    res.status(500).json({ message: e.message || 'Could not load the leaderboard' });
+  }
+};
+
+/**
  * GET /passport/dashboard — everything the gamified member home renders, in one call.
  *
  * Every figure traces back to stored data (assessment attempt, progress, interviews,

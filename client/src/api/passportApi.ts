@@ -178,6 +178,22 @@ export const passportApi = {
     return URL.createObjectURL(data as Blob);
   },
 
+  // ── Leaderboard ──
+  getLeaderboard: async (limit = 50): Promise<LeaderboardResponse> => {
+    const { data } = await axios.get(`${BASE}/leaderboard`, { headers: auth(), params: { limit } });
+    return data;
+  },
+
+  // ── My profile ──
+  getMyProfile: async (): Promise<{ profile: MemberProfile }> => {
+    const { data } = await axios.get(`${BASE}/me/profile`, { headers: auth() });
+    return data;
+  },
+  updateMyProfile: async (p: MemberProfile): Promise<{ profile: MemberProfile }> => {
+    const { data } = await axios.put(`${BASE}/me/profile`, p, { headers: auth() });
+    return data;
+  },
+
   // ── Coins ──
   getCoins: async (): Promise<CoinsResponse> => {
     const { data } = await axios.get(`${BASE}/coins`, { headers: auth() });
@@ -475,6 +491,16 @@ export const passportPublicApi = {
 };
 
 export default passportApi;
+
+export interface LeaderboardRow { rank: number; name: string; city: string; xp: number; streak: number; me: boolean; }
+export interface LeaderboardResponse {
+  total: number; rows: LeaderboardRow[]; me: LeaderboardRow | null; percentile: number | null;
+}
+
+export interface MemberProfile {
+  name: string; email: string; mobile: string;
+  degree: string; branch: string; yearOfStudy: string; careerGoal: string; city: string;
+}
 
 // ── Coins ──
 export interface CoinConfig {

@@ -79,6 +79,9 @@ import PassportPracticeItem from './pages/Passport/PracticeItem';
 import PassportInterview from './pages/Passport/Interview';
 import PassportResumeCenter from './pages/Passport/ResumeCenter';
 import PassportCoins from './pages/Passport/Coins';
+import PassportProfile from './pages/Passport/Profile';
+import PassportLeaderboard from './pages/Passport/Leaderboard';
+import PassportAchievements from './pages/Passport/Achievements';
 import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
@@ -470,6 +473,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />
         <Route path="/careerpilot/coins" element={<PassportCoins />} />
+        <Route path="/careerpilot/profile" element={<PassportProfile />} />
+        <Route path="/careerpilot/leaderboard" element={<PassportLeaderboard />} />
+        <Route path="/careerpilot/achievements" element={<PassportAchievements />} />
         <Route path="/passport/coins" element={<LegacyRedirect to="/careerpilot/coins" />} />
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
         <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />

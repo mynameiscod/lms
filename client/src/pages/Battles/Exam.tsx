@@ -12,6 +12,9 @@ type Phase = 'loading' | 'countdown' | 'ready' | 'exam' | 'result' | 'error';
 const BattleExam: React.FC = () => {
   // Question text cannot be copied out; nothing can be pasted in, anywhere.
   useExamGuards(true);
+  // B3 — leaving a live, timed, one-attempt exam deserves a confirmation. On every other
+  // screen Back is unremarkable and goes straight through.
+  const [confirmLeave, setConfirmLeave] = useState(false);
   const { token } = useParams();
   const nav = useNavigate();
   const sid = useMemo(() => {
@@ -182,6 +185,7 @@ const BattleExam: React.FC = () => {
     // Open on another device → red block.
     if (errCode === 'ANOTHER_DEVICE') return (
       <BattleChrome><div className="bt-panel">
+        <a className="bt-link" href="/battles" style={{ marginBottom: 10 }}>← All Tech Battles</a>
         <div className="bt-hero-card">
           <div className="bt-icon-circle bt-icon-red">⛔</div>
           <h1 style={{ fontSize: 22 }}>This exam is open on another device</h1>
@@ -327,7 +331,26 @@ const BattleExam: React.FC = () => {
           </div>
         </div>
       )}
+      {confirmLeave && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,18,40,.75)', zIndex: 4000, display: 'grid', placeItems: 'center', padding: 20 }}>
+          <div style={{ background: '#fff', borderRadius: 16, maxWidth: 440, padding: '28px 26px', textAlign: 'center', boxShadow: '0 24px 70px rgba(0,0,0,.35)' }}>
+            <div style={{ fontSize: 40 }}>🚪</div>
+            <div style={{ fontSize: 19, fontWeight: 800, color: '#0f172a', margin: '6px 0' }}>Leave the exam?</div>
+            <p style={{ color: '#475569', fontSize: 14.5, lineHeight: 1.55 }}>
+              {/* Say what actually happens. "Are you sure?" tells a candidate nothing, and
+                  the clock genuinely does not stop. */}
+              The clock keeps running and this is a one-attempt exam. Your answers so far are
+              kept, and you can return with your exam link until the battle ends.
+            </p>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center', marginTop: 10 }}>
+              <button onClick={() => setConfirmLeave(false)} style={{ background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 10, padding: '12px 24px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>Stay in the exam</button>
+              <button onClick={() => nav('/battles')} style={{ background: '#fff', color: '#b91c1c', border: '1.5px solid #fecaca', borderRadius: 10, padding: '12px 24px', fontWeight: 800, fontSize: 15, cursor: 'pointer' }}>Leave</button>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="qr-topbar">
+        <button className="qr-back" onClick={() => setConfirmLeave(true)} aria-label="Back to Tech Battles">←</button>
         <div className="qr-brand">
           <img src="/assets/logo.png" alt="CodeBegun" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
           <div><div className="qr-brand-name">CODEBEGUN</div><div className="qr-brand-tag">Tech Battle</div></div>

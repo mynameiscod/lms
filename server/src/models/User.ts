@@ -158,6 +158,7 @@ const UserSchema: Schema = new Schema(
       pathway:     { type: String },
       careerScore: { type: Number },
       level:       { type: String },
+      city:        { type: String },
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },
     },

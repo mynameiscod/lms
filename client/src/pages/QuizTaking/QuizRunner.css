@@ -183,3 +183,10 @@
 /* Radio inputs must still take a click — user-select does not affect that, but making the
    intent explicit stops someone "tidying" this into pointer-events: none later. */
 [data-noselect] input { pointer-events: auto; }
+
+/* Back out of the exam. Deliberately quiet — it sits next to the brand, not beside the
+   timer, so it is findable without competing with the thing the candidate should be
+   looking at. It always confirms first on a live exam. */
+.qr-back { flex: none; width: 36px; height: 36px; border-radius: 10px; border: 1px solid #e2e8f0;
+  background: #fff; color: #475569; font-size: 17px; line-height: 1; cursor: pointer; margin-right: 4px; }
+.qr-back:hover { background: #f8fafc; border-color: #cbd5e1; }

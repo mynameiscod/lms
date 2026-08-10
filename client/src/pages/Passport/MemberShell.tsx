@@ -35,6 +35,8 @@ const ICONS: Record<string, React.ReactNode> = {
   card:      <><rect x="2.5" y="5" width="19" height="14" rx="2.5" /><path d="M2.5 10h19" /><path d="M6.5 14.5h4" /></>,
   trophy:    <><path d="M7 4h10v5a5 5 0 0 1-10 0V4z" /><path d="M7 6H4.5v1.5A3.5 3.5 0 0 0 8 11" /><path d="M17 6h2.5v1.5A3.5 3.5 0 0 1 16 11" /><path d="M12 14v4M8.5 20h7" /></>,
   logout:    <><path d="M14.5 16.5 19 12l-4.5-4.5" /><path d="M19 12H9" /><path d="M11 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h5" /></>,
+  target:    <><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></>,
+  user:      <><circle cx="12" cy="8" r="3.6" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></>,
   chevron:   <><path d="m6 9 6 6 6-6" /></>,
   menu:      <><path d="M4 7h16M4 12h16M4 17h16" /></>,
   board:     <><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z" /></>,
@@ -63,6 +65,31 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+
+  /**
+   * M2 — lock the page behind the drawer.
+   *
+   * Without this the finger scrolls the page underneath while the menu is open, so
+   * closing it leaves the member somewhere they never meant to go. `position: fixed`
+   * rather than `overflow: hidden`, because iOS Safari ignores the latter on body — and
+   * the scroll position has to be captured and restored by hand, since going fixed
+   * throws it away.
+   */
+  useEffect(() => {
+    if (!mobileOpen) return;
+    const y = window.scrollY;
+    const body = document.body;
+    const prev = { position: body.style.position, top: body.style.top, width: body.style.width };
+    body.style.position = 'fixed';
+    body.style.top = `-${y}px`;
+    body.style.width = '100%';
+    return () => {
+      body.style.position = prev.position;
+      body.style.top = prev.top;
+      body.style.width = prev.width;
+      window.scrollTo(0, y);
+    };
+  }, [mobileOpen]);
 
   const [pwdOpen, setPwdOpen] = useState(false);
   const [pwd, setPwd] = useState('');
@@ -120,13 +147,21 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
       <aside className={`gd-side${mobileOpen ? ' open' : ''}`}>
         <button className="gd-logo" onClick={() => nav('/careerpilot')}>
-          <img className="mk" src="/assets/logo.png" alt="CodeBegun"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          {/* M3 — the chip's gradient was designed to sit behind a "CB" monogram, not a
+              logo image, so the artwork rendered on a purple/teal block. On error the
+              image hides and the monogram shows through, which is why the wrapper keeps
+              the gradient and the image sits on white above it. */}
+          <span className="mk"><b className="mono">CB</b>
+            <img src="/assets/logo.png" alt="CodeBegun"
+              onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+          </span>
           <div><b>Codebegun</b><small>Begin Your Code. Build Your Future.</small></div>
         </button>
 
         <nav className="gd-nav">
           {navBtn('Coding Home', 'home', '/careerpilot')}
+          {/* B8 — missions were only reachable by knowing they were on the home screen. */}
+          {navBtn('Daily Missions', 'target', '/careerpilot?view=missions')}
 
           {/* Practice Lab is a section, not a collapsible — its four surfaces are the
               most-used part of the product and shouldn't need a click to reach. */}
@@ -148,13 +183,27 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
 
           <div className="gd-nav-label">Leaderboard</div>
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot#leaderboard')}>
+          {/* These pointed at #leaderboard / #badges — anchors with no matching element,
+              so both just reloaded the dashboard and looked like a broken redirect. */}
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/leaderboard')}>
             <span className="ic"><Icon name="board" /></span><span className="lbl">Leaderboards</span>
           </button>
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot#badges')}>
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/achievements')}>
             <span className="ic"><Icon name="medal" /></span><span className="lbl">Achievements</span>
           </button>
         </nav>
+
+        {/* M4 — profile and log out. The account menu sits in the topbar, which is hidden
+            on a phone, so on mobile there was no way to reach either. Shown only in the
+            drawer (CSS hides this block on desktop, where the topbar menu exists). */}
+        <div className="gd-side-account">
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}>
+            <span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span>
+          </button>
+          <button className="gd-nav-btn out" onClick={() => logout()}>
+            <span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span>
+          </button>
+        </div>
 
         {goal && (
           <div className="gd-goal">

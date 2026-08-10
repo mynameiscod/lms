@@ -83,7 +83,9 @@ import PassportProfile from './pages/Passport/Profile';
 import PassportLeaderboard from './pages/Passport/Leaderboard';
 import PassportAchievements from './pages/Passport/Achievements';
 import PassportNews from './pages/Passport/News';
+import PassportCompanies from './pages/Passport/Companies';
 import PassportAdminNews from './pages/Passport/AdminNews';
+import PassportAdminCompanies from './pages/Passport/AdminCompanies';
 import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
@@ -446,6 +448,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
+      <Route path="/admin/passport/companies" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCompanies /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/news" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminNews /></Layout></ProtectedRoute>
       } />
@@ -482,6 +487,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/leaderboard" element={<PassportLeaderboard />} />
         <Route path="/careerpilot/achievements" element={<PassportAchievements />} />
         <Route path="/careerpilot/news" element={<PassportNews />} />
+        <Route path="/careerpilot/companies" element={<PassportCompanies />} />
+        <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
         <Route path="/passport/coins" element={<LegacyRedirect to="/careerpilot/coins" />} />
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
         <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />

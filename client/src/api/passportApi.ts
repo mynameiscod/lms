@@ -187,6 +187,64 @@ export const passportApi = {
     return data;
   },
 
+  // ── Company Questions ──
+  listCompanies: async (): Promise<{ locked?: boolean; priceInr?: number; companyTypes?: TaxItem[]; companies?: CompanyRow[] }> => {
+    const { data } = await axios.get(`${BASE}/companies`, { headers: auth() });
+    return data;
+  },
+  companyDetail: async (slug: string, params: Record<string, string> = {}): Promise<CompanyDetail> => {
+    const { data } = await axios.get(`${BASE}/companies/${slug}`, { headers: auth(), params });
+    return data;
+  },
+  contributeQuestion: async (slug: string, body: any): Promise<{ success: boolean; message: string }> => {
+    const { data } = await axios.post(`${BASE}/companies/${slug}/contribute`, body, { headers: auth() });
+    return data;
+  },
+  // Admin
+  getCompanyAdmin: async (): Promise<CompanyAdmin> => {
+    const { data } = await axios.get(`${BASE}/company-admin`, { headers: auth() });
+    return data;
+  },
+  saveTaxonomy: async (body: any): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/company-admin/taxonomy`, body, { headers: auth() });
+    return data;
+  },
+  saveCompany: async (body: any, id?: string): Promise<any> => {
+    const url = id ? `${BASE}/company-admin/companies/${id}` : `${BASE}/company-admin/companies`;
+    const { data } = id
+      ? await axios.put(url, body, { headers: auth() })
+      : await axios.post(url, body, { headers: auth() });
+    return data;
+  },
+  deleteCompany: async (id: string): Promise<any> => {
+    const { data } = await axios.delete(`${BASE}/company-admin/companies/${id}`, { headers: auth() });
+    return data;
+  },
+  adminQuestions: async (slug: string, status?: string): Promise<{ questions: AdminQuestion[] }> => {
+    const { data } = await axios.get(`${BASE}/company-admin/${slug}/questions`, { headers: auth(), params: status ? { status } : undefined });
+    return data;
+  },
+  saveQuestions: async (slug: string, questions: any[]): Promise<{ added: number }> => {
+    const { data } = await axios.post(`${BASE}/company-admin/${slug}/questions`, { questions }, { headers: auth() });
+    return data;
+  },
+  importQuestions: async (slug: string, raw: string): Promise<{ parsed: any[] }> => {
+    const { data } = await axios.post(`${BASE}/company-admin/${slug}/import`, { raw }, { headers: auth() });
+    return data;
+  },
+  predictQuestions: async (slug: string, body: any): Promise<{ parsed: any[] }> => {
+    const { data } = await axios.post(`${BASE}/company-admin/${slug}/predict`, body, { headers: auth() });
+    return data;
+  },
+  updateQuestion: async (id: string, body: any): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/company-admin/questions/${id}`, body, { headers: auth() });
+    return data;
+  },
+  deleteQuestion: async (id: string): Promise<any> => {
+    const { data } = await axios.delete(`${BASE}/company-admin/questions/${id}`, { headers: auth() });
+    return data;
+  },
+
   // ── Tech News ──
   getNews: async (): Promise<{ locked?: boolean; priceInr?: number; items?: NewsItem[] }> => {
     const { data } = await axios.get(`${BASE}/news`, { headers: auth() });
@@ -580,4 +638,24 @@ export interface NewsItem {
 export interface AdminNewsItem extends NewsItem { status: 'draft' | 'published'; aiGenerated?: boolean; }
 export interface NewsDraft {
   title: string; summary: string; source: string; imageUrl: string; tags: string[]; url: string;
+}
+
+// ── Company Questions ──
+export interface TaxItem { key: string; label: string; order: number; enabled: boolean; count?: number; }
+export interface CompanyRow { id: string; name: string; slug: string; type: string; logoUrl: string; about: string; questionCount: number; }
+export interface CompanyQuestionRow {
+  id: string; role: string; round: string; category: string; difficulty: string;
+  year: number | null; questionText: string; answer: string; tags: string[];
+  aiPredicted: boolean; source: string; practiceProblemId: string; upvotes: number;
+}
+export interface CompanyDetail {
+  company: { id: string; name: string; slug: string; type: string; logoUrl: string; about: string; roles: string[] };
+  rounds: TaxItem[]; categories: TaxItem[]; difficulties: TaxItem[];
+  questions: CompanyQuestionRow[];
+}
+export interface AdminQuestion extends CompanyQuestionRow { status: string; companySlug: string; reviewNote: string; contributor: string; }
+export interface CompanyAdmin {
+  taxonomy: { rounds: TaxItem[]; categories: TaxItem[]; difficulties: TaxItem[]; companyTypes: TaxItem[] };
+  companies: (CompanyRow & { active: boolean })[];
+  pendingCount: number;
 }

@@ -17,6 +17,7 @@ import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
 import * as news from '../controllers/techNewsController';
+import * as cq from '../controllers/companyQuestionController';
 
 const router = express.Router();
 
@@ -74,6 +75,24 @@ router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
 
 // Daily tech news. The member sees only what an admin has published; the AI writes
 // drafts and never publishes on its own.
+// Company Questions. Rounds and categories are DATA, so an admin adds "System Design"
+// without a deploy. AI-predicted rows stay flagged from generation to render.
+router.get('/companies',                     MEMBER, cq.listCompanies);
+router.get('/companies/:slug',               MEMBER, cq.companyDetail);
+router.post('/companies/:slug/contribute',   MEMBER, cq.contribute);
+
+router.get('/company-admin',                       MANAGE, cq.getAdmin);
+router.put('/company-admin/taxonomy',              MANAGE, cq.saveTaxonomy);
+router.post('/company-admin/companies',            MANAGE, cq.saveCompany);
+router.put('/company-admin/companies/:id',         MANAGE, cq.saveCompany);
+router.delete('/company-admin/companies/:id',      MANAGE, cq.deleteCompany);
+router.get('/company-admin/:slug/questions',       MANAGE, cq.adminQuestions);
+router.post('/company-admin/:slug/questions',      MANAGE, cq.saveQuestions);
+router.post('/company-admin/:slug/import',         MANAGE, cq.importQuestions);
+router.post('/company-admin/:slug/predict',        MANAGE, cq.predict);
+router.put('/company-admin/questions/:id',         MANAGE, cq.updateQuestion);
+router.delete('/company-admin/questions/:id',      MANAGE, cq.deleteQuestion);
+
 router.get('/news',                  MEMBER, news.feed);
 router.get('/news/admin',            MANAGE, news.list);
 router.post('/news/admin/draft',     MANAGE, news.draft);

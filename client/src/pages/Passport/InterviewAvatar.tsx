@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { lipSync } from './lipsync';
+import { VisemeRig } from './visemeRig';
 
 /**
  * The interviewer's face — a 3D head whose mouth is driven by the audio she is speaking.
@@ -28,8 +29,6 @@ interface Props {
   name?: string;
 }
 
-/** Blend-shape names we drive. Anything absent from the model is skipped silently. */
-const VISEME_KEYS = ['viseme_sil', 'viseme_aa', 'viseme_E', 'viseme_I', 'viseme_O', 'viseme_U', 'viseme_PP', 'viseme_SS', 'viseme_nn'] as const;
 
 const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
@@ -71,8 +70,8 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
 
     // Meshes carrying blend shapes, resolved once — searching the graph per frame would
     // cost more than the morph update itself.
-    type Target = { mesh: THREE.Mesh; index: Record<string, number> };
-    const targets: Target[] = [];
+    const morphMeshes: THREE.Mesh[] = [];
+    let rig: VisemeRig | null = null;
     let head: THREE.Object3D | null = null;
     let jawFallback: THREE.Object3D | null = null;   // procedural head only
 
@@ -80,10 +79,21 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       root.traverse(o => {
         const m = o as THREE.Mesh;
         if ((m as any).isMesh && m.morphTargetDictionary && m.morphTargetInfluences) {
-          targets.push({ mesh: m, index: m.morphTargetDictionary as any });
+          morphMeshes.push(m);
         }
         if (/head/i.test(o.name) && !head) head = o;
       });
+      // Resolve blend-shape names ONCE against whatever convention this model uses —
+      // Oculus visemes, ARKit anatomy, or some exporter's casing of either.
+      rig = new VisemeRig(morphMeshes.map(m => m.morphTargetDictionary as any));
+      if (!rig.usable) {
+        // Loaded, but nothing we can animate. A frozen realistic face is worse than an
+        // obvious stand-in, so fall back rather than ship a mannequin.
+        console.warn('[interview] avatar has no drivable blend shapes — using fallback head');
+        root.visible = false;
+        rig = null;
+        buildFallback();
+      }
     };
 
     /** A face built from primitives, for when the model cannot be loaded. */
@@ -166,12 +176,9 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       () => { if (!disposed) buildFallback(); },
     );
 
-    const setMorph = (nameKey: string, value: number) => {
-      for (const t of targets) {
-        const i = t.index[nameKey];
-        if (i !== undefined && t.mesh.morphTargetInfluences) t.mesh.morphTargetInfluences[i] = value;
-      }
-    };
+    // Reused every frame — a fresh Map at 60fps is avoidable garbage.
+    const shapeValues = new Map<string, number>();
+    const influencesOf = () => morphMeshes.map(m => m.morphTargetInfluences);
 
     // Blinks on a randomised timer. A perfectly periodic blink is more unsettling than
     // no blink at all.
@@ -198,9 +205,10 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       const now = performance.now();
 
       const w = lipSync.read();
-      for (const k of VISEME_KEYS) setMorph(k, w[k] || 0);
-      setMorph('jawOpen', lipSync.jaw * 0.7);
-      setMorph('mouthOpen', lipSync.jaw * 0.6);
+      if (rig) {
+        rig.apply(w, lipSync.jaw, shapeValues);
+        rig.write(shapeValues, influencesOf());
+      }
 
       if (jawFallback) {
         // No blend shapes to drive, so the primitive mouth is scaled directly: taller as
@@ -212,8 +220,7 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
 
       if (now > nextBlink) { blinkUntil = now + 110; nextBlink = now + 2200 + Math.random() * 3800; }
       const blink = now < blinkUntil ? 1 : 0;
-      setMorph('eyeBlinkLeft', blink);
-      setMorph('eyeBlinkRight', blink);
+      if (rig) rig.blink(blink, influencesOf());
 
       if (head) {
         // Idle sway always, a little more while speaking. Two sine waves at unrelated

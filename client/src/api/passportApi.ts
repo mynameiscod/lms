@@ -321,7 +321,7 @@ export interface DashboardData {
     xpThisWeek: number; xpLastWeek: number; xpDelta: number;
   };
   recentActivity?: { label: string; icon: string; color: string; xp: number; ago: string }[];
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string; feedback?: string }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview'; done: boolean; answer?: string; feedback?: string }[];
   allDone?: boolean;
   dailyGoal?: { earned: number; target: number; pct: number; met: boolean };
   streakWeek?: { date: string; letter: string; active: boolean; isToday: boolean }[];
@@ -420,7 +420,7 @@ export interface ContentPreview {
 export interface TodayMissions {
   locked?: boolean; needsAssessment?: boolean; priceInr?: number; reason?: string;
   day?: number; streak?: number; longestStreak?: number; xp?: number; allDone?: boolean;
-  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; done: boolean; answer?: string; feedback?: string }[];
+  missions?: { key: string; title: string; detail: string; category: string; type: string; xp: number; link?: string; needsAnswer?: boolean; verify?: 'interview'; done: boolean; answer?: string; feedback?: string }[];
 }
 
 export interface PassportCard {

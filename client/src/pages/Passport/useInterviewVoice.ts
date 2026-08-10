@@ -37,6 +37,14 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
   // Once the server voice has failed we stop paying the round-trip to fail again — a
   // missing key does not fix itself mid-interview.
   const serverVoiceDead = useRef(false);
+  // B11 — the member's intent, which outlives any single recogniser. Browsers END
+  // recognition on a pause, so `listening` alone cannot say whether they still want the
+  // mic open; without this, the first breath between sentences ended the answer.
+  const wantListening = useRef(false);
+  // M7 — how many results of the CURRENT recogniser have already been committed. Chrome
+  // re-reports earlier finals in later events, so appending everything from
+  // `e.resultIndex` transcribes the same sentence two or three times.
+  const consumed = useRef(0);
   // Held in a ref so the recogniser's long-lived handlers always call the CURRENT
   // callback — recreating the recogniser on every render would cut the candidate off
   // mid-sentence.
@@ -136,28 +144,67 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
       rec.onresult = (e: any) => {
         let finalText = '';
         let partial = '';
-        for (let i = e.resultIndex; i < e.results.length; i++) {
+        // Walk the WHOLE list and commit only what has not been committed before.
+        // `e.resultIndex` is where this event's changes start, not where new speech
+        // starts — a result that was already final can appear again in a later event, and
+        // trusting the index appends it a second time.
+        for (let i = 0; i < e.results.length; i++) {
           const r = e.results[i];
-          if (r.isFinal) finalText += r[0].transcript;
-          else partial += r[0].transcript;
+          if (r.isFinal) {
+            if (i >= consumed.current) {
+              finalText += r[0].transcript;
+              consumed.current = i + 1;
+            }
+          } else if (i >= consumed.current) {
+            partial += r[0].transcript;
+          }
         }
         setInterim(partial);
         if (finalText.trim()) onFinal.current(finalText.trim());
       };
       // `no-speech` and `aborted` are normal — someone paused, or we stopped it
       // ourselves. Only surface the ones that mean the mic is genuinely unavailable.
+      // `no-speech` and `aborted` are normal — someone paused, or we stopped it
+      // ourselves. Only a real fault should give up the mic.
       rec.onerror = (e: any) => {
-        if (e?.error && !['no-speech', 'aborted'].includes(e.error)) setListening(false);
+        if (e?.error && !['no-speech', 'aborted'].includes(e.error)) {
+          wantListening.current = false;
+          setListening(false);
+        }
       };
-      rec.onend = () => { setListening(false); setInterim(''); };
+
+      // B11 — a browser ends recognition after a short silence, roughly a couple of
+      // sentences in. Restarting while the member still wants the mic is what makes a
+      // long answer possible without them pressing stop and start between thoughts.
+      rec.onend = () => {
+        setInterim('');
+        if (!wantListening.current) { setListening(false); return; }
+        try {
+          // A fresh recogniser restarts its result list, so the committed count resets
+          // with it — otherwise the new session's first phrase is skipped.
+          consumed.current = 0;
+          rec.start();
+        } catch {
+          // start() throws if it is already running or the engine is busy; a short retry
+          // covers the gap without spinning.
+          window.setTimeout(() => {
+            if (!wantListening.current) return;
+            try { consumed.current = 0; rec.start(); } catch { setListening(false); }
+          }, 250);
+        }
+      };
 
       recRef.current = rec;
+      consumed.current = 0;
+      wantListening.current = true;
       rec.start();
       setListening(true);
-    } catch { setListening(false); }
+    } catch { wantListening.current = false; setListening(false); }
   }, [silence]);
 
   const stopListening = useCallback(() => {
+    // Clear intent BEFORE stopping, or onend restarts the very recogniser being stopped.
+    wantListening.current = false;
     try { recRef.current?.stop(); } catch { /* ignore */ }
     setListening(false); setInterim('');
   }, []);
@@ -165,6 +212,7 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
   // Leaving the page mid-interview must not leave a voice talking to an empty room or a
   // mic still open.
   useEffect(() => () => {
+    wantListening.current = false;      // stop the restart loop before unmounting
     silence();
     try { recRef.current?.stop(); } catch { /* ignore */ }
   }, [silence]);

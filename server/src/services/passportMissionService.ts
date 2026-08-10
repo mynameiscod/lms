@@ -20,6 +20,15 @@ export interface Mission {
    *  Derived from the absence of a link rather than stored, so a mission gains or loses
    *  the requirement the moment an admin gives it a real destination. */
   needsAnswer?: boolean;
+  /**
+   * This mission is PROVED by doing something, not by saying you did it.
+   *
+   * A mission that sends a member to the mock interview could be ticked complete from the
+   * dashboard without ever starting one — the tick was the only evidence, so the XP and
+   * the streak were both free. Where the product can check, it should: the member does
+   * the thing, and the mission closes itself.
+   */
+  verify?: 'interview';
 }
 export interface AttemptLite {
   careerScore: number;
@@ -308,6 +317,10 @@ export function missionsForDay(
     const pick = pool[idx];
     usedTitles.add(pick.title);
     const link = actionableLink(pick.link);
+    // Derived from the destination rather than stored on the pool item, so a mission
+    // becomes verifiable the moment an admin points it at the interview.
+    const verify = /^\/(careerpilot|passport)\/interview\/?$/.test((link || '').split(/[?#]/)[0])
+      ? ('interview' as const) : undefined;
 
     return {
       key: `d${day}-s${slot}`,
@@ -317,6 +330,7 @@ export function missionsForDay(
       type: pick.type,
       xp: pick.xp,
       link,
+      verify,
       needsAnswer: !link,
     } as Mission;
   }).filter(Boolean) as Mission[];

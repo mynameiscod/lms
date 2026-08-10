@@ -12,6 +12,7 @@ import { getOpenAI } from '../services/aiClients';
 import { recordUsage } from '../services/aiGateway';
 import * as settings from '../services/settingsService';
 import { awardCoins } from '../services/coinService';
+import { completeInterviewMissions } from '../services/passportMissionCloseService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -203,6 +204,13 @@ export const finish = async (req: Request, res: Response) => {
       session.xpAwarded = INTERVIEW_XP;
     }
     await session.save();
+
+    // Close today's mock-interview mission automatically. The member has just done the
+    // work; making them walk back to the dashboard and tick a box for it is the exact
+    // thing that let the box be ticked WITHOUT the work. Wrapped because a missing
+    // attempt or an edited pool must not cost them the interview they just completed.
+    try { await completeInterviewMissions(tenantId, studentId, new Date()); }
+    catch (e: any) { console.error('[passport] interview -> mission complete:', e?.message || e); }
 
     // Keyed on the session, so re-finishing an already-completed interview (the
     // alreadyCompleted path returns earlier anyway) can never pay a second time.

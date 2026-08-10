@@ -569,9 +569,11 @@ export async function evaluateTranscript(input: {
     `Transcript:\n${convo}`,
     '',
     'Return ONLY this JSON:',
-    '{"overallPercentage":<0-100>,"overallFeedback":"<3-4 sentences to the candidate>","topStrengths":["..."],"topWeaknesses":["..."],"recommendedPracticeAreas":["..."],"readinessLevel":"not_ready|needs_improvement|almost_ready|interview_ready","areaScores":[{"title":"<one of the areas>","percentage":<0-100>,"feedback":"<1-2 sentences>"}],"questionFeedback":[{"question":"<the interviewer question, shortened>","verdict":"strong|okay|weak","whatWorked":"<what they actually did well, or empty>","whatToFix":"<the single biggest fix>","betterAnswer":"<2-3 sentences in THEIR voice, first person>"}]}',
+    '{"overallFeedback":"<3-4 sentences to the candidate>","topStrengths":["..."],"topWeaknesses":["..."],"recommendedPracticeAreas":["..."],"readinessLevel":"not_ready|needs_improvement|almost_ready|interview_ready","areaScores":[{"title":"<one of the areas>","percentage":<0-100>,"feedback":"<1-2 sentences>"}],"questionFeedback":[{"question":"<the interviewer question, shortened>","verdict":"strong|okay|weak","whatWorked":"<what they actually did well, or empty>","whatToFix":"<the single biggest fix>","betterAnswer":"<2-3 sentences in THEIR voice, first person>"}]}',
     '',
     'Include one questionFeedback entry for EVERY question the candidate answered.',
+    'Score each AREA independently and honestly — the overall score is calculated from them,',
+    'so an area you mark generously raises the whole result.',
   ].join('\n');
 
   // Through the gateway: the evaluation is the part a member reads and judges the
@@ -587,8 +589,28 @@ export async function evaluateTranscript(input: {
   if (!resp || typeof resp.data !== 'object') return null;
   const d = resp.data;
   const readiness = String(d.readinessLevel || '').trim();
+
+  // B10 — the overall score is DERIVED from the areas, not taken from the model.
+  //
+  // Asked for an overall percentage as a separate field, the model anchored: four of six
+  // real interviews came back at exactly 28%, including one with 2 answers and 147
+  // characters and another with 6 answers and 2409. Its own area scores on those three
+  // averaged 18, 26 and 31 — so the number it invented contradicted the marks it had just
+  // given, and the member saw a headline that disagreed with the breakdown under it.
+  //
+  // The areas are demonstrably real: specific, varied, and different every time. Averaging
+  // them gives a score that always matches what is shown beneath it, and cannot drift.
+  const areas = Array.isArray(d.areaScores) ? d.areaScores : [];
+  const areaPcts = areas
+    .map((a: any) => clamp(a.percentage, 0, 100, NaN))
+    .filter((n: number) => Number.isFinite(n));
+  const derived = areaPcts.length
+    ? Math.round(areaPcts.reduce((x: number, y: number) => x + y, 0) / areaPcts.length)
+    : null;
+
   return {
-    overallPercentage: clamp(d.overallPercentage, 0, 100, 0),
+    // Falls back to the model's figure only when it scored no areas at all.
+    overallPercentage: derived ?? clamp(d.overallPercentage, 0, 100, 0),
     overallFeedback: String(d.overallFeedback || '').slice(0, 1500),
     topStrengths: strArr(d.topStrengths),
     topWeaknesses: strArr(d.topWeaknesses),

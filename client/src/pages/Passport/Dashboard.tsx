@@ -365,10 +365,17 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                       <span className="cnt">+{m.xp}</span>
                       {/* A written mission cannot be ticked straight to done — it would be
                           a claim with nothing behind it, which is what this replaces. */}
+                      {/* A mission the product can CHECK is not tickable either: doing
+                          the interview closes it. The tick was the only evidence before,
+                          which meant the XP was available without the work. */}
                       <button
                         className={`gd-check${m.done ? ' on' : ''}`}
-                        disabled={m.done || (m.needsAnswer && !m.done)}
-                        title={m.needsAnswer && !m.done ? 'Write your answer to complete this one' : undefined}
+                        disabled={m.done || (!!m.verify && !m.done) || (m.needsAnswer && !m.done)}
+                        title={
+                          m.verify === 'interview' && !m.done
+                            ? 'Finish a mock interview — this ticks itself when you do'
+                            : m.needsAnswer && !m.done ? 'Write your answer to complete this one' : undefined
+                        }
                         onClick={() => toggleMission(m.key)}
                       >
                         {m.done ? '✓' : ''}

@@ -7,6 +7,7 @@ import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
 import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd } from '../services/passportMissionService';
 import { completeMissionOnce } from '../services/passportXpService';
+import PassportInterview from '../models/PassportInterview';
 import { awardCoins } from '../services/coinService';
 import { reviewAnswer } from '../services/passportAnswerAIService';
 
@@ -88,6 +89,22 @@ export const completeMission = async (req: Request, res: Response) => {
     // and the gaps they see.
     if (valid.needsAnswer && answer.length < 10) {
       return res.status(400).json({ message: 'Write a short answer (at least 10 characters) to complete this one.' });
+    }
+
+    // M5 — a mission the product can CHECK cannot be closed by asserting it. Ticking the
+    // box was the only evidence that a mock interview had happened, so the XP, the coins
+    // and the streak were all available without doing one. The interview closes this
+    // mission itself when it finishes (see passportInterviewController.finish).
+    if (valid.verify === 'interview') {
+      const done = await PassportInterview.countDocuments({
+        tenantId, studentId, status: 'completed',
+        completedAt: { $gte: new Date(new Date(now).setHours(0, 0, 0, 0)) },
+      });
+      if (!done) {
+        return res.status(400).json({
+          message: 'Finish a mock interview to complete this one — it will tick itself when you do.',
+        });
+      }
     }
 
     const newlyDone = completeMissionOnce(progress, day, key, valid.xp, now, valid.needsAnswer ? answer : undefined);

@@ -8,7 +8,8 @@ import PassportInterview from '../models/PassportInterview';
 import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
-import { ensureContent, poolMapOf, missionsForDay, dayNumber } from '../services/passportMissionService';
+import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd } from '../services/passportMissionService';
+import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
 import { PRACTICE_BANK } from '../services/passportPracticeService';
@@ -191,6 +192,24 @@ export const getDashboard = async (req: Request, res: Response) => {
         id: String(c._id), title: c.title, prize: c.prize || null,
         startAt: c.startAt, slug: c.slug || null,
       })),
+
+      // Opening the dashboard IS the daily visit — there is no separate login event to
+      // hook, and a member who never opens this screen has not shown up in any sense
+      // worth paying for. Keyed on the calendar day, so refreshing costs nothing.
+      coins: await (async () => {
+        try {
+          await awardCoins({
+            tenantId, studentId, eventKey: 'daily_login',
+            idempotencyKey: `login:${studentId}:${ymd(new Date())}`,
+            note: 'Daily visit',
+          });
+          const acct = await getAccount(tenantId, studentId);
+          return { balance: acct.balance, lifetimeEarned: acct.lifetimeEarned };
+        } catch {
+          // The dashboard is the member's home screen. It renders with or without coins.
+          return null;
+        }
+      })(),
 
       shareSlug: user?.passport?.shareSlug || null,
       passwordSet: !!user?.passport?.passwordSet,

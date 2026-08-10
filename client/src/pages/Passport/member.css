@@ -375,3 +375,24 @@
   border: 2px solid #6650d8; opacity: .55; animation: iv-avatar-pulse 1.6s ease-in-out infinite; pointer-events: none; }
 @keyframes iv-avatar-pulse { 0%, 100% { opacity: .22; } 50% { opacity: .7; } }
 @media (prefers-reduced-motion: reduce) { .iv-avatar.speaking::after { animation: none; opacity: .5; } }
+
+/* ── Coin wallet ── */
+.cn-hero { border-radius: 16px; padding: 26px 20px; margin-bottom: 16px; text-align: center;
+  background: linear-gradient(135deg, #4c1d95 0%, #6650d8 55%, #8b5cf6 100%); color: #fff; }
+.cn-balance { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.cn-coin { font-size: 30px; }
+.cn-num { font-size: 44px; font-weight: 900; letter-spacing: -1px; line-height: 1; }
+.cn-sub { margin-top: 8px; font-size: 12.5px; font-weight: 700; color: #ddd6fe; }
+.cn-locked { margin-top: 14px; display: inline-block; font-size: 12.5px; font-weight: 800;
+  background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.28);
+  border-radius: 999px; padding: 7px 14px; }
+.cn-earn-row, .cn-hist-row { display: flex; align-items: center; gap: 11px; padding: 10px 0;
+  border-bottom: 1px dashed #f1f4f9; }
+.cn-earn-row:last-child, .cn-hist-row:last-child { border-bottom: none; }
+.cn-earn-row .ic, .cn-hist-row .ic { font-size: 17px; width: 22px; text-align: center; flex: none; }
+.cn-earn-row .lbl, .cn-hist-row .lbl { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 700; color: #0f172a; }
+.cn-earn-row .lbl em, .cn-hist-row .lbl em { display: block; font-style: normal; font-size: 11.5px;
+  font-weight: 600; color: #94a3b8; margin-top: 2px; }
+.cn-earn-row .amt, .cn-hist-row .amt { flex: none; font-size: 14px; font-weight: 900; color: #7c3aed; }
+.cn-hist-row .amt.neg { color: #b45309; }
+.cn-note { margin: 12px 0 0; font-size: 12px; color: #94a3b8; line-height: 1.6; }

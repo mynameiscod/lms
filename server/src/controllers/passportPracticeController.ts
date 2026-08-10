@@ -4,6 +4,7 @@ import PassportConfig from '../models/PassportConfig';
 import { ProgrammingLanguage } from '../models/Assignment';
 import { isEntitled } from '../services/passportEntitlementService';
 import { getOrCreateProgress, addXp, completeMissionOnce } from '../services/passportXpService';
+import { awardCoins } from '../services/coinService';
 import PassportAttempt from '../models/PassportAttempt';
 import { ensureContent, poolMapOf, missionsForDay, dayNumber } from '../services/passportMissionService';
 import { memberAxes } from '../services/careerStageService';
@@ -162,9 +163,22 @@ export const submit = async (req: Request, res: Response) => {
 
     await progress.save();
 
+    // Keyed on the problem, so re-solving it can never pay twice — the daily cap in the
+    // rule limits how many DIFFERENT problems earn in a day.
+    let coins = 0;
+    if (firstSolve) {
+      const r = await awardCoins({
+        tenantId, studentId, eventKey: 'practice_solved',
+        idempotencyKey: `practice:${studentId}:${problem.id}`,
+        note: problem.title || problem.id,
+      });
+      coins = r.awarded;
+    }
+
     res.json({
       ...payload, passed,
       xpAwarded: firstSolve ? problem.xp : 0,
+      coins,
       missionCompleted,
       xp: progress.xp, streak: progress.streak, longestStreak: progress.longestStreak,
       alreadySolved: passed && !firstSolve,

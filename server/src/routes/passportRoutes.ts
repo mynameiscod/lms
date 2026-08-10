@@ -12,6 +12,7 @@ import * as interview from '../controllers/passportInterviewController';
 import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
+import * as coins from '../controllers/passportCoinController';
 
 const router = express.Router();
 router.use(authMiddleware, tenantMiddleware);
@@ -44,6 +45,14 @@ router.post('/members',                MANAGE, ctrl.createMember);
 router.put('/members/:userId',         MANAGE, ctrl.updateMember);
 router.post('/members/:userId/active', MANAGE, ctrl.setMemberActive);
 router.delete('/members/:userId',      MANAGE, ctrl.deleteMember);
+
+// Coins — the member's balance, and the admin's dials. Earning rules are data, so
+// switching an event on or changing what it pays needs no deploy.
+router.get('/coins',                MEMBER, coins.myCoins);
+router.get('/coins/admin',          MANAGE, coins.getAdmin);
+router.put('/coins/admin/config',   MANAGE, coins.saveConfig);
+router.put('/coins/admin/rules',    MANAGE, coins.saveRules);
+router.get('/coins/admin/ledger',   MANAGE, coins.adminLedger);
 
 // Admin content — Pathways + Mission pools (what the Passport admin screens edit)
 router.get('/content',            MANAGE, content.getContent);

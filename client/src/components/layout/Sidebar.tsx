@@ -193,6 +193,7 @@ const Sidebar: React.FC<{ mobileOpen?: boolean; onMobileClose?: () => void }> = 
     { label: 'CareerPilot Pathways', path: '/admin/passport/pathways', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-route', permissions: ['manage_passport'] },
     { label: 'CareerPilot Assessment', path: '/admin/passport/assessment', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-clipboard-question', permissions: ['manage_passport'] },
     { label: 'CareerPilot Missions', path: '/admin/passport/missions', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-bullseye', permissions: ['manage_passport'] },
+    { label: 'CareerPilot Coins', path: '/admin/passport/coins', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-coins', permissions: ['manage_passport'] },
     { label: 'Career Stage Tagging', path: '/admin/careerpilot/staging', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-layer-group', permissions: ['manage_passport'] },
     { label: 'Paper Designer', path: '/admin/careerpilot/paper-design', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-sliders', permissions: ['manage_passport'] },
     { label: 'AI Spend', path: '/admin/ai-spend', roles: ['SUPER_ADMIN', 'TENANT_ADMIN'], icon: 'fa-solid fa-indian-rupee-sign', permissions: ['manage_tenant_settings', 'manage_tenant'] },

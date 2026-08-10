@@ -178,6 +178,28 @@ export const passportApi = {
     return URL.createObjectURL(data as Blob);
   },
 
+  // ── Coins ──
+  getCoins: async (): Promise<CoinsResponse> => {
+    const { data } = await axios.get(`${BASE}/coins`, { headers: auth() });
+    return data;
+  },
+  getCoinAdmin: async (): Promise<CoinAdminResponse> => {
+    const { data } = await axios.get(`${BASE}/coins/admin`, { headers: auth() });
+    return data;
+  },
+  saveCoinConfig: async (patch: Partial<CoinConfig>): Promise<{ config: CoinConfig }> => {
+    const { data } = await axios.put(`${BASE}/coins/admin/config`, patch, { headers: auth() });
+    return data;
+  },
+  saveCoinRules: async (rules: CoinRule[]): Promise<{ rules: CoinRule[] }> => {
+    const { data } = await axios.put(`${BASE}/coins/admin/rules`, { rules }, { headers: auth() });
+    return data;
+  },
+  getCoinLedger: async (): Promise<{ entries: CoinLedgerRow[] }> => {
+    const { data } = await axios.get(`${BASE}/coins/admin/ledger`, { headers: auth() });
+    return data;
+  },
+
   // ── Resume Center ──
   getResume: async (): Promise<{ resume: { sections: ResumeSections; score: ResumeScore | null; scoredAt?: string; version: number } }> => {
     const { data } = await axios.get(`${BASE}/resume`, { headers: auth() });
@@ -272,6 +294,8 @@ export interface LevelInfo {
 export interface Badge { key: string; label: string; icon: string; color: string; hint: string; earned: boolean; progress: number; }
 export interface DashboardData {
   active: boolean;
+  /** Null when the coin ledger is unavailable — the dashboard renders without it. */
+  coins?: { balance: number; lifetimeEarned: number } | null;
   hasAssessment: boolean;
   priceInr?: number;
   name?: string;
@@ -451,3 +475,32 @@ export const passportPublicApi = {
 };
 
 export default passportApi;
+
+// ── Coins ──
+export interface CoinConfig {
+  enabled: boolean; coinsPerRupee: number; monthlyEarnCap: number;
+  annualRealCostBudgetInr: number; expiryMonths: number; minRedemption: number;
+  referrerCoins: number; refereeCoins: number; referralMonthlyCap: number;
+  freeMembersAccrue: boolean;
+}
+export interface CoinRule {
+  eventKey: string; label: string; coins: number;
+  dailyCap: number; monthlyCap: number; enabled: boolean;
+}
+export interface CoinHistoryRow { at: string; coins: number; eventKey: string; note: string; balanceAfter: number; }
+export interface CoinsResponse {
+  enabled: boolean; balance: number; lifetimeEarned: number; lifetimeSpent: number;
+  redeemable: boolean; minRedemption: number; monthlyEarnCap: number; expiryMonths: number;
+  earnRules: { eventKey: string; label: string; coins: number; dailyCap: number }[];
+  history: CoinHistoryRow[];
+}
+export interface CoinLedgerRow { at: string; coins: number; eventKey: string; note: string; balanceAfter: number; member: string; }
+export interface CoinAdminResponse {
+  config: CoinConfig;
+  rules: CoinRule[];
+  knownEvents: { key: string; label: string }[];
+  stats: {
+    totalIssued: number; awards: number; earningMembers: number;
+    worstCaseInrPerMember: number; membershipPriceInr: number; budgetInrPerMember: number;
+  };
+}

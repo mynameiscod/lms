@@ -68,6 +68,7 @@ import LeaveRequests from './pages/LeaveRequests';
 import CodePlayground from './pages/CodePlayground';
 import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
+import PassportAdminCoins from './pages/Passport/AdminCoins';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
@@ -77,6 +78,7 @@ import PassportPractice from './pages/Passport/Practice';
 import PassportPracticeItem from './pages/Passport/PracticeItem';
 import PassportInterview from './pages/Passport/Interview';
 import PassportResumeCenter from './pages/Passport/ResumeCenter';
+import PassportCoins from './pages/Passport/Coins';
 import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
@@ -439,6 +441,9 @@ const AppRoutes: React.FC = () => {
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
       } />
+      <Route path="/admin/passport/coins" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>
+      } />
       <Route path="/admin/passport/pathways" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>
       } />
@@ -464,6 +469,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/passport/practice/:id" element={<LegacyRedirect to="/careerpilot/practice/:id" />} />
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />
+        <Route path="/careerpilot/coins" element={<PassportCoins />} />
+        <Route path="/passport/coins" element={<LegacyRedirect to="/careerpilot/coins" />} />
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
         <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />
       </Route>

@@ -11,6 +11,7 @@ import {
 import { getOpenAI } from '../services/aiClients';
 import { recordUsage } from '../services/aiGateway';
 import * as settings from '../services/settingsService';
+import { awardCoins } from '../services/coinService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -203,7 +204,15 @@ export const finish = async (req: Request, res: Response) => {
     }
     await session.save();
 
-    res.json({ session: publicSession(session), scored: !!evalResult });
+    // Keyed on the session, so re-finishing an already-completed interview (the
+    // alreadyCompleted path returns earlier anyway) can never pay a second time.
+    const coin = await awardCoins({
+      tenantId, studentId, eventKey: 'interview_complete',
+      idempotencyKey: `interview:${session._id}`,
+      note: session.role,
+    });
+
+    res.json({ session: publicSession(session), scored: !!evalResult, coins: coin.awarded });
   } catch (e: any) {
     console.error('[passport] interview finish:', e);
     res.status(500).json({ message: e.message || 'Could not finish the interview' });

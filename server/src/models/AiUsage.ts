@@ -14,6 +14,12 @@ export interface IAiUsage extends Document {
   inputTokens: number;
   outputTokens: number;
   audioSeconds: number;           // for speech-to-text
+  /**
+   * Characters sent to text-to-speech. TTS is billed per character, so without this the
+   * cost on the row cannot be reconciled against the provider's invoice — you can see
+   * what we think we spent, but not the quantity we were charged for.
+   */
+  chars: number;
   costUsd: number;
   costInr: number;
   date: string;                   // 'YYYY-MM-DD' (IST)
@@ -31,6 +37,7 @@ const AiUsageSchema = new Schema<IAiUsage>(
     inputTokens: { type: Number, default: 0 },
     outputTokens:{ type: Number, default: 0 },
     audioSeconds:{ type: Number, default: 0 },
+    chars:       { type: Number, default: 0 },
     costUsd:     { type: Number, default: 0 },
     costInr:     { type: Number, default: 0 },
     date:        { type: String, required: true, index: true },

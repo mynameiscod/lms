@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
 import './dashboard.css';
@@ -190,6 +190,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                   <span className="em">🔥</span>
                   <div><b>{st.streak}</b><span>Day Streak</span></div>
                 </div>
+                {/* Only once there is a balance — an empty wallet in the header teaches a
+                    member that coins are not worth paying attention to. */}
+                {!!d?.coins?.balance && (
+                  <Link to="/careerpilot/coins" className="gd-pill" style={{ textDecoration: 'none' }}>
+                    <span className="em">🪙</span>
+                    <div><b>{d.coins.balance.toLocaleString('en-IN')}</b><span>Coins</span></div>
+                  </Link>
+                )}
                 <div className="gd-pill level">
                   <span className="hex">🎖️</span>
                   <div>

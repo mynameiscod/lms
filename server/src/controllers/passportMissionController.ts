@@ -5,8 +5,9 @@ import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
 import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
-import { missionsForDay, dayNumber, ensureContent, poolMapOf } from '../services/passportMissionService';
+import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd } from '../services/passportMissionService';
 import { completeMissionOnce } from '../services/passportXpService';
+import { awardCoins } from '../services/coinService';
 import { reviewAnswer } from '../services/passportAnswerAIService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -111,9 +112,34 @@ export const completeMission = async (req: Request, res: Response) => {
 
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
     const missions = missionsForDay(attempt, day, pools, journeyDays);
+    const allDone = missions.every(m => doneKeys.has(m.key));
+
+    // Coins are awarded AFTER the completion is saved, and each key names the event
+    // rather than the request — the calendar day for the daily ones, the day+key for a
+    // single mission. Re-submitting the same mission cannot mint a second award, and a
+    // failure here cannot cost the member the mission itself.
+    let coins = 0;
+    if (newlyDone) {
+      const today = ymd(now);
+      const base = { tenantId, studentId, note: valid.title };
+      const one = await awardCoins({ ...base, eventKey: 'mission_complete', idempotencyKey: `mission:${studentId}:${day}:${key}` });
+      coins += one.awarded;
+
+      if (allDone) {
+        const all = await awardCoins({ ...base, eventKey: 'mission_all_done', note: 'All missions done', idempotencyKey: `missions_all:${studentId}:${today}` });
+        coins += all.awarded;
+      }
+      // A streak pays once per completed week, not once per day it stays alive.
+      if (progress.streak > 0 && progress.streak % 7 === 0) {
+        const st = await awardCoins({ ...base, eventKey: 'streak_7', note: `${progress.streak}-day streak`, idempotencyKey: `streak:${studentId}:${progress.streak}` });
+        coins += st.awarded;
+      }
+    }
+
     res.json({
       ok: true, xp: progress.xp, streak: progress.streak, longestStreak: progress.longestStreak,
-      allDone: missions.every(m => doneKeys.has(m.key)),
+      coins,
+      allDone,
       // null when AI is unavailable — the client shows the completion without coaching
       // rather than pretending the feature is broken.
       feedback,

@@ -46,6 +46,7 @@ export async function recordUsage(o: RecordOpts): Promise<void> {
       tenantId: o.tenantId && /^[a-f0-9]{24}$/i.test(o.tenantId) ? o.tenantId : undefined,
       module: o.module, product: o.product || 'lms', provider: o.provider, aiModel: o.model,
       inputTokens: o.inputTokens || 0, outputTokens: o.outputTokens || 0, audioSeconds: o.audioSeconds || 0,
+      chars: o.chars || 0,
       costUsd, costInr: costUsd * usdToInr(), date: ymd(istToday()), fellBack: !!o.fellBack,
     });
   } catch { /* non-fatal */ }

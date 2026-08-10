@@ -332,3 +332,23 @@
 .iv-voice-toggle { display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 700; color: #475569; cursor: pointer; }
 .iv-voice-toggle input { width: 15px; height: 15px; accent-color: #6d4bd8; cursor: pointer; }
 .iv-note { margin-top: 10px; font-size: 11.5px; color: #94a3b8; line-height: 1.5; }
+
+/* ── Question-by-question coaching on the feedback report ── */
+.iv-qf { border: 1px solid #eef2f7; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; background: #fcfdff; }
+.iv-qf:last-child { margin-bottom: 0; }
+.iv-qf-head { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 10px; }
+.iv-qf-q { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.5; }
+.iv-verdict { flex: none; font-size: 10.5px; font-weight: 900; letter-spacing: .4px; text-transform: uppercase;
+  padding: 4px 9px; border-radius: 999px; margin-top: 1px; }
+.iv-verdict.strong { background: #dcfce7; color: #166534; }
+.iv-verdict.okay   { background: #fef3c7; color: #92400e; }
+.iv-verdict.weak   { background: #fee2e2; color: #991b1b; }
+.iv-qf-line { font-size: 13px; line-height: 1.65; margin: 0 0 6px; color: #475569; }
+.iv-qf-line b { font-weight: 800; }
+.iv-qf-line.good b { color: #0f766e; }
+.iv-qf-line.fix  b { color: #b45309; }
+/* The stronger answer is the payload of this whole screen — it gets to look like a quote. */
+.iv-qf-better { margin-top: 10px; padding: 12px 14px; border-left: 3px solid #6366f1; border-radius: 0 10px 10px 0; background: #f5f6ff; }
+.iv-qf-better .lbl { display: block; font-size: 10.5px; font-weight: 900; letter-spacing: .5px;
+  text-transform: uppercase; color: #4f46e5; margin-bottom: 5px; }
+.iv-qf-better p { margin: 0; font-size: 13.5px; line-height: 1.7; color: #1e1b4b; font-style: italic; }

@@ -450,30 +450,39 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
 
   if (!isInterviewAIEnabled()) {
     // Scripted fallback so the interview still flows without AI.
-    if (history.length === 0) return { say: `Hi, I'm ${interviewerName}. Thanks for joining — tell me a bit about yourself and what you've been working on.`, kind: 'intro', endInterview: false };
-    if (nearEnd) return { say: `That's all I had — thanks for your time today. We'll share your feedback shortly.`, kind: 'closing', endInterview: true };
+    if (history.length === 0) return { say: `Hi, I'm ${interviewerName}. Tell me a bit about yourself.`, kind: 'intro', endInterview: false };
+    if (nearEnd) return { say: `That's all I had — thanks for your time.`, kind: 'closing', endInterview: true };
     const topic = areas[Math.min(askedCount, areas.length - 1)] || 'your experience';
-    return { say: `Thanks. Let's talk about ${topic} — walk me through how you'd approach it.`, kind: 'question', endInterview: false };
+    return { say: `Thanks. How would you approach ${topic}?`, kind: 'question', endInterview: false };
   }
 
-  const transcript = history.slice(-12).map(t => `${t.role === 'interviewer' ? interviewerName : 'Candidate'}: ${t.text}`).join('\n');
+  const transcript = history.slice(-(input.historyWindow ?? 6)).map(t => `${t.role === 'interviewer' ? interviewerName : 'Candidate'}: ${t.text}`).join('\n');
   // Written for SPEECH — this line is read aloud to the candidate, so anything that only
   // works on a page (markdown, lists, restating the question, "as I mentioned above")
   // sounds wrong out loud.
+  //
+  // BREVITY IS THE POINT. A written question can be re-read; a spoken one cannot. A long
+  // question makes the candidate ask "sorry, what was the question?" instead of answering,
+  // and every extra word is also spoken audio we pay for by the character.
   const system = [
     `You are ${interviewerName}, a real interviewer running a LIVE SPOKEN mock interview for a ${role} role.`,
     candidateName ? `The candidate's name is ${candidateName}. Use it occasionally, the way a person would — not every turn.` : '',
-    `Your line will be READ ALOUD. Write how people talk: ONE turn, 1–2 sentences, no markdown, no lists, no bullet points, no emoji.`,
+    ``,
+    `LENGTH IS THE MOST IMPORTANT RULE. Your whole line must be UNDER 25 WORDS.`,
+    `Real interviewers ask short questions: "What was the hardest bug you hit there?" — not a paragraph.`,
+    `One sentence of acknowledgement at most, and only if it is worth saying — five words, not fifteen.`,
+    `Then ONE short question. Never explain why you are asking. Never give context they already have.`,
+    `No markdown, no lists, no emoji. Nothing that only works in writing.`,
     ``,
     `How to behave like a person:`,
-    `- React to what they actually SAID before asking anything. A short, specific acknowledgement ("that's a fair point about the caching") — never a generic "great answer".`,
-    `- PROBE when an answer is thin, vague, or claims something without evidence. Ask for the specific: a number, a trade-off they weighed, what broke. Probe the same answer up to TWICE before moving on.`,
+    `- React to what they actually SAID, briefly and specifically ("fair point on the caching") — never a generic "great answer".`,
+    `- PROBE when an answer is thin or unevidenced: ask for one number, one trade-off, or what broke. Still under 25 words. Probe the same answer up to TWICE.`,
     `- Move to a new area once an answer is genuinely covered. Do not interrogate a point they have already made well.`,
-    `- If they say they don't know, accept it warmly and move on. Do not punish it or ask the same thing again.`,
+    `- If they say they don't know, accept it in a few words and move on.`,
     `- Never restate the question you just asked, and never number your questions.`,
     ``,
     `Cover these areas across the interview: ${areas.join(', ') || 'background, technical skills, problem solving'}.`,
-    `Ask exactly one question per turn. Output ONLY raw JSON.`,
+    `Ask exactly one question per turn, under 25 words. Output ONLY raw JSON.`,
   ].filter(Boolean).join('\n');
   const user = [
     `Interviewer questions asked so far: ${askedCount} (aim for about ${maxQuestions}).`,
@@ -486,7 +495,7 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
     'Return ONLY this JSON: {"say":"<your next spoken line>","kind":"intro|question|followup|transition|closing","endInterview":<true|false>}',
   ].filter(Boolean).join('\n');
 
-  const data = await gatewayJSON(system, user, 300, {
+  const data = await gatewayJSON(system, user, 140, {
     tenantId: input.tenantId, module: 'interview_turn', product: input.product,
   });
   if (!data || typeof data !== 'object' || !data.say) {
@@ -499,7 +508,7 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
     if (history.length === 0) {
       throw new Error('The interviewer is unavailable right now. Please try again in a few minutes.');
     }
-    return { say: nearEnd ? 'Thanks for your time today — that wraps up our interview.' : 'Thanks. Can you tell me more about that?', kind: nearEnd ? 'closing' : 'followup', endInterview: nearEnd };
+    return { say: nearEnd ? 'Thanks for your time — that wraps us up.' : 'Can you tell me more about that?', kind: nearEnd ? 'closing' : 'followup', endInterview: nearEnd };
   }
   const kind = ['intro', 'question', 'followup', 'transition', 'closing'].includes(data.kind) ? data.kind : 'question';
   return {
@@ -522,6 +531,7 @@ export interface TranscriptEvalResult {
   recommendedPracticeAreas: string[];
   readinessLevel: AISummaryResult['readinessLevel'];
   areaScores: { title: string; percentage: number; feedback: string }[];
+  questionFeedback: { question: string; verdict: string; whatWorked: string; whatToFix: string; betterAnswer: string }[];
   usage?: Usage;
 }
 
@@ -536,9 +546,22 @@ export async function evaluateTranscript(input: {
   const convo = input.transcript.map(t => `${t.role === 'interviewer' ? 'Interviewer' : 'Candidate'}: ${t.text}`).join('\n').slice(0, 9000);
   const areaList = input.areas.map(a => `${a.title} (${a.type})`).join(', ') || 'overall performance';
 
-  const system =
-    'You are a strict but fair senior interviewer grading a completed mock interview from its transcript. ' +
-    'Judge ONLY the candidate\'s answers. Be specific and actionable. Output ONLY raw JSON, no markdown.';
+  // The bar here is "would this change what they say in the real interview?". Generic
+  // grading ("improve your communication skills") reads as feedback and teaches nothing,
+  // so the prompt insists on the candidate's own words and a concrete better answer.
+  const system = [
+    'You are a strict but fair senior interviewer grading a completed mock interview from its transcript.',
+    'Judge ONLY the candidate\'s answers, never the interviewer\'s questions.',
+    '',
+    'FEEDBACK RULES — these are what make this useful:',
+    '- QUOTE the candidate\'s own words when you praise or criticise. Never a generic line that would fit any candidate.',
+    '- For every question, write the BETTER ANSWER they should have given — in first person, 2-3 sentences, as if they were saying it.',
+    '- Base the better answer on THEIR real background from the transcript. Never invent experience they never claimed.',
+    '- Every practice area must be a concrete action ("write out a STAR story for your college project"), not a topic name.',
+    '- Score honestly. A vague or empty answer is a low score, however politely it was worded.',
+    '',
+    'Output ONLY raw JSON, no markdown.',
+  ].join('\n');
   const user = [
     `Role: ${input.role}.`,
     `Assessment areas: ${areaList}.`,
@@ -546,13 +569,18 @@ export async function evaluateTranscript(input: {
     `Transcript:\n${convo}`,
     '',
     'Return ONLY this JSON:',
-    '{"overallPercentage":<0-100>,"overallFeedback":"<3-4 sentences to the candidate>","topStrengths":["..."],"topWeaknesses":["..."],"recommendedPracticeAreas":["..."],"readinessLevel":"not_ready|needs_improvement|almost_ready|interview_ready","areaScores":[{"title":"<one of the areas>","percentage":<0-100>,"feedback":"<1-2 sentences>"}]}',
+    '{"overallPercentage":<0-100>,"overallFeedback":"<3-4 sentences to the candidate>","topStrengths":["..."],"topWeaknesses":["..."],"recommendedPracticeAreas":["..."],"readinessLevel":"not_ready|needs_improvement|almost_ready|interview_ready","areaScores":[{"title":"<one of the areas>","percentage":<0-100>,"feedback":"<1-2 sentences>"}],"questionFeedback":[{"question":"<the interviewer question, shortened>","verdict":"strong|okay|weak","whatWorked":"<what they actually did well, or empty>","whatToFix":"<the single biggest fix>","betterAnswer":"<2-3 sentences in THEIR voice, first person>"}]}',
+    '',
+    'Include one questionFeedback entry for EVERY question the candidate answered.',
   ].join('\n');
 
   // Through the gateway: the evaluation is the part a member reads and judges the
   // product on, so it must survive one provider being down, and its cost belongs on the
   // CareerPilot line of the spend screen like every other call.
-  const d0 = await gatewayJSON(system, user, 1200, {
+  //
+  // Roomier ceiling than the old 1200: per-question coaching is the bulk of the output now,
+  // and a truncated JSON object parses to nothing — costing the member their evaluation.
+  const d0 = await gatewayJSON(system, user, 2600, {
     tenantId: input.tenantId, module: 'interview_evaluation', product: input.product,
   });
   const resp = d0 ? { data: d0, usage: { inputTokens: 0, outputTokens: 0 } } : null;
@@ -568,6 +596,17 @@ export async function evaluateTranscript(input: {
     readinessLevel: (READINESS.has(readiness) ? readiness : 'needs_improvement') as AISummaryResult['readinessLevel'],
     areaScores: Array.isArray(d.areaScores)
       ? d.areaScores.map((a: any) => ({ title: String(a.title || ''), percentage: clamp(a.percentage, 0, 100, 0), feedback: String(a.feedback || '').slice(0, 600) }))
+      : [],
+    // Capped at the number of questions an interview can have, and every string bounded —
+    // this is model output being written straight into a stored document.
+    questionFeedback: Array.isArray(d.questionFeedback)
+      ? d.questionFeedback.slice(0, 12).map((q: any) => ({
+          question:     String(q.question || '').slice(0, 300),
+          verdict:      ['strong', 'okay', 'weak'].includes(q.verdict) ? q.verdict : 'okay',
+          whatWorked:   String(q.whatWorked || '').slice(0, 600),
+          whatToFix:    String(q.whatToFix || '').slice(0, 600),
+          betterAnswer: String(q.betterAnswer || '').slice(0, 1200),
+        }))
       : [],
     usage: resp.usage,
   };

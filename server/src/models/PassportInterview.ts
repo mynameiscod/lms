@@ -23,6 +23,7 @@ export interface IPassportInterviewEval {
   improvements: string[];
   recommendedPracticeAreas: string[];
   areaScores: { title: string; percentage: number; feedback: string }[];
+  questionFeedback?: { question: string; verdict: string; whatWorked: string; whatToFix: string; betterAnswer: string }[];
 }
 
 export interface IPassportInterview extends Document {
@@ -57,6 +58,12 @@ const EvalSchema = new Schema<IPassportInterviewEval>({
   improvements:   [{ type: String }],
   recommendedPracticeAreas: [{ type: String }],
   areaScores: [{ title: String, percentage: Number, feedback: String }],
+  // Per-question coaching. Area scores tell a member WHERE they are weak; this tells them
+  // what to have said instead, which is the only part they can act on before the real
+  // interview. Kept on the session so it is still there months later.
+  questionFeedback: [{
+    question: String, verdict: String, whatWorked: String, whatToFix: String, betterAnswer: String,
+  }],
 }, { _id: false });
 
 const PassportInterviewSchema = new Schema<IPassportInterview>(

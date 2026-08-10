@@ -29,7 +29,7 @@ const usdToInr = () => settings.getNum('USD_TO_INR', 85);
 
 interface RecordOpts {
   tenantId?: string; module: string; product?: string; provider: 'openai' | 'anthropic' | 'whisper';
-  model: string; inputTokens?: number; outputTokens?: number; audioSeconds?: number; fellBack?: boolean;
+  model: string; inputTokens?: number; outputTokens?: number; audioSeconds?: number; chars?: number; fellBack?: boolean;
 }
 
 // Never let usage logging break an AI call.
@@ -37,6 +37,10 @@ export async function recordUsage(o: RecordOpts): Promise<void> {
   try {
     let costUsd: number;
     if (o.provider === 'whisper') costUsd = ((o.audioSeconds || 0) / 60) * WHISPER_USD_PER_MIN;
+    // Text-to-speech is billed per CHARACTER, not per token, so it needs its own rate.
+    // Kept as a setting rather than a constant: published prices move, and an admin
+    // should be able to correct the spend figure without a deploy.
+    else if (o.chars) costUsd = (o.chars / 1e6) * settings.getNum('TTS_USD_PER_1M_CHARS', 15);
     else { const p = priceFor(o.model); costUsd = ((o.inputTokens || 0) / 1e6) * p.in + ((o.outputTokens || 0) / 1e6) * p.out; }
     await AiUsage.create({
       tenantId: o.tenantId && /^[a-f0-9]{24}$/i.test(o.tenantId) ? o.tenantId : undefined,

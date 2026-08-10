@@ -10,6 +10,8 @@ const READINESS_LABEL: Record<string, string> = {
   interview_ready: 'Interview ready',
 };
 
+const VERDICT_LABEL: Record<string, string> = { strong: 'Strong', okay: 'Okay', weak: 'Needs work' };
+
 /**
  * AI Mock Interview room — the `mock_interview` entitlement.
  * Shares the LMS interview brain (nextInterviewerTurn / evaluateTranscript) but runs
@@ -161,6 +163,31 @@ const Interview: React.FC = () => {
                       <span className="p">{a.percentage}%</span>
                     </div>
                     {a.feedback && <div style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.6, padding: '0 0 8px' }}>{a.feedback}</div>}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {!!ev?.questionFeedback?.length && (
+              <div className="pm-card">
+                <h3 style={{ fontSize: 15, fontWeight: 900, color: '#0f172a', margin: '0 0 4px' }}>Question by question</h3>
+                <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 14px' }}>
+                  What to say instead, next time you're asked this.
+                </p>
+                {ev.questionFeedback.map((q, i) => (
+                  <div className="iv-qf" key={i}>
+                    <div className="iv-qf-head">
+                      <span className={`iv-verdict ${q.verdict}`}>{VERDICT_LABEL[q.verdict] || q.verdict}</span>
+                      <span className="iv-qf-q">{q.question}</span>
+                    </div>
+                    {q.whatWorked && <p className="iv-qf-line good"><b>Worked:</b> {q.whatWorked}</p>}
+                    {q.whatToFix && <p className="iv-qf-line fix"><b>Fix:</b> {q.whatToFix}</p>}
+                    {q.betterAnswer && (
+                      <div className="iv-qf-better">
+                        <span className="lbl">A stronger answer</span>
+                        <p>"{q.betterAnswer}"</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

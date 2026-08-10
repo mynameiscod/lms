@@ -18,8 +18,25 @@ const PassportAdminStudents: React.FC = () => {
   const [answers, setAnswers] = useState<any[] | null>(null);
   const [answersBusy, setAnswersBusy] = useState(false);
 
+  // Mock interviews for one member, same load-on-demand shape as the answers panel.
+  // Only one of the two panels is open at a time — they are both wide, and stacking them
+  // under one row makes the table unreadable.
+  const [ivFor, setIvFor] = useState<string>('');
+  const [ivs, setIvs] = useState<any[] | null>(null);
+  const [ivBusy, setIvBusy] = useState(false);
+
+  const openInterviews = async (id: string) => {
+    if (ivFor === id) { setIvFor(''); setIvs(null); return; }
+    setAnswersFor(''); setAnswers(null);
+    setIvFor(id); setIvs(null); setIvBusy(true);
+    try { setIvs((await passportApi.listStudentInterviews(id)).interviews); }
+    catch { setIvs([]); }
+    setIvBusy(false);
+  };
+
   const openAnswers = async (id: string) => {
     if (answersFor === id) { setAnswersFor(''); setAnswers(null); return; }
+    setIvFor(''); setIvs(null);
     setAnswersFor(id); setAnswers(null); setAnswersBusy(true);
     try { setAnswers((await passportApi.listStudentAnswers(id)).answers); }
     catch { setAnswers([]); }
@@ -137,6 +154,7 @@ const PassportAdminStudents: React.FC = () => {
                     ) : (
                       <>
                         <button style={mini} onClick={() => openAnswers(r._id)}>{answersFor === r._id ? 'Hide answers' : 'Answers'}</button>
+                        <button style={mini} onClick={() => openInterviews(r._id)}>{ivFor === r._id ? 'Hide interviews' : 'Interviews'}</button>
                         <button style={mini} onClick={() => { setEditId(r._id); setEditVal(`${r.firstName || ''} ${r.lastName || ''}`.trim()); }}>Edit</button>
                         <button style={mini} onClick={() => toggleActive(r)}>{r.isActive === false ? 'Restore' : 'Deactivate'}</button>
                         <button style={{ ...mini, color: '#b91c1c' }} onClick={() => removeMember(r)}>Delete</button>
@@ -187,6 +205,64 @@ const PassportAdminStudents: React.FC = () => {
                                 </div>
                               )}
                             </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+
+                {ivFor === r._id && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '0 14px 16px', background: '#fbfcfe' }}>
+                      {ivBusy ? (
+                        <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>Loading interviews…</div>
+                      ) : !ivs?.length ? (
+                        <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>
+                          This member hasn't sat a mock interview yet.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gap: 10, paddingTop: 12 }}>
+                          {ivs.map(s => (
+                            <details key={s.id} style={{ background: '#fff', border: '1px solid #eef0f7', borderRadius: 10, padding: '11px 13px' }}>
+                              <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap' }}>
+                                <span style={{
+                                  fontSize: 12, fontWeight: 900, borderRadius: 99, padding: '3px 9px',
+                                  background: s.status === 'completed' ? '#eef2ff' : '#f1f5f9',
+                                  color: s.status === 'completed' ? '#4338ca' : '#64748b',
+                                }}>
+                                  {s.evaluation ? `${s.evaluation.overallScore}%` : s.status.replace(/_/g, ' ')}
+                                </span>
+                                <b style={{ fontSize: 13, color: '#0f172a' }}>{s.role}</b>
+                                <span style={{ fontSize: 11.5, color: '#94a3b8' }}>{s.answers} answers</span>
+                                <span style={{ fontSize: 11.5, color: '#94a3b8', marginLeft: 'auto' }}>
+                                  {s.startedAt ? new Date(s.startedAt).toLocaleDateString('en-IN') : ''}
+                                </span>
+                              </summary>
+
+                              {s.evaluation?.summary && (
+                                <div style={{ marginTop: 10, fontSize: 12.5, color: '#475569', lineHeight: 1.6 }}>{s.evaluation.summary}</div>
+                              )}
+                              {!!s.evaluation?.areaScores?.length && (
+                                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                                  {s.evaluation.areaScores.map((a: any, i: number) => (
+                                    <span key={i} style={{ fontSize: 11, fontWeight: 700, background: '#f8fafc', color: '#475569', border: '1px solid #eef0f7', borderRadius: 99, padding: '3px 9px' }}>
+                                      {a.title} {a.percentage}%
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              {/* The transcript is the whole reason to look at this: a score
+                                  says a member struggled, the words say what to teach them. */}
+                              <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #eef0f7', display: 'grid', gap: 7 }}>
+                                {s.transcript.map((t: any, i: number) => (
+                                  <div key={i} style={{ fontSize: 12.5, lineHeight: 1.6, color: t.role === 'interviewer' ? '#6650d8' : '#29313f' }}>
+                                    <b style={{ fontSize: 10.5, letterSpacing: .4 }}>{t.role === 'interviewer' ? 'PRIYA' : 'MEMBER'}</b>{' '}
+                                    <span style={{ whiteSpace: 'pre-wrap' }}>{t.text}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </details>
                           ))}
                         </div>
                       )}

@@ -8,6 +8,9 @@ import { getOrCreateProgress, addXp } from '../services/passportXpService';
 import {
   nextInterviewerTurn, evaluateTranscript, isInterviewAIEnabled, ConvTurn,
 } from '../services/interviewAIService';
+import { getOpenAI } from '../services/aiClients';
+import { recordUsage } from '../services/aiGateway';
+import * as settings from '../services/settingsService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -173,13 +176,14 @@ export const finish = async (req: Request, res: Response) => {
           improvements: evalResult.topWeaknesses,
           recommendedPracticeAreas: evalResult.recommendedPracticeAreas,
           areaScores: evalResult.areaScores,
+          questionFeedback: evalResult.questionFeedback,
         }
       : {
           // AI unavailable — still close the session honestly rather than faking a score.
           overallScore: 0,
           readinessLevel: 'needs_improvement',
           summary: 'AI feedback is not available right now, so this round was not scored. Your transcript is saved — try again once AI is configured.',
-          strengths: [], improvements: [], recommendedPracticeAreas: [], areaScores: [],
+          strengths: [], improvements: [], recommendedPracticeAreas: [], areaScores: [], questionFeedback: [],
         };
 
     session.status = 'completed';
@@ -210,5 +214,50 @@ export const get = async (req: Request, res: Response) => {
     res.json({ session: publicSession(session) });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load interview' });
+  }
+};
+
+/**
+ * POST /passport/interview/speak — the interviewer's line as real spoken audio.
+ *
+ * The browser's speechSynthesis is free but unmistakably synthetic, and a robotic voice
+ * undoes the thing this feature exists to create. OpenAI TTS costs roughly a rupee an
+ * interview (about 900 characters across six questions) and sounds like a person.
+ *
+ * The client falls back to speechSynthesis whenever this fails, so a missing key, a quota
+ * problem or an outage costs realism, never the interview.
+ */
+export const speak = async (req: Request, res: Response) => {
+  try {
+    const { cfg, entitled } = await gate(req);
+    if (!entitled) return res.status(403).json({ message: 'Membership required.' });
+
+    // Bounded because this is billed per character and the body is client-supplied.
+    const text = String(req.body?.text || '').trim().slice(0, 600);
+    if (!text) return res.status(400).json({ message: 'Nothing to speak.' });
+
+    const client = getOpenAI();
+    if (!client) return res.status(503).json({ message: 'Voice is not configured.' });
+
+    const voice = settings.getStr('INTERVIEW_TTS_VOICE', 'nova');
+    const model = settings.getStr('INTERVIEW_TTS_MODEL', 'tts-1');
+
+    const speech = await client.audio.speech.create({
+      model, voice: voice as any, input: text, response_format: 'mp3',
+    } as any);
+    const buf = Buffer.from(await speech.arrayBuffer());
+
+    // Attributed like every other CareerPilot call, so the spend screen stays honest.
+    await recordUsage({
+      tenantId: tenantOf(req), module: 'careerpilot_interview_tts', product: 'careerpilot',
+      provider: 'openai', model, chars: text.length,
+    });
+
+    res.setHeader('Content-Type', 'audio/mpeg');
+    res.setHeader('Cache-Control', 'no-store');
+    res.send(buf);
+  } catch (e: any) {
+    console.error('[passport] interview speak:', e?.message || e);
+    res.status(500).json({ message: 'Voice unavailable' });
   }
 };

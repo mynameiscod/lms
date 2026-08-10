@@ -12,6 +12,7 @@ import PassportProgress from '../models/PassportProgress';
 import PassportAttempt from '../models/PassportAttempt';
 import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
 import { memberAxes } from '../services/careerStageService';
+import PassportInterview from '../models/PassportInterview';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -192,6 +193,45 @@ export const listStudentAnswers = async (req: Request, res: Response) => {
     res.json({ name: `${user.firstName || ''} ${user.lastName || ''}`.trim(), email: user.email, answers });
   } catch (e: any) {
     res.status(500).json({ message: e.message || 'Failed to load answers' });
+  }
+};
+
+/**
+ * GET /passport/students/:studentId/interviews — every mock interview this member has sat.
+ *
+ * The sessions were always stored; nothing read them outside the member's own account,
+ * which meant the one artefact showing how a member actually PERFORMS — not what they
+ * clicked — was invisible to the people coaching them. Transcript included, because the
+ * score without the words behind it tells a reviewer nothing they can act on.
+ */
+export const listStudentInterviews = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = String(req.params.studentId || '');
+
+    const [user, sessions] = await Promise.all([
+      User.findOne({ _id: studentId, tenantId }).select('firstName lastName email').lean() as any,
+      PassportInterview.find({ tenantId, studentId }).sort({ createdAt: -1 }).limit(30).lean() as any,
+    ]);
+    if (!user) return res.status(404).json({ message: 'Member not found' });
+
+    res.json({
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
+      email: user.email,
+      interviews: (sessions || []).map((s: any) => ({
+        id: String(s._id),
+        role: s.role,
+        status: s.status,
+        askedCount: s.askedCount,
+        answers: (s.transcript || []).filter((t: any) => t.role === 'candidate').length,
+        startedAt: s.startedAt,
+        completedAt: s.completedAt || null,
+        evaluation: s.evaluation || null,
+        transcript: (s.transcript || []).map((t: any) => ({ role: t.role, text: t.text, at: t.at })),
+      })),
+    });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Failed to load interviews' });
   }
 };
 

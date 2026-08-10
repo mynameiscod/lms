@@ -35,6 +35,7 @@ router.get('/config',    MANAGE, ctrl.getConfig);
 router.put('/config',    MANAGE, ctrl.updateConfig);
 router.get('/students',  roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudents);
 router.get('/students/:studentId/answers', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentAnswers);
+router.get('/students/:studentId/interviews', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentInterviews);
 router.post('/convert',  roleGuard(['convert_passport_member']), ctrl.convertStudent);
 
 // Member management. Create/edit/deactivate sit with manage_passport; hard delete is
@@ -83,6 +84,7 @@ router.get('/interview',              MEMBER, interview.list);
 router.post('/interview/start',       MEMBER, interview.start);
 router.get('/interview/:id',          MEMBER, interview.get);
 router.post('/interview/:id/turn',    MEMBER, interview.turn);
+router.post('/interview/speak',       MEMBER, interview.speak);
 router.post('/interview/:id/finish',  MEMBER, interview.finish);
 
 // Resume Center (resume entitlement)

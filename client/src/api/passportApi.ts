@@ -42,6 +42,19 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/students/${studentId}/answers`, { headers: auth() });
     return data;
   },
+  /** Admin: every mock interview this member has sat, newest first. */
+  listStudentInterviews: async (studentId: string): Promise<{
+    name: string; email?: string;
+    interviews: {
+      id: string; role: string; status: string; askedCount: number; answers: number;
+      startedAt: string; completedAt: string | null;
+      evaluation: InterviewSession['evaluation'];
+      transcript: InterviewTurn[];
+    }[];
+  }> => {
+    const { data } = await axios.get(`${BASE}/students/${studentId}/interviews`, { headers: auth() });
+    return data;
+  },
   convert: async (studentId: string): Promise<any> => {
     const { data } = await axios.post(`${BASE}/convert`, { studentId }, { headers: auth() });
     return data;
@@ -158,6 +171,11 @@ export const passportApi = {
   finishInterview: async (id: string): Promise<{ session: InterviewSession; scored?: boolean }> => {
     const { data } = await axios.post(`${BASE}/interview/${id}/finish`, {}, { headers: auth() });
     return data;
+  },
+  /** The interviewer's line as real spoken audio. Returns a blob URL the caller must revoke. */
+  speakInterviewLine: async (text: string): Promise<string> => {
+    const { data } = await axios.post(`${BASE}/interview/speak`, { text }, { headers: auth(), responseType: 'blob' });
+    return URL.createObjectURL(data as Blob);
   },
 
   // ── Resume Center ──
@@ -341,6 +359,7 @@ export interface InterviewSession {
     overallScore: number; readinessLevel: string; summary: string;
     strengths: string[]; improvements: string[]; recommendedPracticeAreas: string[];
     areaScores: { title: string; percentage: number; feedback: string }[];
+    questionFeedback?: { question: string; verdict: 'strong' | 'okay' | 'weak'; whatWorked: string; whatToFix: string; betterAnswer: string }[];
   } | null;
   xpAwarded: number; startedAt: string; completedAt?: string;
 }

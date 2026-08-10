@@ -29,6 +29,14 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/students`, { headers: auth(), params: { search } });
     return data.students;
   },
+  /** Admin: what this member has written on missions that have no other surface. */
+  listStudentAnswers: async (studentId: string): Promise<{
+    name: string; email?: string;
+    answers: { day: number; key: string; title: string; detail: string; category: string | null; answer: string; at: string }[];
+  }> => {
+    const { data } = await axios.get(`${BASE}/students/${studentId}/answers`, { headers: auth() });
+    return data;
+  },
   convert: async (studentId: string): Promise<any> => {
     const { data } = await axios.post(`${BASE}/convert`, { studentId }, { headers: auth() });
     return data;

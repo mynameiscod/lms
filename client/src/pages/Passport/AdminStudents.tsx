@@ -11,6 +11,21 @@ const PassportAdminStudents: React.FC = () => {
   const [adding, setAdding] = useState(false);
   const [nw, setNw] = useState({ firstName: '', lastName: '', email: '', phone: '' });
 
+  // Written mission answers for one member, loaded on demand. Not folded into the list
+  // query: it replays the mission generator per answered day, which is wasted work for
+  // the members an admin never opens.
+  const [answersFor, setAnswersFor] = useState<string>('');
+  const [answers, setAnswers] = useState<any[] | null>(null);
+  const [answersBusy, setAnswersBusy] = useState(false);
+
+  const openAnswers = async (id: string) => {
+    if (answersFor === id) { setAnswersFor(''); setAnswers(null); return; }
+    setAnswersFor(id); setAnswers(null); setAnswersBusy(true);
+    try { setAnswers((await passportApi.listStudentAnswers(id)).answers); }
+    catch { setAnswers([]); }
+    setAnswersBusy(false);
+  };
+
   const load = useCallback(async () => {
     try { setRows(await passportApi.listStudents(search)); } catch { setRows([]); }
   }, [search]);
@@ -96,7 +111,8 @@ const PassportAdminStudents: React.FC = () => {
           <tbody>
             {rows.length === 0 ? <tr><td colSpan={6} style={{ padding: 30, textAlign: 'center', color: '#94a3b8' }}>No CareerPilot students yet.</td></tr> :
               rows.map(r => (
-                <tr key={r._id} style={{ borderTop: '1px solid #f5f7fa', opacity: r.isActive === false ? .55 : 1 }}>
+                <React.Fragment key={r._id}>
+                <tr style={{ borderTop: '1px solid #f5f7fa', opacity: r.isActive === false ? .55 : 1 }}>
                   <td style={{ padding: '10px 14px', fontWeight: 600 }}>
                     {editId === r._id
                       ? <input defaultValue={`${r.firstName || ''} ${r.lastName || ''}`.trim()}
@@ -120,6 +136,7 @@ const PassportAdminStudents: React.FC = () => {
                       </>
                     ) : (
                       <>
+                        <button style={mini} onClick={() => openAnswers(r._id)}>{answersFor === r._id ? 'Hide answers' : 'Answers'}</button>
                         <button style={mini} onClick={() => { setEditId(r._id); setEditVal(`${r.firstName || ''} ${r.lastName || ''}`.trim()); }}>Edit</button>
                         <button style={mini} onClick={() => toggleActive(r)}>{r.isActive === false ? 'Restore' : 'Deactivate'}</button>
                         <button style={{ ...mini, color: '#b91c1c' }} onClick={() => removeMember(r)}>Delete</button>
@@ -127,6 +144,38 @@ const PassportAdminStudents: React.FC = () => {
                     )}
                   </td>
                 </tr>
+
+                {answersFor === r._id && (
+                  <tr>
+                    <td colSpan={6} style={{ padding: '0 14px 16px', background: '#fbfcfe' }}>
+                      {answersBusy ? (
+                        <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>Loading answers…</div>
+                      ) : !answers?.length ? (
+                        <div style={{ padding: 14, color: '#94a3b8', fontSize: 13 }}>
+                          This member hasn't written any mission answers yet.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'grid', gap: 10, paddingTop: 12 }}>
+                          {answers.map(a => (
+                            <div key={`${a.day}-${a.key}`} style={{ background: '#fff', border: '1px solid #eef0f7', borderRadius: 10, padding: '11px 13px' }}>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 5 }}>
+                                <span style={{ fontSize: 10.5, fontWeight: 800, color: '#6650d8', background: '#f1eeff', borderRadius: 99, padding: '2px 8px' }}>DAY {a.day}</span>
+                                <b style={{ fontSize: 13, color: '#0f172a' }}>{a.title}</b>
+                                <span style={{ fontSize: 11.5, color: '#94a3b8', marginLeft: 'auto' }}>
+                                  {a.at ? new Date(a.at).toLocaleDateString('en-IN') : ''}
+                                </span>
+                              </div>
+                              {/* pre-wrap: the member typed line breaks and they carry meaning
+                                  (one role, then three skills). Collapsing them loses the shape. */}
+                              <div style={{ fontSize: 13, color: '#29313f', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{a.answer}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                )}
+                </React.Fragment>
               ))}
           </tbody>
         </table>

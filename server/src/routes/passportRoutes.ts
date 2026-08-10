@@ -34,6 +34,7 @@ const MEMBER = roleGuard(['use_passport']);
 router.get('/config',    MANAGE, ctrl.getConfig);
 router.put('/config',    MANAGE, ctrl.updateConfig);
 router.get('/students',  roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudents);
+router.get('/students/:studentId/answers', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentAnswers);
 router.post('/convert',  roleGuard(['convert_passport_member']), ctrl.convertStudent);
 
 // Member management. Create/edit/deactivate sit with manage_passport; hard delete is

@@ -375,9 +375,22 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                       <div className="gd-answer">
                         <textarea
                           value={answerText} autoFocus rows={3}
-                          placeholder={m.detail}
+                          placeholder="Type your answer here…"
                           onChange={e => setAnswerText(e.target.value)}
+                          // Pasting and drag-dropping are both blocked: the value of this
+                          // box is that the words are the member's own, and a pasted
+                          // answer is worth less than an empty one because it looks like
+                          // data and is not. Drop is covered too — it is the same
+                          // bypass with a different gesture.
+                          //
+                          // This is a speed bump, not a control. Anyone determined can
+                          // retype from another window. It is here to make the honest
+                          // path the easy one, and the hint below says so up front rather
+                          // than letting a blocked paste look like a broken box.
+                          onPaste={e => e.preventDefault()}
+                          onDrop={e => e.preventDefault()}
                         />
+                        <div className="hint">✍️ Write it in your own words — pasting is turned off for this one.</div>
                         <div className="row">
                           <button className="save" onClick={() => saveAnswer(m.key)} disabled={answerBusy}>
                             {answerBusy ? 'Saving…' : `Save & complete  +${m.xp} XP`}

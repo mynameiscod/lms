@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import passportApi from '../../api/passportApi';
 import { lipSync } from './lipsync';
+import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 
 /**
  * Voice for the mock interview.
@@ -97,7 +98,9 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
             audioRef.current = a;
             // Route through the analyser so the avatar's mouth follows this line. Must
             // happen before play(): attaching mid-playback drops the first syllables.
-            lipSync.attach(a);
+            // Skipped when there is no face to drive — putting the audio through a Web
+            // Audio graph for nobody's benefit is a failure surface with no upside.
+            if (INTERVIEWER_FACE_ENABLED) lipSync.attach(a);
             const done = () => { URL.revokeObjectURL(url); resolve(); };
             a.onended = done;
             a.onerror = done;

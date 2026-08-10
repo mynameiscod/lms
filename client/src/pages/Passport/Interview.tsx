@@ -2,7 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import passportApi, { InterviewSession } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
-import InterviewAvatar from './InterviewAvatar';
+import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
+
+// Lazy so three.js and the avatar land in their own chunk. While the face is switched off
+// that chunk is never requested, so the code costs nothing to keep.
+const InterviewAvatar = React.lazy(() => import('./InterviewAvatar'));
 
 const READINESS_LABEL: Record<string, string> = {
   not_ready: 'Not ready yet',
@@ -251,8 +255,12 @@ const Interview: React.FC = () => {
           <div className="iv-chat">
             {/* The face sits above the transcript rather than beside it: on a phone the
                 room is one column, and a talking head pushed below the fold is the same
-                as no head at all. */}
-            <InterviewAvatar speaking={voice.speaking} name={session.interviewerName} />
+                as no head at all. Currently off — see interviewFace.ts. */}
+            {INTERVIEWER_FACE_ENABLED && (
+              <React.Suspense fallback={null}>
+                <InterviewAvatar speaking={voice.speaking} name={session.interviewerName} />
+              </React.Suspense>
+            )}
 
             {session.transcript.map((t, i) => (
               <div className={`iv-turn ${t.role}`} key={i}>

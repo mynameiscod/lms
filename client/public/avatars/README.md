@@ -1,6 +1,11 @@
 # Interviewer face
 
-The mock interview looks for a face here, in this order:
+**Currently switched OFF.** `INTERVIEWER_FACE_ENABLED` in
+`client/src/pages/Passport/interviewFace.ts` is `false`, so the interview renders voice and
+transcript only and nothing in this folder is loaded. Set it to `true` to bring the face
+back — everything below applies from that point on.
+
+When enabled, the mock interview looks for a face here, in this order:
 
 1. `interviewer.jpg` — a photograph. Warped in a shader so the mouth and eyes move with
    the speech (see `photoFace.ts`). This is the best-looking option and the one in use.

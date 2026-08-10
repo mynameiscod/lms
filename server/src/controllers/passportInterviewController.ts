@@ -22,6 +22,12 @@ const MAX_QUESTIONS = 6;
 /** Turns of transcript sent per request. The single biggest driver of interview cost. */
 const HISTORY_WINDOW = 6;
 const PRODUCT = 'careerpilot';
+/**
+ * Who the member is talking to. Read per request rather than captured at import, so the
+ * name can be changed from Platform Settings alongside the voice — the two have to agree
+ * or the face, the name and the sound are three different people.
+ */
+const interviewerName = () => settings.getStr('INTERVIEW_INTERVIEWER_NAME', 'Siva');
 
 // Which areas a mock covers, per pathway. Keeps the interview relevant to what the
 // member's roadmap is actually preparing them for.
@@ -89,7 +95,7 @@ export const start = async (req: Request, res: Response) => {
     const role = String(req.body?.role || preset.role);
 
     const first = await nextInterviewerTurn({
-      interviewerName: 'Priya', role, areas: preset.areas,
+      interviewerName: interviewerName(), role, areas: preset.areas,
       history: [], askedCount: 0, maxQuestions: MAX_QUESTIONS,
       candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
       tenantId, product: PRODUCT,
@@ -97,7 +103,7 @@ export const start = async (req: Request, res: Response) => {
 
     const session = await PassportInterview.create({
       tenantId, studentId, role, areas: preset.areas,
-      interviewerName: 'Priya', maxQuestions: MAX_QUESTIONS, askedCount: 1,
+      interviewerName: interviewerName(), maxQuestions: MAX_QUESTIONS, askedCount: 1,
       status: 'in_progress',
       transcript: [{ role: 'interviewer', text: first.say, at: new Date() }],
     });
@@ -241,15 +247,16 @@ export const speak = async (req: Request, res: Response) => {
 
     // gpt-4o-mini-tts, NOT tts-1. The six tts-1 voices are all American or British —
     // there is no Indian one, so the previous version returned a genuinely human voice
-    // that still sounded wrong for an interviewer called Priya talking to a candidate in
+    // that still sounded wrong for an Indian interviewer talking to a candidate in
     // India. Only gpt-4o-mini-tts accepts `instructions`, and that is the only lever
     // OpenAI gives for accent.
     const model = settings.getStr('INTERVIEW_TTS_MODEL', 'gpt-4o-mini-tts');
-    const voice = settings.getStr('INTERVIEW_TTS_VOICE', 'coral');
+    // A male voice, because the interviewer's face is a photograph of a man.
+    const voice = settings.getStr('INTERVIEW_TTS_VOICE', 'onyx');
     const instructions = settings.getStr(
       'INTERVIEW_TTS_INSTRUCTIONS',
       'Speak in natural Indian English, with the rhythm and vowels of an educated Indian professional from a city like Bengaluru or Hyderabad. ' +
-      'You are a warm, calm interviewer in her early thirties. Speak at an unhurried, conversational pace — this is a real conversation, not a reading. ' +
+      'You are a warm, calm male interviewer in his mid thirties. Speak at an unhurried, conversational pace — this is a real conversation, not a reading. ' +
       'Sound genuinely interested in the answer. Do not sound like a newsreader or an announcer.',
     );
 

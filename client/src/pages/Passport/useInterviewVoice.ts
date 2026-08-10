@@ -63,8 +63,8 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
         window.speechSynthesis.cancel();          // never let two lines overlap
         const u = new SpeechSynthesisUtterance(text);
         u.rate = 1.0; u.pitch = 1.0; u.lang = 'en-IN';
-        // Prefer an Indian English voice when the device has one — the interviewer is
-        // called Priya, and a US voice undercuts that before she says anything.
+        // Prefer an Indian English voice when the device has one. This is only the
+        // fallback path, but a US voice undercuts the interviewer before he says anything.
         const voices = window.speechSynthesis.getVoices();
         const preferred =
           voices.find(v => /en[-_]IN/i.test(v.lang)) ||
@@ -123,7 +123,7 @@ export function useInterviewVoice(opts: { onFinalTranscript: (text: string) => v
   const startListening = useCallback(() => {
     if (!SpeechRec) return;
     try {
-      // Speaking while the mic is open makes the interviewer transcribe herself.
+      // Speaking while the mic is open makes the interviewer transcribe themselves.
       silence();
       const rec = new SpeechRec();
       rec.lang = 'en-IN';

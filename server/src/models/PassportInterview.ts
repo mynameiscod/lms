@@ -72,7 +72,7 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     role:            { type: String, default: 'Software Engineer' },
     areas:           [{ type: String }],
-    interviewerName: { type: String, default: 'Priya' },
+    interviewerName: { type: String, default: 'Siva' },
     maxQuestions:    { type: Number, default: 6 },
     askedCount:      { type: Number, default: 0 },
     status:     { type: String, enum: ['in_progress', 'completed', 'abandoned'], default: 'in_progress', index: true },

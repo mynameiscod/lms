@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { lipSync } from './lipsync';
 import { VisemeRig } from './visemeRig';
+import { createPhotoFace, PhotoFace } from './photoFace';
 
 /**
  * The interviewer's face — a 3D head whose mouth is driven by the audio she is speaking.
@@ -21,6 +22,18 @@ import { VisemeRig } from './visemeRig';
  */
 
 const MODEL_URL = process.env.REACT_APP_INTERVIEWER_MODEL || '/avatars/interviewer.glb';
+const PHOTO_URL = process.env.REACT_APP_INTERVIEWER_PHOTO || '/avatars/interviewer.jpg';
+
+/**
+ * Framing for the photo, in fractions of the image height.
+ *
+ * A portrait is usually shot head-and-shoulders, so filling the frame with the whole
+ * picture puts a shirt where a face should be. These crop in on the head. Tuned for a
+ * square, straight-on portrait — nudge them if a different photo sits high or low.
+ */
+const PHOTO_ZOOM = 1.55;
+/** Positive moves the visible crop UP the image, toward the face. */
+const PHOTO_FACE_OFFSET = 0.12;
 
 interface Props {
   /** Drives idle vs speaking motion. The mouth itself follows the audio, not this flag. */
@@ -30,7 +43,7 @@ interface Props {
 }
 
 
-const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
+const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'your interviewer' }) => {
   const mountRef = useRef<HTMLDivElement | null>(null);
   // Read inside the animation loop, which must not restart when a prop changes.
   const speakingRef = useRef(speaking);
@@ -164,7 +177,46 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
     };
 
     let disposed = false;
-    new GLTFLoader().load(
+    let photo: PhotoFace | null = null;
+    let photoFrame: THREE.Group | null = null;
+    let photoAspect = 1;
+
+    /**
+     * A real photograph beats any model we can generate, so it is tried FIRST and the
+     * 3D path is only reached when there is no usable picture.
+     */
+    const tryPhoto = () => new Promise<boolean>(resolve => {
+      const loader = new THREE.TextureLoader();
+      loader.load(
+        PHOTO_URL,
+        tex => {
+          if (disposed) { tex.dispose(); return resolve(true); }
+          const img: any = tex.image;
+          const aspect = (img?.width || 1) / (img?.height || 1);
+          photo = createPhotoFace(tex, aspect);
+          // The mesh sits inside a group so the two transforms never fight: the group
+          // frames the shot, the mesh alone carries the breathing.
+          photoFrame = new THREE.Group();
+          photoFrame.add(photo.mesh);
+          photo.mesh.position.y = -PHOTO_FACE_OFFSET;
+          photoAspect = aspect;
+          // A flat photo wants a flat camera: perspective on a plane just distorts the
+          // face toward the edges.
+          camera.position.set(0, 0, 1);
+          camera.fov = 2 * Math.atan(0.5 / 1) * 180 / Math.PI;
+          camera.lookAt(0, 0, 0);
+          camera.updateProjectionMatrix();
+          scene.add(photoFrame);
+          head = photo.mesh;
+          resize();                 // apply the cover scale now that the size is known
+          resolve(true);
+        },
+        undefined,
+        () => resolve(false),
+      );
+    });
+
+    const loadModel = () => new GLTFLoader().load(
       MODEL_URL,
       gltf => {
         if (disposed) { return; }
@@ -175,6 +227,10 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       undefined,
       () => { if (!disposed) buildFallback(); },
     );
+
+    // Photo → 3D model → primitives. Each step only runs when the one before it found
+    // nothing, so a member always gets a face rather than an empty frame.
+    tryPhoto().then(ok => { if (!disposed && !ok) loadModel(); });
 
     // Reused every frame — a fresh Map at 60fps is avoidable garbage.
     const shapeValues = new Map<string, number>();
@@ -191,6 +247,14 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       renderer.setSize(w, h, false);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
+
+      if (photoFrame) {
+        // Cover, not contain: a letterboxed portrait with background showing down both
+        // sides looks like a mistake. Scale until the plane fills the shorter axis too.
+        const cover = Math.max(1, camera.aspect / photoAspect);
+        const s = cover * PHOTO_ZOOM;
+        photoFrame.scale.set(s, s, 1);
+      }
     };
     resize();
     const ro = new ResizeObserver(resize);
@@ -205,6 +269,12 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       const now = performance.now();
 
       const w = lipSync.read();
+      if (photo) {
+        // Rounded vs spread lips come straight from the vowels the analyser picked.
+        const round = (w.viseme_O || 0) + (w.viseme_U || 0);
+        const wide = (w.viseme_I || 0) + (w.viseme_E || 0) + (w.viseme_SS || 0);
+        photo.update(lipSync.jaw, Math.min(1, round), Math.min(1, wide), now < blinkUntil ? 1 : 0);
+      }
       if (rig) {
         rig.apply(w, lipSync.jaw, shapeValues);
         rig.write(shapeValues, influencesOf());
@@ -222,7 +292,15 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
       const blink = now < blinkUntil ? 1 : 0;
       if (rig) rig.blink(blink, influencesOf());
 
-      if (head) {
+      if (photo && head) {
+        // A photo cannot rotate — turning a flat plane reveals it is flat. It gets a
+        // gentle drift and breath instead, which is enough to stop it looking frozen.
+        const amp = speakingRef.current ? 1 : 0.5;
+        head.position.x = Math.sin(t * 0.37) * 0.006 * amp;
+        head.position.y = Math.sin(t * 0.53) * 0.005 * amp;
+        const breath = 1 + Math.sin(t * 0.8) * 0.0035 * amp;
+        head.scale.set(breath, breath, 1);
+      } else if (head) {
         // Idle sway always, a little more while speaking. Two sine waves at unrelated
         // frequencies so the motion never visibly repeats.
         const amp = speakingRef.current ? 1 : 0.45;
@@ -258,6 +336,7 @@ const InterviewAvatar: React.FC<Props> = ({ speaking, name = 'Priya' }) => {
           else mat?.dispose?.();
         }
       });
+      photo?.dispose();
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };

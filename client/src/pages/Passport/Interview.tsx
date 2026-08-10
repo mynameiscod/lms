@@ -265,7 +265,7 @@ const Interview: React.FC = () => {
 
             {voice.speaking && (
               <div className="iv-speaking">
-                <span className="dot" /> Priya is speaking…
+                <span className="dot" /> {session.interviewerName} is speaking…
                 <button onClick={voice.stopSpeaking}>Skip</button>
               </div>
             )}

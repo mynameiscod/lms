@@ -195,6 +195,29 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
   // Everything the missions card renders comes from here, so one swap covers the list,
   // the counts and the XP total.
   const shownMissions = pastDay ? (pastDay.missions || []) : (d.missions || []);
+  const nextMission = shownMissions.find(m => !m.done) || null;
+
+  /**
+   * Do whatever the next mission actually asks for.
+   *
+   * A mission with a destination navigates there. One completed by writing opens its own
+   * answer box and scrolls to it — that is its surface, and sending someone to a different
+   * page to do it is what made this button feel broken. Only a finished day falls through
+   * to the Practice Lab.
+   */
+  const startNext = () => {
+    if (!nextMission) { nav('/careerpilot/practice'); return; }
+    if (nextMission.link) { nav(nextMission.link); return; }
+    setAnswerFor(nextMission.key);
+    setAnswerText('');
+    setAnswerMsg('');
+    // The row may be below the fold on a phone; opening a box nobody can see reads as
+    // nothing having happened.
+    requestAnimationFrame(() => {
+      document.getElementById(`mission-${nextMission.key}`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  };
   const doneCount = shownMissions.filter(m => m.done).length;
   const totalMissions = shownMissions.length;
   const hasActivity = (d.activity || []).some(a => a.xp > 0);
@@ -387,7 +410,7 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
               <>
                 {shownMissions.map(m => (
                   <React.Fragment key={m.key}>
-                    <div className={`gd-mission${m.done ? ' done' : ''}`}>
+                    <div className={`gd-mission${m.done ? ' done' : ''}`} id={`mission-${m.key}`}>
                       <span className="badge" style={{ background: m.done ? '#dcfce7' : '#f1eeff' }}>{CAT_ICON[m.category] || '•'}</span>
                       <div className="txt">
                         <b>{m.title}</b>
@@ -465,8 +488,15 @@ const Dashboard: React.FC<Props> = ({ data, reload }) => {
                     )}
                   </React.Fragment>
                 ))}
-                <button className="gd-mission-cta" onClick={() => nav(d.missions?.find(m => !m.done)?.link || '/careerpilot/practice')}>
-                  {d.allDone ? 'All done today — practice anyway →' : 'Start Now →'}
+                {/* M6 — this used to be `nav(firstIncomplete?.link || '/careerpilot/practice')`.
+                    Missions that are completed by WRITING have no link (45 of the 136 in
+                    the pools), so whenever the next thing to do was one of those, Start
+                    Now silently sent the member to the coding lab instead. It now does
+                    what the next mission actually needs. */}
+                <button className="gd-mission-cta" onClick={startNext}>
+                  {nextMission
+                    ? (nextMission.link ? 'Start Now →' : 'Write your answer →')
+                    : 'All done today — practice anyway →'}
                 </button>
               </>
             )}

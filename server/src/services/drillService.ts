@@ -56,23 +56,70 @@ export async function evaluatePlan(prompt: string, plan: string): Promise<{ ok: 
   } catch { return { ok: true, hint: '' }; }
 }
 
-// Run the student's code against every test case → pass/fail.
+/**
+ * Run the student's code against every test case.
+ *
+ * These used to run one after another, each a full round-trip to the sandbox. Measured on
+ * production that is ~0.4s for Python but ~3.8s for Java, because every execution pays for
+ * a fresh javac — so a five-test Java problem took the best part of twenty seconds before
+ * the student saw anything.
+ *
+ * Two changes, in order of how much they save:
+ *
+ *  1. THE FIRST TEST RUNS ALONE. If the code does not compile, every remaining execution
+ *     was guaranteed to fail the same way, and the student waited through all of them to
+ *     be told about a missing semicolon. Compile errors now cost ONE run instead of N.
+ *
+ *  2. THE REST RUN CONCURRENTLY. They are independent — same code, different stdin — so
+ *     there is nothing to serialise. Wall-clock becomes the slowest single test rather
+ *     than the sum, and the results are reassembled in order.
+ */
 export async function runAgainstTests(language: string, code: string, testCases: { input: string; expectedOutput: string; hidden: boolean }[]) {
   const lang = RUNNABLE[(language || '').toLowerCase()] || ProgrammingLanguage.JAVASCRIPT;
+  if (!testCases.length) return { results: [], allPassed: true, firstFail: null as any, compileError: '' };
+
+  const runOne = (tc: { input: string; expectedOutput: string; hidden: boolean }) =>
+    codeRunner.execute({ code, language: lang, input: tc.input || '', expectedOutput: '', timeLimit: 10000, memoryLimit: 256 });
+
+  const first = await runOne(testCases[0]);
+  if (first.compilationError) {
+    // Nothing else can pass, so do not spend the sandbox time proving it.
+    return {
+      results: testCases.map((tc, i) => ({ passed: false, hidden: tc.hidden, index: i })),
+      allPassed: false,
+      firstFail: { input: testCases[0].input, expected: testCases[0].expectedOutput, actual: first.compilationError },
+      compileError: first.compilationError,
+    };
+  }
+
+  const rest = testCases.length > 1
+    ? await Promise.all(testCases.slice(1).map(runOne))
+    : [];
+  const runs = [first, ...rest];
+
   const results: { passed: boolean; hidden: boolean; index: number }[] = [];
   let firstFail: { input: string; expected: string; actual: string } | null = null;
   let compileError = '';
-  for (let i = 0; i < testCases.length; i++) {
+
+  // Reassembled in test order, so "test 3 failed" still means the third one.
+  runs.forEach((r, i) => {
     const tc = testCases[i];
-    const r = await codeRunner.execute({ code, language: lang, input: tc.input || '', expectedOutput: '', timeLimit: 10000, memoryLimit: 256 });
-    if (r.compilationError) { compileError = r.compilationError; results.push({ passed: false, hidden: tc.hidden, index: i }); if (!firstFail) firstFail = { input: tc.input, expected: tc.expectedOutput, actual: r.compilationError }; continue; }
+    if (r.compilationError) {
+      compileError = compileError || r.compilationError;
+      results.push({ passed: false, hidden: tc.hidden, index: i });
+      if (!firstFail) firstFail = { input: tc.input, expected: tc.expectedOutput, actual: r.compilationError };
+      return;
+    }
     const actual = norm(r.output || '');
     const passed = actual === norm(tc.expectedOutput);
     results.push({ passed, hidden: tc.hidden, index: i });
-    if (!passed && !firstFail) firstFail = { input: tc.input, expected: tc.expectedOutput, actual: r.error ? `${actual}\n${r.error}`.trim() : (actual || '(no output)') };
-  }
+    if (!passed && !firstFail) firstFail = { input: tc.input, expected: tc.expectedOutput, actual: r.error ? `${actual}
+${r.error}`.trim() : (actual || '(no output)') };
+  });
+
   return { results, allPassed: results.every((r) => r.passed), firstFail, compileError };
 }
+
 
 // A hint for a failing attempt — never the fix/solution.
 export async function hintForFailure(prompt: string, code: string, fail: { input: string; expected: string; actual: string }): Promise<string> {

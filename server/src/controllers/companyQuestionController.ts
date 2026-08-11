@@ -288,6 +288,12 @@ export const getAdmin = async (req: Request, res: Response) => {
         id: String(c._id), name: c.name, slug: c.slug, type: c.type,
         logoUrl: c.logoUrl || '', about: c.about || '', active: c.active,
         questionCount: c.questionCount || 0,
+        // The profile editor seeds itself from this list and posts the whole record back,
+        // so these must be present — omitting them would make every save silently wipe
+        // the location, tips and salary bands.
+        location: c.location || '', industry: c.industry || '',
+        employeeBand: c.employeeBand || '', website: c.website || '',
+        tips: c.tips || [], salaryBands: c.salaryBands || [],
       })),
       pendingCount: pending,
     });
@@ -326,13 +332,32 @@ export const saveCompany = async (req: Request, res: Response) => {
     const name = String(req.body?.name || '').trim();
     if (!name) return res.status(400).json({ message: 'A company name is required.' });
 
-    const body = {
+    const b = req.body || {};
+    const body: any = {
       name,
-      type: String(req.body?.type || 'service'),
-      logoUrl: String(req.body?.logoUrl || '').trim().slice(0, 600),
-      about: String(req.body?.about || '').trim().slice(0, 1000),
-      roles: Array.isArray(req.body?.roles) ? req.body.roles.map((r: any) => String(r).slice(0, 60)).slice(0, 12) : [],
-      active: req.body?.active !== false,
+      type: String(b.type || 'service'),
+      logoUrl: String(b.logoUrl || '').trim().slice(0, 600),
+      about: String(b.about || '').trim().slice(0, 1000),
+      roles: Array.isArray(b.roles) ? b.roles.map((r: any) => String(r).slice(0, 60)).slice(0, 12) : [],
+      active: b.active !== false,
+      location: String(b.location || '').trim().slice(0, 120),
+      industry: String(b.industry || '').trim().slice(0, 80),
+      employeeBand: String(b.employeeBand || '').trim().slice(0, 40),
+      website: String(b.website || '').trim().slice(0, 300),
+      tips: Array.isArray(b.tips) ? b.tips.map((t: any) => String(t).slice(0, 400)).filter(Boolean).slice(0, 20) : [],
+      // Ranges only — a band whose max is below its min would render as nonsense, and a
+      // salary claim about a named employer is not the place to be sloppy.
+      salaryBands: Array.isArray(b.salaryBands)
+        ? b.salaryBands
+            .map((x: any) => ({
+              role: String(x.role || '').slice(0, 80),
+              minLpa: Math.max(0, Number(x.minLpa) || 0),
+              maxLpa: Math.max(0, Number(x.maxLpa) || 0),
+              note: String(x.note || '').slice(0, 200),
+            }))
+            .filter((x: any) => x.role && x.maxLpa >= x.minLpa)
+            .slice(0, 12)
+        : [],
     };
 
     if (req.params.id) {

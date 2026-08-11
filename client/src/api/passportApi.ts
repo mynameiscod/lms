@@ -196,6 +196,18 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/companies/${slug}`, { headers: auth(), params });
     return data;
   },
+  submitExperience: async (slug: string, body: any): Promise<{ success: boolean; message: string }> => {
+    const { data } = await axios.post(`${BASE}/companies/${slug}/experience`, body, { headers: auth() });
+    return data;
+  },
+  listExperiences: async (status = 'pending'): Promise<{ experiences: AdminExperience[] }> => {
+    const { data } = await axios.get(`${BASE}/company-admin/experiences`, { headers: auth(), params: { status } });
+    return data;
+  },
+  moderateExperience: async (id: string, status: 'published' | 'rejected'): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/company-admin/experiences/${id}`, { status }, { headers: auth() });
+    return data;
+  },
   contributeQuestion: async (slug: string, body: any): Promise<{ success: boolean; message: string }> => {
     const { data } = await axios.post(`${BASE}/companies/${slug}/contribute`, body, { headers: auth() });
     return data;
@@ -647,9 +659,35 @@ export interface CompanyQuestionRow {
   id: string; role: string; round: string; category: string; difficulty: string;
   year: number | null; questionText: string; answer: string; tags: string[];
   aiPredicted: boolean; source: string; practiceProblemId: string; upvotes: number;
+  /** How many separate reports of this question exist. 1 = a single admin entry. */
+  askedCount?: number;
+  lastAsked?: string | null;
 }
+/** A figure and the sample behind it. `value` is null when nothing supports it yet. */
+export interface Stat<T = number> { value: T | null; n: number }
+
+export interface SalaryBand { role: string; minLpa: number; maxLpa: number; note?: string; indicative: boolean }
+
+export interface CompanyStats {
+  avgRounds: Stat; avgDurationDays: Stat; offerRate: Stat; rating: Stat;
+  difficultyFelt: Stat<string>; experiences: number;
+  rounds: { key: string; questions: number; attemptedPct: number | null }[];
+  totals: { questions: number; askedThisYear: number; highFrequency: number; avgSuccessRate: Stat };
+}
+
+export interface AdminExperience {
+  id: string; companySlug: string; role: string; interviewedOn: string;
+  roundsFaced: string[]; durationDays: number | null; outcome: string;
+  difficultyFelt: string; rating: number | null; review: string; status: string; student: string;
+}
+
 export interface CompanyDetail {
-  company: { id: string; name: string; slug: string; type: string; logoUrl: string; about: string; roles: string[] };
+  company: {
+    id: string; name: string; slug: string; type: string; logoUrl: string; about: string;
+    roles: string[]; location: string; industry: string; employeeBand: string; website: string;
+    tips: string[]; salaryBands: SalaryBand[];
+  };
+  stats: CompanyStats;
   rounds: TaxItem[]; categories: TaxItem[]; difficulties: TaxItem[];
   questions: CompanyQuestionRow[];
 }

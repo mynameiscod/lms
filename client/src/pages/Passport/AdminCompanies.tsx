@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import passportApi, { CompanyAdmin, AdminQuestion, TaxItem } from '../../api/passportApi';
+import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience } from '../../api/passportApi';
 
 /**
  * Admin: companies, their questions, and the moderation queue.
@@ -14,7 +14,7 @@ const box: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f
 const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 800, color: '#64748b', margin: '10px 0 5px' };
 
-type Tab = 'companies' | 'questions' | 'import' | 'review' | 'taxonomy';
+type Tab = 'companies' | 'profile' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
 
 const AdminCompanies: React.FC = () => {
   const [d, setD] = useState<CompanyAdmin | null>(null);
@@ -29,6 +29,9 @@ const AdminCompanies: React.FC = () => {
   const [err, setErr] = useState('');
   const [form, setForm] = useState({ name: '', type: 'service', logoUrl: '', about: '' });
   const [predictRound, setPredictRound] = useState('');
+  const [experiences, setExperiences] = useState<AdminExperience[]>([]);
+  // The record being edited on the Profile tab.
+  const [profile, setProfile] = useState<any | null>(null);
 
   const load = () => passportApi.getCompanyAdmin()
     .then(r => { setD(r); if (!slug && r.companies[0]) setSlug(r.companies[0].slug); })
@@ -38,7 +41,12 @@ const AdminCompanies: React.FC = () => {
   useEffect(() => {
     if (tab === 'review') passportApi.adminQuestions('all', 'pending').then(r => setPending(r.questions)).catch(() => setPending([]));
     if (tab === 'questions' && slug) passportApi.adminQuestions(slug).then(r => setQuestions(r.questions)).catch(() => setQuestions([]));
-  }, [tab, slug]);
+    if (tab === 'experiences') passportApi.listExperiences('pending').then(r => setExperiences(r.experiences)).catch(() => setExperiences([]));
+    if (tab === 'profile' && slug && d) {
+      const c: any = d.companies.find(x => x.slug === slug);
+      setProfile(c ? { ...c, tips: (c as any).tips || [], salaryBands: (c as any).salaryBands || [] } : null);
+    }
+  }, [tab, slug, d]);
 
   const addCompany = async () => {
     if (!form.name.trim()) return;
@@ -86,9 +94,11 @@ const AdminCompanies: React.FC = () => {
 
   const TABS: [Tab, string][] = [
     ['companies', `Companies (${d.companies.length})`],
+    ['profile', 'Company profile'],
     ['questions', 'Questions'],
     ['import', '✨ Import / Generate'],
     ['review', `Review${d.pendingCount ? ` (${d.pendingCount})` : ''}`],
+    ['experiences', 'Interview reports'],
     ['taxonomy', 'Rounds & Categories'],
   ];
 
@@ -137,7 +147,7 @@ const AdminCompanies: React.FC = () => {
         </>
       )}
 
-      {(tab === 'questions' || tab === 'import') && (
+      {(tab === 'questions' || tab === 'import' || tab === 'profile') && (
         <div style={box}>
           <label style={lbl}>Company</label>
           <select style={{ ...inp, maxWidth: 300 }} value={slug} onChange={e => setSlug(e.target.value)}>
@@ -237,6 +247,92 @@ const AdminCompanies: React.FC = () => {
               <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
                 <button className="pm-btn primary" onClick={() => moderate(q, 'published')}>Approve</button>
                 <button className="pm-btn ghost" style={{ color: '#b91c1c' }} onClick={() => moderate(q, 'rejected')}>Reject</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'profile' && profile && (
+        <div style={box}>
+          <h3 style={{ fontSize: 15, fontWeight: 900, margin: '0 0 4px' }}>{profile.name}</h3>
+          <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 12px', lineHeight: 1.6 }}>
+            Facts a student sees at the top of the page. Ratings, offer rates and averages are
+            NOT here - those are computed from real interview reports and shown with their
+            sample size, so they cannot be typed in.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(190px,1fr))', gap: 12 }}>
+            {([['location', 'Location'], ['industry', 'Industry'], ['employeeBand', 'Employees'], ['website', 'Website']] as const).map(([k, l]) => (
+              <div key={k}>
+                <label style={lbl}>{l}</label>
+                <input style={inp} value={profile[k] || ''} onChange={e => setProfile((p: any) => ({ ...p, [k]: e.target.value }))} />
+              </div>
+            ))}
+          </div>
+
+          <label style={lbl}>About</label>
+          <textarea style={{ ...inp, minHeight: 60 }} value={profile.about || ''}
+            onChange={e => setProfile((p: any) => ({ ...p, about: e.target.value }))} />
+
+          <label style={lbl}>Tips (one per line)</label>
+          <textarea style={{ ...inp, minHeight: 80 }} value={(profile.tips || []).join('\n')}
+            onChange={e => setProfile((p: any) => ({ ...p, tips: e.target.value.split('\n') }))} />
+
+          <h4 style={{ fontSize: 13, fontWeight: 900, color: '#0f172a', margin: '18px 0 4px' }}>Indicative salary ranges</h4>
+          <p style={{ fontSize: 12, color: '#c2410c', margin: '0 0 10px', lineHeight: 1.6 }}>
+            Shown to students labelled &quot;indicative - not survey data&quot;. These become your
+            published estimates about a named employer, so only enter what you would defend.
+          </p>
+          {(profile.salaryBands || []).map((b: any, i: number) => (
+            <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+              <input style={{ ...inp, flex: 2, minWidth: 140 }} placeholder="Role" value={b.role}
+                onChange={e => setProfile((p: any) => ({ ...p, salaryBands: p.salaryBands.map((x: any, j: number) => j === i ? { ...x, role: e.target.value } : x) }))} />
+              <input style={{ ...inp, width: 90 }} placeholder="Min LPA" value={b.minLpa}
+                onChange={e => setProfile((p: any) => ({ ...p, salaryBands: p.salaryBands.map((x: any, j: number) => j === i ? { ...x, minLpa: e.target.value } : x) }))} />
+              <input style={{ ...inp, width: 90 }} placeholder="Max LPA" value={b.maxLpa}
+                onChange={e => setProfile((p: any) => ({ ...p, salaryBands: p.salaryBands.map((x: any, j: number) => j === i ? { ...x, maxLpa: e.target.value } : x) }))} />
+              <button className="pm-btn ghost" style={{ color: '#b91c1c' }}
+                onClick={() => setProfile((p: any) => ({ ...p, salaryBands: p.salaryBands.filter((_: any, j: number) => j !== i) }))}>X</button>
+            </div>
+          ))}
+          <button className="pm-btn ghost"
+            onClick={() => setProfile((p: any) => ({ ...p, salaryBands: [...(p.salaryBands || []), { role: '', minLpa: 0, maxLpa: 0 }] }))}>
+            + Add a range
+          </button>
+
+          <div style={{ marginTop: 16 }}>
+            <button className="pm-btn primary" disabled={busy} onClick={async () => {
+              setBusy(true); setErr('');
+              try {
+                await passportApi.saveCompany({ ...profile, tips: (profile.tips || []).filter(Boolean) }, profile.id);
+                setMsg('Profile saved.'); load();
+              } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save'); }
+              setBusy(false);
+            }}>Save profile</button>
+          </div>
+        </div>
+      )}
+
+      {tab === 'experiences' && (
+        <div style={box}>
+          <h3 style={{ fontSize: 15, fontWeight: 900, margin: '0 0 4px' }}>Interview reports awaiting review</h3>
+          <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 12px', lineHeight: 1.6 }}>
+            Each approved report feeds the average rounds, duration, offer rate and rating on
+            that company page - so approving a careless one distorts five numbers at once.
+          </p>
+          {!experiences.length && <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>Nothing waiting.</p>}
+          {experiences.map(x => (
+            <div key={x.id} style={{ padding: '12px 0', borderBottom: '1px solid #f4f6fa' }}>
+              <b style={{ fontSize: 13.5, color: '#0f172a' }}>{x.companySlug} - {x.role || 'role not given'}</b>
+              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 3 }}>
+                {new Date(x.interviewedOn).toLocaleDateString('en-IN')} - {x.roundsFaced.length} rounds - {x.outcome}
+                {x.durationDays ? ` - ${x.durationDays} days` : ''}{x.rating ? ` - rated ${x.rating}/5` : ''}
+                {x.student ? ` - from ${x.student}` : ''}
+              </div>
+              {x.review && <p style={{ fontSize: 12.5, color: '#475569', margin: '6px 0 0', lineHeight: 1.6 }}>{x.review}</p>}
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button className="pm-btn primary" onClick={async () => { await passportApi.moderateExperience(x.id, 'published'); setExperiences(e => e.filter(y => y.id !== x.id)); }}>Approve</button>
+                <button className="pm-btn ghost" style={{ color: '#b91c1c' }} onClick={async () => { await passportApi.moderateExperience(x.id, 'rejected'); setExperiences(e => e.filter(y => y.id !== x.id)); }}>Reject</button>
               </div>
             </div>
           ))}

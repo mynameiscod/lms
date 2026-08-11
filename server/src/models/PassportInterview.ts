@@ -32,6 +32,8 @@ export interface IPassportInterview extends Document {
   role: string;                          // target role the interview is for
   areas: string[];                       // topic areas covered
   interviewerName: string;
+  companySlug?: string;
+  companyName?: string;
   maxQuestions: number;
   askedCount: number;
   status: 'in_progress' | 'completed' | 'abandoned';
@@ -73,6 +75,10 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     role:            { type: String, default: 'Software Engineer' },
     areas:           [{ type: String }],
     interviewerName: { type: String, default: 'Siva' },
+    // Set when the mock was started from a company page, so follow-up turns and the
+    // history list can both stay company-aware.
+    companySlug: { type: String, index: true },
+    companyName: { type: String },
     maxQuestions:    { type: Number, default: 6 },
     askedCount:      { type: Number, default: 0 },
     status:     { type: String, enum: ['in_progress', 'completed', 'abandoned'], default: 'in_progress', index: true },

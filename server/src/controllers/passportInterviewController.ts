@@ -13,6 +13,7 @@ import { recordUsage } from '../services/aiGateway';
 import * as settings from '../services/settingsService';
 import { awardCoins } from '../services/coinService';
 import { completeInterviewMissions } from '../services/passportMissionCloseService';
+import { Company, CompanyMockConfig, QuestionTaxonomy, CompanyQuestion } from '../models/CompanyQuestionModels';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
@@ -57,6 +58,7 @@ const publicSession = (s: any) => ({
   id: String(s._id), role: s.role, areas: s.areas,
   interviewerName: s.interviewerName, maxQuestions: s.maxQuestions,
   askedCount: s.askedCount, status: s.status,
+  companySlug: s.companySlug || null, companyName: s.companyName || null,
   transcript: (s.transcript || []).map((t: any) => ({ role: t.role, text: t.text, at: t.at })),
   evaluation: s.evaluation || null,
   xpAwarded: s.xpAwarded, startedAt: s.startedAt, completedAt: s.completedAt,
@@ -94,17 +96,58 @@ export const start = async (req: Request, res: Response) => {
 
     const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
     const preset = AREAS_BY_PATHWAY[attempt?.pathway] || AREAS_BY_PATHWAY.it_bridge;
-    const role = String(req.body?.role || preset.role);
+    let role = String(req.body?.role || preset.role);
+    let areas = preset.areas;
+
+    /**
+     * Company-flavoured mock, when the member started from a company page.
+     *
+     * Emphasis comes from the company's own question bank where it has one — the topics
+     * they actually ask about beat anything an admin would type from memory, and it keeps
+     * improving as the bank grows. The configured emphasis is the fallback.
+     */
+    let companyBrief: any;
+    const slug = String(req.body?.companySlug || '').trim();
+    if (slug) {
+      const company = await Company.findOne({ tenantId, slug, active: true }).lean() as any;
+      if (company) {
+        const [cfg2, tax, topCats] = await Promise.all([
+          CompanyMockConfig.findOne({ tenantId, companySlug: slug }).lean() as any,
+          QuestionTaxonomy.findOne({ tenantId }).lean() as any,
+          CompanyQuestion.aggregate([
+            { $match: { tenantId, companySlug: slug, status: 'published', category: { $ne: '' } } },
+            { $group: { _id: '$category', n: { $sum: 1 } } },
+            { $sort: { n: -1 } }, { $limit: 5 },
+          ]),
+        ]);
+        const catLabel = (k: string) => tax?.categories?.find((c: any) => c.key === k)?.label || k;
+        const fromBank = topCats.map((t: any) => catLabel(t._id));
+        const emphasis = fromBank.length ? fromBank : (cfg2?.interview?.emphasis || []);
+
+        role = cfg2?.interview?.role || role;
+        if (emphasis.length) areas = emphasis;
+        companyBrief = {
+          name: company.name,
+          type: tax?.companyTypes?.find((t: any) => t.key === company.type)?.label || company.type,
+          emphasis,
+          roundLabel: cfg2?.interview?.rounds?.length
+            ? tax?.rounds?.find((r: any) => r.key === cfg2.interview.rounds[0])?.label
+            : undefined,
+        };
+      }
+    }
 
     const first = await nextInterviewerTurn({
-      interviewerName: interviewerName(), role, areas: preset.areas,
+      interviewerName: interviewerName(), role, areas,
       history: [], askedCount: 0, maxQuestions: MAX_QUESTIONS,
       candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
-      tenantId, product: PRODUCT,
+      tenantId, product: PRODUCT, company: companyBrief,
     });
 
     const session = await PassportInterview.create({
-      tenantId, studentId, role, areas: preset.areas,
+      tenantId, studentId, role, areas,
+      companySlug: companyBrief ? slug : undefined,
+      companyName: companyBrief?.name,
       interviewerName: interviewerName(), maxQuestions: MAX_QUESTIONS, askedCount: 1,
       status: 'in_progress',
       transcript: [{ role: 'interviewer', text: first.say, at: new Date() }],
@@ -138,6 +181,11 @@ export const turn = async (req: Request, res: Response) => {
       history, askedCount: session.askedCount, maxQuestions: session.maxQuestions,
       candidateName: user?.firstName || '', historyWindow: HISTORY_WINDOW,
       tenantId, product: PRODUCT,
+      // Re-sent every turn. The brief lives in the system prompt, not the transcript, so
+      // without this the interviewer forgets which company it works for after turn one.
+      company: session.companyName
+        ? { name: session.companyName, type: '', emphasis: session.areas || [] }
+        : undefined,
     });
 
     session.transcript.push({ role: 'interviewer', text: next.say, at: new Date() } as any);

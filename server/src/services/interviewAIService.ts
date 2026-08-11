@@ -425,6 +425,14 @@ export interface NextTurnInput {
   /** Candidate's first name, so the interviewer can use it like a person would. */
   candidateName?: string;
   /**
+   * Company flavour. Absent for a generic mock.
+   *
+   * Deliberately a short brief rather than a different prompt: the interviewer that works
+   * is the one already written, and forking it per company would mean two prompts to keep
+   * good instead of one.
+   */
+  company?: { name: string; type: string; emphasis: string[]; roundLabel?: string };
+  /**
    * How many past turns to send. Every turn re-sends this window, so it is the single
    * biggest driver of interview cost. Six is ample for "probe the last answer or move
    * on"; twelve was re-sending most of the interview to decide one follow-up.
@@ -467,6 +475,8 @@ export async function nextInterviewerTurn(input: NextTurnInput): Promise<NextTur
   const system = [
     `You are ${interviewerName}, a real interviewer running a LIVE SPOKEN mock interview for a ${role} role.`,
     candidateName ? `The candidate's name is ${candidateName}. Use it occasionally, the way a person would — not every turn.` : '',
+    input.company ? `You are interviewing on behalf of ${input.company.name}, a ${input.company.type} company${input.company.roundLabel ? `, in their ${input.company.roundLabel} round` : ''}.` : '',
+    input.company?.emphasis?.length ? `Weight your questions toward: ${input.company.emphasis.join(', ')}. Ask what this company actually asks — do not drift into generic interview questions.` : '',
     ``,
     `LENGTH IS THE MOST IMPORTANT RULE. Your whole line must be UNDER 25 WORDS.`,
     `Real interviewers ask short questions: "What was the hardest bug you hit there?" — not a paragraph.`,

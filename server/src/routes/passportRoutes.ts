@@ -18,6 +18,7 @@ import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
+import * as mt from '../controllers/mockTestController';
 
 const router = express.Router();
 
@@ -81,6 +82,14 @@ router.get('/companies',                     MEMBER, cq.listCompanies);
 router.get('/companies/:slug',               MEMBER, cq.companyDetail);
 router.post('/companies/:slug/contribute',   MEMBER, cq.contribute);
 router.post('/companies/:slug/experience',   MEMBER, cq.submitExperience);
+
+// Company mock test. The paper is assembled per attempt from the bank plus AI top-up,
+// so there is no stored paper to leak or to share between students.
+router.post('/companies/:slug/mock-test/start',   MEMBER, mt.startMockTest);
+router.get('/companies/:slug/mock-test/history',  MEMBER, mt.mockTestHistory);
+router.get('/mock-test/:id',                      MEMBER, mt.getMockTest);
+router.put('/mock-test/:id/answer',               MEMBER, mt.saveAnswer);
+router.post('/mock-test/:id/submit',              MEMBER, mt.submitMockTest);
 
 router.get('/company-admin',                       MANAGE, cq.getAdmin);
 router.put('/company-admin/taxonomy',              MANAGE, cq.saveTaxonomy);

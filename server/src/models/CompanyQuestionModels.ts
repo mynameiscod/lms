@@ -91,6 +91,23 @@ export interface ICompany extends Document {
   about?: string;
   roles: string[];
   active: boolean;
+
+  // ── Profile, typed by an admin. Facts, not statistics. ──
+  location?: string;
+  industry?: string;
+  employeeBand?: string;
+  website?: string;
+  /** Free-form advice shown on the Tips tab. */
+  tips: string[];
+
+  /**
+   * Indicative salary ranges, entered by an admin from placement experience.
+   *
+   * NOT survey data, and labelled that way everywhere it appears. Scraping Glassdoor or
+   * AmbitionBox would breach their terms; these are the tenant's own stated estimates and
+   * are presented as such, so a student is never misled about where the number came from.
+   */
+  salaryBands: { role: string; minLpa: number; maxLpa: number; note?: string }[];
   /** Denormalised count of published questions — the grid would otherwise need an
    *  aggregate per company on every page load. Recomputed on publish/unpublish. */
   questionCount: number;
@@ -106,6 +123,18 @@ const CompanySchema = new Schema<ICompany>({
   roles:    [{ type: String }],
   active:   { type: Boolean, default: true },
   questionCount: { type: Number, default: 0 },
+
+  location:     { type: String, default: '' },
+  industry:     { type: String, default: '' },
+  employeeBand: { type: String, default: '' },
+  website:      { type: String, default: '' },
+  tips:         [{ type: String }],
+  salaryBands: [{
+    role:  { type: String, default: '' },
+    minLpa: { type: Number, default: 0 },
+    maxLpa: { type: Number, default: 0 },
+    note:  { type: String, default: '' },
+  }],
 }, { timestamps: true });
 
 CompanySchema.index({ tenantId: 1, slug: 1 }, { unique: true });
@@ -181,3 +210,66 @@ QuestionSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 QuestionSchema.index({ questionText: 'text', tags: 'text' });
 
 export const CompanyQuestion = mongoose.model<ICompanyQuestion>('CompanyQuestion', QuestionSchema);
+
+
+// ─── Interview experience ────────────────────────────────────────────────────
+
+/**
+ * One student's account of interviewing somewhere.
+ *
+ * This single record is what makes the company page real. Everything the mockup shows
+ * that cannot simply be typed in — how many rounds, how long it took, how often a
+ * question comes up, what proportion end in an offer — is an aggregate over these.
+ *
+ * Every figure derived from them is published WITH its sample size, because "5.6 rounds"
+ * from three reports and from three hundred are different claims, and a student can tell
+ * the difference.
+ */
+export interface IInterviewExperience extends Document {
+  tenantId: string;
+  companyId: mongoose.Types.ObjectId;
+  companySlug: string;
+  studentId: mongoose.Types.ObjectId;
+
+  role: string;
+  /** When they interviewed — drives "last asked" and the year filters. */
+  interviewedOn: Date;
+  /** Round keys from the taxonomy, in the order they were faced. */
+  roundsFaced: string[];
+  /** End to end, in days. Renders as "3-5 weeks" once averaged. */
+  durationDays?: number;
+  outcome: 'offer' | 'rejected' | 'waiting' | 'withdrew';
+  difficultyFelt?: 'easy' | 'medium' | 'hard';
+  /** 1-5. Averaged into the company rating, with its count shown. */
+  rating?: number;
+  review?: string;
+
+  status: 'pending' | 'published' | 'rejected';
+  reviewNote?: string;
+  createdAt: Date;
+}
+
+const ExperienceSchema = new Schema<IInterviewExperience>({
+  tenantId:    { type: String, required: true, index: true },
+  companyId:   { type: Schema.Types.ObjectId, ref: 'Company', required: true, index: true },
+  companySlug: { type: String, required: true },
+  studentId:   { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+  role:          { type: String, default: '' },
+  interviewedOn: { type: Date, required: true },
+  roundsFaced:   [{ type: String }],
+  durationDays:  { type: Number },
+  outcome:       { type: String, enum: ['offer', 'rejected', 'waiting', 'withdrew'], default: 'waiting' },
+  difficultyFelt:{ type: String, enum: ['easy', 'medium', 'hard'] },
+  rating:        { type: Number, min: 1, max: 5 },
+  review:        { type: String, default: '' },
+  status:        { type: String, enum: ['pending', 'published', 'rejected'], default: 'pending', index: true },
+  reviewNote:    { type: String, default: '' },
+}, { timestamps: true });
+
+ExperienceSchema.index({ tenantId: 1, companySlug: 1, status: 1 });
+ExperienceSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
+// One student, one company, one interview date — stops a double submission counting twice
+// in every average on the page.
+ExperienceSchema.index({ tenantId: 1, companySlug: 1, studentId: 1, interviewedOn: 1 }, { unique: true });
+
+export const InterviewExperience = mongoose.model<IInterviewExperience>('InterviewExperience', ExperienceSchema);

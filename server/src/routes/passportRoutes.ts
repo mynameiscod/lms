@@ -80,6 +80,7 @@ router.get('/leaderboard',          MEMBER, dashboard.getLeaderboard);
 router.get('/companies',                     MEMBER, cq.listCompanies);
 router.get('/companies/:slug',               MEMBER, cq.companyDetail);
 router.post('/companies/:slug/contribute',   MEMBER, cq.contribute);
+router.post('/companies/:slug/experience',   MEMBER, cq.submitExperience);
 
 router.get('/company-admin',                       MANAGE, cq.getAdmin);
 router.put('/company-admin/taxonomy',              MANAGE, cq.saveTaxonomy);
@@ -90,6 +91,8 @@ router.get('/company-admin/:slug/questions',       MANAGE, cq.adminQuestions);
 router.post('/company-admin/:slug/questions',      MANAGE, cq.saveQuestions);
 router.post('/company-admin/:slug/import',         MANAGE, cq.importQuestions);
 router.post('/company-admin/:slug/predict',        MANAGE, cq.predict);
+router.get('/company-admin/experiences',           MANAGE, cq.listExperiences);
+router.put('/company-admin/experiences/:id',       MANAGE, cq.moderateExperience);
 router.put('/company-admin/questions/:id',         MANAGE, cq.updateQuestion);
 router.delete('/company-admin/questions/:id',      MANAGE, cq.deleteQuestion);
 

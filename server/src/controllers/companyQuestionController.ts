@@ -2,7 +2,8 @@ import { Request, Response } from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
-import { Company, CompanyQuestion, QuestionTaxonomy } from '../models/CompanyQuestionModels';
+import { Company, CompanyQuestion, QuestionTaxonomy, InterviewExperience } from '../models/CompanyQuestionModels';
+import { companyStats, questionFrequency } from '../services/companyStatsService';
 import { isEntitled } from '../services/passportEntitlementService';
 import {
   getTaxonomy, slugify, refreshQuestionCount, structureQuestions, predictQuestions,
@@ -79,26 +80,46 @@ export const companyDetail = async (req: Request, res: Response) => {
     if (req.query.category) filter.category = String(req.query.category);
     if (req.query.difficulty) filter.difficulty = String(req.query.difficulty);
 
-    const [questions, byRound] = await Promise.all([
+    const [questions, byRound, stats, freq] = await Promise.all([
       CompanyQuestion.find(filter).sort({ upvotes: -1, createdAt: -1 }).limit(300).lean(),
       // Counts per round so the tabs can show them without loading every question.
       CompanyQuestion.aggregate([
         { $match: { tenantId, companySlug: company.slug, status: 'published' } },
         { $group: { _id: '$round', n: { $sum: 1 } } },
       ]),
+      companyStats(tenantId, company.slug),
+      questionFrequency(tenantId, company.slug),
     ]);
 
     res.json({
       company: {
         id: String(company._id), name: company.name, slug: company.slug, type: company.type,
         logoUrl: company.logoUrl || '', about: company.about || '', roles: company.roles || [],
+        location: company.location || '', industry: company.industry || '',
+        employeeBand: company.employeeBand || '', website: company.website || '',
+        tips: company.tips || [],
+        // Flagged as the tenant's own estimate rather than surveyed data. The client
+        // renders that label, and it must never be dropped in transit.
+        salaryBands: (company.salaryBands || []).map((b: any) => ({ ...b, indicative: true })),
       },
+      // Every figure carries the sample it came from, so the UI can say "from 3 reports"
+      // rather than implying confidence the data does not support.
+      stats,
       rounds: tax.rounds.filter(r => r.enabled).map(r => ({
         ...r, count: byRound.find((b: any) => b._id === r.key)?.n || 0,
       })),
       categories: tax.categories.filter(c => c.enabled),
       difficulties: tax.difficulties,
-      questions: questions.map(publicQuestion),
+      questions: questions.map((q: any) => {
+        const f = freq.get(String(q._id));
+        return {
+          ...publicQuestion(q),
+          // The number of separate reports of this question, so a single admin-entered
+          // row honestly reads as 1 rather than pretending to a frequency.
+          askedCount: f?.asked ?? 1,
+          lastAsked: f?.lastAsked ?? null,
+        };
+      }),
     });
   } catch (e: any) {
     console.error('[companyq] detail:', e);
@@ -145,7 +166,110 @@ export const contribute = async (req: Request, res: Response) => {
   }
 };
 
-// ─── Admin ───────────────────────────────────────────────────────────────────
+/**
+ * POST /passport/companies/:slug/experience - "I interviewed here".
+ *
+ * The single most valuable thing a member can submit: it is the source for average
+ * rounds, duration, offer rate, rating and the freshness of every question. Held for
+ * review like question contributions, and paid on approval for the same reason - paying
+ * on submission buys noise.
+ */
+export const submitExperience = async (req: Request, res: Response) => {
+  try {
+    const { tenantId, studentId, entitled } = await gate(req);
+    if (!entitled) return res.status(403).json({ message: 'Membership required.' });
+
+    const company = await Company.findOne({ tenantId, slug: req.params.slug }).lean() as any;
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    const b = req.body || {};
+    const when = new Date(b.interviewedOn);
+    if (isNaN(when.getTime())) return res.status(400).json({ message: 'When did you interview?' });
+    if (when > new Date()) return res.status(400).json({ message: 'That date is in the future.' });
+
+    const rounds = Array.isArray(b.roundsFaced) ? b.roundsFaced.map((r: any) => String(r)).slice(0, 12) : [];
+    if (!rounds.length) return res.status(400).json({ message: 'Pick at least one round you faced.' });
+
+    await InterviewExperience.create({
+      tenantId, companyId: company._id, companySlug: company.slug, studentId,
+      role: String(b.role || '').slice(0, 80),
+      interviewedOn: when,
+      roundsFaced: rounds,
+      durationDays: Number(b.durationDays) || undefined,
+      outcome: ['offer', 'rejected', 'waiting', 'withdrew'].includes(b.outcome) ? b.outcome : 'waiting',
+      difficultyFelt: ['easy', 'medium', 'hard'].includes(b.difficultyFelt) ? b.difficultyFelt : undefined,
+      rating: Number(b.rating) >= 1 && Number(b.rating) <= 5 ? Number(b.rating) : undefined,
+      review: String(b.review || '').slice(0, 2000),
+      status: 'pending',
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Thanks - this is what makes the page real for the next student. We will review it, and you earn coins once it is approved.',
+    });
+  } catch (e: any) {
+    if (e?.code === 11000) {
+      return res.status(409).json({ message: 'You have already submitted an interview at this company on that date.' });
+    }
+    console.error('[companyq] submitExperience:', e);
+    res.status(500).json({ message: e.message || 'Could not submit' });
+  }
+};
+
+/** GET /passport/company-admin/experiences?status=pending */
+export const listExperiences = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const filter: any = { tenantId };
+    if (req.query.status) filter.status = String(req.query.status);
+    const rows = await InterviewExperience.find(filter)
+      .sort({ createdAt: -1 }).limit(200)
+      .populate('studentId', 'firstName lastName')
+      .lean() as any[];
+    res.json({
+      experiences: rows.map(r => ({
+        id: String(r._id), companySlug: r.companySlug, role: r.role,
+        interviewedOn: r.interviewedOn, roundsFaced: r.roundsFaced || [],
+        durationDays: r.durationDays || null, outcome: r.outcome,
+        difficultyFelt: r.difficultyFelt || '', rating: r.rating || null,
+        review: r.review || '', status: r.status,
+        student: r.studentId ? `${r.studentId.firstName || ''} ${r.studentId.lastName || ''}`.trim() : '',
+      })),
+    });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not load experiences' });
+  }
+};
+
+/** PUT /passport/company-admin/experiences/:id - approve or reject. */
+export const moderateExperience = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const exp = await InterviewExperience.findOne({ _id: req.params.id, tenantId });
+    if (!exp) return res.status(404).json({ message: 'Not found' });
+
+    const wasPending = exp.status === 'pending';
+    if (['pending', 'published', 'rejected'].includes(req.body?.status)) exp.status = req.body.status;
+    if (req.body?.reviewNote !== undefined) exp.reviewNote = String(req.body.reviewNote).slice(0, 400);
+    await exp.save();
+
+    // Worth more than a single question - it feeds five different figures on the page.
+    if (wasPending && exp.status === 'published') {
+      await awardCoins({
+        tenantId, studentId: String(exp.studentId),
+        eventKey: 'experience_approved',
+        idempotencyKey: `experience:${exp._id}`,
+        note: `Interview experience - ${exp.companySlug}`,
+      });
+    }
+    res.json({ success: true, status: exp.status });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not save' });
+  }
+};
+
+// --- Admin ---------------------------------------------------------------
+
 
 export const getAdmin = async (req: Request, res: Response) => {
   try {

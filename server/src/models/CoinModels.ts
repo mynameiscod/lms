@@ -90,6 +90,7 @@ export const COIN_EVENTS = [
   { key: 'social_share',       label: 'Shared to social media',      coins: 0,  dailyCap: 1, enabled: false },
   { key: 'referral_converted', label: 'Referral became a paid member', coins: 0, dailyCap: 10, enabled: false },
   { key: 'question_approved',  label: 'Interview question approved',   coins: 50, dailyCap: 5, enabled: true  },
+  { key: 'experience_approved',label: 'Interview experience approved', coins: 300, dailyCap: 2, enabled: true },
 ] as const;
 
 export type CoinEventKey = typeof COIN_EVENTS[number]['key'];

@@ -54,6 +54,8 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
   const [saved, setSaved] = useState<string[]>([]);
   const [showAll, setShowAll] = useState(false);
   const [showExp, setShowExp] = useState(false);
+  const [startingTest, setStartingTest] = useState(false);
+  const [testErr, setTestErr] = useState('');
   const [msg, setMsg] = useState('');
   const [err, setErr] = useState('');
 
@@ -395,9 +397,20 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
                 the bank is short. Sections, timing and the passing bar follow how {c.name}
                 actually assesses.
               </p>
-              {st.totals.questions < 20
-                ? <div className="pm-msg info">Not enough questions banked for a full test yet.</div>
-                : <button className="pm-btn primary" disabled title="Coming next">Start Mock Test</button>}
+              {testErr && <div className="pm-msg err">{testErr}</div>}
+              <button className="pm-btn primary" disabled={startingTest} onClick={async () => {
+                setStartingTest(true); setTestErr('');
+                try {
+                  const r = await passportApi.startMockTest(slug);
+                  nav(`/careerpilot/mock-test/${r.attempt.id}`);
+                } catch (e: any) {
+                  setTestErr(e?.response?.data?.message || 'Could not start the test');
+                  setStartingTest(false);
+                }
+              }}>{startingTest ? 'Building your paper…' : 'Start Mock Test'}</button>
+              <p style={{ fontSize: 12, color: '#94a3b8', marginTop: 10, marginBottom: 0 }}>
+                The paper is assembled fresh each time, so no two attempts are identical.
+              </p>
             </div>
           )}
 

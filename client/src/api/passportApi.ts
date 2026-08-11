@@ -257,6 +257,28 @@ export const passportApi = {
     return data;
   },
 
+  // ── Company mock test ──
+  startMockTest: async (slug: string): Promise<{ attempt: MockAttempt; resumed?: boolean; generated?: number; banked?: number }> => {
+    const { data } = await axios.post(`${BASE}/companies/${slug}/mock-test/start`, {}, { headers: auth() });
+    return data;
+  },
+  getMockTest: async (id: string): Promise<{ attempt: MockAttempt; result: MockResult | null }> => {
+    const { data } = await axios.get(`${BASE}/mock-test/${id}`, { headers: auth() });
+    return data;
+  },
+  saveMockAnswer: async (id: string, questionId: string, chosen: number): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/mock-test/${id}/answer`, { questionId, chosen }, { headers: auth() });
+    return data;
+  },
+  submitMockTest: async (id: string): Promise<{ result: MockResult }> => {
+    const { data } = await axios.post(`${BASE}/mock-test/${id}/submit`, {}, { headers: auth() });
+    return data;
+  },
+  mockTestHistory: async (slug: string): Promise<{ attempts: any[] }> => {
+    const { data } = await axios.get(`${BASE}/companies/${slug}/mock-test/history`, { headers: auth() });
+    return data;
+  },
+
   // ── Company roster pipeline ──
   bulkCreateCompanies: async (names: string, type: string): Promise<{ created: number; skipped: number }> => {
     const { data } = await axios.post(`${BASE}/company-admin/bulk`, { names, type }, { headers: auth() });
@@ -695,6 +717,27 @@ export interface CompanyStats {
   difficultyFelt: Stat<string>; experiences: number;
   rounds: { key: string; questions: number; attemptedPct: number | null }[];
   totals: { questions: number; askedThisYear: number; highFrequency: number; avgSuccessRate: Stat };
+}
+
+export interface MockQuestion {
+  id: string; text: string; options: string[]; category: string; difficulty: string;
+  /** Written by AI rather than taken from the bank — surfaced to the student. */
+  generated: boolean;
+}
+export interface MockAttempt {
+  id: string; companySlug: string; companyName: string;
+  startedAt: string; endsAt: string; status: 'in_progress' | 'submitted' | 'expired';
+  totalQuestions: number; passingPct: number;
+  sections: { name: string; category: string; durationMins: number; questions: MockQuestion[] }[];
+  answers: { questionId: string; chosen: number }[];
+}
+export interface MockResult {
+  score: number; correct: number; total: number; passed: boolean; passingPct: number;
+  generatedCount: number; bankedCount: number;
+  review: {
+    id: string; text: string; options: string[]; chosen: number | null;
+    correctIndex: number; right: boolean; explanation: string; generated: boolean;
+  }[];
 }
 
 export interface ReadinessCheck { key: string; label: string; done: boolean; detail: string; required: boolean }

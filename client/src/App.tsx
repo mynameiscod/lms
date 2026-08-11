@@ -84,6 +84,7 @@ import PassportLeaderboard from './pages/Passport/Leaderboard';
 import PassportAchievements from './pages/Passport/Achievements';
 import PassportNews from './pages/Passport/News';
 import PassportCompanies from './pages/Passport/Companies';
+import PassportMockTest from './pages/Passport/MockTest';
 import PassportAdminNews from './pages/Passport/AdminNews';
 import PassportAdminCompanies from './pages/Passport/AdminCompanies';
 import PassportAssessmentPage from './pages/Passport/Assessment';
@@ -489,6 +490,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/news" element={<PassportNews />} />
         <Route path="/careerpilot/companies" element={<PassportCompanies />} />
         <Route path="/careerpilot/companies/:slug" element={<PassportCompanies />} />
+        <Route path="/careerpilot/mock-test/:id" element={<PassportMockTest />} />
         <Route path="/passport/coins" element={<LegacyRedirect to="/careerpilot/coins" />} />
         <Route path="/careerpilot/resume" element={<PassportResumeCenter />} />
         <Route path="/passport/resume" element={<LegacyRedirect to="/careerpilot/resume" />} />

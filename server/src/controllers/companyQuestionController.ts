@@ -302,7 +302,17 @@ export const bulkCreate = async (req: Request, res: Response) => {
     const tenantId = tenantOf(req);
     const type = String(req.body?.type || 'service');
     const names: string[] = String(req.body?.names || '')
-      .split(/[\n,]/).map(n => n.trim()).filter(Boolean).slice(0, 200);
+      .split(/[\n,]/)
+      .map(n => n
+        .trim()
+        // People paste the list they already have, and that list is numbered or bulleted.
+        // Without this, "17. Virtusa" becomes a company literally called "17. Virtusa"
+        // with the slug 17-virtusa, and every student sees the numbering.
+        .replace(/^\d+\s*[.)\]:-]\s*/, '')
+        .replace(/^[-*•]\s*/, '')
+        .trim())
+      .filter(Boolean)
+      .slice(0, 200);
     if (!names.length) return res.status(400).json({ message: 'Paste some company names first.' });
 
     const existing = new Set(

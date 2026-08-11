@@ -20,8 +20,27 @@ import * as settings from './settingsService';
 
 type Waiter = { resolve: () => void; reject: (e: Error) => void; queuedAt: number; timer: NodeJS.Timeout };
 
-let active = 0;
-const waiting: Waiter[] = [];
+/**
+ * Two pools, because the two kinds of execution cost wildly different amounts.
+ *
+ * Measured on production, same box, same 20-concurrent test:
+ *   Java   — 7,000ms single, 8/20 correct in 52s
+ *   Python —   203ms single, 20/20 correct in 6s
+ *
+ * A compiled run is ~35x a scripted one, because it pays for a fresh compiler every time.
+ * Holding Python to Java's cap throttles it for no reason: twenty concurrent Python runs
+ * do not trouble this box at all.
+ */
+type Pool = { active: number; waiting: Waiter[] };
+const pools: Record<'heavy' | 'light', Pool> = {
+  heavy: { active: 0, waiting: [] },
+  light: { active: 0, waiting: [] },
+};
+
+/** Languages that invoke a compiler on every run. */
+const HEAVY = new Set(['java', 'cpp', 'c', 'csharp', 'go', 'rust', 'kotlin', 'scala']);
+export const poolFor = (language?: string): 'heavy' | 'light' =>
+  (HEAVY.has(String(language || '').toLowerCase()) ? 'heavy' : 'light');
 
 /**
  * Concurrency cap. Settable from Platform Settings so it can be tuned without a deploy.
@@ -34,16 +53,22 @@ const waiting: Waiter[] = [];
  *
  * Raise it only after adding cores, and re-run the load test before believing it.
  */
-const limit = () => Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY', 2));
+const limit = (kind: 'heavy' | 'light') => kind === 'heavy'
+  ? Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY', 2))
+  : Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY_LIGHT', 12));
 /** How long someone may wait before we admit defeat honestly. */
 const maxWaitMs = () => Math.max(5_000, settings.getNum('CODE_EXEC_MAX_WAIT_MS', 45_000));
 
-export interface QueueStats { active: number; waiting: number; limit: number }
-export const queueStats = (): QueueStats => ({ active, waiting: waiting.length, limit: limit() });
+export interface QueueStats { heavy: Pool; light: Pool }
+export const queueStats = () => ({
+  heavy: { active: pools.heavy.active, waiting: pools.heavy.waiting.length, limit: limit('heavy') },
+  light: { active: pools.light.active, waiting: pools.light.waiting.length, limit: limit('light') },
+});
 
-function releaseOne(): void {
-  const next = waiting.shift();
-  if (!next) { active--; return; }
+function releaseOne(kind: 'heavy' | 'light'): void {
+  const pool = pools[kind];
+  const next = pool.waiting.shift();
+  if (!next) { pool.active--; return; }
   clearTimeout(next.timer);
   // `active` stays as it is — one slot passes straight from the finisher to the waiter.
   next.resolve();
@@ -56,20 +81,22 @@ function releaseOne(): void {
  * worse served than one told the server is busy. The caller turns that into a message
  * that says so plainly.
  */
-export async function withExecutionSlot<T>(fn: () => Promise<T>): Promise<T> {
+export async function withExecutionSlot<T>(fn: () => Promise<T>, language?: string): Promise<T> {
   const waitedFrom = Date.now();
+  const kind = poolFor(language);
+  const pool = pools[kind];
 
-  if (active >= limit()) {
+  if (pool.active >= limit(kind)) {
     await new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
-        const i = waiting.findIndex(w => w.timer === timer);
-        if (i >= 0) waiting.splice(i, 1);
+        const i = pool.waiting.findIndex(w => w.timer === timer);
+        if (i >= 0) pool.waiting.splice(i, 1);
         reject(new Error('QUEUE_TIMEOUT'));
       }, maxWaitMs());
-      waiting.push({ resolve, reject, queuedAt: Date.now(), timer });
+      pool.waiting.push({ resolve, reject, queuedAt: Date.now(), timer });
     });
   } else {
-    active++;
+    pool.active++;
   }
 
   const queuedMs = Date.now() - waitedFrom;
@@ -81,7 +108,7 @@ export async function withExecutionSlot<T>(fn: () => Promise<T>): Promise<T> {
     if (out && typeof out === 'object') (out as any).queuedMs = queuedMs;
     return out;
   } finally {
-    releaseOne();
+    releaseOne(kind);
   }
 }
 

@@ -535,7 +535,7 @@ class CodeRunnerService {
    */
   private async executeWithPiston(input: ExecutionInput): Promise<ExecutionResult> {
     try {
-      return await withExecutionSlot(() => this.executeOnPiston(input));
+      return await withExecutionSlot(() => this.executeOnPiston(input), input.language);
     } catch (e: any) {
       if (isQueueTimeout(e)) {
         // Say what actually happened. The old code called every kill a time limit and

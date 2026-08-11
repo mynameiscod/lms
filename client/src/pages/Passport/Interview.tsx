@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import passportApi, { InterviewSession } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
+import { useSearchParams } from 'react-router-dom';
 import { useInterviewVoice, speechInSupported, speechOutSupported } from './useInterviewVoice';
 import { INTERVIEWER_FACE_ENABLED } from './interviewFace';
 
@@ -23,6 +24,7 @@ const VERDICT_LABEL: Record<string, string> = { strong: 'Strong', okay: 'Okay', 
  * on Passport's own session record: no template, no batch, no scheduled slot.
  */
 const Interview: React.FC = () => {
+  const [params] = useSearchParams();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<InterviewSession | null>(null);
@@ -82,7 +84,9 @@ const Interview: React.FC = () => {
   const start = async () => {
     setBusy(true); setErr('');
     try {
-      const r = await passportApi.startInterview();
+      // ?company=<slug> arrives when the member started from a company page, and primes
+      // the interviewer for that employer.
+      const r = await passportApi.startInterview(params.get('company') || undefined);
       setSession(r.session);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not start the interview.'); }
     setBusy(false);
@@ -247,7 +251,7 @@ const Interview: React.FC = () => {
     return (
       <PassportShell hideNav meta={<span className="pm-pill"><i>🎙️</i>Question <b>{session.askedCount}</b> / {session.maxQuestions}</span>}>
         <div className="pm-head">
-          <h1>Mock interview in progress</h1>
+          <h1>{session.companyName ? `${session.companyName} mock interview` : 'Mock interview in progress'}</h1>
           <p>{session.role} · with {session.interviewerName}. Answer as if this were the real thing — full sentences, specific examples.</p>
         </div>
 

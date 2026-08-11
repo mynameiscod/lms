@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience } from '../../api/passportApi';
 import AdminCompanyRoster from './AdminCompanyRoster';
+import AdminCompanyPattern from './AdminCompanyPattern';
 
 /**
  * Admin: companies, their questions, and the moderation queue.
@@ -15,7 +16,7 @@ const box: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f
 const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 800, color: '#64748b', margin: '10px 0 5px' };
 
-type Tab = 'roster' | 'companies' | 'profile' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
+type Tab = 'roster' | 'companies' | 'profile' | 'pattern' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
 
 const AdminCompanies: React.FC = () => {
   const [d, setD] = useState<CompanyAdmin | null>(null);
@@ -97,6 +98,7 @@ const AdminCompanies: React.FC = () => {
     ['roster', '🏢 Roster'],
     ['companies', `Companies (${d.companies.length})`],
     ['profile', 'Company profile'],
+    ['pattern', 'Interview pattern'],
     ['questions', 'Questions'],
     ['import', '✨ Import / Generate'],
     ['review', `Review${d.pendingCount ? ` (${d.pendingCount})` : ''}`],
@@ -153,7 +155,7 @@ const AdminCompanies: React.FC = () => {
         </>
       )}
 
-      {(tab === 'questions' || tab === 'import' || tab === 'profile') && (
+      {(tab === 'questions' || tab === 'import' || tab === 'profile' || tab === 'pattern') && (
         <div style={box}>
           <label style={lbl}>Company</label>
           <select style={{ ...inp, maxWidth: 300 }} value={slug} onChange={e => setSlug(e.target.value)}>
@@ -317,6 +319,10 @@ const AdminCompanies: React.FC = () => {
             }}>Save profile</button>
           </div>
         </div>
+      )}
+
+      {tab === 'pattern' && slug && (
+        <AdminCompanyPattern slug={slug} rounds={tax.rounds.filter(r => r.enabled)} categories={tax.categories.filter(c => c.enabled)} />
       )}
 
       {tab === 'experiences' && (

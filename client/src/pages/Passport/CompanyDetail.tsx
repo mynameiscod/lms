@@ -422,8 +422,8 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
                 style of question. It draws from your 12 mock interviews a year, the same pool
                 as any other mock.
               </p>
-              <button className="pm-btn primary" onClick={() => nav('/careerpilot/interview')}>
-                Start a mock interview
+              <button className="pm-btn primary" onClick={() => nav(`/careerpilot/interview?company=${slug}`)}>
+                Start a {c.name} mock interview
               </button>
             </div>
           )}

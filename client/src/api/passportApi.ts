@@ -161,8 +161,9 @@ export const passportApi = {
     const { data } = await axios.get(`${BASE}/interview`, { headers: auth() });
     return data;
   },
-  startInterview: async (): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
-    const { data } = await axios.post(`${BASE}/interview/start`, {}, { headers: auth() });
+  /** `companySlug` primes the interviewer with that company's rounds and most-asked topics. */
+  startInterview: async (companySlug?: string): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
+    const { data } = await axios.post(`${BASE}/interview/start`, companySlug ? { companySlug } : {}, { headers: auth() });
     return data;
   },
   interviewTurn: async (id: string, answer: string): Promise<{ say: string; kind: string; endInterview: boolean; session: InterviewSession }> => {
@@ -545,6 +546,7 @@ export interface SubmitOutcome extends Partial<RunOutcome> {
 export interface InterviewTurn { role: 'interviewer' | 'candidate'; text: string; at?: string; }
 export interface InterviewSession {
   id: string; role: string; areas: string[]; interviewerName: string;
+  companySlug?: string | null; companyName?: string | null;
   maxQuestions: number; askedCount: number; status: 'in_progress' | 'completed' | 'abandoned';
   transcript: InterviewTurn[];
   evaluation?: {

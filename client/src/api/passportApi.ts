@@ -257,6 +257,28 @@ export const passportApi = {
     return data;
   },
 
+  // ── Company roster pipeline ──
+  bulkCreateCompanies: async (names: string, type: string): Promise<{ created: number; skipped: number }> => {
+    const { data } = await axios.post(`${BASE}/company-admin/bulk`, { names, type }, { headers: auth() });
+    return data;
+  },
+  readinessBoard: async (): Promise<{ rows: ReadinessRow[]; liveCount: number; total: number }> => {
+    const { data } = await axios.get(`${BASE}/company-admin/readiness`, { headers: auth() });
+    return data;
+  },
+  draftProfile: async (slug: string): Promise<{ drafted: boolean; patternRounds: number; readiness: any }> => {
+    const { data } = await axios.post(`${BASE}/company-admin/${slug}/draft-profile`, {}, { headers: auth() });
+    return data;
+  },
+  verifyFields: async (slug: string, body: { eligibility?: boolean; salary?: boolean }): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/company-admin/${slug}/verify`, body, { headers: auth() });
+    return data;
+  },
+  savePattern: async (slug: string, rounds: any[], role = ''): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/company-admin/${slug}/pattern`, { rounds, role }, { headers: auth() });
+    return data;
+  },
+
   // ── Tech News ──
   getNews: async (): Promise<{ locked?: boolean; priceInr?: number; items?: NewsItem[] }> => {
     const { data } = await axios.get(`${BASE}/news`, { headers: auth() });
@@ -675,6 +697,17 @@ export interface CompanyStats {
   totals: { questions: number; askedThisYear: number; highFrequency: number; avgSuccessRate: Stat };
 }
 
+export interface ReadinessCheck { key: string; label: string; done: boolean; detail: string; required: boolean }
+export interface ReadinessRow {
+  id: string; name: string; slug: string; type: string;
+  ready: boolean; score: number; missing: string[]; checks: ReadinessCheck[];
+  aiDrafted: Record<string, boolean>; verified: Record<string, boolean>;
+}
+export interface PatternRound {
+  key: string; order: number; name: string; durationMins?: number;
+  tests: string[]; description?: string; cutoff?: string; tip?: string;
+}
+
 export interface AdminExperience {
   id: string; companySlug: string; role: string; interviewedOn: string;
   roundsFaced: string[]; durationDays: number | null; outcome: string;
@@ -686,7 +719,14 @@ export interface CompanyDetail {
     id: string; name: string; slug: string; type: string; logoUrl: string; about: string;
     roles: string[]; location: string; industry: string; employeeBand: string; website: string;
     tips: string[]; salaryBands: SalaryBand[];
+    /** Null until an admin has verified it — never shown to a student unverified. */
+    eligibility: {
+      cgpaMin?: number; tenthMin?: number; twelfthMin?: number;
+      backlogsAllowed?: number; branches: string[]; notes?: string;
+    } | null;
+    hiringTimeline: string;
   };
+  pattern: { role: string; totalDurationDays: number | null; rounds: PatternRound[] } | null;
   stats: CompanyStats;
   rounds: TaxItem[]; categories: TaxItem[]; difficulties: TaxItem[];
   questions: CompanyQuestionRow[];

@@ -38,7 +38,7 @@ const HeadStat: React.FC<{ title: string; s: Stat<any>; fmt?: (v: any) => string
     );
   };
 
-type TabKey = 'overview' | 'questions' | 'rounds' | 'salary' | 'reviews' | 'tips';
+type TabKey = 'overview' | 'pattern' | 'salary' | 'mocktest' | 'mockinterview' | 'questions';
 
 const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
   const nav = useNavigate();
@@ -168,8 +168,8 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
 
       {/* ── Tabs ── */}
       <div className="ci-tabs">
-        {([['overview', 'Overview'], ['questions', 'Questions'], ['rounds', 'By Round'],
-           ['salary', 'Salary Insights'], ['reviews', 'Reviews'], ['tips', 'Tips']] as [TabKey, string][])
+        {([['overview', 'Overview'], ['pattern', 'Interview Patterns'], ['salary', 'Salary Range'],
+           ['mocktest', 'Mock Test'], ['mockinterview', 'Mock Interview'], ['questions', 'Questions']] as [TabKey, string][])
           .map(([k, l]) => (
             <button key={k} className={tab === k ? 'on' : ''} onClick={() => setTab(k)}>{l}</button>
           ))}
@@ -310,27 +310,108 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
           )}
 
           {tab === 'overview' && (
-            <div className="pm-card">
-              <h3 style={{ fontSize: 15, fontWeight: 900, margin: '0 0 8px' }}>About {c.name}</h3>
-              <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.7, margin: 0 }}>
-                {c.about || 'No overview published yet.'}
+            <>
+              <div className="pm-card">
+                <h3 style={{ fontSize: 15, fontWeight: 900, margin: '0 0 8px' }}>About {c.name}</h3>
+                <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.7, margin: 0 }}>
+                  {c.about || 'No overview published yet.'}
+                </p>
+                {c.hiringTimeline && (
+                  <p style={{ marginTop: 12, fontSize: 13, color: '#0f766e', fontWeight: 700 }}>
+                    🗓 {c.hiringTimeline}
+                  </p>
+                )}
+              </div>
+
+              {/* Eligibility is the first thing a student actually needs, so it sits above
+                  everything else. It is absent rather than guessed when unverified — the
+                  server withholds it until a human has ticked it. */}
+              {c.eligibility && (
+                <div className="pm-card ci-elig">
+                  <h3>Am I eligible?</h3>
+                  <div className="grid">
+                    {c.eligibility.cgpaMin !== undefined && <div><span>CGPA</span><b>{c.eligibility.cgpaMin}+</b></div>}
+                    {c.eligibility.tenthMin !== undefined && <div><span>10th</span><b>{c.eligibility.tenthMin}%+</b></div>}
+                    {c.eligibility.twelfthMin !== undefined && <div><span>12th</span><b>{c.eligibility.twelfthMin}%+</b></div>}
+                    {c.eligibility.backlogsAllowed !== undefined && (
+                      <div><span>Backlogs</span><b>{c.eligibility.backlogsAllowed === 0 ? 'None allowed' : `${c.eligibility.backlogsAllowed} allowed`}</b></div>
+                    )}
+                  </div>
+                  {!!c.eligibility.branches?.length && (
+                    <div className="branches">
+                      <span>Branches</span>
+                      {c.eligibility.branches.map(b => <em key={b}>{b}</em>)}
+                    </div>
+                  )}
+                  {c.eligibility.notes && <p className="note">{c.eligibility.notes}</p>}
+                </div>
+              )}
+
+              {!!c.tips.length && (
+                <div className="pm-card">
+                  <h3 style={{ fontSize: 15, fontWeight: 900, margin: '0 0 10px' }}>Before you apply</h3>
+                  <ul className="cd-tips">{c.tips.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'pattern' && (
+            <>
+              {!d.pattern?.rounds?.length ? (
+                <div className="pm-card">The interview pattern for this company has not been published yet.</div>
+              ) : (
+                <div className="ci-flow">
+                  {d.pattern.rounds.map((r, i) => (
+                    <div className="ci-step" key={`${r.key}-${i}`}>
+                      <div className="n">{i + 1}</div>
+                      <div className="bd">
+                        <div className="hd">
+                          <b>{r.name}</b>
+                          {!!r.durationMins && <span className="dur">{r.durationMins} min</span>}
+                        </div>
+                        {!!r.tests?.length && (
+                          <div className="tests">{r.tests.map(t => <span key={t}>{t}</span>)}</div>
+                        )}
+                        {r.description && <p>{r.description}</p>}
+                        {r.cutoff && <div className="cut">Clearing bar: {r.cutoff}</div>}
+                        {r.tip && <div className="tip">💡 {r.tip}</div>}
+                        <button className="qs" onClick={() => { setRound(r.key); setTab('questions'); }}>
+                          See questions from this round →
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+
+          {tab === 'mocktest' && (
+            <div className="pm-card ci-mock">
+              <h3>Mock Test</h3>
+              <p>
+                A timed test built from this company's own question bank, topped up by AI where
+                the bank is short. Sections, timing and the passing bar follow how {c.name}
+                actually assesses.
               </p>
-              {c.website && <p style={{ marginTop: 10 }}><a href={c.website} target="_blank" rel="noreferrer">{c.website}</a></p>}
+              {st.totals.questions < 20
+                ? <div className="pm-msg info">Not enough questions banked for a full test yet.</div>
+                : <button className="pm-btn primary" disabled title="Coming next">Start Mock Test</button>}
             </div>
           )}
 
-          {tab === 'rounds' && (
-            <div className="ci-roundgrid">
-              {st.rounds.map(r => (
-                <button key={r.key} className="ci-roundcard" onClick={() => { setRound(r.key); setTab('questions'); }}>
-                  <b>{labelOf(d.rounds, r.key)}</b>
-                  <span className="n">{r.questions} Question{r.questions === 1 ? '' : 's'}</span>
-                  {r.attemptedPct !== null
-                    ? <><div className="bar"><i style={{ width: `${r.attemptedPct}%` }} /></div><span className="pc">{r.attemptedPct}% attempted</span></>
-                    : <span className="na">Not yet runnable</span>}
-                </button>
-              ))}
-              {!st.rounds.length && <div className="pm-card">No questions filed by round yet.</div>}
+          {tab === 'mockinterview' && (
+            <div className="pm-card ci-mock">
+              <h3>Mock Interview</h3>
+              <p>
+                Your AI interviewer, primed for {c.name} — same rounds, same emphasis, same
+                style of question. It draws from your 12 mock interviews a year, the same pool
+                as any other mock.
+              </p>
+              <button className="pm-btn primary" onClick={() => nav('/careerpilot/interview')}>
+                Start a mock interview
+              </button>
             </div>
           )}
 
@@ -354,23 +435,7 @@ const CompanyDetail: React.FC<{ slug: string }> = ({ slug }) => {
             </div>
           )}
 
-          {tab === 'reviews' && (
-            <div className="pm-card">
-              {st.rating.n === 0
-                ? <p style={{ margin: 0, fontSize: 13.5, color: '#64748b' }}>No reviews yet — the first comes from a student who reports their interview.</p>
-                : <p style={{ margin: 0, fontSize: 13.5, color: '#334155' }}>
-                    <b>★ {st.rating.value}</b> average from {st.rating.n} {st.rating.n === 1 ? 'student' : 'students'} who interviewed here.
-                  </p>}
-            </div>
-          )}
 
-          {tab === 'tips' && (
-            <div className="pm-card">
-              {!c.tips.length
-                ? <p style={{ margin: 0, fontSize: 13.5, color: '#64748b' }}>No tips published yet.</p>
-                : <ul className="cd-tips">{c.tips.map((t, i) => <li key={i}>{t}</li>)}</ul>}
-            </div>
-          )}
         </div>
 
         {/* ── Rail ── */}

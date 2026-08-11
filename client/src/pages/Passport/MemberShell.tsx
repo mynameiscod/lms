@@ -181,7 +181,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Learning Path', 'roadmap', '/careerpilot/roadmap')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
           {navBtn('Resume Builder', 'resume', '/careerpilot/resume')}
-          {navBtn('Company Questions', 'building', '/careerpilot/companies')}
+          {navBtn('Prepare Interviews', 'building', '/careerpilot/companies')}
           {navBtn('Tech News', 'news', '/careerpilot/news')}
           {navBtn('Performance', 'chart', '/careerpilot/assessment')}
           {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}

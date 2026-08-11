@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import passportApi, { CompanyAdmin, AdminQuestion, TaxItem, AdminExperience } from '../../api/passportApi';
+import AdminCompanyRoster from './AdminCompanyRoster';
 
 /**
  * Admin: companies, their questions, and the moderation queue.
@@ -14,11 +15,11 @@ const box: React.CSSProperties = { background: '#fff', border: '1px solid #eef0f
 const inp: React.CSSProperties = { width: '100%', padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 13.5, boxSizing: 'border-box' };
 const lbl: React.CSSProperties = { display: 'block', fontSize: 11.5, fontWeight: 800, color: '#64748b', margin: '10px 0 5px' };
 
-type Tab = 'companies' | 'profile' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
+type Tab = 'roster' | 'companies' | 'profile' | 'questions' | 'import' | 'review' | 'experiences' | 'taxonomy';
 
 const AdminCompanies: React.FC = () => {
   const [d, setD] = useState<CompanyAdmin | null>(null);
-  const [tab, setTab] = useState<Tab>('companies');
+  const [tab, setTab] = useState<Tab>('roster');
   const [slug, setSlug] = useState('');
   const [questions, setQuestions] = useState<AdminQuestion[]>([]);
   const [pending, setPending] = useState<AdminQuestion[]>([]);
@@ -93,6 +94,7 @@ const AdminCompanies: React.FC = () => {
   const lab = (list: TaxItem[], k: string) => list.find(x => x.key === k)?.label || k;
 
   const TABS: [Tab, string][] = [
+    ['roster', '🏢 Roster'],
     ['companies', `Companies (${d.companies.length})`],
     ['profile', 'Company profile'],
     ['questions', 'Questions'],
@@ -112,6 +114,10 @@ const AdminCompanies: React.FC = () => {
 
       {msg && <div className="pm-msg ok">{msg}</div>}
       {err && <div className="pm-msg err">{err}</div>}
+
+      {tab === 'roster' && (
+        <AdminCompanyRoster onOpen={slugToOpen => { setSlug(slugToOpen); setTab('profile'); }} />
+      )}
 
       {tab === 'companies' && (
         <>

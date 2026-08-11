@@ -42,7 +42,7 @@ const Companies: React.FC = () => {
     return (
       <PassportShell>
         <LockedPanel
-          title="Company Questions are part of your membership"
+          title="Prepare Interviews is part of your membership"
           blurb="What real companies asked, round by round — coding, aptitude, technical, GD and HR — so you walk in knowing the shape of the interview."
           priceInr={locked.priceInr}
         />
@@ -58,8 +58,8 @@ const Companies: React.FC = () => {
   return (
     <PassportShell>
       <div className="pm-head">
-        <h1>Company Questions</h1>
-        <p>What these companies actually asked, grouped by round.</p>
+        <h1>Prepare Interviews</h1>
+        <p>Pick a company. Everything we know about how they hire, in one place.</p>
       </div>
 
       <div className="cq-filters">

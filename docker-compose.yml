@@ -163,6 +163,12 @@ services:
       PISTON_COMPILE_TIMEOUT: "20000"
       PISTON_RUN_CPU_TIME: "30000"
       PISTON_COMPILE_CPU_TIME: "20000"
+      # Backstop for the app-side execution queue (CODE_EXEC_CONCURRENCY, default 4).
+      # Set deliberately ABOVE it so the app's queue is the primary control and this only
+      # catches anything that bypasses it. Piston's default is 64, which on an 8-core box
+      # means it cheerfully accepts enough concurrent javac runs to starve them all: six
+      # at once measured 32s each and every one was SIGKILLed.
+      PISTON_MAX_CONCURRENT_JOBS: "6"
     networks:
       - lms-network
     restart: unless-stopped

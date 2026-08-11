@@ -1,4 +1,5 @@
 import { ProgrammingLanguage } from '../models/Assignment';
+import { withExecutionSlot, isQueueTimeout } from './executionQueue';
 
 interface ExecutionInput {
   code: string;
@@ -525,9 +526,33 @@ class CodeRunnerService {
     return result;
   }
 
-  // Real execution with Piston API
+  /**
+   * Real execution, behind the concurrency cap.
+   *
+   * Everything that reaches Piston goes through here, so the cap is global: assignments,
+   * the Practice Lab and drills all draw from the same pool of slots rather than each
+   * having their own and collectively overwhelming the box.
+   */
   private async executeWithPiston(input: ExecutionInput): Promise<ExecutionResult> {
+    try {
+      return await withExecutionSlot(() => this.executeOnPiston(input));
+    } catch (e: any) {
+      if (isQueueTimeout(e)) {
+        // Say what actually happened. The old code called every kill a time limit and
+        // told students to look for an infinite loop in code that had none.
+        return {
+          passed: false, output: '',
+          error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again. Your code has not been changed.',
+          executionTime: 0, memoryUsed: 0,
+        };
+      }
+      throw e;
+    }
+  }
+
+  private async executeOnPiston(input: ExecutionInput): Promise<ExecutionResult> {
     const { code, language, input: stdin, expectedOutput, timeLimit } = input;
+    const startedAt = Date.now();
 
     try {
       const pistonLanguage = this.mapToPistonLanguage(language);
@@ -577,6 +602,16 @@ class CodeRunnerService {
 
       if (!response.ok) {
         const errorBody = await response.text();
+        // Piston refuses with 429 when its own job limit is reached. That is the sandbox
+        // saying "busy", not the student's code failing, and it must not surface as a
+        // scary API error.
+        if (response.status === 429) {
+          return {
+            passed: false, output: '',
+            error: 'The server is busy right now — too many programs running at once. Wait a few seconds and press Run again.',
+            executionTime: Date.now() - startedAt, memoryUsed: 0,
+          };
+        }
         console.error('[PISTON] Error response:', response.status, errorBody);
         throw new Error(`Piston API error: ${response.statusText} - ${errorBody}`);
       }
@@ -610,18 +645,35 @@ class CodeRunnerService {
           };
         }
 
-        // SIGKILL/null code with no stderr == killed by the CPU/time limit
+        const elapsed = Date.now() - startedAt;
         const killed = !!result.run.signal || result.run.code === null;
+
+        /**
+         * A SIGKILL means "we stopped it", not "it looped forever".
+         *
+         * Under load a correct program is killed for being slow, and the old message
+         * accused the student of an infinite loop — so they hunted a bug that did not
+         * exist and reported the product as broken. A program that produced output before
+         * dying, or that died well under the limit, was starved of CPU, not looping.
+         */
+        const producedOutput = !!(result.run.stdout || '').trim();
+        const wellUnderLimit = elapsed < runLimit * 0.6;
+        const starved = killed && (producedOutput || wellUnderLimit);
+
         const errorMsg = runStderr
-          || (killed
-              ? 'Time limit exceeded — your program ran too long (check for an infinite loop, or reading input that was never provided).'
-              : `Program exited with code ${result.run.code}`);
+          || (starved
+              ? 'The server was busy and had to stop your program before it finished. This is not a problem with your code — press Run again in a few seconds.'
+              : killed
+                ? 'Time limit exceeded — your program ran too long (check for an infinite loop, or reading input that was never provided).'
+                : `Program exited with code ${result.run.code}`);
 
         return {
           passed: false,
           output: result.run.stdout || '',
           error: errorMsg,
-          executionTime: 0,
+          // Real elapsed time. This was hardcoded to 0, which is why every failed test
+          // showed "0ms" and made a 32-second starvation look instantaneous.
+          executionTime: elapsed,
           memoryUsed: 0
         };
       }

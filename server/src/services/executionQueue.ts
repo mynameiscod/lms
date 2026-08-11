@@ -23,8 +23,18 @@ type Waiter = { resolve: () => void; reject: (e: Error) => void; queuedAt: numbe
 let active = 0;
 const waiting: Waiter[] = [];
 
-/** Concurrency cap. Settable from Platform Settings so it can be tuned without a deploy. */
-const limit = () => Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY', 4));
+/**
+ * Concurrency cap. Settable from Platform Settings so it can be tuned without a deploy.
+ *
+ * TWO, not four. Measured on this 8-core box: at a cap of 4, twenty concurrent Java runs
+ * produced ZERO correct results — each execution needs a full core for ~7s of javac, so
+ * four at once still stretched past the 30s kill. The honest ceiling here is about one
+ * concurrent Java run per two cores, and the box shares those cores with five other
+ * services.
+ *
+ * Raise it only after adding cores, and re-run the load test before believing it.
+ */
+const limit = () => Math.max(1, settings.getNum('CODE_EXEC_CONCURRENCY', 2));
 /** How long someone may wait before we admit defeat honestly. */
 const maxWaitMs = () => Math.max(5_000, settings.getNum('CODE_EXEC_MAX_WAIT_MS', 45_000));
 

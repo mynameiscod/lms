@@ -571,7 +571,11 @@ class CodeRunnerService {
       // is scored 0. A clean Java run measured ~13.5s CPU, so floor at 20s and
       // allow up to 30s (matches PISTON_RUN_* caps in docker-compose) rather than
       // the per-test timeLimit, which is far too small for compiled languages.
-      const runLimit = Math.min(Math.max(timeLimit || 5000, 20000), 30000);
+      // Floor raised 20s -> 30s to match Piston's own PISTON_RUN_TIMEOUT cap. Under any
+      // queueing at all a cold javac plus JVM start can pass 20s, and the extra ten
+      // seconds is free — it only ever applies to a program that would otherwise be
+      // killed for being slow rather than wrong.
+      const runLimit = Math.min(Math.max(timeLimit || 5000, 30000), 30000);
       const requestBody = {
         language: pistonLanguage.language,
         version: pistonLanguage.version,

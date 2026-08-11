@@ -128,6 +128,9 @@ const Recorder: React.FC<{ today: CommToday; onDone: (a: CommAttempt) => void; o
   const [elapsed, setElapsed] = useState(0);
   const [count, setCount] = useState(3);
   const streamRef = useRef<MediaStream | null>(null);
+  // Bumped when a stream is acquired, so the attach effect re-runs. The stream lives in a
+  // ref (it must not trigger renders), and a ref changing cannot wake an effect on its own.
+  const [streamTick, setStreamTick] = useState(0);
   const recRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const blobRef = useRef<Blob | null>(null);
@@ -139,12 +142,37 @@ const Recorder: React.FC<{ today: CommToday; onDone: (a: CommAttempt) => void; o
   const stopStream = () => { streamRef.current?.getTracks().forEach(t => t.stop()); streamRef.current = null; };
   useEffect(() => () => { clearInterval(timerRef.current); stopStream(); }, []);
 
+  /**
+   * Attach the camera stream to whichever <video> is currently mounted.
+   *
+   * The element is unmounted and remounted as the phase changes (setup -> ready -> count
+   * -> rec, and again when returning from 'done' for a retry), and each new element starts
+   * with no srcObject. Assigning once, at getUserMedia time, therefore attached to nothing
+   * — so this runs on every phase change and re-attaches, but only when the element does
+   * not already hold the stream.
+   */
+  useEffect(() => {
+    const v = previewRef.current;
+    const s = streamRef.current;
+    if (!v || !s || mode !== 'video' || phase === 'done' || phase === 'setup') return;
+    if (v.srcObject === s) return;
+    v.srcObject = s;
+    // Safari and some Android browsers do not always honour autoPlay on a late srcObject.
+    v.play?.().catch(() => { /* muted+playsInline means this rarely fails; ignore if it does */ });
+  }, [phase, mode, streamTick]);
+
   const check = async () => {
     setErr('');
     try {
       const s = await navigator.mediaDevices.getUserMedia({ video: mode === 'video', audio: true });
       streamRef.current = s;
-      if (previewRef.current && mode === 'video') { previewRef.current.srcObject = s; }
+      // Do NOT attach the stream here. This runs while phase === 'setup', and the whole
+      // preview block is behind `phase !== 'setup'` — so previewRef.current is null, the
+      // old assignment was silently skipped by its own guard, and the <video> that mounts
+      // a moment later never received the stream. Recording still worked (MediaRecorder
+      // reads streamRef directly), which is why it showed a live REC timer over a black
+      // box. The effect below attaches it whenever the element actually exists.
+      setStreamTick(t => t + 1);
       setPhase('ready');
     } catch (e: any) {
       setErr(mode === 'video' ? 'Camera/mic blocked. Allow access in your browser and retry.' : 'Microphone blocked. Allow access in your browser and retry.');

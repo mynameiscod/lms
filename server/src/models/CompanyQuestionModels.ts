@@ -108,6 +108,42 @@ export interface ICompany extends Document {
    * are presented as such, so a student is never misled about where the number came from.
    */
   salaryBands: { role: string; minLpa: number; maxLpa: number; note?: string }[];
+
+  /**
+   * Who can apply. The first thing a student actually needs, and the field where being
+   * wrong costs them an application they were eligible for - or wastes one they were not.
+   */
+  eligibility: {
+    cgpaMin?: number;
+    tenthMin?: number;
+    twelfthMin?: number;
+    backlogsAllowed?: number;
+    gapYearsAllowed?: number;
+    branches: string[];
+    notes?: string;
+  };
+  /** e.g. "Applications open Aug, OA Sep, offers by Nov" */
+  hiringTimeline?: string;
+
+  /**
+   * Which sections the model wrote rather than a human.
+   *
+   * Kept per field, not per company, because an admin needs to know WHICH parts to check
+   * - and because a company is usually part drafted, part typed.
+   */
+  aiDrafted: { overview?: boolean; eligibility?: boolean; salary?: boolean; pattern?: boolean };
+
+  /**
+   * Human sign-off on the two fields a student acts on directly.
+   *
+   * Eligibility and salary stay hidden from students until someone ticks these, however
+   * confident the draft looked. The model does not know this year's cutoff at this
+   * company, and a confident wrong number is worse than a missing one.
+   */
+  verified: { eligibility?: boolean; salary?: boolean };
+
+  /** Stamped the first time the company passes the readiness bar. */
+  publishedAt?: Date | null;
   /** Denormalised count of published questions — the grid would otherwise need an
    *  aggregate per company on every page load. Recomputed on publish/unpublish. */
   questionCount: number;
@@ -129,6 +165,27 @@ const CompanySchema = new Schema<ICompany>({
   employeeBand: { type: String, default: '' },
   website:      { type: String, default: '' },
   tips:         [{ type: String }],
+  hiringTimeline: { type: String, default: '' },
+  eligibility: {
+    cgpaMin:          { type: Number },
+    tenthMin:         { type: Number },
+    twelfthMin:       { type: Number },
+    backlogsAllowed:  { type: Number },
+    gapYearsAllowed:  { type: Number },
+    branches:         [{ type: String }],
+    notes:            { type: String, default: '' },
+  },
+  aiDrafted: {
+    overview:    { type: Boolean, default: false },
+    eligibility: { type: Boolean, default: false },
+    salary:      { type: Boolean, default: false },
+    pattern:     { type: Boolean, default: false },
+  },
+  verified: {
+    eligibility: { type: Boolean, default: false },
+    salary:      { type: Boolean, default: false },
+  },
+  publishedAt: { type: Date, default: null },
   salaryBands: [{
     role:  { type: String, default: '' },
     minLpa: { type: Number, default: 0 },
@@ -273,3 +330,134 @@ ExperienceSchema.index({ tenantId: 1, status: 1, createdAt: -1 });
 ExperienceSchema.index({ tenantId: 1, companySlug: 1, studentId: 1, interviewedOn: 1 }, { unique: true });
 
 export const InterviewExperience = mongoose.model<IInterviewExperience>('InterviewExperience', ExperienceSchema);
+
+
+// ─── Interview pattern ───────────────────────────────────────────────────────
+
+/**
+ * The shape of a company's interview: which rounds, in what order, what each tests.
+ *
+ * Separate from the question bank because it answers a different question. The bank tells
+ * a student WHAT gets asked; this tells them what they are walking into — how many rounds,
+ * how long, what the cutoff is, what to expect at each stage. Most candidates want this
+ * before they want questions.
+ */
+export interface IPatternRound {
+  key: string;
+  order: number;
+  name: string;
+  durationMins?: number;
+  /** What this round is actually testing. */
+  tests: string[];
+  description?: string;
+  /** e.g. "60% to clear", "top 2 of 4 problems". */
+  cutoff?: string;
+  tip?: string;
+}
+
+export interface IInterviewPattern extends Document {
+  tenantId: string;
+  companyId: mongoose.Types.ObjectId;
+  companySlug: string;
+  role: string;
+  rounds: IPatternRound[];
+  /** Typical end-to-end length, in days. */
+  totalDurationDays?: number;
+  aiDrafted: boolean;
+  updatedAt: Date;
+}
+
+const PatternRoundSchema = new Schema<IPatternRound>({
+  key:          { type: String, required: true },
+  order:        { type: Number, default: 0 },
+  name:         { type: String, required: true },
+  durationMins: { type: Number },
+  tests:        [{ type: String }],
+  description:  { type: String, default: '' },
+  cutoff:       { type: String, default: '' },
+  tip:          { type: String, default: '' },
+}, { _id: false });
+
+const PatternSchema = new Schema<IInterviewPattern>({
+  tenantId:    { type: String, required: true, index: true },
+  companyId:   { type: Schema.Types.ObjectId, ref: 'Company', required: true },
+  companySlug: { type: String, required: true },
+  role:        { type: String, default: '' },
+  rounds:      { type: [PatternRoundSchema], default: [] },
+  totalDurationDays: { type: Number },
+  aiDrafted:   { type: Boolean, default: false },
+}, { timestamps: true });
+
+// One pattern per company per role, so "Software Engineer" and "Analyst" can differ.
+PatternSchema.index({ tenantId: 1, companySlug: 1, role: 1 }, { unique: true });
+
+export const InterviewPattern = mongoose.model<IInterviewPattern>('InterviewPattern', PatternSchema);
+
+// ─── Mock test / mock interview configuration ────────────────────────────────
+
+/**
+ * How a company's mock test is assembled.
+ *
+ * Not a test — a recipe for one. Questions are drawn from that company's bank at run time
+ * so the test improves as the bank does, and AI fills a section only when the bank cannot,
+ * with those questions labelled. Storing a fixed paper would freeze it at the day it was
+ * written and let it be shared between students.
+ */
+export interface ICompanyMockConfig extends Document {
+  tenantId: string;
+  companySlug: string;
+  /** Test sections, in order. */
+  sections: {
+    name: string;
+    category: string;
+    questionCount: number;
+    durationMins: number;
+    difficulty?: string;
+  }[];
+  passingPct: number;
+  maxAttempts: number;
+  proctored: boolean;
+  /** Top up from AI when the bank is short. Off means the section is simply shorter. */
+  aiTopUp: boolean;
+
+  /** Company priming for the AI interviewer — it reuses the engine that already exists. */
+  interview: {
+    role: string;
+    rounds: string[];
+    emphasis: string[];
+    difficulty: string;
+    openingLine?: string;
+  };
+  enabled: { mockTest: boolean; mockInterview: boolean };
+}
+
+const MockConfigSchema = new Schema<ICompanyMockConfig>({
+  tenantId:    { type: String, required: true, index: true },
+  companySlug: { type: String, required: true },
+  sections: [{
+    name:          { type: String, default: '' },
+    category:      { type: String, default: '' },
+    questionCount: { type: Number, default: 10 },
+    durationMins:  { type: Number, default: 15 },
+    difficulty:    { type: String, default: '' },
+  }],
+  passingPct:  { type: Number, default: 60 },
+  maxAttempts: { type: Number, default: 2 },
+  proctored:   { type: Boolean, default: false },
+  aiTopUp:     { type: Boolean, default: true },
+  interview: {
+    role:        { type: String, default: '' },
+    rounds:      [{ type: String }],
+    emphasis:    [{ type: String }],
+    difficulty:  { type: String, default: 'medium' },
+    openingLine: { type: String, default: '' },
+  },
+  enabled: {
+    mockTest:      { type: Boolean, default: false },
+    mockInterview: { type: Boolean, default: false },
+  },
+}, { timestamps: true });
+
+MockConfigSchema.index({ tenantId: 1, companySlug: 1 }, { unique: true });
+
+export const CompanyMockConfig = mongoose.model<ICompanyMockConfig>('CompanyMockConfig', MockConfigSchema);

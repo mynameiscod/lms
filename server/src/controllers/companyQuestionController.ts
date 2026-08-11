@@ -4,6 +4,9 @@ import User from '../models/User';
 import PassportConfig from '../models/PassportConfig';
 import { Company, CompanyQuestion, QuestionTaxonomy, InterviewExperience } from '../models/CompanyQuestionModels';
 import { companyStats, questionFrequency } from '../services/companyStatsService';
+import { readinessFor, readinessForAll, readySlugs } from '../services/companyReadinessService';
+import { draftCompany } from '../services/companyDraftService';
+import { InterviewPattern } from '../models/CompanyQuestionModels';
 import { isEntitled } from '../services/passportEntitlementService';
 import {
   getTaxonomy, slugify, refreshQuestionCount, structureQuestions, predictQuestions,
@@ -47,14 +50,18 @@ export const listCompanies = async (req: Request, res: Response) => {
     const { tenantId, cfg, entitled } = await gate(req);
     if (!entitled) return res.json({ locked: true, priceInr: (cfg as any)?.priceInr ?? 1599 });
 
-    const [companies, tax] = await Promise.all([
+    // Only companies that pass the readiness bar. A member cannot reach an unready one
+    // by guessing its URL either — companyDetail applies the same filter.
+    const [companies, tax, ready] = await Promise.all([
       Company.find({ tenantId, active: true }).sort({ questionCount: -1, name: 1 }).lean(),
       getTaxonomy(tenantId),
+      readySlugs(tenantId),
     ]);
+    const readySet = new Set(ready);
     res.json({
       locked: false,
       companyTypes: tax.companyTypes.filter(t => t.enabled),
-      companies: companies.map((c: any) => ({
+      companies: companies.filter((c: any) => readySet.has(c.slug)).map((c: any) => ({
         id: String(c._id), name: c.name, slug: c.slug, type: c.type,
         logoUrl: c.logoUrl || '', about: c.about || '', questionCount: c.questionCount || 0,
       })),
@@ -74,6 +81,10 @@ export const companyDetail = async (req: Request, res: Response) => {
     const company = await Company.findOne({ tenantId, slug: req.params.slug, active: true }).lean() as any;
     if (!company) return res.status(404).json({ message: 'Company not found' });
 
+    // The gate again, so a typed URL cannot open a half-built page.
+    const rd = await readinessFor(tenantId, company.slug);
+    if (!rd.ready) return res.status(404).json({ message: 'Company not found' });
+
     const tax = await getTaxonomy(tenantId);
     const filter: any = { tenantId, companySlug: company.slug, status: 'published' };
     if (req.query.round) filter.round = String(req.query.round);
@@ -90,6 +101,7 @@ export const companyDetail = async (req: Request, res: Response) => {
       companyStats(tenantId, company.slug),
       questionFrequency(tenantId, company.slug),
     ]);
+    const pattern = await InterviewPattern.findOne({ tenantId, companySlug: company.slug }).lean() as any;
 
     res.json({
       company: {
@@ -100,8 +112,19 @@ export const companyDetail = async (req: Request, res: Response) => {
         tips: company.tips || [],
         // Flagged as the tenant's own estimate rather than surveyed data. The client
         // renders that label, and it must never be dropped in transit.
-        salaryBands: (company.salaryBands || []).map((b: any) => ({ ...b, indicative: true })),
+        // Withheld until a human has ticked them. An AI draft nobody checked must not
+        // reach a student who will act on it.
+        salaryBands: company.verified?.salary
+          ? (company.salaryBands || []).map((b: any) => ({ ...b, indicative: true }))
+          : [],
+        eligibility: company.verified?.eligibility ? (company.eligibility || null) : null,
+        hiringTimeline: company.hiringTimeline || '',
       },
+      pattern: pattern ? {
+        role: pattern.role || '',
+        totalDurationDays: pattern.totalDurationDays || null,
+        rounds: (pattern.rounds || []).slice().sort((a: any, b: any) => a.order - b.order),
+      } : null,
       // Every figure carries the sample it came from, so the UI can say "from 3 reports"
       // rather than implying confidence the data does not support.
       stats,
@@ -268,7 +291,189 @@ export const moderateExperience = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * POST /passport/company-admin/bulk - create many company shells at once.
+ *
+ * Paste a list of names; existing slugs are skipped rather than erroring, so the same
+ * list can be pasted twice without creating duplicates or losing work already done.
+ */
+export const bulkCreate = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const type = String(req.body?.type || 'service');
+    const names: string[] = String(req.body?.names || '')
+      .split(/[\n,]/).map(n => n.trim()).filter(Boolean).slice(0, 200);
+    if (!names.length) return res.status(400).json({ message: 'Paste some company names first.' });
+
+    const existing = new Set(
+      (await Company.find({ tenantId }).select('slug').lean()).map((c: any) => c.slug),
+    );
+
+    const fresh = names
+      .map(name => ({ name, slug: slugify(name) }))
+      .filter(c => c.slug && !existing.has(c.slug))
+      // A pasted list often repeats a name; dedupe within the batch too.
+      .filter((c, i, arr) => arr.findIndex(x => x.slug === c.slug) === i);
+
+    if (fresh.length) {
+      await Company.insertMany(fresh.map(c => ({ ...c, tenantId, type })), { ordered: false });
+    }
+    res.status(201).json({ created: fresh.length, skipped: names.length - fresh.length });
+  } catch (e: any) {
+    console.error('[companyq] bulkCreate:', e);
+    res.status(500).json({ message: e.message || 'Could not create companies' });
+  }
+};
+
+/**
+ * POST /passport/company-admin/:slug/draft-profile - AI-fill one company.
+ *
+ * Writes the draft straight onto the record but marks each drafted section, and leaves
+ * eligibility and salary UNVERIFIED so they stay hidden from students until a human ticks
+ * them. Nothing published, nothing shown, until someone has looked.
+ */
+export const draftProfile = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const company = await Company.findOne({ tenantId, slug: req.params.slug });
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    const tax = await getTaxonomy(tenantId);
+    const typeLabel = tax.companyTypes.find(t => t.key === company.type)?.label || company.type;
+    const draft = await draftCompany({
+      tenantId, name: company.name, type: typeLabel,
+      roundKeys: tax.rounds.filter(r => r.enabled).map(r => r.key),
+    });
+
+    // Never overwrite something a human already wrote. A re-draft is meant to fill gaps,
+    // not to undo an afternoon of editing.
+    if (!company.about?.trim()) { company.about = draft.about; company.aiDrafted.overview = true; }
+    if (!company.hiringTimeline?.trim()) company.hiringTimeline = draft.hiringTimeline;
+    if (!company.tips?.length) company.tips = draft.tips;
+
+    const hasEligibility = company.eligibility?.cgpaMin || company.eligibility?.branches?.length;
+    if (!hasEligibility) {
+      company.eligibility = draft.eligibility as any;
+      company.aiDrafted.eligibility = true;
+      company.verified.eligibility = false;
+    }
+    if (!company.salaryBands?.length && draft.salaryBands.length) {
+      company.salaryBands = draft.salaryBands as any;
+      company.aiDrafted.salary = true;
+      company.verified.salary = false;
+    }
+    await company.save();
+
+    let patternRounds = 0;
+    if (draft.rounds.length) {
+      const existing = await InterviewPattern.findOne({ tenantId, companySlug: company.slug });
+      if (!existing || !existing.rounds?.length) {
+        await InterviewPattern.findOneAndUpdate(
+          { tenantId, companySlug: company.slug, role: '' },
+          {
+            $set: {
+              companyId: company._id, rounds: draft.rounds, aiDrafted: true,
+              totalDurationDays: undefined,
+            },
+          },
+          { upsert: true, new: true },
+        );
+        patternRounds = draft.rounds.length;
+      }
+    }
+
+    const readiness = await readinessFor(tenantId, company.slug);
+    res.json({ drafted: true, patternRounds, readiness });
+  } catch (e: any) {
+    console.error('[companyq] draftProfile:', e?.message || e);
+    res.status(400).json({ message: e?.message || 'Could not draft that company.' });
+  }
+};
+
+/**
+ * PUT /passport/company-admin/:slug/verify - the human tick.
+ *
+ * The single action that lets eligibility or salary reach a student. Deliberately its own
+ * endpoint rather than a field on the profile save, so it cannot be set by accident while
+ * editing something else.
+ */
+export const verifyFields = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const company = await Company.findOne({ tenantId, slug: req.params.slug });
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    if (typeof req.body?.eligibility === 'boolean') company.verified.eligibility = req.body.eligibility;
+    if (typeof req.body?.salary === 'boolean') company.verified.salary = req.body.salary;
+    if (!company.publishedAt) {
+      const rd = await readinessFor(tenantId, company.slug);
+      if (rd.ready) company.publishedAt = new Date();
+    }
+    await company.save();
+    res.json({ verified: company.verified, readiness: await readinessFor(tenantId, company.slug) });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not save' });
+  }
+};
+
+/** GET /passport/company-admin/readiness - the roster with what each company is missing. */
+export const readinessBoard = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const [companies, all] = await Promise.all([
+      Company.find({ tenantId }).sort({ name: 1 }).lean() as any,
+      readinessForAll(tenantId),
+    ]);
+    const rows = companies.map((c: any) => {
+      const r = all.get(c.slug)!;
+      return {
+        id: String(c._id), name: c.name, slug: c.slug, type: c.type,
+        ready: r.ready, score: r.score, missing: r.missing, checks: r.checks,
+        aiDrafted: c.aiDrafted || {}, verified: c.verified || {},
+      };
+    });
+    res.json({
+      rows,
+      liveCount: rows.filter((r: any) => r.ready).length,
+      total: rows.length,
+    });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not load readiness' });
+  }
+};
+
+/** PUT /passport/company-admin/:slug/pattern - edit the interview pattern by hand. */
+export const savePattern = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const company = await Company.findOne({ tenantId, slug: req.params.slug }).lean() as any;
+    if (!company) return res.status(404).json({ message: 'Company not found' });
+
+    const rounds = Array.isArray(req.body?.rounds) ? req.body.rounds : [];
+    const clean = rounds.map((r: any, i: number) => ({
+      key: String(r.key || 'technical'),
+      name: String(r.name || '').slice(0, 60),
+      order: Number(r.order) || i + 1,
+      durationMins: Number(r.durationMins) || undefined,
+      tests: Array.isArray(r.tests) ? r.tests.map((t: any) => String(t).slice(0, 40)).slice(0, 6) : [],
+      description: String(r.description || '').slice(0, 600),
+      cutoff: String(r.cutoff || '').slice(0, 120),
+      tip: String(r.tip || '').slice(0, 300),
+    })).filter((r: any) => r.name);
+
+    const p = await InterviewPattern.findOneAndUpdate(
+      { tenantId, companySlug: company.slug, role: String(req.body?.role || '') },
+      { $set: { companyId: company._id, rounds: clean, aiDrafted: false } },
+      { upsert: true, new: true },
+    );
+    res.json({ pattern: p, readiness: await readinessFor(tenantId, company.slug) });
+  } catch (e: any) {
+    res.status(500).json({ message: e.message || 'Could not save the pattern' });
+  }
+};
+
 // --- Admin ---------------------------------------------------------------
+
 
 
 export const getAdmin = async (req: Request, res: Response) => {

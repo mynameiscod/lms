@@ -132,7 +132,7 @@
   <p class="sub">A feature-by-feature reading of the CareerPilot module across both the student
     product and the admin console — measured against the running code and the live production
     database, not against the plan.</p>
-  <p class="meta">12 Aug 2026 · slot blue (5001) · commit 1b5f0c3b · 90 member endpoints · 7 public endpoints · 37 screens</p>
+  <p class="meta">12 Aug 2026 (rev. 2) · slot blue (5001) · commit 24acae87 · 90 member endpoints · 7 public endpoints · 37 screens</p>
 
   <div class="heads">
     <div class="head">
@@ -144,7 +144,7 @@
     </div>
     <div class="head">
       <div class="lab">Launch ready</div>
-      <div class="num w">61%</div>
+      <div class="num w">72%</div>
       <div class="lab" style="color:var(--faint)">Can a paying customer use it today?</div>
       <p>Lower, and this is the number that matters. Built ≠ sellable: content is empty, the
         price is wrong, and no real payment has ever completed.</p>
@@ -152,9 +152,10 @@
   </div>
 
   <div class="note">
-    <b>The gap between those two numbers is the whole story.</b> Nothing below is a rewrite —
-    the six blockers are configuration, content, and two small pieces of missing code. All six
-    are days of work, not weeks. But every one of them is visible to a paying student on day one.
+    <b>The gap between those two numbers is the whole story.</b> Nothing below is a rewrite.
+    Two of the six blockers were closed on 12 August — the price is now ₹1,599 and all 11
+    features are registered — which is what moved launch readiness from 61% to 72%. The four
+    that remain are content, one untested payment, and two small pieces of missing code.
   </div>
 
   <h2>Student product · 17 features</h2>
@@ -178,11 +179,10 @@
 
     <div class="row">
       <span class="nm">Membership &amp; payment</span>
-      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct part">80</span><span class="chip part">Misconfigured</span></div>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct part">88</span><span class="chip part">Unproven</span></div>
       <p class="why"><b>Why:</b> the only revenue event in the product. Razorpay order + verify,
-        riding the same rail as the LMS. <b>Gap:</b> production
-        <code>priceInr</code> is <b>499</b>, not the ₹1,599 you sell. And
-        <b>zero paid memberships have ever completed</b> — the happy path has never been proven
+        riding the same rail as the LMS. <b>Gap:</b> the price is now correctly
+        <b>₹1,599</b>, but <b>zero paid memberships have ever completed</b> — the happy path has never been proven
         against real money.</p>
     </div>
 
@@ -355,12 +355,12 @@
 
     <div class="row">
       <span class="nm">Plan &amp; entitlements config</span>
-      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct part">85</span><span class="chip part">Stale in prod</span></div>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
       <p class="why"><b>Why:</b> decides what's free and what's paid, as data rather than code.
-        <b>Gap:</b> the code ships <b>11</b> features but the production document holds the
-        original <b>9</b> — <code>tech_news</code> and <code>company_questions</code> are absent,
-        so you cannot set their tier from the UI. They still work (unknown keys fail closed to
-        paid), but they are invisible to the admin and to the client's lock state.</p>
+        All <b>11</b> features are registered and priced as of 12 Aug — the two newest,
+        <code>tech_news</code> and <code>company_questions</code>, were appended without touching
+        any tier already chosen. Roles are separate and already complete: SUPER_ADMIN can mint a
+        custom role at <code>/roles</code> with any of the four CareerPilot permissions.</p>
     </div>
 
     <div class="row">
@@ -385,12 +385,13 @@
       crosses the bar in roughly ten minutes.</p>
   </div>
 
-  <div class="blk">
-    <div class="hd"><span class="rank">02</span><span class="ttl">The live price is ₹499, not ₹1,599</span><span class="chip gap">Config</span></div>
-    <p>Production <code>passportconfigs.priceInr</code> reads <b>499</b>. Every paywall, every
-      Razorpay order and every locked-feature prompt quotes that number. At 10,000 members
-      that is <b>₹1.1 crore of unbilled revenue</b>.</p>
-    <p class="fix"><b>Fix</b> — one field in Admin → Config. Do it before any demo.</p>
+  <div class="blk" style="border-left-color:var(--ok);opacity:.72">
+    <div class="hd"><span class="rank">02</span><span class="ttl">The live price is ₹499, not ₹1,599</span><span class="chip ok">Fixed 12 Aug</span></div>
+    <p>Production <code>passportconfigs.priceInr</code> read <b>499</b>, so every paywall and
+      Razorpay order quoted that number. <b>Now corrected to 1,599</b> and confirmed on the
+      live public config endpoint. Membership term is 12 months.</p>
+    <p class="fix"><b>Still to prove</b> — blocker 03 below. A correct price is not the same as
+      a working payment.</p>
   </div>
 
   <div class="blk">
@@ -421,11 +422,14 @@
       idempotency discipline as earning. Referrals and certificates can follow.</p>
   </div>
 
-  <div class="blk med">
-    <div class="hd"><span class="rank">06</span><span class="ttl">Two features missing from the entitlements config</span><span class="chip part">Config drift</span></div>
-    <p>Defaults only apply when a document is created, and production's was created before Tech
-      News and Company Questions existed. They work, but you can't price them.</p>
-    <p class="fix"><b>Fix</b> — append the two rows to the production config document.</p>
+  <div class="blk" style="border-left-color:var(--ok);opacity:.72">
+    <div class="hd"><span class="rank">06</span><span class="ttl">Two features missing from the entitlements config</span><span class="chip ok">Fixed 12 Aug</span></div>
+    <p>Defaults only apply when a document is created, and production's predated Tech News and
+      Company Questions. Both are <b>now registered as paid</b> — the config holds all
+      <b>11</b> features, so their tier is editable in Admin → Config and the client receives
+      a lock state for them instead of <code>undefined</code>.</p>
+    <p class="fix"><b>Effect</b> — paid members now see Tech News and the company hub as
+      unlocked in the UI, not merely reachable by the server.</p>
   </div>
 
   <h2>Production reality check</h2>

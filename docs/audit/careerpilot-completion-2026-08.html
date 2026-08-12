@@ -1,0 +1,451 @@
+<title>CareerPilot — Completion Audit</title>
+<style>
+  :root{
+    --bg:#F6F8FC; --card:#FFFFFF; --line:#E3E8F0; --line2:#EEF2F8;
+    --ink:#0F172A; --muted:#64748B; --faint:#94A3B8;
+    --accent:#1D4ED8; --accent-soft:#EEF2FF;
+    --ok:#15803D; --ok-bg:#F0FDF4; --part:#B45309; --part-bg:#FFFBEB;
+    --gap:#B91C1C; --gap-bg:#FEF2F2;
+    --track:#E8EDF6;
+    --sans:ui-sans-serif,"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0C111C; --card:#141C2B; --line:#26314A; --line2:#1E2739;
+      --ink:#E6ECF8; --muted:#94A3B8; --faint:#6B7A93;
+      --accent:#6E9BF5; --accent-soft:#1B2740;
+      --ok:#4ADE80; --ok-bg:#14261C; --part:#FBBF24; --part-bg:#2A2113;
+      --gap:#F87171; --gap-bg:#2C1618;
+      --track:#232D44;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0C111C; --card:#141C2B; --line:#26314A; --line2:#1E2739;
+    --ink:#E6ECF8; --muted:#94A3B8; --faint:#6B7A93;
+    --accent:#6E9BF5; --accent-soft:#1B2740;
+    --ok:#4ADE80; --ok-bg:#14261C; --part:#FBBF24; --part-bg:#2A2113;
+    --gap:#F87171; --gap-bg:#2C1618;
+    --track:#232D44;
+  }
+  :root[data-theme="light"]{
+    --bg:#F6F8FC; --card:#FFFFFF; --line:#E3E8F0; --line2:#EEF2F8;
+    --ink:#0F172A; --muted:#64748B; --faint:#94A3B8;
+    --accent:#1D4ED8; --accent-soft:#EEF2FF;
+    --ok:#15803D; --ok-bg:#F0FDF4; --part:#B45309; --part-bg:#FFFBEB;
+    --gap:#B91C1C; --gap-bg:#FEF2F2;
+    --track:#E8EDF6;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:40px 22px 90px}
+  h1,h2,h3{text-wrap:balance;margin:0}
+  a{color:var(--accent)}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;
+    text-transform:uppercase;color:var(--faint)}
+  h1{font-size:34px;font-weight:800;letter-spacing:-.02em;margin:10px 0 8px}
+  .sub{color:var(--muted);font-size:15.5px;max-width:64ch}
+  .meta{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:14px}
+
+  /* ── the two headline readings ── */
+  .heads{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:30px 0 12px}
+  .head{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .head .lab{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+  .head .num{font-family:var(--mono);font-size:52px;font-weight:700;line-height:1;
+    letter-spacing:-.03em;margin:12px 0 4px;font-variant-numeric:tabular-nums}
+  .head .num.a{color:var(--accent)} .head .num.w{color:var(--part)}
+  .head p{margin:8px 0 0;font-size:13.5px;color:var(--muted);line-height:1.55}
+
+  .note{background:var(--accent-soft);border:1px solid var(--line);border-left:3px solid var(--accent);
+    border-radius:0 11px 11px 0;padding:15px 18px;margin:18px 0 0;font-size:14px;color:var(--ink)}
+  .note b{font-weight:700}
+
+  h2{font-size:12px;font-family:var(--mono);letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);margin:46px 0 14px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+
+  /* ── feature rows ── */
+  .rows{display:flex;flex-direction:column;gap:8px}
+  .row{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:14px 17px;display:grid;grid-template-columns:1fr auto;gap:6px 18px;align-items:center}
+  .row .nm{font-weight:650;font-size:14.5px}
+  .row .why{grid-column:1/-1;font-size:13px;color:var(--muted);line-height:1.55}
+  .row .why code{font-family:var(--mono);font-size:12px;background:var(--line2);
+    padding:1px 5px;border-radius:4px;color:var(--ink)}
+  .right{display:flex;align-items:center;gap:13px}
+  .pct{font-family:var(--mono);font-size:16px;font-weight:700;width:44px;text-align:right;
+    font-variant-numeric:tabular-nums}
+  .pct.ok{color:var(--ok)} .pct.part{color:var(--part)} .pct.gap{color:var(--gap)}
+
+  /* segmented gauge — reads as an instrument, not a progress bar */
+  .gauge{display:flex;gap:2px;width:132px}
+  .gauge i{flex:1;height:14px;border-radius:1.5px;background:var(--track)}
+  .gauge i.on{background:var(--ok)} .gauge.part i.on{background:var(--part)}
+  .gauge.gap i.on{background:var(--gap)}
+
+  .chip{font-family:var(--mono);font-size:10.5px;font-weight:700;letter-spacing:.07em;
+    text-transform:uppercase;padding:4px 9px;border-radius:5px;white-space:nowrap}
+  .chip.ok{background:var(--ok-bg);color:var(--ok)}
+  .chip.part{background:var(--part-bg);color:var(--part)}
+  .chip.gap{background:var(--gap-bg);color:var(--gap)}
+
+  /* ── blockers ── */
+  .blk{background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:16px 18px;margin-bottom:9px;border-left:4px solid var(--gap)}
+  .blk.med{border-left-color:var(--part)}
+  .blk .hd{display:flex;gap:11px;align-items:baseline;flex-wrap:wrap}
+  .blk .rank{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--faint)}
+  .blk .ttl{font-weight:700;font-size:15px;flex:1;min-width:200px}
+  .blk p{margin:9px 0 0;font-size:13.5px;color:var(--muted);line-height:1.6}
+  .blk p b{color:var(--ink);font-weight:650}
+  .blk .fix{margin-top:9px;font-size:13px;padding-top:9px;border-top:1px dashed var(--line)}
+  .blk .fix b{font-family:var(--mono);font-size:11px;letter-spacing:.08em;
+    text-transform:uppercase;color:var(--faint);font-weight:700}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--line2);
+    padding:1px 5px;border-radius:4px}
+
+  .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+  th{text-align:left;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--faint);font-weight:700;
+    padding:0 14px 9px 0;border-bottom:1px solid var(--line)}
+  td{padding:11px 14px 11px 0;border-bottom:1px solid var(--line2);vertical-align:top}
+  td.n{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);
+    font-size:12.5px;color:var(--faint);font-family:var(--mono)}
+  @media (max-width:640px){
+    h1{font-size:26px}
+    .row{grid-template-columns:1fr}
+    .right{justify-content:flex-start}
+    .gauge{width:104px}
+  }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">CareerPilot by CodeBegun · Module Audit</p>
+  <h1>What's built, what's missing, and what stops you selling today</h1>
+  <p class="sub">A feature-by-feature reading of the CareerPilot module across both the student
+    product and the admin console — measured against the running code and the live production
+    database, not against the plan.</p>
+  <p class="meta">12 Aug 2026 · slot blue (5001) · commit 1b5f0c3b · 90 member endpoints · 7 public endpoints · 37 screens</p>
+
+  <div class="heads">
+    <div class="head">
+      <div class="lab">Build complete</div>
+      <div class="num a">90%</div>
+      <div class="lab" style="color:var(--faint)">Is the code there?</div>
+      <p>Weighted across 27 features. Almost everything you specified exists, is wired end to
+        end, and answers on a real endpoint.</p>
+    </div>
+    <div class="head">
+      <div class="lab">Launch ready</div>
+      <div class="num w">61%</div>
+      <div class="lab" style="color:var(--faint)">Can a paying customer use it today?</div>
+      <p>Lower, and this is the number that matters. Built ≠ sellable: content is empty, the
+        price is wrong, and no real payment has ever completed.</p>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>The gap between those two numbers is the whole story.</b> Nothing below is a rewrite —
+    the six blockers are configuration, content, and two small pieces of missing code. All six
+    are days of work, not weeks. But every one of them is visible to a paying student on day one.
+  </div>
+
+  <h2>Student product · 17 features</h2>
+  <div class="rows">
+
+    <div class="row">
+      <span class="nm">Join, OTP &amp; login</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the front door — a stranger becomes a known member without a
+        salesperson. WhatsApp OTP, password fallback, resend, set-password.
+        <b>Proven:</b> 39 people have come through it in production.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Career readiness assessment (free)</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the hook. Free, deterministic (no AI cost), and it produces the
+        score that makes the ₹ ask feel earned. Stage-grouped segments, admin-managed scoring
+        categories, and a member is never scored on a category they weren't asked about.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Membership &amp; payment</span>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct part">80</span><span class="chip part">Misconfigured</span></div>
+      <p class="why"><b>Why:</b> the only revenue event in the product. Razorpay order + verify,
+        riding the same rail as the LMS. <b>Gap:</b> production
+        <code>priceInr</code> is <b>499</b>, not the ₹1,599 you sell. And
+        <b>zero paid memberships have ever completed</b> — the happy path has never been proven
+        against real money.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Mission Control &amp; daily streak</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> retention. A yearly membership dies without a reason to open the
+        app on a Tuesday. Deterministic daily missions, streak, and a nightly close job.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">90-day roadmap</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> converts a score into a plan. 7-day preview free, full roadmap paid —
+        the paywall sits exactly where the value becomes obvious.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Practice — coding, SQL, MCQ</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the daily habit. Runs on the Piston sandbox behind a two-pool
+        execution queue (heavy languages throttled separately from light ones) after Java
+        submissions were proven to SIGKILL each other under concurrency.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Resume Centre</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the artefact a student actually leaves with. Import, AI improve,
+        AI score.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Career profile review</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">90</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> resume + GitHub + LinkedIn reviewed together, because recruiters
+        look at all three and students only ever polish one.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">AI mock interview (voice)</span>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct part">85</span><span class="chip part">Uncapped</span></div>
+      <p class="why"><b>Why:</b> the headline feature and the reason people pay. Indian-accented
+        voice, short questions, stored feedback, company-primed.
+        <b>Gap:</b> you specified <b>12 interviews per member per year</b> — there is
+        <b>no quota check anywhere in the code</b>. Membership is the only gate, so a member can
+        run unlimited interviews at ~₹2.42 each. 12 sessions run so far.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Prepare Interviews — company hub</span>
+      <div class="right"><span class="gauge gap"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct gap">95</span><span class="chip gap">0 live</span></div>
+      <p class="why"><b>Why:</b> students don't prepare "for interviews", they prepare for TCS.
+        Six tabs per company — overview, pattern, salary, mock test, mock interview, questions.
+        <b>Gap:</b> the code is done and the readiness gate works, but
+        <b>0 of 20 companies are live</b>, so a student opening this today sees an empty page.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Company mock test</span>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct part">90</span><span class="chip part">Never run</span></div>
+      <p class="why"><b>Why:</b> a rehearsal under the real clock. Server-authoritative timer that
+        submits at zero, per-answer autosave, banked questions preferred over generated ones.
+        <b>Gap:</b> unreachable until a company goes live, so it has never run end to end in
+        production against real data.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Tech news</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">90</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> a daily reason to return that costs almost nothing to produce.
+        Paste a URL, AI drafts the item. <b>Note:</b> 1 item in production — it needs a
+        publishing rhythm, not more code.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Coins &amp; XP economy</span>
+      <div class="right"><span class="gauge gap"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="pct gap">45</span><span class="chip gap">Half built</span></div>
+      <p class="why"><b>Why:</b> the motivation engine — earn coins, spend them on coupons,
+        interviews and certificates. <b>Gap:</b> coins can be <b>earned but never spent</b>.
+        There is no <code>spendCoins</code> function, no redeem endpoint, no catalogue, no
+        referral flow. Members accumulate a number that does nothing. 2 accounts exist.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Leaderboard</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">90</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> competition drives daily returns. Global rank live; city rank
+        deferred by your decision.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Achievements</span>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="pct part">60</span><span class="chip part">Display only</span></div>
+      <p class="why"><b>Why:</b> proof of progress worth screenshotting. <b>Gap:</b> the screen
+        renders from the dashboard payload only — there is no badge model, no award rules, and
+        no admin control over what earns what.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Public shareable card</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> free distribution. A student shares their card, their friends see
+        the product. Public, no auth, slug-addressed.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Member dashboard</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the home surface that decides whether today's session happens.</p>
+    </div>
+
+  </div>
+
+  <h2>Admin console · 10 surfaces</h2>
+  <div class="rows">
+
+    <div class="row">
+      <span class="nm">Company roster, questions &amp; patterns</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the content engine behind Prepare Interviews. Bulk paste, AI
+        draft-all, per-round pattern editor, question import and AI prediction, human eligibility
+        verification, live readiness scoring. 18 endpoints — the deepest admin surface in the module.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Members &amp; their answers</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> support and sales both need to see one person's whole history —
+        create, edit, deactivate, plus their assessment answers and interview transcripts.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Assessment builder &amp; paper design</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the assessment is the funnel, so it must be editable without a
+        deploy. Questions, stage segments, scoring categories, paper layout.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Pathways</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> the tracks a member can be sorted into. Full CRUD.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Missions</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> daily content has to be authored by a human, not a deploy. Full CRUD.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Tech news admin</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> publishing must take a minute, or it won't happen daily. Paste a
+        URL, AI drafts it, human edits and publishes. SSRF-guarded fetch.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Content library</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> every string a member reads, editable with preview and reset.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Staging board</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">90</span><span class="chip ok">Shipped</span></div>
+      <p class="why"><b>Why:</b> moves a member through career stages without editing the database.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Plan &amp; entitlements config</span>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i></span><span class="pct part">85</span><span class="chip part">Stale in prod</span></div>
+      <p class="why"><b>Why:</b> decides what's free and what's paid, as data rather than code.
+        <b>Gap:</b> the code ships <b>11</b> features but the production document holds the
+        original <b>9</b> — <code>tech_news</code> and <code>company_questions</code> are absent,
+        so you cannot set their tier from the UI. They still work (unknown keys fail closed to
+        paid), but they are invisible to the admin and to the client's lock state.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Coins admin</span>
+      <div class="right"><span class="gauge part"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i><i></i><i></i><i></i></span><span class="pct part">60</span><span class="chip part">Earn side only</span></div>
+      <p class="why"><b>Why:</b> you asked for every coin number to be admin-changeable, and on
+        the earning side it is — config, rules, ledger. <b>Gap:</b> nothing to manage on the
+        spending side because spending doesn't exist: no catalogue, no coupons, no redemption
+        approvals.</p>
+    </div>
+
+  </div>
+
+  <h2>What actually blocks the sale — ranked</h2>
+
+  <div class="blk">
+    <div class="hd"><span class="rank">01</span><span class="ttl">Prepare Interviews is empty</span><span class="chip gap">Content</span></div>
+    <p>All 20 companies sit below the readiness bar, so the student-facing list is blank and
+      every company URL 404s by design. <b>Cognizant needs 10 more questions</b> and is otherwise
+      live-ready; IBM needs 20. The other 18 need 20 questions and an eligibility tick each.</p>
+    <p class="fix"><b>Fix</b> — no code. Admin → Companies → Import / Generate. One company
+      crosses the bar in roughly ten minutes.</p>
+  </div>
+
+  <div class="blk">
+    <div class="hd"><span class="rank">02</span><span class="ttl">The live price is ₹499, not ₹1,599</span><span class="chip gap">Config</span></div>
+    <p>Production <code>passportconfigs.priceInr</code> reads <b>499</b>. Every paywall, every
+      Razorpay order and every locked-feature prompt quotes that number. At 10,000 members
+      that is <b>₹1.1 crore of unbilled revenue</b>.</p>
+    <p class="fix"><b>Fix</b> — one field in Admin → Config. Do it before any demo.</p>
+  </div>
+
+  <div class="blk">
+    <div class="hd"><span class="rank">03</span><span class="ttl">No payment has ever completed</span><span class="chip gap">Unproven</span></div>
+    <p>39 members exist; <b>zero</b> have a paid membership. Order creation and signature
+      verification are implemented and share the LMS's Razorpay rail, but the path from
+      "student taps Buy" to "entitlements unlock" has never executed against real money in
+      production.</p>
+    <p class="fix"><b>Fix</b> — one live ₹1 transaction end to end, then refund. Until that
+      passes, treat revenue as untested.</p>
+  </div>
+
+  <div class="blk">
+    <div class="hd"><span class="rank">04</span><span class="ttl">Mock interviews are uncapped</span><span class="chip gap">Missing code</span></div>
+    <p>You specified 12 per member per year. The code checks membership and nothing else, so
+      cost per member is unbounded. At ₹2.42 per interview, one enthusiastic member running one
+      a day costs <b>₹883/year</b> against a ₹1,599 membership — before any other AI spend.</p>
+    <p class="fix"><b>Fix</b> — a counter on the session start endpoint. Half a day, and it is
+      the single highest-leverage guard before 10,000 members arrive.</p>
+  </div>
+
+  <div class="blk med">
+    <div class="hd"><span class="rank">05</span><span class="ttl">Coins cannot be spent</span><span class="chip part">Half built</span></div>
+    <p>Earning, capping, ledgering and admin dials are all real. There is no spend path at all —
+      so the economy currently teaches members that coins are meaningless, which is worse than
+      not shipping it.</p>
+    <p class="fix"><b>Fix</b> — one redemption catalogue plus a spend function with the same
+      idempotency discipline as earning. Referrals and certificates can follow.</p>
+  </div>
+
+  <div class="blk med">
+    <div class="hd"><span class="rank">06</span><span class="ttl">Two features missing from the entitlements config</span><span class="chip part">Config drift</span></div>
+    <p>Defaults only apply when a document is created, and production's was created before Tech
+      News and Company Questions existed. They work, but you can't price them.</p>
+    <p class="fix"><b>Fix</b> — append the two rows to the production config document.</p>
+  </div>
+
+  <h2>Production reality check</h2>
+  <div class="scroll">
+  <table>
+    <tr><th>Signal</th><th>Live value</th><th>Reading</th></tr>
+    <tr><td>Members onboarded</td><td class="n">39</td><td>Funnel works; volume is a marketing problem, not a product one.</td></tr>
+    <tr><td>Paid memberships</td><td class="n">0</td><td>Revenue path unproven end to end.</td></tr>
+    <tr><td>Companies on roster</td><td class="n">20</td><td>Named and drafted correctly after the numbering fix.</td></tr>
+    <tr><td>Companies live to students</td><td class="n">0</td><td>The single biggest visible hole.</td></tr>
+    <tr><td>Mock interviews run</td><td class="n">12</td><td>Feature genuinely works; no quota protects it.</td></tr>
+    <tr><td>Mock tests run</td><td class="n">0</td><td>Blocked behind the empty roster.</td></tr>
+    <tr><td>Tech news published</td><td class="n">1</td><td>Needs a daily rhythm, not more code.</td></tr>
+    <tr><td>Coin accounts</td><td class="n">2</td><td>Economy is inert until spending exists.</td></tr>
+  </table>
+  </div>
+
+  <footer>
+    Measured against slot blue on 187.124.97.56 · commit 1b5f0c3b · 12 Aug 2026<br>
+    Percentages are weighted by surface area (endpoints + screens + models), not by effort remaining.
+  </footer>
+
+</div>

@@ -2,20 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { passportPublicApi } from '../../api/passportApi';
 import type { OnboardingField } from '../../api/passportApi';
-import PublicChrome from '../../components/PublicChrome';
+import AuthSplit, { FormMark } from './AuthSplit';
 import './careerpilot.css';
-
-/** Hero highlights — the four things the product does, shown 2×2 beside the form. */
-const HERO_FEATURES: { ic: string; bg: string; title: string; desc: string }[] = [
-  { ic: '🗺️', bg: '#eef0ff', title: 'Personalized Roadmap', desc: 'A 90-day path built for you' },
-  { ic: '📊', bg: '#fdeaf3', title: 'Skill Assessment', desc: 'Know your real strengths' },
-  { ic: '✅', bg: '#e7f8ef', title: 'Daily Missions', desc: 'Build consistency' },
-  { ic: '💼', bg: '#fff3e0', title: 'Placement Support', desc: 'Interview prep & more' },
-];
-
-const STATS: [string, string][] = [
-  ['12,000+', 'Students Trained'], ['500+', 'Partner Colleges'], ['98%', 'Satisfaction Rate'],
-];
 
 /** Six-up capability row. */
 const CAPABILITIES: { ic: string; bg: string; title: string; desc: string }[] = [
@@ -60,7 +48,6 @@ const PassportJoin: React.FC = () => {
 
   const [step, setStep] = useState<'form' | 'otp'>('form');
   const [fieldsDef, setFieldsDef] = useState<OnboardingField[]>([]);
-  const [priceInr, setPriceInr] = useState(499);
   const [enabled, setEnabled] = useState(true);
   const [form, setForm] = useState<Record<string, any>>({});
   const [token, setToken] = useState('');
@@ -73,7 +60,7 @@ const PassportJoin: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      try { const c = await passportPublicApi.getConfig(tenant); setFieldsDef(c.onboardingFields || []); setPriceInr(c.priceInr); setEnabled(c.enabled); }
+      try { const c = await passportPublicApi.getConfig(tenant); setFieldsDef(c.onboardingFields || []); setEnabled(c.enabled); }
       catch { setEnabled(false); setMsg('CareerPilot is not available right now.'); }
     })();
   }, [tenant]);
@@ -168,7 +155,7 @@ const PassportJoin: React.FC = () => {
             Didn't receive the code?{' '}
             {resendIn > 0
               ? <>Resend code in <b>00:{String(resendIn).padStart(2, '0')}</b></>
-              : <a onClick={resend}>Resend code</a>}
+              : <button type="button" className="relink" onClick={resend}>Resend code</button>}
           </div>
           {devCode && <div style={{ fontSize: 12, color: '#7c3aed', marginBottom: 10 }}>Dev code: <b>{devCode}</b></div>}
           {msg && !msg.startsWith('We sent') && <div className="cp-err" style={{ marginBottom: 12 }}>{msg}</div>}
@@ -185,72 +172,74 @@ const PassportJoin: React.FC = () => {
   );
 
   return (
-    <PublicChrome>
-      <div className="cp-page">
-        <div className="cp-card">
-          {/* Left hero */}
-          <div className="cp-left">
-            <span className="cp-badge">🎁 Founding Membership at <b>₹{priceInr} for 12 Months</b></span>
-            <h1 className="cp-h1">Your Personal Guide<br />from College to <span className="t">Career Success</span></h1>
-            <p className="cp-sub">Create your free CareerPilot and get a personalized learning path, skill assessment, and placement-ready roadmap tailored just for you.</p>
+    <>
+      <AuthSplit>
+        <FormMark />
+        <h1 className="as-h2">Create your account 🚀</h1>
+        <p className="as-sub">Start your career journey — the assessment is free</p>
 
-            <div className="cp-feats">
-              {HERO_FEATURES.map(f => (
-                <div className="cp-feat" key={f.title}>
-                  <div className="fi" style={{ background: f.bg }}>{f.ic}</div>
-                  <div className="ft"><b>{f.title}</b><span>{f.desc}</span></div>
+        {!enabled ? (
+          <div className="as-msg err">{msg || 'CareerPilot is not available right now.'}</div>
+        ) : (
+          <>
+            {msg && <div className="as-msg err">{msg}</div>}
+
+            <label className="as-lab" htmlFor="jn-name">Full Name</label>
+            <div className="as-in">
+              <span className="lic" aria-hidden="true">{ICON.name}</span>
+              <input id="jn-name" value={form.name || ''} autoComplete="name"
+                onChange={e => set('name', e.target.value)} placeholder="Enter your full name" />
+            </div>
+
+            <label className="as-lab" htmlFor="jn-mob">Mobile Number</label>
+            <div className="as-in">
+              <span className="lic" aria-hidden="true">{ICON.mobile}</span>
+              <input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel"
+                onChange={e => set('mobile', e.target.value)} placeholder="Enter 10-digit mobile number" />
+            </div>
+
+            <label className="as-lab" htmlFor="jn-mail">Email Address</label>
+            <div className="as-in">
+              <span className="lic" aria-hidden="true">{ICON.email}</span>
+              <input id="jn-mail" type="email" value={form.email || ''} autoComplete="email"
+                onChange={e => set('email', e.target.value)} placeholder="Enter your email address" />
+            </div>
+
+            {/* Whatever else the admin has asked for on this tenant. */}
+            {extra.map(f => (
+              <div key={f.key}>
+                <label className="as-lab" htmlFor={`jn-${f.key}`}>{f.label}{f.required ? '' : ' (optional)'}</label>
+                <div className="as-in plain">
+                  {f.type === 'select'
+                    ? <select id={`jn-${f.key}`} value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}>
+                        <option value="">Select…</option>
+                        {(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}
+                      </select>
+                    : <input id={`jn-${f.key}`} value={form[f.key] || ''}
+                        onChange={e => set(f.key, e.target.value)}
+                        type={f.type === 'number' ? 'number' : 'text'}
+                        placeholder={`Enter ${f.label.toLowerCase()}`} />}
                 </div>
-              ))}
+              </div>
+            ))}
+
+            <button className="as-go" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>
+              {busy ? 'Please wait…' : 'Create My CareerPilot →'}
+            </button>
+
+            <div className="as-or">or</div>
+            <button className="as-alt" onClick={() => { window.location.href = `/careerpilot/login?tenant=${tenant}`; }}>
+              <span aria-hidden="true">🔒</span> I already have an account
+            </button>
+
+            <div className="as-foot">
+              We'll send a one-time code to your WhatsApp to confirm it's you.
             </div>
+          </>
+        )}
+      </AuthSplit>
 
-            <div className="cp-stats">
-              <div className="st rate"><b>★★★★★</b><span>Rated by 12,000+ students</span></div>
-              {STATS.map(([b, s]) => <div className="st" key={s}><b>{b}</b><span>{s}</span></div>)}
-            </div>
-
-            <div className="cp-illus">
-              <span className="em">🧑‍💻</span>
-              <div className="bub">Let’s build your career, the smart way!</div>
-            </div>
-          </div>
-
-          {/* Right form */}
-          <div className="cp-right">
-            <div className="cp-ric">🪪</div>
-            <div className="cp-ftitle">Create Your CareerPilot</div>
-            <div className="cp-fsub">Start your career transformation journey today</div>
-
-            {!enabled ? (
-              <div className="cp-err" style={{ textAlign: 'center' }}>{msg || 'CareerPilot is not available right now.'}</div>
-            ) : (
-              <>
-                <label className="cp-label">Full Name *</label>
-                <div className="cp-field"><input className="cp-input" value={form.name || ''} onChange={e => set('name', e.target.value)} placeholder="Enter your full name" /><span className="ic">{ICON.name}</span></div>
-                <label className="cp-label">Mobile Number *</label>
-                <div className="cp-field"><input className="cp-input" value={form.mobile || ''} onChange={e => set('mobile', e.target.value)} placeholder="Enter 10-digit mobile number" inputMode="numeric" /><span className="ic">{ICON.mobile}</span></div>
-                <label className="cp-label">Email Address *</label>
-                <div className="cp-field"><input className="cp-input" type="email" value={form.email || ''} onChange={e => set('email', e.target.value)} placeholder="Enter your email address" /><span className="ic">{ICON.email}</span></div>
-
-                {extra.map(f => (
-                  <div key={f.key}>
-                    <label className="cp-label">{f.label}{f.required ? ' *' : ''}</label>
-                    <div className="cp-field">
-                      {f.type === 'select'
-                        ? <select className="cp-select" value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)}><option value="">Select…</option>{(f.options || []).map(o => <option key={o} value={o}>{o}</option>)}</select>
-                        : <input className="cp-input" value={form[f.key] || ''} onChange={e => set(f.key, e.target.value)} type={f.type === 'number' ? 'number' : 'text'} placeholder={`Enter ${f.label.toLowerCase()}`} />}
-                      <span className="ic">▾</span>
-                    </div>
-                  </div>
-                ))}
-
-                {msg && <div className="cp-err">{msg}</div>}
-                <button className="cp-submit" disabled={busy || !form.name || !form.mobile || !form.email} onClick={submit}>{busy ? 'Please wait…' : 'Create My CareerPilot →'}</button>
-                <div className="cp-secure">🛡️ 100% Secure · No spam ever</div>
-                <div className="cp-login">Already have an account? <a href={`/careerpilot/login?tenant=${tenant}`}>Login here</a></div>
-              </>
-            )}
-          </div>
-        </div>
+      <div className="cp-page" style={{ paddingTop: 8 }}>
 
         {/* ── Partner colleges ── */}
         {!!COLLEGES.length && (
@@ -336,7 +325,7 @@ const PassportJoin: React.FC = () => {
           <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>Create My CareerPilot →</button>
         </section>
       </div>
-    </PublicChrome>
+    </>
   );
 };
 

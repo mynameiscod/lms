@@ -1,0 +1,263 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Split-screen auth shell — marketing on the left, the form on the right.
+   Shared by CareerPilot login and signup so the two screens cannot drift apart.
+
+   Everything is namespaced `as-` because careerpilot.css is also loaded on these
+   routes and its `cp-` classes are still used inside the form column.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.as-page{
+  --navy:#0B2A5B;
+  --ink:#0F1E3D;
+  --blue:#2563EB;
+  --blue-d:#1E40AF;
+  --muted:#64748B;
+  --line:#E2E8F5;
+  --field:#F8FAFF;
+
+  min-height:100vh;
+  padding:26px 22px;
+  background:linear-gradient(160deg,#EEF3FF 0%,#F7F9FE 46%,#EAF0FF 100%);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+  box-sizing:border-box;
+}
+
+.as-shell{
+  width:100%; max-width:1240px;
+  background:#fff;
+  border-radius:24px;
+  box-shadow:0 24px 70px rgba(15,30,61,.13), 0 2px 8px rgba(15,30,61,.05);
+  display:grid; grid-template-columns:1.12fr .88fr;
+  overflow:hidden;
+  position:relative;
+}
+
+/* ── LEFT: the pitch ───────────────────────────────────────────────────────── */
+.as-left{
+  position:relative; overflow:hidden;
+  padding:38px 34px 0;
+  background:linear-gradient(150deg,#FFFFFF 0%,#F4F8FF 40%,#E9F1FF 100%);
+  display:flex; flex-direction:column;
+  min-height:760px;
+}
+
+.as-logo{ display:flex; flex-direction:column; gap:3px; margin-bottom:34px; position:relative; z-index:3 }
+.as-logo .wm{ display:flex; align-items:center; gap:2px; font-size:27px; font-weight:900;
+  letter-spacing:-.02em; color:var(--ink); line-height:1 }
+.as-logo .wm .mk{
+  display:inline-grid; place-items:center; width:30px; height:27px; margin:0 1px;
+  background:linear-gradient(135deg,var(--blue),#3B82F6); border-radius:6px;
+  color:#fff; font-size:15px; font-weight:900;
+}
+.as-logo .tag{ font-size:10.5px; font-weight:600; color:var(--blue); letter-spacing:.005em }
+
+.as-hero{ position:relative; z-index:3; max-width:400px }
+.as-hero h1{
+  margin:0 0 16px; font-size:37px; font-weight:900; line-height:1.16;
+  letter-spacing:-.028em; color:var(--ink); text-wrap:balance;
+}
+.as-hero h1 .b{ color:var(--blue) }
+.as-hero .lead{ margin:0 0 26px; font-size:14.5px; line-height:1.62; color:var(--muted); max-width:340px }
+
+.as-feats{ display:flex; flex-direction:column; gap:13px; margin-bottom:20px }
+.as-feat{ display:flex; gap:13px; align-items:flex-start }
+.as-feat .ic{
+  flex:none; width:40px; height:40px; border-radius:11px; background:#fff;
+  display:grid; place-items:center; font-size:17px;
+  box-shadow:0 3px 12px rgba(37,99,235,.13); border:1px solid #EDF2FF;
+}
+.as-feat b{ display:block; font-size:13.5px; font-weight:800; color:var(--ink); margin-bottom:2px }
+.as-feat span{ display:block; font-size:12px; line-height:1.5; color:var(--muted); max-width:230px }
+
+.as-trust{
+  display:inline-flex; align-items:center; gap:13px; align-self:flex-start;
+  background:#fff; border:1px solid #EDF2FF; border-radius:14px; padding:13px 17px;
+  box-shadow:0 5px 18px rgba(15,30,61,.08); margin-bottom:26px;
+}
+.as-trust .em{ font-size:22px; line-height:1 }
+.as-trust .tx b{ display:block; font-size:12.5px; font-weight:800; color:var(--ink); line-height:1.35 }
+.as-avs{ display:flex; align-items:center; margin-top:6px }
+.as-avs i{
+  width:22px; height:22px; border-radius:50%; border:2px solid #fff; margin-right:-7px;
+  display:inline-grid; place-items:center; font-size:9px; font-weight:800; color:#fff; font-style:normal;
+}
+.as-avs .more{ margin-left:13px; font-size:11px; font-weight:800; color:var(--blue) }
+
+/* the illustration well */
+.as-art{ position:absolute; right:-10px; bottom:118px; width:420px; height:470px; z-index:1; pointer-events:none }
+.as-blob{
+  position:absolute; left:34px; bottom:0; width:310px; height:310px; border-radius:50%;
+  background:radial-gradient(circle at 34% 28%,#5B94FF 0%,#2563EB 52%,#1D4ED8 100%);
+  opacity:.92;
+}
+.as-arc{
+  position:absolute; left:12px; bottom:-22px; width:356px; height:356px; border-radius:50%;
+  border:1.5px dashed rgba(37,99,235,.32);
+}
+.as-photo{
+  position:absolute; left:52px; bottom:0; width:274px; max-height:452px;
+  object-fit:contain; object-position:bottom center; z-index:2;
+  filter:drop-shadow(0 18px 34px rgba(11,42,91,.26));
+}
+.as-spark{ position:absolute; color:#60A5FA; font-size:13px; z-index:2 }
+
+/* floating stat cards */
+.as-floats{ position:absolute; right:22px; top:86px; z-index:4;
+  display:flex; flex-direction:column; gap:15px; align-items:flex-end }
+.as-float{
+  display:flex; align-items:center; gap:11px;
+  background:#fff; border:1px solid #EDF2FF; border-radius:13px; padding:11px 16px;
+  box-shadow:0 6px 20px rgba(15,30,61,.11); min-width:158px;
+}
+.as-float:nth-child(2){ margin-right:-26px }
+.as-float:nth-child(3){ margin-right:-8px }
+.as-float .fi{
+  flex:none; width:32px; height:32px; border-radius:9px; display:grid; place-items:center; font-size:15px;
+  background:#EEF4FF;
+}
+.as-float b{ display:block; font-size:16.5px; font-weight:900; color:var(--blue); line-height:1.1 }
+.as-float span{ display:block; font-size:10.5px; font-weight:600; color:var(--muted); margin-top:1px }
+
+/* navy wave + placement wordmarks */
+.as-wave{ margin-top:auto; position:relative; left:-34px; width:calc(100% + 68px); z-index:5 }
+.as-wave svg{ display:block; width:100%; height:auto; margin-bottom:-1px }
+.as-placed{ background:var(--navy); padding:0 34px 26px; color:#fff }
+.as-placed .cap{ font-size:12px; font-weight:600; color:#B9CCEC; margin-bottom:14px }
+.as-marks{ display:flex; align-items:center; gap:26px; flex-wrap:wrap }
+.as-mark{ display:flex; align-items:center; gap:7px; font-size:15px; font-weight:700;
+  color:#fff; opacity:.94; letter-spacing:-.01em; white-space:nowrap }
+.as-mark .g{ font-size:15px }
+
+/* ── RIGHT: the form ───────────────────────────────────────────────────────── */
+.as-right{
+  padding:44px 52px; display:flex; flex-direction:column; justify-content:center;
+  background:#fff;
+}
+.as-form{ width:100%; max-width:392px; margin:0 auto }
+
+.as-mark-circle{
+  width:54px; height:54px; margin:0 auto 18px; border-radius:50%;
+  background:#fff; border:1px solid #E8EEFB; display:grid; place-items:center;
+  box-shadow:0 4px 16px rgba(37,99,235,.14);
+}
+.as-mark-circle span{
+  width:26px; height:24px; border-radius:6px; display:grid; place-items:center;
+  background:linear-gradient(135deg,var(--blue),#3B82F6); color:#fff; font-size:13px; font-weight:900;
+}
+
+.as-h2{ text-align:center; font-size:26px; font-weight:900; color:var(--ink);
+  letter-spacing:-.024em; margin:0 0 7px }
+.as-sub{ text-align:center; font-size:13.5px; color:var(--muted); margin:0 0 24px }
+
+.as-tabs{ display:flex; gap:0; background:#F4F7FE; border:1px solid #E8EEFB;
+  border-radius:12px; padding:4px; margin-bottom:22px }
+.as-tab{
+  flex:1; border:none; background:transparent; border-radius:9px; padding:10px 0;
+  font-size:13px; font-weight:800; color:var(--muted); cursor:pointer;
+  display:flex; align-items:center; justify-content:center; gap:7px;
+  font-family:inherit; transition:background .12s,color .12s,box-shadow .12s;
+}
+.as-tab.on{ background:#fff; color:var(--blue); box-shadow:0 2px 8px rgba(15,30,61,.09) }
+.as-tab:hover:not(.on){ color:var(--ink) }
+
+.as-lab{ display:block; font-size:12.5px; font-weight:800; color:var(--ink); margin:0 0 7px }
+.as-in{ position:relative; margin-bottom:16px }
+.as-in input, .as-in select{
+  width:100%; box-sizing:border-box; padding:13px 15px 13px 42px;
+  border:1.5px solid var(--line); border-radius:11px; background:var(--field);
+  font-size:14px; color:var(--ink); font-family:inherit; outline:none;
+  transition:border-color .12s, box-shadow .12s, background .12s;
+}
+.as-in.plain input{ padding-left:15px }
+.as-in input::placeholder{ color:#A3AEC4 }
+.as-in input:focus, .as-in select:focus{
+  border-color:var(--blue); background:#fff; box-shadow:0 0 0 3px rgba(37,99,235,.11);
+}
+.as-in .lic{ position:absolute; left:14px; top:50%; transform:translateY(-50%);
+  font-size:14px; color:#94A3C4; pointer-events:none; line-height:1 }
+.as-eye{
+  position:absolute; right:8px; top:50%; transform:translateY(-50%);
+  border:none; background:transparent; cursor:pointer; padding:7px; line-height:1;
+  font-size:15px; color:#94A3C4; border-radius:7px;
+}
+.as-eye:hover{ color:var(--blue); background:#F1F5FF }
+
+.as-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin:2px 0 20px }
+.as-check{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--muted);
+  cursor:pointer; user-select:none; font-weight:600 }
+.as-check input{ width:15px; height:15px; accent-color:var(--blue); cursor:pointer; margin:0 }
+.as-link{ font-size:12.5px; font-weight:700; color:var(--blue); background:none; border:none;
+  cursor:pointer; padding:0; font-family:inherit; text-decoration:none }
+.as-link:hover{ text-decoration:underline }
+
+.as-go{
+  width:100%; border:none; border-radius:12px; padding:15px 0;
+  background:linear-gradient(100deg,var(--blue-d) 0%,var(--blue) 55%,#3B82F6 100%);
+  color:#fff; font-size:15px; font-weight:800; cursor:pointer; font-family:inherit;
+  box-shadow:0 8px 22px rgba(37,99,235,.32); transition:transform .1s, box-shadow .12s, filter .12s;
+}
+.as-go:hover:not(:disabled){ filter:brightness(1.06); box-shadow:0 10px 26px rgba(37,99,235,.4) }
+.as-go:active:not(:disabled){ transform:translateY(1px) }
+.as-go:disabled{ opacity:.55; cursor:not-allowed; box-shadow:none }
+
+.as-or{ display:flex; align-items:center; gap:14px; margin:20px 0; color:#9AA7BF; font-size:12.5px }
+.as-or::before, .as-or::after{ content:''; flex:1; height:1px; background:var(--line) }
+
+.as-alt{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  border:1.5px solid var(--line); border-radius:12px; padding:13px 0; background:#fff;
+  font-size:14px; font-weight:700; color:var(--ink); cursor:pointer; font-family:inherit;
+  transition:border-color .12s, background .12s;
+}
+.as-alt:hover{ border-color:#C7D6F5; background:#FAFCFF }
+
+.as-foot{ text-align:center; font-size:13px; color:var(--muted); margin-top:20px }
+.as-foot a{ color:var(--blue); font-weight:800; text-decoration:none }
+.as-foot a:hover{ text-decoration:underline }
+
+.as-msg{ font-size:13px; border-radius:10px; padding:11px 13px; margin-bottom:15px; line-height:1.5 }
+.as-msg.err{ background:#FEF2F2; color:#B91C1C; border:1px solid #FECACA }
+.as-msg.ok{ background:#F0FDF4; color:#15803D; border:1px solid #BBF7D0 }
+.as-msg.info{ background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE }
+
+/* trust strip under the card */
+.as-badges{ display:flex; justify-content:center; gap:26px; flex-wrap:wrap;
+  margin:30px auto 0; max-width:430px }
+.as-badge{ display:flex; align-items:center; gap:9px }
+.as-badge .bi{ flex:none; width:30px; height:30px; border-radius:9px; background:#EEF4FF;
+  display:grid; place-items:center; font-size:14px }
+.as-badge b{ display:block; font-size:11.5px; font-weight:800; color:var(--ink); line-height:1.3 }
+.as-badge span{ display:block; font-size:10.5px; color:var(--muted); line-height:1.3 }
+
+:where(.as-page) :focus-visible{ outline:2px solid var(--blue); outline-offset:2px; border-radius:8px }
+
+/* ── responsive ────────────────────────────────────────────────────────────── */
+@media (max-width:1040px){
+  .as-shell{ grid-template-columns:1fr }
+  /* The pitch is a nice-to-have; the form is the job. On a narrow screen the form
+     comes first so a returning member is not made to scroll past an advert. */
+  .as-left{ order:2; min-height:0; padding-top:34px }
+  .as-right{ order:1; padding:38px 26px }
+  .as-art{ position:relative; right:auto; bottom:auto; width:100%; height:330px; margin:8px 0 0 }
+  .as-blob{ left:50%; transform:translateX(-50%); width:250px; height:250px }
+  .as-arc{ display:none }
+  .as-photo{ left:50%; transform:translateX(-50%); width:220px }
+  .as-floats{ position:static; flex-direction:row; flex-wrap:wrap; align-items:stretch;
+    justify-content:center; margin-top:20px }
+  .as-float:nth-child(2), .as-float:nth-child(3){ margin-right:0 }
+  .as-hero{ max-width:none }
+}
+@media (max-width:600px){
+  .as-page{ padding:0 }
+  .as-shell{ border-radius:0; box-shadow:none }
+  .as-right{ padding:34px 20px }
+  .as-left{ padding:30px 20px 0 }
+  .as-hero h1{ font-size:29px }
+  .as-wave{ left:-20px; width:calc(100% + 40px) }
+  .as-placed{ padding:0 20px 22px }
+  .as-marks{ gap:18px }
+  .as-mark{ font-size:13px }
+  .as-badges{ gap:16px 22px }
+  .as-art{ height:270px }
+}

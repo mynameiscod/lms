@@ -32,10 +32,11 @@ export interface OtpVerifyProps {
   devCode?: string;
 }
 
+/** Bootstrap Icons, loaded globally in index.html. `ic` is the icon's class. */
 const FEATURES: { ic: string; title: string; desc: string }[] = [
-  { ic: '🎓', title: 'Personalized Learning', desc: 'AI-powered path for your success' },
-  { ic: '📊', title: 'Track & Improve', desc: 'Real-time progress & analytics' },
-  { ic: '🏆', title: 'Achieve Your Goals', desc: 'Prepare, practice & get placed' },
+  { ic: 'bi-mortarboard-fill', title: 'Personalized Learning', desc: 'AI-powered path for your success' },
+  { ic: 'bi-graph-up-arrow', title: 'Track & Improve', desc: 'Real-time progress & analytics' },
+  { ic: 'bi-trophy-fill', title: 'Achieve Your Goals', desc: 'Prepare, practice & get placed' },
 ];
 
 /**
@@ -45,10 +46,10 @@ const FEATURES: { ic: string; title: string; desc: string }[] = [
  * of each other, so if one number changes this one has to change with it.
  */
 const TRUST: { ic: string; title: string; desc: string }[] = [
-  { ic: '🔒', title: '100% Secure', desc: 'Your data is safe with us' },
-  { ic: '👥', title: '10K+ Students', desc: 'Trust CareerPilot' },
-  { ic: '🎯', title: 'Industry Mentors', desc: 'Learn from the best' },
-  { ic: '⚡', title: '24/7 Support', desc: "We're here to help" },
+  { ic: 'bi-shield-lock-fill', title: '100% Secure', desc: 'Your data is safe with us' },
+  { ic: 'bi-people-fill', title: '10K+ Students', desc: 'Trust CareerPilot' },
+  { ic: 'bi-person-video3', title: 'Industry Mentors', desc: 'Learn from the best' },
+  { ic: 'bi-lightning-charge-fill', title: '24/7 Support', desc: "We're here to help" },
 ];
 
 const OtpVerify: React.FC<OtpVerifyProps> = ({
@@ -92,10 +93,10 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
 
       <header className="otpv-top">
         <div className="otpv-brand">
-          <span className="mk" aria-hidden="true">🧭</span>
+          <span className="mk" aria-hidden="true"><i className="bi bi-compass" /></span>
           <div><b>CareerPilot</b><small>Powered by CodeBegun</small></div>
         </div>
-        <button type="button" className="otpv-change" onClick={onBack}>← Change Number</button>
+        <button type="button" className="otpv-change" onClick={onBack}><i className="bi bi-arrow-left" /> Change Number</button>
       </header>
 
       <main className="otpv-body">
@@ -110,7 +111,7 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
           <ul className="otpv-feats">
             {FEATURES.map(f => (
               <li key={f.title}>
-                <span className="ic" aria-hidden="true">{f.ic}</span>
+                <span className="ic" aria-hidden="true"><i className={`bi ${f.ic}`} /></span>
                 <div><b>{f.title}</b><small>{f.desc}</small></div>
               </li>
             ))}
@@ -148,14 +149,14 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
 
         {/* The job. */}
         <section className="otpv-card" role="region" aria-label="Verify your number">
-          <div className="otpv-shield" aria-hidden="true"><span>🛡️</span></div>
+          <div className="otpv-shield" aria-hidden="true"><i className="bi bi-shield-check" /></div>
           <h2>Verify Your Number</h2>
           <p className="otpv-sub">We've sent a 6-digit verification code to your WhatsApp number</p>
 
           <div className="otpv-num">
-            <span className="wa" aria-hidden="true">💬</span>
+            <span className="wa" aria-hidden="true"><i className="bi bi-whatsapp" /></span>
             <b>+91 {mobile || '—'}</b>
-            <button type="button" onClick={onBack}>✏️ Edit</button>
+            <button type="button" onClick={onBack}><i className="bi bi-pencil-fill" /> Edit</button>
           </div>
 
           <label className="otpv-hint" htmlFor="otp-0">Enter the 6-digit code below</label>
@@ -192,13 +193,13 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
           <div className="otpv-or"><span>OR</span></div>
 
           <div className="otpv-safe">
-            <span className="ic" aria-hidden="true">🛡️</span>
+            <span className="ic" aria-hidden="true"><i className="bi bi-shield-check" /></span>
             <div><b>Your account is protected</b><small>We never share your number with anyone.</small></div>
-            <span className="lock" aria-hidden="true">🔒</span>
+            <span className="lock" aria-hidden="true"><i className="bi bi-lock-fill" /></span>
           </div>
 
           <button className="otpv-go" disabled={busy || code.length < LEN} onClick={() => onVerify(code)}>
-            {busy ? 'Verifying…' : 'Verify & Continue →'}
+            {busy ? 'Verifying…' : <>Verify &amp; Continue <i className="bi bi-arrow-right" /></>}
           </button>
         </section>
       </main>
@@ -206,7 +207,7 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
       <footer className="otpv-trust">
         {TRUST.map(t => (
           <div key={t.title}>
-            <span className="ic" aria-hidden="true">{t.ic}</span>
+            <span className="ic" aria-hidden="true"><i className={`bi ${t.ic}`} /></span>
             <div><b>{t.title}</b><small>{t.desc}</small></div>
           </div>
         ))}

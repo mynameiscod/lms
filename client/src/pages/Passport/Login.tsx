@@ -142,12 +142,12 @@ const PassportLogin: React.FC = () => {
         <button role="tab" aria-selected={mode === 'password'}
           className={`as-tab${mode === 'password' ? ' on' : ''}`}
           onClick={() => { setMode('password'); setMsg(''); }}>
-          <span aria-hidden="true">🔒</span> Password
+          <i className="bi bi-lock-fill" aria-hidden="true" /> Password
         </button>
         <button role="tab" aria-selected={mode === 'otp'}
           className={`as-tab${mode === 'otp' ? ' on' : ''}`}
           onClick={() => { setMode('otp'); setMsg(''); }}>
-          <span aria-hidden="true">🟢</span> WhatsApp OTP
+          <i className="bi bi-whatsapp" aria-hidden="true" /> WhatsApp OTP
         </button>
       </div>
 
@@ -157,7 +157,7 @@ const PassportLogin: React.FC = () => {
         <>
           <label className="as-lab" htmlFor="cp-id">Email or Mobile</label>
           <div className="as-in">
-            <span className="lic" aria-hidden="true">✉️</span>
+            <span className="lic" aria-hidden="true"><i className="bi bi-envelope-fill" /></span>
             <input id="cp-id" value={identifier} autoComplete="username"
               onChange={e => setIdentifier(e.target.value)}
               placeholder="you@email.com or 10-digit mobile"
@@ -166,7 +166,7 @@ const PassportLogin: React.FC = () => {
 
           <label className="as-lab" htmlFor="cp-pw">Password</label>
           <div className="as-in">
-            <span className="lic" aria-hidden="true">🔒</span>
+            <span className="lic" aria-hidden="true"><i className="bi bi-lock-fill" /></span>
             <input id="cp-pw" type={showPw ? 'text' : 'password'} value={password}
               autoComplete="current-password"
               onChange={e => setPassword(e.target.value)}
@@ -174,7 +174,7 @@ const PassportLogin: React.FC = () => {
               onKeyDown={e => e.key === 'Enter' && identifier && password && doPassword()} />
             <button type="button" className="as-eye" onClick={() => setShowPw(s => !s)}
               aria-label={showPw ? 'Hide password' : 'Show password'}>
-              {showPw ? '🙈' : '👁'}
+              <i className={showPw ? 'bi bi-eye-slash' : 'bi bi-eye'} />
             </button>
           </div>
 
@@ -199,7 +199,7 @@ const PassportLogin: React.FC = () => {
         <>
           <label className="as-lab" htmlFor="cp-mob">Registered Mobile Number</label>
           <div className="as-in">
-            <span className="lic" aria-hidden="true">📱</span>
+            <span className="lic" aria-hidden="true"><i className="bi bi-phone-fill" /></span>
             <input id="cp-mob" value={mobile} inputMode="numeric" autoComplete="tel"
               onChange={e => setMobile(e.target.value)}
               placeholder="Enter your 10-digit mobile"
@@ -225,7 +225,7 @@ const PassportLogin: React.FC = () => {
       <div className="as-or">or</div>
 
       <button className="as-alt" onClick={() => { setMode(mode === 'password' ? 'otp' : 'password'); setMsg(''); }}>
-        <span aria-hidden="true">{mode === 'password' ? '🟢' : '🔒'}</span>
+        <i className={mode === 'password' ? 'bi bi-whatsapp' : 'bi bi-lock-fill'} aria-hidden="true" />
         {mode === 'password' ? 'Continue with WhatsApp OTP' : 'Continue with Password'}
       </button>
 

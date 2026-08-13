@@ -41,7 +41,8 @@ const COLLEGES: { name: string; sub: string }[] = [];
 // membership are a claim we cannot stand behind. Only add real, consented stories.
 const STORIES: { quote: string; name: string; role: string; company: string }[] = [];
 
-const ICON: Record<string, string> = { name: '👤', mobile: '📞', email: '✉️' };
+/** Bootstrap Icons for the three locked signup fields. */
+const ICON: Record<string, string> = { name: 'bi-person-fill', mobile: 'bi-phone-fill', email: 'bi-envelope-fill' };
 
 const PassportJoin: React.FC = () => {
   const [params] = useSearchParams();
@@ -149,21 +150,21 @@ const PassportJoin: React.FC = () => {
 
             <label className="as-lab" htmlFor="jn-name">Full Name</label>
             <div className="as-in">
-              <span className="lic" aria-hidden="true">{ICON.name}</span>
+              <span className="lic" aria-hidden="true"><i className={`bi ${ICON.name}`} /></span>
               <input id="jn-name" value={form.name || ''} autoComplete="name"
                 onChange={e => set('name', e.target.value)} placeholder="Enter your full name" />
             </div>
 
             <label className="as-lab" htmlFor="jn-mob">Mobile Number</label>
             <div className="as-in">
-              <span className="lic" aria-hidden="true">{ICON.mobile}</span>
+              <span className="lic" aria-hidden="true"><i className={`bi ${ICON.mobile}`} /></span>
               <input id="jn-mob" value={form.mobile || ''} inputMode="numeric" autoComplete="tel"
                 onChange={e => set('mobile', e.target.value)} placeholder="Enter 10-digit mobile number" />
             </div>
 
             <label className="as-lab" htmlFor="jn-mail">Email Address</label>
             <div className="as-in">
-              <span className="lic" aria-hidden="true">{ICON.email}</span>
+              <span className="lic" aria-hidden="true"><i className={`bi ${ICON.email}`} /></span>
               <input id="jn-mail" type="email" value={form.email || ''} autoComplete="email"
                 onChange={e => set('email', e.target.value)} placeholder="Enter your email address" />
             </div>
@@ -192,7 +193,7 @@ const PassportJoin: React.FC = () => {
 
             <div className="as-or">or</div>
             <button className="as-alt" onClick={() => { window.location.href = `/careerpilot/login?tenant=${tenant}`; }}>
-              <span aria-hidden="true">🔒</span> I already have an account
+              <i className="bi bi-lock-fill" aria-hidden="true" /> I already have an account
             </button>
 
             <div className="as-foot">

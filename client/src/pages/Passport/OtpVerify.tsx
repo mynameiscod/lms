@@ -87,27 +87,27 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
   };
 
   return (
-    <div className="ov">
-      <div className="ov-bg" aria-hidden="true"><i /><i /><i /></div>
+    <div className="otpv">
+      <div className="otpv-bg" aria-hidden="true"><i /><i /><i /></div>
 
-      <header className="ov-top">
-        <div className="ov-brand">
+      <header className="otpv-top">
+        <div className="otpv-brand">
           <span className="mk" aria-hidden="true">🧭</span>
           <div><b>CareerPilot</b><small>Powered by CodeBegun</small></div>
         </div>
-        <button type="button" className="ov-change" onClick={onBack}>← Change Number</button>
+        <button type="button" className="otpv-change" onClick={onBack}>← Change Number</button>
       </header>
 
-      <main className="ov-body">
+      <main className="otpv-body">
         {/* The pitch. Decorative on a phone, where it moves below the card. */}
-        <section className="ov-pitch">
+        <section className="otpv-pitch">
           <h1>One Step Away<br />From Your<br /><span>Dream Career!</span></h1>
-          <p className="ov-lead">
+          <p className="otpv-lead">
             We've sent a 6-digit verification code to your WhatsApp number.
             Enter it below to continue your journey.
           </p>
 
-          <ul className="ov-feats">
+          <ul className="otpv-feats">
             {FEATURES.map(f => (
               <li key={f.title}>
                 <span className="ic" aria-hidden="true">{f.ic}</span>
@@ -116,7 +116,7 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
             ))}
           </ul>
 
-          <div className="ov-art" aria-hidden="true">
+          <div className="otpv-art" aria-hidden="true">
             <svg viewBox="0 0 260 200" role="presentation">
               <g opacity=".85">
                 <rect x="24" y="150" width="62" height="34" rx="7" fill="#1E3A8A" />
@@ -141,31 +141,31 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
             </svg>
           </div>
 
-          <blockquote className="ov-quote">
+          <blockquote className="otpv-quote">
             Success is a journey, not a destination.<br />Let's build your future together.
           </blockquote>
         </section>
 
         {/* The job. */}
-        <section className="ov-card" role="region" aria-label="Verify your number">
-          <div className="ov-shield" aria-hidden="true"><span>🛡️</span></div>
+        <section className="otpv-card" role="region" aria-label="Verify your number">
+          <div className="otpv-shield" aria-hidden="true"><span>🛡️</span></div>
           <h2>Verify Your Number</h2>
-          <p className="ov-sub">We've sent a 6-digit verification code to your WhatsApp number</p>
+          <p className="otpv-sub">We've sent a 6-digit verification code to your WhatsApp number</p>
 
-          <div className="ov-num">
+          <div className="otpv-num">
             <span className="wa" aria-hidden="true">💬</span>
             <b>+91 {mobile || '—'}</b>
             <button type="button" onClick={onBack}>✏️ Edit</button>
           </div>
 
-          <label className="ov-hint" htmlFor="otp-0">Enter the 6-digit code below</label>
-          <div className="ov-boxes" onPaste={onPaste}>
+          <label className="otpv-hint" htmlFor="otp-0">Enter the 6-digit code below</label>
+          <div className="otpv-boxes" onPaste={onPaste}>
             {Array.from({ length: LEN }, (_, i) => (
               <input
                 key={i}
                 id={`otp-${i}`}
                 ref={el => { refs.current[i] = el; }}
-                className={`ov-box${digits[i] ? ' filled' : ''}`}
+                className={`otpv-box${digits[i] ? ' filled' : ''}`}
                 value={digits[i]}
                 inputMode="numeric"
                 autoComplete={i === 0 ? 'one-time-code' : 'off'}
@@ -178,32 +178,32 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
             ))}
           </div>
 
-          <div className="ov-resend">
+          <div className="otpv-resend">
             Didn't receive the code?{' '}
             {resendIn > 0
               ? <>Resend code in <b>00:{String(resendIn).padStart(2, '0')}</b></>
               : <button type="button" className="lnk" onClick={onResend}>Resend code</button>}
           </div>
 
-          {devCode && <div className="ov-dev">Dev code: <b>{devCode}</b></div>}
-          {error && <div className="ov-msg err">{error}</div>}
-          {message && !error && <div className="ov-msg ok">{message}</div>}
+          {devCode && <div className="otpv-dev">Dev code: <b>{devCode}</b></div>}
+          {error && <div className="otpv-msg err">{error}</div>}
+          {message && !error && <div className="otpv-msg ok">{message}</div>}
 
-          <div className="ov-or"><span>OR</span></div>
+          <div className="otpv-or"><span>OR</span></div>
 
-          <div className="ov-safe">
+          <div className="otpv-safe">
             <span className="ic" aria-hidden="true">🛡️</span>
             <div><b>Your account is protected</b><small>We never share your number with anyone.</small></div>
             <span className="lock" aria-hidden="true">🔒</span>
           </div>
 
-          <button className="ov-go" disabled={busy || code.length < LEN} onClick={() => onVerify(code)}>
+          <button className="otpv-go" disabled={busy || code.length < LEN} onClick={() => onVerify(code)}>
             {busy ? 'Verifying…' : 'Verify & Continue →'}
           </button>
         </section>
       </main>
 
-      <footer className="ov-trust">
+      <footer className="otpv-trust">
         {TRUST.map(t => (
           <div key={t.title}>
             <span className="ic" aria-hidden="true">{t.ic}</span>

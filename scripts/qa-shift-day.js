@@ -98,7 +98,8 @@ const shiftEach = (arr, field = 'at') =>
     }
   }
 
-  console.log('\n' + (DRY ? 'nothing written (dry run).' : 'done.')
-    + ' Reload the member dashboard — the server now sees a fresh day.');
+  console.log('\n' + (DRY
+    ? 'nothing written (dry run) — re-run without --dry-run to apply.'
+    : 'done. Reload the member dashboard — the server now sees a fresh day.'));
   await m.disconnect();
 })().catch(e => { console.error('FAILED ' + (e && e.message)); process.exit(1); });

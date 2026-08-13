@@ -43,9 +43,10 @@ router.use(authMiddleware, tenantMiddleware);
 
 /**
  * Permission map (see roleGuard.ts → PERMISSION_GROUPS.careerPassport):
- *   manage_passport          config, pathways, missions, assessment bank
+ *   manage_passport            config, pathways, missions, assessment bank
+ *   manage_passport_categories scoring categories (weights change every score)
  *   view_passport_members    the members list
- *   convert_passport_member  granting a ₹499 membership without payment
+ *   convert_passport_member  granting a membership without payment
  *   use_passport             the member-facing surfaces
  *
  * These used to be hardcoded `['SUPER_ADMIN','TENANT_ADMIN','STAFF'].includes(role)`
@@ -54,6 +55,9 @@ router.use(authMiddleware, tenantMiddleware);
  */
 const MANAGE = roleGuard(['manage_passport']);
 const MEMBER = roleGuard(['use_passport']);
+// Category edits change how every member's score is computed, so they carry their own
+// permission rather than riding on manage_passport.
+const MANAGE_CATEGORIES = roleGuard(['manage_passport_categories']);
 
 // Admin config + members
 router.get('/config',    MANAGE, ctrl.getConfig);
@@ -186,7 +190,7 @@ router.get('/staging', MANAGE, staging.getStaging);
 router.put('/staging', MANAGE, staging.setStaging);
 
 router.get('/assessment/paper-design', MANAGE, assess.getPaperDesign);
-router.put('/assessment/categories',   MANAGE, assess.saveCategories);
+router.put('/assessment/categories',   MANAGE_CATEGORIES, assess.saveCategories);
 router.get('/assessment/admin',  MANAGE, assess.getAssessmentAdmin);
 router.put('/assessment/admin',  MANAGE, assess.saveAssessment);
 router.post('/assessment/reset', MANAGE, assess.resetAssessment);

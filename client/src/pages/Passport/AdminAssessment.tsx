@@ -1,26 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import passportApi, { AssessQuestionFull } from '../../api/passportApi';
+import passportApi, { AssessQuestionFull, AssessCategory, CategoryUsage } from '../../api/passportApi';
+import AdminCategories from './AdminCategories';
 
 /**
  * Admin editor for the deterministic Career Readiness question bank (one per tenant).
  * Add/edit/remove MCQs, set the correct option (or mark self-report), category & weight.
  * Reset restores the seeded starter bank.
+ *
+ * The categories come from the server rather than a constant here: they are tenant-managed
+ * data, and a hardcoded copy would silently disagree with whatever an admin had actually
+ * configured.
  */
-const CATEGORIES = [
-  { key: 'career_clarity', label: 'Career Clarity' },
-  { key: 'aptitude', label: 'Aptitude' },
-  { key: 'logical_reasoning', label: 'Logical Reasoning' },
-  { key: 'technical', label: 'Technical Foundation' },
-  { key: 'communication', label: 'Communication' },
-  { key: 'employability', label: 'Employability' },
-];
 
-const blank = (): AssessQuestionFull => ({ category: 'technical', text: '', options: ['', '', '', ''], correctIndex: 0, weight: 1, selfReport: false });
+/** A new question defaults to the first configured category, not a hardcoded one. */
+const blank = (firstCategory: string): AssessQuestionFull =>
+  ({ category: firstCategory, text: '', options: ['', '', '', ''], correctIndex: 0, weight: 1, selfReport: false });
 
 const AdminAssessment: React.FC = () => {
   const [title, setTitle] = useState('');
   const [maxQuestions, setMaxQuestions] = useState(14);
   const [questions, setQuestions] = useState<AssessQuestionFull[]>([]);
+  const [categories, setCategories] = useState<AssessCategory[]>([]);
+  const [usage, setUsage] = useState<CategoryUsage[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
@@ -28,10 +29,12 @@ const AdminAssessment: React.FC = () => {
   const load = async () => {
     setLoading(true);
     try {
-      const { assessment } = await passportApi.getAssessmentAdmin();
-      setTitle(assessment.title || '');
-      setMaxQuestions(assessment.maxQuestions || 14);
-      setQuestions(assessment.questions || []);
+      const r = await passportApi.getAssessmentAdmin();
+      setTitle(r.assessment.title || '');
+      setMaxQuestions(r.assessment.maxQuestions || 14);
+      setQuestions(r.assessment.questions || []);
+      setCategories(r.categories || []);
+      setUsage(r.usage || []);
     } catch (e: any) { setMsg(e?.response?.data?.message || 'Failed to load'); }
     setLoading(false);
   };
@@ -78,6 +81,18 @@ const AdminAssessment: React.FC = () => {
 
       {msg && <div style={{ margin: '12px 0', padding: '8px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 8, fontSize: 13.5 }}>{msg}</div>}
 
+      {/* Categories first: a question cannot be written until there is something to file
+          it under, so the thing that defines the vocabulary sits above the bank. */}
+      <div style={{ margin: '18px 0 22px' }}>
+        <AdminCategories
+          categories={categories}
+          usage={usage}
+          // Reload rather than patch state: adding or removing a category changes what the
+          // question rows may select, and usage counts move with it.
+          onSaved={() => { load(); }}
+        />
+      </div>
+
       <label style={lbl}>Assessment title</label>
       <input value={title} onChange={e => setTitle(e.target.value)} style={{ ...input, marginBottom: 16 }} />
 
@@ -104,7 +119,7 @@ const AdminAssessment: React.FC = () => {
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginBottom: 10 }}>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <select value={q.category} onChange={e => update(i, { category: e.target.value })} style={select}>
-                {CATEGORIES.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
+                {categories.map(c => <option key={c.key} value={c.key}>{c.label}</option>)}
               </select>
               <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, color: '#475569' }}>
                 <input type="checkbox" checked={!!q.selfReport} onChange={e => update(i, { selfReport: e.target.checked, correctIndex: e.target.checked ? -1 : 0 })} />
@@ -161,7 +176,7 @@ const AdminAssessment: React.FC = () => {
         </div>
       ))}
 
-      <button onClick={() => setQuestions(qs => [...qs, blank()])} style={{ ...ghostBtn, width: '100%', padding: '12px', borderStyle: 'dashed' }}>+ Add question</button>
+      <button onClick={() => setQuestions(qs => [...qs, blank(categories[0]?.key || 'technical')])} style={{ ...ghostBtn, width: '100%', padding: '12px', borderStyle: 'dashed' }}>+ Add question</button>
 
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 18 }}>
         <button onClick={save} disabled={saving} style={primaryBtn}>{saving ? 'Saving…' : 'Save bank'}</button>

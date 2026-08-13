@@ -212,6 +212,11 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
     label: 'CareerPilot',
     permissions: [
       { key: 'manage_passport', label: 'Manage CareerPilot (Config, Pathways, Missions, Assessment Bank)' },
+      // Separate from manage_passport on purpose: changing a category's weight rewrites how
+      // EVERY member's career score is computed, and deleting one can strand content. That
+      // is a different level of trust from writing a question, so it can be withheld from
+      // someone who is otherwise allowed to edit the bank.
+      { key: 'manage_passport_categories', label: 'Edit CareerPilot Scoring Categories (changes how every score is computed)' },
       { key: 'view_passport_members', label: 'View CareerPilot Members' },
       { key: 'convert_passport_member', label: 'Grant Membership Without Payment' },
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
@@ -275,7 +280,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // AI Spend
     'view_ai_spend',
     // CareerPilot — full control, including granting membership without payment
-    'manage_passport', 'view_passport_members', 'convert_passport_member', 'use_passport',
+    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'convert_passport_member', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
     // Exams — record and correct offline/external marks

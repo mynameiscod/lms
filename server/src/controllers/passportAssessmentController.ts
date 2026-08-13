@@ -143,9 +143,37 @@ function publicResult(a: any) {
 }
 
 // ── Admin ──
+/**
+ * GET /assessment/admin — the question bank, plus the categories in force and what each
+ * one is carrying.
+ *
+ * The usage counts are returned with the categories rather than fetched on demand because
+ * the delete button needs them BEFORE it is pressed. A category that still holds questions
+ * or missions cannot be removed (saveCategories refuses with 409), and an admin should see
+ * why up front instead of discovering it from an error.
+ */
 export const getAssessmentAdmin = async (req: Request, res: Response) => {
-  const a = await ensureAssessment(tenantOf(req));
-  res.json({ assessment: a });
+  const tenantId = tenantOf(req);
+  const a = await ensureAssessment(tenantId);
+
+  const PassportContent = (await import('../models/PassportContent')).default;
+  const content: any = await PassportContent.findOne({ tenantId }).lean();
+
+  const usage = categoriesOf(a).map(c => {
+    let missions = 0;
+    for (const pool of (content?.missionPools || [])) {
+      if (pool.category === c.key) missions += (pool.items || []).length;
+    }
+    return {
+      key: c.key,
+      questions: (a as any).questions.filter((q: any) => q.category === c.key).length,
+      missions,
+      // Focus lists name categories too; renaming a key would silently unfocus a pathway.
+      pathways: (content?.pathways || []).filter((p: any) => (p.focus || []).includes(c.key)).length,
+    };
+  });
+
+  res.json({ assessment: a, categories: categoriesOf(a), usage });
 };
 
 /**
@@ -261,12 +289,16 @@ export const saveCategories = async (req: Request, res: Response) => {
     if (removed.length) {
       const PassportContent = (await import('../models/PassportContent')).default;
       const content: any = await PassportContent.findOne({ tenantId }).lean();
-      const inUse: { key: string; questions: number; missions: number }[] = [];
+      const inUse: { key: string; questions: number; missions: number; pathways: number }[] = [];
       for (const k of removed) {
         const questions = a.questions.filter((q: any) => q.category === k).length;
         let missions = 0;
         for (const pool of (content?.missionPools || [])) if (pool.category === k) missions += (pool.items || []).length;
-        if (questions || missions) inUse.push({ key: k, questions, missions });
+        // A pathway's focus list names categories too. Dropping one out from under a
+        // pathway leaves it emphasising something that no longer exists — the roadmap
+        // still generates, so nothing errors, it just quietly stops focusing.
+        const pathways = (content?.pathways || []).filter((p: any) => (p.focus || []).includes(k)).length;
+        if (questions || missions || pathways) inUse.push({ key: k, questions, missions, pathways });
       }
       if (inUse.length) {
         return res.status(409).json({

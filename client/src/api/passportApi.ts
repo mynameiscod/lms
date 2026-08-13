@@ -100,7 +100,12 @@ export const passportApi = {
   },
 
   // Assessment — admin
-  getAssessmentAdmin: async (): Promise<{ assessment: AssessmentBank }> => {
+  /**
+   * The bank, the categories in force, and what each category is carrying.
+   * Usage comes back with the list because the delete button needs it BEFORE it is
+   * pressed — the server refuses to remove a category that still holds content.
+   */
+  getAssessmentAdmin: async (): Promise<{ assessment: AssessmentBank; categories: AssessCategory[]; usage: CategoryUsage[] }> => {
     const { data } = await axios.get(`${BASE}/assessment/admin`, { headers: auth() });
     return data;
   },
@@ -110,6 +115,14 @@ export const passportApi = {
   },
   resetAssessment: async (): Promise<{ assessment: AssessmentBank }> => {
     const { data } = await axios.post(`${BASE}/assessment/reset`, {}, { headers: auth() });
+    return data;
+  },
+  /**
+   * Replace the whole category list. Rejects with 409 and an `inUse` breakdown when a
+   * removed category still has questions, missions or pathways pointing at it.
+   */
+  saveCategories: async (categories: AssessCategory[]): Promise<{ categories: AssessCategory[]; removed: string[] }> => {
+    const { data } = await axios.put(`${BASE}/assessment/categories`, { categories }, { headers: auth() });
     return data;
   },
 
@@ -603,7 +616,11 @@ export interface PassportCard {
 
 export interface AssessQuestion { id: string; category: string; text: string; options: string[]; dependsOn?: { questionId: string; minChosen: number }; }
 export interface AssessQuestionFull { _id?: string; category: string; text: string; options: string[]; correctIndex: number; weight: number; selfReport?: boolean; stages?: string[]; goals?: string[]; background?: string; dependsOn?: { questionId: string; minChosen: number }; }
-export interface AssessmentBank { _id?: string; tenantId: string; title: string; maxQuestions?: number; questions: AssessQuestionFull[]; }
+export interface AssessmentBank { _id?: string; tenantId: string; title: string; maxQuestions?: number; questions: AssessQuestionFull[]; categories?: AssessCategory[]; }
+/** A scoring category. `weight` scales its contribution to the career score (0.1–3). */
+export interface AssessCategory { key: string; label: string; weight: number; order?: number; }
+/** What a category is carrying — the delete guard reads from this. */
+export interface CategoryUsage { key: string; questions: number; missions: number; pathways: number; }
 export interface CategoryScore { key: string; label: string; score: number; }
 export interface AssessResult {
   careerScore: number; level: string; levelKey: string;

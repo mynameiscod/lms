@@ -1,0 +1,475 @@
+<title>CareerPilot — Admin Console Guide</title>
+<style>
+  :root{
+    --paper:#FBFCFE; --card:#FFFFFF; --rule:#E4E9F2; --rule2:#EFF3F9;
+    --ink:#111C30; --body:#48566B; --faint:#8B98AD;
+    --blue:#1D4ED8; --blue-soft:#EEF3FF;
+    --warn:#9A5B08; --warn-bg:#FEF9EE; --danger:#A81E26; --danger-bg:#FDF2F2;
+    --good:#146B3E; --good-bg:#EFFAF3;
+    --sans:ui-sans-serif,"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:ui-monospace,"Cascadia Mono",Consolas,"SF Mono",Menlo,monospace;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0A0F19; --card:#121A28; --rule:#233046; --rule2:#1A2333;
+      --ink:#E7EDF7; --body:#9DAABE; --faint:#6C7A90;
+      --blue:#7BA5F7; --blue-soft:#17233A;
+      --warn:#F3B848; --warn-bg:#272013; --danger:#F08080; --danger-bg:#2A1618;
+      --good:#5AD98F; --good-bg:#0F2418;
+    }
+  }
+  :root[data-theme="dark"]{
+    --paper:#0A0F19; --card:#121A28; --rule:#233046; --rule2:#1A2333;
+    --ink:#E7EDF7; --body:#9DAABE; --faint:#6C7A90;
+    --blue:#7BA5F7; --blue-soft:#17233A;
+    --warn:#F3B848; --warn-bg:#272013; --danger:#F08080; --danger-bg:#2A1618;
+    --good:#5AD98F; --good-bg:#0F2418;
+  }
+  :root[data-theme="light"]{
+    --paper:#FBFCFE; --card:#FFFFFF; --rule:#E4E9F2; --rule2:#EFF3F9;
+    --ink:#111C30; --body:#48566B; --faint:#8B98AD;
+    --blue:#1D4ED8; --blue-soft:#EEF3FF;
+    --warn:#9A5B08; --warn-bg:#FEF9EE; --danger:#A81E26; --danger-bg:#FDF2F2;
+    --good:#146B3E; --good-bg:#EFFAF3;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--body);font-family:var(--sans);
+    font-size:15px;line-height:1.68;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:940px;margin:0 auto;padding:44px 22px 100px}
+  h1,h2,h3,h4{color:var(--ink);text-wrap:balance;margin:0}
+  p{margin:0 0 13px}
+  :focus-visible{outline:2px solid var(--blue);outline-offset:2px;border-radius:5px}
+  code{font-family:var(--mono);font-size:12.5px;background:var(--rule2);
+    padding:1.5px 6px;border-radius:5px;color:var(--ink)}
+
+  .eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--faint);font-weight:600}
+  h1{font-size:35px;font-weight:800;letter-spacing:-.024em;margin:11px 0 12px}
+  .lede{font-size:16.5px;max-width:65ch}
+  .stamp{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:18px}
+
+  .toc{background:var(--card);border:1px solid var(--rule);border-radius:14px;
+    padding:20px 24px;margin:32px 0 8px}
+  .toc h4{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--faint);margin-bottom:12px}
+  .toc ol{margin:0;padding-left:22px;columns:2;column-gap:34px}
+  .toc li{font-size:14px;margin-bottom:7px;break-inside:avoid}
+  .toc a{color:var(--blue);text-decoration:none;font-weight:600}
+  .toc a:hover{text-decoration:underline}
+  @media (max-width:620px){ .toc ol{columns:1} }
+
+  /* one screen */
+  .screen{border-top:2px solid var(--ink);padding-top:20px;margin-top:52px}
+  .screen .num{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--faint);
+    letter-spacing:.08em}
+  .screen h2{font-size:24px;font-weight:800;letter-spacing:-.018em;margin:4px 0 10px}
+  .route{display:inline-block;font-family:var(--mono);font-size:12.5px;color:var(--blue);
+    background:var(--blue-soft);border:1px solid var(--rule);border-radius:7px;
+    padding:4px 11px;margin-bottom:15px;word-break:break-all}
+  .purpose{font-size:15.5px;color:var(--ink);max-width:64ch;margin-bottom:18px}
+
+  h3{font-size:12px;font-family:var(--mono);letter-spacing:.13em;text-transform:uppercase;
+    color:var(--faint);margin:24px 0 11px}
+
+  .ctrl{display:grid;grid-template-columns:190px 1fr;gap:4px 20px;
+    padding:13px 0;border-bottom:1px solid var(--rule2)}
+  .ctrl:last-of-type{border-bottom:none}
+  .ctrl dt{font-weight:700;color:var(--ink);font-size:14px}
+  .ctrl dd{margin:0;font-size:14px;line-height:1.62}
+  @media (max-width:620px){ .ctrl{grid-template-columns:1fr;gap:3px} }
+
+  .steps{counter-reset:st;margin:0;padding:0;list-style:none}
+  .steps li{counter-increment:st;position:relative;padding-left:36px;margin-bottom:12px;font-size:14.5px}
+  .steps li::before{content:counter(st);position:absolute;left:0;top:1px;
+    width:23px;height:23px;border-radius:50%;background:var(--blue);color:#fff;
+    font-family:var(--mono);font-size:11.5px;font-weight:700;display:grid;place-items:center}
+  .steps li b{color:var(--ink)}
+
+  .note{border-radius:0 11px 11px 0;padding:14px 18px;margin:16px 0;font-size:14px;line-height:1.62}
+  .note b{color:var(--ink)}
+  .note.warn{background:var(--warn-bg);border-left:3px solid var(--warn)}
+  .note.stop{background:var(--danger-bg);border-left:3px solid var(--danger)}
+  .note.ok{background:var(--good-bg);border-left:3px solid var(--good)}
+  .note .h{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;
+    text-transform:uppercase;font-weight:700;margin-bottom:5px}
+  .note.warn .h{color:var(--warn)} .note.stop .h{color:var(--danger)} .note.ok .h{color:var(--good)}
+
+  .scroll{overflow-x:auto;border:1px solid var(--rule);border-radius:11px;background:var(--card);margin:14px 0}
+  table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:480px}
+  th{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.11em;text-transform:uppercase;
+    color:var(--faint);font-weight:700;padding:12px 15px;border-bottom:1px solid var(--rule)}
+  td{padding:11px 15px;border-bottom:1px solid var(--rule2);vertical-align:top}
+  tr:last-child td{border-bottom:none}
+  td.m{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink)}
+
+  .tabs{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0 18px}
+  .tabs span{font-size:12.5px;font-weight:700;color:var(--ink);background:var(--card);
+    border:1px solid var(--rule);border-radius:8px;padding:5px 11px}
+
+  footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--rule);
+    font-family:var(--mono);font-size:12px;color:var(--faint);line-height:1.8}
+  @media (max-width:620px){ h1{font-size:27px} .screen h2{font-size:20px} }
+</style>
+
+<div class="wrap">
+
+<p class="eyebrow">CareerPilot by CodeBegun · Operations</p>
+<h1>The admin console, screen by screen</h1>
+<p class="lede">Every CareerPilot admin surface: what it is for, what each control does, and
+  the places where a wrong click has consequences. Written against the console as it runs
+  today, not as it was designed.</p>
+<p class="stamp">13 Aug 2026 · 10 screens · 4 permissions · 90 endpoints behind them</p>
+
+<div class="toc">
+  <h4>Contents</h4>
+  <ol>
+    <li><a href="#access">Who can get in</a></li>
+    <li><a href="#config">Plan &amp; entitlements</a></li>
+    <li><a href="#assessment">Assessment builder</a></li>
+    <li><a href="#paper">Paper design</a></li>
+    <li><a href="#pathways">Pathways</a></li>
+    <li><a href="#missions">Missions</a></li>
+    <li><a href="#students">Members</a></li>
+    <li><a href="#companies">Companies (9 tabs)</a></li>
+    <li><a href="#news">Tech news</a></li>
+    <li><a href="#coins">Coins</a></li>
+    <li><a href="#staging">Staging board</a></li>
+  </ol>
+</div>
+
+<!-- ─────────────────────────── ACCESS ─────────────────────────── -->
+<section class="screen" id="access">
+  <div class="num">00</div>
+  <h2>Who can get into the console</h2>
+  <span class="route">/roles</span>
+  <p class="purpose">CareerPilot has four permissions. They are assigned by role, and
+    SUPER_ADMIN can mint a custom role with any combination of them — so access is granted
+    per person, not per job title.</p>
+
+  <div class="scroll"><table>
+    <tr><th>Permission</th><th>What it unlocks</th></tr>
+    <tr><td class="m">manage_passport</td><td>Everything below — config, pricing, pathways, missions, assessment, companies, news, coins</td></tr>
+    <tr><td class="m">view_passport_members</td><td>Read-only member access. Enough for a support desk.</td></tr>
+    <tr><td class="m">convert_passport_member</td><td>Grant a ₹1,599 membership <b>without payment</b>. Hand out sparingly.</td></tr>
+    <tr><td class="m">use_passport</td><td>The member-facing product. Every student has this.</td></tr>
+  </table></div>
+
+  <p>Today SUPER_ADMIN and TENANT_ADMIN hold all four, STAFF holds view-only, INSTRUCTOR
+    holds none. To give one person more, create a role at <code>/roles</code>, tick the
+    permissions, assign it. The permission list is served live from the code, so anything
+    added later appears there by itself.</p>
+
+  <div class="note stop">
+    <span class="h">Never do this</span>
+    A CareerPilot member is not a separate record — it is an ordinary user with an embedded
+    <code>passport</code> field, and <b>staff who opened CareerPilot picked one up too</b>.
+    Deleting "all CareerPilot users" would delete your only TENANT_ADMIN, an instructor and
+    two staff. To reset the product, clear the passport field; never delete the accounts.
+  </div>
+</section>
+
+<!-- ─────────────────────────── CONFIG ─────────────────────────── -->
+<section class="screen" id="config">
+  <div class="num">01</div>
+  <h2>Plan &amp; entitlements</h2>
+  <span class="route">/admin/passport/config</span>
+  <p class="purpose">Decides what CareerPilot costs and which parts of it are free. This is
+    the commercial control panel, and it is data rather than code, so pricing changes never
+    wait for a deployment.</p>
+
+  <h3>Controls</h3>
+  <dl>
+    <div class="ctrl"><dt>Membership price</dt><dd>Currently <b>₹1,599</b>. Every paywall, upgrade prompt and Razorpay order reads this one number. Change it here and the whole product follows within a page refresh.</dd></div>
+    <div class="ctrl"><dt>Membership months</dt><dd><b>12</b>. Sets the expiry stamped on a member the moment their payment clears.</dd></div>
+    <div class="ctrl"><dt>Entitlements (11 rows)</dt><dd>One row per feature, each set to <b>free</b> or <b>paid</b>. This is the paywall. Moving a row to free opens it to everyone immediately, including the members who never paid.</dd></div>
+    <div class="ctrl"><dt>Onboarding fields</dt><dd>What a new member is asked for at signup beyond name, mobile and email. Extra fields appear on the join form automatically.</dd></div>
+    <div class="ctrl"><dt>Enabled</dt><dd>The master switch. Turning it off closes signup and shows "not available right now" to visitors.</dd></div>
+  </dl>
+
+  <h3>The 11 features and where they sit today</h3>
+  <div class="scroll"><table>
+    <tr><th>Tier</th><th>Feature</th><th>What the member gets</th></tr>
+    <tr><td class="m">free</td><td>assessment</td><td>The career readiness assessment — the hook</td></tr>
+    <tr><td class="m">free</td><td>career_score</td><td>Their score, level and pathway</td></tr>
+    <tr><td class="m">free</td><td>roadmap_preview</td><td>First 7 days of the plan</td></tr>
+    <tr><td class="m">paid</td><td>roadmap_full</td><td>All 90 days</td></tr>
+    <tr><td class="m">paid</td><td>daily_missions</td><td>Mission Control and the streak</td></tr>
+    <tr><td class="m">paid</td><td>practice</td><td>Coding, SQL and MCQ practice</td></tr>
+    <tr><td class="m">paid</td><td>mock_interview</td><td>AI mock interviews</td></tr>
+    <tr><td class="m">paid</td><td>resume</td><td>Resume Centre</td></tr>
+    <tr><td class="m">paid</td><td>career_passport</td><td>The shareable profile</td></tr>
+    <tr><td class="m">paid</td><td>tech_news</td><td>The daily news feed</td></tr>
+    <tr><td class="m">paid</td><td>company_questions</td><td>Prepare Interviews and mock tests</td></tr>
+  </table></div>
+
+  <div class="note warn">
+    <span class="h">Why the free three are free</span>
+    The assessment costs nothing to run — it is deterministic, with no AI call — and it
+    produces the score that makes the ₹1,599 ask feel earned. The 7-day preview shows the
+    shape of the plan so the paywall lands where the value is already obvious. Moving any
+    of the paid rows to free gives the product away to all 138 students at once.
+  </div>
+</section>
+
+<!-- ─────────────────────────── ASSESSMENT ─────────────────────────── -->
+<section class="screen" id="assessment">
+  <div class="num">02</div>
+  <h2>Assessment builder</h2>
+  <span class="route">/admin/passport/assessment</span>
+  <p class="purpose">The question bank behind the free assessment. Since the assessment is
+    the top of the funnel, whoever owns conversion needs to be able to change it without an
+    engineer.</p>
+
+  <h3>Controls</h3>
+  <dl>
+    <div class="ctrl"><dt>Questions</dt><dd>Add, edit, reorder, remove. Options with one marked correct.</dd></div>
+    <div class="ctrl"><dt>Stage segments</dt><dd>Questions are grouped by the member's stage, so a first-year and a job-switcher are not asked the same things.</dd></div>
+    <div class="ctrl"><dt>Scoring categories</dt><dd>Six today: Career Clarity, Aptitude, Logical Reasoning, Technical Foundation, Communication, Employability. Each question feeds one, and the member sees a per-category breakdown.</dd></div>
+    <div class="ctrl"><dt>Reset</dt><dd>Restores the shipped default bank. Destroys your edits.</dd></div>
+  </dl>
+
+  <div class="note ok">
+    <span class="h">Already handled for you</span>
+    A member is never scored on a category they were not asked about — an unasked category
+    is absent from their breakdown rather than showing as zero. So you can safely add a
+    category before you have written questions for it.
+  </div>
+</section>
+
+<!-- ─────────────────────────── PAPER ─────────────────────────── -->
+<section class="screen" id="paper">
+  <div class="num">03</div>
+  <h2>Paper design</h2>
+  <span class="route">/admin/careerpilot/paper-design</span>
+  <p class="purpose">Controls the printable layout of the assessment, for running it on paper
+    at a college drive where laptops and wifi cannot be relied on. Change the layout, preview,
+    print.</p>
+</section>
+
+<!-- ─────────────────────────── PATHWAYS ─────────────────────────── -->
+<section class="screen" id="pathways">
+  <div class="num">04</div>
+  <h2>Pathways</h2>
+  <span class="route">/admin/passport/pathways</span>
+  <p class="purpose">The career tracks a member is sorted into by their assessment result —
+    <code>software_dev</code>, <code>it_bridge</code> and any others you define. A pathway
+    determines which roadmap and missions the member receives.</p>
+  <p>Full create, edit and delete. A member's pathway can also be corrected by hand from the
+    Members screen.</p>
+
+  <div class="note warn">
+    <span class="h">Before deleting one</span>
+    Check whether anyone is on it. A member pointing at a pathway that no longer exists has
+    no roadmap to follow.
+  </div>
+</section>
+
+<!-- ─────────────────────────── MISSIONS ─────────────────────────── -->
+<section class="screen" id="missions">
+  <div class="num">05</div>
+  <h2>Missions</h2>
+  <span class="route">/admin/passport/missions</span>
+  <p class="purpose">The daily tasks behind Mission Control. A yearly membership dies without
+    a reason to open the app on a Tuesday, and this is where that reason is written.</p>
+
+  <h3>How the day works</h3>
+  <ol class="steps">
+    <li>You author <b>mission pools</b> here, per pathway and per day.</li>
+    <li>A member opening the dashboard gets <b>today's</b> missions drawn from the pool that matches them.</li>
+    <li>Completing one credits XP, coins, and advances the <b>streak</b>.</li>
+  </ol>
+
+  <div class="note ok">
+    <span class="h">There is no nightly job</span>
+    The day is derived from the timestamps on the member's own activity, not from a cron.
+    Nothing has to run at midnight, and nothing can fail to run. A day cannot be "missed"
+    by the system — only by the member.
+  </div>
+  <div class="note warn">
+    <span class="h">The day rolls at 05:30 IST, not midnight</span>
+    The boundary is computed in UTC. A student practising at 1am IST is counted against the
+    previous day, and someone active only between midnight and 05:30 will see their streak
+    break. Worth fixing before you promote streaks heavily.
+  </div>
+</section>
+
+<!-- ─────────────────────────── STUDENTS ─────────────────────────── -->
+<section class="screen" id="students">
+  <div class="num">06</div>
+  <h2>Members</h2>
+  <span class="route">/admin/passport/students</span>
+  <p class="purpose">One person's entire CareerPilot history on one screen. This is the
+    support desk: when someone rings up confused, everything you need is here.</p>
+
+  <h3>Controls</h3>
+  <dl>
+    <div class="ctrl"><dt>Search</dt><dd>By name, mobile or email.</dd></div>
+    <div class="ctrl"><dt>Add member</dt><dd>Create someone by hand — for a walk-in or a phone signup. They can then log in by OTP.</dd></div>
+    <div class="ctrl"><dt>Edit</dt><dd>Fix a name, email, pathway or stage.</dd></div>
+    <div class="ctrl"><dt>Activate / Deactivate</dt><dd>Deactivating blocks login with a readable message and is fully reversible. Prefer it to deletion in every case.</dd></div>
+    <div class="ctrl"><dt>Delete</dt><dd>Removes the member. Their submissions, interviews and ledger lines do not follow them.</dd></div>
+    <div class="ctrl"><dt>View answers</dt><dd>Their assessment responses, question by question.</dd></div>
+    <div class="ctrl"><dt>View interviews</dt><dd>Every mock interview transcript and the stored feedback.</dd></div>
+  </dl>
+
+  <div class="note warn">
+    <span class="h">Watch for duplicate accounts</span>
+    Three people currently hold two accounts each on the same mobile number, with progress
+    split between them — in each case the older record holds the paid membership and the
+    newer one holds a fresh assessment. The cause is phone numbers stored inconsistently
+    (<code>+919876500001</code> vs <code>9876500001</code>), so the duplicate check misses.
+    Search by the last 10 digits before creating anyone.
+  </div>
+</section>
+
+<!-- ─────────────────────────── COMPANIES ─────────────────────────── -->
+<section class="screen" id="companies">
+  <div class="num">07</div>
+  <h2>Companies — the deepest screen</h2>
+  <span class="route">/admin/passport/companies</span>
+  <p class="purpose">The content engine behind Prepare Interviews. Students do not prepare
+    "for interviews", they prepare for TCS — and this is where a company becomes something
+    worth opening. Nine tabs.</p>
+
+  <div class="tabs">
+    <span>🏢 Roster</span><span>Companies</span><span>Company profile</span>
+    <span>Interview pattern</span><span>Questions</span><span>✨ Import / Generate</span>
+    <span>Review</span><span>Interview reports</span><span>Rounds &amp; Categories</span>
+  </div>
+
+  <h3>What each tab does</h3>
+  <dl>
+    <div class="ctrl"><dt>🏢 Roster</dt><dd>The control board. Every company with a live/total counter, a readiness percentage, exactly which checks are outstanding, bulk paste to create many at once, <b>✨ Draft all missing</b>, and the green <b>✓ Verify eligibility</b> button.</dd></div>
+    <div class="ctrl"><dt>Companies</dt><dd>The plain list — create, edit and delete individual companies, set type (product / service / startup), logo and website.</dd></div>
+    <div class="ctrl"><dt>Company profile</dt><dd>The overview a student reads first: about, roles hired, location, industry, salary bands, and your tips.</dd></div>
+    <div class="ctrl"><dt>Interview pattern</dt><dd>The rounds in the order a candidate faces them — name, duration, what it tests, the clearing bar, one tip each. Two or more rounds is what readiness requires.</dd></div>
+    <div class="ctrl"><dt>Questions</dt><dd>The bank. Edit, publish, unpublish, delete. <b>Only published questions count toward readiness.</b></dd></div>
+    <div class="ctrl"><dt>✨ Import / Generate</dt><dd>Paste a batch of questions to parse and import, or have AI predict likely questions for a chosen round.</dd></div>
+    <div class="ctrl"><dt>Review</dt><dd>Student-submitted questions awaiting approval. Approving pays the contributor 50 coins.</dd></div>
+    <div class="ctrl"><dt>Interview reports</dt><dd>Interview experiences submitted by students. Approving pays 300 coins.</dd></div>
+    <div class="ctrl"><dt>Rounds &amp; Categories</dt><dd>The vocabulary — round types, question categories, difficulty labels, company types. These are editable rows, not fixed lists.</dd></div>
+  </dl>
+
+  <h3>Taking a company live</h3>
+  <p>There is <b>no publish button</b>. A company becomes visible the moment it clears four
+    checks, and vanishes again if one stops being true.</p>
+  <ol class="steps">
+    <li><b>Overview written</b> — the profile tab, or let AI draft it.</li>
+    <li><b>Two or more rounds</b> on the interview pattern.</li>
+    <li><b>Twenty published questions.</b> Drafts do not count.</li>
+    <li><b>Eligibility verified by a human</b> — the green tick on the roster row.</li>
+  </ol>
+  <p>The roster row tells you which of the four is still missing. Readiness is computed
+    every time it is asked for and never stored, so it can never drift out of step with the
+    content behind it.</p>
+
+  <div class="note warn">
+    <span class="h">The eligibility tick is deliberately manual</span>
+    AI drafts the CGPA, backlog and gap rules; a person confirms them. A student plans their
+    year around those numbers, so this is the one step that is not automated. Read what was
+    drafted before you tick it.
+  </div>
+  <div class="note ok">
+    <span class="h">Renaming is safe</span>
+    Editing a company's name does not change its URL. Existing links keep working. If you
+    paste a numbered list, the numbering is stripped from both the name and the URL.
+  </div>
+  <p><b>Today:</b> 21 companies on the roster, <b>1 live</b> (Cognizant). Most of the rest
+    are two checks away — questions, and the eligibility tick.</p>
+</section>
+
+<!-- ─────────────────────────── NEWS ─────────────────────────── -->
+<section class="screen" id="news">
+  <div class="num">08</div>
+  <h2>Tech news</h2>
+  <span class="route">/admin/passport/news</span>
+  <p class="purpose">A short daily feed. A cheap reason for a member to open the app on a day
+    when nothing else pulls them in. Publishing has to take a minute or it will not happen
+    daily, which is why it is built around a paste box.</p>
+
+  <ol class="steps">
+    <li>Paste a public article <b>URL</b>.</li>
+    <li>AI drafts a title and summary.</li>
+    <li>Edit it — the draft is a starting point, not the finished item.</li>
+    <li><b>Publish.</b> It appears in the member feed immediately. Unpublishing removes it just as fast.</li>
+  </ol>
+
+  <div class="note ok">
+    <span class="h">Guarded</span>
+    The fetcher refuses internal and private addresses, so the server cannot be talked into
+    fetching its own network on request.
+  </div>
+  <p><b>Today:</b> 1 item published. This needs a publishing rhythm, not more software.</p>
+</section>
+
+<!-- ─────────────────────────── COINS ─────────────────────────── -->
+<section class="screen" id="coins">
+  <div class="num">09</div>
+  <h2>Coins</h2>
+  <span class="route">/admin/passport/coins</span>
+  <p class="purpose">The motivation economy. Two sections — <b>Economy settings</b> and
+    <b>Earning rules</b> — plus the ledger. Every number is editable, so the economy can be
+    tuned against real behaviour instead of guesses.</p>
+
+  <h3>Economy settings</h3>
+  <dl>
+    <div class="ctrl"><dt>Coins per rupee</dt><dd>250 — the exchange rate for anything redeemable.</dd></div>
+    <div class="ctrl"><dt>Monthly earn cap</dt><dd>5,000 coins. The brake on the whole economy.</dd></div>
+    <div class="ctrl"><dt>Annual cost budget</dt><dd>₹100 per member per year of real reward cost.</dd></div>
+    <div class="ctrl"><dt>Expiry</dt><dd>12 months.</dd></div>
+    <div class="ctrl"><dt>Minimum redemption</dt><dd>100 coins.</dd></div>
+    <div class="ctrl"><dt>Free members accrue</dt><dd>On — unpaid members still build a balance, which gives them something to lose by not upgrading.</dd></div>
+  </dl>
+
+  <h3>Earning rules — each with its own daily cap</h3>
+  <div class="scroll"><table>
+    <tr><th>Event</th><th class="m">Coins</th><th class="m">Cap/day</th><th>When it fires</th></tr>
+    <tr><td>experience_approved</td><td class="m">300</td><td class="m">2</td><td>You approve an interview report</td></tr>
+    <tr><td>question_approved</td><td class="m">50</td><td class="m">5</td><td>You approve a submitted question</td></tr>
+    <tr><td>streak_7</td><td class="m">25</td><td class="m">1</td><td>A 7-day streak is reached</td></tr>
+    <tr><td>mission_all_done</td><td class="m">8</td><td class="m">1</td><td>All of today's missions finished</td></tr>
+    <tr><td>practice_solved</td><td class="m">2</td><td class="m">2</td><td>A practice problem is solved</td></tr>
+    <tr><td>mission_complete</td><td class="m">0</td><td class="m">3</td><td>One mission — <b>awards nothing today</b></td></tr>
+    <tr><td>daily_login</td><td class="m">0</td><td class="m">1</td><td><b>Awards nothing today</b></td></tr>
+    <tr><td>interview_complete</td><td class="m">0</td><td class="m">2</td><td><b>Awards nothing today</b></td></tr>
+    <tr><td>assessment_complete</td><td class="m">0</td><td class="m">1</td><td><b>Awards nothing today</b></td></tr>
+    <tr><td>social_share</td><td class="m">0</td><td class="m">1</td><td><b>Awards nothing today</b></td></tr>
+    <tr><td>resume_scored</td><td class="m">0</td><td class="m">1</td><td>Disabled</td></tr>
+    <tr><td>referral_converted</td><td class="m">0</td><td class="m">10</td><td>Disabled</td></tr>
+  </table></div>
+
+  <div class="note stop">
+    <span class="h">Read this before you test coins</span>
+    <b>Six rules are set to zero</b>, so most actions credit nothing and the feature looks
+    broken when it is merely unconfigured. A member's realistic maximum today is
+    <b>12 coins a day</b>. Set real amounts before demoing this.
+    <br><br>
+    Separately, <b>coins can be earned but not spent</b> — there is no redemption catalogue,
+    no coupons and no referral flow yet. Until there is, the economy teaches members that
+    coins are meaningless.
+  </div>
+
+  <h3>The ledger</h3>
+  <p>Every credit, with its reason, its member and its time. Each carries an idempotency key,
+    so a replayed request can never double-credit. This is your audit trail — read it rather
+    than trusting a balance.</p>
+</section>
+
+<!-- ─────────────────────────── STAGING ─────────────────────────── -->
+<section class="screen" id="staging">
+  <div class="num">10</div>
+  <h2>Staging board</h2>
+  <span class="route">/admin/careerpilot/staging</span>
+  <p class="purpose">Moves a member between career stages. Stage drives which missions and
+    content they see, so when someone's situation changes — graduated, started job hunting,
+    switched track — this corrects it without touching the database.</p>
+</section>
+
+<footer>
+  Written against the running console, 13 Aug 2026 · slot blue · commit 60820cde<br>
+  Counts (companies live, coin rules, published news) are today's values and will move.<br>
+  Screen behaviour will not, unless someone changes the code.
+</footer>
+
+</div>

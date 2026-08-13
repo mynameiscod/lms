@@ -218,6 +218,10 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       // someone who is otherwise allowed to edit the bank.
       { key: 'manage_passport_categories', label: 'Edit CareerPilot Scoring Categories (changes how every score is computed)' },
       { key: 'view_passport_members', label: 'View CareerPilot Members' },
+      // Its own permission because it hands out member phone numbers and emails in BULK
+      // for outreach — a different risk from looking one person up on a support call.
+      // A marketing or telecalling person needs this and nothing else.
+      { key: 'view_passport_funnel', label: 'View CareerPilot Drop-off Funnel (bulk member contacts)' },
       { key: 'convert_passport_member', label: 'Grant Membership Without Payment' },
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
     ]
@@ -280,7 +284,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // AI Spend
     'view_ai_spend',
     // CareerPilot — full control, including granting membership without payment
-    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'convert_passport_member', 'use_passport',
+    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
     // Exams — record and correct offline/external marks

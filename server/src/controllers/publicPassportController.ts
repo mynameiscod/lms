@@ -217,6 +217,13 @@ function issueLogin(res: Response, user: any) {
       message: 'This account has been deactivated. Please contact support.',
     });
   }
+  // What "gone quiet" is measured from. Fire-and-forget: a failed write here must
+  // never cost someone their login.
+  if (user.passport) {
+    User.updateOne({ _id: user._id }, { $set: { 'passport.lastSeenAt': new Date() } })
+      .catch(() => { /* best effort */ });
+  }
+
   const secret = (process.env.JWT_SECRET || 'secret-key') as string;
   const jwtToken = jwt.sign({ id: user._id, email: user.email, role: user.role, tenantId: user.tenantId }, secret, { expiresIn: (process.env.JWT_EXPIRES_IN || '7d') } as any);
   return res.json({
@@ -238,6 +245,12 @@ export const verify = async (req: Request, res: Response) => {
     }
     const user: any = await User.findById(token);
     if (!user) return res.status(404).json({ success: false, message: 'Account not found' });
+    // The moment they proved they own the number. Only stamped once — it marks when
+    // they crossed out of "signed up but unverified", not the most recent OTP.
+    if (user.passport && !user.passport.verifiedAt) {
+      user.passport.verifiedAt = new Date();
+      await user.save();
+    }
     return issueLogin(res, user);
   } catch (e: any) {
     res.status(500).json({ success: false, message: e.message || 'Verification failed' });

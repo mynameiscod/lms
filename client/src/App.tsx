@@ -69,6 +69,7 @@ import CodePlayground from './pages/CodePlayground';
 import PassportAdminConfig from './pages/Passport/AdminConfig';
 import PassportAdminStudents from './pages/Passport/AdminStudents';
 import PassportAdminCoins from './pages/Passport/AdminCoins';
+import PassportAdminFunnel from './pages/Passport/AdminFunnel';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
@@ -457,6 +458,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/coins" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCoins /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/funnel" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminFunnel /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/pathways" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathways /></Layout></ProtectedRoute>

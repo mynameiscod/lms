@@ -126,6 +126,35 @@ export const passportApi = {
     return data;
   },
 
+  // ── Drop-off funnel ──
+  /** Stage definitions with live counts, plus totals. */
+  getFunnel: async (): Promise<{ stages: FunnelStage[]; totals: FunnelTotals; notes: string[] }> => {
+    const { data } = await axios.get(`${BASE}/funnel`, { headers: auth() });
+    return data;
+  },
+  /** The people stuck in one stage, coldest first. */
+  getFunnelStage: async (stage: string): Promise<{ stage: FunnelStage; total: number; returned: number; members: FunnelMember[] }> => {
+    const { data } = await axios.get(`${BASE}/funnel/${stage}`, { headers: auth() });
+    return data;
+  },
+  /**
+   * Download the stage as CSV.
+   *
+   * Fetched rather than linked: the endpoint needs the Authorization header, and a plain
+   * <a href> cannot send one — it would just 401. The response is turned into a blob and
+   * handed to a temporary link so the browser saves it.
+   */
+  exportFunnelStage: async (stage: string, filename: string): Promise<void> => {
+    const { data } = await axios.get(`${BASE}/funnel/${stage}/export`, {
+      headers: auth(), responseType: 'blob',
+    });
+    const url = URL.createObjectURL(new Blob([data], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  },
+
   // Missions
   /** `day` omitted = today. Past days only; the server clamps anything ahead. */
   getToday: async (day?: number): Promise<TodayMissions> => {
@@ -798,4 +827,20 @@ export interface CompanyAdmin {
   taxonomy: { rounds: TaxItem[]; categories: TaxItem[]; difficulties: TaxItem[]; companyTypes: TaxItem[] };
   companies: (CompanyRow & { active: boolean })[];
   pendingCount: number;
+}
+
+/** One step of the drop-off funnel, with what to do about the people in it. */
+export interface FunnelStage {
+  key: string; label: string; meaning: string; action: string;
+  /** 1 is the warmest lead — closest to paying. */
+  heat: number;
+  count: number;
+}
+export interface FunnelTotals { members: number; paid: number; revenueInr: number; unverifiedShare: number; }
+export interface FunnelMember {
+  id: string; name: string; email: string; phone: string; stage: string;
+  /** Days since they last did anything. How cold the lead is. */
+  stuckDays: number;
+  joinedAt: string; lastTouch: string;
+  careerScore?: number | null; pathway?: string | null; pendingAmountInr?: number;
 }

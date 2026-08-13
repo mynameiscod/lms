@@ -16,6 +16,7 @@ import * as resume from '../controllers/passportResumeController';
 import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
+import * as funnel from '../controllers/passportFunnelController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -46,6 +47,7 @@ router.use(authMiddleware, tenantMiddleware);
  *   manage_passport            config, pathways, missions, assessment bank
  *   manage_passport_categories scoring categories (weights change every score)
  *   view_passport_members    the members list
+ *   view_passport_funnel     the drop-off funnel + bulk contact export
  *   convert_passport_member  granting a membership without payment
  *   use_passport             the member-facing surfaces
  *
@@ -58,10 +60,18 @@ const MEMBER = roleGuard(['use_passport']);
 // Category edits change how every member's score is computed, so they carry their own
 // permission rather than riding on manage_passport.
 const MANAGE_CATEGORIES = roleGuard(['manage_passport_categories']);
+const FUNNEL = roleGuard(['view_passport_funnel']);
+
+// ── Drop-off funnel — who stopped where, and who to contact about it ──
+
 
 // Admin config + members
 router.get('/config',    MANAGE, ctrl.getConfig);
 router.put('/config',    MANAGE, ctrl.updateConfig);
+router.get('/funnel',                  FUNNEL, funnel.getFunnel);
+router.get('/funnel/:stage',           FUNNEL, funnel.getStageMembers);
+router.get('/funnel/:stage/export',    FUNNEL, funnel.exportStage);
+
 router.get('/students',  roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudents);
 router.get('/students/:studentId/answers', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentAnswers);
 router.get('/students/:studentId/interviews', roleGuard(['view_passport_members', 'manage_passport']), ctrl.listStudentInterviews);

@@ -151,6 +151,14 @@ const UserSchema: Schema = new Schema(
       product:     { type: String },
       activatedAt: { type: Date },
       expiresAt:   { type: Date },
+      // Drop-off tracking. Signing up and proving you own the number are different
+      // events, and until now only the first left a trace — so someone who never
+      // entered their OTP looked identical to someone who verified and then stalled.
+      // Absent on anyone who joined before this shipped; the funnel says so rather
+      // than guessing.
+      verifiedAt:  { type: Date },
+      /** Touched on every login. What "gone quiet" is measured from. */
+      lastSeenAt:  { type: Date },
       onboarded:   { type: Boolean, default: false },
       degree:      { type: String },
       yearOfStudy: { type: String },

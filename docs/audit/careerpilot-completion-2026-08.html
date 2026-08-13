@@ -132,19 +132,19 @@
   <p class="sub">A feature-by-feature reading of the CareerPilot module across both the student
     product and the admin console — measured against the running code and the live production
     database, not against the plan.</p>
-  <p class="meta">13 Aug 2026 (rev. 3) · commit a79b14e1 · 90 member endpoints · 7 public endpoints · 37 screens</p>
+  <p class="meta">13 Aug 2026 (rev. 4) · commit b00825c7 · 93 member endpoints · 7 public endpoints · 38 screens</p>
 
   <div class="heads">
     <div class="head">
       <div class="lab">Build complete</div>
-      <div class="num a">92%</div>
+      <div class="num a">93%</div>
       <div class="lab" style="color:var(--faint)">Is the code there?</div>
       <p>Weighted across 27 features. Almost everything you specified exists, is wired end to
         end, and answers on a real endpoint.</p>
     </div>
     <div class="head">
       <div class="lab">Launch ready</div>
-      <div class="num w">74%</div>
+      <div class="num w">78%</div>
       <div class="lab" style="color:var(--faint)">Can a paying customer use it today?</div>
       <p>Lower, and this is the number that matters. Built ≠ sellable: content is empty, the
         price is wrong, and no real payment has ever completed.</p>
@@ -297,7 +297,7 @@
 
   </div>
 
-  <h2>Admin console · 10 surfaces</h2>
+  <h2>Admin console · 11 surfaces</h2>
   <div class="rows">
 
     <div class="row">
@@ -306,6 +306,17 @@
       <p class="why"><b>Why:</b> the content engine behind Prepare Interviews. Bulk paste, AI
         draft-all, per-round pattern editor, question import and AI prediction, human eligibility
         verification, live readiness scoring. 18 endpoints — the deepest admin surface in the module.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Drop-off funnel</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">New</span></div>
+      <p class="why"><b>Why:</b> you could see that people signed up and some paid, but not
+        where the rest stopped. Every member lands in exactly one stage — the furthest point
+        they reached — ranked by how close they came to paying, with mobile, email, days
+        stuck and a logged CSV export. <b>Live reading:</b> of 43 members, <b>24 never
+        finished signing up</b> and <b>6 opened checkout without paying</b>. Carries its own
+        permission, <code>view_passport_funnel</code>, because it hands out contacts in bulk.</p>
     </div>
 
     <div class="row">

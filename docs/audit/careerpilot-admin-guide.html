@@ -119,7 +119,7 @@
 <p class="lede">Every CareerPilot admin surface: what it is for, what each control does, and
   the places where a wrong click has consequences. Written against the console as it runs
   today, not as it was designed.</p>
-<p class="stamp">13 Aug 2026 · 10 screens · 5 permissions · 90 endpoints behind them</p>
+<p class="stamp">13 Aug 2026 · 11 screens · 6 permissions · 93 endpoints behind them</p>
 
 <div class="toc">
   <h4>Contents</h4>
@@ -131,6 +131,7 @@
     <li><a href="#pathways">Pathways</a></li>
     <li><a href="#missions">Missions</a></li>
     <li><a href="#students">Members</a></li>
+    <li><a href="#funnel">Drop-off funnel</a></li>
     <li><a href="#companies">Companies (9 tabs)</a></li>
     <li><a href="#news">Tech news</a></li>
     <li><a href="#coins">Coins</a></li>
@@ -143,7 +144,7 @@
   <div class="num">00</div>
   <h2>Who can get into the console</h2>
   <span class="route">/roles</span>
-  <p class="purpose">CareerPilot has five permissions. They are assigned by role, and
+  <p class="purpose">CareerPilot has six permissions. They are assigned by role, and
     SUPER_ADMIN can mint a custom role with any combination of them — so access is granted
     per person, not per job title.</p>
 
@@ -152,11 +153,12 @@
     <tr><td class="m">manage_passport</td><td>Everything below — config, pricing, pathways, missions, assessment, companies, news, coins</td></tr>
     <tr><td class="m">manage_passport_categories</td><td>Add, rename, reweight, reorder or delete a <b>scoring category</b>. Separate from the above on purpose: a weight change rewrites how every member's score is computed, so it can be withheld from someone who may still write questions.</td></tr>
     <tr><td class="m">view_passport_members</td><td>Read-only member access. Enough for a support desk.</td></tr>
+    <tr><td class="m">view_passport_funnel</td><td>The drop-off funnel and its CSV export. Separate because it hands out member phone numbers and emails <b>in bulk</b> for outreach — a telecaller needs this and nothing else. Every export is logged with who took it.</td></tr>
     <tr><td class="m">convert_passport_member</td><td>Grant a ₹1,599 membership <b>without payment</b>. Hand out sparingly.</td></tr>
     <tr><td class="m">use_passport</td><td>The member-facing product. Every student has this.</td></tr>
   </table></div>
 
-  <p>Today SUPER_ADMIN and TENANT_ADMIN hold all five, STAFF holds view-only, INSTRUCTOR
+  <p>Today SUPER_ADMIN and TENANT_ADMIN hold all six, STAFF holds view-only, INSTRUCTOR
     holds none. To give one person more, create a role at <code>/roles</code>, tick the
     permissions, assign it. The permission list is served live from the code, so anything
     added later appears there by itself.</p>
@@ -350,9 +352,52 @@
   </div>
 </section>
 
+<!-- ─────────────────────────── FUNNEL ─────────────────────────── -->
+<section class="screen" id="funnel">
+  <div class="num">07</div>
+  <h2>Drop-off funnel</h2>
+  <span class="route">/admin/passport/funnel</span>
+  <p class="purpose">Where every member stopped, and who to contact about it. Built to be
+    worked from: open a stage, get a calling list.</p>
+
+  <h3>How it is ordered</h3>
+  <p>Stages are ranked by how close the person came to paying, <b>not</b> by how many are in
+    them. Someone who opened the payment sheet and walked away is a warmer call than someone
+    who never finished their OTP, even though there are far more of the latter. Within a
+    stage the <b>coldest lead is first</b> — a newest-first list means the same fresh names
+    get worked every morning and month-old leads never get called at all.</p>
+
+  <div class="scroll"><table>
+    <tr><th>Stage</th><th>What happened</th><th>What to say</th></tr>
+    <tr><td><b>Opened checkout, did not pay</b></td><td>Reached Razorpay and stopped. They had their card out.</td><td>Call the same day. Price, or the payment failed?</td></tr>
+    <tr><td><b>Got their score, never bought</b></td><td>Finished the free assessment and saw the result.</td><td>Lead with their score and what the paid roadmap fixes.</td></tr>
+    <tr><td><b>Verified, never started</b></td><td>Owns the account, has not taken the assessment.</td><td>It is free and takes 10 minutes.</td></tr>
+    <tr><td><b>Never finished signing up</b></td><td>Filled the form, never entered the OTP.</td><td>Check the number is real — often a typo, or WhatsApp never arrived.</td></tr>
+    <tr><td><b>Paid, then went quiet</b></td><td>Paying member, nothing for 14+ days. Churn forming.</td><td>Re-engage before renewal.</td></tr>
+    <tr><td><b>Membership expired</b></td><td>Paid once, the year ran out.</td><td>Renewal offer with last year&rsquo;s achievements.</td></tr>
+    <tr><td><b>Paid and active</b></td><td>Nothing to do. Present so the numbers add up.</td><td>Leave them alone.</td></tr>
+  </table></div>
+
+  <h3>Controls</h3>
+  <dl>
+    <div class="ctrl"><dt>Open a stage</dt><dd>Reveals the people in it with mobile, email, days stuck and career score.</dd></div>
+    <div class="ctrl"><dt>WhatsApp / Email</dt><dd>One tap per person. The WhatsApp link adds the country code for you.</dd></div>
+    <div class="ctrl"><dt>Export CSV</dt><dd>The same list as a calling sheet. <b>Logged with who exported it</b> — a file of member phone numbers should never leave anonymously.</dd></div>
+  </dl>
+
+  <div class="note warn">
+    <span class="h">Two honest limits</span>
+    Members who joined before this shipped have no verification stamp, so they are placed by
+    what they did rather than when they verified. And there is <b>no "started the assessment
+    but did not finish" bucket</b>: the assessment is only saved on submit, so a half-finished
+    one leaves no trace and the number would always be zero. Both are stated on the screen
+    rather than hidden behind a plausible figure.
+  </div>
+</section>
+
 <!-- ─────────────────────────── COMPANIES ─────────────────────────── -->
 <section class="screen" id="companies">
-  <div class="num">07</div>
+  <div class="num">08</div>
   <h2>Companies — the deepest screen</h2>
   <span class="route">/admin/passport/companies</span>
   <p class="purpose">The content engine behind Prepare Interviews. Students do not prepare
@@ -408,7 +453,7 @@
 
 <!-- ─────────────────────────── NEWS ─────────────────────────── -->
 <section class="screen" id="news">
-  <div class="num">08</div>
+  <div class="num">09</div>
   <h2>Tech news</h2>
   <span class="route">/admin/passport/news</span>
   <p class="purpose">A short daily feed. A cheap reason for a member to open the app on a day
@@ -432,7 +477,7 @@
 
 <!-- ─────────────────────────── COINS ─────────────────────────── -->
 <section class="screen" id="coins">
-  <div class="num">09</div>
+  <div class="num">10</div>
   <h2>Coins</h2>
   <span class="route">/admin/passport/coins</span>
   <p class="purpose">The motivation economy. Two sections — <b>Economy settings</b> and
@@ -485,7 +530,7 @@
 
 <!-- ─────────────────────────── STAGING ─────────────────────────── -->
 <section class="screen" id="staging">
-  <div class="num">10</div>
+  <div class="num">11</div>
   <h2>Staging board</h2>
   <span class="route">/admin/careerpilot/staging</span>
   <p class="purpose">Moves a member between career stages. Stage drives which missions and

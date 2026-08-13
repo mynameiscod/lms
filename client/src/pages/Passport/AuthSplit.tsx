@@ -25,10 +25,10 @@ import './authSplit.css';
  * ───────────────────────────────────────────────────────────────────────────── */
 
 /** Floating cards over the illustration. Empty the array to hide them. */
-const FLOAT_STATS: { ic: string; value: string; label: string }[] = [
-  { ic: 'bi-people-fill', value: '100K+', label: 'Students' },
-  { ic: 'bi-briefcase-fill', value: '500+', label: 'Hiring Partners' },
-  { ic: 'bi-award-fill', value: '95%', label: 'Placement Rate' },
+const FLOAT_STATS: { ic: string; tone: string; value: string; label: string }[] = [
+  { ic: 'bi-people-fill', tone: 'blue', value: '100K+', label: 'Students' },
+  { ic: 'bi-briefcase-fill', tone: 'violet', value: '500+', label: 'Hiring Partners' },
+  { ic: 'bi-award-fill', tone: 'amber', value: '95%', label: 'Placement Rate' },
 ];
 
 /** The social-proof card under the feature list. Set to null to hide it. */
@@ -47,19 +47,19 @@ const PLACED_AT: { name: string; glyph?: string }[] = [
 ];
 
 /** What the product does. Copy, not claims — safe to edit freely. */
-const FEATURES: { ic: string; title: string; desc: string }[] = [
-  { ic: 'bi-graph-up-arrow', title: 'Industry Relevant Courses', desc: 'Curated by experts to make you job ready' },
-  { ic: 'bi-code-slash', title: 'Practice & Improve', desc: 'DSA, mock tests, projects & real-world challenges' },
-  { ic: 'bi-trophy-fill', title: 'Placement Support', desc: 'Resume, interviews & referrals to top companies' },
+const FEATURES: { ic: string; tone: string; title: string; desc: string }[] = [
+  { ic: 'bi-graph-up-arrow', tone: 'blue', title: 'Industry Relevant Courses', desc: 'Curated by experts to make you job ready' },
+  { ic: 'bi-code-slash', tone: 'violet', title: 'Practice & Improve', desc: 'DSA, mock tests, projects & real-world challenges' },
+  { ic: 'bi-trophy-fill', tone: 'amber', title: 'Placement Support', desc: 'Resume, interviews & referrals to top companies' },
 ];
 
 const AV_COLORS = ['#2563EB', '#7C3AED', '#059669', '#DB2777'];
 
 /** Trust strip under the form card. */
-const BADGES: { ic: string; title: string; sub: string }[] = [
-  { ic: 'bi-shield-check', title: 'Secure & Safe', sub: 'Your data is protected' },
-  { ic: 'bi-mortarboard-fill', title: 'Trusted by 100K+', sub: 'Students across India' },
-  { ic: 'bi-headset', title: '24/7 Support', sub: "We're here to help" },
+const BADGES: { ic: string; tone: string; title: string; sub: string }[] = [
+  { ic: 'bi-shield-check', tone: 'green', title: 'Secure & Safe', sub: 'Your data is protected' },
+  { ic: 'bi-mortarboard-fill', tone: 'blue', title: 'Trusted by 100K+', sub: 'Students across India' },
+  { ic: 'bi-headset', tone: 'teal', title: '24/7 Support', sub: "We're here to help" },
 ];
 
 /**
@@ -94,7 +94,7 @@ const AuthSplit: React.FC<{ children: React.ReactNode }> = ({ children }) => (
           <div className="as-feats">
             {FEATURES.map(f => (
               <div className="as-feat" key={f.title}>
-                <div className="ic" aria-hidden="true"><i className={`bi ${f.ic}`} /></div>
+                <div className={`ic t-${f.tone}`} aria-hidden="true"><i className={`bi ${f.ic}`} /></div>
                 <div>
                   <b>{f.title}</b>
                   <span>{f.desc}</span>
@@ -139,7 +139,7 @@ const AuthSplit: React.FC<{ children: React.ReactNode }> = ({ children }) => (
           <div className="as-floats">
             {FLOAT_STATS.map(s => (
               <div className="as-float" key={s.label}>
-                <span className="fi" aria-hidden="true"><i className={`bi ${s.ic}`} /></span>
+                <span className={`fi t-${s.tone}`} aria-hidden="true"><i className={`bi ${s.ic}`} /></span>
                 <span><b>{s.value}</b><span>{s.label}</span></span>
               </div>
             ))}
@@ -173,7 +173,7 @@ const AuthSplit: React.FC<{ children: React.ReactNode }> = ({ children }) => (
           <div className="as-badges">
             {BADGES.map(b => (
               <div className="as-badge" key={b.title}>
-                <span className="bdg" aria-hidden="true"><i className={`bi ${b.ic}`} /></span>
+                <span className={`bdg t-${b.tone}`} aria-hidden="true"><i className={`bi ${b.ic}`} /></span>
                 <span><b>{b.title}</b><span>{b.sub}</span></span>
               </div>
             ))}

@@ -297,3 +297,21 @@
   .as-badges{ gap:16px 22px }
   .as-art{ height:270px }
 }
+
+/* ── Icon tiles ─────────────────────────────────────────────────────────────
+   Each icon gets a tint that suits what it means rather than every tile being
+   the same grey: the row then reads as three distinct things instead of one
+   undifferentiated list. Foreground and background move together so contrast
+   holds at every size. */
+.as-feat .ic, .as-float .fi, .as-badge .bdg { border: none; }
+.as-feat .ic i, .as-float .fi i, .as-badge .bdg i { font-size: .95em; line-height: 1; }
+
+.as-page .t-blue { background: linear-gradient(135deg,#E7EFFF,#DCE8FF); color: #1D4ED8; }
+.as-page .t-violet { background: linear-gradient(135deg,#F1EAFF,#E8DEFF); color: #6D28D9; }
+.as-page .t-teal { background: linear-gradient(135deg,#E0FAF4,#CFF5EC); color: #0E9384; }
+.as-page .t-amber { background: linear-gradient(135deg,#FFF3DF,#FFEBCB); color: #B45309; }
+.as-page .t-green { background: linear-gradient(135deg,#E6F9ED,#D6F5E1); color: #15803D; }
+.as-page .t-rose { background: linear-gradient(135deg,#FFE9EE,#FFDCE4); color: #BE123C; }
+
+/* The feature tiles sit on white, so they keep a soft lift; the small ones do not. */
+.as-feat .ic { box-shadow: 0 3px 12px rgba(15,30,61,.10); }

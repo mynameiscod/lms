@@ -32,11 +32,15 @@ export interface OtpVerifyProps {
   devCode?: string;
 }
 
-/** Bootstrap Icons, loaded globally in index.html. `ic` is the icon's class. */
-const FEATURES: { ic: string; title: string; desc: string }[] = [
-  { ic: 'bi-mortarboard-fill', title: 'Personalized Learning', desc: 'AI-powered path for your success' },
-  { ic: 'bi-graph-up-arrow', title: 'Track & Improve', desc: 'Real-time progress & analytics' },
-  { ic: 'bi-trophy-fill', title: 'Achieve Your Goals', desc: 'Prepare, practice & get placed' },
+/**
+ * Bootstrap Icons, loaded globally in index.html. `ic` is the icon's class and `tone`
+ * picks its tile colour — each icon gets a tint that suits its meaning rather than every
+ * tile being the same grey, so the row reads as three things instead of one list.
+ */
+const FEATURES: { ic: string; tone: string; title: string; desc: string }[] = [
+  { ic: 'bi-mortarboard-fill', tone: 'violet', title: 'Personalized Learning', desc: 'AI-powered path for your success' },
+  { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track & Improve', desc: 'Real-time progress & analytics' },
+  { ic: 'bi-trophy-fill', tone: 'amber', title: 'Achieve Your Goals', desc: 'Prepare, practice & get placed' },
 ];
 
 /**
@@ -45,11 +49,11 @@ const FEATURES: { ic: string; title: string; desc: string }[] = [
  * NOTE: the signup screen says "100K+ students". A member sees both within about a minute
  * of each other, so if one number changes this one has to change with it.
  */
-const TRUST: { ic: string; title: string; desc: string }[] = [
-  { ic: 'bi-shield-lock-fill', title: '100% Secure', desc: 'Your data is safe with us' },
-  { ic: 'bi-people-fill', title: '10K+ Students', desc: 'Trust CareerPilot' },
-  { ic: 'bi-person-video3', title: 'Industry Mentors', desc: 'Learn from the best' },
-  { ic: 'bi-lightning-charge-fill', title: '24/7 Support', desc: "We're here to help" },
+const TRUST: { ic: string; tone: string; title: string; desc: string }[] = [
+  { ic: 'bi-shield-lock-fill', tone: 'green', title: '100% Secure', desc: 'Your data is safe with us' },
+  { ic: 'bi-people-fill', tone: 'blue', title: '10K+ Students', desc: 'Trust CareerPilot' },
+  { ic: 'bi-person-video3', tone: 'violet', title: 'Industry Mentors', desc: 'Learn from the best' },
+  { ic: 'bi-lightning-charge-fill', tone: 'amber', title: '24/7 Support', desc: "We're here to help" },
 ];
 
 const OtpVerify: React.FC<OtpVerifyProps> = ({
@@ -111,7 +115,7 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
           <ul className="otpv-feats">
             {FEATURES.map(f => (
               <li key={f.title}>
-                <span className="ic" aria-hidden="true"><i className={`bi ${f.ic}`} /></span>
+                <span className={`ic t-${f.tone}`} aria-hidden="true"><i className={`bi ${f.ic}`} /></span>
                 <div><b>{f.title}</b><small>{f.desc}</small></div>
               </li>
             ))}
@@ -207,7 +211,7 @@ const OtpVerify: React.FC<OtpVerifyProps> = ({
       <footer className="otpv-trust">
         {TRUST.map(t => (
           <div key={t.title}>
-            <span className="ic" aria-hidden="true"><i className={`bi ${t.ic}`} /></span>
+            <span className={`ic t-${t.tone}`} aria-hidden="true"><i className={`bi ${t.ic}`} /></span>
             <div><b>{t.title}</b><small>{t.desc}</small></div>
           </div>
         ))}

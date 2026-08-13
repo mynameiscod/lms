@@ -231,3 +231,17 @@
 @media (prefers-reduced-motion: reduce) {
   .otpv * { transition: none !important; }
 }
+
+/* ── Icon tiles ─────────────────────────────────────────────────────────────
+   These sit on a dark gradient, so the tints are translucent rather than the
+   solid pastels used on the light screens: a solid tile would punch a bright
+   hole in the background, while a translucent one lets the gradient through
+   and still separates the icons from each other. */
+.otpv-feats .ic, .otpv-trust .ic { border: 1px solid rgba(255,255,255,.14); }
+.otpv-feats .ic i, .otpv-trust .ic i { line-height: 1; }
+
+.otpv .t-blue   { background: rgba(59,130,246,.26); color: #BFD8FF; border-color: rgba(147,197,253,.34); }
+.otpv .t-violet { background: rgba(139,92,246,.26); color: #DDD0FF; border-color: rgba(196,181,253,.34); }
+.otpv .t-teal   { background: rgba(20,184,166,.26); color: #A7F3E4; border-color: rgba(94,234,212,.34); }
+.otpv .t-amber  { background: rgba(245,158,11,.24);  color: #FCE1AC; border-color: rgba(252,211,77,.32); }
+.otpv .t-green  { background: rgba(34,197,94,.24);   color: #B6F0CB; border-color: rgba(134,239,172,.32); }

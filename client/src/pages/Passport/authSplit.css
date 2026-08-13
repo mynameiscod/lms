@@ -246,22 +246,30 @@
    positioned against the padding box. Without that the artwork drifts to the far
    right on a large monitor and leaves a hole in the middle of the panel. */
 @media (min-width:1500px){
-  .as-left{ --lpad:76px; padding-top:56px }
-  .as-hero{ max-width:490px }
+  .as-left{ --lpad:64px; padding-top:52px }
+  .as-hero{ max-width:520px }
   .as-hero h1{ font-size:43px }
-  .as-hero .lead{ font-size:15.5px; max-width:420px }
-  .as-feat span{ max-width:300px }
-  .as-right{ padding:56px 72px }
-  .as-form{ max-width:420px }
+  .as-hero .lead{ font-size:15.5px; max-width:440px }
+  .as-feat span{ max-width:320px }
+  .as-right{ padding:52px 56px }
+  .as-form{ max-width:460px }
   .as-h2{ font-size:29px }
 }
 @media (min-width:1900px){
-  .as-left{ --lpad:120px; padding-top:64px }
-  .as-hero{ max-width:560px }
-  .as-hero h1{ font-size:48px }
-  .as-floats{ top:110px }
-  .as-right{ padding:64px 88px }
-  .as-form{ max-width:440px }
+  .as-left{ --lpad:88px; padding-top:60px }
+  .as-hero{ max-width:600px }
+  .as-hero h1{ font-size:49px }
+  .as-hero .lead{ font-size:16.5px; max-width:500px }
+  .as-feat b{ font-size:15px }
+  .as-feat span{ font-size:13px; max-width:360px }
+  .as-floats{ top:104px }
+  .as-right{ padding:60px 64px }
+  /* The form grows with the screen rather than staying a narrow ribbon in the
+     middle of a very wide white column — that empty space either side of it is
+     what reads as "the page isn't using the width". */
+  .as-form{ max-width:540px }
+  .as-in input, .as-in select{ padding:15px 16px 15px 44px; font-size:15px }
+  .as-go{ padding:17px 0; font-size:16px }
 }
 
 @media (max-width:1040px){

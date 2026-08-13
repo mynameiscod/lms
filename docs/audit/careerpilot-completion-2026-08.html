@@ -132,7 +132,7 @@
   <p class="sub">A feature-by-feature reading of the CareerPilot module across both the student
     product and the admin console — measured against the running code and the live production
     database, not against the plan.</p>
-  <p class="meta">13 Aug 2026 (rev. 4) · commit b00825c7 · 93 member endpoints · 7 public endpoints · 38 screens</p>
+  <p class="meta">13 Aug 2026 (rev. 5) · commit 3edc99e0 · 93 member endpoints · 7 public endpoints · 38 screens</p>
 
   <div class="heads">
     <div class="head">
@@ -158,7 +158,7 @@
     that remain are content, one untested payment, and two small pieces of missing code.
   </div>
 
-  <h2>Student product · 17 features</h2>
+  <h2>Student product · 18 features</h2>
   <div class="rows">
 
     <div class="row">
@@ -280,6 +280,18 @@
       <p class="why"><b>Why:</b> proof of progress worth screenshotting. <b>Gap:</b> the screen
         renders from the dashboard payload only — there is no badge model, no award rules, and
         no admin control over what earns what.</p>
+    </div>
+
+    <div class="row">
+      <span class="nm">Member profile (photo, education, links)</span>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span><span class="pct ok">100</span><span class="chip ok">New</span></div>
+      <p class="why"><b>Why:</b> the profile a member fills in and a recruiter eventually sees.
+        Reuses the <b>LMS StudentProfile</b> rather than a CareerPilot copy — same record,
+        keyed by user, already carrying 71 photos across the tenant. Photo, personal details,
+        education, links, completion bar, plus a read-only career panel.
+        <b>Saving writes through</b> to the six <code>passport.*</code> fields the roadmap
+        engine reads and recomputes the stage, so correcting a degree re-fits the plan
+        instead of leaving the member on a pathway matched to the old one.</p>
     </div>
 
     <div class="row">

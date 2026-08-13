@@ -132,19 +132,19 @@
   <p class="sub">A feature-by-feature reading of the CareerPilot module across both the student
     product and the admin console — measured against the running code and the live production
     database, not against the plan.</p>
-  <p class="meta">12 Aug 2026 (rev. 2) · slot blue (5001) · commit 24acae87 · 90 member endpoints · 7 public endpoints · 37 screens</p>
+  <p class="meta">13 Aug 2026 (rev. 3) · commit a79b14e1 · 90 member endpoints · 7 public endpoints · 37 screens</p>
 
   <div class="heads">
     <div class="head">
       <div class="lab">Build complete</div>
-      <div class="num a">90%</div>
+      <div class="num a">92%</div>
       <div class="lab" style="color:var(--faint)">Is the code there?</div>
       <p>Weighted across 27 features. Almost everything you specified exists, is wired end to
         end, and answers on a real endpoint.</p>
     </div>
     <div class="head">
       <div class="lab">Launch ready</div>
-      <div class="num w">72%</div>
+      <div class="num w">74%</div>
       <div class="lab" style="color:var(--faint)">Can a paying customer use it today?</div>
       <p>Lower, and this is the number that matters. Built ≠ sellable: content is empty, the
         price is wrong, and no real payment has ever completed.</p>
@@ -317,9 +317,13 @@
 
     <div class="row">
       <span class="nm">Assessment builder &amp; paper design</span>
-      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">95</span><span class="chip ok">Shipped</span></div>
+      <div class="right"><span class="gauge"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></span><span class="pct ok">100</span><span class="chip ok">Shipped</span></div>
       <p class="why"><b>Why:</b> the assessment is the funnel, so it must be editable without a
-        deploy. Questions, stage segments, scoring categories, paper layout.</p>
+        deploy. Questions, stage segments, paper layout, and <b>full CRUD on the scoring
+        categories</b> — add, rename, reweight, reorder and delete, with the delete blocked
+        while questions, missions or pathways still point at the category. Category edits
+        carry their own permission, <code>manage_passport_categories</code>, because a weight
+        change rewrites how every member's score is computed.</p>
     </div>
 
     <div class="row">

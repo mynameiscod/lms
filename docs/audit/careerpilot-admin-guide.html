@@ -119,7 +119,7 @@
 <p class="lede">Every CareerPilot admin surface: what it is for, what each control does, and
   the places where a wrong click has consequences. Written against the console as it runs
   today, not as it was designed.</p>
-<p class="stamp">13 Aug 2026 · 10 screens · 4 permissions · 90 endpoints behind them</p>
+<p class="stamp">13 Aug 2026 · 10 screens · 5 permissions · 90 endpoints behind them</p>
 
 <div class="toc">
   <h4>Contents</h4>
@@ -143,19 +143,20 @@
   <div class="num">00</div>
   <h2>Who can get into the console</h2>
   <span class="route">/roles</span>
-  <p class="purpose">CareerPilot has four permissions. They are assigned by role, and
+  <p class="purpose">CareerPilot has five permissions. They are assigned by role, and
     SUPER_ADMIN can mint a custom role with any combination of them — so access is granted
     per person, not per job title.</p>
 
   <div class="scroll"><table>
     <tr><th>Permission</th><th>What it unlocks</th></tr>
     <tr><td class="m">manage_passport</td><td>Everything below — config, pricing, pathways, missions, assessment, companies, news, coins</td></tr>
+    <tr><td class="m">manage_passport_categories</td><td>Add, rename, reweight, reorder or delete a <b>scoring category</b>. Separate from the above on purpose: a weight change rewrites how every member's score is computed, so it can be withheld from someone who may still write questions.</td></tr>
     <tr><td class="m">view_passport_members</td><td>Read-only member access. Enough for a support desk.</td></tr>
     <tr><td class="m">convert_passport_member</td><td>Grant a ₹1,599 membership <b>without payment</b>. Hand out sparingly.</td></tr>
     <tr><td class="m">use_passport</td><td>The member-facing product. Every student has this.</td></tr>
   </table></div>
 
-  <p>Today SUPER_ADMIN and TENANT_ADMIN hold all four, STAFF holds view-only, INSTRUCTOR
+  <p>Today SUPER_ADMIN and TENANT_ADMIN hold all five, STAFF holds view-only, INSTRUCTOR
     holds none. To give one person more, create a role at <code>/roles</code>, tick the
     permissions, assign it. The permission list is served live from the code, so anything
     added later appears there by itself.</p>
@@ -225,9 +226,35 @@
   <dl>
     <div class="ctrl"><dt>Questions</dt><dd>Add, edit, reorder, remove. Options with one marked correct.</dd></div>
     <div class="ctrl"><dt>Stage segments</dt><dd>Questions are grouped by the member's stage, so a first-year and a job-switcher are not asked the same things.</dd></div>
-    <div class="ctrl"><dt>Scoring categories</dt><dd>Six today: Career Clarity, Aptitude, Logical Reasoning, Technical Foundation, Communication, Employability. Each question feeds one, and the member sees a per-category breakdown.</dd></div>
+    <div class="ctrl"><dt>Scoring categories</dt><dd>Full CRUD, at the top of the screen. Six today: Career Clarity, Aptitude, Logical Reasoning, Technical Foundation, Communication, Employability. Each question feeds one, and the member sees a per-category breakdown. See below.</dd></div>
     <div class="ctrl"><dt>Reset</dt><dd>Restores the shipped default bank. Destroys your edits.</dd></div>
   </dl>
+
+  <h3>The category manager</h3>
+  <p>Sits at the top of the screen. Add, rename, reweight, reorder and delete the categories
+    every member is measured against.</p>
+  <dl>
+    <div class="ctrl"><dt>Label</dt><dd>What the member reads. Change it whenever you like — it is not an identifier.</dd></div>
+    <div class="ctrl"><dt>Key</dt><dd><b>Permanent once saved</b>, and shown read-only. It is stored on every question, every mission pool and every pathway's focus list, so renaming it would not rename those — it would orphan all three. For a new category it is generated from the label.</dd></div>
+    <div class="ctrl"><dt>Weight</dt><dd>0.1 to 3. How much this category moves the career score. Technical sits at 1.5 and Career Clarity at 1.0 because technical ability predicts more. <b>Changing a weight re-computes every future score.</b></dd></div>
+    <div class="ctrl"><dt>Order</dt><dd>The order the member reads their breakdown in. Use the ↑ ↓ buttons.</dd></div>
+    <div class="ctrl"><dt>Remove</dt><dd>Blocked while anything still points at the category. Each row shows its counts — questions, missions, and pathways focusing on it — so you can see what to move first.</dd></div>
+  </dl>
+
+  <div class="note warn">
+    <span class="h">A new category needs three things, not one</span>
+    Creating the row is step one. It also needs <b>questions tagged to it</b>, or it is never
+    scored, and <b>a mission pool</b> (Missions screen), or the day generator silently falls
+    back to Career Clarity. The student product needs no change — an unknown category renders
+    with its prettified label and a plain bullet.
+  </div>
+
+  <div class="note stop">
+    <span class="h">This carries its own permission</span>
+    <code>manage_passport_categories</code>, separate from <code>manage_passport</code>.
+    Someone can be trusted to write questions without being able to rewrite how every
+    member's score is computed.
+  </div>
 
   <div class="note ok">
     <span class="h">Already handled for you</span>

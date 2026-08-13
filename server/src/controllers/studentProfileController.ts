@@ -1,6 +1,8 @@
 import { Response } from 'express';
 import mongoose from 'mongoose';
 import StudentProfile from '../models/StudentProfile';
+import { syncPassportFromProfile } from '../services/passportProfileSyncService';
+import { normalizePhone, isValidMobile } from '../utils/phone';
 import User from '../models/User';
 import QuizAttempt from '../models/QuizAttempt';
 import Quiz from '../models/Quiz';
@@ -233,17 +235,37 @@ export const saveProfile = async (req: AuthRequest, res: Response) => {
       await profile.save();
     }
 
-    // Also update the User model with basic info
-    await User.findByIdAndUpdate(userId, {
-      firstName: profileData.personalInfo.firstName,
-      lastName: profileData.personalInfo.surname,
-      phone: profileData.personalInfo.mobileNumber,
-    });
+    // Mirror the basics onto the User, but only what was actually supplied.
+    //
+    // This used to write every field unconditionally, so saving a profile with the phone
+    // box left blank wiped the user's phone — and with it their OTP login and the
+    // duplicate-signup guard, which both match on it. The number is normalised for the
+    // same reason: stored as "+91 98765 43210" it stops matching a lookup for
+    // "9876543210" and the person can end up with a second account.
+    const basics: Record<string, any> = {};
+    const fn = String(profileData.personalInfo?.firstName || '').trim();
+    const sn = String(profileData.personalInfo?.surname || '').trim();
+    const mob = normalizePhone(profileData.personalInfo?.mobileNumber);
+    if (fn) basics.firstName = fn;
+    if (sn) basics.lastName = sn;
+    if (mob && isValidMobile(mob)) basics.phone = mob;
+    if (Object.keys(basics).length) await User.findByIdAndUpdate(userId, basics);
+
+    // Keep a CareerPilot member's roadmap inputs in step with what they just edited.
+    // Fire-and-forget: the profile is saved either way, and a failed sync must never
+    // present as "your profile did not save".
+    let passportSync: { synced: boolean; changed: string[] } = { synced: false, changed: [] };
+    try {
+      passportSync = await syncPassportFromProfile(String(userId), profile as any);
+    } catch (e: any) {
+      console.error('[profile] passport sync failed:', e?.message || e);
+    }
 
     res.json({
       success: true,
       message: 'Profile saved successfully',
       data: profile,
+      passportSync,
     });
   } catch (error: any) {
     console.error('Save profile error:', error);

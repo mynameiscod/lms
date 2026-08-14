@@ -176,6 +176,44 @@
   margin: 0;
 }
 
+/* Phone: the banner stacks instead of being crushed.
+   It is three columns of which two refuse to shrink — a 110px ring and a 180px
+   min-width status block, plus 64px of gaps and 64px of padding. That is ~354px of
+   fixed width inside a ~230px content box on a 360px phone, so the middle column got
+   squeezed to about one word per line ("Profile / Completion / Score") and the badge
+   was pushed off the right edge of the screen entirely. */
+@media (max-width: 768px) {
+  .score-banner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 18px;
+    padding: 22px 18px;
+  }
+
+  .score-ring-wrap { align-self: center; }
+
+  .score-details { text-align: center; }
+  .score-title { font-size: 1.05rem; }
+
+  /* auto-fit rather than a fixed 2-up: the chips sit one per row on a 320px screen and
+     two per row from ~360px, without either one ever being clipped. */
+  .score-checklist {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(138px, 1fr));
+    gap: 8px;
+  }
+  .score-check { text-align: center; }
+
+  .score-recruiter-status {
+    min-width: 0;
+    width: 100%;
+    padding-top: 4px;
+    border-top: 1px solid #eef2f7;
+  }
+  /* nowrap is what put this off-screen; it has the full width to itself here. */
+  .recruiter-badge { white-space: normal; text-align: center; }
+}
+
 /* Step Indicators */
 .step-indicators {
   display: flex;

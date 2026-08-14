@@ -49,6 +49,8 @@ const AdminPathwayRules: React.FC = () => {
 
   /** Only tracks route members; stage variants inherit whatever their track matched. */
   const tracks = pathways.filter(p => !p.stage && !p.key.includes(':'));
+  const rulesOn = tracks.some(p => p.match?.enabled);
+  const hasFallback = tracks.some(p => p.match?.fallback && p.match?.enabled);
 
   const runPreview = useCallback(async (list: PassportPathway[]) => {
     try { setPreview(await passportApi.previewRules(list)); }
@@ -156,7 +158,34 @@ const AdminPathwayRules: React.FC = () => {
 
       {err && <div className="pm-msg err">{err}</div>}
       {msg && <div className="pm-msg ok">{msg}</div>}
-      {preview?.errors.map((e, i) => <div className="pm-msg err" key={i}><i className="bi bi-exclamation-octagon" /> {e}</div>)}
+
+      {/* The missing fallback is the one error every admin hits, because turning on a
+          first rule causes it. Telling them to "mark one pathway as the fallback" while
+          the control to do it sits inside a collapsed card two screens down is an error
+          that names its fix and then hides it — so the fix lives in the message. */}
+      {rulesOn && !hasFallback && (
+        <div className="rul-fix">
+          <div className="t">
+            <i className="bi bi-exclamation-octagon" />
+            <div>
+              <b>No fallback pathway yet.</b>
+              <span>
+                You have switched a rule on, so members now get sorted. Whoever matches no
+                rule needs somewhere to land — pick that pathway here.
+              </span>
+            </div>
+          </div>
+          <div className="picks">
+            {tracks.map(p => (
+              <button key={p.key} onClick={() => makeFallback(p.key)}>{p.label}</button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {preview?.errors
+        .filter(e => !/fallback pathway/i.test(e) || hasFallback)
+        .map((e, i) => <div className="pm-msg err" key={i}><i className="bi bi-exclamation-octagon" /> {e}</div>)}
       {preview?.warnings.map((w, i) => <div className="rul-warn" key={i}><i className="bi bi-exclamation-triangle" /> {w}</div>)}
 
       {/* ── What these rules would do to the people already here ── */}

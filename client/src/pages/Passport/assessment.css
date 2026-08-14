@@ -515,5 +515,10 @@
 .rs-hi h1 .pop { font-size: .92em; line-height: 1; }
 .rs-hi .tx { min-width: 0; }
 .rs-hi p { font-size: clamp(14.5px, 1.15vw, 17px); color: #475569; margin: 6px 0 0; }
-.rs-hi-art { width: clamp(220px, 26vw, 380px); }
+/* The supplied render is square, so it is sized by HEIGHT and allowed to keep its
+   aspect ratio — sized by width it would tower over a two-line greeting. */
+.rs-hi-art { width: auto; height: clamp(150px, 17vw, 240px); max-width: 46%;
+  object-fit: contain; justify-self: end; }
+/* The drawn fallback is landscape, so it takes width instead. */
+svg.rs-hi-art { width: clamp(220px, 26vw, 380px); height: auto; max-width: none; }
 @media (max-width: 1100px) { .rs-hi-art { width: clamp(200px, 24vw, 300px); } }

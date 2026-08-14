@@ -3,7 +3,7 @@
 .mc-shell * { box-sizing: border-box; }
 
 /* Top bar */
-.mc-topbar { width: min(1560px, 100%); margin: 0 auto; padding: 20px clamp(16px, 3vw, 40px) 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.mc-topbar { width: 100%; padding: 20px clamp(16px, 2vw, 40px) 8px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .mc-brand { display: flex; align-items: center; gap: 11px; }
 .mc-brand .mark { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; font-size: 18px; box-shadow: 0 6px 16px rgba(124,108,240,.3); }
 .mc-brand .bt b { font-size: 18px; font-weight: 900; color: #0f172a; }
@@ -24,7 +24,7 @@
 .mc-menu button:hover { background: #f4f6fb; }
 
 /* Hero */
-.mc-hero { width: min(1560px, 100%); margin: 0 auto; padding: 20px clamp(16px, 3vw, 40px) 8px; display: grid; grid-template-columns: 1.02fr 1.15fr; gap: 40px; align-items: center; }
+.mc-hero { width: 100%; padding: 20px clamp(16px, 2vw, 40px) 8px; display: grid; grid-template-columns: 1.02fr 1.15fr; gap: 40px; align-items: center; }
 .mc-chip { display: inline-flex; align-items: center; gap: 7px; background: #efeaff; color: #6d4bd8; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 800; }
 .mc-h1 { font-size: 44px; font-weight: 900; line-height: 1.08; color: #0f172a; margin: 16px 0 0; letter-spacing: -.5px; }
 .mc-h1 .b { color: #2f6bff; display: block; }
@@ -61,7 +61,7 @@
 .mc-cat .sc { font-size: 12px; font-weight: 800; color: #6650d8; }
 
 /* Why section */
-.mc-why { width: min(1560px, 100%); margin: 40px auto 0; padding: 0 clamp(16px, 3vw, 40px); }
+.mc-why { width: 100%; margin: 40px 0 0; padding: 0 clamp(16px, 2vw, 40px); }
 .mc-why h2 { text-align: center; font-size: 25px; font-weight: 900; color: #0f172a; margin: 0 0 26px; }
 .mc-why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
 .mc-why-card { background: #fff; border: 1px solid #eef1f6; border-radius: 16px; padding: 20px 18px; box-shadow: 0 6px 20px rgba(15,23,42,.05); }
@@ -70,7 +70,7 @@
 .mc-why-card span { font-size: 13px; color: #64748b; line-height: 1.5; }
 
 /* Colleges strip */
-.mc-colleges { width: min(1560px, 100%); margin: 34px auto 0; padding: 22px clamp(16px, 3vw, 40px) 0; border-top: 1px solid #eceff5; display: flex; align-items: center; gap: 34px; flex-wrap: wrap; justify-content: center; }
+.mc-colleges { width: 100%; margin: 34px 0 0; padding: 22px clamp(16px, 2vw, 40px) 0; border-top: 1px solid #eceff5; display: flex; align-items: center; gap: 34px; flex-wrap: wrap; justify-content: center; }
 .mc-colleges .cl-label { font-size: 13px; font-weight: 700; color: #94a3b8; }
 .mc-college { display: flex; align-items: center; gap: 9px; }
 .mc-college .badge { width: 30px; height: 30px; border-radius: 50%; background: #f1f5f9; display: grid; place-items: center; font-size: 14px; color: #6650d8; }
@@ -78,7 +78,7 @@
 .mc-college .nm span { font-size: 10.5px; color: #94a3b8; }
 
 /* ── Scored (not yet member): stats + unlock hero ── */
-.mc-scored { width: min(1400px, 100%); margin: 0 auto; padding: 18px clamp(16px, 3vw, 40px) 0; }
+.mc-scored { width: 100%; padding: 18px clamp(16px, 2vw, 40px) 0; }
 .mc-hd { text-align: center; margin-bottom: 22px; }
 .mc-hd h1 { font-size: 30px; font-weight: 900; color: #0f172a; margin: 0; display: flex; align-items: center; justify-content: center; gap: 10px; }
 .mc-hd h1 .b { color: #6650d8; }
@@ -180,3 +180,14 @@
 .mc-quick .t i { color: #1d4ed8; font-size: 15px; }
 .mc-quick .s { font-size: 12.5px; color: #94a3b8; margin-top: 3px; }
 .mc-stat .ic, .mc-feat2 .ic { display: grid; place-items: center; }
+
+/* Same reasoning as the assessment page: full width, but prose keeps a measure
+   and the type grows so a large monitor does not show a small page. */
+.mc-lead, .mc-why-card span, .mc-check span { max-width: 62ch; }
+@media (min-width: 1700px) {
+  .mc-h1 { font-size: 52px; }
+  .mc-lead { font-size: 17px; }
+  .mc-why h2 { font-size: 26px; }
+  .mc-why-card { padding: 24px 22px; }
+  .mc-score-card { padding: 26px; }
+}

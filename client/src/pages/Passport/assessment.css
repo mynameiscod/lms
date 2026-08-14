@@ -4,7 +4,7 @@
 
 /* Shared topbar */
 .pf-top { background: #fff; border-bottom: 1px solid #eef1f7; position: sticky; top: 0; z-index: 50; }
-.pf-top-in { width: min(1560px, 100%); margin: 0 auto; padding: 14px clamp(14px, 2.5vw, 34px); display: flex; align-items: center; gap: 18px; }
+.pf-top-in { width: 100%; padding: 14px clamp(14px, 2vw, 40px); display: flex; align-items: center; gap: 18px; }
 .pf-brand { display: flex; align-items: center; gap: 11px; }
 .pf-brand .mark { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; font-size: 18px; box-shadow: 0 6px 16px rgba(124,108,240,.3); }
 .pf-brand .bt b { font-size: 18px; font-weight: 900; color: #0f172a; }
@@ -32,7 +32,7 @@
 .pf-spacer { flex: 1; }
 
 /* ── Taking: two-column ── */
-.cpa-wrap { width: min(1560px, 100%); margin: 0 auto; padding: clamp(16px, 2.5vw, 30px); display: grid; grid-template-columns: minmax(290px, 0.95fr) 1.85fr; gap: clamp(16px, 2vw, 30px); align-items: start; }
+.cpa-wrap { width: 100%; padding: clamp(16px, 2vw, 40px); display: grid; grid-template-columns: minmax(290px, 0.95fr) 1.85fr; gap: clamp(16px, 2vw, 30px); align-items: start; }
 .cpa-side { background: #fff; border: 1px solid #eef1f7; border-radius: 18px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(15,23,42,.05); position: sticky; top: 90px; }
 .cpa-side h2 { font-size: 27px; font-weight: 900; color: #0f172a; line-height: 1.15; margin: 0; }
 .cpa-side h2 .b { color: #6650d8; }
@@ -87,7 +87,7 @@
 /* Members see this inside the rail, so it fills the content column rather than
    floating in a 940px strip with white space either side. Free candidates get the
    standalone page, where it centres against a comfortable reading width. */
-.rs-wrap { width: min(1560px, 100%); margin: 0 auto; padding: clamp(16px, 2.5vw, 30px); display: grid; gap: 16px; }
+.rs-wrap { width: 100%; padding: clamp(16px, 2vw, 40px); display: grid; gap: 16px; }
 .rs-member { max-width: none; padding: 0; }
 .rs-cols { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 26%, 400px); gap: 16px; align-items: start; }
 @media (max-width: 1180px) { .rs-cols { grid-template-columns: 1fr; } }
@@ -296,7 +296,7 @@
 .cpa-art { flex: none; width: clamp(74px, 8vw, 108px); height: auto; margin-top: 2px; }
 
 /* ── Why take · carried through from the landing ── */
-.cpa-why { width: min(1560px, 100%); margin: 8px auto 0; padding: 0 clamp(16px, 2.5vw, 30px); }
+.cpa-why { width: 100%; margin: 8px 0 0; padding: 0 clamp(16px, 2vw, 40px); }
 .cpa-why h2 { text-align: center; font-size: clamp(18px, 1.9vw, 23px); font-weight: 900;
   color: #0f172a; letter-spacing: -.02em; margin: 0 0 18px; }
 .cpa-why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
@@ -307,7 +307,7 @@
 .cpa-why-card span { display: block; font-size: 12.5px; line-height: 1.55; color: #64748b; }
 
 /* ── Colleges strip ── */
-.cpa-colleges { width: min(1560px, 100%); margin: 26px auto 0; padding: 20px clamp(16px, 2.5vw, 30px) 50px;
+.cpa-colleges { width: 100%; margin: 26px 0 0; padding: 20px clamp(16px, 2vw, 40px) 50px;
   display: flex; align-items: center; gap: clamp(14px, 2.4vw, 34px); flex-wrap: wrap; }
 .cpa-colleges .lab { font-size: 13.5px; font-weight: 800; color: #4f46e5; }
 .cpa-college { display: flex; align-items: center; gap: 9px; }
@@ -368,3 +368,28 @@
 
 /* Four facts now, so they need to breathe rather than stack tight. */
 .rs-facts { gap: 14px; }
+
+/* ── Full-bleed means the content must scale, not just spread ───────────────
+   With no max-width, a big monitor otherwise shows small type marooned in a
+   wide field. Prose still gets a reading measure — only the LAYOUT is full
+   width, because a 3000px-long sentence is unreadable. */
+.rs-hi p, .cpa-side .intro, .rs-card .hint { max-width: 78ch; }
+
+@media (min-width: 1700px) {
+  .rs-hi h1 { font-size: 38px; }
+  .rs-hi p { font-size: 16px; }
+  .rs-score .big { font-size: 52px; }
+  .rs-card { padding: 26px 28px; }
+  .rs-sec-h { font-size: 17px; }
+  .rs-cat { grid-template-columns: minmax(190px, 260px) minmax(0, 1fr) 60px minmax(140px, 168px); }
+  .rs-cat .nm { font-size: 14.5px; }
+  .cpa-why-card { padding: 24px 22px; }
+  .cpa-why h2 { font-size: 26px; }
+}
+@media (min-width: 2200px) {
+  .rs-hi h1 { font-size: 44px; }
+  .rs-score .big { font-size: 60px; }
+  .rs-card { padding: 30px 32px; }
+  .rs-cols { gap: 22px; }
+  .rs-wrap { gap: 22px; }
+}

@@ -555,7 +555,6 @@ const ResultView: React.FC<{
             </div>
             <div className="rs-unlock-r">
               <span className="rs-offer">LIMITED TIME OFFER</span>
-              <span className="rs-save">Save 66%<br />Limited Seats!</span>
               <div className="t">CareerPilot Founding Membership</div>
               <div className="price">₹{price}<small> /year</small></div>
               <div className="oneline">One-time payment · 12 months access</div>

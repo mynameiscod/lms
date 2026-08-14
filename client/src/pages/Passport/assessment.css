@@ -215,9 +215,6 @@
 .rs-uf .ck { color: #37d0c0; font-weight: 900; font-size: 1.05em; flex: none; }
 .rs-unlock-r { background: #fff; padding: clamp(24px, 2.2vw, 36px) clamp(22px, 2.2vw, 36px);
   position: relative; display: flex; flex-direction: column; justify-content: center; }
-/* Room for the absolutely-positioned Save chip so the title never runs under it. */
-.rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 108px; }
-.rs-unlock-r .rs-offer { padding-right: 14px; }
 .rs-unlock-r .t { font-size: clamp(16px, 1.25vw, 20px); font-weight: 800; color: #0f172a; }
 .rs-unlock-r .price { font-size: clamp(36px, 3vw, 48px); font-weight: 900; color: #6650d8; margin: 8px 0 3px; }
 .rs-unlock-r .price small { font-size: clamp(15px, 1.15vw, 18px); color: #94a3b8; font-weight: 700; }
@@ -230,7 +227,6 @@
   cursor: pointer; box-shadow: 0 10px 24px rgba(106,75,224,.28); }
 .rs-unlock-btn:disabled { opacity: .6; cursor: default; }
 .rs-guarantee { text-align: center; font-size: clamp(12.5px, 1vw, 14px); color: #94a3b8; margin-top: 14px; }
-.rs-save { position: absolute; top: 18px; right: 18px; background: #f5c945; color: #4a3b00; font-size: clamp(11px, .9vw, 12.5px); font-weight: 900; border-radius: 9px; padding: 6px 10px; text-align: center; line-height: 1.2; }
 /* Was absolute at top:-11px inside .rs-unlock, which sets overflow:hidden to clip
    the two panels' corners — so the badge clipped itself in half and the label was
    unreadable. In the flow now: it cannot be cut off by a parent it does not
@@ -418,8 +414,6 @@
 /* On a narrow panel the Save chip and the title would collide, so it drops into
    the flow too rather than overlapping text. */
 @media (max-width: 560px) {
-  .rs-save { position: static; display: inline-block; margin-bottom: 10px; }
-  .rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 0; }
 }
 
 /* The pair now sits below the two-column region and spans the full width, so
@@ -435,6 +429,4 @@
 .rs-unlock-r .rs-uh-note, .rs-unlock-r > p { font-size: clamp(13px, 1.05vw, 15px);
   color: #475569; line-height: 1.6; text-align: center; margin: 4px 0 0; }
 
-/* The Save chip must not sit over the title once the type is larger. */
-@media (min-width: 1500px) { .rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 130px; } }
 @media (max-width: 900px)  { .rs-unlock { grid-template-columns: 1fr; } }

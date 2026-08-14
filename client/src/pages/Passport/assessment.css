@@ -204,7 +204,10 @@
 .rs-uf { display: grid; gap: 11px; }
 .rs-uf div { display: flex; gap: 10px; align-items: center; font-size: 14px; color: #dbe4ff; }
 .rs-uf .ck { color: #37d0c0; font-weight: 900; }
-.rs-unlock-r { background: #fff; padding: 26px 24px; position: relative; }
+.rs-unlock-r { background: #fff; padding: 22px 24px 26px; position: relative; }
+/* Room for the absolutely-positioned Save chip so the title never runs under it. */
+.rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 108px; }
+.rs-unlock-r .rs-offer { padding-right: 14px; }
 .rs-unlock-r .t { font-size: 15px; font-weight: 800; color: #0f172a; }
 .rs-unlock-r .price { font-size: 34px; font-weight: 900; color: #6650d8; margin: 6px 0 2px; }
 .rs-unlock-r .price small { font-size: 15px; color: #94a3b8; font-weight: 700; }
@@ -216,7 +219,13 @@
 .rs-unlock-btn:disabled { opacity: .6; cursor: default; }
 .rs-guarantee { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; }
 .rs-save { position: absolute; top: 16px; right: 16px; background: #f5c945; color: #4a3b00; font-size: 11px; font-weight: 900; border-radius: 9px; padding: 6px 10px; text-align: center; line-height: 1.2; }
-.rs-offer { position: absolute; top: -11px; left: 50%; transform: translateX(-50%); background: #f5c945; color: #4a3b00; font-size: 10.5px; font-weight: 900; letter-spacing: .5px; border-radius: 99px; padding: 4px 14px; white-space: nowrap; }
+/* Was absolute at top:-11px inside .rs-unlock, which sets overflow:hidden to clip
+   the two panels' corners — so the badge clipped itself in half and the label was
+   unreadable. In the flow now: it cannot be cut off by a parent it does not
+   control, and it sits above the title exactly as the mockup shows. */
+.rs-offer { display: inline-block; background: #f5c945; color: #4a3b00; font-size: 10.5px;
+  font-weight: 900; letter-spacing: .5px; border-radius: 99px; padding: 5px 14px;
+  white-space: nowrap; margin-bottom: 12px; }
 .rs-trust { background: #f3f4fb; border: 1px solid #eaecf7; border-radius: 12px; padding: 12px; text-align: center; font-size: 12.5px; color: #64748b; font-weight: 600; }
 .rs-colleges { display: flex; align-items: center; gap: 28px; flex-wrap: wrap; justify-content: center; padding: 4px 0; }
 .rs-colleges .lb { font-size: 12px; font-weight: 700; color: #94a3b8; }
@@ -392,4 +401,11 @@
   .rs-card { padding: 30px 32px; }
   .rs-cols { gap: 22px; }
   .rs-wrap { gap: 22px; }
+}
+
+/* On a narrow panel the Save chip and the title would collide, so it drops into
+   the flow too rather than overlapping text. */
+@media (max-width: 560px) {
+  .rs-save { position: static; display: inline-block; margin-bottom: 10px; }
+  .rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 0; }
 }

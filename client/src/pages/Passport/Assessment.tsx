@@ -427,45 +427,6 @@ const ResultView: React.FC<{
           })}
         </div>
 
-        {/* Focus areas — the weakest categories, each with somewhere to act on it */}
-        {/* Focus areas beside the first week — the mockup pairs them, and they
-            answer the same question: what do I do about this score? */}
-        <div className="rs-pair">
-        <div className="rs-card">
-          <div className="rs-sec-h">Focus Areas <span className="hint">Areas to improve for a stronger profile</span></div>
-          <div className="rs-focus-grid">
-            {sorted.slice(-3).reverse().map((c, i) => {
-              const tint = ['#f4f2ff', '#f0fdf4', '#fff7ed'][i] || '#f8fafc';
-              const to = c.key === 'technical' ? '/careerpilot/practice?kind=coding'
-                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/careerpilot/practice?kind=mcq'
-                : c.key === 'communication' ? '/careerpilot/interview'
-                : c.key === 'employability' ? '/careerpilot/resume' : '/careerpilot/roadmap';
-              return (
-                <div className="rs-focus-card" style={{ background: tint }} key={c.key}>
-                  <span className="ic"><i className={`bi ${CAT_ICON[c.key] || 'bi-dot'}`} /></span>
-                  <b>{c.label}</b>
-                  <span>Currently {c.score}% — the fastest place to gain points.</span>
-                  {isMember && <button onClick={() => nav(to)}>Practice now →</button>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* 7-day preview */}
-        <div className="rs-card">
-          <div className="rs-sec-h">Your First 7 Days (Preview) <span className="hint">Small steps today, big change tomorrow</span></div>
-          <div className="rs-days">
-            {result.weekPreview.map((d, i) => (
-              <div className={`rs-day${i === 0 ? ' on' : ''}`} key={d.day}>
-                <div className="circ">{d.day}</div>
-                <b>{d.title}</b>
-                <span>{d.detail}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-        </div>
 
         {isMember && (
           <div className="rs-cta">
@@ -522,6 +483,46 @@ const ResultView: React.FC<{
               <button className="rs-path-btn" style={{ marginTop: 12 }} onClick={() => nav('/careerpilot')}>View All Missions →</button>
             </div>
           )}
+        </div>
+        </div>
+
+        {/* Focus areas — the weakest categories, each with somewhere to act on it */}
+        {/* Focus areas beside the first week — the mockup pairs them, and they
+            answer the same question: what do I do about this score? */}
+        <div className="rs-pair">
+        <div className="rs-card">
+          <div className="rs-sec-h">Focus Areas <span className="hint">Areas to improve for a stronger profile</span></div>
+          <div className="rs-focus-grid">
+            {sorted.slice(-3).reverse().map((c, i) => {
+              const tint = ['#f4f2ff', '#f0fdf4', '#fff7ed'][i] || '#f8fafc';
+              const to = c.key === 'technical' ? '/careerpilot/practice?kind=coding'
+                : c.key === 'aptitude' || c.key === 'logical_reasoning' ? '/careerpilot/practice?kind=mcq'
+                : c.key === 'communication' ? '/careerpilot/interview'
+                : c.key === 'employability' ? '/careerpilot/resume' : '/careerpilot/roadmap';
+              return (
+                <div className="rs-focus-card" style={{ background: tint }} key={c.key}>
+                  <span className="ic"><i className={`bi ${CAT_ICON[c.key] || 'bi-dot'}`} /></span>
+                  <b>{c.label}</b>
+                  <span>Currently {c.score}% — the fastest place to gain points.</span>
+                  {isMember && <button onClick={() => nav(to)}>Practice now →</button>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* 7-day preview */}
+        <div className="rs-card">
+          <div className="rs-sec-h">Your First 7 Days (Preview) <span className="hint">Small steps today, big change tomorrow</span></div>
+          <div className="rs-days">
+            {result.weekPreview.map((d, i) => (
+              <div className={`rs-day${i === 0 ? ' on' : ''}`} key={d.day}>
+                <div className="circ">{d.day}</div>
+                <b>{d.title}</b>
+                <span>{d.detail}</span>
+              </div>
+            ))}
+          </div>
         </div>
         </div>
 

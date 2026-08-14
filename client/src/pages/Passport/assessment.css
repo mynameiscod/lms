@@ -188,10 +188,12 @@
    back gesture (which reads as the page jumping away mid-scroll); flex-shrink: 0
    makes the items scroll instead of squashing to fit; and scroll-snap stops the
    strip resting half-way through a day. */
-.rs-days { display: flex; gap: 6px; margin-top: 16px; overflow-x: auto; padding-bottom: 4px;
-  overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
-  scroll-snap-type: x proximity; }
-.rs-day { flex: 1 0 92px; min-width: 92px; text-align: center; scroll-snap-align: start; }
+/* Was a flex row of 92px-min items with overflow-x:auto, so in a narrow column
+   day 7 fell off the edge behind a scrollbar. A grid fits all seven to the
+   space available and wraps only when it genuinely cannot. */
+.rs-days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px; margin-top: 16px; }
+.rs-day { min-width: 0; text-align: center; }
 .rs-day .circ { width: 40px; height: 40px; border-radius: 50%; background: #f1f5f9; color: #64748b; font-weight: 800; font-size: 15px; display: grid; place-items: center; margin: 0 auto 8px; }
 .rs-day.on .circ { background: linear-gradient(135deg,#6a4be0,#37d0c0); color: #fff; }
 .rs-day b { font-size: 11.5px; font-weight: 800; color: #0f172a; display: block; line-height: 1.2; }
@@ -409,3 +411,11 @@
   .rs-save { position: static; display: inline-block; margin-bottom: 10px; }
   .rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 0; }
 }
+
+/* The pair now sits below the two-column region and spans the full width, so
+   Focus Areas gets a real column and the week has room for all seven days. */
+.rs-pair { grid-template-columns: minmax(0, 0.72fr) minmax(0, 1.28fr); }
+@media (max-width: 1400px) { .rs-pair { grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); } }
+@media (max-width: 1000px) { .rs-pair { grid-template-columns: 1fr; } }
+@media (max-width: 760px)  { .rs-days { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 16px; } }
+@media (max-width: 460px)  { .rs-days { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

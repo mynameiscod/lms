@@ -6,6 +6,7 @@ import PassportAttempt from '../models/PassportAttempt';
 import PassportProgress from '../models/PassportProgress';
 import { isEntitled } from '../services/passportEntitlementService';
 import { missionsForDay, dayNumber, ensureContent, poolMapOf, ymd } from '../services/passportMissionService';
+import { curriculumFor } from '../services/curriculumService';
 import { completeMissionOnce } from '../services/passportXpService';
 import PassportInterview from '../models/PassportInterview';
 import { awardCoins } from '../services/coinService';
@@ -28,6 +29,7 @@ async function ctx(req: Request) {
   return {
     tenantId, studentId, user, cfg,
     pools: poolMapOf(content.missionPools, memberAxes(user)),
+    curriculum: await curriculumFor(tenantId, user?.passport?.pathway, user?.passport?.stage),
     journeyDays: content.journeyDays || 90,
   };
 }
@@ -35,7 +37,7 @@ async function ctx(req: Request) {
 /** Student: today's missions + streak/xp. Gated behind the `daily_missions` entitlement. */
 export const getToday = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, pools, journeyDays } = await ctx(req);
+    const { tenantId, studentId, user, cfg, pools, curriculum, journeyDays } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.json({ locked: true, priceInr: cfg?.priceInr ?? 499, reason: 'Membership required to unlock daily missions.' });
     }
@@ -62,7 +64,7 @@ export const getToday = async (req: Request, res: Response) => {
     const asked = Number(req.query.day);
     const day = Number.isFinite(asked) ? Math.min(today, Math.max(1, Math.round(asked))) : today;
 
-    const missions = missionsForDay(attempt, day, pools, journeyDays);
+    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum);
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
 
     res.json({
@@ -82,7 +84,7 @@ export const getToday = async (req: Request, res: Response) => {
 /** Student: mark one mission done → award XP + update streak. Idempotent per (day,key). */
 export const completeMission = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, user, cfg, pools, journeyDays } = await ctx(req);
+    const { tenantId, studentId, user, cfg, pools, curriculum, journeyDays } = await ctx(req);
     if (!isEntitled(cfg?.entitlements as any, user?.passport, 'daily_missions')) {
       return res.status(403).json({ message: 'Membership required.' });
     }
@@ -96,7 +98,7 @@ export const completeMission = async (req: Request, res: Response) => {
     const day = dayNumber(progress.startDate, now);
     const key = String(req.body?.key || '');
     const answer = String(req.body?.answer || '').trim();
-    const valid = missionsForDay(attempt, day, pools, journeyDays).find(m => m.key === key);
+    const valid = missionsForDay(attempt, day, pools, journeyDays, curriculum).find(m => m.key === key);
     if (!valid) return res.status(400).json({ message: 'Unknown mission.' });
 
     // A mission with no surface to do it on completes by writing the answer. Ticking a
@@ -144,7 +146,7 @@ export const completeMission = async (req: Request, res: Response) => {
     if (newlyDone) await progress.save();
 
     const doneKeys = new Set(progress.completed.filter(c => c.day === day).map(c => c.key));
-    const missions = missionsForDay(attempt, day, pools, journeyDays);
+    const missions = missionsForDay(attempt, day, pools, journeyDays, curriculum);
     const allDone = missions.every(m => doneKeys.has(m.key));
 
     // Coins are awarded AFTER the completion is saved, and each key names the event

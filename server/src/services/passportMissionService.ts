@@ -16,6 +16,8 @@ import { appliesToMember } from './careerStageService';
 export interface Mission {
   key: string; title: string; detail: string; category: string; type: string; xp: number;
   link?: string;
+  /** Written by an admin for this exact day, rather than drawn from a pool. */
+  authored?: boolean;
   /** No surface exists to do this one on, so it completes by writing a short answer.
    *  Derived from the absence of a link rather than stored, so a mission gains or loses
    *  the requirement the moment an admin gives it a real destination. */
@@ -296,7 +298,37 @@ export function missionsForDay(
   day: number,
   pools: PoolMap = poolMapOf(),
   journeyDays: number = DEFAULT_JOURNEY_DAYS,
+  /**
+   * Admin-authored days for this member's pathway. A day found here is served as
+   * written and the generator is skipped entirely — a syllabus taught in order cannot
+   * have its content reshuffled by someone's category scores.
+   *
+   * Absent, or a day nobody authored, behaves exactly as before. That is what lets a
+   * thirty-day curriculum sit on a 365-day journey without leaving a hole.
+   */
+  curriculum?: Map<number, { day: number; theme?: string; items: any[] }>,
 ): Mission[] {
+  const authored = curriculum?.get(day);
+  if (authored?.items?.length) {
+    return authored.items.slice(0, SLOTS_PER_DAY).map((it, slot) => {
+      const link = actionableLink(it.link);
+      return {
+        key: `d${day}-a${slot}`,
+        title: String(it.title || '').trim(),
+        detail: String(it.detail || '').trim(),
+        type: it.type || 'learn',
+        xp: Number(it.xp) || 20,
+        category: it.category || 'career_clarity',
+        link,
+        // Same rule as a generated mission: verifiable only when it points somewhere
+        // that can actually prove completion.
+        verify: /^\/(careerpilot|passport)\/interview\/?$/.test((link || '').split(/[?#]/)[0])
+          ? ('interview' as const) : undefined,
+        authored: true,
+      } as Mission;
+    });
+  }
+
   const cats = categoriesForDay(attempt, day, journeyDays);
   if (!cats.length) return [];
   const h = hash(day);

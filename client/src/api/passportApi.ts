@@ -126,6 +126,33 @@ export const passportApi = {
     return data;
   },
 
+  // ── Pathway curriculum (admin-authored days) ──
+  listCurricula: async (): Promise<{ tracks: CurriculumTrack[]; overrides: { pathwayKey: string; days: number }[] }> => {
+    const { data } = await axios.get(`${BASE}/curriculum`, { headers: auth() });
+    return data;
+  },
+  getCurriculum: async (key: string): Promise<CurriculumDoc> => {
+    const { data } = await axios.get(`${BASE}/curriculum/${encodeURIComponent(key)}`, { headers: auth() });
+    return data;
+  },
+  saveCurriculum: async (key: string, days: CurriculumDay[]): Promise<{ days: CurriculumDay[] }> => {
+    const { data } = await axios.put(`${BASE}/curriculum/${encodeURIComponent(key)}`, { days }, { headers: auth() });
+    return data;
+  },
+  moveCurriculumDay: async (key: string, from: number, to: number): Promise<{ days: CurriculumDay[] }> => {
+    const { data } = await axios.post(`${BASE}/curriculum/${encodeURIComponent(key)}/move`, { from, to }, { headers: auth() });
+    return data;
+  },
+  copyCurriculum: async (key: string, from: string): Promise<{ days: CurriculumDay[]; copiedFrom: string }> => {
+    const { data } = await axios.post(`${BASE}/curriculum/${encodeURIComponent(key)}/copy`, { from }, { headers: auth() });
+    return data;
+  },
+  /** Appends AI-drafted days after whatever is already written. Nothing is published. */
+  draftCurriculum: async (key: string, count: number, brief?: string): Promise<{ days: CurriculumDay[]; added: number }> => {
+    const { data } = await axios.post(`${BASE}/curriculum/${encodeURIComponent(key)}/draft`, { count, brief }, { headers: auth() });
+    return data;
+  },
+
   // ── Drop-off funnel ──
   /** Stage definitions with live counts, plus totals. */
   getFunnel: async (): Promise<{ stages: FunnelStage[]; totals: FunnelTotals; notes: string[] }> => {
@@ -843,4 +870,16 @@ export interface FunnelMember {
   stuckDays: number;
   joinedAt: string; lastTouch: string;
   careerScore?: number | null; pathway?: string | null; pendingAmountInr?: number;
+}
+
+/** One authored task within a curriculum day. */
+export interface CurriculumItem {
+  title: string; detail: string; type: string; xp: number; link?: string; category?: string;
+}
+export interface CurriculumDay { day: number; theme?: string; items: CurriculumItem[]; }
+export interface CurriculumDoc {
+  pathwayKey: string; days: CurriculumDay[]; aiDraftedAt?: string | null; journeyDays: number;
+}
+export interface CurriculumTrack {
+  key: string; label: string; variants: string[]; days: number; journeyDays: number;
 }

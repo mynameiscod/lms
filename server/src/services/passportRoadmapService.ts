@@ -94,6 +94,8 @@ export function buildRoadmap(opts: {
   currentDay?: number;
   completedKeys?: Set<string>;
   stage?: string | null;
+  /** Admin-authored days for this member's pathway; a day here overrides the pool. */
+  curriculum?: Map<number, any>;
 }): Roadmap {
   const totalDays = Math.max(7, opts.totalDays || 90);
   const pw = pathwayOf(opts.pathways, opts.attempt.pathway, opts.stage);
@@ -112,7 +114,7 @@ export function buildRoadmap(opts: {
     let weekDone = 0;
 
     for (let d = fromDay; d <= toDay; d++) {
-      const missions = missionsForDay(opts.attempt, d, opts.pools, totalDays);
+      const missions = missionsForDay(opts.attempt, d, opts.pools, totalDays, opts.curriculum);
       const xp = missions.reduce((s, m) => s + (m.xp || 0), 0);
       const allDone = missions.length > 0 && missions.every(m => completed.has(m.key));
       totalXp += xp;
@@ -132,6 +134,7 @@ export function buildRoadmap(opts: {
     weeks.push({
       week: w,
       theme: pw.weekThemes?.[w - 1] || `Week ${w}`,
+      // An authored day may carry its own heading; the week keeps the pathway's.
       fromDay, toDay,
       focusLabels: Array.from(new Set(days.flatMap(d => d.categories))).slice(0, 3).map(catLabel),
       goal: WEEK_GOALS[(w - 1) % WEEK_GOALS.length],

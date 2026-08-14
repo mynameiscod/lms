@@ -9,6 +9,7 @@ import PassportResume from '../models/PassportResume';
 import TechBattle from '../models/TechBattle';
 import { membershipActive, entitlementMap } from '../services/passportEntitlementService';
 import { ensureContent, poolMapOf, missionsForDay, dayNumber, ymd } from '../services/passportMissionService';
+import { curriculumFor } from '../services/curriculumService';
 import { awardCoins, getAccount } from '../services/coinService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap } from '../services/passportRoadmapService';
@@ -103,12 +104,13 @@ export const getDashboard = async (req: Request, res: Response) => {
 
     const progress = await getOrCreateProgress(tenantId, studentId, user?.passport?.activatedAt || new Date());
     const pools = poolMapOf(content.missionPools, memberAxes(user));
+    const curriculum = await curriculumFor(tenantId, attempt?.pathway, user?.passport?.stage);
     const now = new Date();
     const day = dayNumber(progress.startDate, now);
     const totalDays = content.journeyDays || 90;
 
     // Today's missions + completion state
-    const todaysMissions = missionsForDay(attempt, day, pools, totalDays);
+    const todaysMissions = missionsForDay(attempt, day, pools, totalDays, curriculum);
     // Carry the saved answer back so a completed reflective mission shows what the
     // member wrote, rather than just a tick they cannot review.
     const todayDone = new Map(progress.completed.filter(c => c.day === day).map(c => [c.key, c]));

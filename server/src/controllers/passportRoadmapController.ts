@@ -5,6 +5,7 @@ import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
 import { isEntitled } from '../services/passportEntitlementService';
 import { ensureContent, poolMapOf, dayNumber } from '../services/passportMissionService';
+import { curriculumFor } from '../services/curriculumService';
 import { getOrCreateProgress } from '../services/passportXpService';
 import { buildRoadmap, toPreview } from '../services/passportRoadmapService';
 
@@ -49,6 +50,7 @@ export const getRoadmap = async (req: Request, res: Response) => {
 
     const full = buildRoadmap({
       attempt, pools: poolMapOf(content.missionPools, memberAxes(user)), pathways: content.pathways,
+      curriculum: await curriculumFor(tenantId, attempt?.pathway, user?.passport?.stage),
       stage: memberAxes(user).stage,
       totalDays: content.journeyDays || 90,
       startDate, currentDay, completedKeys,

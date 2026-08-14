@@ -17,6 +17,7 @@ import * as content from '../controllers/passportContentController';
 import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
 import * as funnel from '../controllers/passportFunnelController';
+import * as curriculum from '../controllers/pathwayCurriculumController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -68,6 +69,14 @@ const FUNNEL = roleGuard(['view_passport_funnel']);
 // Admin config + members
 router.get('/config',    MANAGE, ctrl.getConfig);
 router.put('/config',    MANAGE, ctrl.updateConfig);
+// ── Day-by-day curriculum per pathway. Authored days override the generator. ──
+router.get('/curriculum',                     MANAGE, curriculum.listPathwayCurricula);
+router.get('/curriculum/:pathwayKey',         MANAGE, curriculum.getPathwayCurriculum);
+router.put('/curriculum/:pathwayKey',         MANAGE, curriculum.savePathwayCurriculum);
+router.post('/curriculum/:pathwayKey/move',   MANAGE, curriculum.movePathwayDay);
+router.post('/curriculum/:pathwayKey/copy',   MANAGE, curriculum.copyPathwayCurriculum);
+router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCurriculum);
+
 router.get('/funnel',                  FUNNEL, funnel.getFunnel);
 router.get('/funnel/:stage',           FUNNEL, funnel.getStageMembers);
 router.get('/funnel/:stage/export',    FUNNEL, funnel.exportStage);

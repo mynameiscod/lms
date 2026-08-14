@@ -34,6 +34,8 @@ const ICONS: Record<string, React.ReactNode> = {
   user:      <><circle cx="12" cy="8" r="3.6" /><path d="M4.5 20a7.5 7.5 0 0 1 15 0" /></>,
   chevron:   <><path d="m6 9 6 6 6-6" /></>,
   menu:      <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+  close:     <><path d="M6 6l12 12M18 6 6 18" /></>,
+  share:     <><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></>,
   board:     <><path d="M4 20h4V10H4zM10 20h4V4h-4zM16 20h4v-7h-4z" /></>,
   medal:     <><circle cx="12" cy="15" r="6" /><path d="M8.5 9.5 6 2.5h12L15.5 9.5" /><path d="m12 12.8 1 2 2.2.3-1.6 1.5.4 2.2-2-1-2 1 .4-2.2L8.8 15l2.2-.3z" /></>,
   grid:      <><rect x="3" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6" /><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6" /><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6" /></>,
@@ -133,13 +135,19 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
 
   return (
     <div className="gd">
-      {/* Mobile: a button to reveal the rail, which is off-canvas on small screens */}
-      <button className="gd-burger" onClick={() => setMobileOpen(o => !o)} aria-label="Menu">
+      {/* Mobile: a button to reveal the rail, which is off-canvas on small screens.
+          It is fixed at the top-left, i.e. exactly where the open drawer puts its logo —
+          so it hides itself once the drawer is out, and the drawer carries its own close
+          button instead of two controls fighting over the same 42px. */}
+      <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={() => setMobileOpen(true)} aria-label="Menu">
         <Icon name="menu" />
       </button>
       {mobileOpen && <div className="gd-scrim" onClick={() => setMobileOpen(false)} />}
 
       <aside className={`gd-side${mobileOpen ? ' open' : ''}`}>
+        <button className="gd-side-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+          <Icon name="close" />
+        </button>
         <button className="gd-logo" onClick={() => nav('/careerpilot')}>
           {/* M3 — the chip's gradient was designed to sit behind a "CB" monogram, not a
               logo image, so the artwork rendered on a purple/teal block. On error the
@@ -173,10 +181,21 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           {navBtn('Resume', 'resume', '/careerpilot/resume')}
         </nav>
 
-        {/* M4 — profile and log out. The account menu sits in the topbar, which is hidden
-            on a phone, so on mobile there was no way to reach either. Shown only in the
-            drawer (CSS hides this block on desktop, where the topbar menu exists). */}
+        {/* M4 — the account block. On a phone the topbar menu is hidden outright (it used
+            to open a floating card ON TOP of this drawer, covering the nav labels and
+            repeating these same links), so the drawer is the one and only account surface
+            there and has to carry everything the topbar menu offers — share included.
+            CSS hides this block on desktop, where the topbar menu exists. */}
         <div className="gd-side-account">
+          {/* Who you are. The hidden topbar menu was the only thing naming the member on a
+              phone; the pills still carry streak/level/XP, so this stays to just identity. */}
+          <div className="gd-side-me">
+            <span className="av">{initial}</span>
+            <div className="t">
+              <b>{d?.name || firstName}</b>
+              {lv && <span>Level {lv.level} · {lv.title}</span>}
+            </div>
+          </div>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}>
             <span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span>
           </button>
@@ -185,6 +204,10 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           </button>
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/news')}>
             <span className="ic"><Icon name="news" /></span><span className="lbl">Tech news</span>
+          </button>
+          <button className="gd-nav-btn" onClick={share} disabled={!d?.shareSlug}>
+            <span className="ic"><Icon name="share" /></span>
+            <span className="lbl">{copied ? 'Link copied!' : 'Share my card'}</span>
           </button>
           <button className="gd-nav-btn out" onClick={() => logout()}>
             <span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span>

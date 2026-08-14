@@ -22,9 +22,20 @@
 .gd-logo .mk { position: relative; width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg,#7c6cf0,#37d0c0); display: grid; place-items: center; color: #fff; font-size: 14px; font-weight: 900; letter-spacing: -.5px; flex-shrink: 0; overflow: hidden; }
 .gd-logo .mk .mono { font-size: 14px; font-weight: 900; color: #fff; }
 .gd-logo .mk img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; border-radius: 11px; }
+/* min-width:0 so the wordmark block can shrink instead of pushing itself past the rail;
+   without it the tagline forced the row wider than 248px and wrapped over the chip. */
+.gd-logo > div { min-width: 0; }
 .gd-logo b { font-size: 16.5px; font-weight: 900; color: #0f172a; display: block; line-height: 1.15; }
 .gd-logo b .p { color: #6d4bd8; }
-.gd-logo small { font-size: 10px; color: #a3aab8; }
+/* Wraps to two lines at 248px and stops there, instead of running on and stretching the
+   header — the burger sits over this corner on mobile and a third line met it. */
+.gd-logo small {
+  font-size: 10px; line-height: 1.35; color: #a3aab8;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+
+/* Drawer close (mobile only — see the 980px block). */
+.gd-side-close { display: none; }
 
 /* Scroll region: flex child needs min-height:0 or it refuses to shrink */
 .gd-nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; padding-right: 3px; }
@@ -327,14 +338,23 @@
 /* Mobile: sidebar collapses to a top strip */
 @media (max-width: 980px) {
   /* Rail slides off-canvas behind a burger rather than becoming a cramped strip,
-     so the goal + profile cards stay reachable on a phone. */
-  .gd-side { transform: translateX(-100%); transition: transform .22s ease; box-shadow: 0 0 40px rgba(15,23,42,.16); }
+     so the goal + profile cards stay reachable on a phone. Width is capped at 88vw so a
+     narrow phone still shows a sliver of the page behind it and it reads as a drawer. */
+  .gd-side { width: min(88vw, 272px); transform: translateX(-100%); transition: transform .22s ease; box-shadow: 0 0 40px rgba(15,23,42,.16); }
   .gd-side.open { transform: translateX(0); }
   .gd-main { margin-left: 0; padding: 64px 16px 32px; }
 
   .gd-burger { display: grid; place-items: center; position: fixed; top: 12px; left: 12px; z-index: 40; width: 42px; height: 42px; border-radius: 12px; background: #fff; border: 1px solid #e6e8f0; box-shadow: 0 4px 14px rgba(15,23,42,.1); cursor: pointer; color: #334155; }
+  /* The open drawer puts its logo under this exact spot, so the burger stepped on the
+     wordmark. The drawer's own × replaces it while it is open. */
+  .gd-burger.hide { display: none; }
   .gd-burger svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; }
   .gd-scrim { display: block; position: fixed; inset: 0; background: rgba(15,23,42,.34); z-index: 29; }
+
+  .gd-side-close { display: grid; place-items: center; position: absolute; top: 12px; right: 10px; z-index: 2; width: 34px; height: 34px; border-radius: 10px; background: #f5f6fb; border: none; cursor: pointer; color: #64748b; padding: 0; }
+  .gd-side-close svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; }
+  /* Keep the wordmark clear of the × above it. */
+  .gd-logo { padding-right: 46px; }
 
   .gd-hello h1 { font-size: 24px; }
   .gd-top-pills { gap: 8px; }
@@ -375,18 +395,36 @@
 
 
 /* ── Account actions inside the mobile drawer (M4) ──
-   The topbar account menu is not rendered on a phone, so profile and log out had no
+   The topbar account menu is hidden on a phone (see below), so profile and log out had no
    route on mobile at all. Desktop keeps the topbar menu and hides this. */
 .gd-side-account { display: none; }
 .gd-side-account .gd-nav-btn.out .lbl { color: #b91c1c; }
 .gd-side-account .gd-nav-btn.out .ic { color: #b91c1c; }
+.gd-side-account .gd-nav-btn:disabled { opacity: .45; cursor: default; }
+.gd-side-account .gd-nav-btn:disabled:hover { background: none; color: #5b6478; }
+.gd-side-me { display: flex; align-items: center; gap: 10px; padding: 4px 12px 10px; }
+.gd-side-me .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 14px; flex-shrink: 0; }
+.gd-side-me .t { min-width: 0; }
+.gd-side-me b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-side-me span { display: block; font-size: 11px; color: #a3aab8; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 980px) {
   .gd-side-account {
     display: block; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f2f9; flex-shrink: 0;
   }
-  /* .gd-side is a flex column with overflow:hidden, so the nav needs its own scroll or
-     the pinned account block pushes the last links out of reach on a short screen. */
-  .gd-side .gd-nav { overflow-y: auto; }
+  /* One scroller, not two. The rail is a flex column with overflow:hidden and the nav had
+     its own scrollbar; on a short phone the account block + goal card squeezed that nav to
+     a stub, and a nested scroll area under a thumb is miserable to use. The whole drawer
+     scrolls instead — margin-top:auto below still pins the account block to the bottom
+     whenever the content does fit. */
+  .gd-side { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+  .gd-side .gd-nav { overflow: visible; flex: 0 0 auto; }
+
+  /* The topbar account menu was never actually hidden here, only assumed to be. It stayed
+     in the header, and its dropdown (z-index 45) floated OVER the open drawer (z-index 30):
+     it covered the nav labels mid-word and repeated My profile / My result / Tech news /
+     Log out that the drawer already lists right below. One account surface per breakpoint —
+     the drawer owns it on mobile, and now carries Share my card too. */
+  .gd-user { display: none; }
 }
 
 /* Day stepper on the missions card (B9). Quiet by design — it is a way back to a missed

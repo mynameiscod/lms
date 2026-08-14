@@ -458,7 +458,6 @@
 /* ── Hero: left-aligned with the celebration art, as the mockup shows ── */
 .rs-hi { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 20px;
   align-items: center; text-align: left; }
-.rs-hi h1 { display: flex; align-items: center; gap: 12px; }
 .rs-hi-art { width: clamp(180px, 20vw, 280px); height: auto; }
 @media (max-width: 820px) { .rs-hi { grid-template-columns: 1fr; } .rs-hi-art { display: none; } }
 
@@ -528,9 +527,14 @@ svg.rs-hi-art { width: clamp(220px, 26vw, 380px); height: auto; max-width: none;
    empty space opened above the text while the art floated alone on the right.
    The mockup runs them tight: text sits at the BOTTOM of the row, the artwork is
    larger, and its base almost touches the cards below. */
-.rs-hi { align-items: end; gap: clamp(16px, 3vw, 48px); padding: 0; margin-bottom: 4px; }
-.rs-hi .tx { padding-bottom: 6px; }
-.rs-hi h1 { line-height: 1.15; }
+.rs-hi { align-items: center; gap: clamp(16px, 3vw, 48px); padding: 0; margin-bottom: 4px; }
+.rs-hi .tx { padding-bottom: 0; }
+/* NOT display:flex. A flex gap applies between EVERY child, so it was inserting
+   12px after the comma as well as before the popper — the name looked detached
+   from the greeting. Inline flow gives the comma its natural single space. */
+.rs-hi h1 { display: block; line-height: 1.18; }
+.rs-hi h1 .nm { margin-left: .12em; }
+.rs-hi h1 .pop { margin-left: .3em; }
 
 /* No object-fit and no percentage max-width. Both together were the bug: the box
    stayed at its full height while `contain` shrank the picture inside it to satisfy
@@ -538,7 +542,9 @@ svg.rs-hi-art { width: clamp(220px, 26vw, 380px); height: auto; max-width: none;
    space ABOVE it, inside the element, which then set the height of the whole row.
    Sizing by height alone lets the box match the picture exactly. */
 img.rs-hi-art {
-  height: clamp(130px, 15vw, 210px);
+  /* Roughly 1.5x the two-line greeting, as the mockup has it. Taller than this
+     and the row grows past the text, leaving the left half empty. */
+  height: clamp(104px, 10vw, 150px);
   width: auto; max-width: 42vw;
   display: block;
   justify-self: end; align-self: end;

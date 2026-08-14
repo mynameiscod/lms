@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,13 +17,6 @@ import './member.css';
  * second request); other pages let the shell fetch it so the goal/profile cards are
  * identical everywhere rather than appearing only on the home screen.
  */
-
-const PRACTICE_SUB: { label: string; to: string; icon: string }[] = [
-  { label: 'All Problems', to: '/careerpilot/practice', icon: 'grid' },
-  { label: 'Coding', to: '/careerpilot/practice?kind=coding', icon: 'code' },
-  { label: 'SQL', to: '/careerpilot/practice?kind=sql', icon: 'db' },
-  { label: 'Aptitude & MCQ', to: '/careerpilot/practice?kind=mcq', icon: 'brain' },
-];
 
 const ICONS: Record<string, React.ReactNode> = {
   home:      <><path d="M3 9.5 12 3l9 6.5" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></>,
@@ -63,7 +56,6 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const nav = useNavigate();
   const loc = useLocation();
   const { user, logout } = useAuth();
-  const [practiceOpen, setPracticeOpen] = useState(true);
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
@@ -160,41 +152,25 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           <div><b>Codebegun</b><small>Begin Your Code. Build Your Future.</small></div>
         </button>
 
+        {/* Six destinations, one per thing a student actually does.
+            What used to be here and why it went:
+              Daily Missions      — the same page as Home, with a query flag
+              Coding / SQL / MCQ  — the same page as Practice; they are tabs now
+              Performance         — renamed "My Result" and moved to the account menu,
+                                    because nobody guesses it means their assessment
+              Coins / Leaderboard / Achievements — reachable from the topbar chips
+              Contests            — /battles is a DIFFERENT PRODUCT; a member should not
+                                    be dropped into Tech Battles from their own menu
+              Tech News           — one article published; it has not earned a permanent
+                                    slot, and it already shows on Home
+            Nothing was deleted: every route still exists and every old link still works. */}
         <nav className="gd-nav">
-          {navBtn('Coding Home', 'home', '/careerpilot')}
-          {/* B8 — missions were only reachable by knowing they were on the home screen. */}
-          {navBtn('Daily Missions', 'target', '/careerpilot?view=missions')}
-
-          {/* Practice Lab is a section, not a collapsible — its four surfaces are the
-              most-used part of the product and shouldn't need a click to reach. */}
-          <div className="gd-nav-label">Practice Lab</div>
-          {PRACTICE_SUB.map(s => {
-            const on = `${loc.pathname}${loc.search}` === s.to;
-            return (
-              <button key={s.to} className={`gd-nav-btn${on ? ' on' : ''}`} onClick={() => nav(s.to)}>
-                <span className="ic"><Icon name={s.icon} /></span><span className="lbl">{s.label}</span>
-              </button>
-            );
-          })}
-
-          <div className="gd-nav-gap" />
-          {navBtn('Learning Path', 'roadmap', '/careerpilot/roadmap')}
+          {navBtn('Home', 'home', '/careerpilot')}
+          {navBtn('My Roadmap', 'roadmap', '/careerpilot/roadmap')}
+          {navBtn('Practice', 'code', '/careerpilot/practice')}
           {navBtn('Mock Interview', 'interview', '/careerpilot/interview')}
-          {navBtn('Resume Builder', 'resume', '/careerpilot/resume')}
           {navBtn('Prepare Interviews', 'building', '/careerpilot/companies')}
-          {navBtn('Tech News', 'news', '/careerpilot/news')}
-          {navBtn('Performance', 'chart', '/careerpilot/assessment')}
-          {!!d?.contests?.length && navBtn('Contests', 'trophy', '/battles')}
-
-          <div className="gd-nav-label">Leaderboard</div>
-          {/* These pointed at #leaderboard / #badges — anchors with no matching element,
-              so both just reloaded the dashboard and looked like a broken redirect. */}
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/leaderboard')}>
-            <span className="ic"><Icon name="board" /></span><span className="lbl">Leaderboards</span>
-          </button>
-          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/achievements')}>
-            <span className="ic"><Icon name="medal" /></span><span className="lbl">Achievements</span>
-          </button>
+          {navBtn('Resume', 'resume', '/careerpilot/resume')}
         </nav>
 
         {/* M4 — profile and log out. The account menu sits in the topbar, which is hidden
@@ -203,6 +179,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
         <div className="gd-side-account">
           <button className="gd-nav-btn" onClick={() => nav('/careerpilot/profile')}>
             <span className="ic"><Icon name="user" /></span><span className="lbl">My profile</span>
+          </button>
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/assessment')}>
+            <span className="ic"><Icon name="chart" /></span><span className="lbl">My result</span>
+          </button>
+          <button className="gd-nav-btn" onClick={() => nav('/careerpilot/news')}>
+            <span className="ic"><Icon name="news" /></span><span className="lbl">Tech news</span>
           </button>
           <button className="gd-nav-btn out" onClick={() => logout()}>
             <span className="ic"><Icon name="logout" /></span><span className="lbl">Log out</span>
@@ -239,10 +221,11 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           <div className="gd-topbar-r">
             {st && lv && (
               <>
-                <div className="gd-pill">
+                <Link to="/careerpilot/leaderboard" className="gd-pill" style={{ textDecoration: 'none' }}
+                  title="See where you rank">
                   <span className="em">🔥</span>
                   <div><b>{st.streak}</b><span>Day Streak</span></div>
-                </div>
+                </Link>
                 {/* Only once there is a balance — an empty wallet in the header teaches a
                     member that coins are not worth paying attention to. */}
                 {!!d?.coins?.balance && (
@@ -251,13 +234,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                     <div><b>{d.coins.balance.toLocaleString('en-IN')}</b><span>Coins</span></div>
                   </Link>
                 )}
-                <div className="gd-pill level">
+                <Link to="/careerpilot/achievements" className="gd-pill level" style={{ textDecoration: 'none' }}
+                  title="See your badges and achievements">
                   <span className="hex">🎖️</span>
                   <div>
                     <b>Level {lv.level}</b><span>{lv.title}</span>
                     <div className="lbar"><i style={{ width: `${lv.progressPct}%` }} /></div>
                   </div>
-                </div>
+                </Link>
                 <div className="gd-pill">
                   <span className="em">⚡</span>
                   <div><b>{lv.xpToNextLevel.toLocaleString()} XP</b><span>to next level</span></div>
@@ -283,9 +267,12 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                       <div><b>{myRank ? `#${myRank}` : '—'}</b><span>Rank</span></div>
                     </div>
                   )}
-                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/assessment'); }}>My assessment result</button>
-                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/roadmap'); }}>My journey</button>
-                  <button onClick={share} disabled={!d?.shareSlug}>{copied ? 'Link copied!' : 'Share my Passport card'}</button>
+                  {/* Account, not activity. The rail carries the six things a student
+                      DOES; this carries who they are. */}
+                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/profile'); }}>My profile</button>
+                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/assessment'); }}>My result</button>
+                  <button onClick={() => { setUserOpen(false); nav('/careerpilot/news'); }}>Tech news</button>
+                  <button onClick={share} disabled={!d?.shareSlug}>{copied ? 'Link copied!' : 'Share my CareerPilot card'}</button>
                   <button className="out" onClick={() => logout()}>Log out</button>
                 </div>
               )}

@@ -590,7 +590,7 @@ const ResultView: React.FC<{
             <div className="em"><i className="bi bi-stars" /></div>
             <h3>You're a CareerPilot member.</h3>
             <p>This is your latest result. Your roadmap, Practice Lab, mock interviews and Resume Center are all unlocked.</p>
-            <button onClick={onHome}>Go to Coding Home →</button>
+            <button onClick={onHome}>Go to Home <i className="bi bi-arrow-right" /></button>
           </div>
         ) : unlocked ? (
           <div className="rs-done">

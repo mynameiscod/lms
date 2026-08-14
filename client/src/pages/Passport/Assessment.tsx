@@ -367,27 +367,56 @@ const ResultView: React.FC<{
         {isMember && <div className="rs-crumb">Assessment <span>›</span> <b>Results</b></div>}
         <div className="rs-hi">
           <div className="tx">
-            <h1>Great start, {firstName}! <i className="bi bi-stars" /></h1>
+            <h1>Great start, <span className="nm">{firstName}!</span> <span className="pop" role="img" aria-label="celebration">🎉</span></h1>
             <p>You've just taken the first step towards your dream career.</p>
           </div>
           {/* Confetti + target, inline so there is no asset to ship. Decorative only. */}
-          <svg className="rs-hi-art" viewBox="0 0 260 150" aria-hidden="true">
-            <circle cx="214" cy="52" r="34" fill="#EEF0FF" />
-            <circle cx="214" cy="52" r="23" fill="#6C4BE8" />
-            <circle cx="214" cy="52" r="12" fill="#EEF0FF" />
-            <circle cx="214" cy="52" r="4" fill="#3B2A9E" />
-            <path d="M214 52 L246 24" stroke="#3B2A9E" strokeWidth="3" strokeLinecap="round" />
-            <path d="M242 18 L254 20 L248 31 Z" fill="#F2789F" />
-            <rect x="96" y="104" width="86" height="8" rx="4" fill="#C9CEF0" />
-            <rect x="104" y="60" width="70" height="46" rx="5" fill="#2F3559" />
-            <rect x="109" y="65" width="60" height="36" rx="3" fill="#4A5385" />
-            <circle cx="139" cy="46" r="17" fill="#F6C9A8" />
-            <path d="M122 44 a17 17 0 0 1 34 0 a30 30 0 0 0 -34 0 Z" fill="#241F3D" />
-            <path d="M118 104 v-22 a21 21 0 0 1 42 0 v22 Z" fill="#7C5CF0" />
-            {[[44,26,'#F2789F'],[70,12,'#3ECFC0'],[24,64,'#FBBF24'],[186,14,'#6C4BE8'],[58,88,'#60A5FA'],[16,110,'#F2789F'],[248,96,'#3ECFC0'],[236,120,'#FBBF24']]
+          <svg className="rs-hi-art" viewBox="0 0 320 200" aria-hidden="true">
+            <defs>
+              <linearGradient id="hoodie" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="#8B6BF5" /><stop offset="1" stopColor="#6C4BE8" />
+              </linearGradient>
+            </defs>
+
+            {/* target */}
+            <circle cx="268" cy="70" r="40" fill="#D9DCF5" />
+            <circle cx="268" cy="70" r="28" fill="#6C4BE8" />
+            <circle cx="268" cy="70" r="16" fill="#F4F5FD" />
+            <circle cx="268" cy="70" r="6" fill="#3B2A9E" />
+            <path d="M268 70 L316 30" stroke="#2F2A55" strokeWidth="5" strokeLinecap="round" />
+            <path d="M310 22 L322 26 L314 37 Z" fill="#3B2A9E" />
+
+            {/* chair */}
+            <rect x="196" y="96" width="62" height="86" rx="16" fill="#C6CADF" />
+
+            {/* body */}
+            <path d="M176 182 v-46 a34 34 0 0 1 68 0 v46 Z" fill="url(#hoodie)" />
+            <path d="M210 108 v40" stroke="#5B3FD0" strokeWidth="3" strokeLinecap="round" />
+            <circle cx="204" cy="150" r="4" fill="#EFE9FF" opacity=".8" />
+
+            {/* head */}
+            <circle cx="210" cy="82" r="30" fill="#F7C9A6" />
+            <path d="M182 78 a28 28 0 0 1 56 0 a44 44 0 0 0 -56 0 Z" fill="#22203A" />
+            <path d="M180 74 q30 -30 60 -2 q-4 -26 -30 -26 t-30 28 Z" fill="#22203A" />
+            <circle cx="200" cy="84" r="3.4" fill="#22203A" />
+            <circle cx="221" cy="84" r="3.4" fill="#22203A" />
+            <path d="M201 95 q9 9 19 0" stroke="#22203A" strokeWidth="2.6" fill="none" strokeLinecap="round" />
+
+            {/* thumbs-up hand */}
+            <path d="M243 150 q14 -4 16 -18 q1 -8 -6 -8 q-6 0 -7 8 l-1 6 l-8 2 q-7 2 -6 8 q1 4 12 2 Z" fill="#F7C9A6" />
+
+            {/* laptop */}
+            <path d="M120 176 h96 l10 12 h-116 Z" fill="#D3D7E8" />
+            <rect x="132" y="112" width="76" height="64" rx="5" fill="#3A3F5C" />
+            <rect x="137" y="117" width="66" height="54" rx="3" fill="#565C82" />
+            <circle cx="170" cy="144" r="6" fill="#EDEFF8" />
+
+            {/* confetti */}
+            {[[36,52,'#F2789F'],[68,26,'#3ECFC0'],[16,104,'#FBBF24'],[92,66,'#60A5FA'],[52,132,'#6C4BE8'],
+              [110,24,'#F2789F'],[300,128,'#3ECFC0'],[286,164,'#FBBF24'],[124,150,'#60A5FA'],[8,28,'#6C4BE8']]
               .map(([x, y, c], i) => (
-                <rect key={i} x={x as number} y={y as number} width="9" height="9" rx="2"
-                      fill={c as string} transform={`rotate(${(i * 37) % 90} ${x} ${y})`} opacity=".9" />
+                <rect key={i} x={x as number} y={y as number} width="11" height="11" rx="2.5"
+                      fill={c as string} transform={`rotate(${(i * 41) % 90} ${x} ${y})`} opacity=".92" />
               ))}
           </svg>
         </div>

@@ -10,9 +10,10 @@ import './assessment.css';
  * Student answers the MCQ bank one at a time; on submit we score server-side and show the
  * Career Score, category breakdown, strengths/gaps, recommended pathway, 7-day preview + ₹499 CTA.
  */
+/** Bootstrap Icons per category. Unknown keys fall back to a dot where used. */
 const CAT_ICON: Record<string, string> = {
-  career_clarity: '🎯', aptitude: '🔢', logical_reasoning: '🧩',
-  technical: '💻', communication: '🗣️', employability: '💼',
+  career_clarity: 'bi-bullseye', aptitude: 'bi-calculator-fill', logical_reasoning: 'bi-puzzle-fill',
+  technical: 'bi-code-slash', communication: 'bi-chat-dots-fill', employability: 'bi-briefcase-fill',
 };
 const CAT_LABEL: Record<string, string> = {
   career_clarity: 'Career Clarity', aptitude: 'Aptitude', logical_reasoning: 'Logical Reasoning',
@@ -28,11 +29,15 @@ const CAT_HELP: Record<string, string> = {
 };
 const prettyCat = (k: string) => CAT_LABEL[k] || k.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-const SIDE_FEATS: { ic: string; bg: string; title: string; desc: string }[] = [
-  { ic: '🎯', bg: '#e7f8f0', title: 'Discover Your Path', desc: 'Find the career roles that match your strengths and interests.' },
-  { ic: '📈', bg: '#e6f2ff', title: 'Know Your Score', desc: 'Get your Career Readiness Score across key areas.' },
-  { ic: '🗺️', bg: '#fff2e3', title: 'Personalized Roadmap', desc: 'Receive a 90-day plan tailored to your academic year and goals.' },
-  { ic: '⚡', bg: '#efeaff', title: 'Take Daily Action', desc: 'Unlock daily missions, resources, and expert guidance.' },
+/**
+ * The side panel mirrors the /careerpilot landing so the two screens read as one product.
+ * `tone` picks the tile tint; the wording matches the promises made before they started.
+ */
+const SIDE_FEATS: { ic: string; tone: string; title: string; desc: string }[] = [
+  { ic: 'bi-compass', tone: 'blue', title: 'Know Your Current Level', desc: 'Get your Career Score and see how career-ready you are.' },
+  { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Identify Your Strengths & Gaps', desc: "Discover what you're good at and what needs improvement." },
+  { ic: 'bi-map-fill', tone: 'amber', title: 'Get Your Personalized Roadmap', desc: 'Receive a 90-day plan tailored to your goals and academic year.' },
+  { ic: 'bi-lightning-charge-fill', tone: 'violet', title: 'Start Taking Daily Action', desc: 'Unlock daily missions, practice, and expert guidance.' },
 ];
 
 const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -121,7 +126,7 @@ const Assessment: React.FC = () => {
 
   const Top = (progressUI: React.ReactNode) => (
     <div className="pf-top"><div className="pf-top-in">
-      <div className="pf-brand"><span className="mark">🧭</span><div className="bt"><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div></div>
+      <div className="pf-brand"><span className="mark"><i className="bi bi-compass" /></span><div className="bt"><b>Career<span className="p">Pilot</span></b><small>Powered by CodeBegun</small></div></div>
       <button className="pf-back" onClick={() => nav('/careerpilot')}>← Mission Control</button>
       {progressUI}
     </div></div>
@@ -139,7 +144,7 @@ const Assessment: React.FC = () => {
             <div className="col"><div className="lbl">Assessment Progress</div><div className="track"><i style={{ width: `${progress}%` }} /></div></div>
             <div className="pct">{progress}%</div>
           </div>
-          <div className={`pf-timer${secsLeft <= 60 ? ' low' : ''}`}><span className="ic">⏱️</span><div><b>{fmt(secsLeft)}</b><small>Time Left</small></div></div>
+          <div className={`pf-timer${secsLeft <= 60 ? ' low' : ''}`}><span className="ic"><i className="bi bi-stopwatch-fill" /></span><div><b>{fmt(secsLeft)}</b><small>Time Left</small></div></div>
           <div className="pf-user"><span className="av">{initial}</span><div className="who"><b>Hi, {firstName}</b><small>Keep going!</small></div></div>
         </>
       )}
@@ -147,27 +152,38 @@ const Assessment: React.FC = () => {
       <div className="as-wrap">
         {/* Left sidebar */}
         <aside className="as-side">
-          <h2>Your Career <span className="b">Journey Starts Here</span></h2>
-          <div className="rule" />
-          <div className="intro">This assessment will help us understand your strengths, interests, and skills to create your personalized career roadmap.</div>
+          <span className="as-chip"><i className="bi bi-rocket-takeoff-fill" /> Mission Control</span>
+          <h2>Your Career Journey<br />Starts with <span className="b">Clarity</span></h2>
+          <p className="intro">
+            Take the free Career Readiness Assessment to know where you stand today and get a
+            personalized roadmap to achieve your dream career.
+          </p>
+
           <div className="as-feats">
             {SIDE_FEATS.map(f => (
-              <div className="as-feat" key={f.title}><span className="ic" style={{ background: f.bg }}>{f.ic}</span><div><b>{f.title}</b><span>{f.desc}</span></div></div>
+              <div className="as-feat" key={f.title}>
+                <span className={`ic t-${f.tone}`} aria-hidden="true"><i className={`bi ${f.ic}`} /></span>
+                <div><b>{f.title}</b><span>{f.desc}</span></div>
+              </div>
             ))}
           </div>
-          <div className="as-safe">
-            <span className="sh">🛡️</span>
-            <div><b>Your Data is Safe</b><span>We never share your answers with anyone. Your privacy is 100% protected.</span></div>
-            <span className="lock">🔒</span>
+
+          {/* The landing shows "Start Free Assessment" here. Mid-assessment that button
+              would either do nothing or throw away answers, so this says where they are
+              instead. */}
+          <div className="as-side-foot">
+            <i className="bi bi-clock" /> Assessment in progress
+            <span className="dot">·</span>
+            <i className="bi bi-shield-check" /> Your answers stay private
           </div>
         </aside>
 
         {/* Main */}
         <main className="as-main">
           <div className="as-banner">
-            <span className="bic">✨</span>
+            <span className="bic" aria-hidden="true"><i className="bi bi-star-fill" /></span>
             <div><b>Answer honestly. There are no wrong answers.</b><span>We just want to understand you better.</span></div>
-            <span className="bimg">🎯</span>
+            <span className="bimg" aria-hidden="true"><i className="bi bi-bullseye" /></span>
           </div>
 
           {error && <div className="as-err">{error}</div>}
@@ -175,7 +191,7 @@ const Assessment: React.FC = () => {
           {current && (
             <div className="as-card">
               <div className="as-qhead">
-                <span className="as-cat">{CAT_ICON[current.category] || '•'} {prettyCat(current.category)}</span>
+                <span className="as-cat"><i className={`bi ${CAT_ICON[current.category] || 'bi-dot'}`} /> {prettyCat(current.category)}</span>
                 <span className="as-qnum">Question {idx + 1} of {total}</span>
               </div>
               <h2 className="as-q">{current.text}</h2>
@@ -195,11 +211,11 @@ const Assessment: React.FC = () => {
                 })}
               </div>
               <div className="as-nav">
-                <button className="as-btn-back" disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))}>← Back</button>
+                <button className="as-btn-back" disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))}><i className="bi bi-arrow-left" /> Back</button>
                 {idx < total - 1 ? (
-                  <button className="as-btn-next" disabled={answers[current.id] === undefined} onClick={() => setIdx(i => i + 1)}>Next →</button>
+                  <button className="as-btn-next" disabled={answers[current.id] === undefined} onClick={() => setIdx(i => i + 1)}>Next <i className="bi bi-arrow-right" /></button>
                 ) : (
-                  <button className="as-btn-next" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? 'Scoring…' : 'See my Career Score →'}</button>
+                  <button className="as-btn-next" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? 'Scoring…' : <>See my Career Score <i className="bi bi-arrow-right" /></>}</button>
                 )}
               </div>
               {!canSubmit && idx === total - 1 && <div style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Answer all {total} questions to submit ({answeredCount}/{total}).</div>}
@@ -207,7 +223,7 @@ const Assessment: React.FC = () => {
           )}
 
           <div className="as-tip">
-            <span className="ic">⭐</span>
+            <span className="ic" aria-hidden="true"><i className="bi bi-lightbulb-fill" /></span>
             <div><b>Tip: There are no right or wrong answers.</b><span>Be honest so we can give you the best guidance.</span></div>
           </div>
         </main>
@@ -283,7 +299,7 @@ const ResultView: React.FC<{
       <div className={`rs-wrap${isMember ? ' rs-member' : ''}`}>
         {isMember && <div className="rs-crumb">Assessment <span>›</span> <b>Results</b></div>}
         <div className="rs-hi">
-          <h1>Great start, {firstName}! 🎉</h1>
+          <h1>Great start, {firstName}! <i className="bi bi-stars" /></h1>
           <p>You've just discovered your Career Score. This is the first step towards your dream career.</p>
         </div>
 
@@ -296,7 +312,7 @@ const ResultView: React.FC<{
             <div>
               <div className="lbl">Your Career Score</div>
               <div className="big">{score}<small> /100</small></div>
-              <span className="rs-badge" style={{ background: scoreBand.color + '1a', color: scoreBand.color }}>{result.level} ✓</span>
+              <span className="rs-badge" style={{ background: scoreBand.color + '1a', color: scoreBand.color }}>{result.level}</span>
               <div className="enc">{encourage}</div>
             </div>
             <div className="rs-gauge">
@@ -342,7 +358,7 @@ const ResultView: React.FC<{
 
         {/* Focus areas — the weakest categories, each with somewhere to act on it */}
         <div className="rs-card">
-          <div className="rs-sec-h">Focus Areas 🎯 <span className="hint">Areas to improve for a stronger profile</span></div>
+          <div className="rs-sec-h">Focus Areas <span className="hint">Areas to improve for a stronger profile</span></div>
           <div className="rs-focus-grid">
             {sorted.slice(-3).reverse().map((c, i) => {
               const tint = ['#f4f2ff', '#f0fdf4', '#fff7ed'][i] || '#f8fafc';
@@ -352,7 +368,7 @@ const ResultView: React.FC<{
                 : c.key === 'employability' ? '/careerpilot/resume' : '/careerpilot/roadmap';
               return (
                 <div className="rs-focus-card" style={{ background: tint }} key={c.key}>
-                  <span className="ic">{CAT_ICON[c.key] || '🎯'}</span>
+                  <span className="ic"><i className={`bi ${CAT_ICON[c.key] || 'bi-dot'}`} /></span>
                   <b>{c.label}</b>
                   <span>Currently {c.score}% — the fastest place to gain points.</span>
                   {isMember && <button onClick={() => nav(to)}>Practice now →</button>}
@@ -378,7 +394,7 @@ const ResultView: React.FC<{
 
         {isMember && (
           <div className="rs-cta">
-            <span className="em">🏆</span>
+            <span className="em"><i className="bi bi-stars" /></span>
             <div className="tx">
               <b>Every step counts!</b>
               <span>Stay consistent, keep learning, and unlock your full potential.</span>
@@ -391,36 +407,36 @@ const ResultView: React.FC<{
         {/* ── Aside ── */}
         <div className="rs-aside">
           <div className="rs-path-card">
-            <div className="hd">🚀 Recommended Pathway</div>
+            <div className="hd"><i className="bi bi-signpost-split-fill" /> Recommended Pathway</div>
             <div className="sub">Your best-fit learning path</div>
             <div className="rs-path-pick">
               <span className="ic">{'</>'}</span>
               <b>{result.pathwayLabel}</b>
             </div>
             <div className="rs-path-why">
-              <div><span>✅</span>Matched to your strongest areas: {topThree.slice(0, 2).map(c => c.label).join(' and ')}.</div>
-              <div><span>🗺️</span>Sets the weekly themes of your {member?.stats?.totalDays ?? 90}-day roadmap.</div>
-              <div><span>🎯</span>Daily missions are biased to your two weakest categories.</div>
+              <div><span><i className="bi bi-dot" /></span>Matched to your strongest areas: {topThree.slice(0, 2).map(c => c.label).join(' and ')}.</div>
+              <div><span><i className="bi bi-dot" /></span>Sets the weekly themes of your {member?.stats?.totalDays ?? 90}-day roadmap.</div>
+              <div><span><i className="bi bi-dot" /></span>Daily missions are biased to your two weakest categories.</div>
             </div>
             <button className="rs-path-btn" onClick={() => nav('/careerpilot/roadmap')}>View Full Roadmap →</button>
           </div>
 
           <div className="rs-card">
-            <div className="rs-sec-h">⭐ Your Top Strengths</div>
+            <div className="rs-sec-h"><i className="bi bi-trophy-fill" /> Your Top Strengths</div>
             {topThree.map(c => (
               <div className="rs-str" key={c.key}>
-                <span className="ic">{CAT_ICON[c.key] || '✓'}</span>
+                <span className="ic"><i className={`bi ${CAT_ICON[c.key] || 'bi-dot'}`} /></span>
                 <div className="tx"><b>{c.label}</b><span>Your strongest scoring area</span></div>
                 <span className="pc">{c.score}%</span>
               </div>
             ))}
-            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 8 }}>Keep it up! You're doing great. 👏</div>
+            <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 8 }}>Keep it up! You're doing great.</div>
           </div>
 
           {/* Next steps = today's real missions, with their real XP */}
           {isMember && !!member?.missions?.length && (
             <div className="rs-card">
-              <div className="rs-sec-h">🏁 Next Steps</div>
+              <div className="rs-sec-h"><i className="bi bi-flag-fill" /> Next Steps</div>
               {member.missions.map(m => (
                 <div className="rs-next" key={m.key}>
                   <span className={`ck${m.done ? ' on' : ''}`} />
@@ -437,14 +453,14 @@ const ResultView: React.FC<{
         {/* Unlock — never pitched to someone who has already paid */}
         {isMember ? (
           <div className="rs-done">
-            <div className="em">🎫</div>
+            <div className="em"><i className="bi bi-stars" /></div>
             <h3>You're a CareerPilot member.</h3>
             <p>This is your latest result. Your roadmap, Practice Lab, mock interviews and Resume Center are all unlocked.</p>
             <button onClick={onHome}>Go to Coding Home →</button>
           </div>
         ) : unlocked ? (
           <div className="rs-done">
-            <div className="em">🎉</div>
+            <div className="em"><i className="bi bi-stars" /></div>
             <h3>You're in! Membership activated.</h3>
             <p>Your personalized daily missions are ready.</p>
             <button onClick={onHome}>Go to Mission Control →</button>
@@ -454,11 +470,11 @@ const ResultView: React.FC<{
             <div className="rs-unlock-l">
               <h3>Unlock your full 90-day <span className="y">career transformation!</span></h3>
               <div className="rs-uf">
-                <div><span className="ck">✓</span> Personalized 90-day roadmap</div>
-                <div><span className="ck">✓</span> Daily missions &amp; practice</div>
-                <div><span className="ck">✓</span> AI-powered feedback</div>
-                <div><span className="ck">✓</span> Track progress &amp; improve</div>
-                <div><span className="ck">✓</span> Certificates &amp; CareerPilot</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> Personalized 90-day roadmap</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> Daily missions &amp; practice</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> AI-powered feedback</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> Track progress &amp; improve</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> Certificates &amp; CareerPilot</div>
               </div>
             </div>
             <div className="rs-unlock-r">
@@ -468,11 +484,11 @@ const ResultView: React.FC<{
               <div className="price">₹{price}<small> /year</small></div>
               <div className="oneline">One-time payment · 12 months access</div>
               <div className="rs-plan">
-                <div><span className="ck">✓</span> Full 90-day journey</div>
-                <div><span className="ck">✓</span> A career coach</div>
-                <div><span className="ck">✓</span> AI assessments &amp; practice</div>
-                <div><span className="ck">✓</span> CareerPilot &amp; certificates</div>
-                <div><span className="ck">✓</span> Priority support</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> Full 90-day journey</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> A career coach</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> AI assessments &amp; practice</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> CareerPilot &amp; certificates</div>
+                <div><span className="ck"><i className="bi bi-check-lg" /></span> Priority support</div>
               </div>
               {paymentOff ? (
                 <div style={{ fontSize: 13, color: '#475569', textAlign: 'center' }}>Online payment isn't enabled yet — please contact your mentor to activate.</div>
@@ -480,7 +496,7 @@ const ResultView: React.FC<{
                 <button className="rs-unlock-btn" onClick={unlock} disabled={paying}>{paying ? 'Opening payment…' : 'Unlock My Journey →'}</button>
               )}
               {payMsg && <div style={{ marginTop: 12, fontSize: 13, background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 8, padding: '8px 12px' }}>{payMsg}</div>}
-              <div className="rs-guarantee">🔒 30-day money-back guarantee</div>
+              <div className="rs-guarantee"><i className="bi bi-patch-check-fill" /> 30-day money-back guarantee</div>
             </div>
           </div>
         )}
@@ -488,10 +504,10 @@ const ResultView: React.FC<{
         {/* Conversion furniture — pointless once someone has bought */}
         {!isMember && (
           <>
-            <div className="rs-trust">🔒 100% secure · Your data is safe with us · Trusted by 12,000+ students across 200+ colleges</div>
+            <div className="rs-trust"><i className="bi bi-shield-lock-fill" /> 100% secure · Your data is safe with us · Trusted by students across 200+ colleges</div>
             <div className="rs-colleges">
               <span className="lb">Trusted by students from</span>
-              {[['🎓', 'VIT', 'Vellore Institute of Technology'], ['🎓', 'SRM', 'Institute of Science & Technology'], ['🎓', 'GITAM', '(Deemed to be University)'], ['🎓', 'Andhra University', 'Andhra University'], ['🏛️', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
+              {[['bi-mortarboard-fill', 'VIT', 'Vellore Institute of Technology'], ['bi-mortarboard-fill', 'SRM', 'Institute of Science & Technology'], ['bi-mortarboard-fill', 'GITAM', '(Deemed to be University)'], ['bi-mortarboard-fill', 'Andhra University', 'Andhra University'], ['bi-mortarboard-fill', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
                 <div className="rs-col" key={nm}><span className="bd">{ic}</span><div><b>{nm}</b><span>{sub}</span></div></div>
               ))}
             </div>
@@ -512,7 +528,7 @@ const ResultView: React.FC<{
       {topBrand(
         <>
           <div className="pf-spacer" />
-          <button className="pf-report" onClick={() => { if (printRef.current) return; printRef.current = true; window.print(); setTimeout(() => (printRef.current = false), 800); }}>⬇ Download Report</button>
+          <button className="pf-report" onClick={() => { if (printRef.current) return; printRef.current = true; window.print(); setTimeout(() => (printRef.current = false), 800); }}><i className="bi bi-download" /> Download Report</button>
           <div className="pf-user"><span className="av">{initial}</span><div className="who"><b>Hi, {firstName}</b></div></div>
         </>
       )}

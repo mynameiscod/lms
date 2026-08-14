@@ -358,6 +358,10 @@ const ResultView: React.FC<{
   const sorted = [...(result.categoryScores || [])].sort((a, b) => b.score - a.score);
   const topThree = sorted.slice(0, 3);
 
+  /** How many questions actually fed the score — the mockup's fourth fact. */
+  const answeredTotal = result.categoryScores.reduce(
+    (n, c: any) => n + (c.total ?? c.answered ?? 0), 0);
+
   const body = (
       <div className={`rs-wrap${isMember ? ' rs-member' : ''}`}>
         {isMember && <div className="rs-crumb">Assessment <span>›</span> <b>Results</b></div>}
@@ -399,6 +403,10 @@ const ResultView: React.FC<{
                 <div className="k">Attempts</div>
                 <div className="v">{(result as any).attempts ?? 1}</div>
               </div>
+              <div className="rs-fact">
+                <div className="k">Total questions</div>
+                <div className="v">{answeredTotal || '—'}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -410,7 +418,7 @@ const ResultView: React.FC<{
             const b = BANDS(c.score);
             return (
               <div className="rs-cat" key={c.key}>
-                <div className="nm">{CAT_ICON[c.key] || '•'} {c.label}</div>
+                <div className="nm"><i className={`bi ${CAT_ICON[c.key] || 'bi-dot'}`} /> {c.label}</div>
                 <div className="track"><i style={{ width: `${c.score}%`, background: b.color }} /></div>
                 <div className="pct">{c.score}%</div>
                 <div className="tag" style={{ color: b.color }}>{b.tag}</div>
@@ -420,6 +428,9 @@ const ResultView: React.FC<{
         </div>
 
         {/* Focus areas — the weakest categories, each with somewhere to act on it */}
+        {/* Focus areas beside the first week — the mockup pairs them, and they
+            answer the same question: what do I do about this score? */}
+        <div className="rs-pair">
         <div className="rs-card">
           <div className="rs-sec-h">Focus Areas <span className="hint">Areas to improve for a stronger profile</span></div>
           <div className="rs-focus-grid">
@@ -453,6 +464,7 @@ const ResultView: React.FC<{
               </div>
             ))}
           </div>
+        </div>
         </div>
 
         {isMember && (
@@ -571,7 +583,7 @@ const ResultView: React.FC<{
             <div className="rs-colleges">
               <span className="lb">Trusted by students from</span>
               {[['bi-mortarboard-fill', 'VIT', 'Vellore Institute of Technology'], ['bi-mortarboard-fill', 'SRM', 'Institute of Science & Technology'], ['bi-mortarboard-fill', 'GITAM', '(Deemed to be University)'], ['bi-mortarboard-fill', 'Andhra University', 'Andhra University'], ['bi-mortarboard-fill', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
-                <div className="rs-col" key={nm}><span className="bd">{ic}</span><div><b>{nm}</b><span>{sub}</span></div></div>
+                <div className="rs-col" key={nm}><span className="bd"><i className={`bi ${ic}`} /></span><div><b>{nm}</b><span>{sub}</span></div></div>
               ))}
             </div>
           </>

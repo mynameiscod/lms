@@ -406,10 +406,16 @@ const ResultView: React.FC<{
               <div className="enc">{encourage}</div>
               <div className="rs-updated"><i className="bi bi-clock-history" /> Updated just now</div>
             </div>
+            {/* A white donut with a violet arc, per the mockup — not a violet ring,
+                which would vanish into the gradient behind it. The solid disc is what
+                gives the dark score text something to sit on. */}
             <div className="rs-gauge">
-              <svg width="150" height="150">
-                <circle cx="75" cy="75" r="62" fill="none" stroke="rgba(255,255,255,.28)" strokeWidth="13" />
-                <circle cx="75" cy="75" r="62" fill="none" stroke="#ffffff" strokeWidth="13" strokeLinecap="round" strokeDasharray={`${dash} ${circumference}`} transform="rotate(-90 75 75)" />
+              <svg width="176" height="176" viewBox="0 0 176 176">
+                <circle cx="88" cy="88" r="72" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="16" />
+                <circle cx="88" cy="88" r="72" fill="none" stroke="#7C3AED" strokeWidth="16" strokeLinecap="round"
+                  strokeDasharray={`${(score / 100) * 2 * Math.PI * 72} ${2 * Math.PI * 72}`}
+                  transform="rotate(-90 88 88)" />
+                <circle cx="88" cy="88" r="58" fill="#fff" />
               </svg>
               <div className="ctr"><b>{score}</b><span>/ 100</span></div>
             </div>

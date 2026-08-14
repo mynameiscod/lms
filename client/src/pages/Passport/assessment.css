@@ -163,7 +163,8 @@
 .rs-score .big small { font-size: 18px; color: #94a3b8; }
 .rs-badge { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; font-size: 13px; padding: 4px 12px; border-radius: 99px; }
 .rs-score .enc { font-size: 12.5px; color: #64748b; line-height: 1.5; margin-top: 10px; max-width: 220px; }
-.rs-gauge { position: relative; width: 150px; height: 150px; }
+.rs-gauge { position: relative; width: clamp(150px, 13vw, 176px); aspect-ratio: 1; flex: none; }
+.rs-gauge svg { width: 100%; height: 100%; display: block; }
 .rs-gauge .ctr { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .rs-gauge .ctr b { font-size: 42px; font-weight: 900; color: #0f172a; line-height: 1; }
 .rs-gauge .ctr span { font-size: 12px; color: #94a3b8; }
@@ -474,8 +475,9 @@
 .rs-scorecard .rs-badge { background: rgba(255,255,255,.18); color: #fff;
   display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 99px;
   font-weight: 800; font-size: 13.5px; margin: 10px 0 12px; }
-.rs-scorecard .rs-gauge .ctr b { color: #fff; }
-.rs-scorecard .rs-gauge .ctr span { color: rgba(255,255,255,.75); }
+/* The disc behind the number is white, so the text stays dark. */
+.rs-scorecard .rs-gauge .ctr b { color: #0F172A; }
+.rs-scorecard .rs-gauge .ctr span { color: #94A3B8; }
 .rs-updated { margin-top: auto; padding-top: 18px; font-size: 12.5px;
   color: rgba(255,255,255,.72); display: flex; align-items: center; gap: 7px; }
 
@@ -493,3 +495,17 @@
 /* Score and figures side by side, as in the mockup. */
 .rs-scoregrid { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; }
 @media (max-width: 900px) { .rs-scoregrid { grid-template-columns: 1fr; } }
+
+/* ── Score and figures are ONE card, not two with a gap ─────────────────────
+   The mockup joins them: gradient left, white right, a single rounded outline.
+   Two separate cards left a seam down the middle that is not in the design. */
+.rs-scoregrid { gap: 0; border-radius: 18px; overflow: hidden;
+  box-shadow: 0 10px 30px rgba(15,23,42,.06); border: 1px solid #eef1f7; }
+.rs-scoregrid > .rs-card { border: none; border-radius: 0; box-shadow: none; margin: 0; }
+.rs-factcard { padding: clamp(20px, 2vw, 30px) clamp(20px, 2.2vw, 34px); }
+.rs-factcard .rs-facts { gap: 0; }
+/* Hairlines between the figures, as in the mockup — none above the first. */
+.rs-factcard .rs-fact { padding: 14px 0; border-top: 1px solid #eef1f7; }
+.rs-factcard .rs-fact:first-child { border-top: none; padding-top: 0; }
+.rs-factcard .rs-fact:last-child { padding-bottom: 0; }
+@media (max-width: 900px) { .rs-scoregrid { border-radius: 16px; } }

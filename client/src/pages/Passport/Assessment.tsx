@@ -366,30 +366,60 @@ const ResultView: React.FC<{
       <div className={`rs-wrap${isMember ? ' rs-member' : ''}`}>
         {isMember && <div className="rs-crumb">Assessment <span>›</span> <b>Results</b></div>}
         <div className="rs-hi">
-          <h1>Great start, {firstName}! <i className="bi bi-stars" /></h1>
-          <p>You've just discovered your Career Score. This is the first step towards your dream career.</p>
+          <div className="tx">
+            <h1>Great start, {firstName}! <i className="bi bi-stars" /></h1>
+            <p>You've just taken the first step towards your dream career.</p>
+          </div>
+          {/* Confetti + target, inline so there is no asset to ship. Decorative only. */}
+          <svg className="rs-hi-art" viewBox="0 0 260 150" aria-hidden="true">
+            <circle cx="214" cy="52" r="34" fill="#EEF0FF" />
+            <circle cx="214" cy="52" r="23" fill="#6C4BE8" />
+            <circle cx="214" cy="52" r="12" fill="#EEF0FF" />
+            <circle cx="214" cy="52" r="4" fill="#3B2A9E" />
+            <path d="M214 52 L246 24" stroke="#3B2A9E" strokeWidth="3" strokeLinecap="round" />
+            <path d="M242 18 L254 20 L248 31 Z" fill="#F2789F" />
+            <rect x="96" y="104" width="86" height="8" rx="4" fill="#C9CEF0" />
+            <rect x="104" y="60" width="70" height="46" rx="5" fill="#2F3559" />
+            <rect x="109" y="65" width="60" height="36" rx="3" fill="#4A5385" />
+            <circle cx="139" cy="46" r="17" fill="#F6C9A8" />
+            <path d="M122 44 a17 17 0 0 1 34 0 a30 30 0 0 0 -34 0 Z" fill="#241F3D" />
+            <path d="M118 104 v-22 a21 21 0 0 1 42 0 v22 Z" fill="#7C5CF0" />
+            {[[44,26,'#F2789F'],[70,12,'#3ECFC0'],[24,64,'#FBBF24'],[186,14,'#6C4BE8'],[58,88,'#60A5FA'],[16,110,'#F2789F'],[248,96,'#3ECFC0'],[236,120,'#FBBF24']]
+              .map(([x, y, c], i) => (
+                <rect key={i} x={x as number} y={y as number} width="9" height="9" rx="2"
+                      fill={c as string} transform={`rotate(${(i * 37) % 90} ${x} ${y})`} opacity=".9" />
+              ))}
+          </svg>
         </div>
 
         <div className="rs-cols">
         <div className="rs-colmain">
 
         {/* Score summary */}
-        <div className="rs-card">
+        <div className="rs-scoregrid">
+        <div className="rs-card rs-scorecard">
           <div className="rs-score">
-            <div>
-              <div className="lbl">Your Career Score</div>
+            <div className="rs-score-l">
+              <div className="lbl">Your Career Score <i className="bi bi-info-circle" title="A 0-100 reading of the assessment you just finished." /></div>
               <div className="big">{score}<small> /100</small></div>
-              <span className="rs-badge" style={{ background: scoreBand.color + '1a', color: scoreBand.color }}>{result.level}</span>
+              <span className="rs-badge">{result.level} <i className="bi bi-check-lg" /></span>
               <div className="enc">{encourage}</div>
+              <div className="rs-updated"><i className="bi bi-clock-history" /> Updated just now</div>
             </div>
             <div className="rs-gauge">
               <svg width="150" height="150">
-                <circle cx="75" cy="75" r="62" fill="none" stroke="#eef1f6" strokeWidth="13" />
-                <circle cx="75" cy="75" r="62" fill="none" stroke="#6650d8" strokeWidth="13" strokeLinecap="round" strokeDasharray={`${dash} ${circumference}`} transform="rotate(-90 75 75)" />
+                <circle cx="75" cy="75" r="62" fill="none" stroke="rgba(255,255,255,.28)" strokeWidth="13" />
+                <circle cx="75" cy="75" r="62" fill="none" stroke="#ffffff" strokeWidth="13" strokeLinecap="round" strokeDasharray={`${dash} ${circumference}`} transform="rotate(-90 75 75)" />
               </svg>
               <div className="ctr"><b>{score}</b><span>/ 100</span></div>
             </div>
-            {/* Only facts we genuinely hold — no invented percentile when there are no peers */}
+
+          </div>
+        </div>
+
+        {/* The figures live in their own panel, as the mockup shows — they are
+            reference data, not part of the score headline. */}
+        <div className="rs-card rs-factcard">
             <div className="rs-facts">
               <div className="rs-fact">
                 <div className="k">Percentile</div>
@@ -407,8 +437,7 @@ const ResultView: React.FC<{
                 <div className="k">Total questions</div>
                 <div className="v">{answeredTotal || '—'}</div>
               </div>
-            </div>
-          </div>
+            </div>        </div>
         </div>
 
         {/* Category breakdown */}
@@ -450,9 +479,9 @@ const ResultView: React.FC<{
               <b>{result.pathwayLabel}</b>
             </div>
             <div className="rs-path-why">
-              <div><span><i className="bi bi-dot" /></span>Matched to your strongest areas: {topThree.slice(0, 2).map(c => c.label).join(' and ')}.</div>
-              <div><span><i className="bi bi-dot" /></span>Sets the weekly themes of your {member?.stats?.totalDays ?? 90}-day roadmap.</div>
-              <div><span><i className="bi bi-dot" /></span>Daily missions are biased to your two weakest categories.</div>
+              <div><span className="bi-mk ok"><i className="bi bi-check-lg" /></span>Matched to your strongest areas: {topThree.slice(0, 2).map(c => c.label).join(' and ')}.</div>
+              <div><span className="bi-mk cal"><i className="bi bi-calendar3" /></span>Sets the weekly themes of your {member?.stats?.totalDays ?? 90}-day roadmap.</div>
+              <div><span className="bi-mk aim"><i className="bi bi-bullseye" /></span>Daily missions are biased to your two weakest categories.</div>
             </div>
             <button className="rs-path-btn" onClick={() => nav('/careerpilot/roadmap')}>View Full Roadmap →</button>
           </div>

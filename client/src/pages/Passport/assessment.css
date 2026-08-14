@@ -32,56 +32,56 @@
 .pf-spacer { flex: 1; }
 
 /* ── Taking: two-column ── */
-.as-wrap { width: min(1560px, 100%); margin: 0 auto; padding: clamp(16px, 2.5vw, 30px); display: grid; grid-template-columns: minmax(300px, 400px) 1fr; gap: clamp(16px, 2vw, 30px); align-items: start; }
-.as-side { background: #fff; border: 1px solid #eef1f7; border-radius: 18px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(15,23,42,.05); position: sticky; top: 90px; }
-.as-side h2 { font-size: 27px; font-weight: 900; color: #0f172a; line-height: 1.15; margin: 0; }
-.as-side h2 .b { color: #6650d8; }
-.as-side .rule { width: 42px; height: 4px; border-radius: 2px; background: #6650d8; margin: 12px 0 14px; }
-.as-side .intro { font-size: 13.5px; color: #64748b; line-height: 1.55; }
-.as-feats { margin: 20px 0 18px; display: grid; gap: 18px; }
-.as-feat { display: flex; gap: 12px; }
-.as-feat .ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
-.as-feat b { font-size: 14px; font-weight: 800; color: #0f172a; display: block; }
-.as-feat span { font-size: 12.5px; color: #64748b; line-height: 1.4; }
-.as-safe { background: linear-gradient(135deg,#f3f0ff,#eef4ff); border: 1px solid #e6e2fb; border-radius: 14px; padding: 15px; display: flex; gap: 12px; align-items: flex-start; position: relative; overflow: hidden; }
-.as-safe .sh { font-size: 20px; }
-.as-safe b { font-size: 13.5px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 3px; }
-.as-safe span { font-size: 12px; color: #64748b; line-height: 1.45; }
-.as-safe .lock { position: absolute; right: 8px; bottom: 2px; font-size: 40px; opacity: .18; }
+.cpa-wrap { width: min(1560px, 100%); margin: 0 auto; padding: clamp(16px, 2.5vw, 30px); display: grid; grid-template-columns: minmax(290px, 0.95fr) 1.85fr; gap: clamp(16px, 2vw, 30px); align-items: start; }
+.cpa-side { background: #fff; border: 1px solid #eef1f7; border-radius: 18px; padding: 26px 22px; box-shadow: 0 10px 30px rgba(15,23,42,.05); position: sticky; top: 90px; }
+.cpa-side h2 { font-size: 27px; font-weight: 900; color: #0f172a; line-height: 1.15; margin: 0; }
+.cpa-side h2 .b { color: #6650d8; }
+.cpa-side .rule { width: 42px; height: 4px; border-radius: 2px; background: #6650d8; margin: 12px 0 14px; }
+.cpa-side .intro { font-size: 13.5px; color: #64748b; line-height: 1.55; }
+.cpa-feats { margin: 20px 0 18px; display: grid; gap: 18px; }
+.cpa-feat { display: flex; gap: 12px; }
+.cpa-feat .ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 17px; flex-shrink: 0; }
+.cpa-feat b { font-size: 14px; font-weight: 800; color: #0f172a; display: block; }
+.cpa-feat span { font-size: 12.5px; color: #64748b; line-height: 1.4; }
+.cpa-safe { background: linear-gradient(135deg,#f3f0ff,#eef4ff); border: 1px solid #e6e2fb; border-radius: 14px; padding: 15px; display: flex; gap: 12px; align-items: flex-start; position: relative; overflow: hidden; }
+.cpa-safe .sh { font-size: 20px; }
+.cpa-safe b { font-size: 13.5px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 3px; }
+.cpa-safe span { font-size: 12px; color: #64748b; line-height: 1.45; }
+.cpa-safe .lock { position: absolute; right: 8px; bottom: 2px; font-size: 40px; opacity: .18; }
 
-.as-main { display: grid; gap: 16px; }
-.as-banner { background: linear-gradient(100deg,#6a4be0 0%,#4f6fd0 55%,#2fb6a8 100%); border-radius: 16px; padding: 20px 24px; color: #fff; display: flex; align-items: center; gap: 16px; box-shadow: 0 14px 34px rgba(79,63,150,.28); }
-.as-banner .bic { width: 46px; height: 46px; border-radius: 12px; background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
-.as-banner b { font-size: 17px; font-weight: 800; display: block; }
-.as-banner span { font-size: 13px; color: #e4e9ff; }
-.as-banner .bimg { margin-left: auto; font-size: 42px; }
-.as-card { background: #fff; border: 1px solid #eef1f7; border-radius: 18px; padding: 26px 28px; box-shadow: 0 10px 30px rgba(15,23,42,.05); }
-.as-qhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
-.as-cat { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; color: #6650d8; }
-.as-qnum { font-size: 13px; font-weight: 700; color: #94a3b8; }
-.as-q { font-size: 23px; font-weight: 800; color: #0f172a; margin: 0 0 6px; line-height: 1.25; }
-.as-qsub { font-size: 14px; color: #64748b; margin: 0 0 20px; }
-.as-opts { display: grid; gap: 13px; }
-.as-opt { display: flex; align-items: center; gap: 14px; text-align: left; padding: 16px 18px; border-radius: 13px; border: 1.5px solid #e8ecf3; background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
-.as-opt:hover { border-color: #c7bdf5; background: #faf9ff; }
-.as-opt.sel { border-color: #6650d8; background: #f5f2ff; box-shadow: 0 0 0 3px rgba(102,80,216,.1); }
-.as-opt .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; flex-shrink: 0; display: grid; place-items: center; }
-.as-opt.sel .radio { border-color: #6650d8; }
-.as-opt.sel .radio::after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: #6650d8; }
-.as-opt .ltr { width: 30px; height: 30px; border-radius: 9px; background: #eef1f6; color: #64748b; font-weight: 800; font-size: 14px; display: grid; place-items: center; flex-shrink: 0; }
-.as-opt.sel .ltr { background: #e0d9ff; color: #6650d8; }
-.as-opt .otxt b { font-size: 15px; font-weight: 800; color: #0f172a; display: block; }
-.as-opt .otxt span { font-size: 13px; color: #64748b; }
-.as-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; }
-.as-btn-back { background: #f4f5fb; border: 1px solid #e8ecf5; border-radius: 12px; padding: 13px 22px; font-weight: 700; font-size: 14.5px; color: #475569; cursor: pointer; }
-.as-btn-back:disabled { opacity: .45; cursor: default; }
-.as-btn-next { background: linear-gradient(90deg,#6a4be0,#5a3fd6); color: #fff; border: none; border-radius: 12px; padding: 13px 30px; font-weight: 800; font-size: 14.5px; cursor: pointer; box-shadow: 0 10px 24px rgba(106,75,224,.28); }
-.as-btn-next:disabled { opacity: .5; cursor: default; box-shadow: none; }
-.as-tip { background: #f6f7fd; border: 1px solid #eceffb; border-radius: 14px; padding: 15px 18px; display: flex; gap: 12px; align-items: center; }
-.as-tip .ic { width: 34px; height: 34px; border-radius: 10px; background: #efeaff; color: #6650d8; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; }
-.as-tip b { font-size: 13.5px; font-weight: 800; color: #0f172a; display: block; }
-.as-tip span { font-size: 12.5px; color: #64748b; }
-.as-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
+.cpa-main { display: grid; gap: 16px; }
+.cpa-banner { background: linear-gradient(100deg,#6a4be0 0%,#4f6fd0 55%,#2fb6a8 100%); border-radius: 16px; padding: 20px 24px; color: #fff; display: flex; align-items: center; gap: 16px; box-shadow: 0 14px 34px rgba(79,63,150,.28); }
+.cpa-banner .bic { width: 46px; height: 46px; border-radius: 12px; background: rgba(255,255,255,.16); display: grid; place-items: center; font-size: 22px; flex-shrink: 0; }
+.cpa-banner b { font-size: 17px; font-weight: 800; display: block; }
+.cpa-banner span { font-size: 13px; color: #e4e9ff; }
+.cpa-banner .bimg { margin-left: auto; font-size: 42px; }
+.cpa-card { background: #fff; border: 1px solid #eef1f7; border-radius: 18px; padding: 26px 28px; box-shadow: 0 10px 30px rgba(15,23,42,.05); }
+.cpa-qhead { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.cpa-cat { display: inline-flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; color: #6650d8; }
+.cpa-qnum { font-size: 13px; font-weight: 700; color: #94a3b8; }
+.cpa-q { font-size: 23px; font-weight: 800; color: #0f172a; margin: 0 0 6px; line-height: 1.25; }
+.cpa-qsub { font-size: 14px; color: #64748b; margin: 0 0 20px; }
+.cpa-opts { display: grid; gap: 13px; }
+.cpa-opt { display: flex; align-items: center; gap: 14px; text-align: left; padding: 16px 18px; border-radius: 13px; border: 1.5px solid #e8ecf3; background: #fff; cursor: pointer; transition: border-color .15s, background .15s; }
+.cpa-opt:hover { border-color: #c7bdf5; background: #faf9ff; }
+.cpa-opt.sel { border-color: #6650d8; background: #f5f2ff; box-shadow: 0 0 0 3px rgba(102,80,216,.1); }
+.cpa-opt .radio { width: 22px; height: 22px; border-radius: 50%; border: 2px solid #cbd5e1; flex-shrink: 0; display: grid; place-items: center; }
+.cpa-opt.sel .radio { border-color: #6650d8; }
+.cpa-opt.sel .radio::after { content: ''; width: 11px; height: 11px; border-radius: 50%; background: #6650d8; }
+.cpa-opt .ltr { width: 30px; height: 30px; border-radius: 9px; background: #eef1f6; color: #64748b; font-weight: 800; font-size: 14px; display: grid; place-items: center; flex-shrink: 0; }
+.cpa-opt.sel .ltr { background: #e0d9ff; color: #6650d8; }
+.cpa-opt .otxt b { font-size: 15px; font-weight: 800; color: #0f172a; display: block; }
+.cpa-opt .otxt span { font-size: 13px; color: #64748b; }
+.cpa-nav { display: flex; align-items: center; justify-content: space-between; margin-top: 22px; }
+.cpa-btn-back { background: #f4f5fb; border: 1px solid #e8ecf5; border-radius: 12px; padding: 13px 22px; font-weight: 700; font-size: 14.5px; color: #475569; cursor: pointer; }
+.cpa-btn-back:disabled { opacity: .45; cursor: default; }
+.cpa-btn-next { background: linear-gradient(90deg,#6a4be0,#5a3fd6); color: #fff; border: none; border-radius: 12px; padding: 13px 30px; font-weight: 800; font-size: 14.5px; cursor: pointer; box-shadow: 0 10px 24px rgba(106,75,224,.28); }
+.cpa-btn-next:disabled { opacity: .5; cursor: default; box-shadow: none; }
+.cpa-tip { background: #f6f7fd; border: 1px solid #eceffb; border-radius: 14px; padding: 15px 18px; display: flex; gap: 12px; align-items: center; }
+.cpa-tip .ic { width: 34px; height: 34px; border-radius: 10px; background: #efeaff; color: #6650d8; display: grid; place-items: center; font-size: 15px; flex-shrink: 0; }
+.cpa-tip b { font-size: 13.5px; font-weight: 800; color: #0f172a; display: block; }
+.cpa-tip span { font-size: 12.5px; color: #64748b; }
+.cpa-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; border-radius: 10px; padding: 10px 14px; font-size: 13.5px; }
 
 /* ── Result ── */
 /* Members see this inside the rail, so it fills the content column rather than
@@ -230,8 +230,8 @@
 .rs-retake button { background: none; border: none; color: #6650d8; font-weight: 700; font-size: 13.5px; cursor: pointer; }
 
 @media (max-width: 900px) {
-  .as-wrap { grid-template-columns: 1fr; }
-  .as-side { position: static; }
+  .cpa-wrap { grid-template-columns: 1fr; }
+  .cpa-side { position: static; }
   .rs-score { grid-template-columns: 1fr; text-align: center; justify-items: center; }
   .rs-score .enc { max-width: none; }
   .rs-path { text-align: center; }
@@ -245,22 +245,22 @@
 /* ── Sidebar, rebuilt to mirror the /careerpilot landing ─────────────────────
    The two screens are one product, so the panel a member sees before starting
    is the panel they keep while answering. */
-.as-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800;
+.cpa-chip { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800;
   color: #6d28d9; background: #f1eaff; border-radius: 99px; padding: 6px 13px; margin-bottom: 14px; }
-.as-side h2 { font-size: clamp(22px, 2.2vw, 30px); font-weight: 900; color: #0f172a;
+.cpa-side h2 { font-size: clamp(22px, 2.2vw, 30px); font-weight: 900; color: #0f172a;
   line-height: 1.2; letter-spacing: -.022em; margin: 0 0 12px; }
-.as-side h2 .b { color: #2563eb; }
-.as-side .intro { font-size: 14px; line-height: 1.62; color: #64748b; margin: 0 0 20px; }
+.cpa-side h2 .b { color: #2563eb; }
+.cpa-side .intro { font-size: 14px; line-height: 1.62; color: #64748b; margin: 0 0 20px; }
 
-.as-feat { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 15px; }
-.as-feat .ic { flex: none; width: 38px; height: 38px; border-radius: 11px;
+.cpa-feat { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 15px; }
+.cpa-feat .ic { flex: none; width: 38px; height: 38px; border-radius: 11px;
   display: grid; place-items: center; font-size: 16px; box-shadow: 0 3px 12px rgba(15,30,61,.09); }
-.as-feat b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
-.as-feat span { display: block; font-size: 12.5px; line-height: 1.5; color: #64748b; }
+.cpa-feat b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; margin-bottom: 2px; }
+.cpa-feat span { display: block; font-size: 12.5px; line-height: 1.5; color: #64748b; }
 
-.as-side-foot { display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
+.cpa-side-foot { display: flex; align-items: center; gap: 7px; flex-wrap: wrap;
   font-size: 12px; color: #94a3b8; border-top: 1px solid #eef1f6; padding-top: 14px; margin-top: 4px; }
-.as-side-foot .dot { opacity: .5; }
+.cpa-side-foot .dot { opacity: .5; }
 
 /* tones — scoped to beat the base rules on weight, then win on source order */
 .pf-shell .t-blue   { background: linear-gradient(135deg,#E7EFFF,#DCE8FF); color: #1D4ED8; }
@@ -269,20 +269,54 @@
 .pf-shell .t-amber  { background: linear-gradient(135deg,#FFF3DF,#FFEBCB); color: #B45309; }
 .pf-shell .t-rose   { background: linear-gradient(135deg,#FFE9EE,#FFDCE4); color: #BE123C; }
 
-.as-banner .bic i, .as-banner .bimg i { font-size: 1em; }
-.as-cat i { font-size: .95em; }
-.as-tip .ic i { color: #b45309; }
+.cpa-banner .bic i, .cpa-banner .bimg i { font-size: 1em; }
+.cpa-cat i { font-size: .95em; }
+.cpa-tip .ic i { color: #b45309; }
 .pf-timer .ic i { font-size: 1em; }
 
 /* ── all screens ── */
 @media (max-width: 1100px) {
   /* The question is the job; the pitch follows it. */
-  .as-wrap { grid-template-columns: 1fr; }
-  .as-side { order: 2; }
-  .as-main { order: 1; }
-  .as-side h2 { font-size: 24px; }
+  .cpa-wrap { grid-template-columns: 1fr; }
+  .cpa-side { order: 2; }
+  .cpa-main { order: 1; }
+  .cpa-side h2 { font-size: 24px; }
 }
 @media (max-width: 640px) {
-  .as-feat .ic { width: 34px; height: 34px; font-size: 14px; }
-  .as-side-foot { font-size: 11.5px; }
+  .cpa-feat .ic { width: 34px; height: 34px; font-size: 14px; }
+  .cpa-side-foot { font-size: 11.5px; }
+}
+
+/* ── Illustration in the pitch panel ── */
+.cpa-side-top { display: flex; align-items: flex-start; gap: 10px; }
+.cpa-side-top h2 { flex: 1; min-width: 0; }
+.cpa-art { flex: none; width: clamp(74px, 8vw, 108px); height: auto; margin-top: 2px; }
+
+/* ── Why take · carried through from the landing ── */
+.cpa-why { width: min(1560px, 100%); margin: 8px auto 0; padding: 0 clamp(16px, 2.5vw, 30px); }
+.cpa-why h2 { text-align: center; font-size: clamp(18px, 1.9vw, 23px); font-weight: 900;
+  color: #0f172a; letter-spacing: -.02em; margin: 0 0 18px; }
+.cpa-why-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+.cpa-why-card { background: #fff; border: 1px solid #eef1f7; border-radius: 16px; padding: 20px 18px; }
+.cpa-why-card .ic { width: 42px; height: 42px; border-radius: 12px; display: grid;
+  place-items: center; font-size: 18px; margin-bottom: 12px; }
+.cpa-why-card b { display: block; font-size: 14.5px; font-weight: 800; color: #0f172a; margin-bottom: 5px; }
+.cpa-why-card span { display: block; font-size: 12.5px; line-height: 1.55; color: #64748b; }
+
+/* ── Colleges strip ── */
+.cpa-colleges { width: min(1560px, 100%); margin: 26px auto 0; padding: 20px clamp(16px, 2.5vw, 30px) 50px;
+  display: flex; align-items: center; gap: clamp(14px, 2.4vw, 34px); flex-wrap: wrap; }
+.cpa-colleges .lab { font-size: 13.5px; font-weight: 800; color: #4f46e5; }
+.cpa-college { display: flex; align-items: center; gap: 9px; }
+.cpa-college .badge { width: 30px; height: 30px; border-radius: 9px; background: #eef2ff;
+  display: grid; place-items: center; }
+.cpa-college .badge i { font-size: 14px; color: #4f46e5; }
+.cpa-college b { display: block; font-size: 13px; font-weight: 800; color: #0f172a; }
+.cpa-college span { display: block; font-size: 11px; color: #94a3b8; line-height: 1.35; }
+
+@media (max-width: 640px) {
+  .cpa-side-top { flex-direction: column; }
+  .cpa-art { width: 84px; align-self: flex-end; margin-top: -6px; }
+  .cpa-why-grid { grid-template-columns: 1fr; }
+  .cpa-colleges { gap: 14px; padding-bottom: 36px; }
 }

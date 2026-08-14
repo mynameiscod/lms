@@ -40,6 +40,27 @@ const SIDE_FEATS: { ic: string; tone: string; title: string; desc: string }[] = 
   { ic: 'bi-lightning-charge-fill', tone: 'violet', title: 'Start Taking Daily Action', desc: 'Unlock daily missions, practice, and expert guidance.' },
 ];
 
+/** Mirrors the /careerpilot landing so both screens make the same promises. */
+const WHY: { ic: string; tone: string; title: string; desc: string }[] = [
+  { ic: 'bi-bullseye', tone: 'rose', title: 'Right Career Direction', desc: 'Understand which career path suits you best based on your strengths and interests.' },
+  { ic: 'bi-map-fill', tone: 'blue', title: 'Personalized Roadmap', desc: 'Get a customized 90-day roadmap based on your academic year and goals.' },
+  { ic: 'bi-star-fill', tone: 'amber', title: 'Improve Faster', desc: 'Focus on the right skills and activities that will make the biggest impact.' },
+  { ic: 'bi-trophy-fill', tone: 'violet', title: 'Stand Out', desc: 'Build a strong profile and become the kind of candidate employers value.' },
+  { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track Your Growth', desc: 'See your progress over time and celebrate every improvement.' },
+];
+
+/**
+ * Named institutions. The same list was emptied from the signup page on 2026-07-30 for
+ * being mockup copy rather than real relationships — empty this array to hide the strip.
+ */
+const COLLEGES: [string, string][] = [
+  ['VIT', 'Vellore Institute of Technology'],
+  ['SRM', 'Institute of Science & Technology'],
+  ['GITAM', '(Deemed to be University)'],
+  ['Andhra University', 'Andhra University'],
+  ['200+ More Colleges', 'Across AP & Telangana'],
+];
+
 const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
 const Assessment: React.FC = () => {
@@ -149,19 +170,36 @@ const Assessment: React.FC = () => {
         </>
       )}
 
-      <div className="as-wrap">
+      <div className="cpa-wrap">
         {/* Left sidebar */}
-        <aside className="as-side">
-          <span className="as-chip"><i className="bi bi-rocket-takeoff-fill" /> Mission Control</span>
-          <h2>Your Career Journey<br />Starts with <span className="b">Clarity</span></h2>
+        <aside className="cpa-side">
+          <span className="cpa-chip"><i className="bi bi-rocket-takeoff-fill" /> Mission Control</span>
+          <div className="cpa-side-top">
+            <h2>Your Career Journey<br />Starts with <span className="b">Clarity</span></h2>
+            <svg className="cpa-art" viewBox="0 0 120 108" aria-hidden="true">
+              <rect x="46" y="56" width="40" height="46" rx="5" fill="#7C6BF0" />
+              <rect x="46" y="56" width="40" height="7" rx="3.5" fill="#9B8DF7" />
+              <rect x="24" y="76" width="20" height="26" rx="4" fill="#3ECFC0" />
+              <circle cx="72" cy="38" r="22" fill="#EEF0FF" />
+              <circle cx="72" cy="38" r="15" fill="#4F46E5" />
+              <circle cx="72" cy="38" r="8" fill="#EEF0FF" />
+              <circle cx="72" cy="38" r="3" fill="#4F46E5" />
+              <path d="M72 38 L96 14" stroke="#3B3486" strokeWidth="2.5" strokeLinecap="round" />
+              <path d="M92 10 L104 12 L98 22 Z" fill="#4F46E5" />
+              <path d="M22 60 C34 44 52 40 62 46" stroke="#C7CBF5" strokeWidth="1.5"
+                    strokeDasharray="3 4" fill="none" strokeLinecap="round" />
+              <path d="M18 30 l2.5 5 5 2.5 -5 2.5 -2.5 5 -2.5 -5 -5 -2.5 5 -2.5 Z" fill="#8B9BFB" />
+              <path d="M104 46 l1.8 3.6 3.6 1.8 -3.6 1.8 -1.8 3.6 -1.8 -3.6 -3.6 -1.8 3.6 -1.8 Z" fill="#3ECFC0" />
+            </svg>
+          </div>
           <p className="intro">
             Take the free Career Readiness Assessment to know where you stand today and get a
             personalized roadmap to achieve your dream career.
           </p>
 
-          <div className="as-feats">
+          <div className="cpa-feats">
             {SIDE_FEATS.map(f => (
-              <div className="as-feat" key={f.title}>
+              <div className="cpa-feat" key={f.title}>
                 <span className={`ic t-${f.tone}`} aria-hidden="true"><i className={`bi ${f.ic}`} /></span>
                 <div><b>{f.title}</b><span>{f.desc}</span></div>
               </div>
@@ -171,7 +209,7 @@ const Assessment: React.FC = () => {
           {/* The landing shows "Start Free Assessment" here. Mid-assessment that button
               would either do nothing or throw away answers, so this says where they are
               instead. */}
-          <div className="as-side-foot">
+          <div className="cpa-side-foot">
             <i className="bi bi-clock" /> Assessment in progress
             <span className="dot">·</span>
             <i className="bi bi-shield-check" /> Your answers stay private
@@ -179,30 +217,30 @@ const Assessment: React.FC = () => {
         </aside>
 
         {/* Main */}
-        <main className="as-main">
-          <div className="as-banner">
+        <main className="cpa-main">
+          <div className="cpa-banner">
             <span className="bic" aria-hidden="true"><i className="bi bi-star-fill" /></span>
             <div><b>Answer honestly. There are no wrong answers.</b><span>We just want to understand you better.</span></div>
             <span className="bimg" aria-hidden="true"><i className="bi bi-bullseye" /></span>
           </div>
 
-          {error && <div className="as-err">{error}</div>}
+          {error && <div className="cpa-err">{error}</div>}
 
           {current && (
-            <div className="as-card">
-              <div className="as-qhead">
-                <span className="as-cat"><i className={`bi ${CAT_ICON[current.category] || 'bi-dot'}`} /> {prettyCat(current.category)}</span>
-                <span className="as-qnum">Question {idx + 1} of {total}</span>
+            <div className="cpa-card">
+              <div className="cpa-qhead">
+                <span className="cpa-cat"><i className={`bi ${CAT_ICON[current.category] || 'bi-dot'}`} /> {prettyCat(current.category)}</span>
+                <span className="cpa-qnum">Question {idx + 1} of {total}</span>
               </div>
-              <h2 className="as-q">{current.text}</h2>
-              <p className="as-qsub">{CAT_HELP[current.category] || 'Choose the option that best describes you.'}</p>
-              <div className="as-opts">
+              <h2 className="cpa-q">{current.text}</h2>
+              <p className="cpa-qsub">{CAT_HELP[current.category] || 'Choose the option that best describes you.'}</p>
+              <div className="cpa-opts">
                 {current.options.map((opt, i) => {
                   const sel = answers[current.id] === i;
                   const [head, ...restp] = String(opt).split(/\s[—–-]\s|:\s/);
                   const sub = restp.join(' ').trim();
                   return (
-                    <button key={i} className={`as-opt${sel ? ' sel' : ''}`} onClick={() => setAnswers(a => ({ ...a, [current.id]: i }))}>
+                    <button key={i} className={`cpa-opt${sel ? ' sel' : ''}`} onClick={() => setAnswers(a => ({ ...a, [current.id]: i }))}>
                       <span className="radio" />
                       <span className="ltr">{String.fromCharCode(65 + i)}</span>
                       <span className="otxt"><b>{head}</b>{sub && <span>{sub}</span>}</span>
@@ -210,24 +248,49 @@ const Assessment: React.FC = () => {
                   );
                 })}
               </div>
-              <div className="as-nav">
-                <button className="as-btn-back" disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))}><i className="bi bi-arrow-left" /> Back</button>
+              <div className="cpa-nav">
+                <button className="cpa-btn-back" disabled={idx === 0} onClick={() => setIdx(i => Math.max(0, i - 1))}><i className="bi bi-arrow-left" /> Back</button>
                 {idx < total - 1 ? (
-                  <button className="as-btn-next" disabled={answers[current.id] === undefined} onClick={() => setIdx(i => i + 1)}>Next <i className="bi bi-arrow-right" /></button>
+                  <button className="cpa-btn-next" disabled={answers[current.id] === undefined} onClick={() => setIdx(i => i + 1)}>Next <i className="bi bi-arrow-right" /></button>
                 ) : (
-                  <button className="as-btn-next" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? 'Scoring…' : <>See my Career Score <i className="bi bi-arrow-right" /></>}</button>
+                  <button className="cpa-btn-next" disabled={!canSubmit || submitting} onClick={submit}>{submitting ? 'Scoring…' : <>See my Career Score <i className="bi bi-arrow-right" /></>}</button>
                 )}
               </div>
               {!canSubmit && idx === total - 1 && <div style={{ textAlign: 'right', fontSize: 12, color: '#94a3b8', marginTop: 8 }}>Answer all {total} questions to submit ({answeredCount}/{total}).</div>}
             </div>
           )}
 
-          <div className="as-tip">
+          <div className="cpa-tip">
             <span className="ic" aria-hidden="true"><i className="bi bi-lightbulb-fill" /></span>
             <div><b>Tip: There are no right or wrong answers.</b><span>Be honest so we can give you the best guidance.</span></div>
           </div>
         </main>
       </div>
+
+      {/* Same promises as the landing, carried through the assessment. */}
+      <section className="cpa-why">
+        <h2>Why take the Career Readiness Assessment?</h2>
+        <div className="cpa-why-grid">
+          {WHY.map(w => (
+            <div className="cpa-why-card" key={w.title}>
+              <div className={`ic t-${w.tone}`} aria-hidden="true"><i className={`bi ${w.ic}`} /></div>
+              <b>{w.title}</b><span>{w.desc}</span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {!!COLLEGES.length && (
+        <section className="cpa-colleges">
+          <span className="lab">Trusted by Students from</span>
+          {COLLEGES.map(([nm, sub]) => (
+            <div className="cpa-college" key={nm}>
+              <span className="badge" aria-hidden="true"><i className="bi bi-mortarboard-fill" /></span>
+              <div><b>{nm}</b><span>{sub}</span></div>
+            </div>
+          ))}
+        </section>
+      )}
     </div>
   );
 };

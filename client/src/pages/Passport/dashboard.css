@@ -97,7 +97,8 @@
 .gd-user-btn:hover { border-color: #d9def0; }
 .gd-user-btn .av { width: 34px; height: 34px; border-radius: 50%; background: linear-gradient(135deg,#7c6cf0,#37d0c0); color: #fff; display: grid; place-items: center; font-weight: 900; font-size: 14px; flex-shrink: 0; }
 .gd-user-btn .nm { font-size: 13.5px; font-weight: 800; color: #29313f; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.gd-user-btn .cr { width: 12px; height: 12px; display: grid; place-items: center; color: #a3aab8; }
+.gd-user-btn .cr { width: 12px; height: 12px; display: grid; place-items: center; color: #a3aab8; transition: transform .16s; }
+.gd-user-btn .cr.open { transform: rotate(180deg); }
 .gd-user-btn .cr svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
 
 .gd-user-menu { position: absolute; right: 0; top: calc(100% + 8px); width: 250px; background: #fff; border: 1px solid #ecedf5; border-radius: 14px; box-shadow: 0 18px 46px rgba(15,23,42,.16); padding: 6px; z-index: 45; }

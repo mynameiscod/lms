@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import { useAuth } from '../../contexts/AuthContext';
@@ -61,6 +61,42 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
   const [copied, setCopied] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userOpen, setUserOpen] = useState(false);
+  const userRef = useRef<HTMLDivElement>(null);
+
+  /**
+   * The drawer and the account menu are two ways of saying the same thing, so only one of
+   * them is ever allowed on screen. They used to be able to stack: tapping the name opened
+   * the account card, tapping the burger then opened the rail *underneath* it, and the
+   * card stayed floating on top covering the nav.
+   */
+  const openDrawer = () => { setUserOpen(false); setMobileOpen(true); };
+  const toggleUserMenu = () => { setMobileOpen(false); setUserOpen(o => !o); };
+
+  /**
+   * Dismiss the account menu.
+   *
+   * It closed on `onMouseLeave` alone, which a touchscreen never fires — so on a phone
+   * the card had no way out at all short of navigating away, and it followed the member
+   * around on top of whatever they opened next. A pointerdown outside (mouse and touch
+   * both) or Escape closes it now; the drawer keeps its scrim for the same job.
+   */
+  useEffect(() => {
+    if (!userOpen) return;
+    const onDown = (e: PointerEvent) => {
+      if (!userRef.current?.contains(e.target as Node)) setUserOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [userOpen]);
+
+  useEffect(() => {
+    if (!userOpen && !mobileOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { setUserOpen(false); setMobileOpen(false); }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [userOpen, mobileOpen]);
 
   /**
    * M2 — lock the page behind the drawer.
@@ -139,7 +175,7 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
           It is fixed at the top-left, i.e. exactly where the open drawer puts its logo —
           so it hides itself once the drawer is out, and the drawer carries its own close
           button instead of two controls fighting over the same 42px. */}
-      <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={() => setMobileOpen(true)} aria-label="Menu">
+      <button className={`gd-burger${mobileOpen ? ' hide' : ''}`} onClick={openDrawer} aria-label="Menu">
         <Icon name="menu" />
       </button>
       {mobileOpen && <div className="gd-scrim" onClick={() => setMobileOpen(false)} />}
@@ -271,14 +307,14 @@ const MemberShell: React.FC<Props> = ({ children, data }) => {
                 </div>
               </>
             )}
-            <div className="gd-user">
-              <button className="gd-user-btn" onClick={() => setUserOpen(o => !o)}>
+            <div className="gd-user" ref={userRef}>
+              <button className="gd-user-btn" onClick={toggleUserMenu} aria-expanded={userOpen} aria-haspopup="true">
                 <span className="av">{initial}</span>
                 <span className="nm">{d?.name || firstName}</span>
-                <span className="cr"><Icon name="chevron" /></span>
+                <span className={`cr${userOpen ? ' open' : ''}`}><Icon name="chevron" /></span>
               </button>
               {userOpen && (
-                <div className="gd-user-menu" onMouseLeave={() => setUserOpen(false)}>
+                <div className="gd-user-menu">
                   <div className="hd">
                     <b>{d?.name || firstName}</b>
                     {lv && <span>Level {lv.level} · {lv.title}</span>}

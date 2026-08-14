@@ -87,9 +87,9 @@
 /* Members see this inside the rail, so it fills the content column rather than
    floating in a 940px strip with white space either side. Free candidates get the
    standalone page, where it centres against a comfortable reading width. */
-.rs-wrap { width: min(1400px, 100%); margin: 0 auto; padding: clamp(16px, 2.5vw, 30px); display: grid; gap: 16px; }
+.rs-wrap { width: min(1560px, 100%); margin: 0 auto; padding: clamp(16px, 2.5vw, 30px); display: grid; gap: 16px; }
 .rs-member { max-width: none; padding: 0; }
-.rs-cols { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+.rs-cols { display: grid; grid-template-columns: minmax(0, 1fr) clamp(320px, 26%, 400px); gap: 16px; align-items: start; }
 @media (max-width: 1180px) { .rs-cols { grid-template-columns: 1fr; } }
 .rs-colmain { display: grid; gap: 16px; min-width: 0; }
 .rs-aside { display: grid; gap: 16px; align-content: start; }
@@ -320,3 +320,34 @@
   .cpa-why-grid { grid-template-columns: 1fr; }
   .cpa-colleges { gap: 14px; padding-bottom: 36px; }
 }
+
+/* ── Result: the remaining screen sizes ─────────────────────────────────────
+   The breakpoints above stop at 900px. These carry the report the rest of the
+   way down, where the fixed-column grids would otherwise overflow. */
+@media (max-width: 700px) {
+  /* Four fixed columns cannot fit a phone. Stack the label above its bar and
+     let the score and verdict sit together underneath. */
+  .rs-cat { grid-template-columns: 1fr auto; gap: 6px 10px; }
+  .rs-cat > :nth-child(1) { grid-column: 1 / -1; }
+  .rs-cat > :nth-child(2) { grid-column: 1; }
+  .rs-days { grid-template-columns: repeat(auto-fit, minmax(88px, 1fr)); }
+  .rs-score .gauge, .rs-gauge { margin-inline: auto; }
+  .rs-focus-card, .rs-str, .rs-next { min-width: 0; }
+}
+@media (max-width: 480px) {
+  .rs-hi h1 { font-size: 22px; }
+  .rs-score .big { font-size: 34px; }
+  .rs-sec-h { flex-wrap: wrap; }
+  .rs-days { grid-template-columns: repeat(auto-fit, minmax(76px, 1fr)); gap: 8px; }
+}
+
+/* Wide screens: the report should use the room rather than stretch two columns. */
+@media (min-width: 1500px) {
+  .rs-hi h1 { font-size: 34px; }
+  .rs-score .big { font-size: 46px; }
+}
+
+/* Long words in a narrow aside (pathway names, category labels) must wrap, not
+   push the grid wider than the screen. */
+.rs-path-pick, .rs-cat, .rs-str, .rs-focus-card, .rs-next { overflow-wrap: anywhere; }
+.rs-wrap, .rs-cols, .rs-colmain, .rs-aside { min-width: 0; }

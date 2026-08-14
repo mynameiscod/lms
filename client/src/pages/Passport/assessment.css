@@ -532,16 +532,21 @@ svg.rs-hi-art { width: clamp(220px, 26vw, 380px); height: auto; max-width: none;
 .rs-hi .tx { padding-bottom: 6px; }
 .rs-hi h1 { line-height: 1.15; }
 
+/* No object-fit and no percentage max-width. Both together were the bug: the box
+   stayed at its full height while `contain` shrank the picture inside it to satisfy
+   max-width, and object-position pinned that picture to the bottom — leaving dead
+   space ABOVE it, inside the element, which then set the height of the whole row.
+   Sizing by height alone lets the box match the picture exactly. */
 img.rs-hi-art {
-  height: clamp(150px, 21vw, 300px);
-  width: auto; max-width: 52%;
-  object-fit: contain; object-position: bottom right;
+  height: clamp(130px, 15vw, 210px);
+  width: auto; max-width: 42vw;
+  display: block;
   justify-self: end; align-self: end;
-  margin-bottom: -14px;   /* tuck it down onto the cards, as the mockup does */
+  margin-bottom: -10px;   /* tuck it onto the cards, as the mockup does */
 }
 
 /* The drawn fallback is wider and flatter, so it takes width and no negative tuck. */
 svg.rs-hi-art { width: clamp(220px, 26vw, 380px); height: auto; max-width: none; margin-bottom: 0; }
 
-@media (max-width: 1100px) { img.rs-hi-art { height: clamp(140px, 19vw, 220px); max-width: 46%; } }
+@media (max-width: 1100px) { img.rs-hi-art { height: clamp(120px, 14vw, 180px); } }
 @media (max-width: 820px)  { .rs-hi { align-items: center; } .rs-hi .tx { padding-bottom: 0; } }

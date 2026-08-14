@@ -544,6 +544,33 @@ const ResultView: React.FC<{
         ) : (
           <div className="rs-unlock">
             <div className="rs-unlock-l">
+              {/* Rocket + starfield, as the mockup shows. Decorative, so it is hidden
+                  from screen readers and dropped entirely on a narrow panel. */}
+              <svg className="rs-rocket" viewBox="0 0 200 190" aria-hidden="true">
+                <defs>
+                  <linearGradient id="rkBody" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0" stopColor="#FFFFFF" /><stop offset="1" stopColor="#D8DEF5" />
+                  </linearGradient>
+                  <linearGradient id="rkFlame" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor="#FFD166" /><stop offset="1" stopColor="#F4623A" />
+                  </linearGradient>
+                </defs>
+                <g transform="rotate(-38 108 78)">
+                  <path d="M108 20 C128 44 134 74 126 104 L90 104 C82 74 88 44 108 20 Z" fill="url(#rkBody)" />
+                  <path d="M108 20 C118 32 123 47 125 62 L108 62 Z" fill="#F2789F" opacity=".9" />
+                  <circle cx="108" cy="62" r="13" fill="#6C4BE8" />
+                  <circle cx="108" cy="62" r="8" fill="#3B2A9E" />
+                  <path d="M90 100 L70 128 L94 118 Z" fill="#8B6BF0" />
+                  <path d="M126 100 L146 128 L122 118 Z" fill="#8B6BF0" />
+                  <path d="M94 118 L108 150 L122 118 Z" fill="url(#rkFlame)" />
+                </g>
+                {[[24,30,2.4],[52,16,1.7],[176,44,2.1],[160,18,1.4],[36,150,1.8],[186,120,2.2],[14,92,1.5]]
+                  .map(([x, y, r], i) => <circle key={i} cx={x} cy={y} r={r} fill="#fff" opacity=".75" />)}
+                <ellipse cx="86" cy="158" rx="46" ry="20" fill="#fff" opacity=".16" />
+                <ellipse cx="126" cy="164" rx="34" ry="15" fill="#fff" opacity=".12" />
+              </svg>
+
+              <div className="rs-unlock-copy">
               <h3>Unlock your full 90-day <span className="y">career transformation!</span></h3>
               <div className="rs-uf">
                 <div><span className="ck"><i className="bi bi-check-lg" /></span> Personalized 90-day roadmap</div>
@@ -551,6 +578,7 @@ const ResultView: React.FC<{
                 <div><span className="ck"><i className="bi bi-check-lg" /></span> AI-powered feedback</div>
                 <div><span className="ck"><i className="bi bi-check-lg" /></span> Track progress &amp; improve</div>
                 <div><span className="ck"><i className="bi bi-check-lg" /></span> Certificates &amp; CareerPilot</div>
+              </div>
               </div>
             </div>
             <div className="rs-unlock-r">

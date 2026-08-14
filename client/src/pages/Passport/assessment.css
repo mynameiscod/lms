@@ -205,14 +205,19 @@
 .rs-day span { font-size: 10.5px; color: #94a3b8; line-height: 1.3; display: block; margin-top: 2px; }
 
 .rs-unlock { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(30,27,75,.28); }
-.rs-unlock-l { background: linear-gradient(150deg,#141a4b 0%,#153a4e 60%,#0f766e 100%); color: #fff;
-  padding: clamp(28px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; }
+.rs-unlock-l { background: linear-gradient(135deg,#1B1160 0%,#2A1A86 55%,#3B23A8 100%); color: #fff;
+  padding: clamp(28px, 3vw, 44px); display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.95fr);
+  gap: clamp(12px, 2vw, 28px); align-items: center; position: relative; overflow: hidden; }
+.rs-unlock-copy { min-width: 0; }
+.rs-rocket { width: 100%; max-width: 320px; height: auto; justify-self: center; }
 .rs-unlock-l h3 { font-size: clamp(24px, 2.1vw, 32px); font-weight: 900; line-height: 1.2;
   margin: 0 0 22px; max-width: 22ch; }
 .rs-unlock-l h3 .y { color: #f5c945; }
 .rs-uf { display: grid; gap: 14px; }
-.rs-uf div { display: flex; gap: 12px; align-items: center; font-size: clamp(14.5px, 1.05vw, 17px); color: #e2e9ff; }
-.rs-uf .ck { color: #37d0c0; font-weight: 900; font-size: 1.05em; flex: none; }
+.rs-uf div { display: flex; gap: 13px; align-items: center; font-size: clamp(14.5px, 1.05vw, 17px); color: #e2e9ff; }
+.rs-uf .ck { flex: none; width: 24px; height: 24px; border-radius: 50%;
+  background: #22C55E; color: #fff; display: grid; place-items: center;
+  font-size: 13px; font-weight: 900; box-shadow: 0 2px 8px rgba(34,197,94,.35); }
 .rs-unlock-r { background: #fff; padding: clamp(24px, 2.2vw, 36px) clamp(22px, 2.2vw, 36px);
   position: relative; display: flex; flex-direction: column; justify-content: center; }
 .rs-unlock-r .t { font-size: clamp(16px, 1.25vw, 20px); font-weight: 800; color: #0f172a; }
@@ -430,3 +435,21 @@
   color: #475569; line-height: 1.6; text-align: center; margin: 4px 0 0; }
 
 @media (max-width: 900px)  { .rs-unlock { grid-template-columns: 1fr; } }
+
+/* The plan benefits run in TWO columns in the mockup, which also stops the card
+   growing taller than the illustration beside it. */
+.rs-plan { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; }
+.rs-plan div { align-items: flex-start; }
+.rs-plan .ck { margin-top: 1px; }
+
+/* The guarantee sits under the button with its shield, centred. */
+.rs-guarantee { display: flex; align-items: center; justify-content: center; gap: 7px; }
+.rs-guarantee i { color: #6650d8; font-size: 1.05em; }
+
+@media (max-width: 1200px) { .rs-rocket { max-width: 240px; } }
+@media (max-width: 900px) {
+  /* Stacked panels: the rocket would push the copy into a sliver, so it goes. */
+  .rs-unlock-l { grid-template-columns: 1fr; }
+  .rs-rocket { display: none; }
+}
+@media (max-width: 620px) { .rs-plan { grid-template-columns: 1fr; } }

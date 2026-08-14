@@ -205,32 +205,37 @@
 .rs-day span { font-size: 10.5px; color: #94a3b8; line-height: 1.3; display: block; margin-top: 2px; }
 
 .rs-unlock { display: grid; grid-template-columns: 1.15fr 1fr; gap: 0; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(30,27,75,.28); }
-.rs-unlock-l { background: linear-gradient(150deg,#141a4b 0%,#153a4e 60%,#0f766e 100%); color: #fff; padding: 30px 30px; }
-.rs-unlock-l h3 { font-size: 24px; font-weight: 900; line-height: 1.15; margin: 0 0 16px; }
+.rs-unlock-l { background: linear-gradient(150deg,#141a4b 0%,#153a4e 60%,#0f766e 100%); color: #fff;
+  padding: clamp(28px, 3vw, 44px); display: flex; flex-direction: column; justify-content: center; }
+.rs-unlock-l h3 { font-size: clamp(24px, 2.1vw, 32px); font-weight: 900; line-height: 1.2;
+  margin: 0 0 22px; max-width: 22ch; }
 .rs-unlock-l h3 .y { color: #f5c945; }
-.rs-uf { display: grid; gap: 11px; }
-.rs-uf div { display: flex; gap: 10px; align-items: center; font-size: 14px; color: #dbe4ff; }
-.rs-uf .ck { color: #37d0c0; font-weight: 900; }
-.rs-unlock-r { background: #fff; padding: 22px 24px 26px; position: relative; }
+.rs-uf { display: grid; gap: 14px; }
+.rs-uf div { display: flex; gap: 12px; align-items: center; font-size: clamp(14.5px, 1.05vw, 17px); color: #e2e9ff; }
+.rs-uf .ck { color: #37d0c0; font-weight: 900; font-size: 1.05em; flex: none; }
+.rs-unlock-r { background: #fff; padding: clamp(24px, 2.2vw, 36px) clamp(22px, 2.2vw, 36px);
+  position: relative; display: flex; flex-direction: column; justify-content: center; }
 /* Room for the absolutely-positioned Save chip so the title never runs under it. */
 .rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 108px; }
 .rs-unlock-r .rs-offer { padding-right: 14px; }
-.rs-unlock-r .t { font-size: 15px; font-weight: 800; color: #0f172a; }
-.rs-unlock-r .price { font-size: 34px; font-weight: 900; color: #6650d8; margin: 6px 0 2px; }
-.rs-unlock-r .price small { font-size: 15px; color: #94a3b8; font-weight: 700; }
-.rs-unlock-r .oneline { font-size: 12px; color: #94a3b8; margin-bottom: 14px; }
-.rs-plan { display: grid; gap: 9px; margin-bottom: 18px; }
-.rs-plan div { display: flex; gap: 9px; align-items: center; font-size: 13.5px; color: #334155; }
-.rs-plan .ck { color: #16a34a; font-weight: 900; }
-.rs-unlock-btn { width: 100%; background: linear-gradient(90deg,#6a4be0,#5a3fd6); color: #fff; border: none; border-radius: 12px; padding: 14px; font-weight: 800; font-size: 15px; cursor: pointer; box-shadow: 0 10px 24px rgba(106,75,224,.28); }
+.rs-unlock-r .t { font-size: clamp(16px, 1.25vw, 20px); font-weight: 800; color: #0f172a; }
+.rs-unlock-r .price { font-size: clamp(36px, 3vw, 48px); font-weight: 900; color: #6650d8; margin: 8px 0 3px; }
+.rs-unlock-r .price small { font-size: clamp(15px, 1.15vw, 18px); color: #94a3b8; font-weight: 700; }
+.rs-unlock-r .oneline { font-size: clamp(12.5px, 1vw, 14.5px); color: #94a3b8; margin-bottom: 20px; }
+.rs-plan { display: grid; gap: 13px; margin-bottom: 24px; }
+.rs-plan div { display: flex; gap: 11px; align-items: center; font-size: clamp(14px, 1.05vw, 16.5px); color: #334155; }
+.rs-plan .ck { color: #16a34a; font-weight: 900; font-size: 1.05em; flex: none; }
+.rs-unlock-btn { width: 100%; background: linear-gradient(90deg,#6a4be0,#5a3fd6); color: #fff; border: none;
+  border-radius: 12px; padding: 16px; font-weight: 800; font-size: clamp(15px, 1.2vw, 17px);
+  cursor: pointer; box-shadow: 0 10px 24px rgba(106,75,224,.28); }
 .rs-unlock-btn:disabled { opacity: .6; cursor: default; }
-.rs-guarantee { text-align: center; font-size: 12px; color: #94a3b8; margin-top: 10px; }
-.rs-save { position: absolute; top: 16px; right: 16px; background: #f5c945; color: #4a3b00; font-size: 11px; font-weight: 900; border-radius: 9px; padding: 6px 10px; text-align: center; line-height: 1.2; }
+.rs-guarantee { text-align: center; font-size: clamp(12.5px, 1vw, 14px); color: #94a3b8; margin-top: 14px; }
+.rs-save { position: absolute; top: 18px; right: 18px; background: #f5c945; color: #4a3b00; font-size: clamp(11px, .9vw, 12.5px); font-weight: 900; border-radius: 9px; padding: 6px 10px; text-align: center; line-height: 1.2; }
 /* Was absolute at top:-11px inside .rs-unlock, which sets overflow:hidden to clip
    the two panels' corners — so the badge clipped itself in half and the label was
    unreadable. In the flow now: it cannot be cut off by a parent it does not
    control, and it sits above the title exactly as the mockup shows. */
-.rs-offer { display: inline-block; background: #f5c945; color: #4a3b00; font-size: 10.5px;
+.rs-offer { display: inline-block; background: #f5c945; color: #4a3b00; font-size: clamp(11px, .9vw, 12.5px);
   font-weight: 900; letter-spacing: .5px; border-radius: 99px; padding: 5px 14px;
   white-space: nowrap; margin-bottom: 12px; }
 .rs-trust { background: #f3f4fb; border: 1px solid #eaecf7; border-radius: 12px; padding: 12px; text-align: center; font-size: 12.5px; color: #64748b; font-weight: 600; }
@@ -424,3 +429,12 @@
 @media (max-width: 1000px) { .rs-pair { grid-template-columns: 1fr; } }
 @media (max-width: 760px)  { .rs-days { grid-template-columns: repeat(4, minmax(0, 1fr)); row-gap: 16px; } }
 @media (max-width: 460px)  { .rs-days { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* The mentor-activation notice is the reason the button is missing, so it should
+   read like an explanation rather than fine print. */
+.rs-unlock-r .rs-uh-note, .rs-unlock-r > p { font-size: clamp(13px, 1.05vw, 15px);
+  color: #475569; line-height: 1.6; text-align: center; margin: 4px 0 0; }
+
+/* The Save chip must not sit over the title once the type is larger. */
+@media (min-width: 1500px) { .rs-unlock-r .t, .rs-unlock-r .rs-offer { padding-right: 130px; } }
+@media (max-width: 900px)  { .rs-unlock { grid-template-columns: 1fr; } }

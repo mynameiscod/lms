@@ -83,6 +83,8 @@ export function scoreAttempt(
     stage?: string | null;
     background?: string | null;
     pathways?: IPassportPathway[];
+    /** Off unless the tenant has switched rules on; drafting must not affect anyone. */
+    rulesActive?: boolean;
   } = {},
 ) {
   const ansMap = new Map<string, number>(answers.map(a => [String(a.questionId), a.chosen]));
@@ -115,17 +117,22 @@ export function scoreAttempt(
   // Pathway: admin-authored matching rules, evaluated against everything we now know
   // about this member — including the scores computed just above, which is why this sits
   // here rather than at the start.
-  const matched = matchPathway(ctx.pathways || [], {
-    careerGoal: ctx.careerGoal,
-    stage: ctx.stage,
-    background: ctx.background,
-    careerScore,
-    categoryScores: categoryScores.map(c => ({ key: c.key, score: c.score })),
-  });
+  //
+  // Only consulted once the tenant has explicitly switched rules on. A rule that exists
+  // is a rule being drafted; a rule that is live is a deliberate act, and the difference
+  // is what lets an admin build a rule set without it taking effect half-written.
+  const matched = ctx.rulesActive
+    ? matchPathway(ctx.pathways || [], {
+        careerGoal: ctx.careerGoal,
+        stage: ctx.stage,
+        background: ctx.background,
+        careerScore,
+        categoryScores: categoryScores.map(c => ({ key: c.key, score: c.score })),
+      })
+    : { pathway: null, via: 'none' as const, trace: [] };
 
-  // The legacy rules, kept as a fallback for one case only: a tenant whose pathways carry
-  // no rules at all, where dropping to `it_bridge` for everybody would be a silent
-  // downgrade of an assignment that used to work.
+  // The pre-rules assignment. Reached whenever rules are off, and also if an active rule
+  // set somehow matches nothing — a member must always come out of here with a pathway.
   const pathway = matched.pathway?.key || legacyPathwayFor(ctx.careerGoal, categoryScores);
   const pathwayLabel = matched.pathway?.label
     || (ctx.pathways || []).find(p => p.key === pathway)?.label

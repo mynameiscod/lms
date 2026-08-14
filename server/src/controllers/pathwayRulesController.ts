@@ -165,6 +165,9 @@ export const previewPathwayRules = async (req: Request, res: Response) => {
     res.json({
       total: members.length,
       errors, warnings,
+      // Whether this is a description of what happens, or a simulation of what would.
+      // The same numbers mean very different things either way.
+      active: saved?.pathwayRulesActive === true,
       viaFallback, unmatched, moved,
       rows: tracks.map((p: any) => ({
         key: p.key,
@@ -186,6 +189,12 @@ export const previewPathwayRules = async (req: Request, res: Response) => {
 async function pendingMoves(tenantId: string) {
   const content = await PassportContent.findOne({ tenantId }).lean() as any;
   const pathways = content?.pathways || [];
+
+  // Re-routing real members against rules that are not the ones deciding would move people
+  // onto pathways that the next assessment would not have given them.
+  if (content?.pathwayRulesActive !== true) {
+    return { errors: ['Switch your rules on before re-routing members.'], total: 0, changes: [] as any[] };
+  }
 
   const { errors } = validateRules(pathways);
   if (errors.length) return { errors, total: 0, changes: [] as any[] };

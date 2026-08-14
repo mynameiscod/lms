@@ -26,13 +26,21 @@ export const saveContent = async (req: Request, res: Response) => {
     await ensureContent(tenantId);
 
     const $set: any = {};
-    if (Array.isArray(req.body?.pathways)) {
-      // Routing rules decide where every future member lands, and the two error cases
-      // (no fallback, or several) leave members with nowhere to go — a state whose only
-      // symptom is a member with a broken dashboard days later. Refuse the save instead.
-      const { errors } = validateRules(req.body.pathways);
+    if (Array.isArray(req.body?.pathways)) $set.pathways = req.body.pathways;
+
+    if (req.body?.pathwayRulesActive !== undefined) {
+      $set.pathwayRulesActive = req.body.pathwayRulesActive === true;
+    }
+
+    // Half-finished rules are only dangerous once they are the ones deciding: no fallback
+    // means a member can match nothing and be left without a pathway, which surfaces days
+    // later as a broken dashboard. So the check gates GOING LIVE rather than saving —
+    // an admin must stay free to save a half-built rule set and come back to it.
+    const active = $set.pathwayRulesActive ?? (await PassportContent.findOne({ tenantId }).lean() as any)?.pathwayRulesActive;
+    if (active) {
+      const pathways = $set.pathways || (await PassportContent.findOne({ tenantId }).lean() as any)?.pathways || [];
+      const { errors } = validateRules(pathways);
       if (errors.length) return res.status(400).json({ message: errors[0], errors });
-      $set.pathways = req.body.pathways;
     }
     if (Array.isArray(req.body?.missionPools)) $set.missionPools = req.body.missionPools;
     if (req.body?.journeyDays !== undefined) {

@@ -84,6 +84,16 @@ export interface IPassportContent extends Document {
   pathways: IPassportPathway[];
   missionPools: IMissionPool[];
   journeyDays: number;    // length of the full journey (default 90)
+  /**
+   * Whether pathway assignment follows the admin's rules or the built-in defaults.
+   *
+   * Explicit, and off until switched on, because rules were previously activated by the
+   * side effect of enabling any one pathway's rule. Toggling a single pathway to see what
+   * it did put the whole tenant into "your rules decide now" — which then demanded a
+   * fallback and flagged errors, from one exploratory click. Configuring and going live
+   * are different intentions and now take different actions.
+   */
+  pathwayRulesActive: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -137,6 +147,7 @@ const PassportContentSchema = new Schema<IPassportContent>(
     pathways:     [PathwaySchema],
     missionPools: [MissionPoolSchema],
     journeyDays:  { type: Number, default: 90 },
+    pathwayRulesActive: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

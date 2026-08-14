@@ -116,6 +116,7 @@ export const submitAssessment = async (req: Request, res: Response) => {
       stage: axes.stage,
       background: axes.background,
       pathways: content?.pathways || [],
+      rulesActive: content?.pathwayRulesActive === true,
     });
 
     const attempt = await PassportAttempt.create({ tenantId, studentId, answers, ...result });

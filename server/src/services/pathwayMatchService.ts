@@ -184,12 +184,12 @@ export function validateRules(pathways: IPassportPathway[]): { errors: string[];
   const warnings: string[] = [];
   const tracks = (pathways || []).filter(p => !p.stage && !String(p.key).includes(':'));
 
-  // A tenant with no rules at all is not broken — it is every tenant before this feature
-  // existed, still served by the legacy assignment. Demanding a fallback here would block
-  // an admin from saving an unrelated week-theme edit on the Pathways screen.
+  // Describes what WOULD be wrong if these rules were the ones deciding. Whether that
+  // matters yet is the caller's question: while rules are off these are things to fix
+  // before going live, and only switching them on makes them blocking.
   const usingRules = tracks.some(p => p.match?.enabled);
   if (!usingRules) {
-    warnings.push('No pathway has an active rule yet — assignment still uses the built-in defaults.');
+    warnings.push('No pathway has a rule yet. Switch one on to start sorting members yourself.');
     return { errors, warnings };
   }
 

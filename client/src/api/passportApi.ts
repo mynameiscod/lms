@@ -686,7 +686,14 @@ export interface PathwayMatch {
   fallback: boolean;
 }
 export interface PassportPathway { key: string; label: string; description: string; focus: string[]; weekThemes: string[]; stage?: string; match?: PathwayMatch; }
-export interface PassportContentDoc { _id?: string; tenantId?: string; pathways: PassportPathway[]; missionPools: MissionPool[]; journeyDays: number; }
+export interface PassportContentDoc {
+  _id?: string; tenantId?: string;
+  pathways: PassportPathway[];
+  missionPools: MissionPool[];
+  journeyDays: number;
+  /** Off = pathway rules are a draft and the built-in sorting still decides. */
+  pathwayRulesActive?: boolean;
+}
 export interface ContentPreview {
   sampleFromRealStudent: boolean;
   days: { day: number; missions: { key: string; title: string; detail: string; category: string; xp: number; link?: string }[] }[];
@@ -937,6 +944,8 @@ export interface RulePreview {
   total: number;
   errors: string[];
   warnings: string[];
+  /** Whether these numbers describe what happens, or simulate what would. */
+  active: boolean;
   /** Members reaching the catch-all, i.e. accounted for by no rule. */
   viaFallback: number;
   unmatched: number;

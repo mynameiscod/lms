@@ -23,6 +23,7 @@ const BLANK: PathwayMatch = {
 
 const AdminPathwayRules: React.FC = () => {
   const [pathways, setPathways] = useState<PassportPathway[]>([]);
+  const [active, setActive] = useState(false);
   const [vocab, setVocab] = useState<RuleVocabulary | null>(null);
   const [preview, setPreview] = useState<RulePreview | null>(null);
   const [open, setOpen] = useState<string>('');
@@ -42,6 +43,7 @@ const AdminPathwayRules: React.FC = () => {
     Promise.all([passportApi.getContent(), passportApi.ruleVocabulary()])
       .then(([c, v]) => {
         setPathways(c.content.pathways || []);
+        setActive(c.content.pathwayRulesActive === true);
         setVocab(v);
       })
       .catch(e => setErr(e?.response?.data?.message || 'Could not load pathways.'));
@@ -99,15 +101,30 @@ const AdminPathwayRules: React.FC = () => {
     setMatch(key, { scores: cur.filter((_, j) => j !== i) });
   };
 
-  const save = async () => {
+  const save = async (nextActive = active) => {
     setBusy('save'); setErr(''); setMsg('');
     try {
-      const r = await passportApi.saveContent({ pathways });
+      const r = await passportApi.saveContent({ pathways, pathwayRulesActive: nextActive });
       setPathways(r.content.pathways || []);
-      setDirty(false); setMsg('Saved. New members are routed by these rules from now on.');
-      setTimeout(() => setMsg(''), 4000);
+      setActive(r.content.pathwayRulesActive === true);
+      setDirty(false);
+      setMsg(nextActive
+        ? 'Saved and live. Members are sorted by your rules from their next assessment.'
+        : 'Saved as a draft. Nothing changes for members until you switch these on.');
+      setTimeout(() => setMsg(''), 5000);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not save.'); }
     setBusy('');
+  };
+
+  /**
+   * Going live is its own act. Turning rules ON saves at the same moment, so the state an
+   * admin was looking at is the state that takes effect — a switch that goes live against
+   * rules still sitting unsaved in the editor would be worse than no switch at all.
+   */
+  const toggleActive = async () => {
+    if (!active && preview?.errors.length) return;   // the button is disabled; belt and braces
+    if (active && !window.confirm('Turn your rules off? New members go back to the built-in sorting. Nobody already sorted will move.')) return;
+    await save(!active);
   };
 
   const draft = async (key: string) => {
@@ -147,12 +164,38 @@ const AdminPathwayRules: React.FC = () => {
         <div>
           <h1>Pathway Rules</h1>
           <p>
-            Decide who each pathway is for. Rules apply when a member finishes their
-            assessment — everyone who matches no rule goes to the fallback.
+            Decide who each pathway is for. Build the rules here in draft, check who they
+            catch, and switch them on when you are happy — nothing reaches a member before that.
           </p>
         </div>
-        <button className="pm-btn primary" disabled={!dirty || !!busy || !!preview?.errors.length} onClick={save}>
-          {busy === 'save' ? 'Saving…' : dirty ? 'Save rules' : 'Saved'}
+        <button className="pm-btn primary" disabled={!dirty || !!busy} onClick={() => save()}>
+          {busy === 'save' ? 'Saving…' : dirty ? 'Save' : 'Saved'}
+        </button>
+      </div>
+
+      {/* ── Live or draft. The single thing that decides whether any of this matters. ── */}
+      <div className={`rul-live${active ? ' on' : ''}`}>
+        <div className="ic"><i className={`bi bi-${active ? 'broadcast' : 'pencil-square'}`} /></div>
+        <div className="tx">
+          <b>{active ? 'Your rules are sorting members' : 'Draft — the built-in sorting is still in use'}</b>
+          <span>
+            {active
+              ? 'Every member who finishes the assessment from now on is sorted by the rules below.'
+              : 'Edit freely. Nothing here affects a single member until you switch it on.'}
+          </span>
+        </div>
+        <button
+          className={`pm-btn ${active ? 'ghost' : 'primary'}`}
+          disabled={!!busy || (!active && (!!preview?.errors.length || !rulesOn))}
+          title={
+            active ? 'Go back to the built-in sorting'
+              : !rulesOn ? 'Switch on at least one pathway rule first'
+              : preview?.errors.length ? preview.errors[0]
+              : 'Start sorting members with these rules'
+          }
+          onClick={toggleActive}
+        >
+          {busy === 'save' ? 'Working…' : active ? 'Switch off' : 'Switch on'}
         </button>
       </div>
 
@@ -168,10 +211,10 @@ const AdminPathwayRules: React.FC = () => {
           <div className="t">
             <i className="bi bi-exclamation-octagon" />
             <div>
-              <b>No fallback pathway yet.</b>
+              <b>Pick a fallback before you switch these on.</b>
               <span>
-                You have switched a rule on, so members now get sorted. Whoever matches no
-                rule needs somewhere to land — pick that pathway here.
+                Some members will match none of your rules, and they still need a pathway.
+                Choose the one they should land on.
               </span>
             </div>
           </div>
@@ -197,14 +240,18 @@ const AdminPathwayRules: React.FC = () => {
           </div>
           <div className={`s${preview.viaFallback ? ' warn' : ''}`}>
             <b>{preview.viaFallback}</b>
-            <span>caught by the fallback</span>
+            <span>{active ? 'caught by the fallback' : 'would hit the fallback'}</span>
           </div>
           <div className={`s${preview.moved ? ' move' : ''}`}>
             <b>{preview.moved}</b>
-            <span>would move if re-evaluated</span>
+            <span>on a different pathway today</span>
           </div>
           <div className="s act">
-            <button className="pm-btn ghost" disabled={!!busy || !preview.moved} onClick={showDiff}>
+            <button className="pm-btn ghost"
+              disabled={!!busy || !preview.moved || !active}
+              title={active ? 'Move existing members onto the pathway these rules give them'
+                : 'Switch your rules on first'}
+              onClick={showDiff}>
               {busy === 'diff' ? 'Checking…' : 'Re-evaluate existing members…'}
             </button>
           </div>

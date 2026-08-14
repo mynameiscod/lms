@@ -61,7 +61,6 @@ const Assessment: React.FC = () => {
   const [idx, setIdx] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<AssessResult | null>(null);
-  const [retake, setRetake] = useState(false);
   const [error, setError] = useState('');
   const [secsLeft, setSecsLeft] = useState(600); // 10:00 soft timer
 
@@ -81,18 +80,12 @@ const Assessment: React.FC = () => {
   }, []);
 
   // Soft countdown while taking the assessment.
-  const taking = !loading && (!result || retake);
+  const taking = !loading && !result;
   useEffect(() => {
     if (!taking) return;
     const t = setInterval(() => setSecsLeft(s => (s > 0 ? s - 1 : 0)), 1000);
     return () => clearInterval(t);
   }, [taking]);
-
-  const startFresh = async () => {
-    setLoading(true); setResult(null); setRetake(true); setAnswers({}); setIdx(0); setSecsLeft(600);
-    try { const a = await passportApi.getAssessment(); setQuestions(a.questions); } catch { /* */ }
-    setLoading(false);
-  };
 
   // A conditional question only appears once its premise holds. Asking "how many
   // companies have you applied to?" straight after "resume: not written" reads as a form
@@ -129,7 +122,7 @@ const Assessment: React.FC = () => {
         .filter(([questionId]) => visibleIds.has(questionId))
         .map(([questionId, chosen]) => ({ questionId, chosen }));
       const { result: r } = await passportApi.submitAssessment(payload);
-      setResult(r); setRetake(false);
+      setResult(r);
     } catch (e: any) { setError(e?.response?.data?.message || 'Submit failed. Try again.'); }
     setSubmitting(false);
   };
@@ -144,7 +137,7 @@ const Assessment: React.FC = () => {
 
   if (loading) return <div className="pf-shell">{Top(<div className="pf-spacer" />)}<div style={{ textAlign: 'center', color: '#64748b', padding: 80 }}>Loading…</div></div>;
 
-  if (result && !retake) return <ResultView result={result} firstName={firstName} initial={initial} onRetake={startFresh} onHome={() => nav('/careerpilot')} topBrand={Top} />;
+  if (result) return <ResultView result={result} firstName={firstName} initial={initial} onHome={() => nav('/careerpilot')} topBrand={Top} />;
 
   return (
     <div className="pf-shell">
@@ -354,8 +347,8 @@ const BANDS = (score: number): { tag: string; color: string } => {
 
 const ResultView: React.FC<{
   result: AssessResult; firstName: string; initial: string;
-  onRetake: () => void; onHome: () => void; topBrand: (ui: React.ReactNode) => React.ReactNode;
-}> = ({ result, firstName, initial, onRetake, onHome, topBrand }) => {
+  onHome: () => void; topBrand: (ui: React.ReactNode) => React.ReactNode;
+}> = ({ result, firstName, initial, onHome, topBrand }) => {
   const nav = useNavigate();
   const { data: member } = useMember();
   const [paying, setPaying] = useState(false);
@@ -676,7 +669,6 @@ const ResultView: React.FC<{
           </>
         )}
 
-        <div className="rs-retake"><button onClick={onRetake}>↻ Retake assessment</button></div>
         <MemberFooter />
       </div>
   );

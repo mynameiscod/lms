@@ -246,8 +246,6 @@
 .rs-done h3 { font-size: 22px; font-weight: 900; margin: 8px 0 6px; }
 .rs-done p { opacity: .85; font-size: 14px; margin: 0 0 18px; }
 .rs-done button { background: #fff; color: #141a4b; border: none; border-radius: 12px; padding: 13px 30px; font-weight: 800; font-size: 15px; cursor: pointer; }
-.rs-retake { text-align: center; }
-.rs-retake button { background: none; border: none; color: #6650d8; font-weight: 700; font-size: 13.5px; cursor: pointer; }
 
 @media (max-width: 900px) {
   .cpa-wrap { grid-template-columns: 1fr; }

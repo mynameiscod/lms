@@ -153,6 +153,33 @@ export const passportApi = {
     return data;
   },
 
+  // ── Pathway routing rules (who each pathway serves) ──
+  /** Goals, stages, backgrounds and categories a rule may be written against. */
+  ruleVocabulary: async (): Promise<RuleVocabulary> => {
+    const { data } = await axios.get(`${BASE}/pathway-rules/vocabulary`, { headers: auth() });
+    return data;
+  },
+  /** Dry-runs the SUBMITTED rules over every real member — nothing is saved. */
+  previewRules: async (pathways: PassportPathway[]): Promise<RulePreview> => {
+    const { data } = await axios.post(`${BASE}/pathway-rules/preview`, { pathways }, { headers: auth() });
+    return data;
+  },
+  /** The diff only — who would move and where. Never writes. */
+  reevaluatePathways: async (): Promise<ReevaluateResult> => {
+    const { data } = await axios.post(`${BASE}/pathway-rules/reevaluate`, {}, { headers: auth() });
+    return data;
+  },
+  /** Actually moves them. Separate permission (reroute_passport_members). */
+  applyReevaluation: async (): Promise<ReevaluateResult> => {
+    const { data } = await axios.post(`${BASE}/pathway-rules/reevaluate/apply`, {}, { headers: auth() });
+    return data;
+  },
+  /** Plain-English audience → a rule block, for review in the editor. */
+  draftRule: async (pathwayKey: string, audience: string): Promise<{ pathwayKey: string; match: PathwayMatch }> => {
+    const { data } = await axios.post(`${BASE}/pathway-rules/draft`, { pathwayKey, audience }, { headers: auth() });
+    return data;
+  },
+
   // ── Drop-off funnel ──
   /** Stage definitions with live counts, plus totals. */
   getFunnel: async (): Promise<{ stages: FunnelStage[]; totals: FunnelTotals; notes: string[] }> => {
@@ -647,7 +674,18 @@ export interface ResumeScore {
 // ── Admin content ──
 export interface MissionPoolItem { title: string; detail: string; type: string; xp: number; link?: string; }
 export interface MissionPool { category: string; items: MissionPoolItem[]; }
-export interface PassportPathway { key: string; label: string; description: string; focus: string[]; weekThemes: string[]; }
+export interface PathwayScoreRule { category: string; min?: number | null; max?: number | null; }
+/** Who a pathway serves. Within a list = OR, across fields = AND, empty = no constraint. */
+export interface PathwayMatch {
+  enabled: boolean;
+  priority: number;
+  goals: string[];
+  stages: string[];
+  backgrounds: string[];
+  scores: PathwayScoreRule[];
+  fallback: boolean;
+}
+export interface PassportPathway { key: string; label: string; description: string; focus: string[]; weekThemes: string[]; stage?: string; match?: PathwayMatch; }
 export interface PassportContentDoc { _id?: string; tenantId?: string; pathways: PassportPathway[]; missionPools: MissionPool[]; journeyDays: number; }
 export interface ContentPreview {
   sampleFromRealStudent: boolean;
@@ -882,4 +920,33 @@ export interface CurriculumDoc {
 }
 export interface CurriculumTrack {
   key: string; label: string; variants: string[]; days: number; journeyDays: number;
+}
+
+export interface RuleVocabulary {
+  goals: string[];
+  stages: { key: string; label: string; who: string }[];
+  backgrounds: { key: string; label: string }[];
+  categories: { key: string; label: string }[];
+}
+export interface RulePreviewRow {
+  key: string; label: string; enabled: boolean; fallback: boolean; priority: number;
+  members: number;
+  samples: { name: string; email: string; why: string }[];
+}
+export interface RulePreview {
+  total: number;
+  errors: string[];
+  warnings: string[];
+  /** Members reaching the catch-all, i.e. accounted for by no rule. */
+  viaFallback: number;
+  unmatched: number;
+  /** How many would land somewhere other than where they are today. */
+  moved: number;
+  rows: RulePreviewRow[];
+}
+export interface ReevaluateResult {
+  applied: boolean;
+  total: number;
+  changeCount: number;
+  changes?: { id: string; name: string; email: string; from: string | null; to: string; toLabel: string }[];
 }

@@ -18,6 +18,7 @@ import * as dashboard from '../controllers/passportDashboardController';
 import * as coins from '../controllers/passportCoinController';
 import * as funnel from '../controllers/passportFunnelController';
 import * as curriculum from '../controllers/pathwayCurriculumController';
+import * as pathwayRules from '../controllers/pathwayRulesController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -62,6 +63,7 @@ const MEMBER = roleGuard(['use_passport']);
 // permission rather than riding on manage_passport.
 const MANAGE_CATEGORIES = roleGuard(['manage_passport_categories']);
 const FUNNEL = roleGuard(['view_passport_funnel']);
+const REROUTE = roleGuard(['reroute_passport_members']);
 
 // ── Drop-off funnel — who stopped where, and who to contact about it ──
 
@@ -76,6 +78,17 @@ router.put('/curriculum/:pathwayKey',         MANAGE, curriculum.savePathwayCurr
 router.post('/curriculum/:pathwayKey/move',   MANAGE, curriculum.movePathwayDay);
 router.post('/curriculum/:pathwayKey/copy',   MANAGE, curriculum.copyPathwayCurriculum);
 router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCurriculum);
+
+// ── Who each pathway serves. Rules save through the content endpoint; these support
+//    writing them: the vocabulary, a dry-run against real members, and re-routing. ──
+router.get('/pathway-rules/vocabulary',  MANAGE, pathwayRules.getRuleVocabulary);
+router.post('/pathway-rules/preview',    MANAGE, pathwayRules.previewPathwayRules);
+// Two routes rather than one flag: seeing who WOULD move is a MANAGE act, actually
+// moving them is a different level of trust, and separate guards say so without
+// re-implementing permission resolution inside a controller.
+router.post('/pathway-rules/reevaluate',       MANAGE,  pathwayRules.reevaluatePathways);
+router.post('/pathway-rules/reevaluate/apply', REROUTE, pathwayRules.applyReevaluation);
+router.post('/pathway-rules/draft',      MANAGE, pathwayRules.draftPathwayRules);
 
 router.get('/funnel',                  FUNNEL, funnel.getFunnel);
 router.get('/funnel/:stage',           FUNNEL, funnel.getStageMembers);

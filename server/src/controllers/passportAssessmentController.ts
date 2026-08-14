@@ -4,6 +4,7 @@ import PassportAssessment, { DEFAULT_QUESTIONS, categoriesOf } from '../models/P
 import PassportAttempt from '../models/PassportAttempt';
 import User from '../models/User';
 import { scoreAttempt } from '../services/passportScoringService';
+import PassportContent from '../models/PassportContent';
 import { blueprintFor, drawPaper, suggestBlueprint } from '../services/paperBuilderService';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -102,9 +103,19 @@ export const submitAssessment = async (req: Request, res: Response) => {
     const askedIds = new Set(answers.map(x => x.questionId));
     const asked = a.questions.filter((q: any) => askedIds.has(String(q._id)));
 
+    // Pathway assignment is admin-authored now, so the rules travel with the score.
+    // memberAxes derives stage and background the same way the question selector does —
+    // routing a member on a different reading of their profile than the one that chose
+    // their paper would be a quiet inconsistency nobody would think to look for.
+    const content = await PassportContent.findOne({ tenantId }).lean() as any;
+    const axes = memberAxes(user);
+
     const result = scoreAttempt(asked as any, answers, {
       careerGoal: user?.passport?.careerGoal,
       categories: categoriesOf(a),
+      stage: axes.stage,
+      background: axes.background,
+      pathways: content?.pathways || [],
     });
 
     const attempt = await PassportAttempt.create({ tenantId, studentId, answers, ...result });
@@ -156,7 +167,6 @@ export const getAssessmentAdmin = async (req: Request, res: Response) => {
   const tenantId = tenantOf(req);
   const a = await ensureAssessment(tenantId);
 
-  const PassportContent = (await import('../models/PassportContent')).default;
   const content: any = await PassportContent.findOne({ tenantId }).lean();
 
   const usage = categoriesOf(a).map(c => {

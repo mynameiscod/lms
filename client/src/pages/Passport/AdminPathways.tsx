@@ -178,7 +178,17 @@ const AdminPathways: React.FC = () => {
               <input className="pa-inp" value={pw.label} onChange={e => patch(c => { c.pathways[active].label = e.target.value; })} />
             </div>
             <div>
-              <label className="pa-lbl">Focus categories</label>
+              {/* Honest label. These chips are LISTED on the week cards below and are read
+                  by nothing else — the daily emphasis comes from the member's own weakest
+                  scores, not from here. Wiring them into generation would change what
+                  every current member sees tomorrow, so it is a deliberate separate step
+                  rather than a side effect. Saying so beats a control that looks live. */}
+              <label className="pa-lbl">
+                Focus categories
+                <span style={{ fontWeight: 500, color: '#94a3b8', marginLeft: 6 }}>
+                  — shown on the week cards; daily emphasis still follows each member's own weakest scores
+                </span>
+              </label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', paddingTop: 4 }}>
                 {categories.map(cat => {
                   const on = pw.focus.includes(cat.key);

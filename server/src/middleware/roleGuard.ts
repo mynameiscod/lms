@@ -223,6 +223,11 @@ export const PERMISSION_GROUPS: Record<string, { label: string; permissions: { k
       // A marketing or telecalling person needs this and nothing else.
       { key: 'view_passport_funnel', label: 'View CareerPilot Drop-off Funnel (bulk member contacts)' },
       { key: 'convert_passport_member', label: 'Grant Membership Without Payment' },
+      // Writing a routing rule only affects who joins next; APPLYING it moves members who
+      // are already part-way through a plan onto a different one, rewriting work they can
+      // see. Same reasoning as scoring categories above — editing content and rewriting
+      // what existing members are doing are different levels of trust.
+      { key: 'reroute_passport_members', label: 'Re-route Existing CareerPilot Members Between Pathways' },
       { key: 'use_passport', label: 'Use CareerPilot (Member Surfaces)' },
     ]
   },
@@ -284,7 +289,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     // AI Spend
     'view_ai_spend',
     // CareerPilot — full control, including granting membership without payment
-    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'use_passport',
+    'manage_passport', 'manage_passport_categories', 'view_passport_members', 'view_passport_funnel', 'convert_passport_member', 'reroute_passport_members', 'use_passport',
     // Tech Battles — full control, including exporting public registrant PII
     'manage_battles', 'view_battles', 'review_battle_registrations', 'export_battle_data',
     // Exams — record and correct offline/external marks

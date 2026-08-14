@@ -33,6 +33,37 @@ export interface IMissionPool {
   items: IMissionPoolItem[];
 }
 
+/** One score condition. `category` is a category key, or 'overall' for the Career Score. */
+export interface IPathwayScoreRule {
+  category: string;
+  min?: number | null;
+  max?: number | null;
+}
+
+/**
+ * Who this pathway serves.
+ *
+ * Before this existed, assignment was four hard-coded substring tests in
+ * passportScoringService, which meant an admin could define a pathway that no member
+ * could ever be given. Rules move that decision into data.
+ *
+ * Semantics, chosen to be predictable rather than expressive:
+ *   - within a list (goals, stages, backgrounds) → OR
+ *   - across fields, and across every score rule → AND
+ *   - an empty list is NO CONSTRAINT, not "matches nothing"
+ * Highest `priority` wins; ties break on array order so the result is always stable.
+ */
+export interface IPathwayMatch {
+  enabled: boolean;
+  priority: number;
+  goals: string[];
+  stages: string[];
+  backgrounds: string[];
+  scores: IPathwayScoreRule[];
+  /** The catch-all. Exactly one pathway must carry it, or members can match nothing. */
+  fallback: boolean;
+}
+
 export interface IPassportPathway {
   key: string;
   label: string;
@@ -43,6 +74,9 @@ export interface IPassportPathway {
    *  today's pathways are. A foundation plan and a placement plan for the same track
    *  are two pathways sharing a key, not one pathway with a filter. */
   stage?: string;
+  /** Absent on pathways authored before rules existed — treated as "never matches",
+   *  so an un-ruled pathway is inert rather than silently competing for members. */
+  match?: IPathwayMatch;
 }
 
 export interface IPassportContent extends Document {
@@ -71,6 +105,22 @@ const MissionPoolSchema = new Schema<IMissionPool>({
   items:    [MissionPoolItemSchema],
 }, { _id: false });
 
+const PathwayScoreRuleSchema = new Schema<IPathwayScoreRule>({
+  category: { type: String, required: true },
+  min:      { type: Number, default: null },
+  max:      { type: Number, default: null },
+}, { _id: false });
+
+const PathwayMatchSchema = new Schema<IPathwayMatch>({
+  enabled:     { type: Boolean, default: false },
+  priority:    { type: Number,  default: 0 },
+  goals:       { type: [String], default: [] },
+  stages:      { type: [String], default: [] },
+  backgrounds: { type: [String], default: [] },
+  scores:      { type: [PathwayScoreRuleSchema], default: [] },
+  fallback:    { type: Boolean, default: false },
+}, { _id: false });
+
 const PathwaySchema = new Schema<IPassportPathway>({
   key:         { type: String, required: true },
   stage:       { type: String },
@@ -78,6 +128,7 @@ const PathwaySchema = new Schema<IPassportPathway>({
   description: { type: String, default: '' },
   focus:       [{ type: String }],
   weekThemes:  [{ type: String }],
+  match:       { type: PathwayMatchSchema, default: undefined },
 }, { _id: false });
 
 const PassportContentSchema = new Schema<IPassportContent>(

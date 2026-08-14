@@ -1,0 +1,161 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Pathway routing rules.
+   Namespaced `rul-` — verified free against every other stylesheet before writing.
+   `.pr-` was the obvious choice and is already taken by 16 classes; short prefixes
+   in this project have collided repeatedly (.ov-, .as-, .bi, .as-wrap).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.rul { max-width: 1100px; margin: 0 auto; padding: 8px 4px 60px; }
+
+.rul-hd { display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+.rul-hd h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+.rul-hd p { font-size: 13.5px; color: #64748b; margin: 6px 0 0; max-width: 68ch; line-height: 1.6; }
+
+.rul-warn { display: flex; align-items: flex-start; gap: 9px; background: #fffbeb;
+  border: 1px solid #fde68a; color: #92400e; border-radius: 10px;
+  padding: 11px 14px; font-size: 12.5px; line-height: 1.55; margin-bottom: 10px; }
+
+/* ── roster summary ── */
+.rul-summary { display: flex; gap: 10px; flex-wrap: wrap; background: #fff;
+  border: 1px solid #eef0f7; border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; }
+.rul-summary .s { flex: 1; min-width: 130px; }
+.rul-summary .s b { display: block; font-size: 24px; font-weight: 900; color: #0f172a;
+  font-variant-numeric: tabular-nums; line-height: 1.1; }
+.rul-summary .s span { display: block; font-size: 11.5px; color: #94a3b8; margin-top: 3px; }
+.rul-summary .s.warn b { color: #b45309; }
+.rul-summary .s.move b { color: #1d4ed8; }
+.rul-summary .s.act { flex: 0 0 auto; display: flex; align-items: center; min-width: 0; }
+
+/* ── the diff, shown before anybody moves ── */
+.rul-diff { background: #fff; border: 1.5px solid #fecaca; border-radius: 14px;
+  padding: 16px 18px; margin-bottom: 18px; }
+.rul-diff .hd b { display: block; font-size: 14.5px; font-weight: 900; color: #0f172a; }
+.rul-diff .hd span { display: block; font-size: 12.5px; color: #64748b;
+  margin-top: 5px; line-height: 1.6; max-width: 74ch; }
+.rul-diff .list { margin: 13px 0; max-height: 300px; overflow-y: auto;
+  border: 1px solid #f1f5f9; border-radius: 10px; }
+.rul-diff .row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 9px 13px; border-bottom: 1px solid #f8fafc; font-size: 12.5px; }
+.rul-diff .row:last-child { border-bottom: 0; }
+.rul-diff .row b { color: #0f172a; font-weight: 700; }
+.rul-diff .row .e { color: #94a3b8; font-size: 11.5px; }
+.rul-diff .row .mv { margin-left: auto; color: #1d4ed8; font-weight: 700; white-space: nowrap; }
+.rul-diff .more { padding: 9px 13px; font-size: 12px; color: #94a3b8; }
+.rul-diff .acts { display: flex; gap: 9px; justify-content: flex-end; }
+
+/* ── one card per track ── */
+.rul-list { display: flex; flex-direction: column; gap: 9px; }
+
+.rul-card { background: #fff; border: 1.5px solid #eef0f7; border-radius: 13px;
+  overflow: hidden; transition: border-color .12s, box-shadow .12s; }
+.rul-card:hover { border-color: #dbe4f7; }
+.rul-card.open { border-color: #c7d6f5; box-shadow: 0 3px 14px rgba(15,23,42,.05); }
+.rul-card.fb { border-left: 4px solid #37d0c0; }
+
+.rul-card-hd { display: flex; align-items: center; gap: 11px; padding: 13px 16px; }
+.rul-card-hd .ttl { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: 9px;
+  background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; text-align: left; }
+.rul-card-hd .ttl b { font-size: 14px; font-weight: 800; color: #0f172a; }
+.rul-card-hd .ttl .k { font-size: 11px; color: #cbd5e1; font-family: ui-monospace, monospace; }
+.rul-card-hd .tag.fb { background: #e6fbf8; color: #0f766e; border-radius: 99px;
+  padding: 3px 10px; font-size: 10.5px; font-weight: 800; }
+.rul-card-hd .cnt { font-size: 12px; color: #64748b; font-variant-numeric: tabular-nums;
+  white-space: nowrap; }
+.rul-card-hd .cnt.zero { color: #b45309; font-weight: 700; }
+.rul-card-hd .pri { font-size: 11px; color: #94a3b8; font-weight: 700;
+  background: #f8fafc; border-radius: 6px; padding: 3px 7px; }
+.rul-card-hd > .bi { color: #cbd5e1; font-size: 13px; }
+
+/* on/off switch */
+.rul-card .sw { position: relative; width: 36px; height: 20px; flex: 0 0 auto; cursor: pointer; }
+.rul-card .sw input { position: absolute; opacity: 0; width: 0; height: 0; }
+.rul-card .sw span { position: absolute; inset: 0; background: #e2e8f0; border-radius: 99px;
+  transition: background .15s; }
+.rul-card .sw span::after { content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; background: #fff; border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2); transition: transform .15s; }
+.rul-card .sw input:checked + span { background: #1d4ed8; }
+.rul-card .sw input:checked + span::after { transform: translateX(16px); }
+.rul-card .sw input:focus-visible + span { box-shadow: 0 0 0 3px rgba(29,78,216,.25); }
+
+.rul-card-body { padding: 4px 16px 16px; border-top: 1px solid #f4f6fb; }
+
+.fb-note { display: flex; align-items: flex-start; gap: 9px; background: #f0fdfa;
+  border: 1px solid #ccfbf1; color: #0f766e; border-radius: 10px;
+  padding: 12px 14px; font-size: 12.5px; line-height: 1.6; margin: 14px 0 0; }
+
+/* ── AI drafting ── */
+.rul-ai { margin: 14px 0 4px; }
+.rul-ai .link { background: none; border: 0; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12.5px; font-weight: 700; color: #4f46e5;
+  display: inline-flex; align-items: center; gap: 7px; }
+.rul-ai .link:hover { text-decoration: underline; }
+.rul-ai .row { display: flex; gap: 8px; flex-wrap: wrap; }
+.rul-ai .row input { flex: 1; min-width: 220px; padding: 9px 12px;
+  border: 1.5px solid #ddd6fe; border-radius: 9px; font-size: 12.5px;
+  font-family: inherit; background: #faf8ff; }
+.rul-ai .row input:focus { outline: none; border-color: #7c6cf6; }
+
+/* ── condition groups ── */
+.rul-grp { margin-top: 16px; }
+.rul-grp > label { display: block; font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.rul-grp > label em { font-style: normal; text-transform: none; letter-spacing: 0;
+  color: #94a3b8; font-weight: 600; margin-left: 6px; }
+
+.chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.chips .chip { background: #f8fafc; border: 1.5px solid #e8edf5; border-radius: 99px;
+  padding: 6px 13px; font-size: 12px; font-family: inherit; color: #475569;
+  cursor: pointer; transition: all .12s; }
+.chips .chip:hover { border-color: #c7d6f5; }
+.chips .chip.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; font-weight: 700; }
+.chips .none { font-size: 12px; color: #94a3b8; }
+
+/* ── score bands ── */
+.score { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.score select { padding: 8px 10px; border: 1.5px solid #e2e8f0; border-radius: 8px;
+  font-size: 12.5px; font-family: inherit; background: #f8faff; color: #0f172a; min-width: 150px; }
+.score input { width: 66px; padding: 8px 10px; border: 1.5px solid #e2e8f0;
+  border-radius: 8px; font-size: 12.5px; font-family: inherit;
+  font-variant-numeric: tabular-nums; }
+.score span { font-size: 12px; color: #94a3b8; }
+.score .del { background: none; border: 0; color: #cbd5e1; cursor: pointer;
+  padding: 5px; font-size: 11px; }
+.score .del:hover { color: #ef4444; }
+
+.rul-foot { display: flex; align-items: flex-end; justify-content: space-between;
+  gap: 16px; flex-wrap: wrap; margin-top: 18px; padding-top: 14px; border-top: 1px solid #f4f6fb; }
+.rul-foot .pri-in { font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; }
+.rul-foot .pri-in input { display: block; width: 78px; margin-top: 6px; padding: 8px 10px;
+  border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 13px;
+  font-family: inherit; font-variant-numeric: tabular-nums; }
+.rul-foot .pri-in em { display: block; font-style: normal; text-transform: none;
+  letter-spacing: 0; font-weight: 500; color: #94a3b8; font-size: 11.5px;
+  margin-top: 5px; max-width: 46ch; line-height: 1.5; }
+.rul-foot .link { background: none; border: 0; padding: 0; cursor: pointer;
+  font-family: inherit; font-size: 12px; font-weight: 700; color: #64748b; }
+.rul-foot .link:hover { color: #1d4ed8; text-decoration: underline; }
+
+/* ── who this catches, from the real roster ── */
+.rul-who { margin-top: 16px; padding-top: 14px; border-top: 1px solid #f4f6fb; }
+.rul-who > b { display: block; font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+.rul-who .w { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap;
+  font-size: 12.5px; padding: 4px 0; }
+.rul-who .w span { color: #0f172a; font-weight: 600; }
+.rul-who .w em { font-style: normal; color: #94a3b8; font-size: 11.5px; }
+.rul-who .w.more { color: #94a3b8; font-size: 11.5px; }
+
+.rul-zero { display: flex; align-items: flex-start; gap: 9px; margin-top: 14px;
+  background: #fffbeb; border: 1px solid #fde68a; color: #92400e;
+  border-radius: 10px; padding: 11px 14px; font-size: 12.5px; line-height: 1.55; }
+
+@media (max-width: 640px) {
+  .rul-card-hd { flex-wrap: wrap; }
+  .rul-card-hd .ttl { flex: 1 0 100%; order: -1; }
+  .rul-summary .s { min-width: 100px; }
+  .rul-summary .s.act { flex: 1 0 100%; }
+  .rul-diff .row .mv { margin-left: 0; flex: 1 0 100%; }
+}

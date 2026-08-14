@@ -3,6 +3,7 @@ import PassportContent, { DEFAULT_PATHWAYS, DEFAULT_MISSION_POOLS } from '../mod
 import PassportAttempt from '../models/PassportAttempt';
 import { ensureContent, poolMapOf, missionsForDay } from '../services/passportMissionService';
 import { buildRoadmap } from '../services/passportRoadmapService';
+import { validateRules } from '../services/pathwayMatchService';
 import PassportAssessment, { PASSPORT_CATEGORIES, categoriesOf } from '../models/PassportAssessment';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -25,7 +26,14 @@ export const saveContent = async (req: Request, res: Response) => {
     await ensureContent(tenantId);
 
     const $set: any = {};
-    if (Array.isArray(req.body?.pathways)) $set.pathways = req.body.pathways;
+    if (Array.isArray(req.body?.pathways)) {
+      // Routing rules decide where every future member lands, and the two error cases
+      // (no fallback, or several) leave members with nowhere to go — a state whose only
+      // symptom is a member with a broken dashboard days later. Refuse the save instead.
+      const { errors } = validateRules(req.body.pathways);
+      if (errors.length) return res.status(400).json({ message: errors[0], errors });
+      $set.pathways = req.body.pathways;
+    }
     if (Array.isArray(req.body?.missionPools)) $set.missionPools = req.body.missionPools;
     if (req.body?.journeyDays !== undefined) {
       const n = Number(req.body.journeyDays);

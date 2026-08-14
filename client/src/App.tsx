@@ -80,7 +80,6 @@ import PassportPracticeItem from './pages/Passport/PracticeItem';
 import PassportInterview from './pages/Passport/Interview';
 import PassportResumeCenter from './pages/Passport/ResumeCenter';
 import PassportCoins from './pages/Passport/Coins';
-import PassportProfile from './pages/Passport/Profile';
 import PassportLeaderboard from './pages/Passport/Leaderboard';
 import PassportAchievements from './pages/Passport/Achievements';
 import PassportNews from './pages/Passport/News';
@@ -488,7 +487,11 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/interview" element={<PassportInterview />} />
         <Route path="/passport/interview" element={<LegacyRedirect to="/careerpilot/interview" />} />
         <Route path="/careerpilot/coins" element={<PassportCoins />} />
-        <Route path="/careerpilot/profile" element={<PassportProfile />} />
+        {/* The SAME profile wizard the LMS uses, inside the CareerPilot member
+            layout instead of the LMS one. One form, one studentprofiles record,
+            one completion score — a second form would disagree about what a
+            complete profile is. */}
+        <Route path="/careerpilot/profile" element={<StudentProfilePage />} />
         <Route path="/careerpilot/leaderboard" element={<PassportLeaderboard />} />
         <Route path="/careerpilot/achievements" element={<PassportAchievements />} />
         <Route path="/careerpilot/news" element={<PassportNews />} />

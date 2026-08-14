@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { MEMBER_NAV } from './PassportShell';
 import './missionControl.css';
 import './member.css';
+import MemberFooter from './MemberFooter';
 
 /**
  * Mission Control — the Passport student's home. Pre-assessment it shows the CareerPilot
@@ -38,22 +39,6 @@ const WHY: { ic: string; tone: string; title: string; desc: string }[] = [
   { ic: 'bi-star-fill', tone: 'amber', title: 'Improve Faster', desc: 'Focus on the right skills and activities that will make the biggest impact.' },
   { ic: 'bi-trophy-fill', tone: 'violet', title: 'Stand Out', desc: 'Build a strong profile and become the kind of candidate employers value.' },
   { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track Your Growth', desc: 'See your progress over time and celebrate every improvement.' },
-];
-
-/**
- * Named institutions on a page that sells a paid membership.
- *
- * The SAME list was emptied from the signup page on 2026-07-30 because it was mockup
- * copy rather than real institutional relationships. It still runs here, so the product
- * currently makes a claim on one screen that it withdrew on another. Empty this array to
- * hide the strip; the layout closes up on its own.
- */
-const COLLEGES: [string, string, string][] = [
-  ['bi-mortarboard-fill', 'VIT', 'Vellore Institute of Technology'],
-  ['bi-mortarboard-fill', 'SRM', 'Institute of Science & Technology'],
-  ['bi-mortarboard-fill', 'GITAM', '(Deemed to be University)'],
-  ['bi-mortarboard-fill', 'Andhra University', 'Andhra University'],
-  ['bi-building-fill', '200+ More Colleges', 'Across AP & Telangana'],
 ];
 
 const MissionControl: React.FC = () => {
@@ -357,16 +342,7 @@ const MissionControl: React.FC = () => {
         </div>
       </div>
 
-      {/* Colleges */}
-      <div className="mc-colleges">
-        <span className="cl-label">Trusted by Students from</span>
-        {COLLEGES.map(([ic, nm, sub]) => (
-          <div className="mc-college" key={nm}>
-            <span className="badge" aria-hidden="true"><i className={`bi ${ic}`} /></span>
-            <div className="nm"><b>{nm}</b><span>{sub}</span></div>
-          </div>
-        ))}
-      </div>
+      <MemberFooter />
     </div>
   );
 };

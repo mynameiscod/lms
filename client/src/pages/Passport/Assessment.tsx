@@ -4,6 +4,7 @@ import passportApi, { AssessQuestion, AssessResult } from '../../api/passportApi
 import { useAuth } from '../../contexts/AuthContext';
 import { useMember } from './MemberLayout';
 import './assessment.css';
+import MemberFooter from './MemberFooter';
 
 /**
  * Career Readiness Assessment — the free deterministic entry point (CareerPilot).
@@ -47,18 +48,6 @@ const WHY: { ic: string; tone: string; title: string; desc: string }[] = [
   { ic: 'bi-star-fill', tone: 'amber', title: 'Improve Faster', desc: 'Focus on the right skills and activities that will make the biggest impact.' },
   { ic: 'bi-trophy-fill', tone: 'violet', title: 'Stand Out', desc: 'Build a strong profile and become the kind of candidate employers value.' },
   { ic: 'bi-graph-up-arrow', tone: 'teal', title: 'Track Your Growth', desc: 'See your progress over time and celebrate every improvement.' },
-];
-
-/**
- * Named institutions. The same list was emptied from the signup page on 2026-07-30 for
- * being mockup copy rather than real relationships — empty this array to hide the strip.
- */
-const COLLEGES: [string, string][] = [
-  ['VIT', 'Vellore Institute of Technology'],
-  ['SRM', 'Institute of Science & Technology'],
-  ['GITAM', '(Deemed to be University)'],
-  ['Andhra University', 'Andhra University'],
-  ['200+ More Colleges', 'Across AP & Telangana'],
 ];
 
 const fmt = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
@@ -280,17 +269,7 @@ const Assessment: React.FC = () => {
         </div>
       </section>
 
-      {!!COLLEGES.length && (
-        <section className="cpa-colleges">
-          <span className="lab">Trusted by Students from</span>
-          {COLLEGES.map(([nm, sub]) => (
-            <div className="cpa-college" key={nm}>
-              <span className="badge" aria-hidden="true"><i className="bi bi-mortarboard-fill" /></span>
-              <div><b>{nm}</b><span>{sub}</span></div>
-            </div>
-          ))}
-        </section>
-      )}
+      <MemberFooter />
     </div>
   );
 };
@@ -694,16 +673,11 @@ const ResultView: React.FC<{
         {!isMember && (
           <>
             <div className="rs-trust"><i className="bi bi-shield-lock-fill" /> 100% secure · Your data is safe with us · Trusted by students across 200+ colleges</div>
-            <div className="rs-colleges">
-              <span className="lb">Trusted by students from</span>
-              {[['bi-mortarboard-fill', 'VIT', 'Vellore Institute of Technology'], ['bi-mortarboard-fill', 'SRM', 'Institute of Science & Technology'], ['bi-mortarboard-fill', 'GITAM', '(Deemed to be University)'], ['bi-mortarboard-fill', 'Andhra University', 'Andhra University'], ['bi-mortarboard-fill', '200+ More Colleges', 'Across AP & Telangana']].map(([ic, nm, sub]) => (
-                <div className="rs-col" key={nm}><span className="bd"><i className={`bi ${ic}`} /></span><div><b>{nm}</b><span>{sub}</span></div></div>
-              ))}
-            </div>
           </>
         )}
 
         <div className="rs-retake"><button onClick={onRetake}>↻ Retake assessment</button></div>
+        <MemberFooter />
       </div>
   );
 

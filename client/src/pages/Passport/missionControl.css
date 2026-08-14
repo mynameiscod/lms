@@ -69,14 +69,6 @@
 .mc-why-card b { font-size: 15px; font-weight: 800; color: #0f172a; display: block; margin-bottom: 6px; }
 .mc-why-card span { font-size: 13px; color: #64748b; line-height: 1.5; }
 
-/* Colleges strip */
-.mc-colleges { width: 100%; margin: 34px 0 0; padding: 22px clamp(16px, 2vw, 40px) 0; border-top: 1px solid #eceff5; display: flex; align-items: center; gap: 34px; flex-wrap: wrap; justify-content: center; }
-.mc-colleges .cl-label { font-size: 13px; font-weight: 700; color: #94a3b8; }
-.mc-college { display: flex; align-items: center; gap: 9px; }
-.mc-college .badge { width: 30px; height: 30px; border-radius: 50%; background: #f1f5f9; display: grid; place-items: center; font-size: 14px; color: #6650d8; }
-.mc-college .nm b { font-size: 14px; font-weight: 800; color: #334155; display: block; line-height: 1.1; }
-.mc-college .nm span { font-size: 10.5px; color: #94a3b8; }
-
 /* ── Scored (not yet member): stats + unlock hero ── */
 .mc-scored { width: 100%; padding: 18px clamp(16px, 2vw, 40px) 0; }
 .mc-hd { text-align: center; margin-bottom: 22px; }
@@ -117,7 +109,7 @@
   .mc-brand .bt small { display: none; }
 }
 @media (max-width: 560px) {
-  .mc-topbar, .mc-hero, .mc-why, .mc-colleges { padding-left: 16px; padding-right: 16px; }
+  .mc-topbar, .mc-hero, .mc-why { padding-left: 16px; padding-right: 16px; }
   .mc-how span.t { display: none; }
   .mc-why-grid { grid-template-columns: 1fr; }
   .mc-user-btn .who { display: none; }
@@ -147,7 +139,6 @@
   gap: 6px; flex-wrap: wrap; max-width: 380px; }
 .mc-cta-note .dot { opacity: .5; }
 .mc-rocket i { font-size: 34px; color: #F97362; }
-.mc-colleges .badge i { font-size: 15px; color: #1D4ED8; }
 
 /* ── Wide screens: the hero should grow, not float in the middle ── */
 @media (min-width: 1500px) {
@@ -163,7 +154,6 @@
 }
 @media (max-width: 560px) {
   .mc-check .ic { width: 34px; height: 34px; font-size: 15px; border-radius: 10px; }
-  .mc-colleges { gap: 16px; justify-content: flex-start; }
   .mc-why-grid { grid-template-columns: 1fr; }
   .mc-rocket i { font-size: 26px; }
 }

@@ -45,7 +45,7 @@ export const updateMyCareerContext = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const b = req.body || {};
-    const context = await updateCareerContext(tenantId, studentId, {
+    const { context, missing } = await updateCareerContext(tenantId, studentId, {
       domain: b.domain,
       primaryRole: b.primaryRole,
       secondaryRole: b.secondaryRole,
@@ -61,12 +61,12 @@ export const updateMyCareerContext = async (req: Request, res: Response) => {
     });
     if (!context) return res.status(404).json({ message: 'Account not found' });
 
-    // Completing with answers still missing is refused rather than recorded, because
-    // "onboarded" is a claim later modules act on. Saving a partial step stays fine.
-    if (b.complete === true && context.status.missing.length) {
+    // The refusal is the service's, not this endpoint's — completion was already declined
+    // and never written. Reported here only so the member sees what is still needed.
+    if (missing) {
       return res.status(400).json({
         message: 'Some answers are still needed before this can be marked complete.',
-        missing: context.status.missing,
+        missing,
         context,
       });
     }

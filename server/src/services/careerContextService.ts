@@ -237,14 +237,24 @@ export interface ContextPatch {
  * Writing only the passport copy would leave the two disagreeing until the next sync,
  * which is the drift this whole design exists to avoid.
  */
+export interface UpdateContextResult {
+  context: StudentCareerContext | null;
+  /**
+   * Present ONLY when completion was asked for and refused, listing what is still needed.
+   * Its absence means nothing was rejected — a caller that ignores it cannot mistake a
+   * refusal for a success, because the stored context will simply not be complete.
+   */
+  missing?: string[];
+}
+
 export async function updateCareerContext(
   tenantId: string,
   studentId: string,
   patch: ContextPatch,
   now: Date = new Date(),
-): Promise<StudentCareerContext | null> {
+): Promise<UpdateContextResult> {
   const user: any = await User.findOne({ _id: studentId, tenantId });
-  if (!user) return null;
+  if (!user) return { context: null };
 
   user.passport = user.passport || {};
   const p = user.passport;
@@ -300,11 +310,6 @@ export async function updateCareerContext(
   p.stageComputedAt = derived.stageComputedAt;
   if (graduated) p.graduated = true;
 
-  if (patch.complete === true) {
-    p.contextCompletedAt = p.contextCompletedAt || now;   // first completion is the one recorded
-    p.contextVersion = CONTEXT_VERSION;
-  }
-
   user.markModified('passport');
   await user.save();
 
@@ -323,5 +328,35 @@ export async function updateCareerContext(
     }
   }
 
-  return getCareerContext(tenantId, studentId, now);
+  let context = await getCareerContext(tenantId, studentId, now);
+
+  /**
+   * Completion is decided HERE, and only after the answers are stored and re-assembled.
+   *
+   * It has to be this way round for two reasons. Whether the context is complete depends
+   * on the MERGED view of passport and StudentProfile — a member whose degree lives only
+   * on their profile is complete without ever sending one — so the question cannot be
+   * answered from the patch alone.
+   *
+   * And it must be the service that refuses, not a caller. Setting the flag before saving
+   * and letting the controller return an error afterwards is what this replaces: the
+   * rejection reached the client while the completion was already committed, so a member
+   * who was told they were not finished was recorded as finished. Any future caller —
+   * an admin tool, a migration, a second endpoint — inherits the guarantee now rather
+   * than having to remember the check.
+   */
+  if (patch.complete === true && context) {
+    if (context.status.missing.length) {
+      // Nothing about completion has been written. The answers just supplied are still
+      // saved, which is correct — a partial step is a partial step, not a failure.
+      return { context, missing: context.status.missing };
+    }
+    p.contextCompletedAt = p.contextCompletedAt || now;   // first completion is the one recorded
+    p.contextVersion = CONTEXT_VERSION;
+    user.markModified('passport');
+    await user.save();
+    context = await getCareerContext(tenantId, studentId, now);
+  }
+
+  return { context };
 }

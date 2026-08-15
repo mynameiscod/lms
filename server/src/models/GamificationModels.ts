@@ -63,11 +63,17 @@ export interface IXpLedger extends Document {
   sourceType: string;
   sourceId: string;
   /**
-   * Describes the EVENT, not the request.
+   * Describes the EVENT, not the request — and deliberately not the student.
    *
    * "CAREER_MISSION_COMPLETED:mission:cp:rm1:3:2026-08-17" — so a double-clicked button, a
    * retried request and a redelivered job all carry the same key and the unique index below
-   * rejects every one after the first. The same convention CoinLedger already proved.
+   * rejects every one after the first.
+   *
+   * WHOSE event it is belongs in the INDEX, not in this string. Two students finishing the
+   * same coding problem produce the same event key, and they must both be paid for it; the
+   * uniqueness that matters is per student. Encoding the student id here would work and
+   * would be wrong — the key would stop describing the event, and every future reader would
+   * have to parse it to find out what happened.
    */
   idempotencyKey: string;
   amount: number;
@@ -107,7 +113,33 @@ const XpLedgerSchema = new Schema<IXpLedger>(
  * and for "why does Rahul have 8,420 XP?". PassportProgress.xp stays as the fast current
  * balance and xpLog keeps feeding the existing activity chart, untouched.
  */
-XpLedgerSchema.index({ tenantId: 1, idempotencyKey: 1 }, { unique: true });
+/**
+ * IDEMPOTENCY IS PER STUDENT.
+ *
+ * This was `(tenantId, idempotencyKey)`, which made one logical event mutually exclusive
+ * across everybody in a tenant — the first student to earn something locked every other
+ * student out of it forever. It went unnoticed because the two events shipped so far happen
+ * to carry ids that are already unique per student (a roadmap-scoped mission key, an
+ * assessment attempt id), so the bug was invisible in exactly the paths that were tested.
+ *
+ * The streak bonus showed it plainly: `STREAK_MILESTONE:streak:7` is identical for every
+ * student, so the first person in a tenant to reach a seven-day streak took the only bonus
+ * that tenant would ever pay. Any event keyed on a SHARED resource — a quiz, a coding
+ * problem, a piece of content — would have failed the same way the moment it was added,
+ * which is most of the events §7 anticipates.
+ *
+ * Named explicitly so the migration that removes the old index can refer to it, and so a
+ * later reader can see the shape was chosen rather than inherited.
+ */
+export const XP_LEDGER_UNIQUE_INDEX = 'xp_ledger_student_event_unique';
+
+XpLedgerSchema.index(
+  { tenantId: 1, studentId: 1, idempotencyKey: 1 },
+  { unique: true, name: XP_LEDGER_UNIQUE_INDEX },
+);
+
+/** The index this replaced. Kept as a constant so the migration cannot misspell it. */
+export const XP_LEDGER_OBSOLETE_INDEX = 'tenantId_1_idempotencyKey_1';
 /** Period aggregation for one student, and the leaderboard's group-by. */
 XpLedgerSchema.index({ tenantId: 1, studentId: 1, at: -1 });
 XpLedgerSchema.index({ tenantId: 1, at: -1 });

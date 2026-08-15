@@ -13,7 +13,7 @@
  * Underneath those: an event pays exactly once, however many times it arrives.
  */
 
-let progress: any = null;
+let progresses: any[] = [];
 let rules: any[] = [];
 let ledger: any[] = [];
 let badgeDefs: any[] = [];
@@ -55,23 +55,26 @@ jest.mock('../models/PassportProgress', () => ({
   __esModule: true,
   default: {
     findOne: (q: any) => {
-      const hit = progress && matches(progress, q) ? progress : null;
+      const hit = progresses.find(p => matches(p, q)) || null;
       const handle: any = Promise.resolve(hit);
       handle.select = () => ({ lean: async () => hit });
       handle.lean = async () => hit;
       return handle;
     },
     updateOne: async (filter: any, update: any, opts?: any) => {
-      if (!progress) {
+      let doc = progresses.find(p =>
+        p.tenantId === filter.tenantId && String(p.studentId) === String(filter.studentId));
+      if (!doc) {
         if (!opts?.upsert) return { modifiedCount: 0 };
-        progress = {
+        doc = {
           tenantId: filter.tenantId, studentId: filter.studentId,
           xp: 0, streak: 0, longestStreak: 0, xpLog: [], completed: [],
         };
-        applyUpdate(progress, { $set: update.$setOnInsert || {} });
+        applyUpdate(doc, { $set: update.$setOnInsert || {} });
+        progresses.push(doc);
       }
-      if (!matches(progress, filter)) return { modifiedCount: 0 };
-      applyUpdate(progress, update);
+      if (!matches(doc, filter)) return { modifiedCount: 0 };
+      applyUpdate(doc, update);
       return { modifiedCount: 1 };
     },
   },
@@ -85,9 +88,12 @@ jest.mock('../models/GamificationModels', () => ({
     insertMany: async (docs: any[]) => { rules.push(...docs); return docs; },
   },
   XpLedger: {
-    // The unique (tenantId, idempotencyKey) index, faithfully.
+    // The unique (tenantId, studentId, idempotencyKey) index, faithfully. Scoped to the
+    // STUDENT — a tenant-wide key is the defect this file now guards against.
     create: async (doc: any) => {
-      if (ledger.some(l => l.tenantId === doc.tenantId && l.idempotencyKey === doc.idempotencyKey)) {
+      if (ledger.some(l => l.tenantId === doc.tenantId
+        && String(l.studentId) === String(doc.studentId)
+        && l.idempotencyKey === doc.idempotencyKey)) {
         const err: any = new Error('E11000 duplicate key'); err.code = 11000; throw err;
       }
       const row = { ...doc, at: doc.at || new Date() };
@@ -181,12 +187,18 @@ const assessment = (id = 'pa1', now = NOW) => processGamificationEvent({
   eventKey: 'PERSONALIZED_ASSESSMENT_COMPLETED', sourceType: 'assessment', sourceId: id, now,
 });
 
+const blankProgress = (studentId: string) => ({
+  tenantId: TENANT, studentId,
+  xp: 0, streak: 0, longestStreak: 0, lastCompletedDate: undefined,
+  xpLog: [], completed: [],
+});
+
+/** The progress doc for one student, so multi-student assertions read plainly. */
+const progressOf = (studentId: string) =>
+  progresses.find(p => String(p.studentId) === String(studentId));
+
 beforeEach(() => {
-  progress = {
-    tenantId: TENANT, studentId: STUDENT,
-    xp: 0, streak: 0, longestStreak: 0, lastCompletedDate: undefined,
-    xpLog: [], completed: [],
-  };
+  progresses = [blankProgress(STUDENT)];
   rules = [];
   ledger = [];
   badgeDefs = [];
@@ -207,14 +219,14 @@ describe('what a mission is worth', () => {
     // §122: a tenant that has never opened the admin screen must keep what it has, not
     // silently drop to zero.
     expect(award.awarded).toBe(xpEvent('CAREER_MISSION_COMPLETED')!.defaultXp);
-    expect(progress.xp).toBe(10);
+    expect(progressOf(STUDENT).xp).toBe(10);
   });
 
   it('uses the configured amount once an admin sets one', async () => {
     rules = [{ tenantId: TENANT, eventKey: 'CAREER_MISSION_COMPLETED', enabled: true, xp: 20, dailyLimit: 0, streakQualifying: true }];
     const award = await mission();
     expect(award.awarded).toBe(20);
-    expect(progress.xp).toBe(20);
+    expect(progressOf(STUDENT).xp).toBe(20);
   });
 
   it('awards nothing when the event is switched off', async () => {
@@ -222,7 +234,7 @@ describe('what a mission is worth', () => {
     const award = await mission();
     expect(award.awarded).toBe(0);
     expect(award.refused).toBe('disabled');
-    expect(progress.xp).toBe(0);
+    expect(progressOf(STUDENT).xp).toBe(0);
   });
 
   it('refuses an event it does not know', async () => {
@@ -231,7 +243,7 @@ describe('what a mission is worth', () => {
       eventKey: 'MADE_UP_EVENT', sourceType: 'x', sourceId: 'y', now: NOW,
     });
     expect(award.refused).toBe('unknown_event');
-    expect(progress.xp).toBe(0);
+    expect(progressOf(STUDENT).xp).toBe(0);
   });
 });
 
@@ -242,20 +254,20 @@ describe('an event pays exactly once', () => {
 
     expect(second.refused).toBe('duplicate');
     expect(second.awarded).toBe(0);
-    expect(progress.xp).toBe(10);
+    expect(progressOf(STUDENT).xp).toBe(10);
     expect(ledger.filter(l => l.eventKey === 'CAREER_MISSION_COMPLETED')).toHaveLength(1);
   });
 
   it('survives simultaneous duplicates', async () => {
     await Promise.all([mission(), mission(), mission()]);
-    expect(progress.xp).toBe(10);
+    expect(progressOf(STUDENT).xp).toBe(10);
     expect(ledger.filter(l => l.eventKey === 'CAREER_MISSION_COMPLETED')).toHaveLength(1);
   });
 
   it('still pays for a genuinely different mission', async () => {
     await mission('cp:rm1:1:2026-08-17');
     await mission('cp:rm1:2:2026-08-17');
-    expect(progress.xp).toBe(20);
+    expect(progressOf(STUDENT).xp).toBe(20);
   });
 
   it('records the ledger row before moving the balance', async () => {
@@ -280,18 +292,18 @@ describe('daily caps', () => {
     const third = await mission('m3');
 
     expect(third.refused).toBe('daily_cap');
-    expect(progress.xp).toBe(20);
+    expect(progressOf(STUDENT).xp).toBe(20);
   });
 
   it('does not corrupt the streak when a cap refuses an award', async () => {
     rules = [{ tenantId: TENANT, eventKey: 'CAREER_MISSION_COMPLETED', enabled: true, xp: 10, dailyLimit: 10, streakQualifying: true }];
     await mission('m1');
-    const streakAfterFirst = progress.streak;
+    const streakAfterFirst = progressOf(STUDENT).streak;
     await mission('m2');
 
     // §164: a capped award is not a missed day.
-    expect(progress.streak).toBe(streakAfterFirst);
-    expect(progress.streak).toBe(1);
+    expect(progressOf(STUDENT).streak).toBe(streakAfterFirst);
+    expect(progressOf(STUDENT).streak).toBe(1);
   });
 });
 
@@ -302,47 +314,47 @@ describe('daily caps', () => {
 describe('streaks', () => {
   it('starts at one on the first qualifying day', async () => {
     await mission();
-    expect(progress.streak).toBe(1);
-    expect(progress.longestStreak).toBe(1);
+    expect(progressOf(STUDENT).streak).toBe(1);
+    expect(progressOf(STUDENT).longestStreak).toBe(1);
   });
 
   it('does not move twice in one day, however much work is done', async () => {
     await mission('m1');
     await mission('m2');
-    expect(progress.streak).toBe(1);
+    expect(progressOf(STUDENT).streak).toBe(1);
   });
 
   it('continues on a consecutive day', async () => {
     await mission('m1', NOW);
     await mission('m2', new Date('2026-08-18T09:00:00Z'));
-    expect(progress.streak).toBe(2);
+    expect(progressOf(STUDENT).streak).toBe(2);
   });
 
   it('restarts after a missed day', async () => {
     await mission('m1', NOW);
     await mission('m2', new Date('2026-08-20T09:00:00Z'));
-    expect(progress.streak).toBe(1);
+    expect(progressOf(STUDENT).streak).toBe(1);
     // The best run is remembered even though the current one reset.
-    expect(progress.longestStreak).toBe(1);
+    expect(progressOf(STUDENT).longestStreak).toBe(1);
   });
 
   it('does not move for a non-qualifying event', async () => {
     rules = [{ tenantId: TENANT, eventKey: 'CAREER_MISSION_COMPLETED', enabled: true, xp: 10, dailyLimit: 0, streakQualifying: false }];
     await mission();
     // §19: showing up is not the same as doing something.
-    expect(progress.streak).toBe(0);
-    expect(progress.xp).toBe(10);
+    expect(progressOf(STUDENT).streak).toBe(0);
+    expect(progressOf(STUDENT).xp).toBe(10);
   });
 
   it('pays a milestone bonus once, through the same ledger', async () => {
-    progress.streak = 6;
-    progress.lastCompletedDate = '2026-08-16';
+    progressOf(STUDENT).streak = 6;
+    progressOf(STUDENT).lastCompletedDate = '2026-08-16';
     await mission('m1', NOW);
 
-    expect(progress.streak).toBe(7);
+    expect(progressOf(STUDENT).streak).toBe(7);
     const bonus = ledger.filter(l => l.eventKey === 'STREAK_MILESTONE');
     expect(bonus).toHaveLength(1);
-    expect(progress.xp).toBe(10 + bonus[0].amount);
+    expect(progressOf(STUDENT).xp).toBe(10 + bonus[0].amount);
   });
 });
 
@@ -403,8 +415,8 @@ describe('badges', () => {
 
   it('awards a streak badge when the streak reaches it', async () => {
     seed('STREAK_7');
-    progress.streak = 6;
-    progress.lastCompletedDate = '2026-08-16';
+    progressOf(STUDENT).streak = 6;
+    progressOf(STUDENT).lastCompletedDate = '2026-08-16';
     const award = await mission('m1', NOW);
     expect(award.badges).toContain('STREAK_7');
   });
@@ -467,7 +479,7 @@ describe('assessment XP', () => {
     await assessment('pa1');
     const again = await assessment('pa1');
     expect(again.refused).toBe('duplicate');
-    expect(progress.xp).toBe(100);
+    expect(progressOf(STUDENT).xp).toBe(100);
   });
 
   it('does not vary with how well the student did', async () => {

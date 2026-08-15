@@ -234,7 +234,15 @@ async function touchStreak(
   return { streak, longestStreak, advanced };
 }
 
-/** A milestone bonus, ledgered like any other award and payable once per milestone. */
+/**
+ * A milestone bonus, ledgered like any other award and payable once per student.
+ *
+ * The key names the milestone and nothing else, which is right: reaching seven days is the
+ * same event whoever reaches it. What makes it payable to each student exactly once is the
+ * ledger's unique index being scoped to the student — see XP_LEDGER_UNIQUE_INDEX. While
+ * that index was tenant-wide this function paid the first student in a tenant and refused
+ * every other one, permanently.
+ */
 async function awardStreakBonus(
   tenantId: string, studentId: string, days: number, bonusXp: number, now: Date,
 ): Promise<number> {

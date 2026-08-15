@@ -65,6 +65,19 @@ export interface IPersonalizedAssessment extends Document {
 
   items: IGeneratedItem[];
 
+  /**
+   * What the student actually answered, stored at submit.
+   *
+   * Added by Module 7 as the smallest change that makes recovery honest. Skill projection
+   * can fail after grading succeeds, and replaying it needs the responses — without them a
+   * rebuild would re-grade an empty paper and record that the student got everything
+   * wrong, which is worse than not recovering at all.
+   *
+   * Absent on any assessment generated before this existed, and absent while one is still
+   * in progress; both are handled as "cannot replay" rather than as zero marks.
+   */
+  answers?: { sourceType: string; sourceId: string; response?: any }[];
+
   generationReport: {
     requestedSlots: number;
     filled: number;
@@ -115,6 +128,16 @@ const PersonalizedAssessmentSchema = new Schema<IPersonalizedAssessment>(
     },
 
     items: { type: [GeneratedItemSchema], default: [] },
+
+    answers: {
+      type: [{
+        sourceType: String,
+        sourceId: String,
+        response: Schema.Types.Mixed,
+        _id: false,
+      }],
+      default: undefined,
+    },
 
     generationReport: {
       requestedSlots: { type: Number, default: 0 },

@@ -83,6 +83,7 @@ import PassportHome from './pages/Passport/PassportHome';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
 import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportRoadmap from './pages/Passport/Roadmap';
+import PassportSkillDna from './pages/Passport/SkillDna';
 import PassportPractice from './pages/Passport/Practice';
 import PassportPracticeItem from './pages/Passport/PracticeItem';
 import PassportInterview from './pages/Passport/Interview';
@@ -511,6 +512,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
         <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
+        <Route path="/careerpilot/skills" element={<PassportSkillDna />} />
         <Route path="/passport/roadmap" element={<LegacyRedirect to="/careerpilot/roadmap" />} />
         <Route path="/careerpilot/practice" element={<PassportPractice />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />

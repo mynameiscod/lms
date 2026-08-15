@@ -25,6 +25,7 @@ import * as careerSkills from '../controllers/careerSkillController';
 import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as personalized from '../controllers/personalizedAssessmentController';
+import * as skillDna from '../controllers/skillDnaController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -115,6 +116,16 @@ router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
 router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
 router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
 router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+
+// ── Student skill evidence and Skill DNA (Module 7). Submitting grades the paper and
+//    projects it into canonical skill evidence; the projection is derived state and never
+//    costs a student their submission if it fails. Rebuild/reproject are admin recovery. ──
+router.post('/me/assessment/personalized/submit', MEMBER, skillDna.submitPersonalizedAssessment);
+router.get('/me/skills',                          MEMBER, skillDna.getMySkillDna);
+router.get('/students/:studentId/skills',                    MANAGE, skillDna.getStudentSkillDna);
+router.get('/students/:studentId/skills/:skillKey',          MANAGE, skillDna.explainStudentSkill);
+router.post('/students/:studentId/skills/rebuild',           MANAGE, skillDna.rebuildStudentSkillDna);
+router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.reprojectAssessment);
 
 // ── Personalised assessment generation (Module 6). A SEPARATE flow: the existing
 //    assessment endpoints are untouched, so incomplete evidence mapping cannot break a

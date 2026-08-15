@@ -153,6 +153,33 @@ export const passportApi = {
     return data;
   },
 
+  // ── Skill DNA (Module 7) ──
+  /** The caller's own skills. `assessed: false` means not measured yet, not a score of 0. */
+  getMySkillDna: async (): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
+    const { data } = await axios.get(`${BASE}/me/skills`, { headers: auth() });
+    return data;
+  },
+  /** Grades the open paper and projects it into skill evidence. */
+  submitPersonalizedAssessment: async (answers: { sourceType: string; sourceId: string; response?: any }[]): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/me/assessment/personalized/submit`, { answers }, { headers: auth() });
+    return data;
+  },
+  /** Admin: one member's Skill DNA. */
+  getStudentSkillDna: async (studentId: string): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
+    const { data } = await axios.get(`${BASE}/students/${studentId}/skills`, { headers: auth() });
+    return data;
+  },
+  /** Admin: the observations behind one score, and the arithmetic applied. */
+  explainStudentSkill: async (studentId: string, skillKey: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/students/${studentId}/skills/${skillKey}`, { headers: auth() });
+    return data;
+  },
+  /** Admin recovery: recompute profiles from stored evidence. Idempotent. */
+  rebuildStudentSkillDna: async (studentId: string): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/students/${studentId}/skills/rebuild`, {}, { headers: auth() });
+    return data;
+  },
+
   // ── Personalised assessment (Module 6) ──
   /** Runs the real generator and saves nothing — no attempt, no member data touched. */
   previewAssessment: async (studentId: string, attemptNumber = 1): Promise<AssessmentPreview> => {
@@ -1099,6 +1126,21 @@ export interface CareerContext {
   };
 }
 
+
+/** One skill as the student's own evidence describes it. Score and confidence are separate. */
+export interface SkillDnaRow {
+  skillKey: string;
+  skillName: string;
+  /** 0-100, weighted performance across observations. */
+  score: number;
+  /** How much evidence sits behind the score — NOT how good the student is. */
+  confidence: string;
+  evidenceCount: number;
+  /** Distinct questions; repeats of one item are weaker evidence than several. */
+  distinctItems: number;
+  lastEvidenceAt: string | null;
+  skillActive: boolean;
+}
 
 /** A generated paper's shape and chosen items. Diagnostic — nothing is persisted. */
 export interface AssessmentPreview {

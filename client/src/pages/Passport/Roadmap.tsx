@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { Roadmap as RoadmapT, RoadmapWeek, RoadmapPhase } from '../../api/passportApi';
 import { useMember } from './MemberLayout';
+import SkillPlan from './SkillPlan';
 import './roadmap.css';
 
 /**
@@ -84,6 +85,10 @@ const Roadmap: React.FC = () => {
   if (data?.needsAssessment) {
     return (
       <>
+        {/* A member can reach Skill DNA through the personalised assessment without ever
+            taking the legacy one, so their plan still belongs here. Renders nothing when
+            they have none. */}
+        <SkillPlan />
         <div className="pm-head">
           <h1>Your 90-Day Roadmap</h1>
           <p>Your roadmap is built from your Career Readiness Assessment — take it first (it's free, about 5 minutes) and your personalised journey appears here.</p>
@@ -342,6 +347,14 @@ const Roadmap: React.FC = () => {
   // ══ COMPACT VIEW ══
   return (
     <div className="rq">
+      {/*
+        The 90-day SKILL plan sits above the mission journey.
+        Two layers, deliberately not merged: this one answers "what am I working toward and
+        why that", the journey below answers "what do I do today". It renders nothing at all
+        until a member has one, so the page is unchanged for everybody else.
+      */}
+      <SkillPlan />
+
       <div className="rq-title row">
         <div>
           <h1>Your {rm.totalDays}-Day Roadmap 🚀</h1>

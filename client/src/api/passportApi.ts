@@ -167,6 +167,31 @@ export const passportApi = {
     return data;
   },
 
+  // ── 90-day roadmap (Module 9) ──
+  /**
+   * The caller's own plan. Distinct from getRoadmap(), which is the mission journey — that
+   * answers "what do I do today", this answers "what am I working toward".
+   */
+  getMySkillRoadmap: async (): Promise<SkillRoadmapResponse> => {
+    const { data } = await axios.get(`${BASE}/me/roadmap`, { headers: auth() });
+    return data;
+  },
+  /** Safe to call twice: an existing plan is returned rather than replaced. */
+  generateMySkillRoadmap: async (): Promise<SkillRoadmapResponse> => {
+    const { data } = await axios.post(`${BASE}/me/roadmap/generate`, {}, { headers: auth() });
+    return data;
+  },
+  /** Explicit rebuild. The previous plan is kept as history, never deleted. */
+  replanMySkillRoadmap: async (): Promise<SkillRoadmapResponse> => {
+    const { data } = await axios.post(`${BASE}/me/roadmap/replan`, {}, { headers: auth() });
+    return data;
+  },
+  /** Admin: one member's plan, with the workings and their roadmap history. */
+  getStudentSkillRoadmap: async (studentId: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/students/${studentId}/roadmap`, { headers: auth() });
+    return data;
+  },
+
   // ── Skill DNA (Module 7) ──
   /** The caller's own skills. `assessed: false` means not measured yet, not a score of 0. */
   getMySkillDna: async (): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
@@ -1446,3 +1471,76 @@ export interface ReevaluateResult {
   changeCount: number;
   changes?: { id: string; name: string; email: string; from: string | null; to: string; toLabel: string }[];
 }
+
+// ── 90-day roadmap (Module 9) ──────────────────────────────────────────────────
+//
+// A plan, not a reading. Unlike readiness it is stored, so what a member was asked to do
+// last week survives this week's evidence changing.
+
+export interface RoadmapObjective {
+  skillKey: string;
+  skillName: string;
+  workType: 'LEARN' | 'PRACTICE' | 'ASSESS' | 'REVIEW';
+  plannedMinutes: number;
+  phase: string;
+  week: number;
+  sequence: number;
+  reasonCode: 'PRIORITY_GAP' | 'NEEDS_WORK' | 'PREREQUISITE' | 'ASSESSMENT_NEEDED'
+    | 'LIMITED_EVIDENCE' | 'MAINTENANCE' | 'VALIDATION';
+  targetLevel: string;
+  /** Built deterministically from the numbers — never generated, always safe to show. */
+  explanation: string;
+  origin: 'GENERATED' | 'MANUAL';
+}
+
+export interface RoadmapPhase {
+  key: string; title: string; blurb: string;
+  fromWeek: number; toWeek: number; fromDay: number; toDay: number;
+  plannedMinutes: number;
+}
+
+export interface SkillRoadmap {
+  id: string;
+  role: { key: string; name: string };
+  policyVersion: string;
+  roadmapVersion: number;
+  startDate: string;
+  endDate: string;
+  roadmapDays: number;
+  weekCount: number;
+  generatedAt: string;
+  planningConfidence: 'LOW' | 'MEDIUM' | 'HIGH';
+  capacity: {
+    minutesPerDay: number; daysPerWeek: number;
+    weeklyCapacityMinutes: number; plannedMinutes: number;
+  };
+  basis: {
+    readiness: number | null; coverage: number;
+    careerStage: string | null; entitlementLimited: boolean;
+  };
+  phases: RoadmapPhase[];
+  objectives: RoadmapObjective[];
+  deferred: { skillKey: string; skillName: string; reasonCode: string; reason: string }[];
+  summary: { objectives: number; deferred: number; skills: number };
+}
+
+export interface SkillRoadmapAvailable {
+  available: true;
+  currentDay: number;
+  currentWeek: number;
+  completed: boolean;
+  outdated: boolean;
+  outdatedReasons: ('ROLE_CHANGED' | 'COMMITMENT_CHANGED' | 'BLUEPRINT_CHANGED')[];
+  roadmap: SkillRoadmap;
+  created?: boolean;
+}
+
+export interface SkillRoadmapUnavailable {
+  available: false;
+  reason: 'CAREER_CONTEXT_INCOMPLETE' | 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_READINESS_DATA';
+  message: string;
+  missing?: string[];
+  role?: { key: string; name?: string };
+}
+
+export type SkillRoadmapResponse = SkillRoadmapAvailable | SkillRoadmapUnavailable;

@@ -27,6 +27,7 @@ import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
+import * as careerRoadmap from '../controllers/careerRoadmapController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -123,6 +124,17 @@ router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
 //    the next answer with nothing to invalidate. The role comes from stored context. ──
 router.get('/me/readiness',                     MEMBER, readiness.getMyRoleReadiness);
 router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRoleReadiness);
+
+// ── 90-day roadmap (Module 9). The PLANNING layer: what to achieve over the window, in
+//    canonical skills. Distinct from `/roadmap` below, which is the mission journey — that
+//    answers "what do I do today" and is untouched by any of this. Unlike readiness, a plan
+//    is STORED: it is a commitment over time, and deriving it would silently rewrite
+//    yesterday's plan whenever today's evidence changed. Generation is always explicit and
+//    takes no parameters — role, gaps and capacity are all resolved server-side. ──
+router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
+router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);
+router.post('/me/roadmap/replan',               MEMBER, careerRoadmap.replanMyRoadmap);
+router.get('/students/:studentId/roadmap',      MANAGE, careerRoadmap.getStudentRoadmap);
 
 // ── Student skill evidence and Skill DNA (Module 7). Submitting grades the paper and
 //    projects it into canonical skill evidence; the projection is derived state and never

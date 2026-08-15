@@ -48,6 +48,9 @@ const NEXT_ACTION: Record<string, { label: string; to: string }> = {
   CAREER_CONTEXT_INCOMPLETE: { label: 'Complete career setup', to: '/careerpilot/setup' },
   ROLE_NOT_SELECTED: { label: 'Choose my target role', to: '/careerpilot/setup' },
   ROLE_BLUEPRINT_NOT_READY: { label: 'See my skills', to: '/careerpilot/skills' },
+  // A lapsed membership is the one refusal with a commercial answer. It points at the
+  // journey page's existing unlock rather than a second checkout of its own.
+  MEMBERSHIP_REQUIRED: { label: 'See membership options', to: '/careerpilot/roadmap' },
 };
 
 const SkillPlan: React.FC = () => {

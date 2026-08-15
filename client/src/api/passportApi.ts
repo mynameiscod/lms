@@ -1537,7 +1537,8 @@ export interface SkillRoadmapAvailable {
 
 export interface SkillRoadmapUnavailable {
   available: false;
-  reason: 'CAREER_CONTEXT_INCOMPLETE' | 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_READINESS_DATA';
+  reason: 'CAREER_CONTEXT_INCOMPLETE' | 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY'
+    | 'NO_READINESS_DATA' | 'MEMBERSHIP_REQUIRED';
   message: string;
   missing?: string[];
   role?: { key: string; name?: string };

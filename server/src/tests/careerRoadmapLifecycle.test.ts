@@ -11,6 +11,7 @@
 
 const roadmapStore: any[] = [];
 let userDoc: any = null;
+let configDoc: any = null;
 
 const matches = (doc: any, q: any) =>
   Object.entries(q).every(([k, v]) => String(doc[k]) === String(v));
@@ -51,6 +52,13 @@ jest.mock('../models/StudentSkillProfile', () => ({
 jest.mock('../models/User', () => ({
   __esModule: true,
   default: { findOne: () => ({ select: () => ({ lean: async () => userDoc }) }) },
+}));
+
+// Entitlement tiers are admin configuration. Null means "nothing configured", under which
+// isEntitled fails closed to paid — the same behaviour every other CareerPilot feature sees.
+jest.mock('../models/PassportConfig', () => ({
+  __esModule: true,
+  default: { findOne: () => ({ lean: async () => configDoc }) },
 }));
 
 const getCareerContextMock = jest.fn();
@@ -121,6 +129,7 @@ function context(over: any = {}) {
 beforeEach(() => {
   roadmapStore.length = 0;
   userDoc = { passport: { active: true } };
+  configDoc = null;
   SKILL_DOCS = ['REST_API', 'SQL', 'DOCKER'].map(k => ({
     key: k, name: k, nodeType: 'SKILL', prerequisiteKeys: [], active: true,
   }));
@@ -360,15 +369,35 @@ describe('at the end of the 90 days', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('entitlement', () => {
-  it('stops the plan at the end of the membership when that comes first', async () => {
-    userDoc = { passport: { active: true, expiresAt: new Date('2026-09-14T00:00:00Z') } };
+  /**
+   * Regression cover for a real defect.
+   *
+   * windowFor() used to open with `if (!membershipActive(passport) || !passport.expiresAt)`
+   * and return the full ninety days. That one condition conflated the two states that must
+   * never be confused — "no expiry has ever been set", which is perpetual under this
+   * product's existing semantics, and "the membership ran out in March" — so an EXPIRED
+   * member was handed a brand-new 90-day roadmap, and an inactive one got the same. The
+   * lapsed member was the only one who could not have it, and they were the ones getting it.
+   *
+   * The fix separates the question about the DATE (windowFor) from the question about
+   * ACCESS (isEntitled on `roadmap_full`, the key this product already uses for the full
+   * 90-day roadmap).
+   */
+
+  // ── still eligible ──────────────────────────────────────────────────────────
+
+  it('gives the full window to an active member with no expiry set', async () => {
+    // Perpetual under existing semantics — membershipActive() treats a missing expiry as
+    // active, and §7 says only an authoritative end date may shorten a plan.
+    userDoc = { passport: { active: true } };
     await generateRoadmap(TENANT, STUDENT, { now: NOW });
 
-    expect(roadmapStore[0].roadmapDays).toBe(31);
-    expect(roadmapStore[0].input.entitlementLimited).toBe(true);
+    expect(roadmapStore).toHaveLength(1);
+    expect(roadmapStore[0].roadmapDays).toBe(MAX_ROADMAP_DAYS);
+    expect(roadmapStore[0].input.entitlementLimited).toBe(false);
   });
 
-  it('runs the full window when the membership outlasts it', async () => {
+  it('gives the full window when an active membership outlasts the 90 days', async () => {
     userDoc = { passport: { active: true, expiresAt: new Date('2027-08-15T00:00:00Z') } };
     await generateRoadmap(TENANT, STUDENT, { now: NOW });
 
@@ -376,10 +405,106 @@ describe('entitlement', () => {
     expect(roadmapStore[0].input.entitlementLimited).toBe(false);
   });
 
-  it('does not invent an expiry for a member who has none', async () => {
-    userDoc = { passport: { active: true } };
+  it('shortens the plan when an active membership ends inside the 90 days', async () => {
+    // The behaviour that must survive the fix: planning work into weeks the member cannot
+    // reach is the original reason this clamp exists.
+    userDoc = { passport: { active: true, expiresAt: new Date('2026-09-14T00:00:00Z') } };
     await generateRoadmap(TENANT, STUDENT, { now: NOW });
-    expect(roadmapStore[0].roadmapDays).toBe(MAX_ROADMAP_DAYS);
+
+    expect(roadmapStore[0].roadmapDays).toBe(31);
+    expect(roadmapStore[0].input.entitlementLimited).toBe(true);
+    expect(roadmapStore[0].endDate.getTime())
+      .toBeLessThanOrEqual(new Date('2026-09-14T00:00:00Z').getTime());
+  });
+
+  // ── no longer eligible ──────────────────────────────────────────────────────
+
+  it('REFUSES a membership whose expiry has already passed', async () => {
+    userDoc = { passport: { active: true, expiresAt: new Date('2026-03-01T00:00:00Z') } };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect((r.outcome as any).reason).toBe('MEMBERSHIP_REQUIRED');
+    expect(r.created).toBe(false);
+    expect(roadmapStore).toHaveLength(0);
+  });
+
+  it('REFUSES an inactive membership', async () => {
+    userDoc = { passport: { active: false } };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect((r.outcome as any).reason).toBe('MEMBERSHIP_REQUIRED');
+    expect(roadmapStore).toHaveLength(0);
+  });
+
+  it('REFUSES an inactive membership even with an expiry still in the future', async () => {
+    // Deactivated early — a refund, a chargeback, an admin action. The date says one thing
+    // and the flag says another; the flag wins, exactly as membershipActive() decides it.
+    userDoc = { passport: { active: false, expiresAt: new Date('2027-08-15T00:00:00Z') } };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect((r.outcome as any).reason).toBe('MEMBERSHIP_REQUIRED');
+    expect(roadmapStore).toHaveLength(0);
+  });
+
+  it('REFUSES a member with no passport record at all', async () => {
+    userDoc = { passport: undefined };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect((r.outcome as any).reason).toBe('MEMBERSHIP_REQUIRED');
+    expect(roadmapStore).toHaveLength(0);
+  });
+
+  it('creates no roadmap on any refusal, and says renewal is the fix when it expired', async () => {
+    userDoc = { passport: { active: true, expiresAt: new Date('2026-03-01T00:00:00Z') } };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect((r.outcome as any).message).toMatch(/ended|renew/i);
+    expect(roadmapStore).toHaveLength(0);
+  });
+
+  it('refuses to REPLAN for a lapsed member, and leaves the existing plan alone', async () => {
+    await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    const planned = JSON.stringify(roadmapStore[0].objectives);
+
+    userDoc = { passport: { active: true, expiresAt: new Date('2026-03-01T00:00:00Z') } };
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW, replan: true });
+
+    expect((r.outcome as any).reason).toBe('MEMBERSHIP_REQUIRED');
+    expect(roadmapStore).toHaveLength(1);
+    // Not superseded, not emptied: a lapsed membership must not cost them the plan they had.
+    expect(roadmapStore[0].status).toBe('ACTIVE');
+    expect(JSON.stringify(roadmapStore[0].objectives)).toBe(planned);
+  });
+
+  it('still lets a lapsed member READ the plan they already have', async () => {
+    await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    userDoc = { passport: { active: false } };
+
+    const out = await getActiveRoadmap(TENANT, STUDENT, NOW);
+    expect(out.available).toBe(true);
+  });
+
+  // ── admin configuration is respected, but cannot conjure days ────────────────
+
+  it('honours a tenant that has made the full roadmap free', async () => {
+    // Re-tiering in Platform Settings is an existing, deliberate admin action.
+    userDoc = { passport: { active: false } };
+    configDoc = { entitlements: [{ featureKey: 'roadmap_full', label: 'Full 90-day Roadmap', tier: 'free' }] };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect(r.created).toBe(true);
+    expect(roadmapStore).toHaveLength(1);
+  });
+
+  it('still refuses an EXPIRED member on a free-tier tenant', async () => {
+    // A free tier says who may plan. It cannot say that days which have already passed are
+    // available to plan into, so the expiry check is not an else-branch of the access check.
+    userDoc = { passport: { active: true, expiresAt: new Date('2026-03-01T00:00:00Z') } };
+    configDoc = { entitlements: [{ featureKey: 'roadmap_full', label: 'Full 90-day Roadmap', tier: 'free' }] };
+
+    const r = await generateRoadmap(TENANT, STUDENT, { now: NOW });
+    expect((r.outcome as any).reason).toBe('MEMBERSHIP_REQUIRED');
+    expect(roadmapStore).toHaveLength(0);
   });
 });
 

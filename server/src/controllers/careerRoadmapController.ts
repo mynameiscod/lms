@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import CareerRoadmap from '../models/CareerRoadmap';
 import {
   getActiveRoadmap, generateRoadmap, explainRoadmap, stalenessOf,
-  RoadmapOutcome, RoadmapView,
+  RoadmapOutcome, RoadmapView, RoadmapUnavailableResult,
 } from '../services/careerRoadmapService';
 import { getCareerContext } from '../services/careerContextService';
 
@@ -91,6 +91,16 @@ const studentShape = (view: RoadmapView) => {
 const shape = (outcome: RoadmapOutcome) =>
   outcome.available ? studentShape(outcome) : outcome;
 
+/**
+ * A refusal to build a plan, with the status the rest of CareerPilot already uses.
+ *
+ * 403 for a membership that has lapsed or was never active — the same answer daily missions
+ * and the resume centre give, so the client's existing handling for "this needs a
+ * membership" applies here without a special case. 400 for everything else, which are all
+ * missing answers rather than missing access.
+ */
+const refusalStatus = (reason: string): number => (reason === 'MEMBERSHIP_REQUIRED' ? 403 : 400);
+
 /** GET /passport/me/roadmap — the caller's own plan, or why they do not have one. */
 export const getMyRoadmap = async (req: Request, res: Response) => {
   try {
@@ -118,7 +128,12 @@ export const generateMyRoadmap = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const result = await generateRoadmap(tenantId, studentId, { actor: 'STUDENT' });
-    if (!result.outcome.available) return res.status(400).json(result.outcome);
+    if (!result.outcome.available) {
+      // Narrowed explicitly rather than by discriminant — this tsconfig does not narrow the
+      // union, the same way RoleReadiness has to cast in Module 8.
+      const refused = result.outcome as RoadmapUnavailableResult;
+      return res.status(refusalStatus(refused.reason)).json(refused);
+    }
 
     res.json({ ...studentShape(result.outcome), created: result.created, refused: result.refused });
   } catch (e: any) {
@@ -141,7 +156,12 @@ export const replanMyRoadmap = async (req: Request, res: Response) => {
     if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
 
     const result = await generateRoadmap(tenantId, studentId, { actor: 'STUDENT', replan: true });
-    if (!result.outcome.available) return res.status(400).json(result.outcome);
+    if (!result.outcome.available) {
+      // Narrowed explicitly rather than by discriminant — this tsconfig does not narrow the
+      // union, the same way RoleReadiness has to cast in Module 8.
+      const refused = result.outcome as RoadmapUnavailableResult;
+      return res.status(refusalStatus(refused.reason)).json(refused);
+    }
 
     // A finished programme is not replanned into another one. Renewal is a separate
     // decision, and making it here would quietly give away a second 90 days.

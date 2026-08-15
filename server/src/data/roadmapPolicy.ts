@@ -146,7 +146,9 @@ export type RoadmapUnavailable =
   | 'CAREER_CONTEXT_INCOMPLETE'
   | 'ROLE_NOT_SELECTED'
   | 'ROLE_BLUEPRINT_NOT_READY'
-  | 'NO_READINESS_DATA';
+  | 'NO_READINESS_DATA'
+  /** No active membership, or one whose authoritative end date has already passed. */
+  | 'MEMBERSHIP_REQUIRED';
 
 /** Round a planned duration to something a student would actually sit down and do. */
 export function roundBlock(minutes: number): number {

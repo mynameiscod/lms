@@ -4,7 +4,8 @@ import StudentSkillProfile from '../models/StudentSkillProfile';
 import CareerRoadmap, { ICareerRoadmap, GenerationReason } from '../models/CareerRoadmap';
 import { getCareerContext, StudentCareerContext } from './careerContextService';
 import { calculateStudentRoleReadiness, RoleReadinessResult } from './roleReadinessService';
-import { membershipActive } from './passportEntitlementService';
+import PassportConfig from '../models/PassportConfig';
+import { isEntitled } from './passportEntitlementService';
 import { buildRoadmapPlan, PlannerGraphNode, PlannerProfile } from './roadmapPlannerService';
 import {
   MAX_ROADMAP_DAYS, PREREQUISITE_DEPTH, ROADMAP_VERSION, RoadmapUnavailable,
@@ -110,19 +111,38 @@ async function loadGraph(keys: string[]): Promise<Map<string, PlannerGraphNode>>
 }
 
 /**
- * How long this plan may run.
+ * How long this plan may run, from the membership's end date alone.
  *
- * Ninety days, unless the student's membership ends sooner — planning past what somebody has
- * paid for would put work in weeks they cannot reach. Only an authoritative end date counts;
- * a member with no expiry simply gets the full window.
+ * PURELY A QUESTION ABOUT THE DATE. Whether somebody is allowed a plan at all is a separate
+ * question, answered by the entitlement check in gatherInputs — mixing the two is what
+ * produced the bug this replaces. The old version bailed out to the full ninety days
+ * whenever `membershipActive()` was false, so the two states it could not tell apart —
+ * "no expiry has ever been set" and "the membership ran out in March" — were handed the
+ * same answer, and the expired member got a fresh 90-day roadmap for free.
+ *
+ * The three cases are now distinct:
+ *
+ *   no expiry date      perpetual under existing semantics; the full window
+ *   expiry ahead of us  min(90, days remaining) — never plan work into weeks they cannot reach
+ *   expiry behind us    EXPIRED. No window at all, and the caller must refuse.
  */
-function windowFor(passport: any, now: Date): { roadmapDays: number; entitlementLimited: boolean } {
-  if (!membershipActive(passport, now) || !passport?.expiresAt) {
-    return { roadmapDays: MAX_ROADMAP_DAYS, entitlementLimited: false };
+function windowFor(passport: any, now: Date): {
+  roadmapDays: number;
+  entitlementLimited: boolean;
+  expired: boolean;
+} {
+  const raw = passport?.expiresAt ? new Date(passport.expiresAt) : null;
+
+  // No authoritative end date. §7 is explicit that one has to already exist for us to clamp
+  // to it, and inventing one here would be inventing a subscription model.
+  if (!raw || Number.isNaN(raw.getTime())) {
+    return { roadmapDays: MAX_ROADMAP_DAYS, entitlementLimited: false, expired: false };
   }
-  const left = daysBetween(now, new Date(passport.expiresAt)) + 1;
-  if (left >= MAX_ROADMAP_DAYS) return { roadmapDays: MAX_ROADMAP_DAYS, entitlementLimited: false };
-  return { roadmapDays: Math.max(1, left), entitlementLimited: true };
+
+  const left = daysBetween(now, raw) + 1;
+  if (left <= 0) return { roadmapDays: 0, entitlementLimited: true, expired: true };
+  if (left >= MAX_ROADMAP_DAYS) return { roadmapDays: MAX_ROADMAP_DAYS, entitlementLimited: false, expired: false };
+  return { roadmapDays: left, entitlementLimited: true, expired: false };
 }
 
 /**
@@ -189,8 +209,35 @@ async function gatherInputs(
     rows.map(r => [r.skillKey, { score: r.score, confidence: r.confidence }]),
   );
 
-  const user: any = await User.findOne({ _id: studentId, tenantId }).select('passport').lean();
-  const { roadmapDays, entitlementLimited } = windowFor(user?.passport, now);
+  const [user, cfg] = await Promise.all([
+    User.findOne({ _id: studentId, tenantId }).select('passport').lean() as any,
+    PassportConfig.findOne({ tenantId }).lean() as any,
+  ]);
+
+  const { roadmapDays, entitlementLimited, expired } = windowFor(user?.passport, now);
+
+  /**
+   * May this member have a plan at all?
+   *
+   * Gated on `roadmap_full` — the feature key this product already uses for "Full 90-day
+   * Roadmap", so a tenant that has re-tiered it in Platform Settings re-tiers this too, and
+   * nothing new has to be configured. isEntitled fails closed on an unknown key.
+   *
+   * The expiry check is deliberately SEPARATE and not an else-branch. A tenant may set
+   * roadmap_full to `free`, which is their decision and lets a free member plan — but an
+   * authoritative end date that has already passed still cannot buy a fresh ninety days,
+   * because those days do not exist. Either condition refuses on its own.
+   */
+  if (!isEntitled(cfg?.entitlements, user?.passport, 'roadmap_full', now) || expired) {
+    return {
+      available: false,
+      reason: 'MEMBERSHIP_REQUIRED',
+      message: expired
+        ? 'Your CareerPilot membership has ended, so we cannot plan the next 90 days yet. Renewing brings your plan back.'
+        : 'A CareerPilot membership is needed to build your 90-day plan.',
+      role: { key: ready.role.key, name: ready.role.name },
+    };
+  }
 
   return { context, readiness: ready, graph, profiles, roadmapDays, entitlementLimited };
 }

@@ -84,18 +84,31 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
     }
 
     /**
-     * Freeze the AFTER picture for a skill check-in.
+     * Freeze the AFTER picture for a skill check-in — but ONLY once the projection landed.
      *
-     * Runs once grading and projection have settled, so it reflects the Skill DNA this
-     * sitting produced. Guarded on absence inside the service, so a retried submission
-     * cannot overwrite an earlier comparison with a later reading — August's check-in must
-     * keep reporting what August found.
+     * This used to run unconditionally, which was wrong in the one case that matters. When
+     * projection fails, Skill DNA has not moved: the scores still show what the student had
+     * BEFORE they sat the paper. Snapshotting then froze the pre-assessment picture as the
+     * "after", and because the snapshot is deliberately write-once, a later successful
+     * reproject could repair the Skill DNA and never repair the comparison. The student's
+     * history would read 42 -> 42 forever, for a check-in that actually took them to 63.
      *
-     * A failure here costs the comparison, never the submission.
+     * So a failed projection leaves the AFTER snapshot ABSENT rather than wrong. The
+     * submission still stands, the answers are stored, and reprojectAssessment writes the
+     * snapshot from the rebuilt Skill DNA when it succeeds. An absent comparison is
+     * recoverable; a frozen incorrect one is not.
      */
+    let afterSnapshotPending = false;
     if (open.purpose === 'REASSESSMENT') {
-      await captureAfterSnapshot(tenantId, studentId, String(open._id))
-        .catch((e: any) => console.error('[reassessment] after-snapshot failed', String(open._id), e?.message || e));
+      if (projectionError) {
+        afterSnapshotPending = true;
+      } else {
+        await captureAfterSnapshot(tenantId, studentId, String(open._id))
+          .catch((e: any) => {
+            afterSnapshotPending = true;
+            console.error('[reassessment] after-snapshot failed', String(open._id), e?.message || e);
+          });
+      }
     }
 
     /**
@@ -135,6 +148,9 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
         : null,
       // Surfaced honestly rather than hidden — the submission is safe either way.
       skillDnaPending: !!projectionError,
+      // A check-in whose comparison is not ready yet. It becomes available once the
+      // projection is rebuilt; the result screen shows "still being prepared" until then.
+      afterSnapshotPending,
     });
   } catch (e: any) {
     console.error('[skill-dna] submit:', e?.message || e);
@@ -242,7 +258,28 @@ export const reprojectAssessment = async (req: Request, res: Response) => {
     const graded = await gradeSubmittedAnswers(tenantId, assessment.answers);
 
     const report = await projectAssessmentToSkillDna(tenantId, String(assessment._id), graded);
-    res.json({ report });
+
+    /**
+     * Recover the check-in's comparison, now that Skill DNA is correct.
+     *
+     * This is the other half of the fix above: a reassessment whose projection failed at
+     * submit has no AFTER snapshot, and this is the moment its real one can be taken. It is
+     * still write-once — if a valid snapshot already exists, captureAfterSnapshot returns
+     * null and the historical comparison is left exactly as it was. Reprojecting an old
+     * check-in for any other reason therefore cannot rewrite what it reported.
+     */
+    let afterSnapshotRecovered = false;
+    if (assessment.purpose === 'REASSESSMENT') {
+      const snapshot = await captureAfterSnapshot(
+        tenantId, String(assessment.studentId), String(assessment._id),
+      ).catch((e: any) => {
+        console.error('[reassessment] after-snapshot recovery failed', String(assessment._id), e?.message || e);
+        return null;
+      });
+      afterSnapshotRecovered = !!snapshot;
+    }
+
+    res.json({ report, afterSnapshotRecovered });
   } catch (e: any) {
     console.error('[skill-dna] reproject:', e?.message || e);
     res.status(500).json({ message: e.message || 'Could not reproject that assessment.' });

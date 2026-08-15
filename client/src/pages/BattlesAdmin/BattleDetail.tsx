@@ -76,7 +76,15 @@ const BattleDetail: React.FC = () => {
   const del = async () => { if (!window.confirm('Delete this battle AND all its registrations? This cannot be undone.')) return; await battleAdminApi.remove(String(id)); nav('/admin/battles'); };
   const sendReminder = async () => {
     setBusy(true);
-    try { const r: any = await battleAdminApi.broadcast(String(id), rm); setToast(r?.message || 'Sent'); setShowRemind(false); setTimeout(() => setToast(''), 6000); }
+    try {
+      const r: any = await battleAdminApi.broadcast(String(id), rm);
+      setToast(r?.message || 'Sent');
+      setShowRemind(false);
+      // A partial failure names the Meta error that caused it; auto-clearing that after six
+      // seconds is how "WhatsApp 0 — Authentication Error" went unnoticed through two
+      // attempts. Only a clean send dismisses itself.
+      if (!r?.whatsappError) setTimeout(() => setToast(''), 6000);
+    }
     catch (e: any) { setToast(e?.response?.data?.message || 'Send failed'); }
     setBusy(false);
   };
@@ -248,15 +256,33 @@ const BattleDetail: React.FC = () => {
           <div style={dmodal} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><div style={{ fontSize: 18, fontWeight: 800, color: '#0f172a' }}>💬 Send reminder</div><button onClick={() => setShowRemind(false)} style={{ background: 'none', border: 'none', fontSize: 24, color: '#94a3b8', cursor: 'pointer' }}>×</button></div>
             <div style={{ fontSize: 12.5, color: '#94a3b8', marginBottom: 8 }}>Use <code>{'{name}'}</code> to personalize. Tick "include exam link" to append each person's link.</div>
-            <label style={efl}>Message</label>
+            {/* WhatsApp cannot carry free text to registrants — Meta only delivers approved
+                templates to people who have not messaged the business number, and template
+                wording is fixed. Saying so here stops an admin composing a WhatsApp message
+                that silently goes out as different words. */}
+            {(rm.channel === 'whatsapp' || rm.channel === 'both') && (
+              <div style={{ fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 10px', marginBottom: 8 }}>
+                <b>WhatsApp sends the approved template</b>, not this text — each member gets their name,
+                the start time and a button to their own exam link.
+                {rm.channel === 'both' ? ' The message below is used for the email only.' : ' The message below is not used.'}
+              </div>
+            )}
+            <label style={efl}>Message {rm.channel === 'whatsapp' ? <span style={{ color: '#94a3b8', fontWeight: 500 }}>(email only — not used here)</span> : null}</label>
             <textarea style={{ ...efi, minHeight: 110, resize: 'vertical' }} value={rm.message} onChange={e => setRm({ ...rm, message: e.target.value })} placeholder={'Hi {name}, your CodeBegun Tech Battle starts tonight at 7 PM. Be ready! 🚀'} />
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div><label style={efl}>Channel</label><select style={efi} value={rm.channel} onChange={e => setRm({ ...rm, channel: e.target.value })}><option value="whatsapp">WhatsApp</option><option value="email">Email</option><option value="both">Both</option></select></div>
               <div><label style={efl}>Audience</label><select style={efi} value={rm.review} onChange={e => setRm({ ...rm, review: e.target.value })}><option value="approved">Approved only</option><option value="pending">Pending only</option><option value="all">Everyone registered</option></select></div>
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13.5, color: '#475569', marginTop: 10 }}><input type="checkbox" checked={rm.includeLink} onChange={e => setRm({ ...rm, includeLink: e.target.checked })} /> Include each person's exam link</label>
-            <button style={{ ...primary, width: '100%', marginTop: 16, opacity: (busy || !rm.message.trim()) ? 0.6 : 1 }} disabled={busy || !rm.message.trim()} onClick={sendReminder}>{busy ? 'Sending…' : 'Send now'}</button>
-            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 8 }}>Note: WhatsApp free-form text delivers to recipients who messaged your number or opted in; cold delivery needs an approved WhatsApp template.</div>
+            {/* A WhatsApp-only reminder needs no typed message: the template supplies the words. */}
+            {(() => {
+              const needsMsg = rm.channel === 'email' || rm.channel === 'both';
+              const blocked = busy || (needsMsg && !rm.message.trim());
+              return (
+                <button style={{ ...primary, width: '100%', marginTop: 16, opacity: blocked ? 0.6 : 1 }} disabled={blocked} onClick={sendReminder}>{busy ? 'Sending…' : 'Send now'}</button>
+              );
+            })()}
+            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 8 }}>Note: WhatsApp delivery to people who have not messaged your number requires an approved template — configure it in Platform Settings → Messaging.</div>
           </div>
         </div>
       )}

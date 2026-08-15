@@ -123,6 +123,63 @@ function normalizeTo(phone: string): string {
 // or env). Without it, sends fall back to plain text, which Meta rejects for cold users.
 const notifyTemplate = () => process.env.WHATSAPP_NOTIFY_TEMPLATE || '';
 const notifyTemplateLang = () => process.env.WHATSAPP_NOTIFY_TEMPLATE_LANG || 'en';
+// Templates with a DYNAMIC url button need the variable half of that url passed as a
+// button component — Meta rejects the send otherwise (132000, parameter count mismatch).
+// Set to "false" for a template whose button is static, or that has no button at all.
+const notifyTemplateHasButton = () => String(process.env.WHATSAPP_NOTIFY_TEMPLATE_BUTTON || 'true') !== 'false';
+
+/** Whether a notification template is configured at all. Callers use this to decide
+ *  between a template send (reaches cold contacts) and free-form text (does not). */
+export const hasNotifyTemplate = () => !!notifyTemplate();
+
+/**
+ * Send an approved WhatsApp template with an arbitrary number of body variables, and
+ * optionally the variable suffix of a dynamic url button.
+ *
+ * `sendWhatsAppText` below flattens a whole message into a single {{1}}, which only fits
+ * a template built as a generic carrier. A template like `battle_exam__reminder` — body
+ * {{1}} name, {{2}} time, plus a button carrying each recipient's exam token — cannot be
+ * expressed that way, so structured sends get their own entry point rather than
+ * overloading the text one.
+ *
+ * Body variables reject newlines, tabs and runs of 4+ spaces; each is sanitized here so a
+ * stray line break in a battle title cannot fail the whole send.
+ */
+export async function sendWhatsAppTemplate(
+  tenantId: string,
+  phone: string,
+  opts: { body: string[]; urlButtonParam?: string }
+): Promise<{ ok: boolean; error?: string }> {
+  const to = normalizeTo(phone);
+  if (!to) return { ok: false, error: 'invalid phone' };
+  const tpl = notifyTemplate();
+  if (!tpl) return { ok: false, error: 'No WhatsApp template configured (Platform Settings → Messaging).' };
+
+  const candidates = await getWhatsAppCredentialCandidates(tenantId);
+  if (!candidates.length) return { ok: false, error: 'WhatsApp is not configured for this tenant (set it in Platform Settings).' };
+
+  const clean = (s: string) => String(s ?? '').replace(/[\r\n\t]+/g, ' ').replace(/ {2,}/g, ' ').trim();
+  const components: any[] = [
+    { type: 'body', parameters: opts.body.map((v) => ({ type: 'text', text: clean(v) })) },
+  ];
+  if (opts.urlButtonParam && notifyTemplateHasButton()) {
+    components.push({
+      type: 'button', sub_type: 'url', index: '0',
+      parameters: [{ type: 'text', text: clean(opts.urlButtonParam) }],
+    });
+  }
+
+  let lastError: string | undefined;
+  for (const creds of candidates) {
+    const r = await waPost(creds, {
+      messaging_product: 'whatsapp', to, type: 'template',
+      template: { name: tpl, language: { code: notifyTemplateLang() }, components },
+    });
+    if (r.ok) return { ok: true };
+    lastError = r.error;
+  }
+  return { ok: false, error: lastError || 'send failed' };
+}
 
 /**
  * Send a WhatsApp message to a phone for a tenant. If a notification template is

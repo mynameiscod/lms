@@ -485,8 +485,15 @@ export const approveRegistration = async (req: Request, res: Response) => {
       // Send the link over BOTH channels — email (always) + WhatsApp (needs template for cold users).
       sendConfirmEmail(reg, b, url).catch(() => {});
       const when = new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' });
-      const waMsg = `You're approved for ${b.title}! Your exam opens on ${when} IST. Start here (unlocks at start): ${url} — one attempt, single device. — CodeBegun`;
-      wa = await otp.sendWhatsAppText(reg.tenantId, reg.whatsapp || reg.mobile, waMsg);
+      const phone = reg.whatsapp || reg.mobile;
+      // An approved template is the only thing Meta delivers to someone who has never
+      // messaged us, which is every registrant. Free-form text is kept only as the
+      // fallback for installs with no template configured — there it reaches nobody
+      // outside the 24h window, but it is no worse than sending nothing.
+      wa = otp.hasNotifyTemplate()
+        ? await otp.sendWhatsAppTemplate(reg.tenantId, phone, { body: [reg.name || 'there', `${when} IST`], urlButtonParam: reg.examToken })
+        : await otp.sendWhatsAppText(reg.tenantId, phone,
+            `You're approved for ${b.title}! Your exam opens on ${when} IST. Start here (unlocks at start): ${url} — one attempt, single device. — CodeBegun`);
     }
     res.json({
       success: true, examUrl: url, whatsapp: wa,
@@ -536,7 +543,11 @@ export const broadcastBattle = async (req: Request, res: Response) => {
   try {
     const tenantId = tenantOf(req);
     const { message, channel = 'whatsapp', review = 'approved', includeLink } = req.body || {};
-    if (!message || !String(message).trim()) return res.status(400).json({ message: 'Message is required' });
+    // Only email carries the typed message — WhatsApp sends the approved template, whose
+    // wording Meta fixes — so a WhatsApp-only reminder does not need one.
+    if ((channel === 'email' || channel === 'both') && (!message || !String(message).trim())) {
+      return res.status(400).json({ message: 'Message is required for email' });
+    }
 
     const b = await TechBattle.findOne({ _id: req.params.id, tenantId }).lean() as any;
     if (!b) return res.status(404).json({ message: 'Battle not found' });
@@ -547,12 +558,45 @@ export const broadcastBattle = async (req: Request, res: Response) => {
     // 'all' → everyone who registered
     const regs = await BattleRegistration.find(q).select('name email mobile whatsapp examToken').limit(5000).lean();
 
+    const wantsWhatsApp = channel === 'whatsapp' || channel === 'both';
+
+    /**
+     * Refuse rather than report a number that means nothing.
+     *
+     * Without a template every one of these sends goes out as free-form text, which Meta
+     * accepts and then silently drops for anyone outside the 24h window — i.e. every
+     * registrant. That path returned "WhatsApp 5" for five messages nobody received.
+     */
+    if (wantsWhatsApp && !otp.hasNotifyTemplate()) {
+      return res.status(400).json({
+        message: 'No WhatsApp template is configured, so reminders cannot reach registrants — ' +
+          'Meta only delivers approved templates to people who have not messaged you. ' +
+          'Set WHATSAPP_NOTIFY_TEMPLATE in Platform Settings → Messaging, or send by email.',
+      });
+    }
+    // "Sent to 0" reads like a success. In approval mode nobody is `approved` until an
+    // admin says so, so the default audience is empty on a fresh battle — say that.
+    if (!regs.length) {
+      return res.status(400).json({ message: `No ${review === 'all' ? '' : review + ' '}registrations to send to — nothing was sent.` });
+    }
+
+    // The template's wording is fixed by Meta, so the admin's text drives email only; the
+    // WhatsApp side carries the approved copy with this member's name, the start time and
+    // their own exam link on the button.
+    const when = b.startAt
+      ? new Date(b.startAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }) + ' IST'
+      : 'the scheduled time';
+
     let wa = 0, em = 0; let waError: string | undefined;
     for (const r of regs as any[]) {
       const link = includeLink ? ` ${examUrl(tenantId, r.examToken)}` : '';
       const body = `${String(message).replace(/\{name\}/g, r.name || '')}${link}`;
-      if (channel === 'whatsapp' || channel === 'both') {
-        const res2 = await otp.sendWhatsAppText(tenantId, r.whatsapp || r.mobile, body); if (res2.ok) wa++; else waError = waError || res2.error;
+      if (wantsWhatsApp) {
+        const res2 = await otp.sendWhatsAppTemplate(tenantId, r.whatsapp || r.mobile, {
+          body: [r.name || 'there', when],
+          urlButtonParam: r.examToken,
+        });
+        if (res2.ok) wa++; else waError = waError || res2.error;
       }
       if (channel === 'email' || channel === 'both') {
         const ok = await emailService.sendGenericEmail(r.email, `${b.title} — update`, `<div style="font-family:Arial,sans-serif">${body.replace(/\n/g, '<br>')}</div>`); if (ok) em++;

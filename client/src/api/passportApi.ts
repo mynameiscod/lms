@@ -153,6 +153,32 @@ export const passportApi = {
     return data;
   },
 
+  // ── Role skill blueprints (Module 4, admin) ──
+  /** Every role with a count of what it expects — one query, no per-role fan-out. */
+  listRoleBlueprints: async (): Promise<{ roles: BlueprintRoleRow[]; suggestedTaxonomyAdditions: string[] }> => {
+    const { data } = await axios.get(`${BASE}/role-blueprints`, { headers: auth() });
+    return data;
+  },
+  /** One blueprint, its skills resolved, plus the tree the picker needs. */
+  getRoleBlueprint: async (roleKey: string): Promise<{ blueprint: ResolvedBlueprint; skillTree: SkillNode[]; vocabulary: any }> => {
+    const { data } = await axios.get(`${BASE}/role-blueprints/${encodeURIComponent(roleKey)}`, { headers: auth() });
+    return data;
+  },
+  /** Replaces the whole list — a requirement left out is removed. */
+  saveRoleBlueprint: async (roleKey: string, requirements: BlueprintRequirement[]): Promise<{ blueprint: ResolvedBlueprint }> => {
+    const { data } = await axios.put(`${BASE}/role-blueprints/${encodeURIComponent(roleKey)}`, { requirements }, { headers: auth() });
+    return data;
+  },
+  publishRoleBlueprint: async (roleKey: string, published: boolean): Promise<{ blueprint: ResolvedBlueprint }> => {
+    const { data } = await axios.post(`${BASE}/role-blueprints/${encodeURIComponent(roleKey)}/publish`, { published }, { headers: auth() });
+    return data;
+  },
+  /** Idempotent, insert-only. `dryRun` reports without writing. */
+  seedRoleBlueprints: async (dryRun: boolean): Promise<{ inserted: string[]; skipped: string[]; missingRoles: string[]; missingSkills: Record<string, string[]> }> => {
+    const { data } = await axios.post(`${BASE}/role-blueprints/seed`, { dryRun }, { headers: auth() });
+    return data;
+  },
+
   // ── Skill graph (Module 3, admin) ──
   /** Tree, flat list and vocabulary in one response, so the pickers cannot disagree. */
   listSkills: async (): Promise<{
@@ -1035,6 +1061,56 @@ export interface CareerContext {
     onboardingCompleted: boolean; contextVersion: number;
     missing: string[]; completedAt: string | null;
   };
+}
+
+
+/** One skill a role expects, with the skill's own details joined in for display. */
+export interface BlueprintRequirement {
+  skillKey: string;
+  importance: string;
+  weight: number;
+  targetLevel: string;
+  active: boolean;
+  displayOrder: number;
+  note?: string;
+  /** Joined from CareerSkill. Never stored on the requirement — the key is the truth. */
+  skillName: string;
+  skillDescription: string;
+  skillNodeType: string;
+  skillDifficulty: string;
+  parentKey: string | null;
+  /** False once Module 3 retires the skill; the requirement itself survives. */
+  skillActive: boolean;
+  /** The key resolves to nothing at all — surfaced rather than hidden. */
+  missing: boolean;
+}
+
+export interface ResolvedBlueprint {
+  roleKey: string;
+  roleName: string;
+  roleActive: boolean;
+  domainKey: string;
+  published: boolean;
+  version: number;
+  requirements: BlueprintRequirement[];
+  summary: {
+    total: number;
+    active: number;
+    byImportance: Record<string, number>;
+    totalWeight: number;
+    /** Requirements pointing at a deactivated or missing skill. */
+    stale: number;
+  };
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface BlueprintRoleRow {
+  key: string;
+  name: string;
+  active: boolean;
+  studentSelectable: boolean;
+  blueprint: { total: number; active: number; published: boolean };
 }
 
 /**

@@ -22,6 +22,7 @@ import * as pathwayRules from '../controllers/pathwayRulesController';
 import * as careerContext from '../controllers/careerContextController';
 import * as careerRoles from '../controllers/careerRoleController';
 import * as careerSkills from '../controllers/careerSkillController';
+import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -112,6 +113,15 @@ router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
 router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
 router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
 router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+
+// ── Role skill blueprints: what each role expects. Tenant's own configuration, so
+//    MANAGE rather than the SUPER_ADMIN the shared skill catalogue requires — referencing
+//    a skill here grants nothing over the skill itself. ──
+router.get('/role-blueprints',                   MANAGE, roleBlueprints.listBlueprints);
+router.get('/role-blueprints/:roleKey',          MANAGE, roleBlueprints.getBlueprint);
+router.put('/role-blueprints/:roleKey',          MANAGE, roleBlueprints.saveBlueprint);
+router.post('/role-blueprints/:roleKey/publish', MANAGE, roleBlueprints.setPublished);
+router.post('/role-blueprints/seed',             MANAGE, roleBlueprints.seedBlueprints);
 
 router.get('/career-roles',            MANAGE, careerRoles.listRoles);
 router.get('/career-roles/:key/usage', MANAGE, careerRoles.roleUsage);

@@ -20,6 +20,7 @@ import * as funnel from '../controllers/passportFunnelController';
 import * as curriculum from '../controllers/pathwayCurriculumController';
 import * as pathwayRules from '../controllers/pathwayRulesController';
 import * as careerContext from '../controllers/careerContextController';
+import * as careerRoles from '../controllers/careerRoleController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -82,6 +83,15 @@ router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCur
 
 // ── Who each pathway serves. Rules save through the content endpoint; these support
 //    writing them: the vocabulary, a dry-run against real members, and re-routing. ──
+// ── Career roles. Ordinary CareerPilot configuration, so MANAGE rather than a new
+//    permission: unlike category weights or a member re-route, changing a role rewrites
+//    nothing that already exists — it only changes what future students are offered. ──
+router.get('/career-roles',            MANAGE, careerRoles.listRoles);
+router.get('/career-roles/:key/usage', MANAGE, careerRoles.roleUsage);
+router.post('/career-roles',           MANAGE, careerRoles.createRole);
+router.put('/career-roles/:id',        MANAGE, careerRoles.updateRole);
+router.delete('/career-roles/:id',     MANAGE, careerRoles.deleteRole);
+
 router.get('/pathway-rules/vocabulary',  MANAGE, pathwayRules.getRuleVocabulary);
 router.post('/pathway-rules/preview',    MANAGE, pathwayRules.previewPathwayRules);
 // Two routes rather than one flag: seeing who WOULD move is a MANAGE act, actually

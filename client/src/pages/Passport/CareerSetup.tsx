@@ -187,16 +187,40 @@ const CareerSetup: React.FC = () => {
 
         {step === 1 && (
           <>
-            <h2>What would you like to become?</h2>
-            <p className="cps-sub">Not sure is a real answer — CareerPilot can suggest one later.</p>
+            <h2>What kind of software career interests you?</h2>
+            <p className="cps-sub">
+              This list is set by your college and can change — pick what appeals to you now.
+              You can change it later.
+            </p>
+
+            {/* "Not sure" is separated and leads, rather than sitting last among the real
+                careers where it reads like the option you pick when you have failed to
+                decide. For a first-year it is frequently the honest answer. */}
+            {opts.roles.filter(r => r.key === 'NOT_SURE').map(r => (
+              <button key={r.key} className={`cps-unsure${a.primaryRole === r.key ? ' on' : ''}`}
+                onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}>
+                <i className="bi bi-compass" />
+                <span><b>{r.label}</b><em>{r.blurb}</em></span>
+              </button>
+            ))}
+
             <div className="cps-roles">
-              {opts.roles.map(r => (
+              {opts.roles.filter(r => r.key !== 'NOT_SURE').map(r => (
                 <button key={r.key} className={`cps-role${a.primaryRole === r.key ? ' on' : ''}`}
                   onClick={() => setA(s => ({ ...s, primaryRole: r.key }))}>
-                  <b>{r.label}</b><span>{r.blurb}</span>
+                  {r.iconKey && <i className={`bi ${r.iconKey}`} />}
+                  <b>{r.label}</b>
+                  <span>{r.blurb}</span>
                 </button>
               ))}
             </div>
+
+            {opts.roles.length === 1 && (
+              <p className="cps-known">
+                <i className="bi bi-info-circle" /> No specific careers are on offer just yet.
+                You can continue and set a direction later.
+              </p>
+            )}
           </>
         )}
 

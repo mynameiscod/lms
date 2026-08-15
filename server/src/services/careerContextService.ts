@@ -3,8 +3,9 @@ import StudentProfile from '../models/StudentProfile';
 import { resolveCareerProfile } from './careerStageService';
 import {
   DEFAULT_DOMAIN, ROLE_NOT_SURE,
-  normalizeDomain, normalizeRole, normalizeLanguages, normalizeMinutes, normalizeDaysPerWeek,
+  normalizeDomain, normalizeLanguages, normalizeMinutes, normalizeDaysPerWeek,
 } from './careerDomainService';
+import { validateCareerRole } from './careerRoleService';
 
 /**
  * One normalized answer to "who is this student right now, academically and career-wise?"
@@ -81,6 +82,17 @@ const str = (v: any): string | null => {
   const s = String(v ?? '').trim();
   return s ? s : null;
 };
+
+/**
+ * A stored role key, sanitised for shape only.
+ *
+ * Format is normalised so a value written by any path compares equal; membership of the
+ * currently-offered list is deliberately NOT checked here. See the read-path note below.
+ */
+const storedRole = (v: any): string => {
+  const s = String(v ?? '').trim().toUpperCase();
+  return s || ROLE_NOT_SURE;
+};
 const num = (v: any): number | null => {
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
@@ -148,11 +160,20 @@ export async function getCareerContext(
 
   const career = {
     domain,
-    // An un-onboarded member reads as NOT_SURE rather than null: "we have not asked" and
-    // "they do not know" lead to the same handling, and one shape spares every consumer
-    // a null check that would otherwise be forgotten somewhere.
-    primaryRole: normalizeRole(domain, p.primaryRole),
-    secondaryRole: p.secondaryRole ? normalizeRole(domain, p.secondaryRole) : null,
+    // READ PATH — a stored role is reported as stored, never re-checked against what is
+    // currently on offer.
+    //
+    // This used to clamp against a hardcoded list, which was fine while the list WAS the
+    // system and became wrong the moment roles became configuration: a member who chose an
+    // admin-created role would have read back as "not sure", and a role withdrawn from new
+    // students would have erased the stated ambition of everyone already holding it.
+    // Whether a role may be CHOSEN is a live question, answered on the write path.
+    //
+    // An un-onboarded member still reads as NOT_SURE rather than null: "we have not asked"
+    // and "they do not know" lead to the same handling, and one shape spares every
+    // consumer a null check that would otherwise be forgotten somewhere.
+    primaryRole: storedRole(p.primaryRole),
+    secondaryRole: p.secondaryRole ? storedRole(p.secondaryRole) : null,
     careerGoal: str(p.careerGoal) || str(profile?.additionalInfo?.careerGoal),
     preferredProgrammingLanguages: normalizeLanguages(domain, p.preferredLanguages),
     preferredTechnologies: Array.isArray(p.preferredTechnologies) ? p.preferredTechnologies.slice(0, 12) : [],
@@ -245,6 +266,8 @@ export interface UpdateContextResult {
    * refusal for a success, because the stored context will simply not be complete.
    */
   missing?: string[];
+  /** Present when a submitted role was rejected. Nothing was written when it is set. */
+  invalid?: string;
 }
 
 export async function updateCareerContext(
@@ -262,9 +285,36 @@ export async function updateCareerContext(
   const domain = normalizeDomain(patch.domain ?? p.careerDomain);
   p.careerDomain = domain;
 
-  if (patch.primaryRole !== undefined) p.primaryRole = normalizeRole(domain, patch.primaryRole);
+  // WRITE PATH — a NEW selection is checked against configuration, because the client
+  // cannot be trusted to have sent something offered. Rejected rather than quietly
+  // corrected: silently storing NOT_SURE for a role somebody deliberately chose would
+  // look, to them, like the product losing their answer.
+  if (patch.primaryRole !== undefined) {
+    const key = String(patch.primaryRole || '').trim().toUpperCase();
+    const v = await validateCareerRole(tenantId, domain, key);
+    if (!v.ok) return { context: await getCareerContext(tenantId, studentId, now), invalid: v.message };
+    p.primaryRole = key;
+  }
+
   if (patch.secondaryRole !== undefined) {
-    p.secondaryRole = patch.secondaryRole ? normalizeRole(domain, patch.secondaryRole) : undefined;
+    const key = String(patch.secondaryRole || '').trim().toUpperCase();
+    if (!key || key === ROLE_NOT_SURE) {
+      // "Not sure" as a SECOND choice says nothing — the first already carries that.
+      p.secondaryRole = undefined;
+    } else {
+      const v = await validateCareerRole(tenantId, domain, key);
+      if (!v.ok) return { context: await getCareerContext(tenantId, studentId, now), invalid: v.message };
+      // Naming the same role twice is a mistake rather than a preference, and normalising
+      // it away would hide a UI bug that produced it.
+      const primary = String(patch.primaryRole ?? p.primaryRole ?? '').trim().toUpperCase();
+      if (key === primary) {
+        return {
+          context: await getCareerContext(tenantId, studentId, now),
+          invalid: 'Your second choice needs to be different from your first.',
+        };
+      }
+      p.secondaryRole = key;
+    }
   }
   if (patch.preferredProgrammingLanguages !== undefined) {
     p.preferredLanguages = normalizeLanguages(domain, patch.preferredProgrammingLanguages);

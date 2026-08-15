@@ -2,7 +2,7 @@ import {
   resolveCareerProfile, stageFromCourse, deriveBackground, monthsFromCourse,
 } from '../services/careerStageService';
 import {
-  normalizeRole, normalizeDomain, normalizeLanguages, normalizeMinutes, normalizeDaysPerWeek,
+  normalizeDomain, normalizeLanguages, normalizeMinutes, normalizeDaysPerWeek,
   ROLE_NOT_SURE, DEFAULT_DOMAIN,
 } from '../services/careerDomainService';
 import { missingFor } from '../services/careerContextService';
@@ -152,17 +152,11 @@ describe('months remaining', () => {
 });
 
 describe('career vocabulary — nothing unknown is ever stored', () => {
-  it('accepts NOT_SURE as a real answer', () => {
-    expect(normalizeRole(DEFAULT_DOMAIN, ROLE_NOT_SURE)).toBe(ROLE_NOT_SURE);
-  });
-  it('falls back to NOT_SURE rather than persisting an invented role', () => {
-    expect(normalizeRole(DEFAULT_DOMAIN, 'ASTRONAUT')).toBe(ROLE_NOT_SURE);
-    expect(normalizeRole(DEFAULT_DOMAIN, '')).toBe(ROLE_NOT_SURE);
-    expect(normalizeRole(DEFAULT_DOMAIN, null)).toBe(ROLE_NOT_SURE);
-  });
-  it('is case-insensitive on the way in', () => {
-    expect(normalizeRole(DEFAULT_DOMAIN, 'backend_engineer')).toBe('BACKEND_ENGINEER');
-  });
+  // Role validation moved to careerRoleService when roles became admin configuration
+  // (Module 2). The same guarantees — NOT_SURE accepted, an invented role refused,
+  // case-insensitive input — are asserted against the real mechanism in careerRole.test.ts
+  // and careerRoleContext.test.ts. Re-asserting them here against a deleted constant would
+  // have been coverage of a code path nothing runs.
   it('resolves an unknown or inactive domain to the live one', () => {
     expect(normalizeDomain('HEALTHCARE')).toBe(DEFAULT_DOMAIN);
     expect(normalizeDomain(null)).toBe(DEFAULT_DOMAIN);
@@ -218,7 +212,8 @@ describe('acceptance scenarios', () => {
     });
     expect(r.stage).toBe('foundation');
     expect(r.background).toBe('cs');
-    expect(normalizeRole(DEFAULT_DOMAIN, 'BACKEND_ENGINEER')).toBe('BACKEND_ENGINEER');
+    // The role half of this scenario is asserted end to end in careerRoleContext.test.ts,
+    // where it runs against the configured role rather than a constant.
   });
 
   it('B — Priya, B.Sc Computer Science 3rd year → placement, NOT build', () => {
@@ -234,7 +229,6 @@ describe('acceptance scenarios', () => {
   });
 
   it('D — a first-year with no idea is accepted, not forced to choose', () => {
-    expect(normalizeRole(DEFAULT_DOMAIN, ROLE_NOT_SURE)).toBe(ROLE_NOT_SURE);
     expect(missingFor({
       education: { degree: 'B.Tech', currentAcademicYear: '1st Year' },
       career: { domain: DEFAULT_DOMAIN, primaryRole: ROLE_NOT_SURE },
@@ -249,8 +243,7 @@ describe('backward compatibility — a member from before this existed', () => {
     expect(r.stage).toBe('build');
     expect(r.background).toBe('any');          // no branch on record — not a guess
   });
-  it('reads an absent role as NOT_SURE rather than crashing on undefined', () => {
-    expect(normalizeRole(undefined, undefined)).toBe(ROLE_NOT_SURE);
+  it('reads absent preferences as empty rather than crashing on undefined', () => {
     expect(normalizeLanguages(undefined, undefined)).toEqual([]);
   });
 });

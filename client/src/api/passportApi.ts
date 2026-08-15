@@ -153,6 +153,33 @@ export const passportApi = {
     return data;
   },
 
+  // ── Career roles (Module 2, admin) ──
+  listCareerRoles: async (): Promise<{
+    domains: { key: string; label: string }[];
+    roles: AdminCareerRole[];
+    counts: { total: number; active: number; selectable: number };
+  }> => {
+    const { data } = await axios.get(`${BASE}/career-roles`, { headers: auth() });
+    return data;
+  },
+  /** Counted on demand, not per row — see the admin screen's note. */
+  careerRoleUsage: async (key: string): Promise<{ key: string; memberCount: number }> => {
+    const { data } = await axios.get(`${BASE}/career-roles/${encodeURIComponent(key)}/usage`, { headers: auth() });
+    return data;
+  },
+  createCareerRole: async (body: Partial<AdminCareerRole>): Promise<{ role: AdminCareerRole }> => {
+    const { data } = await axios.post(`${BASE}/career-roles`, body, { headers: auth() });
+    return data;
+  },
+  updateCareerRole: async (id: string, body: Partial<AdminCareerRole>): Promise<{ role: AdminCareerRole }> => {
+    const { data } = await axios.put(`${BASE}/career-roles/${id}`, body, { headers: auth() });
+    return data;
+  },
+  deleteCareerRole: async (id: string): Promise<{ success: boolean }> => {
+    const { data } = await axios.delete(`${BASE}/career-roles/${id}`, { headers: auth() });
+    return data;
+  },
+
   // ── Career context (Module 1) ──
   /** The caller's own context. Derived values come from the server, never computed here. */
   getCareerContext: async (): Promise<{ context: CareerContext; options: CareerContextOptions }> => {
@@ -980,10 +1007,34 @@ export interface CareerContext {
   };
 }
 
+/**
+ * A career role as ADMIN sees it. The student-facing shape is deliberately smaller —
+ * see CareerContextOptions.roles, which carries no configuration metadata.
+ */
+export interface AdminCareerRole {
+  id: string;
+  key: string;
+  domainKey: string;
+  name: string;
+  shortName: string;
+  description: string;
+  studentDescription: string;
+  iconKey: string;
+  aliases: string[];
+  displayOrder: number;
+  active: boolean;
+  studentSelectable: boolean;
+  /** Seeded by the product; cannot be deleted, only hidden. */
+  systemRole: boolean;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
 /** Served alongside the context so the UI never hardcodes a list the server would reject. */
 export interface CareerContextOptions {
   domains: { key: string; label: string }[];
-  roles: { key: string; label: string; blurb: string }[];
+  /** From admin configuration. `iconKey` is optional and purely presentational. */
+  roles: { key: string; label: string; blurb: string; iconKey?: string }[];
   languages: string[];
   availability: { minutes: number; label: string }[];
   programs: string[];

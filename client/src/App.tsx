@@ -72,6 +72,7 @@ import PassportAdminCoins from './pages/Passport/AdminCoins';
 import PassportAdminFunnel from './pages/Passport/AdminFunnel';
 import PassportAdminCurriculum from './pages/Passport/AdminCurriculum';
 import PassportAdminPathwayRules from './pages/Passport/AdminPathwayRules';
+import PassportAdminCareerRoles from './pages/Passport/AdminCareerRoles';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
@@ -472,6 +473,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/pathway-rules" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminPathwayRules /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/career-roles" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCareerRoles /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>

@@ -23,6 +23,26 @@ jest.mock('../models/StudentProfile', () => ({
     updateOne: (...a: any[]) => updateOneProfile(...a),
   },
 }));
+/**
+ * Module 2 gave updateCareerContext a collaborator: a submitted role is now checked
+ * against configuration. Mocked here so these tests keep testing COMPLETION rather than
+ * quietly turning into role-validation tests — every role below resolves as valid.
+ */
+jest.mock('../models/CareerRole', () => {
+  const actual = jest.requireActual('../models/CareerRole');
+  const role = (key: string) => ({
+    tenantId: 't', key, domainKey: 'SOFTWARE_ENGINEERING', name: key,
+    active: true, studentSelectable: true,
+  });
+  return {
+    __esModule: true, ...actual,
+    default: {
+      find: () => ({ sort: () => ({ lean: async () => [] }), select: () => ({ lean: async () => [] }), lean: async () => [] }),
+      findOne: ({ key }: any) => ({ lean: async () => role(key) }),
+      insertMany: async () => [],
+    },
+  };
+});
 
 import { updateCareerContext } from '../services/careerContextService';
 

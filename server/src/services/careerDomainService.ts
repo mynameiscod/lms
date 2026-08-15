@@ -7,25 +7,24 @@
  * system is indistinguishable from one that works.
  *
  * SOFTWARE_ENGINEERING is the only live domain. The shape is domain-keyed anyway, because
- * retrofitting a second domain onto a flat role list means touching every consumer, while
+ * retrofitting a second domain onto a flat list means touching every consumer, while
  * adding one here is an entry in a map. Nothing outside this file may assume the domain.
+ *
+ * ROLES USED TO LIVE HERE and are now admin configuration — see models/CareerRole and
+ * careerRoleService. The hardcoded list was deleted rather than left in place: a second
+ * copy of the vocabulary that no production path reads is a copy somebody eventually
+ * imports by accident, and it would have gone stale the first time an admin added a role.
+ * What remains here is genuinely fixed vocabulary — domains, languages, availability and
+ * the supported programs — none of which Module 2 makes configurable.
  */
 
 export type CareerDomainKey = 'SOFTWARE_ENGINEERING';
-
-export interface CareerRole {
-  key: string;
-  label: string;
-  /** One line, shown under the option — a first-year student rarely knows these apart. */
-  blurb: string;
-}
 
 export interface CareerDomain {
   key: CareerDomainKey;
   label: string;
   /** Live domains accept new members; the rest exist so the type can grow. */
   active: boolean;
-  roles: CareerRole[];
   /** Languages offered as an INTEREST, not a claim of ability. See below. */
   languages: string[];
 }
@@ -45,16 +44,6 @@ export const CAREER_DOMAINS: CareerDomain[] = [
     key: 'SOFTWARE_ENGINEERING',
     label: 'Software Engineering',
     active: true,
-    roles: [
-      { key: ROLE_NOT_SURE,        label: "I'm not sure yet",   blurb: 'Explore first — you can set this any time.' },
-      { key: 'SOFTWARE_ENGINEER',  label: 'Software Engineer',  blurb: 'General software development.' },
-      { key: 'BACKEND_ENGINEER',   label: 'Backend Engineer',   blurb: 'APIs, databases, server-side logic.' },
-      { key: 'FRONTEND_ENGINEER',  label: 'Frontend Engineer',  blurb: 'Web interfaces users interact with.' },
-      { key: 'FULLSTACK_ENGINEER', label: 'Full Stack Engineer',blurb: 'Both ends — frontend and backend.' },
-      { key: 'MOBILE_ENGINEER',    label: 'Mobile Engineer',    blurb: 'Android and iOS applications.' },
-      { key: 'QA_SDET',            label: 'QA / SDET',          blurb: 'Testing, automation, software quality.' },
-      { key: 'CLOUD_DEVOPS',       label: 'Cloud / DevOps',     blurb: 'Deployment, infrastructure, CI/CD.' },
-    ],
     languages: ['Java', 'Python', 'JavaScript', 'TypeScript', 'C', 'C++', 'Not Sure'],
   },
 ];
@@ -80,13 +69,6 @@ export const SUPPORTED_PROGRAMS = ['B.Tech', 'B.E', 'B.Sc', 'BCA', 'MCA'];
 
 export const domainOf = (key?: string | null): CareerDomain =>
   CAREER_DOMAINS.find(d => d.key === key) || CAREER_DOMAINS[0];
-
-/** Unknown role keys resolve to NOT_SURE rather than persisting — nothing invents a goal. */
-export function normalizeRole(domainKey: string | null | undefined, role: string | null | undefined): string {
-  const d = domainOf(domainKey);
-  const want = String(role || '').trim().toUpperCase();
-  return d.roles.some(r => r.key === want) ? want : ROLE_NOT_SURE;
-}
 
 export function normalizeDomain(key?: string | null): CareerDomainKey {
   const want = String(key || '').trim().toUpperCase();

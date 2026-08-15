@@ -70,10 +70,31 @@ export const SUPPORTED_PROGRAMS = ['B.Tech', 'B.E', 'B.Sc', 'BCA', 'MCA'];
 export const domainOf = (key?: string | null): CareerDomain =>
   CAREER_DOMAINS.find(d => d.key === key) || CAREER_DOMAINS[0];
 
+/**
+ * Coercing resolver for READ and DEFAULT paths.
+ *
+ * Falling back is right here: a member document carrying a domain this build no longer
+ * recognises must still render, and refusing to load somebody's dashboard over a stale
+ * enum would be a worse failure than showing them the live domain.
+ *
+ * It is exactly wrong on an admin WRITE, where the same fallback silently files a role
+ * under a domain nobody asked for. Use isKnownActiveDomain there and reject.
+ */
 export function normalizeDomain(key?: string | null): CareerDomainKey {
   const want = String(key || '').trim().toUpperCase();
   const hit = CAREER_DOMAINS.find(d => d.key === want && d.active);
   return hit ? hit.key : DEFAULT_DOMAIN;
+}
+
+/**
+ * Strict predicate for admin writes: does this key name a domain that exists and is live?
+ *
+ * Separate from normalizeDomain rather than replacing it, because the two answer different
+ * questions. "What should I show?" tolerates a bad value; "what should I store?" must not.
+ */
+export function isKnownActiveDomain(key: unknown): boolean {
+  const want = String(key ?? '').trim().toUpperCase();
+  return CAREER_DOMAINS.some(d => d.key === want && d.active);
 }
 
 /** Clamped to the domain's own list, so a typo cannot become a stored preference. */

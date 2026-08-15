@@ -4,7 +4,7 @@ import AuditLog from '../models/AuditLog';
 import {
   listCareerRoles, getCareerRole, countMembersWithRole, isValidRoleKey, suggestRoleKey,
 } from '../services/careerRoleService';
-import { CAREER_DOMAINS, normalizeDomain, domainOf } from '../services/careerDomainService';
+import { CAREER_DOMAINS, DEFAULT_DOMAIN, isKnownActiveDomain } from '../services/careerDomainService';
 
 /**
  * Admin CRUD for CareerPilot career roles.
@@ -41,6 +41,27 @@ async function audit(req: Request, action: 'CREATE' | 'UPDATE' | 'DELETE', role:
   } catch (e: any) {
     console.warn('[career-roles] audit write failed:', e?.message || e);
   }
+}
+
+/**
+ * Read a domain key from an admin request.
+ *
+ * Three cases, deliberately distinct:
+ *   absent  — no opinion, caller applies its own default. The admin UI serves one domain
+ *             and does not send the field, so this is the ordinary path.
+ *   known   — accepted as given.
+ *   unknown — REFUSED. Running it through normalizeDomain would file the role under
+ *             Software Engineering while the admin believes they created it somewhere
+ *             else, and nothing would ever report the discrepancy.
+ */
+function readDomainKey(raw: any): { value?: string; error?: string } {
+  if (raw === undefined || raw === null || String(raw).trim() === '') return {};
+  const want = String(raw).trim().toUpperCase();
+  if (!isKnownActiveDomain(want)) {
+    const live = CAREER_DOMAINS.filter(d => d.active).map(d => d.key).join(', ');
+    return { error: `"${want}" is not an available career domain. Currently available: ${live}.` };
+  }
+  return { value: want };
 }
 
 const publicShape = (r: any, memberCount?: number) => ({
@@ -120,7 +141,10 @@ export const createRole = async (req: Request, res: Response) => {
       });
     }
 
-    const domainKey = normalizeDomain(b.domainKey);
+    const domain = readDomainKey(b.domainKey);
+    if (domain.error) return res.status(400).json({ message: domain.error });
+    const domainKey = domain.value || DEFAULT_DOMAIN;
+
     const clash = await CareerRole.findOne({ tenantId, key }).select('name').lean() as any;
     if (clash) {
       return res.status(409).json({ message: `The key ${key} is already used by "${clash.name}".` });
@@ -172,6 +196,10 @@ export const updateRole = async (req: Request, res: Response) => {
       });
     }
 
+    // Checked before anything is mutated, so a bad domain cannot leave the role half-edited.
+    const domain = readDomainKey(b.domainKey);
+    if (domain.error) return res.status(400).json({ message: domain.error });
+
     const before = { active: role.active, studentSelectable: role.studentSelectable };
 
     if (b.name !== undefined) {
@@ -187,7 +215,7 @@ export const updateRole = async (req: Request, res: Response) => {
       role.aliases = Array.isArray(b.aliases) ? b.aliases.map((a: any) => String(a).trim()).filter(Boolean).slice(0, 12) : [];
     }
     if (b.displayOrder !== undefined && Number.isFinite(Number(b.displayOrder))) role.displayOrder = Number(b.displayOrder);
-    if (b.domainKey !== undefined) role.domainKey = normalizeDomain(b.domainKey);
+    if (domain.value) role.domainKey = domain.value;
     if (b.active !== undefined) role.active = b.active === true;
     if (b.studentSelectable !== undefined) role.studentSelectable = b.studentSelectable === true;
 

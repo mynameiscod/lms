@@ -139,7 +139,8 @@ describe('update — an unknown domain is refused before anything is mutated', (
     expect(doc.domainKey).toBe('SOFTWARE_ENGINEERING');
   });
 
-  it('applies a valid domain change', async () => {
+  it('accepts the role’s OWN domain as a no-op', async () => {
+    // A client echoing the whole object back must not be punished for it.
     const doc = roleDoc();
     findOneRole.mockReturnValue(doc);
     const res = mockRes();
@@ -159,6 +160,73 @@ describe('update — an unknown domain is refused before anything is mutated', (
 
     expect(doc.domainKey).toBe('SOFTWARE_ENGINEERING');
     expect(doc.name).toBe('Backend Software Engineer');
+  });
+});
+
+describe('the domain is fixed at creation, like the key', () => {
+  /** A role sitting in some other domain — a seed from before, or a future domain. */
+  const foreignRoleDoc = () => {
+    const doc: any = {
+      _id: 'r2', tenantId: 't1', key: 'DATA_ANALYST', domainKey: 'DATA_SCIENCE',
+      name: 'Data Analyst', active: true, studentSelectable: true, systemRole: false,
+      save: jest.fn(async () => doc),
+    };
+    return doc;
+  };
+
+  it('refuses to move a role to a different domain', async () => {
+    const doc = foreignRoleDoc();
+    findOneRole.mockReturnValue(doc);
+    const res = mockRes();
+
+    await updateRole(mockReq({ domainKey: 'SOFTWARE_ENGINEERING' }, { id: 'r2' }), res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toBe(
+      "A career role's domain cannot be changed after creation. Create a new role instead.",
+    );
+    expect(doc.domainKey).toBe('DATA_SCIENCE');
+    expect(doc.save).not.toHaveBeenCalled();
+  });
+
+  it('rejects the move before applying any other edit in the same request', async () => {
+    const doc = foreignRoleDoc();
+    findOneRole.mockReturnValue(doc);
+
+    await updateRole(
+      mockReq({ name: 'Renamed', active: false, domainKey: 'SOFTWARE_ENGINEERING' }, { id: 'r2' }),
+      mockRes(),
+    );
+
+    expect(doc.name).toBe('Data Analyst');     // rename not applied
+    expect(doc.active).toBe(true);             // deactivation not applied
+    expect(doc.domainKey).toBe('DATA_SCIENCE');
+  });
+
+  it('still reports an UNKNOWN domain as unavailable rather than as immutable', async () => {
+    // The more specific error wins: "you named something that does not exist" is more
+    // useful than "you cannot change this", and only one of them is true.
+    const doc = foreignRoleDoc();
+    findOneRole.mockReturnValue(doc);
+    const res = mockRes();
+
+    await updateRole(mockReq({ domainKey: 'HEALTHCARE' }, { id: 'r2' }), res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/not an available career domain/i);
+  });
+
+  it('lets every other field still be edited', async () => {
+    const doc = foreignRoleDoc();
+    findOneRole.mockReturnValue(doc);
+    const res = mockRes();
+
+    await updateRole(mockReq({ name: 'Data Analyst II', studentSelectable: false }, { id: 'r2' }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(doc.name).toBe('Data Analyst II');
+    expect(doc.studentSelectable).toBe(false);
+    expect(doc.domainKey).toBe('DATA_SCIENCE');
   });
 });
 

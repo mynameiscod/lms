@@ -196,9 +196,21 @@ export const updateRole = async (req: Request, res: Response) => {
       });
     }
 
-    // Checked before anything is mutated, so a bad domain cannot leave the role half-edited.
+    // Both domain checks run before anything is mutated, so a rejected edit cannot leave
+    // the role half-changed with a new name and its old domain.
     const domain = readDomainKey(b.domainKey);
     if (domain.error) return res.status(400).json({ message: domain.error });
+
+    // The domain is fixed at creation, like the key. It is part of what the role IS: which
+    // students are offered it, and — from Module 3 — which skills will hang off it. Moving
+    // a role between domains would silently re-scope every one of those relationships for
+    // the members already holding it. Re-sending the same domain stays a no-op, so a client
+    // that echoes the whole object back is not punished for it.
+    if (domain.value && domain.value !== role.domainKey) {
+      return res.status(400).json({
+        message: "A career role's domain cannot be changed after creation. Create a new role instead.",
+      });
+    }
 
     const before = { active: role.active, studentSelectable: role.studentSelectable };
 
@@ -215,7 +227,8 @@ export const updateRole = async (req: Request, res: Response) => {
       role.aliases = Array.isArray(b.aliases) ? b.aliases.map((a: any) => String(a).trim()).filter(Boolean).slice(0, 12) : [];
     }
     if (b.displayOrder !== undefined && Number.isFinite(Number(b.displayOrder))) role.displayOrder = Number(b.displayOrder);
-    if (domain.value) role.domainKey = domain.value;
+    // No domain assignment here: the only value that reaches this point is the one the
+    // role already has, so writing it would be a no-op that reads like a mutation.
     if (b.active !== undefined) role.active = b.active === true;
     if (b.studentSelectable !== undefined) role.studentSelectable = b.studentSelectable === true;
 

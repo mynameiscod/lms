@@ -1,0 +1,117 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   CareerPilot onboarding.
+   Namespaced `cps-` — verified free against every other stylesheet before writing.
+   `.ob-` and `.setup-` were the obvious picks; `.setup-` is already taken. Short
+   prefixes in this project have collided repeatedly (.ov-, .as-, .bi, .as-wrap).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.cps { max-width: 720px; margin: 0 auto; padding: 8px 4px 60px; }
+
+.cps-hd { margin-bottom: 18px; }
+.cps-hd h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+.cps-hd p { font-size: 13.5px; color: #64748b; margin: 6px 0 0; line-height: 1.6; }
+
+.cps-load, .cps-err { border-radius: 11px; padding: 13px 15px; font-size: 13px; }
+.cps-load { background: #f8fafc; color: #64748b; }
+.cps-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; margin-bottom: 12px; }
+
+/* ── progress ── */
+.cps-steps { display: flex; gap: 6px; flex-wrap: wrap; list-style: none;
+  margin: 0 0 16px; padding: 0; }
+.cps-steps li { flex: 1; min-width: 76px; display: flex; align-items: center; gap: 7px;
+  font-size: 11.5px; font-weight: 700; color: #94a3b8; padding-top: 9px;
+  border-top: 3px solid #eef0f7; }
+.cps-steps li span { width: 20px; height: 20px; flex: 0 0 auto; border-radius: 50%;
+  display: grid; place-items: center; background: #eef0f7; color: #94a3b8; font-size: 10.5px; }
+.cps-steps li.on { color: #1d4ed8; border-top-color: #1d4ed8; }
+.cps-steps li.on span { background: #1d4ed8; color: #fff; }
+.cps-steps li.ok { color: #0f766e; border-top-color: #14b8a6; }
+.cps-steps li.ok span { background: #14b8a6; color: #fff; }
+
+/* ── the question card ── */
+.cps-card { background: #fff; border: 1.5px solid #eef0f7; border-radius: 15px;
+  padding: 22px 22px 18px; }
+.cps-card h2 { font-size: 17px; font-weight: 800; color: #0f172a; margin: 0 0 4px; }
+.cps-sub { font-size: 12.5px; color: #64748b; margin: 0 0 16px; line-height: 1.6; }
+
+.cps-lbl { display: block; font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; margin: 18px 0 8px; }
+.cps-lbl:first-of-type { margin-top: 14px; }
+.cps-lbl em { font-style: normal; text-transform: none; letter-spacing: 0;
+  color: #94a3b8; font-weight: 600; margin-left: 6px; }
+
+.cps-inp { width: 100%; padding: 11px 13px; border: 1.5px solid #e2e8f0;
+  border-radius: 10px; font-size: 13.5px; font-family: inherit; background: #f8faff; }
+.cps-inp:focus { outline: none; border-color: #1d4ed8; background: #fff; }
+
+.cps-chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.cps-chip { background: #f8fafc; border: 1.5px solid #e8edf5; border-radius: 99px;
+  padding: 9px 16px; font-size: 12.5px; font-family: inherit; color: #475569;
+  cursor: pointer; transition: all .12s; }
+.cps-chip:hover { border-color: #c7d6f5; }
+.cps-chip.on { background: #1d4ed8; border-color: #1d4ed8; color: #fff; font-weight: 700; }
+.cps-chips.big .cps-chip { padding: 13px 20px; font-size: 13.5px; }
+
+/* ── role picker ── */
+.cps-roles { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 9px; }
+.cps-role { text-align: left; background: #fff; border: 1.5px solid #e8edf5;
+  border-radius: 12px; padding: 13px 15px; cursor: pointer; font-family: inherit;
+  transition: all .12s; }
+.cps-role:hover { border-color: #c7d6f5; }
+.cps-role.on { border-color: #1d4ed8; background: #f5f8ff;
+  box-shadow: 0 0 0 3px rgba(29,78,216,.1); }
+.cps-role b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; }
+.cps-role span { display: block; font-size: 11.5px; color: #94a3b8; margin-top: 3px; line-height: 1.5; }
+
+/* ── "we already know this" note ── */
+.cps-known { display: flex; align-items: flex-start; gap: 8px; margin: 16px 0 0;
+  background: #f0f9ff; border: 1px solid #bae6fd; color: #075985;
+  border-radius: 10px; padding: 11px 13px; font-size: 12px; line-height: 1.55; }
+
+/* ── nav ── */
+.cps-nav { display: flex; justify-content: flex-end; gap: 9px; margin-top: 22px;
+  padding-top: 16px; border-top: 1px solid #f4f6fb; }
+.cps-btn { padding: 11px 22px; border-radius: 10px; font-size: 13.5px;
+  font-family: inherit; font-weight: 700; cursor: pointer; border: 1.5px solid transparent;
+  transition: all .12s; }
+.cps-btn.primary { background: #1d4ed8; color: #fff; }
+.cps-btn.primary:hover:not(:disabled) { background: #1a43bd; }
+.cps-btn.primary:disabled { background: #cbd5e1; cursor: not-allowed; }
+.cps-btn.ghost { background: #fff; border-color: #e2e8f0; color: #475569; }
+.cps-btn.ghost:hover:not(:disabled) { border-color: #cbd5e1; }
+
+/* ── result ── */
+.cps-done { background: #fff; border: 1.5px solid #eef0f7; border-radius: 15px;
+  padding: 30px 24px; text-align: center; }
+.cps-done .ic { width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 50%;
+  display: grid; place-items: center; background: #14b8a6; color: #fff; font-size: 26px; }
+.cps-done h1 { font-size: 21px; font-weight: 900; color: #0f172a; margin: 0; }
+.cps-done > p { font-size: 13px; color: #64748b; margin: 7px 0 20px; line-height: 1.6; }
+
+.cps-sum { text-align: left; border: 1px solid #f1f5f9; border-radius: 12px; overflow: hidden; }
+.cps-sum .r { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  padding: 11px 15px; border-bottom: 1px solid #f8fafc; }
+.cps-sum .r:last-child { border-bottom: 0; }
+.cps-sum .r span { flex: 0 0 108px; font-size: 11.5px; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: .04em; font-weight: 700; }
+.cps-sum .r b { flex: 1; font-size: 13.5px; color: #0f172a; font-weight: 700; }
+
+.cps-stage { margin-top: 14px; background: linear-gradient(135deg,#f0fdfa,#eff6ff);
+  border: 1px solid #99f6e4; border-radius: 12px; padding: 15px; text-align: left; }
+.cps-stage span { display: block; font-size: 10.5px; color: #0f766e; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .05em; }
+.cps-stage b { display: block; font-size: 17px; font-weight: 900; color: #0f172a; margin-top: 3px; }
+.cps-stage em { display: block; font-style: normal; font-size: 12.5px; color: #475569;
+  margin-top: 4px; line-height: 1.55; }
+
+.cps-done .cps-btn { margin-top: 20px; width: 100%; }
+
+@media (max-width: 640px) {
+  .cps-steps li { min-width: 0; font-size: 0; gap: 0; justify-content: center; }
+  .cps-steps li span { font-size: 10.5px; }
+  .cps-card { padding: 18px 16px 16px; }
+  .cps-roles { grid-template-columns: 1fr; }
+  .cps-nav { flex-direction: column-reverse; }
+  .cps-nav .cps-btn { width: 100%; }
+  .cps-sum .r span { flex: 1 0 100%; }
+}

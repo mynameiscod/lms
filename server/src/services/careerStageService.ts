@@ -199,17 +199,30 @@ export function resolveCareerProfile(input: {
   graduated?: boolean;
   now?: Date;
 }) {
-  // Degree + academic year first: it is the data the signup form collects, so it is the
-  // path that fires for real members. A graduation date, when an admin has set one, is
-  // more precise and wins — but for most members it simply is not there.
+  // Course POSITION decides the stage; the graduation date only fills in when position
+  // cannot be read.
+  //
+  // The date used to win, and it got the middle of a four-year course wrong. A 2nd-year
+  // B.Tech is 34 months out, which a pure time rule calls 'foundation' — so a student a
+  // year into programming, who should be building proof, kept getting first-week
+  // fundamentals. Position says 'build', and position is what the stage means.
+  //
+  // Time still decides when position is unreadable: an unrecognised degree, a missing
+  // academic year, or a member whose only career data is a graduation date. Nothing is
+  // guessed in that case — stageFromCourse returns null rather than assuming a length,
+  // and the date path takes over.
   const fromDate = monthsUntil(input.graduationYear, input.graduationMonth, input.now);
+  const fromCourse = stageFromCourse(input.degree, input.yearOfStudy);
   const stage = input.graduated
     ? 'job_seeker'
-    : (fromDate !== null ? deriveStage(input) : stageFromCourse(input.degree, input.yearOfStudy));
+    : (fromCourse !== null ? fromCourse : (fromDate !== null ? deriveStage(input) : null));
 
   return {
     stage,
     background: deriveBackground(input.program, input.branch, input.degree),
+    // The date stays preferred for the COUNT, where it is genuinely more precise: course
+    // position can only ever answer in whole years, and "22 months" is better information
+    // than "2 years" for anything sequencing work against a deadline.
     monthsToGraduation: fromDate !== null ? fromDate : monthsFromCourse(input.degree, input.yearOfStudy),
     stageComputedAt: input.now || new Date(),
   };

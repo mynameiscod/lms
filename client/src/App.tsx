@@ -76,6 +76,7 @@ import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
 import PassportMemberLayout from './pages/Passport/MemberLayout';
+import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportPractice from './pages/Passport/Practice';
 import PassportPracticeItem from './pages/Passport/PracticeItem';
@@ -484,6 +485,9 @@ const AppRoutes: React.FC = () => {
       <Route element={<ProtectedRoute><PassportMemberLayout /></ProtectedRoute>}>
         <Route path="/careerpilot" element={<PassportHome />} />
         <Route path="/passport" element={<LegacyRedirect to="/careerpilot" />} />
+        {/* CareerPilot onboarding — inside the member shell, so the rail and chrome
+            stay put rather than the member dropping into a separate application. */}
+        <Route path="/careerpilot/setup" element={<PassportCareerSetup />} />
         <Route path="/careerpilot/assessment" element={<PassportAssessmentPage />} />
         <Route path="/passport/assessment" element={<LegacyRedirect to="/careerpilot/assessment" />} />
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />

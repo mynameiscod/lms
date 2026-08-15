@@ -1,0 +1,33 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   "Tell CareerPilot about yourself" strip.
+   Namespaced `cpsp-` — verified free before writing, and kept distinct from the
+   onboarding screen's own `cps-` so neither can reach into the other.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.cpsp { display: flex; align-items: center; gap: 13px; flex-wrap: wrap;
+  background: linear-gradient(135deg, #eff6ff, #f0fdfa);
+  border: 1px solid #bfdbfe; border-radius: 13px;
+  padding: 13px 16px; margin: 0 0 16px; }
+
+.cpsp-ic { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 10px;
+  display: grid; place-items: center; background: #1d4ed8; color: #fff; font-size: 16px; }
+
+.cpsp-tx { flex: 1; min-width: 200px; }
+.cpsp-tx b { display: block; font-size: 13.5px; font-weight: 800; color: #0f172a; }
+.cpsp-tx span { display: block; font-size: 12.5px; color: #475569;
+  margin-top: 2px; line-height: 1.55; max-width: 68ch; }
+
+.cpsp-go { flex: 0 0 auto; background: #1d4ed8; color: #fff; border: 0;
+  border-radius: 9px; padding: 9px 18px; font-size: 12.5px; font-weight: 700;
+  font-family: inherit; cursor: pointer; transition: background .12s; }
+.cpsp-go:hover { background: #1a43bd; }
+
+.cpsp-x { flex: 0 0 auto; background: none; border: 0; color: #94a3b8;
+  cursor: pointer; padding: 6px; font-size: 12px; line-height: 1; }
+.cpsp-x:hover { color: #475569; }
+
+@media (max-width: 640px) {
+  .cpsp-tx { flex: 1 0 100%; order: 1; }
+  .cpsp-go { flex: 1; order: 2; }
+  .cpsp-x { order: 2; }
+}

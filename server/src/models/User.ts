@@ -39,6 +39,37 @@ export interface IUser extends Document {
     stageComputedAt?: Date;
     careerGoal?: string;
     pathway?: string;
+    city?: string;
+
+    // ── CareerPilot career context ────────────────────────────────────────────────
+    // Education above is a cached read of StudentProfile (see passportProfileSyncService).
+    // These are different: they have no home on StudentProfile, because they are
+    // statements about a CareerPilot plan rather than facts about a student.
+    //
+    // All optional. A member who joined before this existed has none of them and is
+    // fully functional without them — every consumer must treat absence as "not asked".
+    careerDomain?: string;         // CareerDomainKey; SOFTWARE_ENGINEERING is the only live one
+    primaryRole?: string;          // CareerRole key, or NOT_SURE — a real answer, not a blank
+    secondaryRole?: string;
+    /**
+     * Languages the member wants to WORK IN. Deliberately not
+     * StudentProfile.technicalBackground.programmingLanguages, which records what they
+     * already know: "I know C from college" and "I want to build in Java" are different
+     * facts, and collapsing them would let a course they sat decide their plan.
+     */
+    preferredLanguages?: string[];
+    preferredTechnologies?: string[];
+    minutesPerDay?: number;        // integer minutes, never display text
+    daysPerWeek?: number;
+    /**
+     * When CareerPilot's own onboarding was completed. Distinct from `onboarded`, which
+     * signup sets to true immediately and therefore cannot answer this, and from
+     * StudentProfile.isProfileComplete, which is about a different form entirely.
+     */
+    contextCompletedAt?: Date;
+    /** Lets a later module tell which schema a stored context was captured under. */
+    contextVersion?: number;
+
     careerScore?: number;      // cached from latest assessment (for card/Mission Control)
     level?: string;
     shareSlug?: string;        // public shareable CareerPilot card slug
@@ -167,6 +198,20 @@ const UserSchema: Schema = new Schema(
       careerScore: { type: Number },
       level:       { type: String },
       city:        { type: String },
+
+      // CareerPilot career context. Every field optional with no default, so an existing
+      // member document is untouched until they actually complete onboarding — nothing
+      // is backfilled and nothing is assumed on their behalf.
+      careerDomain:          { type: String },
+      primaryRole:           { type: String },
+      secondaryRole:         { type: String },
+      preferredLanguages:    { type: [String], default: undefined },
+      preferredTechnologies: { type: [String], default: undefined },
+      minutesPerDay:         { type: Number },
+      daysPerWeek:           { type: Number },
+      contextCompletedAt:    { type: Date },
+      contextVersion:        { type: Number },
+
       shareSlug:   { type: String, index: true },
       passwordSet: { type: Boolean, default: false },
     },

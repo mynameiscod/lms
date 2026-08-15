@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import CareerProfilePrompt from './CareerProfilePrompt';
+import CareerSetupPrompt from './CareerSetupPrompt';
 import { Outlet } from 'react-router-dom';
 import passportApi, { DashboardData } from '../../api/passportApi';
 import MemberShell from './MemberShell';
@@ -63,7 +64,12 @@ const MemberLayout: React.FC = () => {
 
   return (
     <Ctx.Provider value={ctx}>
-      <MemberShell data={data}><Outlet /></MemberShell>
+      <MemberShell data={data}>
+        {/* Additive and dismissible. Members who ignore it keep every surface exactly as
+            it was — nothing yet requires the career context to be filled in. */}
+        <CareerSetupPrompt />
+        <Outlet />
+      </MemberShell>
     </Ctx.Provider>
   );
 };

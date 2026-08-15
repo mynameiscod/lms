@@ -153,6 +153,18 @@ export const passportApi = {
     return data;
   },
 
+  // ── Career context (Module 1) ──
+  /** The caller's own context. Derived values come from the server, never computed here. */
+  getCareerContext: async (): Promise<{ context: CareerContext; options: CareerContextOptions }> => {
+    const { data } = await axios.get(`${BASE}/me/context`, { headers: auth() });
+    return data;
+  },
+  /** Partial save. Only `complete: true` marks onboarding finished. */
+  updateCareerContext: async (patch: CareerContextPatch): Promise<{ context: CareerContext; options: CareerContextOptions }> => {
+    const { data } = await axios.put(`${BASE}/me/context`, patch, { headers: auth() });
+    return data;
+  },
+
   // ── Pathway routing rules (who each pathway serves) ──
   /** Goals, stages, backgrounds and categories a rule may be written against. */
   ruleVocabulary: async (): Promise<RuleVocabulary> => {
@@ -927,6 +939,68 @@ export interface CurriculumDoc {
 }
 export interface CurriculumTrack {
   key: string; label: string; variants: string[]; days: number; journeyDays: number;
+}
+
+/**
+ * The normalized answer to "who is this student right now?".
+ *
+ * `derived` is resolved by the server on every read. Nothing in the client recomputes
+ * stage, background or months remaining — a second implementation in React is how the
+ * two would come to disagree.
+ */
+export interface CareerContext {
+  tenantId: string;
+  studentId: string;
+  education: {
+    program: string | null; degree: string | null; branch: string | null;
+    currentAcademicYear: string | null;
+    graduationYear: number | null; graduationMonth: number | null;
+    collegeName: string | null; university: string | null;
+  };
+  location: { country: string | null; state: string | null; city: string | null };
+  career: {
+    domain: string;
+    primaryRole: string;
+    secondaryRole: string | null;
+    careerGoal: string | null;
+    /** What they want to work in. */
+    preferredProgrammingLanguages: string[];
+    preferredTechnologies: string[];
+    /** What they already know, from StudentProfile. Read-only. */
+    knownProgrammingLanguages: string[];
+  };
+  availability: { minutesPerDay: number | null; daysPerWeek: number | null };
+  derived: {
+    stage: string | null; background: string | null;
+    monthsToGraduation: number | null; computedAt: string;
+  };
+  status: {
+    onboardingCompleted: boolean; contextVersion: number;
+    missing: string[]; completedAt: string | null;
+  };
+}
+
+/** Served alongside the context so the UI never hardcodes a list the server would reject. */
+export interface CareerContextOptions {
+  domains: { key: string; label: string }[];
+  roles: { key: string; label: string; blurb: string }[];
+  languages: string[];
+  availability: { minutes: number; label: string }[];
+  programs: string[];
+  academicYears: string[];
+  stages: { key: string; label: string; blurb: string }[];
+}
+
+export interface CareerContextPatch {
+  domain?: string;
+  primaryRole?: string;
+  secondaryRole?: string | null;
+  preferredProgrammingLanguages?: string[];
+  minutesPerDay?: number;
+  daysPerWeek?: number;
+  program?: string; degree?: string; branch?: string;
+  currentAcademicYear?: string; graduationYear?: number | null;
+  complete?: boolean;
 }
 
 export interface RuleVocabulary {

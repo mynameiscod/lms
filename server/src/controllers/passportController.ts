@@ -238,9 +238,28 @@ export const updateMyProfile = async (req: Request, res: Response) => {
     // Free-text and select fields the member owns. Capped because they are rendered on
     // the dashboard, the passport card and the admin list.
     user.passport = user.passport || {};
+    const eduChanged = ['degree', 'branch', 'yearOfStudy'].some(k => b[k] !== undefined);
     for (const key of ['degree', 'branch', 'yearOfStudy', 'careerGoal', 'city'] as const) {
       if (b[key] === undefined) continue;
       user.passport[key] = String(b[key] || '').trim().slice(0, 120);
+    }
+
+    // Stage and background are a cached read of the fields just written, so they have to
+    // be recomputed here. Without this, a member who corrected their degree kept the stage
+    // that matched the OLD one — and nothing errored, the assessment and missions simply
+    // went on fitting a student they no longer were. Same reasoning as the profile sync
+    // service, which already does this for edits arriving from the LMS profile screen.
+    if (eduChanged) {
+      const derived = resolveCareerProfile({
+        program: user.passport.program, branch: user.passport.branch, degree: user.passport.degree,
+        yearOfStudy: user.passport.yearOfStudy,
+        graduationYear: user.passport.graduationYear, graduationMonth: user.passport.graduationMonth,
+        graduated: user.passport.graduated === true || /grad/i.test(String(user.passport.yearOfStudy || '')),
+      });
+      if (derived.stage) user.passport.stage = derived.stage;
+      user.passport.background = derived.background;
+      user.passport.stageComputedAt = derived.stageComputedAt;
+      user.markModified('passport');
     }
 
     await user.save();

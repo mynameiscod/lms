@@ -19,6 +19,7 @@ import * as coins from '../controllers/passportCoinController';
 import * as funnel from '../controllers/passportFunnelController';
 import * as curriculum from '../controllers/pathwayCurriculumController';
 import * as pathwayRules from '../controllers/pathwayRulesController';
+import * as careerContext from '../controllers/careerContextController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -168,6 +169,10 @@ router.post('/content/preview',   MANAGE, content.previewContent);
 router.get('/me',        MEMBER, ctrl.getMyStatus);
 router.get('/me/profile', MEMBER, ctrl.getMyProfile);
 router.put('/me/profile', MEMBER, ctrl.updateMyProfile);
+// Career context — who this student is academically and career-wise, normalized. Both
+// act on the caller only; the student id comes from the token, never from the request.
+router.get('/me/context', MEMBER, careerContext.getMyCareerContext);
+router.put('/me/context', MEMBER, careerContext.updateMyCareerContext);
 router.post('/set-password', MEMBER, ctrl.setPassword);
 
 // Membership activation (₹499, reuses the Razorpay rail)

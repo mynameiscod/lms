@@ -153,6 +153,36 @@ export const passportApi = {
     return data;
   },
 
+  // ── Skill graph (Module 3, admin) ──
+  /** Tree, flat list and vocabulary in one response, so the pickers cannot disagree. */
+  listSkills: async (): Promise<{
+    tree: SkillNode[];
+    skills: AdminSkill[];
+    difficulties: string[];
+    nodeTypes: string[];
+    counts: { total: number; active: number; assessable: number; groups: number };
+  }> => {
+    const { data } = await axios.get(`${BASE}/skills`, { headers: auth() });
+    return data;
+  },
+  createSkill: async (body: any): Promise<{ skill: AdminSkill }> => {
+    const { data } = await axios.post(`${BASE}/skills`, body, { headers: auth() });
+    return data;
+  },
+  updateSkill: async (id: string, body: any): Promise<{ skill: AdminSkill }> => {
+    const { data } = await axios.put(`${BASE}/skills/${id}`, body, { headers: auth() });
+    return data;
+  },
+  deleteSkill: async (id: string): Promise<{ success: boolean }> => {
+    const { data } = await axios.delete(`${BASE}/skills/${id}`, { headers: auth() });
+    return data;
+  },
+  /** Idempotent. `dryRun` reports what would be installed without writing. */
+  seedSkills: async (dryRun: boolean): Promise<{ inserted: string[]; skipped: string[]; total: number }> => {
+    const { data } = await axios.post(`${BASE}/skills/seed`, { dryRun }, { headers: auth() });
+    return data;
+  },
+
   // ── Career roles (Module 2, admin) ──
   listCareerRoles: async (): Promise<{
     domains: { key: string; label: string }[];
@@ -1005,6 +1035,52 @@ export interface CareerContext {
     onboardingCompleted: boolean; contextVersion: number;
     missing: string[]; completedAt: string | null;
   };
+}
+
+/**
+ * A canonical skill. `parentKey` is where it sits in the taxonomy; `prerequisiteKeys` is
+ * what must be learned first — a different relationship, often pointing across branches.
+ */
+export interface AdminSkill {
+  id: string;
+  key: string;
+  domainKey: string;
+  name: string;
+  shortName: string;
+  description: string;
+  /** GROUP organises; SKILL is the thing that gets measured. */
+  nodeType: string;
+  parentKey: string | null;
+  prerequisiteKeys: string[];
+  difficulty: string;
+  aliases: string[];
+  displayOrder: number;
+  active: boolean;
+  assessable: boolean;
+  learnable: boolean;
+  /** Part of the shipped taxonomy — editable and deactivatable, never deletable. */
+  systemSkill: boolean;
+  updatedBy?: string;
+  updatedAt?: string;
+}
+
+/** The same skill, nested for the tree view. */
+export interface SkillNode {
+  id: string;
+  key: string;
+  name: string;
+  nodeType: string;
+  difficulty: string;
+  description: string;
+  parentKey: string | null;
+  prerequisiteKeys: string[];
+  aliases: string[];
+  displayOrder: number;
+  active: boolean;
+  assessable: boolean;
+  learnable: boolean;
+  systemSkill: boolean;
+  children: SkillNode[];
 }
 
 /**

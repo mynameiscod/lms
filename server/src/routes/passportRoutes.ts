@@ -21,6 +21,7 @@ import * as curriculum from '../controllers/pathwayCurriculumController';
 import * as pathwayRules from '../controllers/pathwayRulesController';
 import * as careerContext from '../controllers/careerContextController';
 import * as careerRoles from '../controllers/careerRoleController';
+import * as careerSkills from '../controllers/careerSkillController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -67,6 +68,21 @@ const MANAGE_CATEGORIES = roleGuard(['manage_passport_categories']);
 const FUNNEL = roleGuard(['view_passport_funnel']);
 const REROUTE = roleGuard(['reroute_passport_members']);
 
+/**
+ * Writes to a GLOBAL, cross-tenant resource.
+ *
+ * The skill catalogue is deliberately not tenant-scoped, so one admin's edit is every
+ * tenant's edit. A permission alone would not express that: manage_passport is held by
+ * tenant admins whose authority stops at their own tenant. Same rule the platform already
+ * applies to system settings.
+ */
+const SUPER_ADMIN = (req: any, res: any, next: any) => {
+  if (req.user?.role !== 'SUPER_ADMIN') {
+    return res.status(403).json({ message: 'The skill graph is shared across every tenant — super admin access is required to change it.' });
+  }
+  next();
+};
+
 // ── Drop-off funnel — who stopped where, and who to contact about it ──
 
 
@@ -86,6 +102,17 @@ router.post('/curriculum/:pathwayKey/draft',  MANAGE, curriculum.draftPathwayCur
 // ── Career roles. Ordinary CareerPilot configuration, so MANAGE rather than a new
 //    permission: unlike category weights or a member re-route, changing a role rewrites
 //    nothing that already exists — it only changes what future students are offered. ──
+// ── Canonical skill graph. The catalogue is GLOBAL — one shared taxonomy, so that
+//    JAVA_OOP means the same thing in every tenant. Reading it is ordinary CareerPilot
+//    admin work; WRITING it changes what every tenant sees, which is a platform-wide
+//    act and follows the same SUPER_ADMIN rule as system settings. ──
+router.get('/skills',             MANAGE,        careerSkills.listSkills);
+router.get('/skills/:key/usage',  MANAGE,        careerSkills.skillUsage);
+router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
+router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
+router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
+router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+
 router.get('/career-roles',            MANAGE, careerRoles.listRoles);
 router.get('/career-roles/:key/usage', MANAGE, careerRoles.roleUsage);
 router.post('/career-roles',           MANAGE, careerRoles.createRole);

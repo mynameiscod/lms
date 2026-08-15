@@ -133,11 +133,27 @@ export const registerForBattle = async (req: Request, res: Response) => {
       $or: [{ mobile: mob }, { email: emailNorm }],
     });
 
-    // Already fully in? (approved in approval mode, or verified in auto mode)
+    /**
+     * Already fully in? (approved in approval mode, or verified in auto mode)
+     *
+     * Both cases now hand back an OTP and the token, so the member can verify their number
+     * and read their exam link off the screen. Approval mode used to answer "check your
+     * email" and stop there — which strands everyone the confirmation email never reached.
+     * That is not hypothetical: a provider rate limit silently dropped ~390 of 457 exam
+     * links for the NEC battle, and with the only route to the link sitting in an undelivered
+     * email there was no way for a student to recover it on their own.
+     *
+     * It gives nothing away: /verify already required a WhatsApp OTP to the registered
+     * number before returning the url, so the same proof of identity still gates it.
+     */
     if (reg && ((approvalMode && reg.reviewStatus === 'approved') || (!approvalMode && reg.verified))) {
-      if (approvalMode) return res.json({ success: true, alreadyRegistered: true, message: 'You are already approved — check your email for the exam link.' });
       const r = await otp.sendOtp(tenantId, reg.examToken, mob);
-      return res.json({ success: true, token: reg.examToken, alreadyRegistered: true, otp: r, message: 'You are already registered — verify to view your link.' });
+      return res.json({
+        success: true, token: reg.examToken, alreadyRegistered: true, otp: r,
+        message: approvalMode
+          ? 'You are already approved — verify your number to open your exam link.'
+          : 'You are already registered — verify to view your link.',
+      });
     }
 
     if (!reg) {

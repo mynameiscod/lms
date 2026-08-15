@@ -235,6 +235,18 @@ export const passportApi = {
     return data;
   },
 
+  // ── Placement readiness (Module 14) ──
+  /** Three readiness figures, side by side. Deliberately never combined into one. */
+  getPlacementReadiness: async (): Promise<PlacementReadinessView> => {
+    const { data } = await axios.get(`${BASE}/me/placement-readiness`, { headers: auth() });
+    return data;
+  },
+  /** What a role interview would cover, shown before the member commits to sitting one. */
+  getInterviewCoverage: async (): Promise<InterviewCoverageView> => {
+    const { data } = await axios.get(`${BASE}/me/interview/coverage`, { headers: auth() });
+    return data;
+  },
+
   // ── Rewards (Module 12) ──
   /** Catalogue plus this student's standing against each reward. */
   getRewards: async (): Promise<RewardCatalogue> => {
@@ -559,8 +571,18 @@ export const passportApi = {
     return data;
   },
   /** `companySlug` primes the interviewer with that company's rounds and most-asked topics. */
-  startInterview: async (companySlug?: string): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
-    const { data } = await axios.post(`${BASE}/interview/start`, companySlug ? { companySlug } : {}, { headers: auth() });
+  /**
+   * Open a mock interview.
+   *
+   * `mode: 'role'` builds the paper from the member's own role blueprint, which is the only
+   * kind of sitting that can later become skill evidence. The member never names the skills
+   * — coverage is resolved server-side.
+   */
+  startInterview: async (companySlug?: string, mode?: 'role'): Promise<{ session: InterviewSession; resumed?: boolean; aiAvailable?: boolean }> => {
+    const body: any = {};
+    if (companySlug) body.companySlug = companySlug;
+    if (mode) body.mode = mode;
+    const { data } = await axios.post(`${BASE}/interview/start`, body, { headers: auth() });
     return data;
   },
   interviewTurn: async (id: string, answer: string): Promise<{ say: string; kind: string; endInterview: boolean; session: InterviewSession }> => {
@@ -1878,4 +1900,65 @@ export interface ReplanStatusView {
   hasActiveRoadmap: boolean;
   roadmapCompleted: boolean;
   message: string;
+}
+
+// ── Placement readiness (Module 14) ──
+
+export type ClaimStatus =
+  | 'VERIFIED' | 'NEEDS_VALIDATION' | 'CLAIM_EXCEEDS_EVIDENCE' | 'MISSING_FROM_RESUME';
+
+export interface ResumeClaimView {
+  skillKey: string;
+  skillName: string;
+  status: ClaimStatus;
+  message: string;
+  /** Null means never measured — which is not the same as measured at zero. */
+  measuredScore: number | null;
+  requiredByRole: boolean;
+}
+
+export interface ResumeReadinessView {
+  available: boolean;
+  reason?: 'NO_RESUME' | 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY';
+  message?: string;
+  policyVersion?: string;
+  role?: { key: string; name: string };
+  readiness?: number;
+  dimensions?: { dimension: string; score: number; detail: string }[];
+  claims?: ResumeClaimView[];
+  recommendations?: { priority: 'CRITICAL' | 'IMPORTANT' | 'OPTIONAL'; action: string; skillKey?: string }[];
+}
+
+export interface InterviewReadinessView {
+  available: boolean;
+  reason?: string;
+  message?: string;
+  interviewId?: string;
+  role?: string;
+  completedAt?: string;
+  readiness?: number;
+  /** Only the dimensions the evaluator actually measured. A missing one is missing, not zero. */
+  dimensions?: { dimension: string; score: number }[];
+  perSkill?: { skillKey: string; area: string; score: number }[];
+}
+
+export interface PlacementReadinessView {
+  policyVersion: string;
+  skill: {
+    available: boolean;
+    reason?: string;
+    role?: { key: string; name: string };
+    readiness?: number | null;
+    coverage?: number;
+    confidence?: 'LOW' | 'MEDIUM' | 'HIGH';
+  };
+  resume: ResumeReadinessView;
+  interview: InterviewReadinessView;
+}
+
+export interface InterviewCoverageView {
+  ok: boolean;
+  message?: string;
+  role?: { key: string; name: string };
+  targets?: { skillKey: string; skillName: string; slots: number; bands: ('core' | 'gaps' | 'strengths')[] }[];
 }

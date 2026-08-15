@@ -1,0 +1,138 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Placement readiness (Module 14).
+   Namespaced `plr-` — verified free before writing.
+
+   The three figures are laid out as equal siblings on purpose. Sizing one larger,
+   or stacking them, would imply a hierarchy between questions that have none.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.plr { max-width: 1080px; margin: 0 auto; padding: 4px 0 40px; }
+
+.plr-load, .plr-err.page { padding: 40px; text-align: center; font-size: 13px; color: #64748b; }
+.plr-load .spin { display: inline-block; animation: plr-spin 1s linear infinite; }
+@keyframes plr-spin { to { transform: rotate(360deg); } }
+
+.plr-hd h1 { font-size: 21px; font-weight: 800; color: #0f172a; margin: 0; }
+.plr-hd p { font-size: 13px; color: #64748b; line-height: 1.7; margin: 8px 0 0; max-width: 68ch; }
+
+/* ── the three figures ── */
+.plr-figs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 20px; }
+
+.plr-fig { background: #fff; border: 1.5px solid #eef0f7; border-radius: 15px; padding: 17px 19px; }
+.plr-fig .ttl { display: block; font-size: 13px; font-weight: 800; color: #0f172a; }
+.plr-fig .q { display: block; font-style: normal; font-size: 11.5px; color: #94a3b8; margin-top: 3px; }
+.plr-fig .val { display: block; font-size: 34px; font-weight: 800; line-height: 1.1; margin-top: 12px;
+  font-variant-numeric: tabular-nums; }
+.plr-fig .val i { font-style: normal; font-size: 17px; font-weight: 700; margin-left: 2px; }
+.plr-fig .val.good { color: #047857; }
+.plr-fig .val.mid  { color: #b45309; }
+.plr-fig .val.low  { color: #b91c1c; }
+/* Never measured. Grey and stated, never a red zero — a student shown 0% for something
+   nobody has asked them about will go and study the wrong thing. */
+.plr-fig .none { display: block; font-size: 12.5px; font-weight: 700; color: #94a3b8;
+  margin-top: 16px; line-height: 1.5; }
+.plr-fig .foot { display: block; font-style: normal; font-size: 11px; color: #94a3b8; margin-top: 7px; }
+
+.plr-why { font-size: 12px; color: #94a3b8; line-height: 1.7; margin: 12px 2px 0; max-width: 72ch; }
+
+/* ── panels ── */
+.plr-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 18px; align-items: start; }
+
+.plr-panel { background: #fff; border: 1.5px solid #eef0f7; border-radius: 15px; padding: 17px 19px; }
+.plr-panel .hd { display: flex; align-items: center; gap: 9px; margin-bottom: 12px; }
+.plr-panel .hd i { font-size: 16px; color: #1d4ed8; }
+.plr-panel .hd b { font-size: 14px; font-weight: 800; color: #0f172a; }
+.plr-panel .sub { font-size: 12px; color: #94a3b8; margin: -4px 0 12px; }
+
+.plr-empty { background: #f8fafc; border-radius: 11px; padding: 15px 17px; }
+.plr-empty p { font-size: 12.5px; color: #64748b; line-height: 1.65; margin: 0; }
+.plr-empty .plr-btn { margin-top: 13px; }
+
+.plr-note { font-size: 11.5px; color: #94a3b8; line-height: 1.7; margin: 13px 0 0;
+  border-left: 2px solid #eef0f7; padding-left: 11px; }
+
+/* ── dimension bars ── */
+.plr-bars { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.plr-bars li { display: grid; grid-template-columns: 118px 1fr 42px; align-items: center; gap: 10px; }
+.plr-bars .nm { font-size: 12px; font-weight: 700; color: #334155; }
+.plr-bars .track { height: 7px; background: #f1f5f9; border-radius: 99px; overflow: hidden; }
+.plr-bars .track i { display: block; height: 100%; border-radius: 99px; }
+.plr-bars .track i.good { background: #10b981; }
+.plr-bars .track i.mid  { background: #f59e0b; }
+.plr-bars .track i.low  { background: #ef4444; }
+.plr-bars .pc { font-size: 12px; font-weight: 800; color: #0f172a; text-align: right;
+  font-variant-numeric: tabular-nums; }
+.plr-bars .dt { grid-column: 2 / -1; font-style: normal; font-size: 11px; color: #94a3b8; }
+
+/* ── recommendations ── */
+.plr-recs, .plr-claims, .plr-areas, .plr-cover { margin-top: 16px; }
+.plr-panel .lbl { display: block; font-size: 11px; font-weight: 800; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; }
+
+.plr-recs ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 9px; }
+.plr-recs li { display: flex; align-items: flex-start; gap: 10px; }
+.plr-recs li span { font-size: 12.5px; color: #334155; line-height: 1.6; }
+.plr-recs .pri { flex: 0 0 auto; font-style: normal; font-size: 10.5px; font-weight: 800;
+  border-radius: 99px; padding: 3px 9px; white-space: nowrap; margin-top: 1px; }
+.plr-recs .pri.critical  { background: #fef2f2; color: #b91c1c; }
+.plr-recs .pri.important { background: #fffbeb; color: #b45309; }
+.plr-recs .pri.optional  { background: #f1f5f9; color: #64748b; }
+
+/* ── claim vs evidence ──
+   Tone carries meaning here, so the colours are deliberately mild: "ahead of evidence" is a
+   statement about what we have measured, not an accusation, and must not read like an error. */
+.plr-claims ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.plr-claims li { display: grid; grid-template-columns: 16px 1fr auto 40px; align-items: center;
+  gap: 9px; padding: 8px 10px; border-radius: 9px; }
+.plr-claims li:nth-child(odd) { background: #fafbfc; }
+.plr-claims li i { font-size: 13px; }
+.plr-claims .sk { font-size: 12.5px; font-weight: 700; color: #0f172a; }
+.plr-claims .st { font-style: normal; font-size: 11px; font-weight: 700; }
+.plr-claims .sc { font-size: 12px; font-weight: 800; color: #334155; text-align: right;
+  font-variant-numeric: tabular-nums; }
+.plr-claims .msg { grid-column: 2 / -1; font-style: normal; font-size: 11px; color: #94a3b8; line-height: 1.6; }
+.plr-claims li.ok i, .plr-claims li.ok .st { color: #047857; }
+.plr-claims li.warn i, .plr-claims li.warn .st { color: #b45309; }
+.plr-claims li.info i, .plr-claims li.info .st { color: #1d4ed8; }
+.plr-claims li.neutral i, .plr-claims li.neutral .st { color: #94a3b8; }
+
+/* ── interview areas + coverage ── */
+.plr-areas ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.plr-areas li { display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 7px 10px; border-radius: 9px; }
+.plr-areas li:nth-child(odd) { background: #fafbfc; }
+.plr-areas li span { font-size: 12.5px; color: #334155; }
+.plr-areas li em { font-style: normal; font-size: 12px; font-weight: 800;
+  font-variant-numeric: tabular-nums; }
+.plr-areas li em.good { color: #047857; }
+.plr-areas li em.mid  { color: #b45309; }
+.plr-areas li em.low  { color: #b91c1c; }
+
+.plr-cover .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.plr-cover .tags i { display: inline-flex; align-items: center; gap: 5px; font-style: normal;
+  font-size: 11.5px; font-weight: 700; color: #4338ca; background: #eef2ff;
+  border-radius: 99px; padding: 4px 11px; }
+.plr-cover .tags i.gap { color: #b45309; background: #fffbeb; }
+.plr-cover .tags i b { font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; opacity: .75; }
+
+/* ── controls ── */
+.plr-btn { margin-top: 15px; border: 1.5px solid #dbe4f7; background: #fff; color: #1d4ed8;
+  font-size: 13px; font-weight: 800; border-radius: 10px; padding: 10px 19px; cursor: pointer; }
+.plr-btn:hover:not(:disabled) { background: #f7faff; }
+.plr-btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.plr-btn.primary:hover:not(:disabled) { background: #1a44bd; }
+.plr-btn:disabled { opacity: .55; cursor: default; }
+
+.plr-err { font-size: 12px; color: #b91c1c; margin: 10px 0 0; }
+
+.plr-link { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 800; color: #1d4ed8; }
+.plr-link:hover { text-decoration: underline; }
+
+@media (max-width: 900px) {
+  .plr-figs { grid-template-columns: 1fr; }
+  .plr-cols { grid-template-columns: 1fr; }
+  .plr-bars li { grid-template-columns: 96px 1fr 40px; }
+}

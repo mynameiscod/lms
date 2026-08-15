@@ -35,6 +35,7 @@ import * as rewardBudget from '../controllers/rewardBudgetController';
 import * as rewards from '../controllers/rewardController';
 import * as rewardsAdmin from '../controllers/rewardAdminController';
 import * as reassessment from '../controllers/reassessmentController';
+import * as placement from '../controllers/placementReadinessController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -204,6 +205,16 @@ router.get('/me/roadmap/replan-status',            MEMBER, reassessment.getRepla
 
 router.get('/students/:studentId/reassessment',           MANAGE, reassessment.getStudentReassessment);
 router.post('/students/:studentId/reassessment/override', MANAGE, reassessment.overrideReassessment);
+
+// ── Placement readiness (Module 14). THREE figures, never blended: can you do the job
+//    (Module 8), does your resume show it, and can you show it under interview conditions.
+//    All read-only — a resume is a claim and moves no score. Interview performance DOES
+//    become evidence, but only through Module 7, and only from a role interview whose areas
+//    were drawn from the role blueprint. ──
+router.get('/me/placement-readiness',    MEMBER, placement.getMyPlacementReadiness);
+router.get('/me/resume-readiness',       MEMBER, placement.getMyResumeReadiness);
+router.get('/me/interview/coverage',     MEMBER, placement.getMyInterviewCoverage);
+router.get('/students/:studentId/placement-readiness', MANAGE, placement.getStudentPlacementReadiness);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);

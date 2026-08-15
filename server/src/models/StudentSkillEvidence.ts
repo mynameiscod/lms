@@ -25,15 +25,30 @@ import mongoose, { Schema, Document } from 'mongoose';
  */
 
 export type EvidenceRelationship = 'PRIMARY' | 'SECONDARY';
-export type EvidenceSource = 'PERSONALIZED_ASSESSMENT';
+/**
+ * Where a piece of evidence came from.
+ *
+ * MOCK_INTERVIEW joins the personalised assessment as a SECOND admissible source, at its
+ * own reliability — see SOURCE_WEIGHT. A spoken answer graded against a rubric is real
+ * demonstrated evidence, and it is less controlled than a marked paper; the weighting is
+ * what expresses that, rather than admitting it silently at full strength or refusing it.
+ *
+ * A resume is deliberately NOT here. A resume is a self-report — "I know Java" is a claim,
+ * not a demonstration, and letting a keyword move a score would make Skill DNA a measure of
+ * what students write about themselves.
+ */
+export type EvidenceSource = 'PERSONALIZED_ASSESSMENT' | 'MOCK_INTERVIEW';
 
 export const EVIDENCE_RELATIONSHIPS: EvidenceRelationship[] = ['PRIMARY', 'SECONDARY'];
 /**
- * Only one source feeds Skill DNA today. Quizzes, projects and mock interviews have
- * different grading semantics and no canonical mapping, so admitting them now would mix
- * incomparable observations into one number.
+ * The sources admitted into Skill DNA, and nothing else.
+ *
+ * A mock interview joined the personalised assessment once its questions could be mapped to
+ * canonical skills and graded against a rubric — those two properties are the entry
+ * requirement, not the format. Quizzes and projects still have no canonical mapping, so
+ * admitting them would mix incomparable observations into one number.
  */
-export const EVIDENCE_SOURCES: EvidenceSource[] = ['PERSONALIZED_ASSESSMENT'];
+export const EVIDENCE_SOURCES: EvidenceSource[] = ['PERSONALIZED_ASSESSMENT', 'MOCK_INTERVIEW'];
 
 export interface IStudentSkillEvidence extends Document {
   tenantId: string;
@@ -42,7 +57,14 @@ export interface IStudentSkillEvidence extends Document {
   skillKey: string;
 
   sourceType: EvidenceSource;
-  /** The PersonalizedAssessment this came from. Part of the idempotency key. */
+  /**
+   * The sitting this observation came from. Part of the idempotency key.
+   *
+   * WHICH COLLECTION IT POINTS AT DEPENDS ON sourceType: a PersonalizedAssessment for
+   * PERSONALIZED_ASSESSMENT, a PassportInterview for MOCK_INTERVIEW. The declared `ref`
+   * below covers the first and only the first — so do not add a blind .populate() on this
+   * field, which would silently return null for every interview row.
+   */
   assessmentId: mongoose.Types.ObjectId;
   attemptNumber: number;
 
@@ -75,6 +97,7 @@ const StudentSkillEvidenceSchema = new Schema<IStudentSkillEvidence>(
     skillKey:  { type: String, required: true, uppercase: true, trim: true },
 
     sourceType:    { type: String, enum: EVIDENCE_SOURCES, default: 'PERSONALIZED_ASSESSMENT' },
+    // See the interface above: MOCK_INTERVIEW rows point at a PassportInterview instead.
     assessmentId:  { type: Schema.Types.ObjectId, ref: 'PersonalizedAssessment', required: true },
     attemptNumber: { type: Number, default: 1 },
 

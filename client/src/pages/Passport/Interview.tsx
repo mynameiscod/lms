@@ -85,8 +85,14 @@ const Interview: React.FC = () => {
     setBusy(true); setErr('');
     try {
       // ?company=<slug> arrives when the member started from a company page, and primes
-      // the interviewer for that employer.
-      const r = await passportApi.startInterview(params.get('company') || undefined);
+      // the interviewer for that employer. ?mode=role arrives from Placement Readiness and
+      // asks the server to build the paper from the member's own role blueprint — the only
+      // kind of sitting that can later become skill evidence. Both are hints; the server
+      // resolves the actual coverage, so neither lets a member pick their own questions.
+      const r = await passportApi.startInterview(
+        params.get('company') || undefined,
+        params.get('mode') === 'role' ? 'role' : undefined,
+      );
       setSession(r.session);
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not start the interview.'); }
     setBusy(false);

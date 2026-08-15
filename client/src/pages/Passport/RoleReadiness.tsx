@@ -182,6 +182,13 @@ const RoleReadiness: React.FC = () => {
           this role. <b>Coverage</b> shows how much of that role we have enough evidence to
           judge. A skill we have not measured is not counted against you.
         </p>
+        {/* Being able to do the job is one of three questions. The other two — whether the
+            resume shows it, and whether it survives an interview — have completely
+            different fixes, which is why they live on their own screen rather than being
+            folded into this number. */}
+        <button className="rdy-more" onClick={() => nav('/careerpilot/placement')}>
+          Your resume and interview readiness <i className="bi bi-arrow-right" />
+        </button>
       </div>
     </div>
   );

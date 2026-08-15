@@ -85,6 +85,7 @@ import PassportCareerSetup from './pages/Passport/CareerSetup';
 import PassportRoadmap from './pages/Passport/Roadmap';
 import PassportSkillDna from './pages/Passport/SkillDna';
 import PassportRoleReadiness from './pages/Passport/RoleReadiness';
+import PassportPlacementReadiness from './pages/Passport/PlacementReadiness';
 import PassportSkillAssessment from './pages/Passport/SkillAssessment';
 import PassportGamification from './pages/Passport/Gamification';
 import PassportRewards from './pages/Passport/Rewards';
@@ -518,6 +519,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/roadmap" element={<PassportRoadmap />} />
         <Route path="/careerpilot/skills" element={<PassportSkillDna />} />
         <Route path="/careerpilot/readiness" element={<PassportRoleReadiness />} />
+        {/* Resume readiness and interview readiness, beside the skill figure and never
+            blended with it (Module 14). */}
+        <Route path="/careerpilot/placement" element={<PassportPlacementReadiness />} />
         {/* The personalised skill assessment (Modules 6-7). Distinct from
             /careerpilot/assessment, which is the free career-readiness questionnaire. */}
         <Route path="/careerpilot/skill-assessment" element={<PassportSkillAssessment />} />

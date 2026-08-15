@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import passportApi, { ResumeSections, ResumeScore } from '../../api/passportApi';
 import PassportShell, { LockedPanel } from './PassportShell';
 
@@ -79,6 +80,7 @@ const Field: React.FC<{ label: string; value: string; onChange: (v: string) => v
 const ResumeCenter: React.FC = () => {
   const [sections, setSections] = useState<ResumeSections>(BLANK);
   const [importing, setImporting] = useState(false);
+  const nav = useNavigate();
   const [score, setScore] = useState<ResumeScore | null>(null);
   const [locked, setLocked] = useState<{ priceInr?: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -398,6 +400,14 @@ const ResumeCenter: React.FC = () => {
                     </div>
                   </>
                 )}
+
+                {/* A different question from the ATS score above: not "is this a good
+                    resume" but "does it show what you have actually demonstrated, for the
+                    role you are aiming at". Kept on its own screen so the two scores are
+                    never mistaken for each other. */}
+                <button className="rs-readiness" onClick={() => nav('/careerpilot/placement')}>
+                  How this reads against your target role <i className="bi bi-arrow-right" />
+                </button>
               </>
             )}
           </div>

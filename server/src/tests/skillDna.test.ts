@@ -40,8 +40,19 @@ describe('one observation’s weight', () => {
       .toBeGreaterThan(0);
   });
 
-  it('trusts only the one source that exists today', () => {
-    expect(Object.keys(SOURCE_WEIGHT)).toEqual(['PERSONALIZED_ASSESSMENT']);
+  it('trusts a controlled assessment fully, and a mock interview less', () => {
+    // Module 14 admitted a second source. The assertion changed because the WORLD changed,
+    // deliberately: a spoken answer graded from prose is real evidence and is less
+    // controlled than a marked paper, and the weight is where that belief is written down.
+    expect(SOURCE_WEIGHT.PERSONALIZED_ASSESSMENT).toBe(1.0);
+    expect(SOURCE_WEIGHT.MOCK_INTERVIEW).toBeLessThan(SOURCE_WEIGHT.PERSONALIZED_ASSESSMENT);
+  });
+
+  it('admits no source that is merely self-reported', () => {
+    // A resume says "I know Java". That is a claim, and letting it weigh anything would
+    // make Skill DNA a measure of what students write about themselves.
+    expect(Object.keys(SOURCE_WEIGHT)).not.toContain('RESUME');
+    expect(Object.keys(SOURCE_WEIGHT)).not.toContain('SELF_REPORT');
   });
 });
 

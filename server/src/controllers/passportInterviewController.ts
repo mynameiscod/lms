@@ -13,6 +13,9 @@ import { recordUsage } from '../services/aiGateway';
 import * as settings from '../services/settingsService';
 import { awardCoins } from '../services/coinService';
 import { completeInterviewMissions } from '../services/passportMissionCloseService';
+import {
+  planInterviewCoverage, projectInterviewToEvidence, adaptPassportInterview,
+} from '../services/interviewIntelligenceService';
 import { Company, CompanyMockConfig, QuestionTaxonomy, CompanyQuestion } from '../models/CompanyQuestionModels';
 
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
@@ -99,6 +102,8 @@ export const start = async (req: Request, res: Response) => {
     let role = String(req.body?.role || preset.role);
     let areas = preset.areas;
 
+    let skillTargets: { skillKey: string; skillName: string }[] = [];
+
     /**
      * Company-flavoured mock, when the member started from a company page.
      *
@@ -137,6 +142,32 @@ export const start = async (req: Request, res: Response) => {
       }
     }
 
+    /**
+     * Role mode — an interview built from the member's own role blueprint.
+     *
+     * The areas ARE canonical skills, which is the only reason this sitting can later
+     * produce skill evidence: a graded area maps back to exactly one skill, and that
+     * mapping is recorded now rather than guessed at the end. The member cannot name the
+     * skills; coverage is resolved server-side from Module 8's classification, so nobody
+     * can sit an interview on the three things they already know.
+     *
+     * AFTER the company block, and mutually exclusive with it. A company mock replaces the
+     * areas with that employer's emphasis. If both applied, the sitting would carry skill
+     * targets that no graded area matches — and it would then read as a role interview
+     * that scored zero, which is the one thing this module must never report.
+     *
+     * If the blueprint is not ready, or this is a company mock, we keep the areas already
+     * chosen and record NO targets: a normal mock interview that moves no scores.
+     */
+    if (String(req.body?.mode || '') === 'role' && !companyBrief) {
+      const plan = await planInterviewCoverage(tenantId, studentId, MAX_QUESTIONS);
+      if (plan.ok && plan.targets?.length) {
+        role = plan.role?.name || role;
+        areas = plan.targets.map(t => t.skillName);
+        skillTargets = plan.targets.map(t => ({ skillKey: t.skillKey, skillName: t.skillName }));
+      }
+    }
+
     const first = await nextInterviewerTurn({
       interviewerName: interviewerName(), role, areas,
       history: [], askedCount: 0, maxQuestions: MAX_QUESTIONS,
@@ -145,7 +176,7 @@ export const start = async (req: Request, res: Response) => {
     });
 
     const session = await PassportInterview.create({
-      tenantId, studentId, role, areas,
+      tenantId, studentId, role, areas, skillTargets,
       companySlug: companyBrief ? slug : undefined,
       companyName: companyBrief?.name,
       interviewerName: interviewerName(), maxQuestions: MAX_QUESTIONS, askedCount: 1,
@@ -268,7 +299,38 @@ export const finish = async (req: Request, res: Response) => {
       note: session.role,
     });
 
-    res.json({ session: publicSession(session), scored: !!evalResult, coins: coin.awarded });
+    /**
+     * What this interview says about the member's skills (Module 14).
+     *
+     * ONLY THROUGH MODULE 7. The projector writes evidence rows and asks Skill DNA to
+     * recompute; it never sets a skill score or a readiness figure directly. A pathway
+     * interview carries no canonical skill targets and so writes nothing at all.
+     *
+     * Wrapped, and last. A member who has just spent fifteen minutes answering questions
+     * must get their transcript, feedback, XP and coins even if scoring their evidence
+     * fails — this is the least important thing on the page and the only optional one.
+     */
+    let interviewReadiness: any = null;
+    if ((session.skillTargets || []).length) {
+      try {
+        const adapted = adaptPassportInterview(session as any);
+        interviewReadiness = await projectInterviewToEvidence({
+          tenantId, studentId,
+          interviewId: String(session._id),
+          questions: adapted.questions,
+          dimensionScores: adapted.dimensionScores,
+        });
+        session.evidenceProjectedAt = new Date();
+        await session.save();
+      } catch (e: any) {
+        console.error('[passport] interview -> skill evidence:', e?.message || e);
+      }
+    }
+
+    res.json({
+      session: publicSession(session), scored: !!evalResult, coins: coin.awarded,
+      interviewReadiness,
+    });
   } catch (e: any) {
     console.error('[passport] interview finish:', e);
     res.status(500).json({ message: e.message || 'Could not finish the interview' });

@@ -48,6 +48,19 @@ export const DIFFICULTY_WEIGHT: Record<string, number> = {
  */
 export const SOURCE_WEIGHT: Record<string, number> = {
   PERSONALIZED_ASSESSMENT: 1.0,
+  /**
+   * A mock interview answer, graded against a rubric.
+   *
+   * Real demonstrated evidence — the student said the thing, unprompted, under time — but
+   * less controlled than a marked paper: the question is conversational, the rubric is
+   * applied to prose, and a strong explainer can outshine a strong engineer. 0.6 says
+   * "count it, and do not let it outweigh what was actually measured".
+   *
+   * This is the ONLY change to Module 7 for interview evidence. The arithmetic below is
+   * untouched; the map existed precisely so a second source could be admitted at its own
+   * reliability.
+   */
+  MOCK_INTERVIEW: 0.6,
 };
 
 /**

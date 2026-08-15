@@ -102,3 +102,9 @@
   .rdy-top .fig { min-width: 100%; }
   .rdy-row .nums .gp { margin-left: 0; flex: 1 0 100%; }
 }
+
+/* Out to the other two readiness questions. A link, not a merged score. */
+.rdy-more { display: inline-flex; align-items: center; gap: 7px; margin-top: 12px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 800; color: #1d4ed8; }
+.rdy-more:hover { text-decoration: underline; }

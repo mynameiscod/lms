@@ -26,11 +26,28 @@ export interface IPassportInterviewEval {
   questionFeedback?: { question: string; verdict: string; whatWorked: string; whatToFix: string; betterAnswer: string }[];
 }
 
+/**
+ * A canonical skill this sitting was built to probe.
+ *
+ * Present only on role interviews, whose areas are chosen from the student's role
+ * blueprint (Module 8). Legacy pathway interviews cover free-text topics like "Learning
+ * mindset" that correspond to no canonical skill, and they carry none of these — which is
+ * why they can never produce skill evidence. Recorded at START, so the mapping from a
+ * graded area back to a skill cannot be invented after the fact.
+ */
+export interface IInterviewSkillTarget {
+  skillKey: string;
+  skillName: string;
+}
+
 export interface IPassportInterview extends Document {
   tenantId: string;
   studentId: mongoose.Types.ObjectId;
   role: string;                          // target role the interview is for
   areas: string[];                       // topic areas covered
+  skillTargets: IInterviewSkillTarget[]; // canonical skills behind those areas, role mode only
+  /** Whether evidence has already been written for this sitting. */
+  evidenceProjectedAt?: Date | null;
   interviewerName: string;
   companySlug?: string;
   companyName?: string;
@@ -74,6 +91,11 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     studentId: { type: Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     role:            { type: String, default: 'Software Engineer' },
     areas:           [{ type: String }],
+    skillTargets:    [new Schema<IInterviewSkillTarget>({
+      skillKey:  { type: String, required: true },
+      skillName: { type: String, default: '' },
+    }, { _id: false })],
+    evidenceProjectedAt: { type: Date, default: null },
     interviewerName: { type: String, default: 'Siva' },
     // Set when the mock was started from a company page, so follow-up turns and the
     // history list can both stay company-aware.

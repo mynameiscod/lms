@@ -831,3 +831,11 @@
   padding-top: 9px; border-top: 1px dashed #eef0f7; }
 .mt-rev .gen { display: inline-block; margin: 9px 0 0 24px; font-size: 10.5px; font-weight: 700;
   color: #c2410c; background: #fff7ed; border-radius: 6px; padding: 2px 8px; }
+
+/* Out to placement readiness (Module 14). The ATS score answers "is this a good resume";
+   that screen answers "does it show what you have demonstrated, for your target role" —
+   two different questions, deliberately never merged into one number. */
+.rs-readiness { display: inline-flex; align-items: center; gap: 7px; margin-top: 18px;
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font-size: 12.5px; font-weight: 800; color: #1d4ed8; }
+.rs-readiness:hover { text-decoration: underline; }

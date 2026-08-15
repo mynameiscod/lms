@@ -32,6 +32,8 @@ import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
 import * as gamification from '../controllers/gamificationController';
 import * as rewardBudget from '../controllers/rewardBudgetController';
+import * as rewards from '../controllers/rewardController';
+import * as rewardsAdmin from '../controllers/rewardAdminController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -144,6 +146,25 @@ router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRole
 //    non-redeemable. Coins remain the reward currency on their own engine, and nothing here
 //    converts between them. No student route awards anything — every award happens inside a
 //    trusted server flow that already proved the work was done. ──
+// ── Rewards and redemption (Module 12). COINS buy things; XP never does. A redemption is
+//    a saga across stock, the tenant budget, the member's annual allowance and the coin
+//    balance — Mongo here is standalone, so each step is separately atomic and separately
+//    reversible rather than wrapped in a transaction. Students send a reward key and an
+//    intent token; every price and limit is resolved server-side. ──
+router.get('/me/rewards',                 MEMBER, rewards.getRewardCatalogue);
+router.post('/me/rewards/:key/redeem',    MEMBER, rewards.redeemRewardForMe);
+router.get('/me/redemptions',             MEMBER, rewards.getMyRedemptions);
+
+router.get('/rewards/admin',                              MANAGE, rewardsAdmin.listRewardsAdmin);
+router.post('/rewards/admin',                             MANAGE, rewardsAdmin.createReward);
+router.put('/rewards/admin/:key',                         MANAGE, rewardsAdmin.updateReward);
+router.get('/rewards/admin/redemptions',                  MANAGE, rewardsAdmin.listRedemptions);
+router.post('/rewards/admin/redemptions/:id/fulfill',     MANAGE, rewardsAdmin.fulfill);
+router.post('/rewards/admin/redemptions/:id/cancel',      MANAGE, rewardsAdmin.cancel);
+// Recovery for a saga interrupted by a process failure. Re-runs the saga; never hand-edits.
+router.get('/rewards/admin/stranded',                     MANAGE, rewardsAdmin.listStranded);
+router.post('/rewards/admin/redemptions/:id/recover',     MANAGE, rewardsAdmin.recover);
+
 router.get('/me/gamification',            MEMBER, gamification.getMyGamification);
 router.get('/me/gamification/xp-history', MEMBER, gamification.getMyXpHistory);
 router.get('/me/leaderboard',             MEMBER, gamification.getMyLeaderboard);

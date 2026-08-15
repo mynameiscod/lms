@@ -217,6 +217,23 @@ export const passportApi = {
     return data;
   },
 
+  // ── Rewards (Module 12) ──
+  /** Catalogue plus this student's standing against each reward. */
+  getRewards: async (): Promise<RewardCatalogue> => {
+    const { data } = await axios.get(`${BASE}/me/rewards`, { headers: auth() });
+    return data;
+  },
+  /** The intent token separates a real second redemption from a double-clicked button. */
+  redeemReward: async (key: string, intentToken: string): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/me/rewards/${encodeURIComponent(key)}/redeem`,
+      { intentToken }, { headers: auth() });
+    return data;
+  },
+  getMyRedemptions: async (): Promise<{ redemptions: RedemptionRow[] }> => {
+    const { data } = await axios.get(`${BASE}/me/redemptions`, { headers: auth() });
+    return data;
+  },
+
   // ── Gamification (Module 11) ──
   /** XP, level, streak, badges and ranks. Read-only: no client can award anything. */
   getMyGamification: async (): Promise<GamificationSummary> => {
@@ -1738,3 +1755,56 @@ export type ScopedLeaderboardResponse =
       participantCount: number;
     }
   | { available: false; scope: string; period: string; reason: string; myRank: null };
+
+// ── Rewards (Module 12) ──────────────────────────────────────────────────────
+//
+// COINS buy rewards; XP never does. The business cost of a reward is deliberately absent
+// from every shape here — it is not the student's business.
+
+export interface RewardCard {
+  key: string;
+  name: string;
+  description: string;
+  type: string;
+  iconKey: string;
+  imageUrl?: string;
+  coinCost: number;
+  stockMode: string;
+  stockAvailable: number | null;
+  availableUntil?: string;
+  instructions?: string;
+  eligibility: {
+    eligible: boolean;
+    reasons: string[];
+    messages: string[];
+    coinsShort: number;
+    remainingStudentLimit: number | null;
+  };
+}
+
+export interface RewardCatalogue {
+  rewards: RewardCard[];
+  student: {
+    coins: number;
+    coinBalance: number;
+    expiredCoins: number;
+    minRedemption: number;
+    xp: number;
+    level: number;
+    canSpend: boolean;
+  };
+}
+
+export interface RedemptionRow {
+  id: string;
+  rewardKey: string;
+  rewardName: string;
+  rewardType: string;
+  coinCost: number;
+  status: 'PENDING' | 'RESERVED' | 'FULFILLED' | 'CANCELLED';
+  requestedAt: string;
+  fulfilledAt?: string;
+  cancelledAt?: string;
+  fulfillmentReference?: string;
+  refunded: number;
+}

@@ -1,0 +1,101 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Rewards and redemption (student).
+   Namespaced `rwd-` — verified free before writing.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.rwd { max-width: 900px; margin: 0 auto; padding: 8px 4px 60px; }
+
+.rwd-hd { margin-bottom: 18px; }
+.rwd-hd h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+.rwd-hd p { font-size: 13px; color: #64748b; margin: 7px 0 0; line-height: 1.65; max-width: 62ch; }
+
+.rwd-load { background: #f8fafc; color: #64748b; border-radius: 12px; padding: 16px; font-size: 13px; }
+
+/* ── balances ──
+   Coins lead; XP sits beside them labelled as an engagement score. They must never read as
+   two denominations of the same thing. */
+.rwd-bal { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.rwd-bal .b { flex: 1; min-width: 150px; background: #fff; border: 1.5px solid #eef0f7;
+  border-radius: 14px; padding: 16px 18px; }
+.rwd-bal .b.main { border-color: #fde68a; background: linear-gradient(135deg, #fffbeb, #fff); }
+.rwd-bal .b b { display: block; font-size: 26px; font-weight: 900; color: #0f172a;
+  line-height: 1.05; font-variant-numeric: tabular-nums; }
+.rwd-bal .b.main b { color: #b45309; }
+.rwd-bal .b span { display: block; font-size: 12.5px; font-weight: 800; color: #475569; margin-top: 5px; }
+.rwd-bal .b em { display: block; font-style: normal; font-size: 11px; color: #94a3b8; margin-top: 3px; }
+
+.rwd-note { border-radius: 11px; padding: 12px 15px; font-size: 12.5px; line-height: 1.6;
+  margin-bottom: 14px; background: #f0f9ff; border: 1px solid #bae6fd; color: #075985; }
+.rwd-note.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+.rwd-note.ok { background: #ecfdf5; border-color: #a7f3d0; color: #047857; }
+
+/* ── catalogue ── */
+.rwd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
+.rwd-card { background: #fff; border: 1.5px solid #eef0f7; border-radius: 15px;
+  padding: 18px 18px 16px; display: flex; flex-direction: column; }
+.rwd-card.locked { background: #fbfcfe; }
+.rwd-card .ic { width: 42px; height: 42px; border-radius: 12px; background: #fffbeb;
+  display: flex; align-items: center; justify-content: center; margin-bottom: 11px; }
+.rwd-card .ic i { font-size: 20px; color: #f59e0b; }
+.rwd-card.locked .ic { background: #f1f5f9; }
+.rwd-card.locked .ic i { color: #cbd5e1; }
+.rwd-card > b { font-size: 14px; font-weight: 800; color: #0f172a; }
+.rwd-card p { font-size: 12px; color: #64748b; line-height: 1.6; margin: 6px 0 0; }
+
+.rwd-card .cost { margin: 12px 0 0; font-size: 12px; color: #64748b; }
+.rwd-card .cost span { font-size: 18px; font-weight: 900; color: #b45309;
+  font-variant-numeric: tabular-nums; }
+.rwd-card .stock { display: block; font-style: normal; font-size: 11px; color: #94a3b8; margin-top: 4px; }
+
+.rwd-card .why { margin: 10px 0 0; padding-left: 16px; }
+.rwd-card .why li { font-size: 11.5px; color: #b45309; line-height: 1.6; }
+
+.rwd-btn { margin-top: auto; border: 1.5px solid #dbe4f7; background: #fff; color: #1d4ed8;
+  font-size: 13px; font-weight: 800; border-radius: 10px; padding: 11px 18px; cursor: pointer; }
+.rwd-btn:hover:not(:disabled) { background: #f7faff; }
+.rwd-btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.rwd-btn.primary:hover:not(:disabled) { background: #1a44bd; }
+.rwd-btn:disabled { opacity: .5; cursor: default; }
+.rwd-card .rwd-btn { margin-top: 14px; width: 100%; }
+
+/* ── empty ── */
+.rwd-empty { background: #fff; border: 1px dashed #dbe4f7; border-radius: 15px;
+  padding: 40px 26px; text-align: center; }
+.rwd-empty > .bi { font-size: 32px; color: #c7d6f5; }
+.rwd-empty b { display: block; font-size: 15.5px; font-weight: 800; color: #0f172a; margin-top: 13px; }
+.rwd-empty span { display: block; font-size: 13px; color: #64748b; margin: 8px auto 0;
+  max-width: 46ch; line-height: 1.65; }
+
+/* ── history ── */
+.rwd-hist { margin-top: 26px; padding-top: 18px; border-top: 1px solid #eef0f7; }
+.rwd-hist > b { font-size: 13.5px; font-weight: 800; color: #0f172a; }
+.rwd-hist .row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  border: 1px solid #f1f5f9; border-radius: 11px; padding: 11px 14px; margin-top: 8px; }
+.rwd-hist .tx { flex: 1; min-width: 140px; }
+.rwd-hist .tx b { display: block; font-size: 13px; font-weight: 700; color: #0f172a; }
+.rwd-hist .tx em { font-style: normal; font-size: 11px; color: #94a3b8; }
+.rwd-hist .coins { font-size: 12px; font-weight: 800; color: #475569; }
+.rwd-hist .coins i { font-style: normal; font-weight: 600; color: #047857; }
+.rwd-hist .st { font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; border-radius: 99px; padding: 3px 10px; }
+.rwd-hist .st.s-reserved { background: #eff6ff; color: #1d4ed8; }
+.rwd-hist .st.s-fulfilled { background: #ecfdf5; color: #047857; }
+.rwd-hist .st.s-cancelled { background: #f1f5f9; color: #64748b; }
+.rwd-hist .st.s-pending { background: #fffbeb; color: #b45309; }
+
+/* ── confirmation ── */
+.rwd-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .45);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 60; }
+.rwd-modal .bx { background: #fff; border-radius: 16px; padding: 26px 28px; max-width: 420px; width: 100%; }
+.rwd-modal b { font-size: 16px; font-weight: 800; color: #0f172a; }
+.rwd-modal p { font-size: 13px; color: #64748b; line-height: 1.8; margin: 12px 0 0; }
+.rwd-modal p strong { color: #0f172a; }
+.rwd-modal .ins { font-size: 12px; color: #94a3b8; }
+.rwd-modal .acts { display: flex; gap: 10px; margin-top: 20px; }
+.rwd-modal .acts .rwd-btn { flex: 1; margin-top: 0; }
+
+@media (max-width: 600px) {
+  .rwd-bal .b { min-width: 100%; }
+  .rwd-grid { grid-template-columns: 1fr; }
+  .rwd-hist .st { margin-left: auto; }
+}

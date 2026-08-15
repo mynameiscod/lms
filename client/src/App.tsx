@@ -87,6 +87,7 @@ import PassportSkillDna from './pages/Passport/SkillDna';
 import PassportRoleReadiness from './pages/Passport/RoleReadiness';
 import PassportSkillAssessment from './pages/Passport/SkillAssessment';
 import PassportGamification from './pages/Passport/Gamification';
+import PassportRewards from './pages/Passport/Rewards';
 import PassportPractice from './pages/Passport/Practice';
 import PassportPracticeItem from './pages/Passport/PracticeItem';
 import PassportInterview from './pages/Passport/Interview';
@@ -522,6 +523,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/careerpilot/skill-assessment" element={<PassportSkillAssessment />} />
         {/* Progress, badges and leaderboards. Engagement only — never a capability signal. */}
         <Route path="/careerpilot/progress" element={<PassportGamification />} />
+        {/* Coins buy rewards; XP never does. */}
+        <Route path="/careerpilot/rewards" element={<PassportRewards />} />
         <Route path="/passport/roadmap" element={<LegacyRedirect to="/careerpilot/roadmap" />} />
         <Route path="/careerpilot/practice" element={<PassportPractice />} />
         <Route path="/passport/practice" element={<LegacyRedirect to="/careerpilot/practice" />} />

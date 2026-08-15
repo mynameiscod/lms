@@ -1,6 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import passportApi, { SkillAssessment as Paper, SkillAssessmentItem } from '../../api/passportApi';
+import {
+  AnswerQueue, enqueueAnswer, drainQueue, requeueFailed, hasPending,
+} from './answerQueue';
 import './skillAssessment.css';
 
 /**
@@ -22,6 +25,8 @@ import './skillAssessment.css';
  */
 
 const AUTOSAVE_MS = 900;
+/** Longer than the debounce: a failed save is usually a network blip, not a fast typist. */
+const RETRY_MS = 4000;
 
 const SkillAssessment: React.FC = () => {
   const nav = useNavigate();
@@ -34,9 +39,9 @@ const SkillAssessment: React.FC = () => {
   const [confirming, setConfirming] = useState(false);
   const [done, setDone] = useState<any>(null);
   const [err, setErr] = useState('');
-  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'retrying'>('idle');
 
-  const pending = useRef<Record<string, any>>({});
+  const pending = useRef<AnswerQueue>({});
   const timer = useRef<any>(null);
 
   const keyOf = (i: SkillAssessmentItem) => `${i.sourceType}:${i.sourceId}`;
@@ -70,25 +75,40 @@ const SkillAssessment: React.FC = () => {
     setStarting(false);
   };
 
-  /** Debounced, and merged server-side, so one question at a time is safe to send. */
+  /**
+   * Debounced autosave, retry-safe.
+   *
+   * The batch is drained before the request and handed BACK if it fails, so a save lost to
+   * a dropped connection is retried rather than forgotten. Restoring it never overwrites an
+   * answer the student changed while the request was in flight — see requeueFailed.
+   */
+  const flush = useCallback(async () => {
+    const { batch, rest } = drainQueue(pending.current);
+    pending.current = rest;
+    if (!batch.length) return;
+
+    setSaveState('saving');
+    try {
+      await passportApi.saveSkillAnswers(batch as any);
+      setSaveState(hasPending(pending.current) ? 'saving' : 'saved');
+    } catch {
+      pending.current = requeueFailed(pending.current, batch);
+      setSaveState('retrying');
+      // Re-armed even if the student stops typing, so a temporary outage resolves itself
+      // rather than waiting for the next answer to carry the backlog.
+      clearTimeout(timer.current);
+      timer.current = setTimeout(flush, RETRY_MS);
+    }
+  }, []);
+
   const queueSave = useCallback((item: SkillAssessmentItem, response: any) => {
-    pending.current[keyOf(item)] = { sourceType: item.sourceType, sourceId: item.sourceId, response };
+    pending.current = enqueueAnswer(pending.current, {
+      sourceType: item.sourceType, sourceId: item.sourceId, response,
+    });
     setSaveState('saving');
     clearTimeout(timer.current);
-    timer.current = setTimeout(async () => {
-      const batch = Object.values(pending.current);
-      pending.current = {};
-      if (!batch.length) return;
-      try {
-        await passportApi.saveSkillAnswers(batch as any);
-        setSaveState('saved');
-      } catch {
-        // Kept in state so the next answer retries them; nothing the student did is lost
-        // from the screen even if the network is down.
-        setSaveState('idle');
-      }
-    }, AUTOSAVE_MS);
-  }, []);
+    timer.current = setTimeout(flush, AUTOSAVE_MS);
+  }, [flush]);
 
   const answer = (item: SkillAssessmentItem, response: any) => {
     setAnswers(a => ({ ...a, [keyOf(item)]: response }));
@@ -188,7 +208,12 @@ const SkillAssessment: React.FC = () => {
           <span>Question {at + 1} of {paper.items.length}</span>
         </div>
         <span className={`ska-save ${saveState}`}>
-          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
+          {saveState === 'saving' ? 'Saving…'
+            : saveState === 'saved' ? 'Saved'
+            /* Said plainly rather than hidden: the answer is safe on screen and will be
+               resent, and a silent failure here is how somebody loses a paper. */
+            : saveState === 'retrying' ? 'Offline — will retry'
+            : ''}
         </span>
       </div>
 

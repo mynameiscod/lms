@@ -1,8 +1,7 @@
 import { Request, Response } from 'express';
-import PassportProgress from '../models/PassportProgress';
 import User from '../models/User';
 import { getTodaysPlan, DailyPlanUnavailableResult } from '../services/dailyMissionOrchestrator';
-import { completeMissionOnce } from '../services/passportXpService';
+import { completeCareerMission } from '../services/careerMissionCompletionService';
 
 /**
  * Today's CareerPilot plan, and completing a piece of it.
@@ -46,10 +45,10 @@ export const getMyDailyPlan = async (req: Request, res: Response) => {
 /**
  * POST /passport/me/plan/complete — mark one of today's missions done.
  *
- * IDEMPOTENT. completeMissionOnce refuses a key it has already recorded, which is the same
- * guarantee the legacy daily missions rely on: a double-clicked button, a retried request
- * and a duplicated tab all produce one completion, one XP award and one unit of roadmap
- * progress.
+ * IDEMPOTENT, AND SAFE UNDER CONCURRENCY. The completion is claimed with a single
+ * conditional update whose filter requires the key to be absent, so a double-clicked button,
+ * a retried request and two tabs firing at once all produce one completion, one XP award and
+ * one unit of roadmap progress — including when they arrive simultaneously.
  */
 export const completeMyDailyMission = async (req: Request, res: Response) => {
   try {
@@ -73,49 +72,42 @@ export const completeMyDailyMission = async (req: Request, res: Response) => {
     if (!mission) return res.status(400).json({ message: 'That mission is not on today’s plan.' });
 
     const user: any = await User.findOne({ _id: studentId, tenantId }).select('passport').lean();
-    let progress = await PassportProgress.findOne({ tenantId, studentId });
-    if (!progress) {
-      progress = await PassportProgress.create({
-        tenantId, studentId, startDate: user?.passport?.activatedAt || new Date(),
-      });
-    }
 
     /**
-     * XP is INHERITED, not chosen.
+     * One conditional update, so a race cannot award twice.
      *
-     * Passing 0 lets addXp apply the same default the existing mission path already uses.
-     * Naming a number here would be introducing a new XP amount, which is explicitly future
-     * work — gamification is not being redesigned by this module.
+     * Read-modify-write was not enough here: two simultaneous requests both loaded a
+     * document with no completion, both added one, and both saved. The guard and the write
+     * are now a single operation the database arbitrates.
+     *
+     * The traceability is written with the completion rather than after it — roadmap
+     * progress is attributed by these ids and never by matching a display title, and the
+     * minutes are the server's own figure for the slice, so a caller cannot claim to have
+     * finished the whole roadmap in one request.
      */
-    const newly = completeMissionOnce(progress, plan.roadmapDay, key, 0, new Date());
-
-    if (newly) {
-      // Traceability recorded at the moment of completion. Roadmap progress is attributed by
-      // these ids and never by matching a display title, which would break the first time
-      // somebody renamed a skill.
-      const rec = progress.completed.find(c => c.key === key);
-      if (rec) {
-        rec.careerpilot = {
-          roadmapId: mission.roadmapId,
-          objectiveSequence: mission.objectiveSequence,
-          skillKey: mission.skillKey,
-          workType: mission.workType,
-          // The server's own figure for this slice. A client-supplied duration would let
-          // somebody complete the whole roadmap in one request.
-          minutes: mission.plannedMinutes,
-        };
-      }
-      await progress.save();
-    }
+    const outcome = await completeCareerMission({
+      tenantId, studentId,
+      day: plan.roadmapDay,
+      key,
+      trace: {
+        roadmapId: mission.roadmapId,
+        objectiveSequence: mission.objectiveSequence,
+        skillKey: mission.skillKey,
+        workType: mission.workType,
+        minutes: mission.plannedMinutes,
+      },
+      startDate: user?.passport?.activatedAt,
+    });
 
     const after = await getTodaysPlan(tenantId, studentId);
 
     res.json({
       completed: true,
-      // False on a retry. The mission is done either way, and nothing was awarded twice.
-      newlyCompleted: newly,
-      xp: progress.xp,
-      streak: progress.streak,
+      // False when another request got there first. The mission is done either way, and
+      // nothing was awarded twice.
+      newlyCompleted: outcome.newlyCompleted,
+      xp: outcome.xp,
+      streak: outcome.streak,
       plan: after.available ? after : null,
     });
   } catch (e: any) {

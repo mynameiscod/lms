@@ -54,6 +54,15 @@ export function addXp(
  * already-completed guard, and a mission that awarded XP twice the first time someone
  * solved a problem and then also ticked the box.
  */
+/**
+ * What a mission is worth when it carries no XP of its own.
+ *
+ * Extracted from the literal that was already inline below, unchanged, so a second caller
+ * can inherit the amount instead of naming its own. Introducing a new XP figure is a
+ * gamification decision; reusing this one is not.
+ */
+export const DEFAULT_MISSION_XP = 10;
+
 export function completeMissionOnce(
   progress: IPassportProgress,
   day: number,
@@ -64,6 +73,6 @@ export function completeMissionOnce(
 ): boolean {
   if (progress.completed.some(c => c.day === day && c.key === key)) return false;
   progress.completed.push({ day, key, at: now, ...(answer ? { answer } : {}) });
-  addXp(progress, xp || 10, true, now, 'mission');
+  addXp(progress, xp || DEFAULT_MISSION_XP, true, now, 'mission');
   return true;
 }

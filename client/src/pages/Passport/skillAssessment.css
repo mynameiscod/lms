@@ -24,6 +24,9 @@
 .ska-hd .t span { display: block; font-size: 12.5px; color: #64748b; margin-top: 4px; }
 .ska-save { font-size: 11.5px; font-weight: 700; color: #94a3b8; white-space: nowrap; padding-top: 4px; }
 .ska-save.saved { color: #047857; }
+/* Amber, not red: the answer is safe on screen and queued for retry. Alarming somebody
+   mid-diagnostic over a recoverable blip would cost more than the blip. */
+.ska-save.retrying { color: #b45309; }
 
 /* Position in the paper. Deliberately NOT a score — no colour change, no percentage of
    correctness, nothing that could read as how well it is going. */

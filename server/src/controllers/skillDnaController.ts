@@ -5,6 +5,7 @@ import {
   projectAssessmentToSkillDna, rebuildSkillDnaForStudent, getSkillDna, explainSkill,
 } from '../services/skillDnaService';
 import { processGamificationEvent } from '../services/gamificationEngine';
+import { captureAfterSnapshot } from '../services/reassessmentService';
 
 /**
  * Submitting a personalised assessment, and reading the Skill DNA it produces.
@@ -80,6 +81,21 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
     } catch (e: any) {
       projectionError = e?.message || 'Skill projection failed';
       console.error('[skill-dna] projection failed for assessment', String(open._id), projectionError);
+    }
+
+    /**
+     * Freeze the AFTER picture for a skill check-in.
+     *
+     * Runs once grading and projection have settled, so it reflects the Skill DNA this
+     * sitting produced. Guarded on absence inside the service, so a retried submission
+     * cannot overwrite an earlier comparison with a later reading — August's check-in must
+     * keep reporting what August found.
+     *
+     * A failure here costs the comparison, never the submission.
+     */
+    if (open.purpose === 'REASSESSMENT') {
+      await captureAfterSnapshot(tenantId, studentId, String(open._id))
+        .catch((e: any) => console.error('[reassessment] after-snapshot failed', String(open._id), e?.message || e));
     }
 
     /**

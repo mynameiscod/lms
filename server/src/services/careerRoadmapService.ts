@@ -157,6 +157,14 @@ async function gatherInputs(
   tenantId: string,
   studentId: string,
   now: Date,
+  /**
+   * The end of an entitlement already granted — the superseded roadmap's own end date.
+   *
+   * A REPLAN MUST NOT HAND OUT MORE TIME. Without this, a student replanning on day 40 of a
+   * 90-day plan would receive a fresh 90 days running to day 130, and could do it again next
+   * week. The plan is rebuilt inside the window they already have, not on top of it.
+   */
+  boundEndDate?: Date,
 ): Promise<PlanningInputs | RoadmapUnavailableResult> {
   const context = await getCareerContext(tenantId, studentId, now);
   if (!context) {
@@ -214,7 +222,20 @@ async function gatherInputs(
     PassportConfig.findOne({ tenantId }).lean() as any,
   ]);
 
-  const { roadmapDays, entitlementLimited, expired } = windowFor(user?.passport, now);
+  let { roadmapDays, entitlementLimited, expired } = windowFor(user?.passport, now);
+
+  // Clamp to whatever remains of an already-granted window. Membership expiry may bite first
+  // or this may; whichever is sooner wins, and neither extends anything.
+  if (boundEndDate) {
+    const remaining = daysBetween(now, boundEndDate) + 1;
+    if (remaining <= 0) {
+      expired = true;
+      roadmapDays = 0;
+    } else if (remaining < roadmapDays) {
+      roadmapDays = remaining;
+      entitlementLimited = true;
+    }
+  }
 
   /**
    * May this member have a plan at all?
@@ -436,7 +457,12 @@ export async function generateRoadmap(
 
   // Everything is read and the plan fully built BEFORE anything is written, so a failure
   // while planning cannot leave a student with their old plan retired and no new one.
-  const inputs = await gatherInputs(tenantId, studentId, now);
+  // A replan inherits the existing plan's end date, so the student's window is rebuilt
+  // rather than restarted. A first plan has no bound and uses the full entitlement.
+  const inputs = await gatherInputs(
+    tenantId, studentId, now,
+    existing ? new Date(existing.endDate) : undefined,
+  );
   if (!('context' in inputs)) return { outcome: inputs, created: false };
 
   const { body } = planFrom(inputs, now);

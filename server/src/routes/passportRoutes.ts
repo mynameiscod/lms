@@ -34,6 +34,7 @@ import * as gamification from '../controllers/gamificationController';
 import * as rewardBudget from '../controllers/rewardBudgetController';
 import * as rewards from '../controllers/rewardController';
 import * as rewardsAdmin from '../controllers/rewardAdminController';
+import * as reassessment from '../controllers/reassessmentController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -190,6 +191,19 @@ router.get('/skill-resources/catalogue',  MANAGE, skillResources.listMappableRes
 router.post('/skill-resources',           MANAGE, skillResources.createSkillResource);
 router.put('/skill-resources/:id',        MANAGE, skillResources.updateSkillResource);
 router.delete('/skill-resources/:id',     MANAGE, skillResources.deleteSkillResource);
+
+// ── Skill check-ins and adaptive replanning (Module 13). A check-in is the SAME Module 6
+//    generator aimed at fewer skills; it never writes a score and never replans. New evidence
+//    may change Skill DNA and readiness, and the roadmap a student is following moves only
+//    when they explicitly ask through the existing replan endpoint below. ──
+router.get('/me/reassessment/status',              MEMBER, reassessment.getReassessmentStatus);
+router.post('/me/reassessment/start',              MEMBER, reassessment.startMyReassessment);
+router.get('/me/reassessment/history',             MEMBER, reassessment.getMyReassessmentHistory);
+router.get('/me/reassessment/:attemptId/result',   MEMBER, reassessment.getMyReassessmentResult);
+router.get('/me/roadmap/replan-status',            MEMBER, reassessment.getReplanStatus);
+
+router.get('/students/:studentId/reassessment',           MANAGE, reassessment.getStudentReassessment);
+router.post('/students/:studentId/reassessment/override', MANAGE, reassessment.overrideReassessment);
 
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);

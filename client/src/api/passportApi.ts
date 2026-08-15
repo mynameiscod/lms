@@ -217,6 +217,24 @@ export const passportApi = {
     return data;
   },
 
+  // ── Skill check-in (Module 13) ──
+  getReassessmentStatus: async (): Promise<ReassessmentStatus> => {
+    const { data } = await axios.get(`${BASE}/me/reassessment/status`, { headers: auth() });
+    return data;
+  },
+  startReassessment: async (): Promise<{ attemptId: string; resumed: boolean; targetSkills: { skillKey: string; skillName: string }[] }> => {
+    const { data } = await axios.post(`${BASE}/me/reassessment/start`, {}, { headers: auth() });
+    return data;
+  },
+  getReassessmentResult: async (attemptId: string): Promise<ReassessmentResult> => {
+    const { data } = await axios.get(`${BASE}/me/reassessment/${attemptId}/result`, { headers: auth() });
+    return data;
+  },
+  getReplanStatus: async (): Promise<ReplanStatusView> => {
+    const { data } = await axios.get(`${BASE}/me/roadmap/replan-status`, { headers: auth() });
+    return data;
+  },
+
   // ── Rewards (Module 12) ──
   /** Catalogue plus this student's standing against each reward. */
   getRewards: async (): Promise<RewardCatalogue> => {
@@ -1807,4 +1825,57 @@ export interface RedemptionRow {
   cancelledAt?: string;
   fulfillmentReference?: string;
   refunded: number;
+}
+
+// ── Skill check-in and adaptive replanning (Module 13) ───────────────────────
+//
+// A check-in re-measures a few skills and reports what changed. It never moves the roadmap:
+// that happens only when the student calls replanMySkillRoadmap().
+
+export interface ReassessmentStatus {
+  eligible: boolean;
+  blockers: string[];
+  triggers: string[];
+  lastCompletedAt: string | null;
+  nextEligibleAt: string | null;
+  cooldownDays: number;
+  targetSkills: { skillKey: string; skillName: string }[];
+  estimatedQuestions: number;
+  activeAttemptId: string | null;
+  message: string;
+}
+
+export interface SkillDeltaView {
+  skillKey: string;
+  skillName: string;
+  before: number | null;
+  after: number | null;
+  /** Null when one side was never measured — an unknown becoming known is not a delta. */
+  delta: number | null;
+  beforeStatus: string | null;
+  afterStatus: string | null;
+  materialReasons: string[];
+}
+
+export interface ReassessmentResult {
+  ok: boolean;
+  message?: string;
+  skills?: SkillDeltaView[];
+  readinessBefore?: number | null;
+  readinessAfter?: number | null;
+  readinessDelta?: number | null;
+  targetSkillKeys?: string[];
+  completedAt?: string;
+}
+
+export interface ReplanStatusView {
+  recommendation: 'NONE' | 'SUGGESTED' | 'REQUIRED';
+  structuralReasons: string[];
+  affectedSkills: SkillDeltaView[];
+  currentReadiness: number | null;
+  roadmapBaselineReadiness: number | null;
+  readinessDelta: number | null;
+  hasActiveRoadmap: boolean;
+  roadmapCompleted: boolean;
+  message: string;
 }

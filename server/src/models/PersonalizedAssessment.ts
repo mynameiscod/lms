@@ -1,4 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
+import { ASSESSMENT_PURPOSES, AssessmentPurpose } from '../data/reassessmentPolicy';
 
 /**
  * One student's generated assessment, frozen at the moment it was created.
@@ -35,6 +36,35 @@ export interface IGeneratedItem {
   points: number;
 }
 
+/** One skill's standing at a moment in time. Deliberately small — see the snapshot note. */
+export interface ISkillSnapshotRow {
+  skillKey: string;
+  skillName: string;
+  score: number | null;
+  status: string;
+  confidence: string | null;
+  targetScore: number;
+}
+
+/**
+ * What the student's picture looked like at a point in the reassessment.
+ *
+ * BEFORE is captured when the check-in STARTS, which is the only moment it is unambiguous:
+ * once answers are graded, evidence has already moved Skill DNA and the old picture is gone.
+ * AFTER is captured once grading and projection have settled.
+ *
+ * Both are frozen. A later check-in that moves SQL again must not rewrite what August's
+ * check-in reported, or the progress history becomes a rolling restatement of today.
+ */
+export interface IAssessmentSnapshot {
+  roleKey: string;
+  readiness: number | null;
+  coverage: number;
+  skills: ISkillSnapshotRow[];
+  blueprintVersion: number;
+  capturedAt: Date;
+}
+
 export interface IPersonalizedAssessment extends Document {
   tenantId: string;
   studentId: mongoose.Types.ObjectId;
@@ -42,6 +72,24 @@ export interface IPersonalizedAssessment extends Document {
   /** 1 for a first sitting. Part of the seed, so a retake draws a different paper. */
   attemptNumber: number;
   status: PersonalizedAssessmentStatus;
+
+  /**
+   * What this sitting was for.
+   *
+   * Absent on every attempt written before Module 13, which is why the default is INITIAL:
+   * those WERE initial assessments, and reading them that way needs no migration and no
+   * backfill. A reassessment is not a different product — it is the same generator aimed at
+   * fewer skills.
+   */
+  purpose: AssessmentPurpose;
+  /** REASSESSMENT only: the skills this check-in deliberately focused on. */
+  targetSkillKeys: string[];
+  /** Why the student was eligible, recorded so a check-in can explain itself later. */
+  triggerReasons: string[];
+
+  /** REASSESSMENT only. Frozen at start and at completion respectively. */
+  beforeSnapshot?: IAssessmentSnapshot;
+  afterSnapshot?: IAssessmentSnapshot;
 
   // ── the configuration that produced this paper ──
   policyKey: string;
@@ -103,6 +151,24 @@ const GeneratedItemSchema = new Schema<IGeneratedItem>({
   points:     { type: Number, default: 1 },
 }, { _id: false });
 
+const SnapshotRowSchema = new Schema<ISkillSnapshotRow>({
+  skillKey:    { type: String, required: true },
+  skillName:   { type: String, default: '' },
+  score:       { type: Number, default: null },
+  status:      { type: String, default: 'NOT_ASSESSED' },
+  confidence:  { type: String, default: null },
+  targetScore: { type: Number, default: 0 },
+}, { _id: false });
+
+const SnapshotSchema = new Schema<IAssessmentSnapshot>({
+  roleKey:          { type: String, required: true },
+  readiness:        { type: Number, default: null },
+  coverage:         { type: Number, default: 0 },
+  skills:           { type: [SnapshotRowSchema], default: [] },
+  blueprintVersion: { type: Number, default: 0 },
+  capturedAt:       { type: Date, default: Date.now },
+}, { _id: false });
+
 const PersonalizedAssessmentSchema = new Schema<IPersonalizedAssessment>(
   {
     tenantId:  { type: String, required: true, index: true },
@@ -110,6 +176,15 @@ const PersonalizedAssessmentSchema = new Schema<IPersonalizedAssessment>(
 
     attemptNumber: { type: Number, required: true, default: 1 },
     status: { type: String, enum: ['IN_PROGRESS', 'SUBMITTED', 'ABANDONED'], default: 'IN_PROGRESS' },
+
+    // Defaulted, never required: historical attempts have no value here and must keep
+    // loading exactly as they always did.
+    purpose:         { type: String, enum: ASSESSMENT_PURPOSES, default: 'INITIAL' },
+    targetSkillKeys: { type: [String], default: [] },
+    triggerReasons:  { type: [String], default: [] },
+
+    beforeSnapshot: { type: SnapshotSchema, default: undefined },
+    afterSnapshot:  { type: SnapshotSchema, default: undefined },
 
     policyKey:        { type: String, required: true },
     policyVersion:    { type: Number, required: true },
@@ -166,5 +241,7 @@ PersonalizedAssessmentSchema.index(
   { unique: true, partialFilterExpression: { status: 'IN_PROGRESS' } },
 );
 PersonalizedAssessmentSchema.index({ tenantId: 1, studentId: 1, attemptNumber: -1 });
+/** Cooldown and history both ask "the last completed sitting of this kind". */
+PersonalizedAssessmentSchema.index({ tenantId: 1, studentId: 1, purpose: 1, submittedAt: -1 });
 
 export default mongoose.model<IPersonalizedAssessment>('PersonalizedAssessment', PersonalizedAssessmentSchema);

@@ -4,6 +4,7 @@ import passportApi, {
   SkillRoadmapResponse, SkillRoadmapAvailable, SkillRoadmapUnavailable, RoadmapObjective,
 } from '../../api/passportApi';
 import TodayPlan from './TodayPlan';
+import SkillCheckIn from './SkillCheckIn';
 import './skillPlan.css';
 
 /**
@@ -167,6 +168,10 @@ const SkillPlan: React.FC = () => {
 
   return (
     <div className="skp">
+      {/* Re-measure, and the recommendation that follows. Renders nothing until the student
+          has an initial assessment, and never moves the roadmap by itself. */}
+      <SkillCheckIn />
+
       <TodayPlan />
 
       <div className="skp-hd">

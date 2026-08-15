@@ -31,6 +31,20 @@ export interface IPassportConfig extends Document {
   entitlements: IEntitlement[];
   priceInr: number;
   membershipMonths: number;
+  /**
+   * Skill check-in policy (Module 13).
+   *
+   * Lives here rather than in a new collection because it is ordinary CareerPilot tenant
+   * configuration, and this document already owns the rest of it. Every field is optional —
+   * a tenant that has never opened the screen gets the shipped defaults.
+   */
+  reassessment?: {
+    enabled: boolean;
+    cooldownDays: number;
+    questionBudget: number;
+    studentRequestEnabled: boolean;
+    materialChangeThreshold: number;
+  };
   updatedAt: Date;
   createdAt: Date;
 }
@@ -60,6 +74,15 @@ const PassportConfigSchema = new Schema<IPassportConfig>(
     entitlements:     [EntitlementSchema],
     priceInr:         { type: Number, default: 499 },
     membershipMonths: { type: Number, default: 12 },
+    // Skill check-in policy. Optional throughout — an existing tenant document without this
+    // subtree resolves to the shipped defaults, so nothing has to be backfilled.
+    reassessment: {
+      enabled:                 { type: Boolean, default: true },
+      cooldownDays:            { type: Number, default: 14 },
+      questionBudget:          { type: Number, default: 18 },
+      studentRequestEnabled:   { type: Boolean, default: true },
+      materialChangeThreshold: { type: Number, default: 10 },
+    },
   },
   { timestamps: true }
 );

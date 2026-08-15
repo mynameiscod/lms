@@ -4,6 +4,9 @@ import {
   RewardType, FulfillmentType, StockMode, RedemptionState, ReservationSteps,
 } from '../data/rewardPolicy';
 
+/** Mongo enum for the per-step state. Mirrors StepState in the policy. */
+const STEP_STATES = ['NONE', 'CLAIMED', 'DONE'];
+
 /**
  * The reward catalogue, and the record of everything redeemed from it.
  *
@@ -180,11 +183,19 @@ const RewardRedemptionSchema = new Schema<IRewardRedemption>(
     rewardType:      { type: String, required: true },
 
     status: { type: String, enum: REDEMPTION_STATES, default: 'PENDING' },
+    /**
+     * Per-step state, and the thing that serialises concurrent resumes of ONE redemption.
+     *
+     * Each transition from NONE to CLAIMED is an atomic conditional update on this document,
+     * so exactly one worker ever performs a given step for a given redemption — regardless
+     * of what the downstream resource's own guards happen to allow. Booleans could not do
+     * this: two workers read the same false and both acted.
+     */
     steps: {
-      stockReserved:        { type: Boolean, default: false },
-      tenantBudgetReserved: { type: Boolean, default: false },
-      memberBudgetReserved: { type: Boolean, default: false },
-      coinsDebited:         { type: Boolean, default: false },
+      stock:        { type: String, enum: STEP_STATES, default: 'NONE' },
+      tenantBudget: { type: String, enum: STEP_STATES, default: 'NONE' },
+      memberBudget: { type: String, enum: STEP_STATES, default: 'NONE' },
+      coins:        { type: String, enum: STEP_STATES, default: 'NONE' },
     },
 
     idempotencyKey: { type: String, required: true },

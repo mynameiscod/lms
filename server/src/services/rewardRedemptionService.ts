@@ -6,7 +6,7 @@ import { reserveReward, budgetSummary, periodKey } from './rewardBudgetService';
 import { RewardLedger } from '../models/GamificationModels';
 import { loadStudentRewardContext, evaluateRewardEligibility } from './rewardEligibilityService';
 import {
-  RedemptionRefusal, canTransition, paiseToRupees,
+  RedemptionRefusal, canTransition, paiseToRupees, SagaStep,
   COIN_EVENT_REDEMPTION, COIN_EVENT_REDEMPTION_REFUND,
 } from '../data/rewardPolicy';
 
@@ -44,6 +44,62 @@ const log = (step: string, data: Record<string, any>) =>
   console.log(`[reward-saga] ${step}`, JSON.stringify(data));
 
 /**
+ * Take ownership of one saga step for one redemption.
+ *
+ * THIS IS THE CONCURRENCY GATE, and it has to live on the redemption document rather than on
+ * the resource. Guarding only the resource is not enough: `stockAvailable >= 1` stops the
+ * shop overselling, but with five units in stock it happily lets the SAME redemption take two
+ * — which is exactly what two concurrent resumes did, while the single boolean recorded one.
+ * Compensation then gave back one unit and leaked the other.
+ *
+ * The member's annual allowance was worse. It has no key of its own, so nothing downstream
+ * would have caught a repeat: the same redemption could consume a financial cap twice.
+ *
+ * NONE → CLAIMED is one atomic conditional update, so of any number of workers exactly one
+ * proceeds. The rest are told the step is already owned and stand down.
+ */
+async function claimStep(redemptionId: string, step: SagaStep): Promise<boolean> {
+  const res: any = await RewardRedemption.updateOne(
+    { _id: redemptionId, [`steps.${step}`]: 'NONE' },
+    { $set: { [`steps.${step}`]: 'CLAIMED' } },
+  );
+  return (res?.modifiedCount ?? res?.nModified ?? 0) === 1;
+}
+
+/** Record how a claimed step ended: DONE on success, back to NONE if it could not be taken. */
+async function markStep(redemptionId: string, step: SagaStep, state: 'DONE' | 'NONE'): Promise<void> {
+  await RewardRedemption.updateOne(
+    { _id: redemptionId },
+    { $set: { [`steps.${step}`]: state } },
+  );
+}
+
+/**
+ * Claim the UNDO of a step, so compensation is also at-most-once.
+ *
+ * DONE → NONE atomically, and only the caller that wins performs the release. Two admins
+ * clicking Cancel therefore refund once and return one unit of stock, not two.
+ *
+ * A step still CLAIMED — a worker died between taking ownership and finishing — is
+ * deliberately NOT released. We cannot tell whether it succeeded, and releasing something
+ * that was never taken would inflate stock or refund coins nobody spent. Leaving it is the
+ * conservative error, and `findStrandedRedemptions` surfaces it for a human.
+ */
+async function claimUndo(redemptionId: string, step: SagaStep): Promise<boolean> {
+  const res: any = await RewardRedemption.updateOne(
+    { _id: redemptionId, [`steps.${step}`]: 'DONE' },
+    { $set: { [`steps.${step}`]: 'NONE' } },
+  );
+  return (res?.modifiedCount ?? res?.nModified ?? 0) === 1;
+}
+
+/** The redemption as the database currently has it — never a stale in-memory copy. */
+const freshSteps = async (redemptionId: string): Promise<any> => {
+  const row: any = await RewardRedemption.findOne({ _id: redemptionId }).lean();
+  return row?.steps || {};
+};
+
+/**
  * Reserve one unit of stock.
  *
  * `stockAvailable: { $gte: 1 }` is inside the filter, so of two students racing for the last
@@ -74,51 +130,49 @@ const budgetKey = (redemptionId: string) => `reward_redemption:${redemptionId}`;
 /**
  * Undo whatever a redemption managed to acquire.
  *
- * Reverse order, and each step is guarded or idempotent on its own, so calling this twice
- * releases once. The step flags are cleared as they are undone — that is what makes a second
- * pass safe rather than a second refund.
+ * Each release CLAIMS ITS UNDO first — DONE → NONE atomically — so only one caller performs
+ * it however many arrive. Two admins clicking Cancel refund once and return one unit of
+ * stock, and a compensation racing a resume cannot give back something twice.
+ *
+ * Reverse order of acquisition, and a step still CLAIMED is left alone: see claimUndo.
  */
-async function compensate(redemption: IRewardRedemption, reason: string): Promise<void> {
-  const id = String(redemption._id);
+async function compensate(redemptionId: string, reason: string): Promise<void> {
+  const redemption: any = await RewardRedemption.findOne({ _id: redemptionId });
+  if (!redemption) return;
+
   const { tenantId, rewardKey } = redemption;
   const studentId = String(redemption.studentId);
 
-  if (redemption.steps.coinsDebited) {
+  if (await claimUndo(redemptionId, 'coins')) {
     await refundCoins({
       tenantId, studentId, coins: redemption.coinCost,
-      idempotencyKey: refundKey(id),
+      idempotencyKey: refundKey(redemptionId),
       eventKey: COIN_EVENT_REDEMPTION_REFUND,
       note: `Refund: ${redemption.rewardName}`,
-      meta: { redemptionId: id, reason },
+      meta: { redemptionId, reason },
     });
-    redemption.steps.coinsDebited = false;
   }
 
-  if (redemption.steps.memberBudgetReserved) {
+  if (await claimUndo(redemptionId, 'memberBudget')) {
     await releaseMemberRewardCost({
       tenantId, studentId, costInr: paiseToRupees(redemption.budgetCostPaise),
     });
-    redemption.steps.memberBudgetReserved = false;
   }
 
-  if (redemption.steps.tenantBudgetReserved) {
+  if (await claimUndo(redemptionId, 'tenantBudget')) {
     // Cancelling the reservation row releases the tenant budget; the row itself stays as
     // history, exactly as the coin ledger does.
     await RewardLedger.updateOne(
-      { tenantId, idempotencyKey: budgetKey(id), state: 'RESERVED' },
+      { tenantId, idempotencyKey: budgetKey(redemptionId), state: 'RESERVED' },
       { $set: { state: 'CANCELLED' } },
     );
-    redemption.steps.tenantBudgetReserved = false;
   }
 
-  if (redemption.steps.stockReserved) {
+  if (await claimUndo(redemptionId, 'stock')) {
     await releaseStock(tenantId, rewardKey);
-    redemption.steps.stockReserved = false;
   }
 
-  redemption.markModified('steps');
-  await redemption.save();
-  log('COMPENSATED', { redemptionId: id, tenantId, reason });
+  log('COMPENSATED', { redemptionId, tenantId, reason });
 }
 
 /**
@@ -200,9 +254,13 @@ export async function redeemReward(input: {
 /**
  * Acquire everything, in the order that makes failure cheapest.
  *
- * Stock, then the tenant budget, then the member allowance, then coins. Each guard is atomic
- * and each success is written to the redemption before the next step begins — so a crash
- * anywhere leaves a row that says precisely what is owed back.
+ * Stock, then the tenant budget, then the member allowance, then coins. EVERY step is
+ * claimed on the redemption document before it is performed, so two concurrent resumes of
+ * the same redemption cannot both act — which is the whole difference between this and the
+ * version that read a boolean and trusted it.
+ *
+ * A worker that loses a claim stops rather than racing ahead to the next step: the winner is
+ * mid-flight and will finish, and the loser reports the redemption as it currently stands.
  */
 async function runSaga(redemption: any, reward: any, now: Date): Promise<RedeemResult> {
   const id = String(redemption._id);
@@ -210,78 +268,114 @@ async function runSaga(redemption: any, reward: any, now: Date): Promise<RedeemR
   const studentId = String(redemption.studentId);
 
   const fail = async (refused: RedemptionRefusal): Promise<RedeemResult> => {
-    await compensate(redemption, refused);
-    redemption.status = 'CANCELLED';
-    redemption.cancelledAt = now;
-    redemption.cancelReason = refused;
-    await redemption.save();
-    return { ok: false, refused };
+    await compensate(id, refused);
+    await RewardRedemption.updateOne(
+      { _id: id, status: 'PENDING' },
+      { $set: { status: 'CANCELLED', cancelledAt: now, cancelReason: refused } },
+    );
+    const after: any = await RewardRedemption.findOne({ _id: id });
+    return { ok: false, refused, redemption: after };
+  };
+
+  /** Somebody else owns a step. Report where the redemption actually is, and stand down. */
+  const standDown = async (step: string): Promise<RedeemResult> => {
+    const current: any = await RewardRedemption.findOne({ _id: id });
+    log('STEP_OWNED_ELSEWHERE', { redemptionId: id, tenantId, step });
+    return { ok: current?.status === 'RESERVED', redemption: current };
   };
 
   // 1. stock
-  if (!redemption.steps.stockReserved && reward.stockMode === 'LIMITED') {
-    if (!await reserveStock(tenantId, rewardKey)) return fail('OUT_OF_STOCK');
-    redemption.steps.stockReserved = true;
-    redemption.markModified('steps');
-    await redemption.save();
-    log('STOCK_RESERVED', { redemptionId: id, tenantId, rewardKey });
+  if (reward.stockMode === 'LIMITED') {
+    const steps = await freshSteps(id);
+    if (steps.stock !== 'DONE') {
+      if (!await claimStep(id, 'stock')) return standDown('stock');
+      if (!await reserveStock(tenantId, rewardKey)) {
+        await markStep(id, 'stock', 'NONE');
+        return fail('OUT_OF_STOCK');
+      }
+      await markStep(id, 'stock', 'DONE');
+      log('STOCK_RESERVED', { redemptionId: id, tenantId, rewardKey });
+    }
   }
 
   // 2. tenant budget — Module 11's primitive, reused rather than reimplemented
-  if (!redemption.steps.tenantBudgetReserved && redemption.budgetCostPaise > 0) {
-    const res = await reserveReward({
-      tenantId, studentId,
-      valuePaise: redemption.budgetCostPaise,
-      reason: `reward:${rewardKey}`,
-      idempotencyKey: budgetKey(id),
-      now,
-    });
-    if (!res.reserved && res.refused !== 'duplicate') return fail('TENANT_REWARD_BUDGET_UNAVAILABLE');
-    redemption.steps.tenantBudgetReserved = true;
-    redemption.markModified('steps');
-    await redemption.save();
-    log('TENANT_BUDGET_RESERVED', { redemptionId: id, tenantId, paise: redemption.budgetCostPaise });
+  if (redemption.budgetCostPaise > 0) {
+    const steps = await freshSteps(id);
+    if (steps.tenantBudget !== 'DONE') {
+      if (!await claimStep(id, 'tenantBudget')) return standDown('tenantBudget');
+      const res = await reserveReward({
+        tenantId, studentId,
+        valuePaise: redemption.budgetCostPaise,
+        reason: `reward:${rewardKey}`,
+        idempotencyKey: budgetKey(id),
+        now,
+      });
+      // A duplicate means an earlier attempt already reserved it — that is success.
+      if (!res.reserved && res.refused !== 'duplicate') {
+        await markStep(id, 'tenantBudget', 'NONE');
+        return fail('TENANT_REWARD_BUDGET_UNAVAILABLE');
+      }
+      await markStep(id, 'tenantBudget', 'DONE');
+      log('TENANT_BUDGET_RESERVED', { redemptionId: id, tenantId, paise: redemption.budgetCostPaise });
+    }
   }
 
-  // 3. the member's annual allowance
-  if (!redemption.steps.memberBudgetReserved && redemption.budgetCostPaise > 0) {
-    const res = await reserveMemberRewardCost({
-      tenantId, studentId, costInr: paiseToRupees(redemption.budgetCostPaise), now,
-    });
-    if (!res.ok) return fail('MEMBER_REWARD_BUDGET_EXCEEDED');
-    redemption.steps.memberBudgetReserved = true;
-    redemption.markModified('steps');
-    await redemption.save();
-    log('MEMBER_BUDGET_RESERVED', { redemptionId: id, tenantId });
+  // 3. the member's annual allowance — the step with NO key of its own, so the claim above
+  //    is the only thing standing between a repeat and a double-consumed financial cap.
+  if (redemption.budgetCostPaise > 0) {
+    const steps = await freshSteps(id);
+    if (steps.memberBudget !== 'DONE') {
+      if (!await claimStep(id, 'memberBudget')) return standDown('memberBudget');
+      const res = await reserveMemberRewardCost({
+        tenantId, studentId, costInr: paiseToRupees(redemption.budgetCostPaise), now,
+      });
+      if (!res.ok) {
+        await markStep(id, 'memberBudget', 'NONE');
+        return fail('MEMBER_REWARD_BUDGET_EXCEEDED');
+      }
+      await markStep(id, 'memberBudget', 'DONE');
+      log('MEMBER_BUDGET_RESERVED', { redemptionId: id, tenantId });
+    }
   }
 
   // 4. coins — last, because this is the one the student can see
-  if (!redemption.steps.coinsDebited) {
-    const res = await spendCoins({
-      tenantId, studentId,
-      coins: redemption.coinCost,
-      idempotencyKey: coinKey(id),
-      eventKey: COIN_EVENT_REDEMPTION,
-      note: redemption.rewardName,
-      meta: { redemptionId: id, rewardKey },
-    });
-    if (res.refused === 'insufficient') return fail('INSUFFICIENT_COINS');
-    // A duplicate means an earlier attempt already took them — that is success, not failure.
-    redemption.steps.coinsDebited = true;
-    redemption.markModified('steps');
-    await redemption.save();
-    log('COINS_DEBITED', { redemptionId: id, tenantId, coins: redemption.coinCost });
+  {
+    const steps = await freshSteps(id);
+    if (steps.coins !== 'DONE') {
+      if (!await claimStep(id, 'coins')) return standDown('coins');
+      const res = await spendCoins({
+        tenantId, studentId,
+        coins: redemption.coinCost,
+        idempotencyKey: coinKey(id),
+        eventKey: COIN_EVENT_REDEMPTION,
+        note: redemption.rewardName,
+        meta: { redemptionId: id, rewardKey },
+      });
+      if (res.refused === 'insufficient') {
+        await markStep(id, 'coins', 'NONE');
+        return fail('INSUFFICIENT_COINS');
+      }
+      // 'duplicate' means an earlier attempt already took them — success, not failure.
+      await markStep(id, 'coins', 'DONE');
+      log('COINS_DEBITED', { redemptionId: id, tenantId, coins: redemption.coinCost });
+    }
   }
 
-  // 5. settle
-  redemption.status = 'RESERVED';
-  redemption.reservedAt = now;
-  await redemption.save();
+  // 5. settle — guarded on PENDING, so the count is incremented once even if two workers
+  //    both believe they finished.
+  const settled: any = await RewardRedemption.findOneAndUpdate(
+    { _id: id, status: 'PENDING' },
+    { $set: { status: 'RESERVED', reservedAt: now } },
+    { new: true },
+  );
 
-  await RewardDefinition.updateOne({ tenantId, key: rewardKey }, { $inc: { totalRedeemed: 1 } });
+  if (settled) {
+    await RewardDefinition.updateOne({ tenantId, key: rewardKey }, { $inc: { totalRedeemed: 1 } });
+    log('RESERVED', { redemptionId: id, tenantId, rewardKey, coinCost: redemption.coinCost });
+  }
 
-  log('RESERVED', { redemptionId: id, tenantId, rewardKey, coinCost: redemption.coinCost });
-  return { ok: true, redemption };
+  const final: any = settled || await RewardRedemption.findOne({ _id: id });
+  return { ok: final?.status === 'RESERVED', redemption: final };
 }
 
 /**
@@ -298,11 +392,11 @@ export async function resumeRedemption(redemption: any, now: Date = new Date()):
     tenantId: redemption.tenantId, key: redemption.rewardKey,
   });
   if (!reward) {
-    await compensate(redemption, 'REWARD_NOT_FOUND');
-    redemption.status = 'CANCELLED';
-    redemption.cancelledAt = now;
-    redemption.cancelReason = 'REWARD_NOT_FOUND';
-    await redemption.save();
+    await compensate(String(redemption._id), 'REWARD_NOT_FOUND');
+    await RewardRedemption.updateOne(
+      { _id: redemption._id, status: 'PENDING' },
+      { $set: { status: 'CANCELLED', cancelledAt: now, cancelReason: 'REWARD_NOT_FOUND' } },
+    );
     return { ok: false, refused: 'REWARD_NOT_FOUND' };
   }
 
@@ -348,7 +442,7 @@ export async function fulfillRedemption(input: {
     { $set: { state: 'REDEEMED' } },
   );
 
-  if (redemption.steps.stockReserved) {
+  if (redemption.steps?.stock === 'DONE') {
     await RewardDefinition.updateOne(
       { tenantId: input.tenantId, key: redemption.rewardKey, stockReserved: { $gte: 1 } },
       { $inc: { stockReserved: -1, stockFulfilled: 1 } },
@@ -384,7 +478,7 @@ export async function cancelRedemption(input: {
 
   if (!redemption) return { ok: false, refused: 'INVALID_STATE' };
 
-  await compensate(redemption, 'admin_cancel');
+  await compensate(String(redemption._id), 'admin_cancel');
   await RewardDefinition.updateOne(
     { tenantId: input.tenantId, key: redemption.rewardKey, totalRedeemed: { $gte: 1 } },
     { $inc: { totalRedeemed: -1 } },

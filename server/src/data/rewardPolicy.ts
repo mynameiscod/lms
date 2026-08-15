@@ -118,25 +118,35 @@ export const refusalMessage = (code: string): string =>
   REFUSAL_MESSAGE[code] || 'This reward is not available right now.';
 
 /**
- * Which saga steps a redemption has completed.
+ * How far one saga step has got, for one redemption.
  *
- * Persisted rather than held in memory, because the whole point is surviving a process that
- * dies between two of them. A recovery run reads these to know what it must finish and what
- * it must give back — guessing would either double-charge a student or hand out a free
- * reward.
+ * THREE STATES, NOT A BOOLEAN, and the reason is concurrency. A boolean can only be read and
+ * then written, which is exactly the race it was meant to prevent: two resumes of the same
+ * PENDING redemption both read `false`, both perform the step, and the flag records one.
+ * With stock above one that reserved two units against a single redemption, and compensation
+ * — reading the same single flag — gave back one. The member's annual allowance was worse:
+ * it has no key of its own, so the same redemption could consume a financial cap twice.
+ *
+ *   NONE     nobody has taken this step
+ *   CLAIMED  exactly one worker owns it and is performing it
+ *   DONE     it succeeded, and compensation must give it back
+ *
+ * The move from NONE to CLAIMED is an atomic conditional update on the redemption itself, so
+ * the claim is what serialises the workers — not a value someone read a moment ago.
  */
-export interface ReservationSteps {
-  stockReserved: boolean;
-  tenantBudgetReserved: boolean;
-  memberBudgetReserved: boolean;
-  coinsDebited: boolean;
-}
+export type StepState = 'NONE' | 'CLAIMED' | 'DONE';
+
+/** The saga steps, in the order they are acquired. */
+export const SAGA_STEPS = ['stock', 'tenantBudget', 'memberBudget', 'coins'] as const;
+export type SagaStep = typeof SAGA_STEPS[number];
+
+export type ReservationSteps = Record<SagaStep, StepState>;
 
 export const NO_STEPS: ReservationSteps = {
-  stockReserved: false,
-  tenantBudgetReserved: false,
-  memberBudgetReserved: false,
-  coinsDebited: false,
+  stock: 'NONE',
+  tenantBudget: 'NONE',
+  memberBudget: 'NONE',
+  coins: 'NONE',
 };
 
 /** Coin ledger event keys. Spending is negative; the refund is a separate, positive row. */

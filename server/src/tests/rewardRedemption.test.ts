@@ -27,9 +27,15 @@ const xpWrite = jest.fn();
 
 const oidStr = (v: any) => String(v?._id ?? v);
 
+/** Resolve a possibly-dotted path, so filters like 'steps.stock' work as Mongo's do. */
+const getPath = (doc: any, path: string): any =>
+  path.split('.').reduce((o: any, part: string) => (o == null ? o : o[part]), doc);
+
 const matches = (doc: any, q: any): boolean =>
   Object.entries(q).every(([k, cond]: [string, any]) => {
-    const value = k === '_id' ? oidStr(doc._id ?? doc) : (k === 'studentId' ? String(doc.studentId) : doc[k]);
+    const value = k === '_id'
+      ? oidStr(doc._id ?? doc)
+      : (k === 'studentId' ? String(doc.studentId) : getPath(doc, k));
     if (cond && typeof cond === 'object' && !(cond instanceof Date)) {
       if ('$ne' in cond) return String(value) !== String(cond.$ne);
       if ('$in' in cond) return cond.$in.map(String).includes(String(value));
@@ -146,7 +152,11 @@ jest.mock('../models/RewardModels', () => ({
         && String(r.studentId) === String(doc.studentId) && r.idempotencyKey === doc.idempotencyKey)) {
         const e: any = new Error('E11000'); e.code = 11000; throw e;
       }
-      const row = docify({ ...doc, _id: `rd${redemptions.length + 1}`, steps: { ...doc.steps } });
+      // Schema defaults supply the step states in Mongo; the mock must do the same.
+      const row = docify({
+        ...doc, _id: `rd${redemptions.length + 1}`,
+        steps: { stock: 'NONE', tenantBudget: 'NONE', memberBudget: 'NONE', coins: 'NONE', ...(doc.steps || {}) },
+      });
       redemptions.push(row);
       return row;
     },
@@ -167,6 +177,14 @@ jest.mock('../models/RewardModels', () => ({
       if (!r) return null;
       applyUpdate(r, update);
       return r;
+    },
+    // The step claim is a conditional updateOne on this document — the concurrency gate the
+    // saga now depends on, so the mock must honour the filter exactly.
+    updateOne: async (filter: any, update: any) => {
+      const r = redemptions.find(x => matches(x, filter));
+      if (!r) return { modifiedCount: 0 };
+      applyUpdate(r, update);
+      return { modifiedCount: 1 };
     },
     countDocuments: async (q: any) => redemptions.filter(r => matches(r, q)).length,
     aggregate: async () => [],
@@ -305,8 +323,8 @@ describe('a successful redemption', () => {
 
   it('records which saga steps completed', async () => {
     const r = await redeem();
-    expect(r.redemption!.steps.tenantBudgetReserved).toBe(true);
-    expect(r.redemption!.steps.coinsDebited).toBe(true);
+    expect(r.redemption!.steps.tenantBudget).toBe('DONE');
+    expect(r.redemption!.steps.coins).toBe('DONE');
   });
 });
 

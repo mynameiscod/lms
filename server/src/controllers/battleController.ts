@@ -214,10 +214,19 @@ export const resendBattleOtp = async (req: Request, res: Response) => {
   } catch (e: any) { res.status(500).json({ message: e.message }); }
 };
 
+/**
+ * A WhatsApp template's dynamic url button appends its parameter to the base url instead
+ * of substituting the placeholder, so links arrive as /battles/exam/{{1}}<token>. nginx
+ * rewrites those away, but this is the same repair one layer in — the link is the only
+ * thing standing between a member and an exam they registered for, and it should not
+ * depend on a proxy rule surviving a config rebuild.
+ */
+const cleanExamToken = (raw: string) => String(raw || '').replace(/^\{\{\d+\}\}/, '').trim();
+
 /** GET /public/battles/exam/:token — the time-gated exam (countdown / start / ended). */
 export const getBattleExam = async (req: Request, res: Response) => {
   try {
-    const reg = await BattleRegistration.findOne({ examToken: req.params.token });
+    const reg = await BattleRegistration.findOne({ examToken: cleanExamToken(req.params.token) });
     if (!reg) return res.status(404).json({ message: 'Invalid exam link.', code: 'NOT_FOUND' });
     if (reg.submittedAt) return res.status(403).json({ message: 'You have already submitted this exam.', code: 'ALREADY_SUBMITTED' });
 
@@ -268,7 +277,7 @@ export const getBattleExam = async (req: Request, res: Response) => {
 /** POST /public/battles/exam/:token/start — stamp startedAt, lock device. */
 export const startBattleExam = async (req: Request, res: Response) => {
   try {
-    const reg = await BattleRegistration.findOne({ examToken: req.params.token });
+    const reg = await BattleRegistration.findOne({ examToken: cleanExamToken(req.params.token) });
     if (!reg) return res.status(404).json({ message: 'Invalid link', code: 'NOT_FOUND' });
     if (reg.submittedAt) return res.status(403).json({ message: 'Already submitted', code: 'ALREADY_SUBMITTED' });
     const b = await TechBattle.findById(reg.battleId).lean() as any;
@@ -301,7 +310,7 @@ export const battleHeartbeat = async (req: Request, res: Response) => {
 /** POST /public/battles/exam/:token/submit — grade, store, rank. */
 export const submitBattleExam = async (req: Request, res: Response) => {
   try {
-    const reg = await BattleRegistration.findOne({ examToken: req.params.token });
+    const reg = await BattleRegistration.findOne({ examToken: cleanExamToken(req.params.token) });
     if (!reg) return res.status(404).json({ message: 'Invalid link', code: 'NOT_FOUND' });
     // Re-counted rather than read off the document: while the battle is live everyone
     // else is still finishing, so a rank stored at submit time is out of date the moment

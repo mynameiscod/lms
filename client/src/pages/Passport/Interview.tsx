@@ -116,14 +116,29 @@ const Interview: React.FC = () => {
     setBusy(false);
   };
 
+  /**
+   * Close the interview and show the graded result.
+   *
+   * The server hands finalization to exactly ONE request. If this one is not the owner — the
+   * member tapped twice, or an earlier attempt timed out and is still grading — it answers
+   * `finalizing` instead of a result. That is not an error and nothing is lost: the other
+   * request is grading this very transcript, so wait and ask again rather than dropping the
+   * member back to a start screen with their interview apparently gone.
+   */
   const finish = async (id?: string) => {
     const sid = id || session?.id;
     if (!sid) return;
     setBusy(true); setErr('');
     try {
-      const r = await passportApi.finishInterview(sid);
-      setSession(r.session);
-      load();
+      let graded = false;
+      for (let attempt = 0; attempt < 12 && !graded; attempt += 1) {
+        const r = await passportApi.finishInterview(sid);
+        if (!r.finalizing) { setSession(r.session); load(); graded = true; break; }
+        await new Promise(res => setTimeout(res, 2000));
+      }
+      // Grading is taking far longer than it should. Say so — the transcript is saved
+      // either way, and silently giving up would look like the interview vanished.
+      if (!graded) setErr('This interview is taking longer than usual to grade. Your answers are saved — reopen it in a minute.');
     } catch (e: any) { setErr(e?.response?.data?.message || 'Could not finish the interview.'); }
     setBusy(false);
   };

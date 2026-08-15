@@ -4,7 +4,7 @@ import PassportConfig from '../models/PassportConfig';
 import PassportAttempt from '../models/PassportAttempt';
 import PassportInterview from '../models/PassportInterview';
 import { isEntitled } from '../services/passportEntitlementService';
-import { getOrCreateProgress, addXp } from '../services/passportXpService';
+import { processGamificationEvent, resolveRule } from '../services/gamificationEngine';
 import {
   nextInterviewerTurn, evaluateTranscript, isInterviewAIEnabled, ConvTurn,
 } from '../services/interviewAIService';
@@ -21,7 +21,9 @@ import { Company, CompanyMockConfig, QuestionTaxonomy, CompanyQuestion } from '.
 const tenantOf = (req: Request): string => String((req as any).user?.tenantId || (req as any).tenantId || '');
 const userIdOf = (req: Request): string => String((req as any).user?.id || '');
 
-const INTERVIEW_XP = 60;
+// What finishing an interview pays now lives in Module 11's event catalogue, as
+// MOCK_INTERVIEW_COMPLETED's default. Keeping a copy of the number here would be a second
+// source of truth that nothing reads and nobody would notice drifting.
 // Cost scales linearly with turns: every turn re-sends the history window and pays for a
 // completion. Six is a real interview; the lever exists here if it ever needs trimming.
 const MAX_QUESTIONS = 6;
@@ -93,9 +95,23 @@ export const start = async (req: Request, res: Response) => {
     const { tenantId, studentId, user, cfg, entitled } = await gate(req);
     if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required for mock interviews.' });
 
-    // Only one live session at a time — resume it instead of stacking sessions.
-    const existing = await PassportInterview.findOne({ tenantId, studentId, status: 'in_progress' });
-    if (existing) return res.json({ session: publicSession(existing), resumed: true });
+    /**
+     * Only one live session at a time — resume it instead of stacking sessions.
+     *
+     * `finalizing` counts as live. A member who hits finish and immediately asks for a new
+     * interview would otherwise open a second one while the first is still being graded,
+     * and end up with two sessions where they meant to have one.
+     */
+    const existing = await PassportInterview.findOne({
+      tenantId, studentId, status: { $in: ['in_progress', 'finalizing'] },
+    });
+    if (existing) {
+      return res.json({
+        session: publicSession(existing),
+        resumed: true,
+        finalizing: existing.status === 'finalizing',
+      });
+    }
 
     const attempt = await PassportAttempt.findOne({ tenantId, studentId }).sort({ createdAt: -1 }).lean() as any;
     const preset = AREAS_BY_PATHWAY[attempt?.pathway] || AREAS_BY_PATHWAY.it_bridge;
@@ -230,31 +246,134 @@ export const turn = async (req: Request, res: Response) => {
   }
 };
 
-/** POST /passport/interview/:id/finish — grade the transcript and award XP once. */
+/**
+ * How long a finalization claim is trusted before another request may take it over.
+ *
+ * Long enough that a slow AI evaluation is never mistaken for a dead process — the call
+ * usually returns in seconds and the gateway gives up well before this. Short enough that a
+ * member whose server was killed mid-grading is not locked out of their own interview for
+ * the rest of the day.
+ */
+const FINALIZE_STALE_MS = 3 * 60 * 1000;
+
+/** A fresh owner identity per claim. Never reused, so a zombie can always be told apart. */
+const newFinalizeToken = (): string =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+
+/**
+ * POST /passport/interview/:id/finish — grade the transcript, once.
+ *
+ * WHY THIS IS NOT read → evaluate → save. Grading needs an AI call, so finalization cannot
+ * be a single atomic write. Two clicks, a retry after a timeout, or a client that fires the
+ * request twice would each load the same in_progress session, both see it as unfinished, and
+ * both run the whole tail: two evaluations, two lots of XP, a mission closed twice.
+ * `status === 'completed'` checked in application memory is a sequential guard, not a
+ * concurrency one.
+ *
+ * SO THE DATABASE DECIDES THE OWNER. One conditional update moves the session out of
+ * `in_progress`, and MongoDB guarantees exactly one caller matches. That request evaluates
+ * and writes the result; every other request observes the claim rather than racing it.
+ *
+ * AND A DEAD OWNER CANNOT STRAND THE INTERVIEW. A claim older than FINALIZE_STALE_MS may be
+ * taken over — atomically, so the takeover has exactly one winner too. The claim carries a
+ * token and the final write is conditioned on it, so an owner that stalled past the window
+ * and then woke up cannot overwrite the result its successor already stored.
+ *
+ * EVERY SIDE EFFECT INHERITS THIS. XP, coins, mission closure and skill evidence are each
+ * independently idempotent, but they are also only ever reached by the one request holding
+ * the claim — belt and braces, because several of them are shared with older code paths
+ * whose own guarantees are only sequential.
+ */
 export const finish = async (req: Request, res: Response) => {
   try {
     const { tenantId, studentId, cfg, entitled } = await gate(req);
     if (!entitled) return res.status(403).json({ locked: true, priceInr: cfg?.priceInr ?? 499, message: 'Membership required.' });
 
-    const session = await PassportInterview.findOne({ _id: req.params.id, tenantId, studentId });
-    if (!session) return res.status(404).json({ message: 'Interview not found' });
-    if (session.status === 'completed') return res.json({ session: publicSession(session), alreadyCompleted: true });
+    const id = req.params.id;
+    const now = new Date();
+    const token = newFinalizeToken();
 
-    const answered = session.transcript.filter(t => t.role === 'candidate').length;
+    /**
+     * The claim.
+     *
+     * `status: 'in_progress'` in the FILTER is the whole mechanism. Of any number of
+     * simultaneous finish requests, exactly one update matches a document that is still
+     * in progress; the rest match nothing and fall through to read what happened.
+     */
+    let session: any = await PassportInterview.findOneAndUpdate(
+      { _id: id, tenantId, studentId, status: 'in_progress' },
+      { $set: { status: 'finalizing', finalizeToken: token, finalizingAt: now } },
+      { new: true },
+    );
+
+    if (!session) {
+      // We did not get the claim. Either this interview is finished, somebody else is
+      // finishing it, or it does not exist. Read it and answer honestly.
+      const current: any = await PassportInterview.findOne({ _id: id, tenantId, studentId });
+      if (!current) return res.status(404).json({ message: 'Interview not found' });
+
+      // The retry case, and the common one: return what was stored rather than doing any
+      // of it again.
+      if (current.status === 'completed') {
+        return res.json({ session: publicSession(current), alreadyCompleted: true });
+      }
+      if (current.status === 'abandoned') {
+        return res.json({ session: publicSession(current), message: 'Interview closed — no answers were given.' });
+      }
+
+      /**
+       * Somebody else holds the claim. If it is fresh, say so and let the client ask again
+       * in a moment; grading takes seconds, not minutes.
+       *
+       * If it is stale, the process that took it is not coming back — so take it over,
+       * again with a conditional update, so a stampede of retries still produces one owner.
+       * This is the crash-recovery path, and it needs no operator intervention.
+       */
+      const staleBefore = new Date(now.getTime() - FINALIZE_STALE_MS);
+      const reclaimed: any = await PassportInterview.findOneAndUpdate(
+        {
+          _id: id, tenantId, studentId, status: 'finalizing',
+          $or: [{ finalizingAt: { $lte: staleBefore } }, { finalizingAt: null }],
+        },
+        { $set: { finalizeToken: token, finalizingAt: now } },
+        { new: true },
+      );
+
+      if (!reclaimed) {
+        return res.status(202).json({
+          finalizing: true,
+          session: publicSession(current),
+          message: 'We are still grading this interview. Give it a few seconds.',
+        });
+      }
+      session = reclaimed;
+    }
+
+    /**
+     * Nothing was said, so there is nothing to grade.
+     *
+     * Conditioned on our token like every other write here: if our claim was taken over
+     * while we were deciding, the new owner is authoritative and we return what it stored.
+     */
+    const answered = session.transcript.filter((t: any) => t.role === 'candidate').length;
     if (answered === 0) {
-      session.status = 'abandoned';
-      await session.save();
-      return res.json({ session: publicSession(session), message: 'Interview closed — no answers were given.' });
+      const closed = await PassportInterview.findOneAndUpdate(
+        { _id: id, status: 'finalizing', finalizeToken: token },
+        { $set: { status: 'abandoned', finalizeToken: null, finalizingAt: null } },
+        { new: true },
+      );
+      const out: any = closed || await PassportInterview.findOne({ _id: id, tenantId, studentId });
+      return res.json({ session: publicSession(out), message: 'Interview closed — no answers were given.' });
     }
 
     const evalResult = await evaluateTranscript({
       role: session.role,
-      areas: session.areas.map(a => ({ title: a, type: 'mixed' })),
-      transcript: session.transcript.map(t => ({ role: t.role, text: t.text })),
+      areas: session.areas.map((a: string) => ({ title: a, type: 'mixed' })),
+      transcript: session.transcript.map((t: any) => ({ role: t.role, text: t.text })),
       tenantId, product: PRODUCT,
     });
 
-    session.evaluation = evalResult
+    const evaluation = evalResult
       ? {
           overallScore: evalResult.overallPercentage,
           readinessLevel: evalResult.readinessLevel,
@@ -273,30 +392,79 @@ export const finish = async (req: Request, res: Response) => {
           strengths: [], improvements: [], recommendedPracticeAreas: [], areaScores: [], questionFeedback: [],
         };
 
-    session.status = 'completed';
-    session.completedAt = new Date();
+    /**
+     * Completion XP, through Module 11.
+     *
+     * The ledger's unique (tenantId, studentId, idempotencyKey) index is the durable
+     * guarantee: the key names the EVENT — this interview — so a replay writes nothing and
+     * is refused as a duplicate. The legacy in-memory `addXp` had no such record and would
+     * happily pay twice for two loads of the same document.
+     *
+     * The amount is unchanged. MOCK_INTERVIEW_COMPLETED's default is the 60 this controller
+     * already paid, uncapped and streak-qualifying exactly as before, so nobody's XP moves
+     * because of this fix.
+     */
+    const xp = await processGamificationEvent({
+      tenantId, studentId,
+      eventKey: 'MOCK_INTERVIEW_COMPLETED',
+      sourceType: 'interview',
+      sourceId: String(session._id),
+      now,
+    });
 
-    if (!session.xpAwarded) {
-      const progress = await getOrCreateProgress(tenantId, studentId);
-      addXp(progress, INTERVIEW_XP, true, new Date(), 'interview');
-      await progress.save();
-      session.xpAwarded = INTERVIEW_XP;
+    /**
+     * What to record as this interview's XP when the ledger refused a replay.
+     *
+     * A duplicate means an earlier attempt already paid; if it died before storing the
+     * amount, reading the configured rule reports what was actually paid rather than
+     * guessing from a constant that an admin may since have re-priced.
+     */
+    let xpAwarded = xp.awarded;
+    if (!xpAwarded && xp.refused === 'duplicate') {
+      const rule = await resolveRule(tenantId, 'MOCK_INTERVIEW_COMPLETED');
+      xpAwarded = rule?.xp || 0;
     }
-    await session.save();
+
+    /**
+     * The one write that ends the finalization.
+     *
+     * Conditioned on our token: if a slow evaluation ran past the stale window and another
+     * request took the claim over, this matches nothing and we discard our result instead of
+     * overwriting theirs. Last writer must not win.
+     */
+    const saved = await PassportInterview.findOneAndUpdate(
+      { _id: id, status: 'finalizing', finalizeToken: token },
+      {
+        $set: {
+          evaluation,
+          status: 'completed',
+          completedAt: now,
+          xpAwarded,
+          finalizeToken: null,
+          finalizingAt: null,
+        },
+      },
+      { new: true },
+    );
+
+    if (!saved) {
+      // Our claim was taken over mid-grading. Somebody else owns the outcome.
+      const current: any = await PassportInterview.findOne({ _id: id, tenantId, studentId });
+      return res.json({ session: publicSession(current), alreadyCompleted: true });
+    }
 
     // Close today's mock-interview mission automatically. The member has just done the
     // work; making them walk back to the dashboard and tick a box for it is the exact
     // thing that let the box be ticked WITHOUT the work. Wrapped because a missing
     // attempt or an edited pool must not cost them the interview they just completed.
-    try { await completeInterviewMissions(tenantId, studentId, new Date()); }
+    try { await completeInterviewMissions(tenantId, studentId, now); }
     catch (e: any) { console.error('[passport] interview -> mission complete:', e?.message || e); }
 
-    // Keyed on the session, so re-finishing an already-completed interview (the
-    // alreadyCompleted path returns earlier anyway) can never pay a second time.
+    // Keyed on the session, so a replay can never pay a second time.
     const coin = await awardCoins({
       tenantId, studentId, eventKey: 'interview_complete',
-      idempotencyKey: `interview:${session._id}`,
-      note: session.role,
+      idempotencyKey: `interview:${saved._id}`,
+      note: saved.role,
     });
 
     /**
@@ -306,30 +474,37 @@ export const finish = async (req: Request, res: Response) => {
      * recompute; it never sets a skill score or a readiness figure directly. A pathway
      * interview carries no canonical skill targets and so writes nothing at all.
      *
+     * `evidenceProjectedAt` is the marker for a projection that fully succeeded. A run that
+     * wrote rows and then died leaves it unset, so a later recovery run recomputes Skill DNA
+     * even though its evidence rows are all duplicates — the rows alone do not move a score.
+     *
      * Wrapped, and last. A member who has just spent fifteen minutes answering questions
      * must get their transcript, feedback, XP and coins even if scoring their evidence
      * fails — this is the least important thing on the page and the only optional one.
      */
     let interviewReadiness: any = null;
-    if ((session.skillTargets || []).length) {
+    if ((saved.skillTargets || []).length) {
       try {
-        const adapted = adaptPassportInterview(session as any);
+        const adapted = adaptPassportInterview(saved as any);
         interviewReadiness = await projectInterviewToEvidence({
           tenantId, studentId,
-          interviewId: String(session._id),
+          interviewId: String(saved._id),
           questions: adapted.questions,
           dimensionScores: adapted.dimensionScores,
+          // Nothing new to write does not mean nothing to recompute, if the run that wrote
+          // the rows never got as far as recomputing.
+          forceRecompute: !saved.evidenceProjectedAt,
+          now,
         });
-        session.evidenceProjectedAt = new Date();
-        await session.save();
+        await PassportInterview.updateOne({ _id: saved._id }, { $set: { evidenceProjectedAt: new Date() } });
       } catch (e: any) {
         console.error('[passport] interview -> skill evidence:', e?.message || e);
       }
     }
 
     res.json({
-      session: publicSession(session), scored: !!evalResult, coins: coin.awarded,
-      interviewReadiness,
+      session: publicSession(saved), scored: !!evalResult, coins: coin.awarded,
+      xpAwarded, interviewReadiness,
     });
   } catch (e: any) {
     console.error('[passport] interview finish:', e);

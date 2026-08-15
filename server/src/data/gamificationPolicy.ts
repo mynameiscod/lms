@@ -66,6 +66,22 @@ export const XP_EVENTS: XpEventDefinition[] = [
     uniqueSource: true,
     streakQualifying: true,
   },
+  {
+    key: 'MOCK_INTERVIEW_COMPLETED',
+    name: 'Mock interview completed',
+    description: 'A finished mock interview, graded from the transcript. Awarded for sitting it, not for scoring well.',
+    // Exactly what the interview controller already paid through the legacy XP helper.
+    // Routing it through this engine is an idempotency fix, not a re-pricing — a member
+    // who finishes an interview tomorrow must earn precisely what they earn today.
+    defaultXp: 60,
+    // Uncapped, because the shipped behaviour was uncapped. A cap here would quietly take
+    // XP away from a member who sat two interviews in a day, which they can do today.
+    defaultDailyLimit: 0,
+    uniqueSource: true,
+    // The legacy call passed bumpStreak = true. Sitting an interview has always counted as
+    // showing up, and dropping that would break streaks for members who only interview.
+    streakQualifying: true,
+  },
 ];
 
 export const XP_EVENT_KEYS = XP_EVENTS.map(e => e.key);

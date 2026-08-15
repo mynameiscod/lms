@@ -589,7 +589,16 @@ export const passportApi = {
     const { data } = await axios.post(`${BASE}/interview/${id}/turn`, { answer }, { headers: auth() });
     return data;
   },
-  finishInterview: async (id: string): Promise<{ session: InterviewSession; scored?: boolean }> => {
+  /**
+   * Close and grade an interview.
+   *
+   * `finalizing: true` means another request already owns the grading — a double-tapped
+   * button, or a retry after a timeout. It is not an error and the session is not lost; ask
+   * again in a moment and the graded result comes back.
+   */
+  finishInterview: async (id: string): Promise<{
+    session: InterviewSession; scored?: boolean; finalizing?: boolean;
+  }> => {
     const { data } = await axios.post(`${BASE}/interview/${id}/finish`, {}, { headers: auth() });
     return data;
   },

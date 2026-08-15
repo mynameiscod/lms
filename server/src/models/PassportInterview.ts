@@ -53,7 +53,24 @@ export interface IPassportInterview extends Document {
   companyName?: string;
   maxQuestions: number;
   askedCount: number;
-  status: 'in_progress' | 'completed' | 'abandoned';
+  /**
+   * `finalizing` is the finalization CLAIM.
+   *
+   * Grading a transcript takes an AI call, so finish() cannot be one atomic write. Moving
+   * out of `in_progress` in a single conditional update is what makes exactly one request
+   * the owner: everybody else observes the claim instead of racing it. See finalizeToken.
+   */
+  status: 'in_progress' | 'finalizing' | 'completed' | 'abandoned';
+  /**
+   * Who owns the claim right now.
+   *
+   * The final write is conditioned on this value, so a process that stalled past the stale
+   * window, had its claim taken over, and then woke up cannot overwrite the result the
+   * newer owner already stored. Without it a zombie would win by arriving last.
+   */
+  finalizeToken?: string | null;
+  /** When the current claim was taken. The only input to stale-claim recovery. */
+  finalizingAt?: Date | null;
   transcript: IPassportTurn[];
   evaluation?: IPassportInterviewEval | null;
   xpAwarded: number;
@@ -103,7 +120,9 @@ const PassportInterviewSchema = new Schema<IPassportInterview>(
     companyName: { type: String },
     maxQuestions:    { type: Number, default: 6 },
     askedCount:      { type: Number, default: 0 },
-    status:     { type: String, enum: ['in_progress', 'completed', 'abandoned'], default: 'in_progress', index: true },
+    status:     { type: String, enum: ['in_progress', 'finalizing', 'completed', 'abandoned'], default: 'in_progress', index: true },
+    finalizeToken: { type: String, default: null },
+    finalizingAt:  { type: Date, default: null },
     transcript: [TurnSchema],
     evaluation: { type: EvalSchema, default: null },
     xpAwarded:  { type: Number, default: 0 },

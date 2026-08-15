@@ -142,6 +142,15 @@ export async function projectInterviewToEvidence(input: {
   questions: InterviewQuestionResult[];
   /** Dimension scores from the existing evaluator, 0–100. */
   dimensionScores: Partial<Record<InterviewDimension, number>>;
+  /**
+   * Recompute Skill DNA even when every evidence row was already there.
+   *
+   * For the caller that knows a previous attempt wrote the rows and then died before
+   * recomputing. Evidence rows on their own move no score, so without this the recovery run
+   * would write nothing, recompute nothing, and leave the student's Skill DNA permanently
+   * missing an interview it has the evidence for.
+   */
+  forceRecompute?: boolean;
   now?: Date;
 }): Promise<InterviewReadiness> {
   const now = input.now || new Date();
@@ -216,9 +225,16 @@ export async function projectInterviewToEvidence(input: {
      * The skill profile is rebuilt from ALL of a student's evidence by Module 7's own
      * aggregation, so an interview answer takes its place beside their assessment history at
      * its configured weight rather than overwriting anything.
+     *
+     * ONLY WHEN SOMETHING CHANGED. A replay whose every row was already present has nothing
+     * to tell Skill DNA, and a rebuild over a student's whole evidence history is not free.
+     * `forceRecompute` covers the one case where that reasoning fails: a previous run wrote
+     * the rows and never recomputed.
      */
-    await recomputeStudentSkills(tenantId, studentId, [...new Set(rows.map((r: any) =>
-      r.updateOne.update.$setOnInsert.skillKey))]);
+    if (evidenceCreated > 0 || input.forceRecompute) {
+      await recomputeStudentSkills(tenantId, studentId, [...new Set(rows.map((r: any) =>
+        r.updateOne.update.$setOnInsert.skillKey))]);
+    }
   }
 
   // ── readiness ──

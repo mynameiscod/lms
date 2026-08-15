@@ -23,6 +23,7 @@ import * as careerContext from '../controllers/careerContextController';
 import * as careerRoles from '../controllers/careerRoleController';
 import * as careerSkills from '../controllers/careerSkillController';
 import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
+import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -113,6 +114,16 @@ router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
 router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
 router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
 router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+
+// ── Assessment skill evidence: which content measures which canonical skill. Additive
+//    configuration — the live assessment generator does not read it, so incomplete
+//    mapping can never break a working exam. Tenant-scoped, following the content. ──
+router.get('/skill-evidence',            MANAGE, skillEvidence.listEvidence);
+router.get('/skill-evidence/coverage',   MANAGE, skillEvidence.coverage);
+router.get('/skill-evidence/candidates', MANAGE, skillEvidence.candidates);
+router.get('/skill-evidence/skills',     MANAGE, skillEvidence.mappableSkills);
+router.get('/skill-evidence/:sourceType/:sourceId', MANAGE, skillEvidence.getItemEvidence);
+router.put('/skill-evidence/:sourceType/:sourceId', MANAGE, skillEvidence.saveItemEvidence);
 
 // ── Role skill blueprints: what each role expects. Tenant's own configuration, so
 //    MANAGE rather than the SUPER_ADMIN the shared skill catalogue requires — referencing

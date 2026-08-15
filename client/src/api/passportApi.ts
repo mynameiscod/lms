@@ -153,6 +153,31 @@ export const passportApi = {
     return data;
   },
 
+  // ── Assessment skill evidence (Module 5, admin) ──
+  /** A page of content with its mappings. One evidence query per page, never per item. */
+  listSkillEvidence: async (q: { sourceType: string; filter: string; search?: string; page: number }): Promise<{
+    items: EvidenceItem[]; total: number; page: number; limit: number;
+    sourceTypes: { key: string; label: string }[];
+  }> => {
+    const { data } = await axios.get(`${BASE}/skill-evidence`, { headers: auth(), params: q });
+    return data;
+  },
+  /** Replaces an item's whole mapping — a skill left out is unmapped. */
+  saveSkillEvidence: async (sourceType: string, sourceId: string, evidence: { skillKey: string; contribution: string; active: boolean }[]): Promise<{ item: any }> => {
+    const { data } = await axios.put(`${BASE}/skill-evidence/${sourceType}/${encodeURIComponent(sourceId)}`, { evidence }, { headers: auth() });
+    return data;
+  },
+  /** How much evidence exists per skill. Configuration completeness, not analytics. */
+  skillEvidenceCoverage: async (): Promise<{ coverage: SkillCoverageRow[]; totals: any; sourceTypes: { key: string; label: string }[] }> => {
+    const { data } = await axios.get(`${BASE}/skill-evidence/coverage`, { headers: auth() });
+    return data;
+  },
+  /** Active, assessable skills — the only ones that may be newly mapped. */
+  mappableSkills: async (): Promise<{ skills: MappableSkill[] }> => {
+    const { data } = await axios.get(`${BASE}/skill-evidence/skills`, { headers: auth() });
+    return data;
+  },
+
   // ── Role skill blueprints (Module 4, admin) ──
   /** Every role with a count of what it expects — one query, no per-role fan-out. */
   listRoleBlueprints: async (): Promise<{ roles: BlueprintRoleRow[]; suggestedTaxonomyAdditions: string[] }> => {
@@ -1063,6 +1088,46 @@ export interface CareerContext {
   };
 }
 
+
+/** One skill an assessment item measures. Joined with the skill for display. */
+export interface ItemEvidenceRow {
+  skillKey: string;
+  contribution: string;
+  active: boolean;
+  skillName: string;
+  skillActive: boolean;
+  skillAssessable: boolean;
+  /** The key resolves to nothing in the skill graph — surfaced so it can be repaired. */
+  missing: boolean;
+}
+
+/** A piece of assessment content, normalised across the four content families. */
+export interface EvidenceItem {
+  sourceType: string;
+  sourceId: string;
+  sourceParentId?: string;
+  text: string;
+  itemType: string;
+  /** Normalised on read from each family's own scale; null where none exists. */
+  difficulty: string | null;
+  /** The source's own tag. NOT a skill. */
+  sourceTag: string | null;
+  evidence: ItemEvidenceRow[];
+  primarySkillKey: string | null;
+  stale: boolean;
+}
+
+export interface MappableSkill {
+  key: string; name: string; aliases: string[];
+  parentKey: string | null; difficulty: string;
+}
+
+export interface SkillCoverageRow {
+  skillKey: string; skillName: string;
+  active: boolean; assessable: boolean;
+  total: number; primary: number;
+  byType: Record<string, number>;
+}
 
 /** One skill a role expects, with the skill's own details joined in for display. */
 export interface BlueprintRequirement {

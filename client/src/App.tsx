@@ -75,6 +75,7 @@ import PassportAdminPathwayRules from './pages/Passport/AdminPathwayRules';
 import PassportAdminCareerRoles from './pages/Passport/AdminCareerRoles';
 import PassportAdminSkillGraph from './pages/Passport/AdminSkillGraph';
 import PassportAdminRoleBlueprint from './pages/Passport/AdminRoleBlueprint';
+import PassportAdminSkillEvidence from './pages/Passport/AdminSkillEvidence';
 import PassportAdminPathways from './pages/Passport/AdminPathways';
 import PassportAdminMissions from './pages/Passport/AdminMissions';
 import PassportHome from './pages/Passport/PassportHome';
@@ -484,6 +485,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/role-blueprints" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminRoleBlueprint /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/skill-evidence" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminSkillEvidence /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/assessment" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAssessment /></Layout></ProtectedRoute>

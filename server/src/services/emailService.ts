@@ -268,7 +268,12 @@ export class EmailService {
       if (this.useBrevoApi) {
         await this.sendViaBrevoApi(email, subject, htmlContent, text, attachments);
       } else {
-        await this.transporter!.sendMail({
+        // Through sendMailWithRetry, NOT transporter.sendMail directly — this was the one
+        // send path that bypassed the throttle, and it is the path every bulk send uses.
+        // Approving 457 Tech Battle registrants fired 457 unpaced sends and Hostinger
+        // rejected 389 of them with `451 4.7.1 Ratelimit "hostinger_out_ratelimit"`; the
+        // students never got their exam links and nothing retried.
+        await this.sendMailWithRetry({
           from: this.fromHeader(),
           to: email,
           subject,
@@ -280,7 +285,7 @@ export class EmailService {
           ...(opts?.references ? { references: opts.references } : {}),
           ...(opts?.replyTo ? { replyTo: opts.replyTo } : {}),
           ...(opts?.headers ? { headers: opts.headers } : {}),
-        });
+        }, `generic email to ${email}`);
       }
       return true;
     } catch (error: any) {

@@ -96,7 +96,6 @@ jest.mock('../models/StudentSkillEvidence', () => ({
 }));
 
 import { completeCareerMission } from '../services/careerMissionCompletionService';
-import { DEFAULT_MISSION_XP } from '../services/passportXpService';
 
 const TENANT = 't1';
 const STUDENT = 's1';
@@ -130,11 +129,15 @@ describe('two requests for the same mission at the same moment', () => {
     expect([a.newlyCompleted, b.newlyCompleted].filter(Boolean)).toHaveLength(1);
   });
 
-  it('award XP exactly once', async () => {
-    await Promise.all([complete(), complete()]);
-
-    expect(doc.xp).toBe(DEFAULT_MISSION_XP);
-    expect(doc.xpLog.filter((l: any) => l.source === 'mission')).toHaveLength(1);
+  it('claim the completion exactly once, which is what gates the XP award', async () => {
+    // Module 11 moved XP behind the gamification engine so the amount is configurable and
+    // ledgered. The controller raises the XP event only when the claim below succeeds, so
+    // "claimed once" is precisely what makes "paid once" true — and the engine refuses a
+    // duplicate on its own ledger key besides. Amounts are covered in gamificationEngine
+    // tests; this asserts the gate.
+    const results = await Promise.all([complete(), complete()]);
+    expect(results.filter(r => r.newlyCompleted)).toHaveLength(1);
+    expect(doc.completed.filter((c: any) => c.key === KEY)).toHaveLength(1);
   });
 
   it('credit the roadmap minutes exactly once', async () => {
@@ -146,61 +149,36 @@ describe('two requests for the same mission at the same moment', () => {
     expect(credited).toBe(trace.minutes);
   });
 
-  it('move the streak exactly once', async () => {
+  it('does not itself move XP or the streak — that is the engine’s job now', async () => {
     await Promise.all([complete(), complete()]);
-    expect(doc.streak).toBe(1);
-    expect(doc.longestStreak).toBe(1);
+    // Deliberate separation: this service claims the completion and credits the roadmap.
+    expect(doc.xp).toBe(0);
+    expect(doc.streak).toBe(0);
   });
 
   it('hold up under more than two racing requests', async () => {
     await Promise.all(Array.from({ length: 6 }, () => complete()));
 
     expect(doc.completed.filter((c: any) => c.key === KEY)).toHaveLength(1);
-    expect(doc.xp).toBe(DEFAULT_MISSION_XP);
   });
 });
 
 describe('a retry after the fact', () => {
-  it('is refused without awarding anything again', async () => {
+  it('is refused without recording anything again', async () => {
     const first = await complete();
     const second = await complete();
 
     expect(first.newlyCompleted).toBe(true);
     expect(second.newlyCompleted).toBe(false);
-    expect(doc.xp).toBe(DEFAULT_MISSION_XP);
     expect(doc.completed).toHaveLength(1);
-  });
-
-  it('still reports the student’s current totals', async () => {
-    await complete();
-    const second = await complete();
-    expect(second.xp).toBe(DEFAULT_MISSION_XP);
-    expect(second.streak).toBe(1);
   });
 });
 
 describe('different missions', () => {
-  it('are recorded separately and each award once', async () => {
+  it('are recorded separately', async () => {
     await complete('cp:rm1:1:2026-08-17');
     await complete('cp:rm1:2:2026-08-17');
-
     expect(doc.completed).toHaveLength(2);
-    expect(doc.xp).toBe(DEFAULT_MISSION_XP * 2);
-  });
-
-  it('do not bump the streak twice in one day', async () => {
-    await complete('cp:rm1:1:2026-08-17');
-    await complete('cp:rm1:2:2026-08-17');
-    // The existing rule: a streak moves once per day, however much work is done.
-    expect(doc.streak).toBe(1);
-  });
-});
-
-describe('the XP amount is inherited, not invented', () => {
-  it('is the same default the legacy mission path already uses', async () => {
-    await complete();
-    expect(doc.xp).toBe(DEFAULT_MISSION_XP);
-    expect(DEFAULT_MISSION_XP).toBe(10);
   });
 });
 

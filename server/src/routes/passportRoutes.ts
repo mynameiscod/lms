@@ -30,6 +30,8 @@ import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
 import * as dailyPlan from '../controllers/careerDailyPlanController';
 import * as skillResources from '../controllers/careerSkillResourceController';
+import * as gamification from '../controllers/gamificationController';
+import * as rewardBudget from '../controllers/rewardBudgetController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -138,6 +140,24 @@ router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRole
 //    completions), so nothing is materialised and a refresh returns the same list.
 //    Completions go through the SAME completeMissionOnce the legacy missions use, so XP,
 //    streak and the once-per-key guarantee are inherited rather than rebuilt. ──
+// ── Gamification (Module 11). XP is the ENGAGEMENT score: configurable, ledgered and
+//    non-redeemable. Coins remain the reward currency on their own engine, and nothing here
+//    converts between them. No student route awards anything — every award happens inside a
+//    trusted server flow that already proved the work was done. ──
+router.get('/me/gamification',            MEMBER, gamification.getMyGamification);
+router.get('/me/gamification/xp-history', MEMBER, gamification.getMyXpHistory);
+router.get('/me/leaderboard',             MEMBER, gamification.getMyLeaderboard);
+
+router.get('/gamification/admin',                       MANAGE, gamification.getAdminGamification);
+router.put('/gamification/admin/rules/:eventKey',       MANAGE, gamification.updateXpRule);
+router.put('/gamification/admin/badges/:key',           MANAGE, gamification.updateBadge);
+router.put('/gamification/admin/leaderboard',           MANAGE, gamification.updateLeaderboardSettings);
+
+// Reward budget is a financial control: admin-only, and invisible to members.
+router.get('/gamification/admin/reward-budget',          MANAGE, rewardBudget.getRewardBudget);
+router.put('/gamification/admin/reward-budget',          MANAGE, rewardBudget.updateRewardBudget);
+router.post('/gamification/admin/reward-budget/preview', MANAGE, rewardBudget.previewRewardBudget);
+
 router.get('/me/plan/today',                    MEMBER, dailyPlan.getMyDailyPlan);
 router.post('/me/plan/complete',                MEMBER, dailyPlan.completeMyDailyMission);
 

@@ -1,6 +1,4 @@
 import PassportProgress from '../models/PassportProgress';
-import { DEFAULT_MISSION_XP } from './passportXpService';
-import { ymd } from './passportMissionService';
 
 /**
  * Recording a CareerPilot daily mission as done — atomically.
@@ -23,6 +21,12 @@ import { ymd } from './passportMissionService';
  *
  * WHAT IT DOES NOT DO. It writes no evidence and touches no skill profile. Completing a
  * task is not proof of a skill, and there is deliberately no path from here to Module 7.
+ *
+ * IT NO LONGER AWARDS XP EITHER. Module 11 moved every CareerPilot award behind the
+ * gamification engine so the amount is configurable, ledgered and auditable in one place.
+ * This claims the completion and credits the roadmap; the caller then raises the event and
+ * the engine decides what it is worth. Both halves are independently idempotent, so a retry
+ * repeats neither.
  */
 
 export interface CareerMissionTrace {
@@ -37,22 +41,8 @@ export interface CareerMissionTrace {
 export interface CompletionResult {
   /** False when another request had already recorded this exact mission. */
   newlyCompleted: boolean;
-  xp: number;
-  streak: number;
-  longestStreak: number;
 }
 
-/** How many XP-log entries the existing service keeps. Matched so the two agree. */
-const XP_LOG_LIMIT = 400;
-
-/**
- * Mark one mission complete, exactly once.
- *
- * The streak figures are computed from the document as read and applied in the same
- * conditional update. That is safe under a race for a reason worth stating: the calculation
- * depends only on `lastCompletedDate`, which changes at most once per day, so two concurrent
- * requests necessarily compute the same values — and only one of them writes anything.
- */
 export async function completeCareerMission(input: {
   tenantId: string;
   studentId: string;
@@ -75,26 +65,8 @@ export async function completeCareerMission(input: {
     { $setOnInsert: { startDate: input.startDate || now } },
     { upsert: true },
   ).catch((e: any) => {
-    // Somebody else inserted it between the check and the write. That is the outcome we
-    // wanted anyway.
     if (e?.code !== 11000) throw e;
   });
-
-  const doc: any = await PassportProgress.findOne({ tenantId, studentId })
-    .select('xp streak longestStreak lastCompletedDate').lean();
-
-  const today = ymd(now);
-  const gain = DEFAULT_MISSION_XP;
-
-  // Exactly the rule addXp applies, and applied only on the first completion of a day.
-  const streakUpdate: Record<string, any> = {};
-  if (doc && doc.lastCompletedDate !== today) {
-    const yesterday = ymd(new Date(now.getTime() - 86400000));
-    const streak = doc.lastCompletedDate === yesterday ? (doc.streak || 0) + 1 : 1;
-    streakUpdate.streak = streak;
-    streakUpdate.longestStreak = Math.max(doc.longestStreak || 0, streak);
-    streakUpdate.lastCompletedDate = today;
-  }
 
   /**
    * The claim.
@@ -102,29 +74,12 @@ export async function completeCareerMission(input: {
    * `completed.key: { $ne: key }` is both the idempotency guard and the concurrency guard.
    * MongoDB applies an update to a single document atomically, so of two simultaneous
    * requests only the first finds a document without the key; the second matches nothing and
-   * awards nothing.
+   * credits nothing.
    */
   const res: any = await PassportProgress.updateOne(
     { tenantId, studentId, 'completed.key': { $ne: key } },
-    {
-      $push: {
-        completed: { day: input.day, key, at: now, careerpilot: input.trace },
-        xpLog: { $each: [{ at: now, amount: gain, source: 'mission' }], $slice: -XP_LOG_LIMIT },
-      },
-      $inc: { xp: gain },
-      ...(Object.keys(streakUpdate).length ? { $set: streakUpdate } : {}),
-    },
+    { $push: { completed: { day: input.day, key, at: now, careerpilot: input.trace } } },
   );
 
-  const newlyCompleted = (res?.modifiedCount ?? res?.nModified ?? 0) === 1;
-
-  const after: any = await PassportProgress.findOne({ tenantId, studentId })
-    .select('xp streak longestStreak').lean();
-
-  return {
-    newlyCompleted,
-    xp: after?.xp || 0,
-    streak: after?.streak || 0,
-    longestStreak: after?.longestStreak || 0,
-  };
+  return { newlyCompleted: (res?.modifiedCount ?? res?.nModified ?? 0) === 1 };
 }

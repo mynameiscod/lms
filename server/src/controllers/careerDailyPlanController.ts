@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import User from '../models/User';
 import { getTodaysPlan, DailyPlanUnavailableResult } from '../services/dailyMissionOrchestrator';
 import { completeCareerMission } from '../services/careerMissionCompletionService';
+import { processGamificationEvent, evaluateRoadmapBadges } from '../services/gamificationEngine';
 
 /**
  * Today's CareerPilot plan, and completing a piece of it.
@@ -99,6 +100,30 @@ export const completeMyDailyMission = async (req: Request, res: Response) => {
       startDate: user?.passport?.activatedAt,
     });
 
+    /**
+     * XP is decided by the gamification engine, not here.
+     *
+     * The amount is configurable per tenant, so this states what the student DID and the
+     * engine resolves what it is worth, ledgers it and moves the streak. Raised only on a
+     * genuinely new completion, and idempotent on the mission key besides — a retry that
+     * slipped past the claim still could not pay twice.
+     *
+     * Roadmap progress, Skill DNA and readiness are all untouched by this call.
+     */
+    const award = outcome.newlyCompleted
+      ? await processGamificationEvent({
+          tenantId, studentId,
+          eventKey: 'CAREER_MISSION_COMPLETED',
+          sourceType: 'mission', sourceId: key,
+          metadata: { skillKey: mission.skillKey, workType: mission.workType },
+        })
+      : null;
+
+    // Roadmap progress may have crossed a badge threshold; checked only after real progress.
+    const roadmapBadges = outcome.newlyCompleted
+      ? await evaluateRoadmapBadges(tenantId, studentId)
+      : [];
+
     const after = await getTodaysPlan(tenantId, studentId);
 
     res.json({
@@ -106,8 +131,11 @@ export const completeMyDailyMission = async (req: Request, res: Response) => {
       // False when another request got there first. The mission is done either way, and
       // nothing was awarded twice.
       newlyCompleted: outcome.newlyCompleted,
-      xp: outcome.xp,
-      streak: outcome.streak,
+      xpAwarded: award?.awarded || 0,
+      xp: award?.xpTotal ?? null,
+      streak: award?.streak ?? null,
+      badges: [...(award?.badges || []), ...roadmapBadges],
+      streakBonus: award?.streakBonus,
       plan: after.available ? after : null,
     });
   } catch (e: any) {

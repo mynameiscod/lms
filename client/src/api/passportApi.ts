@@ -217,6 +217,50 @@ export const passportApi = {
     return data;
   },
 
+  // ── Gamification (Module 11) ──
+  /** XP, level, streak, badges and ranks. Read-only: no client can award anything. */
+  getMyGamification: async (): Promise<GamificationSummary> => {
+    const { data } = await axios.get(`${BASE}/me/gamification`, { headers: auth() });
+    return data;
+  },
+  getMyXpHistory: async (limit = 30): Promise<{ entries: XpHistoryEntry[] }> => {
+    const { data } = await axios.get(`${BASE}/me/gamification/xp-history`, { headers: auth(), params: { limit } });
+    return data;
+  },
+  getMyLeaderboard: async (scope: string, period: string): Promise<ScopedLeaderboardResponse> => {
+    const { data } = await axios.get(`${BASE}/me/leaderboard`, { headers: auth(), params: { scope, period } });
+    return data;
+  },
+  /** Admin: XP rules, badges and leaderboard settings. */
+  getAdminGamification: async (): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/gamification/admin`, { headers: auth() });
+    return data;
+  },
+  updateXpRule: async (eventKey: string, patch: any): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/rules/${eventKey}`, patch, { headers: auth() });
+    return data;
+  },
+  updateBadgeDefinition: async (key: string, patch: any): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/badges/${key}`, patch, { headers: auth() });
+    return data;
+  },
+  updateLeaderboardSettings: async (patch: any): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/leaderboard`, patch, { headers: auth() });
+    return data;
+  },
+  getRewardBudget: async (period?: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/gamification/admin/reward-budget`, { headers: auth(), params: period ? { period } : {} });
+    return data;
+  },
+  updateRewardBudget: async (patch: any): Promise<any> => {
+    const { data } = await axios.put(`${BASE}/gamification/admin/reward-budget`, patch, { headers: auth() });
+    return data;
+  },
+  previewRewardBudget: async (body: any): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/gamification/admin/reward-budget/preview`, body, { headers: auth() });
+    return data;
+  },
+
   // ── Skill DNA (Module 7) ──
   /** The caller's own skills. `assessed: false` means not measured yet, not a score of 0. */
   getMySkillDna: async (): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
@@ -1634,3 +1678,63 @@ export interface DailyPlanUnavailable {
 }
 
 export type DailyPlanResponse = DailyPlanAvailable | DailyPlanUnavailable;
+
+// ── Gamification (Module 11) ─────────────────────────────────────────────────
+//
+// XP is the ENGAGEMENT score: non-redeemable, and never a statement about ability. Coins
+// remain the reward currency on their own engine; nothing here converts between them.
+
+export interface GamificationBadgeView {
+  key: string;
+  name: string;
+  description: string;
+  iconKey: string;
+  earned: boolean;
+  awardedAt: string | null;
+}
+
+export interface RankView {
+  available: boolean;
+  /** Null when unavailable — never 0, which would read as "last". */
+  rank: number | null;
+  participants?: number;
+  reason?: string;
+}
+
+export interface GamificationSummary {
+  xp: number;
+  level: { level: number; title: string; nextLevel: number; nextTitle: string; pct?: number };
+  streak: number;
+  longestStreak: number;
+  badges: GamificationBadgeView[];
+  earnedCount: number;
+  ranks: Record<string, RankView>;
+}
+
+export interface XpHistoryEntry {
+  eventKey: string;
+  amount: number;
+  at: string;
+  sourceType: string;
+}
+
+export interface ScopedLeaderboardRow {
+  rank: number;
+  studentId: string;
+  name: string;
+  college: string | null;
+  xp: number;
+  me: boolean;
+}
+
+/** Distinct from the legacy tenant-only LeaderboardResponse above, which is untouched. */
+export type ScopedLeaderboardResponse =
+  | {
+      available: true;
+      scope: string; period: string;
+      entries: ScopedLeaderboardRow[];
+      myRank: number | null;
+      myXp: number;
+      participantCount: number;
+    }
+  | { available: false; scope: string; period: string; reason: string; myRank: null };

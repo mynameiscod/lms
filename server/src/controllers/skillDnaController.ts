@@ -4,6 +4,7 @@ import { gradeSubmittedAnswers } from '../services/assessmentAnswerGradingServic
 import {
   projectAssessmentToSkillDna, rebuildSkillDnaForStudent, getSkillDna, explainSkill,
 } from '../services/skillDnaService';
+import { processGamificationEvent } from '../services/gamificationEngine';
 
 /**
  * Submitting a personalised assessment, and reading the Skill DNA it produces.
@@ -81,8 +82,31 @@ export const submitPersonalizedAssessment = async (req: Request, res: Response) 
       console.error('[skill-dna] projection failed for assessment', String(open._id), projectionError);
     }
 
+    /**
+     * Engagement credit for FINISHING, not for scoring well.
+     *
+     * One award per assessment, keyed on the attempt id, so a retried submission cannot pay
+     * twice. Deliberately flat: paying per correct answer would put a price on a diagnostic
+     * and give students a reason to game the one instrument that tells them the truth about
+     * themselves. Correctness already has a home — it becomes skill evidence, above.
+     *
+     * Failure here costs nothing but the points; the submission is already saved.
+     */
+    let award: any = null;
+    try {
+      award = await processGamificationEvent({
+        tenantId, studentId,
+        eventKey: 'PERSONALIZED_ASSESSMENT_COMPLETED',
+        sourceType: 'assessment', sourceId: String(open._id),
+      });
+    } catch (e: any) {
+      console.error('[gamification] assessment award failed', String(open._id), e?.message || e);
+    }
+
     res.json({
       submitted: true,
+      xpAwarded: award?.awarded || 0,
+      badges: award?.badges || [],
       result: {
         answered: gradable.filter(g => g.answered).length,
         graded: gradable.length,

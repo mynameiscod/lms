@@ -30,7 +30,12 @@ import { IPassportQuestion, IPaperBlueprint, PASSPORT_CATEGORIES } from '../mode
    Math.random() cannot be used: the paper must be reproducible for the same
    member and attempt, or every page refresh serves a different test. */
 
-function hashSeed(s: string): number {
+/**
+ * Exported so the personalised generator (Module 6) draws with the SAME primitives rather
+ * than a second implementation. Two deterministic shufflers in one codebase would drift,
+ * and the fairness guarantees each one carries would stop being the same guarantee.
+ */
+export function hashSeed(s: string): number {
   let h = 2166136261;
   for (let i = 0; i < s.length; i++) {
     h ^= s.charCodeAt(i);
@@ -40,7 +45,7 @@ function hashSeed(s: string): number {
 }
 
 /** mulberry32 — small, fast, and good enough for shuffling a question list. */
-function rng(seed: number): () => number {
+export function rng(seed: number): () => number {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6D2B79F5) >>> 0;
@@ -51,7 +56,7 @@ function rng(seed: number): () => number {
 }
 
 /** Fisher-Yates. Sorting by a random comparator is biased and produces lopsided papers. */
-function shuffle<T>(list: T[], rand: () => number): T[] {
+export function shuffle<T>(list: T[], rand: () => number): T[] {
   const out = list.slice();
   for (let i = out.length - 1; i > 0; i--) {
     const j = Math.floor(rand() * (i + 1));

@@ -1,0 +1,508 @@
+import CareerSkill, { ICareerSkill } from '../models/CareerSkill';
+import { getCareerContext } from './careerContextService';
+import { getRoleSkillBlueprint } from './roleSkillBlueprintService';
+import { findEvidenceCandidates } from './skillEvidenceService';
+import { EvidenceDifficulty } from './skillEvidenceSourceRegistry';
+import { hashSeed, rng, shuffle } from './paperBuilderService';
+import {
+  AssessmentPolicy, policyForStage, difficultyQuota, DISCOVERY_SKILL_SCOPE,
+} from '../data/assessmentPolicies';
+import { ROLE_NOT_SURE } from './careerDomainService';
+
+/**
+ * Building one student's personalised assessment.
+ *
+ * The pipeline is deliberately a sequence of small pure steps — scope, slots, selection,
+ * validation — because fairness is the property that has to be tested, and a property you
+ * cannot test in isolation is one you will eventually lose. Only the first and last steps
+ * touch the database.
+ *
+ * THE FAIRNESS CONTRACT. Two students at the same stage aiming at the same role receive
+ * the same NUMBER of slots, the same SKILLS, the same DIFFICULTY spread and the same
+ * maximum score. Only which question fills each slot differs. That is what makes their
+ * results comparable while their papers are not identical, and it is why the shape comes
+ * from policy rather than from whatever the pools happen to contain.
+ *
+ * DETERMINISTIC, using the same primitives the existing paper builder has always used
+ * rather than a second implementation. The same student, policy and attempt number always
+ * produce the same paper: a refresh mid-assessment must not reshuffle, a crashed request
+ * must retry to the same result, and a fairness complaint must be reproducible months later.
+ *
+ * NO AI, and no keyword inference. Skills come from Module 4, evidence from Module 5, and
+ * a skill with no mapped evidence produces a clear failure rather than a guess.
+ */
+
+export interface AssessmentSlot {
+  skillKey: string;
+  difficulty: EvidenceDifficulty;
+  /** Why this slot exists — carried into the snapshot so selection can be explained. */
+  reason: 'role_blueprint' | 'prerequisite' | 'discovery';
+}
+
+export interface SelectedItem {
+  sourceType: string;
+  sourceId: string;
+  skillKey: string;
+  difficulty: EvidenceDifficulty;
+  /** The band actually served, when it differs from the slot's. */
+  servedDifficulty: EvidenceDifficulty | null;
+  order: number;
+  points: number;
+  reason: AssessmentSlot['reason'];
+}
+
+export interface GenerationReport {
+  requestedSlots: number;
+  filled: number;
+  exactMatches: number;
+  difficultyFallbacks: number;
+  repeatedFromPreviousAttempt: number;
+  /** Slots no evidence could fill. Non-empty means generation failed. */
+  shortfalls: { skillKey: string; difficulty: string; wanted: number; got: number }[];
+}
+
+export interface AssessmentSpecification {
+  policyKey: string;
+  policyVersion: number;
+  stage: string;
+  roleKey: string;
+  blueprintVersion: number;
+  slots: AssessmentSlot[];
+  skillCoverage: Record<string, number>;
+  difficultyCoverage: Record<string, number>;
+  totalPoints: number;
+}
+
+export interface GenerationInput {
+  tenantId: string;
+  studentId: string;
+  stage: string;
+  roleKey: string;
+  /** Skills the role expects, already filtered to active assessable ones. */
+  roleSkillKeys: string[];
+  blueprintVersion: number;
+  attemptNumber: number;
+  /** Items this student has already seen, so a retake can prefer fresh ones. */
+  seenSourceIds?: string[];
+}
+
+const norm = (v: any): string => String(v ?? '').trim().toUpperCase();
+
+// ── Step 1: which skills this stage should assess ────────────────────────────
+
+/**
+ * Expand a role's destination skills back into what a student at this stage can be asked.
+ *
+ * A foundation student aiming at Backend Engineer should be assessed on HTTP and
+ * programming, not on REST API design — the blueprint names the destination, and asking
+ * them about it would measure how far they have to go rather than where they are.
+ *
+ * Depth-limited and deduplicated. The prerequisite graph is connected enough that an
+ * unbounded walk reaches most of the taxonomy, which would assess nothing in particular.
+ */
+export function expandSkillScope(
+  roleSkillKeys: string[],
+  skills: Map<string, ICareerSkill>,
+  policy: AssessmentPolicy,
+): { skillKey: string; reason: AssessmentSlot['reason'] }[] {
+  const out: { skillKey: string; reason: AssessmentSlot['reason'] }[] = [];
+  const seen = new Set<string>();
+
+  const admit = (key: string, reason: AssessmentSlot['reason']) => {
+    const k = norm(key);
+    if (seen.has(k)) return;
+    const s = skills.get(k);
+    // Inactive, non-assessable and grouping nodes are never assessed. A new paper must not
+    // reach for a skill Module 3 has retired, even when a blueprint still references it.
+    if (!s || s.active === false || !s.assessable || s.nodeType === 'GROUP') return;
+    if (!policy.allowedSkillDifficulty.includes(s.difficulty)) return;
+    seen.add(k);
+    out.push({ skillKey: k, reason });
+  };
+
+  for (const k of roleSkillKeys) admit(k, 'role_blueprint');
+
+  // Walk back level by level, so nearer prerequisites are admitted before distant ones and
+  // the depth limit cuts the least relevant skills rather than an arbitrary branch.
+  let frontier = roleSkillKeys.map(norm);
+  for (let depth = 0; depth < policy.prerequisiteDepth; depth++) {
+    const next: string[] = [];
+    for (const key of frontier) {
+      for (const p of (skills.get(key)?.prerequisiteKeys || [])) {
+        const pk = norm(p);
+        if (!seen.has(pk)) admit(pk, 'prerequisite');
+        next.push(pk);
+      }
+    }
+    if (!next.length) break;
+    frontier = next;
+  }
+
+  return out;
+}
+
+/**
+ * Rank the candidate skills and keep the ones this paper will cover.
+ *
+ * Deterministic and explainable rather than a scoring model: a foundation skill outranks
+ * an advanced one at an early stage, a prerequisite outranks a destination, and ties break
+ * on the key so the order never depends on how Mongo returned the rows.
+ */
+export function rankSkills(
+  candidates: { skillKey: string; reason: AssessmentSlot['reason'] }[],
+  skills: Map<string, ICareerSkill>,
+  policy: AssessmentPolicy,
+): { skillKey: string; reason: AssessmentSlot['reason'] }[] {
+  const difficultyRank: Record<string, number> = { FOUNDATION: 0, INTERMEDIATE: 1, ADVANCED: 2 };
+  // Early stages want the ground floor first; later stages want the destination.
+  const preferPrerequisites = policy.prerequisiteDepth > 0;
+
+  return candidates
+    .slice()
+    .sort((a, b) => {
+      if (preferPrerequisites && a.reason !== b.reason) {
+        return a.reason === 'prerequisite' ? -1 : 1;
+      }
+      const da = difficultyRank[skills.get(a.skillKey)?.difficulty || 'FOUNDATION'] ?? 0;
+      const db = difficultyRank[skills.get(b.skillKey)?.difficulty || 'FOUNDATION'] ?? 0;
+      if (da !== db) return preferPrerequisites ? da - db : db - da;
+      return a.skillKey.localeCompare(b.skillKey);
+    })
+    .slice(0, policy.maxSkills);
+}
+
+// ── Step 2: the slots ────────────────────────────────────────────────────────
+
+/**
+ * Turn a skill set into the exact list of slots this paper is made of.
+ *
+ * Every student on the same policy and role gets an identical list. The paper is defined
+ * before a single question is looked at, which is precisely what stops the available
+ * content from shaping what gets measured.
+ */
+export function buildSlots(
+  scopedSkills: { skillKey: string; reason: AssessmentSlot['reason'] }[],
+  policy: AssessmentPolicy,
+): AssessmentSlot[] {
+  if (!scopedSkills.length) return [];
+
+  const perSkill = Math.max(
+    policy.minItemsPerSkill,
+    Math.min(policy.maxItemsPerSkill, Math.floor(policy.skillSlots / scopedSkills.length)),
+  );
+
+  // Spread the whole budget: give each skill its share, then hand out what rounding left
+  // over in rank order, so the total always equals the policy exactly.
+  const counts = new Map(scopedSkills.map(s => [s.skillKey, perSkill]));
+  let assigned = perSkill * scopedSkills.length;
+  let i = 0;
+  while (assigned < policy.skillSlots && i < scopedSkills.length * policy.maxItemsPerSkill) {
+    const s = scopedSkills[i % scopedSkills.length];
+    const cur = counts.get(s.skillKey)!;
+    if (cur < policy.maxItemsPerSkill) { counts.set(s.skillKey, cur + 1); assigned++; }
+    i++;
+  }
+  while (assigned > policy.skillSlots) {
+    const s = scopedSkills[(assigned - 1) % scopedSkills.length];
+    const cur = counts.get(s.skillKey)!;
+    if (cur > policy.minItemsPerSkill) { counts.set(s.skillKey, cur - 1); assigned--; }
+    else break;
+  }
+
+  // INTERLEAVED, not skill by skill. Laying out A,A,A,B,B,B and then handing out bands in
+  // order puts every hard question on the last skill: the scarcest band is still unspent
+  // when the walk reaches it. Round-robin — A,B,C,A,B,C — spreads difficulty across the
+  // paper, so no single skill carries all of it.
+  const order: { skillKey: string; reason: AssessmentSlot['reason'] }[] = [];
+  const remaining = new Map(counts);
+  let placed = 0;
+  while (placed < assigned) {
+    let movedThisPass = false;
+    for (const s of scopedSkills) {
+      const n = remaining.get(s.skillKey) || 0;
+      if (n <= 0) continue;
+      remaining.set(s.skillKey, n - 1);
+      order.push({ skillKey: s.skillKey, reason: s.reason });
+      placed++; movedThisPass = true;
+      if (placed >= assigned) break;
+    }
+    if (!movedThisPass) break;
+  }
+
+  const quota = difficultyQuota(assigned, policy.difficultyMix);
+  const bands: EvidenceDifficulty[] = ['EASY', 'MEDIUM', 'HARD'];
+  const left = { ...quota };
+
+  return order.map(({ skillKey, reason }) => {
+    // Whichever band has the most left to place. Ties break on the fixed band order, so
+    // the result is deterministic rather than dependent on object key iteration.
+    const band = bands.slice().sort((a, b) => left[b] - left[a] || bands.indexOf(a) - bands.indexOf(b))[0];
+    left[band]--;
+    return { skillKey, difficulty: band, reason };
+  });
+}
+
+// ── Step 3: fill the slots ───────────────────────────────────────────────────
+
+export interface PoolItem {
+  sourceType: string;
+  sourceId: string;
+  difficulty: EvidenceDifficulty | null;
+  contribution?: string;
+}
+
+/**
+ * Choose the questions, deterministically.
+ *
+ * Candidates are sorted by a stable key BEFORE the seeded shuffle: relying on the order
+ * Mongo happened to return would make the same seed produce different papers on different
+ * servers, which is the whole guarantee gone.
+ *
+ * An item already used in this paper is never reused, however many skills it maps to.
+ * Items the student saw in an earlier attempt are pushed to the back rather than excluded,
+ * so a retake is fresh where the pool allows and still possible where it does not.
+ */
+export function selectItems(
+  slots: AssessmentSlot[],
+  pools: Map<string, PoolItem[]>,
+  seed: string,
+  opts: { allowDifficultyFallback: boolean; seenSourceIds?: string[] } = { allowDifficultyFallback: true },
+): { items: SelectedItem[]; report: GenerationReport } {
+  const rand = rng(hashSeed(seed));
+  const seen = new Set((opts.seenSourceIds || []).map(String));
+  const used = new Set<string>();
+
+  const items: SelectedItem[] = [];
+  const report: GenerationReport = {
+    requestedSlots: slots.length, filled: 0, exactMatches: 0,
+    difficultyFallbacks: 0, repeatedFromPreviousAttempt: 0, shortfalls: [],
+  };
+
+  /** Shuffled once per skill, so repeated slots for one skill draw different items. */
+  const shuffled = new Map<string, PoolItem[]>();
+  const poolFor = (skillKey: string): PoolItem[] => {
+    if (!shuffled.has(skillKey)) {
+      const stable = (pools.get(skillKey) || [])
+        .slice()
+        .sort((a, b) => `${a.sourceType}:${a.sourceId}`.localeCompare(`${b.sourceType}:${b.sourceId}`));
+      const drawn = shuffle(stable, rand);
+      // Unseen first, order otherwise preserved — a stable partition, not a re-sort.
+      shuffled.set(skillKey, [
+        ...drawn.filter(i => !seen.has(i.sourceId)),
+        ...drawn.filter(i => seen.has(i.sourceId)),
+      ]);
+    }
+    return shuffled.get(skillKey)!;
+  };
+
+  const adjacent: Record<EvidenceDifficulty, EvidenceDifficulty[]> = {
+    EASY: ['MEDIUM'], MEDIUM: ['EASY', 'HARD'], HARD: ['MEDIUM'],
+  };
+
+  for (const slot of slots) {
+    const pool = poolFor(slot.skillKey);
+
+    let chosen = pool.find(i => !used.has(i.sourceId) && i.difficulty === slot.difficulty);
+    let served: EvidenceDifficulty | null = null;
+
+    // An item with no difficulty of its own (CareerPilot's own bank has none) counts for
+    // any band rather than being unusable.
+    if (!chosen) chosen = pool.find(i => !used.has(i.sourceId) && i.difficulty === null);
+
+    if (!chosen && opts.allowDifficultyFallback) {
+      for (const alt of adjacent[slot.difficulty]) {
+        chosen = pool.find(i => !used.has(i.sourceId) && i.difficulty === alt);
+        if (chosen) { served = alt; break; }
+      }
+    }
+
+    if (!chosen) {
+      const existing = report.shortfalls.find(s => s.skillKey === slot.skillKey && s.difficulty === slot.difficulty);
+      if (existing) existing.wanted++;
+      else report.shortfalls.push({ skillKey: slot.skillKey, difficulty: slot.difficulty, wanted: 1, got: 0 });
+      continue;
+    }
+
+    used.add(chosen.sourceId);
+    if (seen.has(chosen.sourceId)) report.repeatedFromPreviousAttempt++;
+    if (served) report.difficultyFallbacks++; else report.exactMatches++;
+
+    items.push({
+      sourceType: chosen.sourceType, sourceId: chosen.sourceId,
+      skillKey: slot.skillKey, difficulty: slot.difficulty, servedDifficulty: served,
+      order: items.length, points: 1, reason: slot.reason,
+    });
+  }
+
+  report.filled = items.length;
+  for (const s of report.shortfalls) {
+    s.got = slots.filter(x => x.skillKey === s.skillKey && x.difficulty === s.difficulty).length - s.wanted;
+  }
+  return { items, report };
+}
+
+/**
+ * Is this paper fit to sit?
+ *
+ * Every slot filled, or none of it is used. A paper three questions short of its
+ * specification measures something different from its peers, and that difference is
+ * invisible in the score — so a clean failure an admin can act on beats a paper that
+ * quietly means less.
+ */
+export function validateGeneration(report: GenerationReport): { ok: boolean; message?: string } {
+  if (report.shortfalls.length) {
+    const first = report.shortfalls[0];
+    return {
+      ok: false,
+      message: `Not enough mapped questions for ${first.skillKey} at ${first.difficulty.toLowerCase()} difficulty. `
+        + `Needed ${first.wanted} more. Map more assessment content to this skill and try again.`,
+    };
+  }
+  if (report.filled < report.requestedSlots) {
+    return { ok: false, message: 'The assessment could not be completed from the available question pool.' };
+  }
+  return { ok: true };
+}
+
+/** The seed. Never sent to a client — knowing it would reveal other students' papers. */
+export const generationSeed = (studentId: string, policyKey: string, policyVersion: number, attemptNumber: number): string =>
+  `${studentId}:${policyKey}:v${policyVersion}:a${attemptNumber}`;
+
+// ── The database-touching ends of the pipeline ───────────────────────────────
+
+export interface ResolvedContext {
+  ok: boolean;
+  message?: string;
+  stage?: string;
+  roleKey?: string;
+  roleSkillKeys?: string[];
+  blueprintVersion?: number;
+  policy?: AssessmentPolicy;
+  discovery?: boolean;
+}
+
+/**
+ * Everything about the student that shapes their paper, resolved SERVER-SIDE.
+ *
+ * Nothing here is read from the request. A student choosing their own role or stage could
+ * sit an easier paper than their peers and their score would still be presented as
+ * comparable, which is the one thing that would make every number in the product suspect.
+ */
+export async function resolvePersonalizedAssessmentContext(tenantId: string, studentId: string): Promise<ResolvedContext> {
+  const context = await getCareerContext(tenantId, studentId);
+  if (!context) return { ok: false, message: 'Account not found.' };
+
+  if (!context.status.onboardingCompleted) {
+    return { ok: false, message: 'Complete your CareerPilot setup before starting the assessment.' };
+  }
+
+  const stage = context.derived.stage;
+  if (!stage) {
+    return { ok: false, message: 'We could not work out your academic stage. Check your course and year in CareerPilot setup.' };
+  }
+
+  const policy = policyForStage(stage);
+  const roleKey = context.career.primaryRole || ROLE_NOT_SURE;
+
+  // A member who has not chosen a role gets the broad discovery scope. No role is inferred
+  // and none is assigned — saying "not sure" is an answer, and recommending one is a later
+  // module's job.
+  if (roleKey === ROLE_NOT_SURE) {
+    return { ok: true, stage, roleKey, policy, discovery: true, roleSkillKeys: DISCOVERY_SKILL_SCOPE, blueprintVersion: 0 };
+  }
+
+  const blueprint = await getRoleSkillBlueprint(tenantId, roleKey);
+  if (!blueprint) return { ok: false, message: `Your target role is not configured yet.` };
+
+  // Draft blueprints are somebody's work in progress; assessing a student against one
+  // would measure a standard nobody has agreed to.
+  if (!blueprint.published) {
+    return { ok: false, message: `The ${blueprint.roleName} skill blueprint has not been published yet. Ask your administrator to publish it.` };
+  }
+
+  const roleSkillKeys = blueprint.requirements
+    .filter(r => r.active && r.skillActive && !r.missing)
+    .map(r => r.skillKey);
+
+  if (!roleSkillKeys.length) {
+    return { ok: false, message: `The ${blueprint.roleName} blueprint has no usable skills yet.` };
+  }
+
+  return { ok: true, stage, roleKey, policy, roleSkillKeys, blueprintVersion: blueprint.version };
+}
+
+/**
+ * Build the whole specification and fill it — WITHOUT persisting anything.
+ *
+ * Used by both the student start and the admin preview, which is what makes the preview
+ * trustworthy: it exercises the identical code path rather than an approximation that
+ * could drift from what students actually receive.
+ */
+export async function buildPersonalizedAssessment(input: GenerationInput): Promise<{
+  ok: boolean;
+  message?: string;
+  specification?: AssessmentSpecification;
+  items?: SelectedItem[];
+  report?: GenerationReport;
+  seed?: string;
+}> {
+  const policy = policyForStage(input.stage);
+
+  const skillDocs = await CareerSkill.find({
+    key: { $in: [...new Set(input.roleSkillKeys.map(norm))] },
+  }).lean() as any[];
+
+  // Prerequisites may reach beyond the blueprint's own skills, so the graph is loaded once
+  // more for them rather than one lookup per edge.
+  const prereqKeys = [...new Set(skillDocs.flatMap(s => (s.prerequisiteKeys || []).map(norm)))];
+  const extra = prereqKeys.length
+    ? await CareerSkill.find({ key: { $in: prereqKeys } }).lean() as any[]
+    : [];
+
+  const skills = new Map<string, ICareerSkill>([...skillDocs, ...extra].map(s => [s.key, s]));
+
+  const scoped = rankSkills(expandSkillScope(input.roleSkillKeys, skills, policy), skills, policy);
+  if (!scoped.length) {
+    return { ok: false, message: 'No assessable skills are configured for your stage and role yet.' };
+  }
+
+  const slots = buildSlots(scoped, policy);
+
+  // ONE batched evidence query for every skill at once — Module 5 was built for this, and
+  // a query per slot would be twenty round trips per student.
+  const pools = await findEvidenceCandidates(input.tenantId, {
+    skillKeys: scoped.map(s => s.skillKey),
+    contribution: 'PRIMARY',
+  });
+  const poolMap = new Map<string, PoolItem[]>(pools.map(p => [p.skillKey, p.items.map(i => ({
+    sourceType: i.sourceType, sourceId: i.sourceId, difficulty: i.difficulty as any, contribution: i.contribution,
+  }))]));
+
+  const seed = generationSeed(input.studentId, policy.key, policy.version, input.attemptNumber);
+  const { items, report } = selectItems(slots, poolMap, seed, {
+    allowDifficultyFallback: policy.allowDifficultyFallback,
+    seenSourceIds: input.seenSourceIds,
+  });
+
+  const valid = validateGeneration(report);
+  if (!valid.ok) return { ok: false, message: valid.message, report };
+
+  const skillCoverage: Record<string, number> = {};
+  const difficultyCoverage: Record<string, number> = {};
+  for (const s of slots) {
+    skillCoverage[s.skillKey] = (skillCoverage[s.skillKey] || 0) + 1;
+    difficultyCoverage[s.difficulty] = (difficultyCoverage[s.difficulty] || 0) + 1;
+  }
+
+  return {
+    ok: true,
+    specification: {
+      policyKey: policy.key, policyVersion: policy.version,
+      stage: input.stage, roleKey: input.roleKey,
+      blueprintVersion: input.blueprintVersion,
+      slots, skillCoverage, difficultyCoverage,
+      totalPoints: items.reduce((n, i) => n + i.points, 0),
+    },
+    items, report, seed,
+  };
+}

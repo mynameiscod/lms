@@ -153,6 +153,17 @@ export const passportApi = {
     return data;
   },
 
+  // ── Personalised assessment (Module 6) ──
+  /** Runs the real generator and saves nothing — no attempt, no member data touched. */
+  previewAssessment: async (studentId: string, attemptNumber = 1): Promise<AssessmentPreview> => {
+    const { data } = await axios.post(`${BASE}/assessment/personalized/preview`, { studentId, attemptNumber }, { headers: auth() });
+    return data;
+  },
+  assessmentPolicies: async (): Promise<{ policies: AssessmentPolicyRow[] }> => {
+    const { data } = await axios.get(`${BASE}/assessment/personalized/policies`, { headers: auth() });
+    return data;
+  },
+
   // ── Assessment skill evidence (Module 5, admin) ──
   /** A page of content with its mappings. One evidence query per page, never per item. */
   listSkillEvidence: async (q: { sourceType: string; filter: string; search?: string; page: number }): Promise<{
@@ -1088,6 +1099,39 @@ export interface CareerContext {
   };
 }
 
+
+/** A generated paper's shape and chosen items. Diagnostic — nothing is persisted. */
+export interface AssessmentPreview {
+  ok: boolean;
+  message?: string;
+  context: {
+    name?: string; stage: string; roleKey: string; discovery: boolean;
+    policy: string; policyKey?: string; policyVersion?: number; blueprintVersion?: number;
+  };
+  specification?: {
+    skillCoverage: Record<string, number>;
+    difficultyCoverage: Record<string, number>;
+    totalPoints: number;
+  };
+  report?: {
+    requestedSlots: number; filled: number; exactMatches: number;
+    difficultyFallbacks: number; repeatedFromPreviousAttempt: number;
+  };
+  items?: {
+    order: number; skillKey: string; difficulty: string;
+    servedDifficulty: string | null; reason: string; sourceType: string; text: string;
+  }[];
+  /** Present when generation failed for want of mapped evidence. */
+  shortfalls?: { skillKey: string; difficulty: string; wanted: number; got: number }[];
+}
+
+export interface AssessmentPolicyRow {
+  key: string; stage: string; label: string; version: number;
+  skillSlots: number; maxSkills: number;
+  difficultyMix: { EASY: number; MEDIUM: number; HARD: number };
+  prerequisiteDepth: number;
+  allowedSkillDifficulty: string[];
+}
 
 /** One skill an assessment item measures. Joined with the skill for display. */
 export interface ItemEvidenceRow {

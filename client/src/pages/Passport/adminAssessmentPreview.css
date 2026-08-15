@@ -1,0 +1,105 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Personalised assessment preview (admin).
+   Namespaced `prv-` — verified free before writing. `.pa-` was the obvious pick
+   and is already taken by 47 classes. Short prefixes in this project have
+   collided repeatedly (.ov-, .as-, .bi, .pr-).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.prv { max-width: 1180px; margin: 0 auto; padding: 8px 4px 60px; }
+
+.prv-hd { margin-bottom: 16px; }
+.prv-hd h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+.prv-hd p { font-size: 13.5px; color: #64748b; margin: 6px 0 0; max-width: 76ch; line-height: 1.6; }
+
+/* ── form ── */
+.prv-form { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; background: #fff;
+  border: 1px solid #eef0f7; border-radius: 13px; padding: 14px 16px; margin-bottom: 14px; }
+.prv-form label { display: block; font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; }
+.prv-form .grow { flex: 1; min-width: 260px; }
+.prv-form .att { width: 108px; }
+.prv-form input, .prv-form select { display: block; width: 100%; margin-top: 6px;
+  padding: 9px 11px; border: 1.5px solid #e2e8f0; border-radius: 9px;
+  font-size: 12.5px; font-family: inherit; background: #f8faff; color: #0f172a;
+  text-transform: none; letter-spacing: 0; font-weight: 500; }
+.prv-form select { margin-top: 6px; }
+.prv-form input:focus, .prv-form select:focus { outline: none; border-color: #1d4ed8; background: #fff; }
+.prv-form em { display: block; font-style: normal; text-transform: none; letter-spacing: 0;
+  font-weight: 500; font-size: 10.5px; color: #94a3b8; margin-top: 4px; }
+
+/* ── coverage failure ── */
+.prv-fail { background: #fff; border: 1.5px solid #fecaca; border-left: 4px solid #ef4444;
+  border-radius: 13px; padding: 16px 18px; margin-bottom: 14px; }
+.prv-fail .t { display: flex; align-items: flex-start; gap: 11px; }
+.prv-fail .t > .bi { color: #ef4444; font-size: 16px; flex: 0 0 auto; }
+.prv-fail .t b { display: block; font-size: 14px; font-weight: 800; color: #0f172a; }
+.prv-fail .t span { display: block; font-size: 12.5px; color: #64748b;
+  margin-top: 4px; line-height: 1.6; max-width: 74ch; }
+
+.prv-fail .short { margin: 14px 0 0 27px; }
+.prv-fail .short > b { display: block; font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; margin-bottom: 7px; }
+.prv-fail .short .r { display: flex; align-items: baseline; gap: 10px; padding: 5px 0;
+  border-bottom: 1px solid #f8fafc; font-size: 12.5px; }
+.prv-fail .short .r span { font-weight: 700; color: #0f172a; font-family: ui-monospace, monospace; font-size: 12px; }
+.prv-fail .short .r em { font-style: normal; color: #94a3b8; font-size: 11.5px; }
+.prv-fail .short .r i { font-style: normal; margin-left: auto; color: #b45309; font-weight: 700; font-size: 11.5px; }
+.prv-fail .short p { font-size: 12px; color: #94a3b8; margin: 11px 0 0; line-height: 1.6; }
+
+/* ── summary ── */
+.prv-sum { display: flex; gap: 10px; flex-wrap: wrap; background: #fff;
+  border: 1px solid #eef0f7; border-radius: 13px; padding: 14px 16px; margin-bottom: 10px; }
+.prv-sum .s { flex: 1; min-width: 96px; }
+.prv-sum .s b { display: block; font-size: 19px; font-weight: 900; color: #0f172a;
+  font-variant-numeric: tabular-nums; line-height: 1.15; }
+.prv-sum .s span { display: block; font-size: 11px; color: #94a3b8; margin-top: 3px; }
+.prv-sum .s.warn b { color: #b45309; }
+
+.prv-meta { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; margin-bottom: 14px; }
+.prv-meta span { font-size: 12.5px; font-weight: 700; color: #0f172a; }
+.prv-meta em { font-style: normal; font-size: 11px; color: #94a3b8;
+  background: #f1f5f9; border-radius: 6px; padding: 3px 9px; }
+
+/* ── distribution + items ── */
+.prv-cols { display: grid; grid-template-columns: minmax(260px, 1fr) minmax(320px, 1.4fr); gap: 14px;
+  align-items: start; }
+.prv-dist, .prv-items { background: #fff; border: 1.5px solid #eef0f7; border-radius: 14px;
+  padding: 16px 18px; }
+.prv-dist h2, .prv-items h2 { font-size: 11px; font-weight: 800; color: #475569;
+  text-transform: uppercase; letter-spacing: .05em; margin: 0 0 10px; }
+.prv-dist h2:not(:first-child) { margin-top: 20px; }
+
+.prv-dist .d { display: flex; align-items: center; gap: 9px; margin-bottom: 6px; }
+.prv-dist .d span { flex: 0 0 42%; font-size: 11.5px; color: #475569;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.prv-dist .d i { height: 7px; border-radius: 99px; background: linear-gradient(90deg,#1d4ed8,#37d0c0);
+  min-width: 3px; }
+.prv-dist .d b { margin-left: auto; font-size: 11.5px; color: #0f172a;
+  font-variant-numeric: tabular-nums; }
+
+.prv-items { max-height: 620px; overflow-y: auto; }
+.prv-items .q { display: flex; gap: 11px; padding: 9px 0; border-bottom: 1px solid #f6f8fc; }
+.prv-items .q:last-child { border-bottom: 0; }
+.prv-items .q .n { flex: 0 0 22px; font-size: 11px; font-weight: 800; color: #cbd5e1;
+  font-variant-numeric: tabular-nums; padding-top: 2px; }
+.prv-items .q .tx { flex: 1; min-width: 0; }
+.prv-items .q .tx b { display: block; font-size: 12.5px; font-weight: 600; color: #0f172a; line-height: 1.5; }
+.prv-items .q .tx em { display: block; font-style: normal; font-size: 10.5px; color: #94a3b8;
+  margin-top: 3px; font-family: ui-monospace, monospace; }
+
+/* ── policies ── */
+.prv-pol { margin-top: 16px; background: #fff; border: 1px solid #eef0f7;
+  border-radius: 12px; padding: 13px 16px; }
+.prv-pol summary { font-size: 12.5px; font-weight: 700; color: #64748b; cursor: pointer; }
+.prv-pol table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+.prv-pol th { text-align: left; font-size: 10.5px; font-weight: 800; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: .04em; padding: 6px 8px; border-bottom: 1.5px solid #eef0f7; }
+.prv-pol td { font-size: 12.5px; color: #0f172a; padding: 8px; border-bottom: 1px solid #f8fafc;
+  font-variant-numeric: tabular-nums; }
+.prv-pol p { font-size: 12px; color: #94a3b8; line-height: 1.6; margin: 11px 0 0; max-width: 76ch; }
+
+@media (max-width: 900px) {
+  .prv-cols { grid-template-columns: 1fr; }
+  .prv-form .grow, .prv-form .att { flex: 1 0 100%; width: auto; }
+  .prv-pol { overflow-x: auto; }
+}

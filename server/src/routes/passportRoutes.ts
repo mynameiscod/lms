@@ -24,6 +24,7 @@ import * as careerRoles from '../controllers/careerRoleController';
 import * as careerSkills from '../controllers/careerSkillController';
 import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as skillEvidence from '../controllers/skillEvidenceController';
+import * as personalized from '../controllers/personalizedAssessmentController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -114,6 +115,14 @@ router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
 router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
 router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
 router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+
+// ── Personalised assessment generation (Module 6). A SEPARATE flow: the existing
+//    assessment endpoints are untouched, so incomplete evidence mapping cannot break a
+//    working exam. Role, stage and questions are all resolved server-side. ──
+router.post('/me/assessment/personalized/start', MEMBER, personalized.startPersonalizedAssessment);
+router.get('/me/assessment/personalized',        MEMBER, personalized.getMyPersonalizedAssessment);
+router.post('/assessment/personalized/preview',  MANAGE, personalized.previewPersonalizedAssessment);
+router.get('/assessment/personalized/policies',  MANAGE, personalized.listPolicies);
 
 // ── Assessment skill evidence: which content measures which canonical skill. Additive
 //    configuration — the live assessment generator does not read it, so incomplete

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import passportApi, {
   SkillRoadmapResponse, SkillRoadmapAvailable, SkillRoadmapUnavailable, RoadmapObjective,
 } from '../../api/passportApi';
+import TodayPlan from './TodayPlan';
 import './skillPlan.css';
 
 /**
@@ -117,6 +118,10 @@ const SkillPlan: React.FC = () => {
   if (loading) return null;
   if (!data) return null;
 
+  /* Today's work sits ABOVE the 90-day plan: "what do I do now" is the only question a
+     student has when they open the app, and the plan is the context for it. TodayPlan
+     renders nothing until a roadmap exists, so nothing appears twice. */
+
   // ── nothing to show yet ───────────────────────────────────────────────────
   if (!data.available) {
     const un = data as SkillRoadmapUnavailable;
@@ -162,6 +167,8 @@ const SkillPlan: React.FC = () => {
 
   return (
     <div className="skp">
+      <TodayPlan />
+
       <div className="skp-hd">
         <div className="t">
           <h2>Your {plan.roadmapDays}-day {plan.role.name} plan</h2>

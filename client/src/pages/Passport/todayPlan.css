@@ -1,0 +1,87 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Today's roadmap-derived plan (student).
+   Namespaced `tdp-` — verified free before writing.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.tdp { background: #fff; border: 1.5px solid #c7d6f5; border-radius: 16px;
+  padding: 18px 20px; margin-bottom: 22px; }
+
+.tdp-hd { display: flex; align-items: flex-start; gap: 14px; margin-bottom: 14px; }
+.tdp-hd .t { flex: 1; }
+.tdp-hd h2 { font-size: 17px; font-weight: 900; color: #0f172a; margin: 0; }
+.tdp-hd .t span { display: block; font-size: 12px; color: #64748b; margin-top: 3px; }
+.tdp-hd .m { text-align: right; white-space: nowrap; }
+.tdp-hd .m b { display: block; font-size: 19px; font-weight: 900; color: #1d4ed8;
+  line-height: 1.1; font-variant-numeric: tabular-nums; }
+.tdp-hd .m span { font-size: 11px; color: #94a3b8; }
+
+.tdp-all { display: flex; align-items: center; gap: 9px; background: #ecfdf5;
+  border: 1px solid #a7f3d0; color: #047857; border-radius: 11px;
+  padding: 11px 14px; font-size: 12.5px; margin-bottom: 12px; }
+
+/* ── one mission ── */
+.tdp-list { display: flex; flex-direction: column; gap: 8px; }
+.tdp-row { display: flex; align-items: flex-start; gap: 12px;
+  border: 1.5px solid #eef0f7; border-radius: 12px; padding: 13px 15px; background: #fcfcfd; }
+.tdp-row.done { background: #f8fafc; border-color: #e2e8f0; }
+.tdp-row.done .tx b { color: #64748b; text-decoration: line-through; }
+
+.tdp-row .n { width: 26px; height: 26px; flex: 0 0 26px; border-radius: 8px;
+  background: #eef2ff; color: #4338ca; font-size: 12px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center; }
+.tdp-row.done .n { background: #ecfdf5; color: #047857; }
+
+.tdp-row .tx { flex: 1; min-width: 0; }
+.tdp-row .tx b { font-size: 13.5px; font-weight: 800; color: #0f172a; }
+.tdp-row .meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 5px; }
+.tdp-row .mn { font-size: 11.5px; font-weight: 800; color: #475569; }
+.tdp-row .rc { font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; border-radius: 5px; padding: 2px 7px; background: #f1f5f9; color: #64748b; }
+/* Same meanings as the readiness and roadmap screens, so the colours stay learnable. */
+.tdp-row .rc.r-priority_gap { background: #fef2f2; color: #dc2626; }
+.tdp-row .rc.r-needs_work { background: #fffbeb; color: #b45309; }
+.tdp-row .rc.r-prerequisite { background: #f5f3ff; color: #6d28d9; }
+.tdp-row .rc.r-assessment_needed, .tdp-row .rc.r-limited_evidence { background: #f1f5f9; color: #475569; }
+.tdp-row .rc.r-validation { background: #ecfdf5; color: #047857; }
+
+.tdp-row .why { font-size: 11.5px; color: #64748b; line-height: 1.6; margin: 6px 0 0; max-width: 66ch; }
+.tdp-row .gap { display: block; font-style: normal; font-size: 11.5px; color: #b45309;
+  background: #fffbeb; border-radius: 8px; padding: 7px 10px; margin-top: 8px; }
+
+.tdp-row .ax { display: flex; flex-direction: column; gap: 6px; }
+.tdp-btn { border: 1.5px solid #dbe4f7; background: #fff; color: #1d4ed8; font-size: 12px;
+  font-weight: 800; border-radius: 9px; padding: 8px 15px; cursor: pointer; white-space: nowrap; }
+.tdp-btn:hover:not(:disabled) { background: #f7faff; }
+.tdp-btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.tdp-btn.primary:hover:not(:disabled) { background: #1a44bd; }
+.tdp-btn:disabled { opacity: .5; cursor: default; }
+
+/* ── rest day / empty ── */
+.tdp-rest { text-align: center; padding: 26px 16px; }
+.tdp-rest > .bi { font-size: 30px; color: #14b8a6; }
+.tdp-rest b { display: block; font-size: 14.5px; font-weight: 800; color: #0f172a; margin-top: 10px; }
+.tdp-rest span { display: block; font-size: 12.5px; color: #64748b; margin-top: 5px; }
+
+.tdp-empty { text-align: center; padding: 22px 18px; }
+.tdp-empty b { display: block; font-size: 14.5px; font-weight: 800; color: #0f172a; }
+.tdp-empty span { display: block; font-size: 12.5px; color: #64748b; margin-top: 6px; line-height: 1.6; }
+
+/* ── week + footer ── */
+.tdp-week { display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  margin-top: 16px; padding-top: 14px; border-top: 1px solid #eef0f7; }
+.tdp-week > span { font-size: 11.5px; font-weight: 800; color: #475569; }
+.tdp-week .bar { flex: 1; min-width: 120px; height: 6px; border-radius: 99px;
+  background: #eef2f7; overflow: hidden; }
+.tdp-week .bar i { display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #1d4ed8, #37d0c0); }
+.tdp-week em { font-style: normal; font-size: 11px; color: #94a3b8;
+  font-variant-numeric: tabular-nums; }
+
+.tdp-foot { font-size: 11px; color: #94a3b8; line-height: 1.7; margin: 12px 0 0; max-width: 70ch; }
+.tdp-err { font-size: 12px; color: #b91c1c; margin: 10px 0 0; }
+
+@media (max-width: 600px) {
+  .tdp-row { flex-wrap: wrap; }
+  .tdp-row .ax { flex-direction: row; width: 100%; margin-top: 4px; }
+  .tdp-row .ax .tdp-btn { flex: 1; }
+}

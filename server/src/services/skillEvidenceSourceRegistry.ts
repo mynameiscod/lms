@@ -28,6 +28,22 @@ import { EvidenceSourceType } from '../models/SkillEvidence';
 export type EvidenceDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export const EVIDENCE_DIFFICULTIES: EvidenceDifficulty[] = ['EASY', 'MEDIUM', 'HARD'];
 
+/**
+ * One choice a student can pick, and nothing else.
+ *
+ * `id` is whatever the GRADER for that family expects back — option id for the assessment
+ * bank, subdocument id (or position) for quiz questions, plain index for CareerPilot's own
+ * bank. Inventing a friendlier id here would round-trip to a grader that does not recognise
+ * it, and every answer would score zero.
+ *
+ * There is deliberately no `isCorrect`, no weight and no explanation. The answer key stays
+ * on the server: this shape is built to be safe to hand to the person sitting the paper.
+ */
+export interface NormalisedOption {
+  id: string;
+  text: string;
+}
+
 export interface NormalisedItem {
   sourceType: EvidenceSourceType;
   sourceId: string;
@@ -39,6 +55,11 @@ export interface NormalisedItem {
   difficulty: EvidenceDifficulty | null;
   /** The source's own tag or category. NOT a skill — see the note in the service. */
   sourceTag: string | null;
+  /**
+   * The choices, for families that have them. Loaded only by loadMany — the admin mapping
+   * screen lists items to be tagged and has no use for options.
+   */
+  options?: NormalisedOption[];
   tenantId: string;
 }
 
@@ -52,6 +73,37 @@ export interface SourceAdapter {
 }
 
 const trim = (s: any, n = 240): string => String(s ?? '').replace(/\s+/g, ' ').trim().slice(0, n);
+
+/**
+ * Option ids MUST match what each family's grader compares against, or a correct answer
+ * scores zero. The three shapes are not interchangeable and are written out here rather
+ * than guessed at each call site:
+ *
+ *   assessment_item    the option's own `id`, checked against correctOptionIds[]
+ *   question           `_id` when the option is a subdocument, otherwise its position
+ *   passport_question  the position, compared numerically with correctIndex
+ *
+ * Every one strips the key. `isCorrect`, `correctOptionIds` and `correctIndex` never leave
+ * the server through this path.
+ */
+const assessmentItemOptions = (r: any): NormalisedOption[] | undefined =>
+  Array.isArray(r?.options) && r.options.length
+    ? r.options.map((o: any) => ({ id: String(o?.id ?? ''), text: trim(o?.text, 400) }))
+    : undefined;
+
+const questionOptions = (r: any): NormalisedOption[] | undefined =>
+  Array.isArray(r?.options) && r.options.length
+    ? r.options.map((o: any, i: number) => ({
+        id: String(o?._id ?? i),
+        // The quiz bank stores plain strings in some rows and subdocuments in others.
+        text: trim(typeof o === 'string' ? o : (o?.text ?? ''), 400),
+      }))
+    : undefined;
+
+const passportQuestionOptions = (q: any): NormalisedOption[] | undefined =>
+  Array.isArray(q?.options) && q.options.length
+    ? q.options.map((t: any, i: number) => ({ id: String(i), text: trim(t, 400) }))
+    : undefined;
 
 /** AssessmentItem grades 1-5; the middle band is 3, so 1-2 easy, 3 medium, 4-5 hard. */
 const bandFromNumber = (n: any): EvidenceDifficulty | null => {
@@ -84,6 +136,7 @@ const assessmentItemAdapter: SourceAdapter = {
       itemType: r.type || 'mcq',
       difficulty: bandFromNumber(r.difficulty),
       sourceTag: r.dimension || null,
+      options: assessmentItemOptions(r),
       tenantId,
     }));
   },
@@ -132,6 +185,7 @@ const passportQuestionAdapter: SourceAdapter = {
         itemType: q.selfReport ? 'self_report' : 'mcq',
         difficulty: null,                       // this bank has no difficulty of its own
         sourceTag: q.category || null,
+        options: passportQuestionOptions(q),
         tenantId,
       }));
   },
@@ -167,6 +221,7 @@ const questionAdapter: SourceAdapter = {
       itemType: r.type || 'mcq_single',
       difficulty: bandFromWord(r.difficultyLevel),
       sourceTag: null,
+      options: questionOptions(r),
       tenantId,
     }));
   },

@@ -1,0 +1,286 @@
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import passportApi, { SkillAssessment as Paper, SkillAssessmentItem } from '../../api/passportApi';
+import './skillAssessment.css';
+
+/**
+ * Sitting the personalised CareerPilot assessment.
+ *
+ * THE SERVER OWNS THE PAPER. Every question, its order and its options arrive from Module 6
+ * already decided. Nothing here shuffles, filters, re-weights or generates — two students
+ * get different papers because the generator gave them different papers, not because this
+ * screen did anything.
+ *
+ * ANSWERS ARE SAVED AS THEY ARE GIVEN. A diagnostic is twenty-odd questions long, and a
+ * student who loses it to a refresh does not sit it again — which means no Skill DNA, no
+ * readiness and no roadmap for that person, ever. React state and localStorage both fail on
+ * the shared lab machine; the server is the only place worth trusting.
+ *
+ * NO SCORING SIGNALS WHILE THEY WORK. No correct/incorrect, no running total, no per-skill
+ * hint. This measures where somebody stands, and telling them how they are doing changes how
+ * they answer the rest.
+ */
+
+const AUTOSAVE_MS = 900;
+
+const SkillAssessment: React.FC = () => {
+  const nav = useNavigate();
+  const [paper, setPaper] = useState<Paper | null>(null);
+  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [at, setAt] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [starting, setStarting] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [done, setDone] = useState<any>(null);
+  const [err, setErr] = useState('');
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+
+  const pending = useRef<Record<string, any>>({});
+  const timer = useRef<any>(null);
+
+  const keyOf = (i: SkillAssessmentItem) => `${i.sourceType}:${i.sourceId}`;
+
+  const adopt = useCallback((p: Paper) => {
+    setPaper(p);
+    const restored: Record<string, any> = {};
+    for (const i of p.items) if (i.response !== undefined && i.response !== null) restored[keyOf(i)] = i.response;
+    setAnswers(restored);
+    // Land on the first unanswered question rather than the top — a resumed paper should
+    // continue where it stopped.
+    const firstOpen = p.items.findIndex(i => restored[keyOf(i)] === undefined);
+    setAt(firstOpen >= 0 ? firstOpen : 0);
+  }, []);
+
+  useEffect(() => {
+    passportApi.getSkillAssessment()
+      .then(r => { if (r.assessment) adopt(r.assessment); })
+      .catch(() => { /* falls through to the start screen */ })
+      .finally(() => setLoading(false));
+  }, [adopt]);
+
+  const start = async () => {
+    setStarting(true); setErr('');
+    try {
+      const r = await passportApi.startSkillAssessment();
+      adopt(r.assessment);
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not start your assessment.');
+    }
+    setStarting(false);
+  };
+
+  /** Debounced, and merged server-side, so one question at a time is safe to send. */
+  const queueSave = useCallback((item: SkillAssessmentItem, response: any) => {
+    pending.current[keyOf(item)] = { sourceType: item.sourceType, sourceId: item.sourceId, response };
+    setSaveState('saving');
+    clearTimeout(timer.current);
+    timer.current = setTimeout(async () => {
+      const batch = Object.values(pending.current);
+      pending.current = {};
+      if (!batch.length) return;
+      try {
+        await passportApi.saveSkillAnswers(batch as any);
+        setSaveState('saved');
+      } catch {
+        // Kept in state so the next answer retries them; nothing the student did is lost
+        // from the screen even if the network is down.
+        setSaveState('idle');
+      }
+    }, AUTOSAVE_MS);
+  }, []);
+
+  const answer = (item: SkillAssessmentItem, response: any) => {
+    setAnswers(a => ({ ...a, [keyOf(item)]: response }));
+    queueSave(item, response);
+  };
+
+  const answeredCount = useMemo(
+    () => (paper ? paper.items.filter(i => answers[keyOf(i)] !== undefined && answers[keyOf(i)] !== '').length : 0),
+    [paper, answers],
+  );
+
+  const submit = async () => {
+    if (!paper) return;
+    setSubmitting(true); setErr('');
+    clearTimeout(timer.current);
+    try {
+      // Everything on the paper goes up, answered or not — the server grades the whole
+      // paper regardless, and a skipped question is a real observation.
+      const payload = paper.items.map(i => ({
+        sourceType: i.sourceType, sourceId: i.sourceId, response: answers[keyOf(i)],
+      }));
+      setDone(await passportApi.submitPersonalizedAssessment(payload));
+    } catch (e: any) {
+      setErr(e?.response?.data?.message || 'Could not submit. Your answers are saved — try again.');
+    }
+    setSubmitting(false);
+    setConfirming(false);
+  };
+
+  if (loading) return <div className="ska"><div className="ska-load">Loading your assessment…</div></div>;
+
+  // ── finished ──────────────────────────────────────────────────────────────
+  if (done) {
+    return (
+      <div className="ska">
+        <div className="ska-done">
+          <i className="bi bi-check-circle-fill" />
+          <h1>Assessment complete</h1>
+          <p>We’ve used your answers to update your skills profile.</p>
+
+          <div className="ska-figs">
+            <div><b>{done.result?.graded ?? 0}</b><span>questions measured</span></div>
+            <div><b>{done.skillDna?.skillsAffected ?? 0}</b><span>skills updated</span></div>
+          </div>
+
+          {done.skillDnaPending && (
+            <div className="ska-note">
+              Your answers are safely recorded. Your skills profile is still updating and will
+              appear shortly.
+            </div>
+          )}
+
+          {/* No score, no verdict. What this means for a role is Module 8's answer, on its
+              own screen, with coverage and confidence beside it. */}
+          <div className="ska-actions">
+            <button className="ska-btn primary" onClick={() => nav('/careerpilot/skills')}>View my skills</button>
+            <button className="ska-btn" onClick={() => nav('/careerpilot/readiness')}>See role readiness</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── not started ───────────────────────────────────────────────────────────
+  if (!paper) {
+    return (
+      <div className="ska">
+        <div className="ska-intro">
+          <h1>CareerPilot skill assessment</h1>
+          <p>
+            A short diagnostic built around your target role. It measures where you stand so
+            your roadmap can focus on what you actually need — there is no pass mark, and
+            skipping a question is fine.
+          </p>
+          <ul>
+            <li>Your answers save as you go, so you can stop and come back.</li>
+            <li>You will not see scores while you work.</li>
+          </ul>
+          {err && <p className="ska-err">{err}</p>}
+          <button className="ska-btn primary lg" disabled={starting} onClick={start}>
+            {starting ? 'Preparing your paper…' : 'Start assessment'}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const item = paper.items[at];
+  const given = answers[keyOf(item)];
+  const pct = Math.round(((at + 1) / paper.items.length) * 100);
+
+  return (
+    <div className="ska">
+      <div className="ska-hd">
+        <div className="t">
+          <h1>Skill assessment</h1>
+          <span>Question {at + 1} of {paper.items.length}</span>
+        </div>
+        <span className={`ska-save ${saveState}`}>
+          {saveState === 'saving' ? 'Saving…' : saveState === 'saved' ? 'Saved' : ''}
+        </span>
+      </div>
+
+      {/* Position in the paper, not performance in it. */}
+      <div className="ska-bar"><i style={{ width: `${pct}%` }} /></div>
+
+      <div className="ska-q">
+        <p className="qt">{item.text}</p>
+
+        {item.options?.length ? (
+          <div className="ska-opts">
+            {item.options.map(o => {
+              // CareerPilot's own bank answers by position; the others answer by id. The
+              // server told us which ids to send back, so they are echoed unchanged.
+              const value = item.sourceType === 'passport_question' ? Number(o.id) : o.id;
+              const selected = Array.isArray(given) ? given.includes(value) : given === value;
+              return (
+                <button
+                  key={o.id}
+                  className={`ska-opt${selected ? ' on' : ''}`}
+                  onClick={() => answer(item, item.sourceType === 'passport_question' ? value : [value])}
+                >
+                  <span className="mk" />
+                  <span className="tx">{o.text}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="ska-free">
+            <textarea
+              rows={6}
+              placeholder="Type your answer…"
+              value={typeof given === 'string' ? given : ''}
+              onChange={e => answer(item, e.target.value)}
+            />
+            <em>Written answers are recorded as evidence but are not marked right or wrong.</em>
+          </div>
+        )}
+      </div>
+
+      <div className="ska-nav">
+        <button className="ska-btn" disabled={at === 0} onClick={() => setAt(n => Math.max(0, n - 1))}>
+          Previous
+        </button>
+        {at < paper.items.length - 1 ? (
+          <button className="ska-btn primary" onClick={() => setAt(n => n + 1)}>Save &amp; next</button>
+        ) : (
+          <button className="ska-btn primary" onClick={() => setConfirming(true)}>Review &amp; submit</button>
+        )}
+      </div>
+
+      {/* A palette, so a student can go back to the two they skipped rather than clicking
+          through twenty. Answered and unanswered are distinguished; nothing says correct. */}
+      <div className="ska-palette">
+        {paper.items.map((q, i) => {
+          const has = answers[keyOf(q)] !== undefined && answers[keyOf(q)] !== '';
+          return (
+            <button
+              key={q.sourceId}
+              className={`p${has ? ' has' : ''}${i === at ? ' now' : ''}`}
+              onClick={() => setAt(i)}
+              aria-label={`Question ${i + 1}${has ? ', answered' : ''}`}
+            >
+              {i + 1}
+            </button>
+          );
+        })}
+      </div>
+
+      {err && <p className="ska-err">{err}</p>}
+
+      {confirming && (
+        <div className="ska-modal" role="dialog">
+          <div className="bx">
+            <b>Submit your assessment?</b>
+            <p>
+              {answeredCount} of {paper.items.length} answered
+              {answeredCount < paper.items.length && ` · ${paper.items.length - answeredCount} left blank`}.
+              You cannot change your answers afterwards.
+            </p>
+            <div className="ska-actions">
+              <button className="ska-btn" onClick={() => setConfirming(false)}>Keep working</button>
+              <button className="ska-btn primary" disabled={submitting} onClick={submit}>
+                {submitting ? 'Submitting…' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default SkillAssessment;

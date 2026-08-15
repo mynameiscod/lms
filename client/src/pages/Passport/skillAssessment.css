@@ -1,0 +1,111 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Personalised skill assessment (student).
+   Namespaced `ska-` — verified free before writing. Short prefixes in this project
+   have collided repeatedly (.ov-, .as-, .bi, .pr-, .pa-, .sd-, .sr-).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.ska { max-width: 780px; margin: 0 auto; padding: 8px 4px 60px; }
+
+.ska-load { background: #f8fafc; color: #64748b; border-radius: 12px; padding: 16px; font-size: 13px; }
+.ska-err { font-size: 12.5px; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca;
+  border-radius: 10px; padding: 10px 13px; margin: 12px 0 0; }
+
+/* ── intro ── */
+.ska-intro { background: #fff; border: 1.5px solid #eef0f7; border-radius: 16px; padding: 32px 28px; }
+.ska-intro h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+.ska-intro p { font-size: 13.5px; color: #64748b; line-height: 1.7; margin: 10px 0 0; max-width: 62ch; }
+.ska-intro ul { margin: 16px 0 22px; padding-left: 18px; }
+.ska-intro li { font-size: 12.5px; color: #64748b; line-height: 1.9; }
+
+/* ── header ── */
+.ska-hd { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+.ska-hd .t { flex: 1; }
+.ska-hd h1 { font-size: 19px; font-weight: 900; color: #0f172a; margin: 0; }
+.ska-hd .t span { display: block; font-size: 12.5px; color: #64748b; margin-top: 4px; }
+.ska-save { font-size: 11.5px; font-weight: 700; color: #94a3b8; white-space: nowrap; padding-top: 4px; }
+.ska-save.saved { color: #047857; }
+
+/* Position in the paper. Deliberately NOT a score — no colour change, no percentage of
+   correctness, nothing that could read as how well it is going. */
+.ska-bar { height: 6px; border-radius: 99px; background: #eef2f7; overflow: hidden; margin-bottom: 20px; }
+.ska-bar i { display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg, #1d4ed8, #37d0c0); transition: width .25s; }
+
+/* ── question ── */
+.ska-q { background: #fff; border: 1.5px solid #eef0f7; border-radius: 15px; padding: 22px 24px; }
+.ska-q .qt { font-size: 15.5px; font-weight: 700; color: #0f172a; line-height: 1.6;
+  margin: 0 0 18px; white-space: pre-wrap; }
+
+.ska-opts { display: flex; flex-direction: column; gap: 9px; }
+.ska-opt { display: flex; align-items: flex-start; gap: 12px; width: 100%; text-align: left;
+  background: #fcfcfd; border: 1.5px solid #eef0f7; border-radius: 11px;
+  padding: 13px 15px; cursor: pointer; }
+.ska-opt:hover { border-color: #c7d6f5; background: #f7faff; }
+.ska-opt .mk { width: 18px; height: 18px; flex: 0 0 18px; border-radius: 50%;
+  border: 2px solid #cbd5e1; margin-top: 1px; }
+.ska-opt .tx { font-size: 13.5px; color: #334155; line-height: 1.5; }
+/* Selected, not correct. There is no correct state on this screen at all. */
+.ska-opt.on { border-color: #1d4ed8; background: #f7faff; }
+.ska-opt.on .mk { border-color: #1d4ed8; background: #1d4ed8; box-shadow: inset 0 0 0 3px #fff; }
+.ska-opt.on .tx { color: #0f172a; font-weight: 600; }
+
+.ska-free textarea { width: 100%; border: 1.5px solid #eef0f7; border-radius: 11px;
+  padding: 13px 15px; font-size: 13.5px; font-family: inherit; line-height: 1.6;
+  color: #0f172a; resize: vertical; }
+.ska-free textarea:focus { outline: none; border-color: #c7d6f5; }
+.ska-free em { display: block; font-style: normal; font-size: 11.5px; color: #94a3b8; margin-top: 8px; }
+
+/* ── navigation ── */
+.ska-nav { display: flex; gap: 10px; justify-content: space-between; margin-top: 16px; }
+.ska-btn { border: 1.5px solid #dbe4f7; background: #fff; color: #1d4ed8; font-size: 13px;
+  font-weight: 800; border-radius: 10px; padding: 11px 20px; cursor: pointer; }
+.ska-btn:hover:not(:disabled) { background: #f7faff; }
+.ska-btn.primary { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.ska-btn.primary:hover:not(:disabled) { background: #1a44bd; }
+.ska-btn.lg { padding: 14px 26px; font-size: 14px; }
+.ska-btn:disabled { opacity: .5; cursor: default; }
+
+/* ── palette ── */
+.ska-palette { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 22px;
+  padding-top: 18px; border-top: 1px solid #eef0f7; }
+.ska-palette .p { width: 34px; height: 34px; border-radius: 9px; border: 1.5px solid #eef0f7;
+  background: #fff; color: #94a3b8; font-size: 12px; font-weight: 800; cursor: pointer; }
+.ska-palette .p:hover { border-color: #c7d6f5; }
+.ska-palette .p.has { background: #eff6ff; border-color: #c7d6f5; color: #1d4ed8; }
+.ska-palette .p.now { border-color: #1d4ed8; box-shadow: 0 0 0 2px #dbeafe; color: #1d4ed8; }
+
+/* ── submit confirmation ── */
+.ska-modal { position: fixed; inset: 0; background: rgba(15, 23, 42, .45);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 60; }
+.ska-modal .bx { background: #fff; border-radius: 16px; padding: 26px 28px; max-width: 440px; width: 100%; }
+.ska-modal b { font-size: 16px; font-weight: 800; color: #0f172a; }
+.ska-modal p { font-size: 13px; color: #64748b; line-height: 1.7; margin: 10px 0 20px; }
+
+.ska-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* ── complete ── */
+.ska-done { background: #fff; border: 1.5px solid #eef0f7; border-radius: 16px;
+  padding: 40px 28px; text-align: center; }
+.ska-done > .bi { font-size: 40px; color: #14b8a6; }
+.ska-done h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 14px 0 0; }
+.ska-done p { font-size: 13.5px; color: #64748b; line-height: 1.7; margin: 9px 0 0; }
+
+.ska-figs { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin: 24px 0; }
+.ska-figs div { background: #f8fafc; border-radius: 12px; padding: 15px 24px; min-width: 130px; }
+.ska-figs b { display: block; font-size: 24px; font-weight: 900; color: #1d4ed8;
+  font-variant-numeric: tabular-nums; }
+.ska-figs span { display: block; font-size: 11.5px; color: #64748b; margin-top: 3px; }
+
+.ska-note { background: #f0f9ff; border: 1px solid #bae6fd; color: #075985;
+  border-radius: 11px; padding: 12px 15px; font-size: 12.5px; line-height: 1.6;
+  margin-bottom: 20px; text-align: left; }
+
+.ska-done .ska-actions { justify-content: center; }
+
+@media (max-width: 600px) {
+  .ska-q { padding: 18px 16px; }
+  .ska-nav { flex-direction: column-reverse; }
+  .ska-nav .ska-btn { width: 100%; }
+  .ska-palette .p { width: 30px; height: 30px; font-size: 11px; }
+  .ska-figs div { flex: 1 0 40%; padding: 13px 12px; }
+}

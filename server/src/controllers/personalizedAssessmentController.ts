@@ -33,24 +33,36 @@ const userIdOf = (req: Request): string => String((req as any).user?.id || (req 
  * The seed, the unused pools and the other candidates are all withheld: between them they
  * would let somebody reconstruct another student's paper.
  */
-const studentShape = (a: any, texts: Map<string, any>) => ({
-  id: String(a._id),
-  attemptNumber: a.attemptNumber,
-  status: a.status,
-  startedAt: a.startedAt,
-  totalQuestions: a.items.length,
-  items: (a.items || []).slice().sort((x: any, y: any) => x.order - y.order).map((i: any) => {
-    const src = texts.get(refKey(i.sourceType, i.sourceId));
-    return {
-      order: i.order,
-      sourceType: i.sourceType,
-      sourceId: i.sourceId,
-      text: src?.text || '',
-      itemType: src?.itemType || 'mcq',
-      points: i.points,
-    };
-  }),
-});
+const studentShape = (a: any, texts: Map<string, any>) => {
+  // Answers already saved, so a resumed paper comes back filled in. Keyed the same way the
+  // grader matches them, which is also how the client addresses a question.
+  const saved = new Map<string, any>(
+    (a.answers || []).map((x: any) => [refKey(x.sourceType, x.sourceId), x.response]),
+  );
+
+  return {
+    id: String(a._id),
+    attemptNumber: a.attemptNumber,
+    status: a.status,
+    startedAt: a.startedAt,
+    totalQuestions: a.items.length,
+    items: (a.items || []).slice().sort((x: any, y: any) => x.order - y.order).map((i: any) => {
+      const key = refKey(i.sourceType, i.sourceId);
+      const src = texts.get(key);
+      return {
+        order: i.order,
+        sourceType: i.sourceType,
+        sourceId: i.sourceId,
+        text: src?.text || '',
+        itemType: src?.itemType || 'mcq',
+        // Choices only — the key stays on the server. See NormalisedOption.
+        options: src?.options,
+        points: i.points,
+        response: saved.has(key) ? saved.get(key) : undefined,
+      };
+    }),
+  };
+};
 
 /**
  * POST /passport/me/assessment/personalized/start
@@ -156,6 +168,63 @@ export const getMyPersonalizedAssessment = async (req: Request, res: Response) =
     res.json({ assessment: studentShape(open, texts) });
   } catch (e: any) {
     res.status(500).json({ message: 'Could not load your assessment.' });
+  }
+};
+
+/**
+ * PUT /passport/me/assessment/personalized/answers — save progress without submitting.
+ *
+ * WHY THE SERVER HOLDS THESE. React state dies on refresh and localStorage dies on the
+ * other device, the cleared browser and the shared lab machine. A student twenty questions
+ * into a diagnostic who loses the lot will not sit it again, and the whole downstream
+ * pipeline — Skill DNA, readiness, roadmap — never happens for them.
+ *
+ * SAVING IS NOT SUBMITTING. Status is untouched, nothing is graded, and no evidence is
+ * written. The same `answers` field Module 7 already stores at submit is reused, so a
+ * submitted paper still carries exactly what it carried before; this only fills it in
+ * earlier. Grading re-reads every item from the frozen paper regardless, so a partially
+ * saved paper cannot bias a score.
+ *
+ * Answers are matched against the frozen paper and anything else is dropped — a client
+ * cannot introduce a question it prefers, and cannot answer on behalf of another attempt.
+ */
+export const savePersonalizedAnswers = async (req: Request, res: Response) => {
+  try {
+    const tenantId = tenantOf(req);
+    const studentId = userIdOf(req);
+    if (!tenantId || !studentId) return res.status(401).json({ message: 'Not authenticated' });
+
+    // Scoped to the caller's own OPEN attempt. A submitted paper is closed to edits, which
+    // is what stops somebody rewriting answers after seeing their result.
+    const open: any = await PersonalizedAssessment.findOne({ tenantId, studentId, status: 'IN_PROGRESS' });
+    if (!open) return res.status(404).json({ message: 'You have no assessment in progress.' });
+
+    const onPaper = new Map<string, any>(
+      (open.items || []).map((i: any) => [refKey(i.sourceType, i.sourceId), i]),
+    );
+
+    const incoming = (Array.isArray(req.body?.answers) ? req.body.answers : [])
+      .map((a: any) => ({
+        sourceType: String(a?.sourceType || ''),
+        sourceId: String(a?.sourceId || ''),
+        response: a?.response,
+      }))
+      .filter((a: any) => onPaper.has(refKey(a.sourceType, a.sourceId)));
+
+    // Merged rather than replaced: the client may save one question at a time, and a
+    // partial save must not erase the twenty answers it did not mention.
+    const merged = new Map<string, any>(
+      (open.answers || []).map((x: any) => [refKey(x.sourceType, x.sourceId), x]),
+    );
+    for (const a of incoming) merged.set(refKey(a.sourceType, a.sourceId), a);
+
+    open.answers = [...merged.values()];
+    await open.save();
+
+    res.json({ saved: true, answered: open.answers.filter((a: any) => a.response !== undefined && a.response !== null && a.response !== '').length });
+  } catch (e: any) {
+    console.error('[personalized-assessment] save answers:', e?.message || e);
+    res.status(500).json({ message: 'Could not save your answers.' });
   }
 };
 

@@ -28,6 +28,8 @@ import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
 import * as readiness from '../controllers/roleReadinessController';
 import * as careerRoadmap from '../controllers/careerRoadmapController';
+import * as dailyPlan from '../controllers/careerDailyPlanController';
+import * as skillResources from '../controllers/careerSkillResourceController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -131,6 +133,23 @@ router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRole
 //    is STORED: it is a commitment over time, and deriving it would silently rewrite
 //    yesterday's plan whenever today's evidence changed. Generation is always explicit and
 //    takes no parameters — role, gaps and capacity are all resolved server-side. ──
+// ── Daily execution (Module 10). The roadmap says what to achieve over 90 days; this says
+//    what to do today. Selection is deterministic in (active roadmap, date, prior
+//    completions), so nothing is materialised and a refresh returns the same list.
+//    Completions go through the SAME completeMissionOnce the legacy missions use, so XP,
+//    streak and the once-per-key guarantee are inherited rather than rebuilt. ──
+router.get('/me/plan/today',                    MEMBER, dailyPlan.getMyDailyPlan);
+router.post('/me/plan/complete',                MEMBER, dailyPlan.completeMyDailyMission);
+
+// ── Canonical skill → executable resource mapping (Module 10). Deliberately explicit:
+//    nothing is inferred from titles, and an unmapped objective is reported as a
+//    configuration gap rather than filled with a plausible guess. ──
+router.get('/skill-resources',            MANAGE, skillResources.listSkillResources);
+router.get('/skill-resources/catalogue',  MANAGE, skillResources.listMappableResources);
+router.post('/skill-resources',           MANAGE, skillResources.createSkillResource);
+router.put('/skill-resources/:id',        MANAGE, skillResources.updateSkillResource);
+router.delete('/skill-resources/:id',     MANAGE, skillResources.deleteSkillResource);
+
 router.get('/me/roadmap',                       MEMBER, careerRoadmap.getMyRoadmap);
 router.post('/me/roadmap/generate',             MEMBER, careerRoadmap.generateMyRoadmap);
 router.post('/me/roadmap/replan',               MEMBER, careerRoadmap.replanMyRoadmap);
@@ -150,6 +169,9 @@ router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.re
 //    assessment endpoints are untouched, so incomplete evidence mapping cannot break a
 //    working exam. Role, stage and questions are all resolved server-side. ──
 router.post('/me/assessment/personalized/start', MEMBER, personalized.startPersonalizedAssessment);
+// Saving is not submitting: status is untouched and nothing is graded. It exists so a
+// refresh, a dead battery or a shared machine cannot cost somebody a half-finished paper.
+router.put('/me/assessment/personalized/answers', MEMBER, personalized.savePersonalizedAnswers);
 router.get('/me/assessment/personalized',        MEMBER, personalized.getMyPersonalizedAssessment);
 router.post('/assessment/personalized/preview',  MANAGE, personalized.previewPersonalizedAssessment);
 router.get('/assessment/personalized/policies',  MANAGE, personalized.listPolicies);

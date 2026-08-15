@@ -23,6 +23,29 @@ export interface IPassportProgress extends Document {
     feedback?: string;
     /** Structured read of the answer — what makes these aggregatable at scale. */
     extract?: { targetRole?: string | null; skills?: string[]; gaps?: string[]; specificity?: number; flag?: string };
+    /**
+     * Present only on a mission that came from a CareerPilot roadmap (Module 10).
+     *
+     * WHY IT IS STORED RATHER THAN DERIVED. Roadmap progress has to be attributable to an
+     * exact objective, and the only alternatives were matching on the mission's display
+     * title — brittle, and explicitly ruled out — or re-deriving every past day's slate to
+     * work out what a completion had been for. Recording the identity at the moment of
+     * completion is cheaper and cannot drift.
+     *
+     * WHY IT CARRIES NO SCORE. `minutes` is the planned budget this slice consumed, which
+     * is what roadmap progress counts. Nothing here feeds Skill DNA: finishing a task is
+     * not evidence of a skill, and there is deliberately no field through which it could
+     * become one.
+     *
+     * Absent on every legacy mission, which is what keeps the existing journey untouched.
+     */
+    careerpilot?: {
+      roadmapId: string;
+      objectiveSequence: number;
+      skillKey: string;
+      workType: string;
+      minutes: number;
+    };
   }[];
   /** Practice Lab attempts. `solvedProblems` makes the XP award idempotent per problem. */
   practice: { problemId: string; kind: string; passed: boolean; score: number; total: number; xp: number; at: Date }[];
@@ -53,6 +76,13 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
         gaps: [String],
         specificity: Number,
         flag: String,
+      },
+      careerpilot: {
+        roadmapId: String,
+        objectiveSequence: Number,
+        skillKey: String,
+        workType: String,
+        minutes: Number,
       },
     }],
     practice: [{

@@ -192,6 +192,31 @@ export const passportApi = {
     return data;
   },
 
+  // ── Personalised assessment + daily plan (Module 10) ──
+  /** Starts, or resumes an open paper. Never generates a second one. */
+  startSkillAssessment: async (): Promise<{ assessment: SkillAssessment; resumed: boolean }> => {
+    const { data } = await axios.post(`${BASE}/me/assessment/personalized/start`, {}, { headers: auth() });
+    return data;
+  },
+  getSkillAssessment: async (): Promise<{ assessment: SkillAssessment | null }> => {
+    const { data } = await axios.get(`${BASE}/me/assessment/personalized`, { headers: auth() });
+    return data;
+  },
+  /** Saves progress without submitting — the paper stays open and nothing is graded. */
+  saveSkillAnswers: async (answers: { sourceType: string; sourceId: string; response: any }[]): Promise<{ saved: boolean; answered: number }> => {
+    const { data } = await axios.put(`${BASE}/me/assessment/personalized/answers`, { answers }, { headers: auth() });
+    return data;
+  },
+  /** Today's roadmap-derived work. */
+  getTodaysPlan: async (): Promise<DailyPlanResponse> => {
+    const { data } = await axios.get(`${BASE}/me/plan/today`, { headers: auth() });
+    return data;
+  },
+  completeDailyMission: async (key: string): Promise<any> => {
+    const { data } = await axios.post(`${BASE}/me/plan/complete`, { key }, { headers: auth() });
+    return data;
+  },
+
   // ── Skill DNA (Module 7) ──
   /** The caller's own skills. `assessed: false` means not measured yet, not a score of 0. */
   getMySkillDna: async (): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
@@ -1545,3 +1570,67 @@ export interface SkillRoadmapUnavailable {
 }
 
 export type SkillRoadmapResponse = SkillRoadmapAvailable | SkillRoadmapUnavailable;
+
+// ── Personalised assessment + daily execution (Module 10) ─────────────────────
+
+/** One question as the student sees it. There is no correct answer in this shape. */
+export interface SkillAssessmentItem {
+  order: number;
+  sourceType: string;
+  sourceId: string;
+  text: string;
+  itemType: string;
+  options?: { id: string; text: string }[];
+  points: number;
+  /** What was saved earlier, so a resumed paper comes back filled in. */
+  response?: any;
+}
+
+export interface SkillAssessment {
+  id: string;
+  attemptNumber: number;
+  status: 'IN_PROGRESS' | 'SUBMITTED' | 'ABANDONED';
+  startedAt: string;
+  totalQuestions: number;
+  items: SkillAssessmentItem[];
+}
+
+export interface DailyMission {
+  key: string;
+  roadmapId: string;
+  objectiveSequence: number;
+  skillKey: string;
+  skillName: string;
+  workType: 'LEARN' | 'PRACTICE' | 'ASSESS' | 'REVIEW';
+  plannedMinutes: number;
+  title: string;
+  explanation: string;
+  reasonCode: string;
+  resourceState: 'READY' | 'RESOURCE_NOT_CONFIGURED';
+  resource?: { type: string; id: string; title: string; route: string };
+  done: boolean;
+}
+
+export interface DailyPlanAvailable {
+  available: true;
+  policyVersion: string;
+  roadmapId: string;
+  date: string;
+  roadmapDay: number;
+  roadmapWeek: number;
+  weekCount: number;
+  capacity: { minutesPerDay: number; plannedMinutes: number };
+  missions: DailyMission[];
+  /** Progress through the PLAN. Deliberately not a readiness figure. */
+  progress: { plannedMinutes: number; completedMinutes: number; percent: number };
+  week: { plannedMinutes: number; completedMinutes: number };
+  unmappedObjectives: number;
+}
+
+export interface DailyPlanUnavailable {
+  available: false;
+  reason: 'ROADMAP_REQUIRED' | 'ROADMAP_COMPLETED' | 'MEMBERSHIP_REQUIRED';
+  message: string;
+}
+
+export type DailyPlanResponse = DailyPlanAvailable | DailyPlanUnavailable;

@@ -26,6 +26,7 @@ import * as roleBlueprints from '../controllers/roleSkillBlueprintController';
 import * as skillEvidence from '../controllers/skillEvidenceController';
 import * as personalized from '../controllers/personalizedAssessmentController';
 import * as skillDna from '../controllers/skillDnaController';
+import * as readiness from '../controllers/roleReadinessController';
 import * as news from '../controllers/techNewsController';
 import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
@@ -116,6 +117,12 @@ router.post('/skills',            SUPER_ADMIN,   careerSkills.createSkill);
 router.put('/skills/:id',         SUPER_ADMIN,   careerSkills.updateSkill);
 router.delete('/skills/:id',      SUPER_ADMIN,   careerSkills.deleteSkill);
 router.post('/skills/seed',       SUPER_ADMIN,   careerSkills.seedSkills);
+
+// ── Role readiness (Module 8). Derived on every request from Skill DNA and the
+//    published blueprint — nothing is stored, so a new blueprint or new evidence changes
+//    the next answer with nothing to invalidate. The role comes from stored context. ──
+router.get('/me/readiness',                     MEMBER, readiness.getMyRoleReadiness);
+router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRoleReadiness);
 
 // ── Student skill evidence and Skill DNA (Module 7). Submitting grades the paper and
 //    projects it into canonical skill evidence; the projection is derived state and never

@@ -153,6 +153,20 @@ export const passportApi = {
     return data;
   },
 
+  // ── Role readiness (Module 8) ──
+  /** Derived on request; the target role comes from stored context, never from the client. */
+  getMyReadiness: async (): Promise<RoleReadinessResponse> => {
+    const { data } = await axios.get(`${BASE}/me/readiness`, { headers: auth() });
+    return data;
+  },
+  /** Admin: one member's readiness, with weights and the workings. */
+  getStudentReadiness: async (studentId: string, roleKey?: string): Promise<any> => {
+    const { data } = await axios.get(`${BASE}/students/${studentId}/readiness`, {
+      headers: auth(), params: roleKey ? { roleKey } : {},
+    });
+    return data;
+  },
+
   // ── Skill DNA (Module 7) ──
   /** The caller's own skills. `assessed: false` means not measured yet, not a score of 0. */
   getMySkillDna: async (): Promise<{ skills: SkillDnaRow[]; assessed: boolean }> => {
@@ -1126,6 +1140,51 @@ export interface CareerContext {
   };
 }
 
+
+/** One required skill compared with what the student has demonstrated. */
+export interface ReadinessSkill {
+  skillKey: string;
+  skillName: string;
+  importance: string;
+  targetLevel: string;
+  targetScore: number;
+  /** Null when never measured — never 0, which would assert a failure we did not observe. */
+  studentScore: number | null;
+  skillConfidence: string | null;
+  evidenceCount: number;
+  gapPoints: number | null;
+  status: string;
+}
+
+/** Readiness is unavailable for distinct, differently-fixable reasons. */
+export interface RoleReadinessUnavailable {
+  available: false;
+  reason: 'ROLE_NOT_SELECTED' | 'ROLE_BLUEPRINT_NOT_READY' | 'NO_EVIDENCE';
+  message: string;
+  role?: { key: string; name?: string };
+}
+
+export interface RoleReadinessAvailable {
+  available: true;
+  role: { key: string; name: string };
+  /** Null when nothing is sufficiently measured — not 0, which would assert unreadiness. */
+  readiness: number | null;
+  /** How much of the role has trustworthy evidence. Always shown beside readiness. */
+  coverage: number;
+  confidence: string;
+  summary: {
+    requiredSkills: number; assessedSkills: number;
+    priorityGaps: number; needsWork: number; onTrack: number; strong: number;
+    limitedEvidence: number; notAssessed: number;
+    essentialTotal: number; essentialAssessed: number;
+  };
+  skills: ReadinessSkill[];
+  topGaps: ReadinessSkill[];
+  strengths: ReadinessSkill[];
+  assessmentNeeded: ReadinessSkill[];
+}
+
+export type RoleReadinessResponse = RoleReadinessAvailable | RoleReadinessUnavailable;
 
 /** One skill as the student's own evidence describes it. Score and confidence are separate. */
 export interface SkillDnaRow {

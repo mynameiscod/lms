@@ -1,0 +1,104 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Role readiness (student).
+   Namespaced `rdy-` — verified free before writing, as was `.rr-`. Short prefixes
+   in this project have collided repeatedly (.ov-, .as-, .bi, .pr-, .pa-, .sd-).
+   ───────────────────────────────────────────────────────────────────────────── */
+
+.rdy { max-width: 800px; margin: 0 auto; padding: 8px 4px 60px; }
+
+.rdy-hd { margin-bottom: 18px; }
+.rdy-hd h1 { font-size: 22px; font-weight: 900; color: #0f172a; margin: 0; }
+.rdy-hd p { font-size: 13.5px; color: #64748b; margin: 7px 0 0; line-height: 1.6; max-width: 62ch; }
+
+.rdy-load, .rdy-err { border-radius: 12px; padding: 16px; font-size: 13px; }
+.rdy-load { background: #f8fafc; color: #64748b; }
+.rdy-err { background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; }
+
+/* ── the two figures ── */
+.rdy-top { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.rdy-top .fig { flex: 1; min-width: 150px; background: #fff; border: 1.5px solid #eef0f7;
+  border-radius: 14px; padding: 16px 18px; }
+/* The headline is visually primary, but never alone — coverage sits beside it. */
+.rdy-top .fig.main { border-color: #c7d6f5; background: linear-gradient(135deg,#f7faff,#fff); }
+.rdy-top .fig.warn { border-color: #fde68a; background: #fffdf7; }
+.rdy-top .fig b { display: block; font-size: 30px; font-weight: 900; color: #0f172a;
+  line-height: 1.05; font-variant-numeric: tabular-nums; }
+.rdy-top .fig.main b { color: #1d4ed8; }
+.rdy-top .fig.warn b { color: #b45309; }
+.rdy-top .fig span { display: block; font-size: 12.5px; font-weight: 800; color: #475569; margin-top: 5px; }
+.rdy-top .fig em { display: block; font-style: normal; font-size: 11px; color: #94a3b8;
+  margin-top: 3px; line-height: 1.45; }
+
+.rdy-note { display: flex; align-items: flex-start; gap: 9px; background: #f0f9ff;
+  border: 1px solid #bae6fd; color: #075985; border-radius: 11px;
+  padding: 12px 14px; font-size: 12.5px; line-height: 1.6; margin-bottom: 14px; }
+.rdy-note.warn { background: #fffbeb; border-color: #fde68a; color: #92400e; }
+
+.rdy-counts { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 20px;
+  font-size: 12.5px; color: #64748b; }
+.rdy-counts b { color: #0f172a; font-weight: 800; }
+
+/* ── sections ── */
+.rdy-sec { margin-bottom: 22px; }
+.rdy-sec .sh { margin-bottom: 9px; }
+.rdy-sec .sh b { font-size: 13px; font-weight: 800; color: #0f172a; }
+.rdy-sec .sh span { display: block; font-size: 11.5px; color: #94a3b8; margin-top: 2px; }
+
+.rdy-row { background: #fff; border: 1.5px solid #eef0f7; border-radius: 12px;
+  padding: 13px 15px; margin-bottom: 7px; }
+.rdy-row.s-priority_gap { border-left: 4px solid #ef4444; }
+.rdy-row.s-needs_work { border-left: 4px solid #f59e0b; }
+.rdy-row.s-not_assessed { border-left: 4px solid #cbd5e1; background: #fcfcfd; }
+.rdy-row.s-limited_evidence { border-left: 4px solid #fbbf24; }
+.rdy-row.s-on_track { border-left: 4px solid #60a5fa; }
+.rdy-row.s-strong { border-left: 4px solid #14b8a6; }
+
+.rdy-row .tx { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.rdy-row .tx b { font-size: 13.5px; font-weight: 800; color: #0f172a; }
+.rdy-row .tx .ess { font-style: normal; font-size: 9.5px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: .04em; background: #fef2f2;
+  color: #dc2626; border-radius: 5px; padding: 2px 7px; }
+
+.rdy-row .nums { display: flex; align-items: baseline; gap: 7px; margin-bottom: 7px; }
+.rdy-row .nums .sc { font-size: 19px; font-weight: 900; color: #0f172a;
+  font-variant-numeric: tabular-nums; line-height: 1; }
+.rdy-row .nums .of { font-size: 12.5px; color: #94a3b8; }
+.rdy-row .nums .gp { margin-left: auto; font-size: 11.5px; font-weight: 700; color: #b45309; }
+
+.rdy-row .bar { height: 7px; border-radius: 99px; background: #eef2f7; overflow: hidden; margin-bottom: 8px; }
+.rdy-row .bar i { display: block; height: 100%; border-radius: 99px;
+  background: linear-gradient(90deg,#1d4ed8,#37d0c0); }
+.rdy-row.s-priority_gap .bar i { background: linear-gradient(90deg,#f87171,#ef4444); }
+.rdy-row.s-needs_work .bar i { background: linear-gradient(90deg,#fbbf24,#f59e0b); }
+/* Limited evidence is deliberately muted — the fill must not read as proof. */
+.rdy-row.s-limited_evidence .bar i { background: linear-gradient(90deg,#cbd5e1,#94a3b8); }
+
+.rdy-row .meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.rdy-row .conf { font-size: 10.5px; font-weight: 800; border-radius: 99px; padding: 3px 9px; }
+.rdy-row .conf.high { background: #ecfdf5; color: #047857; }
+.rdy-row .conf.medium { background: #eff6ff; color: #1d4ed8; }
+.rdy-row .conf.low { background: #fffbeb; color: #b45309; }
+.rdy-row .meta em { font-style: normal; font-size: 11px; color: #94a3b8; }
+
+/* No score and no bar for an unmeasured skill — a number would read as a failing grade. */
+.rdy-row .none { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.rdy-row .none span { font-size: 12px; color: #64748b; }
+.rdy-row .none em { font-style: normal; font-size: 11.5px; color: #94a3b8;
+  background: #f1f5f9; border-radius: 99px; padding: 3px 10px; }
+
+/* ── empty + footer ── */
+.rdy-empty { background: #fff; border: 1px dashed #dbe4f7; border-radius: 15px;
+  padding: 40px 26px; text-align: center; }
+.rdy-empty > .bi { font-size: 32px; color: #c7d6f5; }
+.rdy-empty b { display: block; font-size: 16px; font-weight: 800; color: #0f172a; margin-top: 14px; }
+.rdy-empty span { display: block; font-size: 13px; color: #64748b;
+  margin: 8px auto 20px; max-width: 50ch; line-height: 1.65; }
+
+.rdy-foot { margin-top: 22px; padding-top: 16px; border-top: 1px solid #eef0f7; }
+.rdy-foot p { font-size: 12px; color: #94a3b8; line-height: 1.7; margin: 0; max-width: 70ch; }
+.rdy-foot b { color: #64748b; }
+
+@media (max-width: 600px) {
+  .rdy-top .fig { min-width: 100%; }
+  .rdy-row .nums .gp { margin-left: 0; flex: 1 0 100%; }
+}

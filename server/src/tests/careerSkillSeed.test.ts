@@ -247,6 +247,44 @@ describe('a skill’s identity is fixed after creation', () => {
     expect(doc.name).toBe('Java OOP');              // nothing else disturbed
   });
 
+  it('can still be edited after one of its prerequisites is deactivated', async () => {
+    // End to end through the controller, which is where the lockout actually bit: the
+    // update path sends the whole prerequisite array, so a rename would have been refused
+    // over a relationship nobody touched.
+    const doc = skillDoc({ prerequisiteKeys: ['JAVA_METHODS'] });
+    findByIdSkill.mockResolvedValue(doc);
+    findSkill.mockReturnValue(chain([
+      { key: 'JAVA', domainKey: 'SOFTWARE_ENGINEERING', active: true },
+      { key: 'JAVA_METHODS', domainKey: 'SOFTWARE_ENGINEERING', active: false, name: 'Java Methods' },
+      { key: 'JAVA_OOP', domainKey: 'SOFTWARE_ENGINEERING', active: true, parentKey: 'JAVA', prerequisiteKeys: ['JAVA_METHODS'] },
+    ]));
+    const res = mockRes();
+
+    await updateSkill(mockReq({ name: 'Java OOP (revised)', prerequisiteKeys: ['JAVA_METHODS'] }, { id: 's1' }), res);
+
+    expect(res.statusCode).toBe(200);
+    expect(doc.name).toBe('Java OOP (revised)');
+    expect(doc.prerequisiteKeys).toEqual(['JAVA_METHODS']);
+  });
+
+  it('still refuses a newly added inactive prerequisite through the controller', async () => {
+    const doc = skillDoc({ prerequisiteKeys: ['JAVA_METHODS'] });
+    findByIdSkill.mockResolvedValue(doc);
+    findSkill.mockReturnValue(chain([
+      { key: 'JAVA', domainKey: 'SOFTWARE_ENGINEERING', active: true },
+      { key: 'JAVA_METHODS', domainKey: 'SOFTWARE_ENGINEERING', active: false, name: 'Java Methods' },
+      { key: 'RETIRED', domainKey: 'SOFTWARE_ENGINEERING', active: false, name: 'Retired Skill' },
+      { key: 'JAVA_OOP', domainKey: 'SOFTWARE_ENGINEERING', active: true, parentKey: 'JAVA', prerequisiteKeys: ['JAVA_METHODS'] },
+    ]));
+    const res = mockRes();
+
+    await updateSkill(mockReq({ prerequisiteKeys: ['JAVA_METHODS', 'RETIRED'] }, { id: 's1' }), res);
+
+    expect(res.statusCode).toBe(400);
+    expect(res.body.message).toMatch(/Retired Skill is deactivated/i);
+    expect(doc.save).not.toHaveBeenCalled();
+  });
+
   it('rejects a cycle-forming parent before any field is written', async () => {
     const doc = skillDoc({ key: 'JAVA' , parentKey: 'PROGRAMMING' });
     findByIdSkill.mockResolvedValue(doc);

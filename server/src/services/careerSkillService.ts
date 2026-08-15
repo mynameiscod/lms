@@ -182,6 +182,18 @@ export interface ValidateInput {
   domainKey: string;
   parentKey?: string | null;
   prerequisiteKeys?: string[];
+  /**
+   * What this skill ALREADY requires, on an edit.
+   *
+   * The "is it active?" rule applies to a new choice, not to a standing one. Without this
+   * distinction the rule locks the record: the update path always sends the whole
+   * prerequisite array, so the moment any prerequisite is deactivated, every later edit to
+   * that skill — a rename, a difficulty correction, reactivating it — is refused for a
+   * relationship the admin never touched.
+   *
+   * Absent means a create, where every key is new by definition.
+   */
+  existingPrerequisiteKeys?: string[];
   /** The graph as it stands. Loaded once by the caller and reused across both checks. */
   all: ICareerSkill[];
   /** A create has no existing record; an edit compares against itself. */
@@ -226,16 +238,20 @@ export function validateSkillGraph(input: ValidateInput): GraphCheck {
 
     if (wanted.includes(key)) return { ok: false, message: 'A skill cannot be its own prerequisite.' };
 
+    // What was already there, so a standing relationship can be told from a new choice.
+    const already = new Set((input.existingPrerequisiteKeys || []).map(norm));
+
     for (const pk of new Set(wanted)) {
       const p = byKey.get(pk);
       if (!p) return { ok: false, message: `There is no skill with the key ${pk} to use as a prerequisite.` };
       if (p.domainKey !== input.domainKey) {
         return { ok: false, message: `${p.name} belongs to a different career domain and cannot be a prerequisite.` };
       }
-      // An inactive skill may not be a NEW prerequisite: an admin choosing one now is
-      // almost certainly picking a retired node by mistake. An existing reference to a
-      // since-deactivated skill is left alone — see cleanPrerequisites.
-      if (p.active === false) {
+      // Deactivation is checked only for a key being ADDED. Choosing a retired skill now
+      // is almost certainly a mistake and is refused; keeping one that was chosen while it
+      // was live is history, and re-litigating it would make the skill uneditable for a
+      // relationship the admin never touched. They can still remove it deliberately.
+      if (p.active === false && !already.has(pk)) {
         return { ok: false, message: `${p.name} is deactivated and cannot be added as a prerequisite.` };
       }
     }

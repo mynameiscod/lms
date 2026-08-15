@@ -209,6 +209,9 @@ export const updateSkill = async (req: Request, res: Response) => {
       key: skill.key, domainKey: skill.domainKey,
       parentKey: b.parentKey !== undefined ? b.parentKey : undefined,
       prerequisiteKeys: nextPrereqs,
+      // What the skill already requires, so a prerequisite that has since been
+      // deactivated can be kept without blocking every other edit to this record.
+      existingPrerequisiteKeys: skill.prerequisiteKeys || [],
       all,
     });
     if (!check.ok) return res.status(400).json({ message: check.message });

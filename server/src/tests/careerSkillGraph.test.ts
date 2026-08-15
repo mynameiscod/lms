@@ -131,6 +131,104 @@ describe('prerequisite cycles', () => {
   });
 });
 
+describe('a prerequisite that was already there', () => {
+  /**
+   * The rule is about a CHOICE, not a standing relationship.
+   *
+   * Without the distinction the record locks itself: the update path always sends the
+   * whole prerequisite array, so once any prerequisite is deactivated, every later edit to
+   * that skill is refused over a relationship the admin never touched.
+   */
+  it('lets an unrelated edit succeed after a prerequisite is deactivated', () => {
+    // JAVA_OOP has always required JAVA_METHODS. Someone retires JAVA_METHODS. The admin
+    // now just wants to rename JAVA_OOP.
+    const all = [
+      S('JAVA_OOP', { prerequisiteKeys: ['JAVA_METHODS'] }),
+      S('JAVA_METHODS', { active: false, name: 'Java Methods' }),
+    ];
+    const r = validateSkillGraph({
+      key: 'JAVA_OOP', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: ['JAVA_METHODS'],
+      existingPrerequisiteKeys: ['JAVA_METHODS'],
+      all,
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it('may be kept while a different, active prerequisite is added', () => {
+    const all = [
+      S('JAVA_OOP', { prerequisiteKeys: ['JAVA_METHODS'] }),
+      S('JAVA_METHODS', { active: false, name: 'Java Methods' }),
+      S('OOP_CONCEPTS', { active: true, name: 'OOP Concepts' }),
+    ];
+    const r = validateSkillGraph({
+      key: 'JAVA_OOP', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: ['JAVA_METHODS', 'OOP_CONCEPTS'],
+      existingPrerequisiteKeys: ['JAVA_METHODS'],
+      all,
+    });
+    expect(r.ok).toBe(true);
+  });
+
+  it('still refuses a NEWLY added inactive prerequisite', () => {
+    // The retained one is fine; the new one is almost certainly a mistake.
+    const all = [
+      S('JAVA_OOP', { prerequisiteKeys: ['JAVA_METHODS'] }),
+      S('JAVA_METHODS', { active: false, name: 'Java Methods' }),
+      S('RETIRED', { active: false, name: 'Retired Skill' }),
+    ];
+    const r = validateSkillGraph({
+      key: 'JAVA_OOP', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: ['JAVA_METHODS', 'RETIRED'],
+      existingPrerequisiteKeys: ['JAVA_METHODS'],
+      all,
+    });
+    expect(r.ok).toBe(false);
+    expect(r.message).toMatch(/Retired Skill is deactivated/i);
+  });
+
+  it('treats every key as new when nothing was there before — a create', () => {
+    const all = [S('A'), S('RETIRED', { active: false, name: 'Retired Skill' })];
+    const r = validateSkillGraph({
+      key: 'A', domainKey: 'SOFTWARE_ENGINEERING', prerequisiteKeys: ['RETIRED'], all,
+    });
+    expect(r.ok).toBe(false);
+  });
+
+  it('does not let a retained key smuggle past the OTHER checks', () => {
+    // Only the active rule is relaxed. A cycle is still a cycle, however long it has
+    // been there, and a missing or cross-domain key is still refused.
+    const cyclic = [S('A', { prerequisiteKeys: ['B'] }), S('B', { prerequisiteKeys: ['A'] })];
+    expect(validateSkillGraph({
+      key: 'B', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: ['A'], existingPrerequisiteKeys: ['A'], all: cyclic,
+    }).ok).toBe(false);
+
+    expect(validateSkillGraph({
+      key: 'A', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: ['GONE'], existingPrerequisiteKeys: ['GONE'], all: [S('A')],
+    }).ok).toBe(false);
+
+    const foreign = [S('A'), S('FOREIGN', { domainKey: 'FINANCE', active: true })];
+    expect(validateSkillGraph({
+      key: 'A', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: ['FOREIGN'], existingPrerequisiteKeys: ['FOREIGN'], all: foreign,
+    }).ok).toBe(false);
+  });
+
+  it('allows removing a deactivated prerequisite outright', () => {
+    const all = [
+      S('JAVA_OOP', { prerequisiteKeys: ['JAVA_METHODS'] }),
+      S('JAVA_METHODS', { active: false }),
+    ];
+    const r = validateSkillGraph({
+      key: 'JAVA_OOP', domainKey: 'SOFTWARE_ENGINEERING',
+      prerequisiteKeys: [], existingPrerequisiteKeys: ['JAVA_METHODS'], all,
+    });
+    expect(r.ok).toBe(true);
+  });
+});
+
 describe('prerequisite hygiene', () => {
   it('de-duplicates and uppercases', () => {
     expect(cleanPrerequisites(['java_oop', 'JAVA_OOP', 'DSA_ARRAYS'], 'X'))

@@ -101,6 +101,7 @@ import PassportCompanies from './pages/Passport/Companies';
 import PassportMockTest from './pages/Passport/MockTest';
 import PassportAdminNews from './pages/Passport/AdminNews';
 import PassportAdminCompanies from './pages/Passport/AdminCompanies';
+import PassportAdminAnalytics from './pages/Passport/AdminAnalytics';
 import PassportAssessmentPage from './pages/Passport/Assessment';
 import PassportAdminAssessment from './pages/Passport/AdminAssessment';
 import PassportCard from './pages/Passport/Card';
@@ -462,6 +463,9 @@ const AppRoutes: React.FC = () => {
       } />
       <Route path="/admin/passport/students" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN', 'STAFF']}><Layout><PassportAdminStudents /></Layout></ProtectedRoute>
+      } />
+      <Route path="/admin/passport/analytics" element={
+        <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminAnalytics /></Layout></ProtectedRoute>
       } />
       <Route path="/admin/passport/companies" element={
         <ProtectedRoute requiredRoles={['TENANT_ADMIN', 'SUPER_ADMIN']}><Layout><PassportAdminCompanies /></Layout></ProtectedRoute>

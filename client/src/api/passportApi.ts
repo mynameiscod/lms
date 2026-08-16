@@ -643,6 +643,28 @@ export const passportApi = {
     return data;
   },
 
+  // ── CareerPilot analytics + health (admin) ──
+  /**
+   * Every analytics call takes the SAME bounded range the server accepts and returns it in
+   * the response. The client never invents a window the API would reject, and never
+   * computes a metric of its own — readiness lives on the server.
+   */
+  analytics: async (
+    section: 'overview' | 'skills' | 'progress' | 'engagement' | 'economy' | 'placement',
+    range: { from?: string; to?: string } = {},
+  ): Promise<AnalyticsEnvelope> => {
+    const { data } = await axios.get(`${BASE}/admin/analytics/${section}`, { headers: auth(), params: range });
+    return data;
+  },
+  configHealth: async (): Promise<ConfigHealthView> => {
+    const { data } = await axios.get(`${BASE}/admin/health/configuration`, { headers: auth() });
+    return data;
+  },
+  launchReadiness: async (): Promise<LaunchReadinessView> => {
+    const { data } = await axios.get(`${BASE}/admin/health/launch-readiness`, { headers: auth() });
+    return data;
+  },
+
   // ── Company preparation profiles (admin) ──
   companyProfiles: async (slug: string): Promise<CompanyProfileAdmin> => {
     const { data } = await axios.get(`${BASE}/company-admin/${slug}/profiles`, { headers: auth() });
@@ -1284,6 +1306,48 @@ export interface CompanyOverviewRow {
   gaps: number | null;
   isTarget: boolean;
   isPrimaryTarget: boolean;
+}
+
+
+// ── CareerPilot analytics (Module 16) ──
+
+/** Whether a figure could be produced at all. `unavailable` is never rendered as 0. */
+export type AnalyticsCoverage = 'available' | 'partial' | 'unavailable';
+
+export interface CoverageNote { coverage: AnalyticsCoverage; reason?: string }
+
+export interface AnalyticsEnvelope {
+  policyVersion: string;
+  range: { from: string; to: string; days: number; timezone: string };
+  generatedAt: string;
+  data: any;
+  coverage: Record<string, AnalyticsCoverage | CoverageNote>;
+}
+
+export interface HealthFindingView {
+  area: string;
+  severity: 'ERROR' | 'WARNING' | 'INFO';
+  code: string;
+  message: string;
+  action: string;
+  meta?: Record<string, any>;
+}
+
+export interface ConfigHealthView {
+  checkedAt: string;
+  findings: HealthFindingView[];
+  counts: { error: number; warning: number; info: number };
+}
+
+export interface LaunchReadinessView {
+  status: 'NOT_READY' | 'READY_WITH_WARNINGS' | 'READY';
+  checkedAt: string;
+  summary: { error: number; warning: number; info: number };
+  areas: {
+    area: string; label: string; status: 'PASS' | 'WARNING' | 'FAIL';
+    errors: number; warnings: number; findings: HealthFindingView[];
+  }[];
+  disclaimer: string;
 }
 
 export interface CompanyProfileRow {

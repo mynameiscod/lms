@@ -415,3 +415,84 @@ describe('an empty tenant', () => {
     expect(skills.topGaps).toEqual([]);
   });
 });
+
+// ── the skill aggregation does not grow with the cohort ─────────────────────
+
+describe('skill analytics at cohort scale', () => {
+  /**
+   * The pipeline used to group by skill and `$push` one entry per member, which meant its
+   * single result document grew with the cohort — and MongoDB refuses a document over 16MB,
+   * so the screen would not have got slower at scale, it would have stopped working. It now
+   * groups by distinct (skill, score, confidence) and counts, which is bounded by the
+   * catalogue instead.
+   */
+  const cohort = async (n: number, scores: number[]) => {
+    for (let i = 0; i < n; i += 1) {
+      const u = await member();
+      await skillProfile(u._id, 'JAVA_OOP', scores[i % scores.length]);
+    }
+  };
+
+  it('returns the same totals however many members share a score', async () => {
+    await configured();
+    // 60 members over 3 distinct scores: 20 each.
+    await cohort(60, [20, 55, 90]);
+
+    const s = await skillAnalytics(TENANT);
+    const java = s.skills.find((r: any) => r.skillKey === 'JAVA_OOP');
+
+    expect(java.assessed).toBe(60);
+    // Weighted by how many members share each bucket, not by how many buckets there are.
+    expect(java.averageScore).toBe(55);
+    expect(java.notAssessed).toBe(0);
+  });
+
+  it('costs the same for sixty members as for six', async () => {
+    await configured();
+    await cohort(6, [20, 55, 90]);
+    const small = await StudentSkillProfile.aggregate([
+      { $match: { tenantId: TENANT, skillKey: 'JAVA_OOP' } },
+      { $group: { _id: { skillKey: '$skillKey', score: '$score', confidence: '$confidence' }, n: { $sum: 1 } } },
+    ]);
+
+    await cohort(54, [20, 55, 90]);
+    const large = await StudentSkillProfile.aggregate([
+      { $match: { tenantId: TENANT, skillKey: 'JAVA_OOP' } },
+      { $group: { _id: { skillKey: '$skillKey', score: '$score', confidence: '$confidence' }, n: { $sum: 1 } } },
+    ]);
+
+    // Ten times the members, the same number of rows out of the database.
+    expect(large.length).toBe(small.length);
+    expect(large.length).toBe(3);
+    expect(large.reduce((t: number, r: any) => t + r.n, 0)).toBe(60);
+  });
+
+  it('still never averages an unmeasured skill as zero', async () => {
+    await configured();
+    await cohort(30, [80]);
+    // Nobody has SQL_JOINS measured at all.
+
+    const s = await skillAnalytics(TENANT);
+    const sql = s.skills.find((r: any) => r.skillKey === 'SQL_JOINS');
+
+    expect(sql.averageScore).toBeNull();
+    expect(sql.assessed).toBe(0);
+    expect(sql.notAssessed).toBe(30);
+  });
+
+  it('keeps low-confidence observations out of the average', async () => {
+    await configured();
+    const strong = await member();
+    await skillProfile(strong._id, 'JAVA_OOP', 90, 'HIGH');
+    const unsure = await member();
+    await skillProfile(unsure._id, 'JAVA_OOP', 10, 'LOW');
+
+    const s = await skillAnalytics(TENANT);
+    const java = s.skills.find((r: any) => r.skillKey === 'JAVA_OOP');
+
+    // The 10 is real evidence of nothing. Averaging it in would report 50.
+    expect(java.averageScore).toBe(90);
+    expect(java.assessed).toBe(1);
+    expect(java.limitedEvidence).toBe(1);
+  });
+});

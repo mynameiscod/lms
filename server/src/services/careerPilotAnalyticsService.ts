@@ -157,17 +157,26 @@ export async function skillAnalytics(tenantId: string): Promise<{
   /**
    * One aggregation for every skill, grouped in the database.
    *
-   * Output is proportional to the SKILL CATALOGUE — a few dozen rows — not to the number of
-   * students, so this costs the same for fifty members and fifty thousand.
+   * GROUPED BY DISTINCT OBSERVATION, NOT BY SKILL. The obvious shape — group by skillKey and
+   * `$push` each member's score — returns one array per skill holding a row PER MEMBER, so
+   * its output grows with the cohort and eventually exceeds MongoDB's 16MB document limit
+   * and fails outright. Grouping by (skill, score, confidence) and counting instead bounds
+   * the result by the skill catalogue times the score range times three confidences: a few
+   * thousand rows at most, and the same for fifty members and fifty thousand.
+   *
+   * The classification still runs in Node through Module 8's own `classifyGap`, once per
+   * distinct observation rather than once per member. Re-expressing that rule as aggregation
+   * operators would create a second opinion that drifts from the screen it describes.
    */
   const rows = await StudentSkillProfile.aggregate([
     { $match: { tenantId, studentId: { $in: ids }, skillKey: { $in: [...targets.keys()] } } },
     {
       $group: {
-        _id: '$skillKey',
         // Only MEDIUM/HIGH confidence counts toward the average — Module 8's rule, and the
-        // reason an unmeasured skill can never drag a mean down.
-        scores: { $push: { score: '$score', confidence: '$confidence' } },
+        // reason an unmeasured skill can never drag a mean down. Confidence is part of the
+        // key so that rule can still be applied to each bucket.
+        _id: { skillKey: '$skillKey', score: '$score', confidence: '$confidence' },
+        n: { $sum: 1 },
       },
     },
   ]);
@@ -176,19 +185,29 @@ export async function skillAnalytics(tenantId: string): Promise<{
     .select('key name').lean() as any[];
   const nameOf = new Map(skillDocs.map(s => [s.key, s.name]));
 
-  const measured = new Map<string, any[]>(rows.map((r: any) => [r._id, r.scores]));
+  /** skillKey → the distinct (score, confidence) buckets seen for it, each with a count. */
+  const measured = new Map<string, Array<{ score: number; confidence: string; n: number }>>();
+  for (const r of rows as any[]) {
+    const bucket = { score: r._id.score, confidence: r._id.confidence, n: r.n };
+    const list = measured.get(r._id.skillKey);
+    if (list) list.push(bucket); else measured.set(r._id.skillKey, [bucket]);
+  }
+
   const skills: SkillRow[] = [...targets.entries()].map(([skillKey, targetScore]) => {
     const observations = measured.get(skillKey) || [];
-    let assessed = 0; let limited = 0; let sum = 0;
+    let assessed = 0; let limited = 0; let sum = 0; let observed = 0;
     const counts: Record<string, number> = {};
 
     for (const o of observations) {
+      // Classified once per distinct observation, then weighted by how many members share
+      // it — the same totals the per-member loop produced, at a fraction of the reads.
       const status: GapStatus = classifyGap({
         studentScore: o.score, targetScore, confidence: o.confidence,
       });
-      counts[status] = (counts[status] || 0) + 1;
-      if (isSufficientlyAssessed(o.confidence)) { assessed += 1; sum += o.score; }
-      else limited += 1;
+      observed += o.n;
+      counts[status] = (counts[status] || 0) + o.n;
+      if (isSufficientlyAssessed(o.confidence)) { assessed += o.n; sum += o.score * o.n; }
+      else limited += o.n;
     }
 
     return {
@@ -196,7 +215,7 @@ export async function skillAnalytics(tenantId: string): Promise<{
       skillName: nameOf.get(skillKey) || skillKey.replace(/_/g, ' '),
       assessed,
       // Never measured at all — a member with no row for this skill.
-      notAssessed: ids.length - observations.length + (counts.NOT_ASSESSED || 0),
+      notAssessed: ids.length - observed + (counts.NOT_ASSESSED || 0),
       limitedEvidence: limited,
       // NULL, not 0, when nobody is sufficiently assessed. Averaging an unknown as zero is
       // the single mistake this whole module exists to avoid.

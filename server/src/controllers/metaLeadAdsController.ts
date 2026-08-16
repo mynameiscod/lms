@@ -196,7 +196,10 @@ export const verifyMetaLeadWebhook = async (req: Request, res: Response) => {
       res.status(200).send(challenge);
     } else {
       errorLog('VERIFY', `❌ Verification FAILED - mode=${mode}, tokenMatch=${token === VERIFY_TOKEN}`);
-      console.log('❌ Meta Lead Ads verification failed:', { mode, token });
+      // The token is a shared secret with Meta. The line above already reports whether it
+      // matched, which is the whole diagnostic value; printing the value itself puts a
+      // credential in the log file.
+      console.log('❌ Meta Lead Ads verification failed:', { mode });
       res.status(403).json({ error: 'Verification failed' });
     }
   } catch (error: any) {

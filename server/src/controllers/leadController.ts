@@ -450,7 +450,9 @@ export const createLead = async (req: AuthenticatedRequest, res: Response<ApiRes
     // Auto-score and auto-assign lead based on scoring rules
     try {
       console.log(`[LEAD-CREATE] ===== SCORING START for lead ${lead._id} =====`);
-      console.log(`[LEAD-CREATE] Lead data: name="${lead.name}", phone="${lead.phone}", source="${lead.source}", priority="${lead.priority}"`);
+      // Source and priority are what scoring turns on; the name and phone are the person.
+      // The id above is enough to find them when a scoring run needs investigating.
+      console.log(`[LEAD-CREATE] Lead data: source="${lead.source}", priority="${lead.priority}"`);
       console.log(`[LEAD-CREATE] CustomFields type: ${lead.customFields?.constructor?.name}, value:`, lead.customFields instanceof Map ? Object.fromEntries(lead.customFields) : lead.customFields);
       console.log(`[LEAD-CREATE] TenantId: ${req.tenantId}`);
       const scoringResult = await scoreAndAssignLead(lead, req.tenantId as unknown as mongoose.Types.ObjectId);

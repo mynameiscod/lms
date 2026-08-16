@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { buildConfigHealth } from '../services/careerPilotConfigHealthService';
 import { buildLaunchReadiness } from '../services/careerPilotLaunchReadinessService';
+import { buildDataIntegrity } from '../services/careerPilotDataIntegrityService';
 
 /**
  * Configuration health and launch readiness, for the admin.
@@ -37,5 +38,22 @@ export const launchReadiness = async (req: Request, res: Response) => {
   } catch (e: any) {
     console.error('[cp-health] launch-readiness:', e?.message || e);
     res.status(500).json({ message: 'Could not work out launch readiness.' });
+  }
+};
+
+/**
+ * GET /passport/admin/health/data-integrity
+ *
+ * The records, rather than the setup. Same rules as above: tenant from the token, read only,
+ * and the payload carries ObjectIds so a support person can go and look — never a name, an
+ * email or a phone number. A diagnostic that returns contact details is a contact export
+ * wearing a different name.
+ */
+export const dataIntegrity = async (req: Request, res: Response) => {
+  try {
+    res.json({ ...await buildDataIntegrity(tenantOf(req)), tenantScoped: true });
+  } catch (e: any) {
+    console.error('[cp-health] data-integrity:', e?.message || e);
+    res.status(500).json({ message: 'Could not run the data integrity checks.' });
   }
 };

@@ -364,6 +364,7 @@ router.get('/admin/analytics/placement',      MANAGE, cpanalytics.placement);
 
 router.get('/admin/health/configuration',     MANAGE, cphealth.configuration);
 router.get('/admin/health/launch-readiness',  MANAGE, cphealth.launchReadiness);
+router.get('/admin/health/data-integrity',    MANAGE, cphealth.dataIntegrity);
 
 router.get('/company-admin/:slug/profiles',                 MANAGE, cprofile.listProfiles);
 router.put('/company-admin/:slug/profiles/:roleKey',        MANAGE, cprofile.saveDraft);

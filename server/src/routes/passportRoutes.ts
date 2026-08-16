@@ -41,6 +41,7 @@ import * as cq from '../controllers/companyQuestionController';
 import * as mt from '../controllers/mockTestController';
 import * as prep from '../controllers/companyPreparationController';
 import * as cprofile from '../controllers/companyProfileAdminController';
+import * as cphealth from '../controllers/careerPilotHealthController';
 
 const router = express.Router();
 
@@ -343,6 +344,12 @@ router.put('/company-admin/:slug/pattern',         MANAGE, cq.savePattern);
 
 // What a company expects, in canonical skills. Draft → publish, because a half-finished set
 // of weights must not move every student's company readiness the moment it is typed.
+// Configuration health and launch readiness. Admin-only, tenant taken from the token, and
+// read-only — neither endpoint repairs anything, and the security findings report whether a
+// secret is configured, never what it is.
+router.get('/admin/health/configuration',     MANAGE, cphealth.configuration);
+router.get('/admin/health/launch-readiness',  MANAGE, cphealth.launchReadiness);
+
 router.get('/company-admin/:slug/profiles',                 MANAGE, cprofile.listProfiles);
 router.put('/company-admin/:slug/profiles/:roleKey',        MANAGE, cprofile.saveDraft);
 router.post('/company-admin/:slug/profiles/:roleKey/publish', MANAGE, cprofile.publish);

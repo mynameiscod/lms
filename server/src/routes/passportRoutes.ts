@@ -6,6 +6,10 @@ import * as staging from '../controllers/careerStagingController';
 import { authMiddleware } from '../middleware/auth';
 import { tenantMiddleware } from '../middleware/tenantMiddleware';
 import { roleGuard } from '../middleware/roleGuard';
+// Applied only where a retry costs money: AI generation, interviews, payment and
+// redemption. Ordinary reads are deliberately unlimited — a dashboard that 429s
+// under normal use is a worse outage than the spend it was protecting.
+import { rateLimit } from '../middleware/rateLimit';
 import * as ctrl from '../controllers/passportController';
 import * as assess from '../controllers/passportAssessmentController';
 import * as missions from '../controllers/passportMissionController';
@@ -158,7 +162,7 @@ router.get('/students/:studentId/readiness',    MANAGE, readiness.getStudentRole
 //    reversible rather than wrapped in a transaction. Students send a reward key and an
 //    intent token; every price and limit is resolved server-side. ──
 router.get('/me/rewards',                 MEMBER, rewards.getRewardCatalogue);
-router.post('/me/rewards/:key/redeem',    MEMBER, rewards.redeemRewardForMe);
+router.post('/me/rewards/:key/redeem',    MEMBER, rateLimit('redemption'), rewards.redeemRewardForMe);
 router.get('/me/redemptions',             MEMBER, rewards.getMyRedemptions);
 
 router.get('/rewards/admin',                              MANAGE, rewardsAdmin.listRewardsAdmin);
@@ -202,7 +206,7 @@ router.delete('/skill-resources/:id',     MANAGE, skillResources.deleteSkillReso
 //    may change Skill DNA and readiness, and the roadmap a student is following moves only
 //    when they explicitly ask through the existing replan endpoint below. ──
 router.get('/me/reassessment/status',              MEMBER, reassessment.getReassessmentStatus);
-router.post('/me/reassessment/start',              MEMBER, reassessment.startMyReassessment);
+router.post('/me/reassessment/start',              MEMBER, rateLimit('aiGenerate'), reassessment.startMyReassessment);
 router.get('/me/reassessment/history',             MEMBER, reassessment.getMyReassessmentHistory);
 router.get('/me/reassessment/:attemptId/result',   MEMBER, reassessment.getMyReassessmentResult);
 router.get('/me/roadmap/replan-status',            MEMBER, reassessment.getReplanStatus);
@@ -238,7 +242,7 @@ router.post('/assessments/:assessmentId/reproject',          MANAGE, skillDna.re
 // ── Personalised assessment generation (Module 6). A SEPARATE flow: the existing
 //    assessment endpoints are untouched, so incomplete evidence mapping cannot break a
 //    working exam. Role, stage and questions are all resolved server-side. ──
-router.post('/me/assessment/personalized/start', MEMBER, personalized.startPersonalizedAssessment);
+router.post('/me/assessment/personalized/start', MEMBER, rateLimit('aiGenerate'), personalized.startPersonalizedAssessment);
 // Saving is not submitting: status is untouched and nothing is graded. It exists so a
 // refresh, a dead battery or a shared machine cannot cost somebody a half-finished paper.
 router.put('/me/assessment/personalized/answers', MEMBER, personalized.savePersonalizedAnswers);
@@ -322,7 +326,7 @@ router.post('/companies/:slug/experience',   MEMBER, cq.submitExperience);
 
 // Company mock test. The paper is assembled per attempt from the bank plus AI top-up,
 // so there is no stored paper to leak or to share between students.
-router.post('/companies/:slug/mock-test/start',   MEMBER, mt.startMockTest);
+router.post('/companies/:slug/mock-test/start',   MEMBER, rateLimit('aiGenerate'), mt.startMockTest);
 router.get('/companies/:slug/mock-test/history',  MEMBER, mt.mockTestHistory);
 router.get('/mock-test/:id',                      MEMBER, mt.getMockTest);
 router.put('/mock-test/:id/answer',               MEMBER, mt.saveAnswer);
@@ -336,10 +340,10 @@ router.delete('/company-admin/companies/:id',      MANAGE, cq.deleteCompany);
 router.get('/company-admin/:slug/questions',       MANAGE, cq.adminQuestions);
 router.post('/company-admin/:slug/questions',      MANAGE, cq.saveQuestions);
 router.post('/company-admin/:slug/import',         MANAGE, cq.importQuestions);
-router.post('/company-admin/:slug/predict',        MANAGE, cq.predict);
+router.post('/company-admin/:slug/predict',        MANAGE, rateLimit('adminAi'), cq.predict);
 router.post('/company-admin/bulk',                 MANAGE, cq.bulkCreate);
 router.get('/company-admin/readiness',             MANAGE, cq.readinessBoard);
-router.post('/company-admin/:slug/draft-profile',  MANAGE, cq.draftProfile);
+router.post('/company-admin/:slug/draft-profile',  MANAGE, rateLimit('adminAi'), cq.draftProfile);
 router.put('/company-admin/:slug/verify',          MANAGE, cq.verifyFields);
 router.put('/company-admin/:slug/pattern',         MANAGE, cq.savePattern);
 
@@ -399,7 +403,7 @@ router.put('/me/context', MEMBER, careerContext.updateMyCareerContext);
 router.post('/set-password', MEMBER, ctrl.setPassword);
 
 // Membership activation (₹499, reuses the Razorpay rail)
-router.post('/membership/order',  MEMBER, ctrl.createMembershipOrder);
+router.post('/membership/order',  MEMBER, rateLimit('payment'), ctrl.createMembershipOrder);
 router.post('/membership/verify', MEMBER, ctrl.verifyMembership);
 
 // Gamified member dashboard — one call for the whole home screen
@@ -424,9 +428,9 @@ router.post('/practice/:id/submit',  MEMBER, practice.submit);
 
 // AI Mock Interviews (mock_interview entitlement)
 router.get('/interview',              MEMBER, interview.list);
-router.post('/interview/start',       MEMBER, interview.start);
+router.post('/interview/start',       MEMBER, rateLimit('aiInterview'), interview.start);
 router.get('/interview/:id',          MEMBER, interview.get);
-router.post('/interview/:id/turn',    MEMBER, interview.turn);
+router.post('/interview/:id/turn',    MEMBER, rateLimit('aiInterview'), interview.turn);
 router.post('/interview/speak',       MEMBER, interview.speak);
 router.post('/interview/:id/finish',  MEMBER, interview.finish);
 
@@ -435,7 +439,7 @@ router.get('/resume',            MEMBER, resume.get);
 router.put('/resume',            MEMBER, resume.save);
 // Import an existing CV. Stored briefly, parsed, then deleted by the controller — the
 // text is the point, the file is not.
-router.post('/resume/import',    MEMBER, resumeUpload.single('file'), resume.importResume);
+router.post('/resume/import',    MEMBER, rateLimit('aiGenerate'), resumeUpload.single('file'), resume.importResume);
 router.post('/resume/score',     MEMBER, resume.score);
 router.post('/resume/improve',   MEMBER, resume.improve);
 

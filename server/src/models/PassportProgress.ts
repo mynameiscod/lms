@@ -98,4 +98,17 @@ const PassportProgressSchema = new Schema<IPassportProgress>(
 
 PassportProgressSchema.index({ tenantId: 1, studentId: 1 }, { unique: true });
 
+/**
+ * The leaderboard: this tenant's members, highest XP first.
+ *
+ * Without it the only usable index is the unique one above, which cannot serve the sort —
+ * so every leaderboard read pulled the tenant's whole progress collection into memory and
+ * sorted it there, against MongoDB's 32 MB in-memory sort limit. The read is already
+ * capped at 500 rows; this makes the SCAN bounded too, so the work is proportional to the
+ * page rather than to the membership.
+ *
+ * Non-unique, so building it over existing data cannot fail.
+ */
+PassportProgressSchema.index({ tenantId: 1, xp: -1 });
+
 export default mongoose.model<IPassportProgress>('PassportProgress', PassportProgressSchema);

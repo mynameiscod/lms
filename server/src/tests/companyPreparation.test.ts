@@ -357,6 +357,81 @@ describe('choosing target companies', () => {
   });
 });
 
+// ── when a target was chosen ────────────────────────────────────────────────
+
+/**
+ * `addedAt` has to survive an ordinary edit.
+ *
+ * Targets are saved as a whole list, so the naive write stamps `now` on every entry — and a
+ * member who merely reordered their list, or switched which company is primary, silently
+ * restarts the clock on all of them. Analytics that later asks "when did students start
+ * preparing for Amazon" would be reading the date of their last unrelated edit instead.
+ */
+describe('the date a company became a target', () => {
+  const LONG_AGO = new Date('2026-01-15T10:00:00.000Z');
+  const written = () => userWrites.mock.calls[0][1].$set['passport.targetCompanies'];
+
+  beforeEach(() => {
+    storedUser = {
+      _id: STUDENT,
+      passport: {
+        targetCompanies: [
+          { slug: 'acme', primary: true, addedAt: LONG_AGO },
+        ],
+      },
+    };
+  });
+
+  it('survives adding another company', async () => {
+    await call(setTargets, mkReq({ body: { slugs: ['acme', 'beta'] } }));
+
+    const rows = written();
+    expect(rows.find((t: any) => t.slug === 'acme').addedAt).toEqual(LONG_AGO);
+    // The new one is stamped now, which is the whole point of keeping them apart.
+    expect(rows.find((t: any) => t.slug === 'beta').addedAt).not.toEqual(LONG_AGO);
+  });
+
+  it('survives changing which company is primary', async () => {
+    await call(setTargets, mkReq({ body: { slugs: ['acme', 'beta'], primary: 'beta' } }));
+
+    expect(written().find((t: any) => t.slug === 'acme').addedAt).toEqual(LONG_AGO);
+  });
+
+  it('survives reordering the same list', async () => {
+    storedUser.passport.targetCompanies.push({ slug: 'beta', primary: false, addedAt: LONG_AGO });
+
+    await call(setTargets, mkReq({ body: { slugs: ['beta', 'acme'] } }));
+
+    for (const row of written()) expect(row.addedAt).toEqual(LONG_AGO);
+  });
+
+  it('survives a save that changes nothing at all', async () => {
+    await call(setTargets, mkReq({ body: { slugs: ['acme'], primary: 'acme' } }));
+
+    expect(written()[0].addedAt).toEqual(LONG_AGO);
+  });
+
+  it('starts a fresh date for a company targeted for the first time', async () => {
+    const before = Date.now();
+    await call(setTargets, mkReq({ body: { slugs: ['beta'] } }));
+
+    const beta = written().find((t: any) => t.slug === 'beta');
+    expect(beta.addedAt.getTime()).toBeGreaterThanOrEqual(before);
+  });
+
+  it('starts a fresh date when a company is dropped and later re-added', async () => {
+    // Removing it ends that period of preparation; coming back is a new one.
+    await call(setTargets, mkReq({ body: { slugs: [] } }));
+    storedUser = { _id: STUDENT, passport: { targetCompanies: [] } };
+    jest.clearAllMocks();
+
+    const before = Date.now();
+    await call(setTargets, mkReq({ body: { slugs: ['acme'] } }));
+
+    expect(written()[0].addedAt.getTime()).toBeGreaterThanOrEqual(before);
+  });
+});
+
 // ── the listing ─────────────────────────────────────────────────────────────
 
 describe('the company listing', () => {

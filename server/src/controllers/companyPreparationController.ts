@@ -243,7 +243,7 @@ export const companyOverview = async (req: Request, res: Response) => {
  */
 export const setTargets = async (req: Request, res: Response) => {
   try {
-    const { tenantId, studentId, entitled } = await gate(req);
+    const { tenantId, studentId, user, entitled } = await gate(req);
     if (!entitled) return res.status(403).json({ message: 'Membership required.' });
 
     const raw = Array.isArray(req.body?.slugs) ? req.body.slugs : [];
@@ -261,12 +261,26 @@ export const setTargets = async (req: Request, res: Response) => {
     const readySet = new Set(ready);
     const valid = (rows as any[]).map(r => r.slug).filter(s => readySet.has(s));
 
+    /**
+     * When they started targeting each company — PRESERVED ACROSS EDITS.
+     *
+     * This is a whole-list write, so the naive version stamps `now` on every entry and a
+     * member who merely reordered their list, or switched which company is primary, has
+     * silently restarted the clock on all of them. Analytics that later asks "when did
+     * students start preparing for Amazon" would then be reading the date of their last
+     * unrelated edit.
+     *
+     * Only a company that was not already targeted gets a new stamp.
+     */
+    const existingAddedAt = new Map<string, Date>(
+      (user?.passport?.targetCompanies || []).map((t: any) => [t.slug, t.addedAt]),
+    );
     const now = new Date();
     const targetCompanies = valid.map(slug => ({
       slug,
       // Exactly one primary, and only if the member named one that survived validation.
       primary: slug === primary,
-      addedAt: now,
+      addedAt: existingAddedAt.get(slug) || now,
     }));
 
     await User.updateOne(

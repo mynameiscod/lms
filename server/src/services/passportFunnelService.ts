@@ -1,8 +1,8 @@
+import mongoose from 'mongoose';
 import User from '../models/User';
 import PassportAttempt from '../models/PassportAttempt';
 import Payment from '../models/Payment';
 import PassportProgress from '../models/PassportProgress';
-import { membershipActive } from './passportEntitlementService';
 
 /**
  * Where every member stopped, and what to do about it.
@@ -93,128 +93,388 @@ export interface FunnelRow {
 const days = (from: Date | null | undefined, now: number) =>
   from ? Math.max(0, Math.floor((now - new Date(from).getTime()) / 86400000)) : 0;
 
+/** Gone quiet, as milliseconds, so the pipeline can compare without a date helper. */
+const QUIET_MS = QUIET_DAYS * 86_400_000;
+
 /**
- * Classify every CareerPilot member into exactly one stage.
+ * Most rows one call will return.
  *
- * Everything is loaded per collection and joined in memory rather than per-member
- * queries: at 39 members either works, at 100,000 the per-member version is 400,000
- * round trips.
+ * Counts and totals are always exact — they come from a $group over the whole tenant, not
+ * from these rows. This caps only the LIST, because a caller works a page of names, and a
+ * response carrying ten thousand phone numbers is a payload nobody reads and a privacy
+ * surface nobody asked for.
  */
-export async function buildFunnel(tenantId: string): Promise<{
+export const MAX_FUNNEL_ROWS = 2000;
+
+export interface FunnelOptions {
+  /** Restrict the returned rows to one stage. Counts still cover every stage. */
+  stage?: StageKey;
+  limit?: number;
+  skip?: number;
+}
+
+/**
+ * The tenant, in the two shapes this join needs.
+ *
+ * User and Payment store `tenantId` as an ObjectId; PassportAttempt and PassportProgress
+ * store it as a string. Mongoose used to hide that by casting per model — an aggregation
+ * casts nothing, so each stage has to be handed the type its own collection actually
+ * stores. Getting it wrong matches nothing and reads as "this member never paid" rather
+ * than as an error, which is precisely why the integration suite exists.
+ */
+const tenantKeys = (tenantId: string) => ({
+  asString: String(tenantId),
+  asObjectId: mongoose.isValidObjectId(tenantId)
+    ? new mongoose.Types.ObjectId(String(tenantId))
+    : null,
+});
+
+/**
+ * Classify every member into exactly one stage — in the database.
+ *
+ * WHY THIS IS A PIPELINE NOW. It used to load every member, then every attempt, payment and
+ * progress row belonging to them, and join the four in memory: four unbounded reads and an
+ * O(members) reduce per request, with each member's whole XP log scanned to find its newest
+ * entry. At the current size that is fine, and the original said so. At the ten thousand
+ * members this product is being launched for it is a slow request that gets slower every
+ * month, on a screen an admin keeps open all day.
+ *
+ * THE CLASSIFICATION IS UNCHANGED. Same stages, same precedence, same quiet threshold, same
+ * fallbacks for members who predate `verifiedAt`. It is written as a $switch instead of an
+ * if-chain and returns the same answer for the same data — asserted member by member by the
+ * integration suite that was written against the previous implementation and not touched.
+ *
+ * INDEXES IT LEANS ON: `users {tenantId}`, and `{tenantId, studentId}` on each of
+ * passportattempts, payments and passportprogresses. All already exist — every one of those
+ * collections is queried that way elsewhere.
+ */
+function classifyPipeline(tenantId: string, now: Date): any[] {
+  const { asString, asObjectId } = tenantKeys(tenantId);
+  if (!asObjectId) return [];      // an id no user can carry; the tenant is simply empty
+
+  /** One member's newest submitted assessment. Its existence means they were scored. */
+  const attemptLookup = {
+    $lookup: {
+      from: PassportAttempt.collection.name,
+      let: { uid: '$_id' },
+      pipeline: [
+        { $match: { $expr: { $eq: ['$studentId', '$$uid'] }, tenantId: asString } },
+        { $group: { _id: null, at: { $max: '$createdAt' } } },
+      ],
+      as: 'attempt',
+    },
+  };
+
+  /**
+   * Payments, reduced to the three facts the classification needs: whether any completed,
+   * how many did and for how much — counted per ROW, as before, so a member who paid twice
+   * contributes twice to the revenue line — and the newest one that did not.
+   */
+  const paymentLookup = {
+    $lookup: {
+      from: Payment.collection.name,
+      let: { uid: '$_id' },
+      pipeline: [
+        {
+          $match: {
+            $expr: { $eq: ['$studentId', '$$uid'] },
+            tenantId: asObjectId,
+            purpose: 'passport_membership',
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            paidCount: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, 1, 0] } },
+            paidSum: { $sum: { $cond: [{ $eq: ['$status', 'paid'] }, '$amount', 0] } },
+            pending: {
+              $push: {
+                $cond: [
+                  { $ne: ['$status', 'paid'] },
+                  { at: '$createdAt', amount: '$amount' },
+                  '$$REMOVE',
+                ],
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            paidCount: 1,
+            paidSum: 1,
+            // The newest unpaid attempt: what they nearly paid, and when they walked away.
+            pending: {
+              $reduce: {
+                input: '$pending',
+                initialValue: null,
+                in: {
+                  $cond: [
+                    { $or: [{ $eq: ['$$value', null] }, { $gt: ['$$this.at', '$$value.at'] }] },
+                    '$$this',
+                    '$$value',
+                  ],
+                },
+              },
+            },
+          },
+        },
+      ],
+      as: 'pay',
+    },
+  };
+
+  /**
+   * When this member last did anything.
+   *
+   * The newest of the progress row's own timestamp and every entry in its XP, completion
+   * and practice logs — the same set the in-memory version reduced with Math.max.
+   */
+  const progressLookup = {
+    $lookup: {
+      from: PassportProgress.collection.name,
+      let: { uid: '$_id' },
+      pipeline: [
+        { $match: { $expr: { $eq: ['$studentId', '$$uid'] }, tenantId: asString } },
+        {
+          $project: {
+            at: {
+              $max: {
+                $concatArrays: [
+                  [{ $ifNull: ['$updatedAt', null] }],
+                  { $ifNull: [{ $map: { input: '$xpLog', in: '$$this.at' } }, []] },
+                  { $ifNull: [{ $map: { input: '$completed', in: '$$this.at' } }, []] },
+                  { $ifNull: [{ $map: { input: '$practice', in: '$$this.at' } }, []] },
+                ],
+              },
+            },
+          },
+        },
+        { $group: { _id: null, at: { $max: '$at' } } },
+      ],
+      as: 'activity',
+    },
+  };
+
+  const facts = {
+    $addFields: {
+      p: { $ifNull: ['$passport', {}] },
+      scoredAt: { $arrayElemAt: ['$attempt.at', 0] },
+      paidCount: { $ifNull: [{ $arrayElemAt: ['$pay.paidCount', 0] }, 0] },
+      paidSum: { $ifNull: [{ $arrayElemAt: ['$pay.paidSum', 0] }, 0] },
+      pendingAt: { $arrayElemAt: ['$pay.pending.at', 0] },
+      pendingAmount: { $arrayElemAt: ['$pay.pending.amount', 0] },
+      lastActivity: { $arrayElemAt: ['$activity.at', 0] },
+    },
+  };
+
+  /** membershipActive(): flagged active AND not past expiry. */
+  const membership = {
+    $addFields: {
+      live: {
+        $and: [
+          { $eq: ['$p.active', true] },
+          {
+            $or: [
+              { $eq: [{ $ifNull: ['$p.expiresAt', null] }, null] },
+              { $gte: ['$p.expiresAt', now] },
+            ],
+          },
+        ],
+      },
+      // For a live member: the newest of activity, lastSeenAt, activatedAt, joined.
+      seen: {
+        $ifNull: [
+          '$lastActivity',
+          { $ifNull: ['$p.lastSeenAt', { $ifNull: ['$p.activatedAt', '$createdAt'] }] },
+        ],
+      },
+    },
+  };
+
+  /** True when this member has been scored, either by an attempt row or a stored score. */
+  const wasScored = {
+    $or: [
+      { $ne: [{ $ifNull: ['$scoredAt', null] }, null] },
+      { $ne: [{ $ifNull: ['$p.careerScore', null] }, null] },
+    ],
+  };
+
+  /** True when they demonstrably got past the OTP, however old their account is. */
+  const wasVerified = {
+    $or: [
+      { $ne: [{ $ifNull: ['$p.verifiedAt', null] }, null] },
+      { $eq: ['$p.passwordSet', true] },
+      { $ne: [{ $ifNull: ['$p.lastSeenAt', null] }, null] },
+    ],
+  };
+
+  const hasPending = { $ne: [{ $ifNull: ['$pendingAt', null] }, null] };
+  const hasPaid = { $gt: ['$paidCount', 0] };
+
+  /**
+   * The stage, in the same order of investment the if-chain used: a live membership beats a
+   * completed payment, which beats an abandoned checkout, which beats a score, which beats
+   * mere verification.
+   */
+  const stage = {
+    $addFields: {
+      stage: {
+        $switch: {
+          branches: [
+            {
+              case: '$live',
+              then: { $cond: [{ $gte: [{ $subtract: [now, '$seen'] }, QUIET_MS] }, 'quiet', 'active'] },
+            },
+            { case: hasPaid, then: 'expired' },
+            { case: hasPending, then: 'checkout_abandoned' },
+            { case: wasScored, then: 'scored_unpaid' },
+            { case: wasVerified, then: 'no_assessment' },
+          ],
+          default: 'unverified',
+        },
+      },
+    },
+  };
+
+  /** The date each stage measures staleness from — again, exactly as before. */
+  const lastTouch = {
+    $addFields: {
+      lastTouch: {
+        $switch: {
+          branches: [
+            { case: '$live', then: '$seen' },
+            {
+              case: hasPaid,
+              then: { $ifNull: ['$p.expiresAt', { $ifNull: ['$p.activatedAt', '$createdAt'] }] },
+            },
+            { case: hasPending, then: '$pendingAt' },
+            {
+              case: wasScored,
+              then: { $ifNull: ['$scoredAt', { $ifNull: ['$p.lastSeenAt', '$createdAt'] }] },
+            },
+            {
+              case: wasVerified,
+              then: { $ifNull: ['$p.lastSeenAt', { $ifNull: ['$p.verifiedAt', '$createdAt'] }] },
+            },
+          ],
+          default: '$createdAt',
+        },
+      },
+    },
+  };
+
+  return [
+    { $match: { tenantId: asObjectId, passport: { $exists: true, $ne: null } } },
+    attemptLookup, paymentLookup, progressLookup,
+    facts, membership, stage, lastTouch,
+  ];
+}
+
+const shapeRow = (d: any, now: number): FunnelRow => {
+  const p = d.p || {};
+  const last = d.lastTouch || d.createdAt;
+  return {
+    id: String(d._id),
+    name: `${d.firstName || ''} ${d.lastName === '-' ? '' : (d.lastName || '')}`.trim() || '(no name)',
+    email: d.email || '',
+    phone: d.phone || '',
+    stage: d.stage,
+    stuckDays: days(last, now),
+    joinedAt: d.createdAt,
+    lastTouch: last,
+    careerScore: p.careerScore ?? null,
+    pathway: p.pathway ?? null,
+    ...(d.stage === 'checkout_abandoned'
+      ? { pendingAmountInr: Math.round((d.pendingAmount || 0) / 100) }
+      : {}),
+  };
+};
+
+/**
+ * Classify every member into exactly one stage, and count them.
+ *
+ * Counts and totals are exact and cover the whole tenant. The row LIST is capped — see
+ * MAX_FUNNEL_ROWS — and can be narrowed to one stage, because that is what a caller working
+ * through a page of names actually needs.
+ */
+export async function buildFunnel(tenantId: string, opts: FunnelOptions = {}): Promise<{
   rows: FunnelRow[];
   counts: Record<StageKey, number>;
   totals: { members: number; paid: number; revenueInr: number; unverifiedShare: number };
 }> {
-  const now = Date.now();
-
-  const users: any[] = await User.find({ tenantId, passport: { $exists: true, $ne: null } })
-    .select('firstName lastName email phone createdAt passport').lean();
-
-  const ids = users.map(u => u._id);
-
-  const [attempts, payments, progresses] = await Promise.all([
-    // Written on submit, so its existence means the assessment was COMPLETED.
-    PassportAttempt.find({ tenantId, studentId: { $in: ids } })
-      .select('studentId createdAt careerScore').lean(),
-    Payment.find({ tenantId, studentId: { $in: ids }, purpose: 'passport_membership' })
-      .select('studentId status amount createdAt').lean(),
-    PassportProgress.find({ tenantId, studentId: { $in: ids } })
-      .select('studentId updatedAt xpLog completed practice').lean(),
-  ]);
-
-  /** When each member last COMPLETED an assessment. */
-  const scoredAt = new Map<string, Date>();
-  for (const a of attempts as any[]) {
-    const k = String(a.studentId);
-    const prev = scoredAt.get(k);
-    if (!prev || +new Date(a.createdAt) > +new Date(prev)) scoredAt.set(k, a.createdAt);
-  }
-
-  const payOf = new Map<string, { paid: boolean; lastCreated: Date | null; amount: number }>();
-  for (const p of payments as any[]) {
-    const k = String(p.studentId);
-    const cur = payOf.get(k) || { paid: false, lastCreated: null, amount: 0 };
-    if (p.status === 'paid') cur.paid = true;
-    else if (!cur.lastCreated || +new Date(p.createdAt) > +new Date(cur.lastCreated)) {
-      cur.lastCreated = p.createdAt;
-      cur.amount = Math.round((p.amount || 0) / 100);
-    }
-    payOf.set(k, cur);
-  }
-
-  const activityOf = new Map<string, Date>();
-  for (const g of progresses as any[]) {
-    const stamps = [
-      g.updatedAt,
-      ...(g.xpLog || []).map((x: any) => x.at),
-      ...(g.completed || []).map((x: any) => x.at),
-      ...(g.practice || []).map((x: any) => x.at),
-    ].filter(Boolean).map((d: any) => +new Date(d));
-    if (stamps.length) activityOf.set(String(g.studentId), new Date(Math.max(...stamps)));
-  }
-
-  const rows: FunnelRow[] = users.map(u => {
-    const k = String(u._id);
-    const p = u.passport || {};
-    const scored = scoredAt.get(k);
-    const pay = payOf.get(k);
-    const lastActivity = activityOf.get(k) || null;
-
-    // Ordered by investment: the furthest point reached wins.
-    let stage: StageKey;
-    let lastTouch: Date = u.createdAt;
-
-    if (membershipActive(p)) {
-      const seen = lastActivity || p.lastSeenAt || p.activatedAt || u.createdAt;
-      stage = days(seen, now) >= QUIET_DAYS ? 'quiet' : 'active';
-      lastTouch = seen;
-    } else if (pay?.paid) {
-      // Paid at some point, but the membership is no longer active.
-      stage = 'expired';
-      lastTouch = p.expiresAt || p.activatedAt || u.createdAt;
-    } else if (pay?.lastCreated) {
-      stage = 'checkout_abandoned';
-      lastTouch = pay.lastCreated;
-    } else if (scored || p.careerScore != null) {
-      stage = 'scored_unpaid';
-      lastTouch = scored || p.lastSeenAt || u.createdAt;
-    } else if (p.verifiedAt || p.passwordSet || p.lastSeenAt) {
-      // verifiedAt only exists from the day it shipped, so passwordSet and lastSeenAt
-      // stand in for anyone older who demonstrably got past the OTP.
-      stage = 'no_assessment';
-      lastTouch = p.lastSeenAt || p.verifiedAt || u.createdAt;
-    } else {
-      stage = 'unverified';
-      lastTouch = u.createdAt;
-    }
-
-    return {
-      id: k,
-      name: `${u.firstName || ''} ${u.lastName === '-' ? '' : (u.lastName || '')}`.trim() || '(no name)',
-      email: u.email || '',
-      phone: u.phone || '',
-      stage,
-      stuckDays: days(lastTouch, now),
-      joinedAt: u.createdAt,
-      lastTouch,
-      careerScore: p.careerScore ?? null,
-      pathway: p.pathway ?? null,
-      ...(stage === 'checkout_abandoned' ? { pendingAmountInr: pay?.amount || 0 } : {}),
-    };
-  });
+  const now = new Date();
+  const nowMs = now.getTime();
+  const base = classifyPipeline(tenantId, now);
 
   const counts = STAGES.reduce((o, s) => ({ ...o, [s.key]: 0 }), {} as Record<StageKey, number>);
-  rows.forEach(r => { counts[r.stage]++; });
+  if (!base.length) {
+    return { rows: [], counts, totals: { members: 0, paid: 0, revenueInr: 0, unverifiedShare: 0 } };
+  }
 
-  const paidRows = payments.filter((p: any) => p.status === 'paid');
+  const limit = Math.min(MAX_FUNNEL_ROWS, Math.max(1, opts.limit ?? MAX_FUNNEL_ROWS));
+  const skip = Math.max(0, opts.skip ?? 0);
+
+  /**
+   * One pass, two answers.
+   *
+   * $facet runs the count and the page over the same classified set, so the list a caller
+   * pages through and the totals above it can never disagree — which two separate round
+   * trips would eventually allow.
+   */
+  const [result] = await User.aggregate([
+    ...base,
+    {
+      $facet: {
+        counts: [{ $group: { _id: '$stage', n: { $sum: 1 } } }],
+        money: [
+          {
+            $group: {
+              _id: null,
+              // Per payment ROW, as before: two payments by one member are two rows here.
+              paid: { $sum: '$paidCount' },
+              revenuePaise: { $sum: '$paidSum' },
+            },
+          },
+        ],
+        rows: [
+          ...(opts.stage ? [{ $match: { stage: opts.stage } }] : []),
+          // Coldest first. Sorted newest-first, a caller works the same fresh names every
+          // morning and nobody ever rings the person who has been stuck for a month.
+          { $sort: { lastTouch: 1 } },
+          { $skip: skip },
+          { $limit: limit },
+          {
+            $project: {
+              firstName: 1, lastName: 1, email: 1, phone: 1, createdAt: 1,
+              stage: 1, lastTouch: 1, pendingAmount: 1,
+              'p.careerScore': 1, 'p.pathway': 1,
+            },
+          },
+        ],
+      },
+    },
+  ]).allowDiskUse(true);
+
+  for (const c of result?.counts || []) {
+    if (c._id in counts) counts[c._id as StageKey] = c.n;
+  }
+  const money = result?.money?.[0] || { paid: 0, revenuePaise: 0 };
+  const members = Object.values(counts).reduce((a: number, b: number) => a + b, 0);
+
   return {
-    rows,
+    rows: (result?.rows || []).map((d: any) => shapeRow(d, nowMs)),
     counts,
     totals: {
-      members: rows.length,
-      paid: paidRows.length,
-      revenueInr: Math.round(paidRows.reduce((s: number, p: any) => s + (p.amount || 0), 0) / 100),
-      unverifiedShare: rows.length ? Math.round((counts.unverified / rows.length) * 100) : 0,
+      members,
+      paid: money.paid || 0,
+      revenueInr: Math.round((money.revenuePaise || 0) / 100),
+      unverifiedShare: members ? Math.round((counts.unverified / members) * 100) : 0,
     },
   };
+}
+
+/** Counts and totals only — the board itself needs no member list at all. */
+export async function funnelCounts(tenantId: string) {
+  const { counts, totals } = await buildFunnel(tenantId, { limit: 1 });
+  return { counts, totals };
 }

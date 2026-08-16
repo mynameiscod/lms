@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
-import { buildFunnel, STAGES, StageKey } from '../services/passportFunnelService';
+import {
+  buildFunnel, funnelCounts, STAGES, StageKey, MAX_FUNNEL_ROWS,
+} from '../services/passportFunnelService';
 
 /**
  * The drop-off funnel: who stopped where, and who to contact.
@@ -15,7 +17,8 @@ const tenantOf = (req: Request): string =>
 /** GET /passport/funnel — the whole board: stage definitions, counts and totals. */
 export const getFunnel = async (req: Request, res: Response) => {
   try {
-    const { counts, totals } = await buildFunnel(tenantOf(req));
+    // Counts and totals only. The board shows no names, so it loads none.
+    const { counts, totals } = await funnelCounts(tenantOf(req));
     res.json({
       stages: STAGES.map(s => ({ ...s, count: counts[s.key] })),
       totals,
@@ -46,18 +49,19 @@ export const getStageMembers = async (req: Request, res: Response) => {
       return res.status(400).json({ message: `Unknown stage "${stage}".` });
     }
 
-    const { rows } = await buildFunnel(tenantOf(req));
     const limit = Math.min(500, Math.max(1, Number(req.query.limit) || 200));
-    const members = rows
-      .filter(r => r.stage === stage)
-      .sort((a, b) => b.stuckDays - a.stuckDays)
-      .slice(0, limit);
+    const skip = Math.max(0, Number(req.query.skip) || 0);
+
+    // Filtered, sorted coldest-first and paged in the database — the whole tenant no
+    // longer travels into Node so that one page of it can be shown.
+    const { rows, counts } = await buildFunnel(tenantOf(req), { stage, limit, skip });
 
     res.json({
       stage: STAGES.find(s => s.key === stage),
-      total: rows.filter(r => r.stage === stage).length,
-      returned: members.length,
-      members,
+      total: counts[stage],
+      returned: rows.length,
+      skip,
+      members: rows,
     });
   } catch (e: any) {
     console.error('[funnel] getStageMembers:', e?.message || e);
@@ -77,8 +81,10 @@ export const exportStage = async (req: Request, res: Response) => {
     const def = STAGES.find(s => s.key === stage);
     if (!def) return res.status(400).json({ message: `Unknown stage "${stage}".` });
 
-    const { rows } = await buildFunnel(tenantOf(req));
-    const members = rows.filter(r => r.stage === stage).sort((a, b) => b.stuckDays - a.stuckDays);
+    // Bounded like every other read now. A calling sheet is worked by a person, so
+    // MAX_FUNNEL_ROWS is far more names than anyone gets through — and it is a ceiling on
+    // how many contact details one request can hand out.
+    const { rows: members } = await buildFunnel(tenantOf(req), { stage, limit: MAX_FUNNEL_ROWS });
 
     console.log(`[funnel] export "${stage}" — ${members.length} contacts by ${(req as any).user?.email || 'unknown'}`);
 

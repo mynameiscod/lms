@@ -10,6 +10,7 @@ import { ApiResponse } from './types';
 import { processDueMessages } from './services/whatsAppDripService';
 import { apiErrorLogger } from './middleware/errorLogger';
 import { logger } from './utils/logger';
+import { readiness } from './services/healthService';
 
 dotenv.config();
 
@@ -68,12 +69,33 @@ app.use(apiErrorLogger); // log all 4xx/5xx responses to file + stdout
 app.use(express.json({ limit: '10mb', verify: (req, _res, buf) => { (req as any).rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Health check endpoint
-app.get('/api/health', (req: Request, res: Response<ApiResponse<any>>) => {
-  res.json({
-    success: true,
-    message: 'LMS API is running',
-    data: { status: 'OK', timestamp: new Date().toISOString() }
+/**
+ * Health.
+ *
+ * `/api/health/live` — is this process running. Nothing else, deliberately: if a restart
+ * cannot fix it, it does not belong here, and a liveness probe that consults the database
+ * turns a transient blip into a restart loop that guarantees the outage.
+ *
+ * `/api/health/ready` — should traffic come here. 503 when a REQUIRED dependency is down,
+ * so blue/green stops promoting an instance that cannot reach MongoDB. Optional
+ * dependencies (Redis, AI provider, payments) are reported and never gate the verdict —
+ * an absent AI key means one feature says "temporarily unavailable", not that a student's
+ * roadmap should stop loading.
+ *
+ * `/api/health` — the original path, kept because deploy scripts and uptime checks point
+ * at it. It now answers the readiness question rather than returning a literal OK, which
+ * is what it was always assumed to mean.
+ */
+app.get('/api/health/live', (_req: Request, res: Response<ApiResponse<any>>) => {
+  res.json({ success: true, message: 'alive', data: { status: 'OK', at: new Date().toISOString() } });
+});
+
+app.get(['/api/health', '/api/health/ready'], (_req: Request, res: Response<ApiResponse<any>>) => {
+  const report = readiness();
+  res.status(report.ready ? 200 : 503).json({
+    success: report.ready,
+    message: report.ready ? 'ready' : 'not ready',
+    data: report,
   });
 });
 

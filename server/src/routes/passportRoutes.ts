@@ -42,6 +42,7 @@ import * as mt from '../controllers/mockTestController';
 import * as prep from '../controllers/companyPreparationController';
 import * as cprofile from '../controllers/companyProfileAdminController';
 import * as cphealth from '../controllers/careerPilotHealthController';
+import * as cpanalytics from '../controllers/careerPilotAnalyticsController';
 
 const router = express.Router();
 
@@ -347,6 +348,16 @@ router.put('/company-admin/:slug/pattern',         MANAGE, cq.savePattern);
 // Configuration health and launch readiness. Admin-only, tenant taken from the token, and
 // read-only — neither endpoint repairs anything, and the security findings report whether a
 // secret is configured, never what it is.
+// CareerPilot analytics. Admin-only, tenant from the token, grouped by the question an
+// admin is asking rather than by collection. Every response carries its range, generation
+// time and coverage — including which figures are unavailable and why.
+router.get('/admin/analytics/overview',       MANAGE, cpanalytics.overview);
+router.get('/admin/analytics/skills',         MANAGE, cpanalytics.skills);
+router.get('/admin/analytics/progress',       MANAGE, cpanalytics.progress);
+router.get('/admin/analytics/engagement',     MANAGE, cpanalytics.engagement);
+router.get('/admin/analytics/economy',        MANAGE, cpanalytics.economy);
+router.get('/admin/analytics/placement',      MANAGE, cpanalytics.placement);
+
 router.get('/admin/health/configuration',     MANAGE, cphealth.configuration);
 router.get('/admin/health/launch-readiness',  MANAGE, cphealth.launchReadiness);
 
